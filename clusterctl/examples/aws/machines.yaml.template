@@ -1,0 +1,15 @@
+items:
+- apiVersion: "cluster.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    generateName: aws-controlplane-
+    labels:
+      set: controlplane
+  spec:
+- apiVersion: "cluster.k8s.io/v1alpha1"
+  kind: Machine
+  metadata:
+    generateName: aws-node-
+    labels:
+      set: node
+  spec:

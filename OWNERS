@@ -1,0 +1,12 @@
+# See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
+
+approvers:
+  - sig-cluster-lifecycle-leads
+  - sig-aws-leads
+  - cluster-api-admins
+  - cluster-api-maintainers
+  - cluster-api-aws-maintainers
+
+reviewers:
+  - cluster-api-maintainers
+  - cluster-api-aws-maintainers

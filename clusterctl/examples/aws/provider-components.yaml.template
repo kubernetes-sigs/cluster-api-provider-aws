@@ -1,0 +1,101 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: clusterapi-controllers
+  labels:
+    api: clusterapi
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        api: clusterapi
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/notReady
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/unreachable
+        operator: Exists
+      containers:
+      - name: controller-manager
+        image: gcr.io/k8s-cluster-api/controller-manager:0.0.7
+        volumeMounts:
+          - name: config
+            mountPath: /etc/kubernetes
+          - name: certs
+            mountPath: /etc/ssl/certs
+        command:
+        - "./controller-manager"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        - --leader-elect
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+      - name: aws-cluster-controller
+        image: gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1
+        volumeMounts:
+          - name: config
+            mountPath: /etc/kubernetes
+          - name: certs
+            mountPath: /etc/ssl/certs
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        command:
+        - "./cluster-controller"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        - --leader-elect
+        resources:
+          requests:
+            cpu: 200m
+            memory: 200Mi
+          limits:
+            cpu: 400m
+            memory: 500Mi
+      - name: aws-machine-controller
+        image: gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1
+        volumeMounts:
+          - name: config
+            mountPath: /etc/kubernetes
+          - name: certs
+            mountPath: /etc/ssl/certs
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        command:
+        - "./machine-controller"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        - --leader-elect
+        resources:
+          requests:
+            cpu: 200m
+            memory: 200Mi
+          limits:
+            cpu: 400m
+            memory: 500Mi
+      volumes:
+      - name: config
+        hostPath:
+          path: /etc/kubernetes
+      - name: certs
+        hostPath:
+          path: /etc/ssl/certs
