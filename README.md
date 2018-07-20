@@ -2,7 +2,7 @@
 
 This repository hosts an implementation of a provider for AWS for the [cluster-api project](https://sigs.k8s.io/cluster-api).
 
-Note: This repository is currently a skeleton implementation of a cluster-api provider, implementation will begin once there is agreement on the [Design Spec](https://docs.google.com/document/d/18hx-5u2dubd-5OSjm-fd_CvH5UN3E6TW8qnDLIHjcOc/edit).
+Note: This repository is currently a skeleton implementation of a cluster-api provider, implementation will begin once there is agreement on the [Design Spec](https://docs.google.com/document/d/1G7DRQccoTY5YBrinQb6sz_fRLB9zFbCnI1O984XFk7Q).
 
 ## Community, discussion, contribution, and support
 
