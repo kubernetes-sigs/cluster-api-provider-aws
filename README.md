@@ -16,3 +16,10 @@ You can reach the maintainers of this project at:
 ### Code of conduct
 
 Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+
+### How to build the images in the RH infrastructure
+The Dockerfiles use `as builder` in the `FROM` instruction which is not currently supported
+by the RH's docker fork (see [https://github.com/kubernetes-sigs/kubebuilder/issues/268](https://github.com/kubernetes-sigs/kubebuilder/issues/268)).
+One needs to run the `imagebuilder` command instead of the `docker build`.
+
+Note: this info is RH only, it needs to be backported every time the `README.md` is synced with the upstream one.
