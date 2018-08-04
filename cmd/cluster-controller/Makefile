@@ -21,7 +21,7 @@ NAME = aws-cluster-controller
 TAG = 0.0.1
 
 image:
-	docker build -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../..
+	imagebuilder -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../..
 
 push: image
 	docker push "$(PREFIX)/$(NAME):$(TAG)"

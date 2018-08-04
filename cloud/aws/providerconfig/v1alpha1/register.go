@@ -41,11 +41,19 @@ var (
 	AddToScheme        = localSchemeBuilder.AddToScheme
 )
 
+var (
+	// Codecs for creating a server config
+	Scheme, _  = NewScheme()
+	Codecs     = serializer.NewCodecFactory(Scheme)
+	Encoder, _ = newEncoder(&Codecs)
+)
+
 func init() {
 	localSchemeBuilder.Register(addKnownTypes)
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {
+	fmt.Printf("Registering v1alpha1 types\n")
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&AWSMachineProviderConfig{},
 	)
@@ -62,6 +70,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 }
 
 func NewScheme() (*runtime.Scheme, error) {
+	fmt.Printf("New Scheme v1alpha1 types\n")
 	scheme := runtime.NewScheme()
 	if err := AddToScheme(scheme); err != nil {
 		return nil, err
@@ -69,6 +78,7 @@ func NewScheme() (*runtime.Scheme, error) {
 	if err := providerconfig.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
+	addKnownTypes(scheme)
 	return scheme, nil
 }
 

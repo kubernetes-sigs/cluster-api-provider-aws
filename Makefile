@@ -49,6 +49,9 @@ check: depend fmt vet
 test:
 	go test -race -cover ./cmd/... ./cloud/...
 
+integration:
+	go test -v sigs.k8s.io/cluster-api-provider-aws/test/integration
+
 fmt:
 	hack/verify-gofmt.sh
 
