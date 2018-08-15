@@ -25,7 +25,7 @@ depend-update: work
 
 generate: gendeepcopy
 
-gendeepcopy:
+gendeepcopy: depend
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
 	  -i ./cloud/aws/providerconfig,./cloud/aws/providerconfig/v1alpha1 \
@@ -46,7 +46,7 @@ push: depend
 
 check: depend fmt vet
 
-test:
+test: depend
 	go test -race -cover ./cmd/... ./cloud/...
 
 fmt:
