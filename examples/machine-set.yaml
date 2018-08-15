@@ -1,0 +1,70 @@
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: tb-asg-35
+  namespace: test
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks:
+        - "10.0.0.1/24"
+    pods:
+      cidrBlocks:
+        - "10.0.0.2/24"
+    serviceDomain: example.com
+---
+apiVersion: cluster.k8s.io/v1alpha1
+kind: MachineSet
+metadata:
+  name: aws-actuator-testing-machine
+  namespace: test
+  labels:
+    sigs.k8s.io/cluster-api-cluster: tb-asg-35
+    sigs.k8s.io/cluster-api-machine-role: infra
+    sigs.k8s.io/cluster-api-machine-type: master
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      sigs.k8s.io/cluster-api-machineset: test-master
+      sigs.k8s.io/cluster-api-cluster: tb-asg-35
+  template:
+    metadata:
+      labels:
+        sigs.k8s.io/cluster-api-machineset: test-master
+        sigs.k8s.io/cluster-api-cluster: tb-asg-35
+        sigs.k8s.io/cluster-api-machine-role: infra
+        sigs.k8s.io/cluster-api-machine-type: master
+    spec:
+      providerConfig:
+        value:
+          apiVersion: awsproviderconfig/v1alpha1
+          kind: AWSMachineProviderConfig
+          ami:
+            id: ami-a9acbbd6
+          credentialsSecret:
+            name: aws-credentials-secret
+          instanceType: m4.xlarge
+          placement:
+            region: us-east-1
+            availabilityZone: us-east-1a
+          subnet:
+            id: subnet-0e56b13a64ff8a941
+          iamInstanceProfile:
+            id: openshift_master_launch_instances
+          keyName: libra
+          tags:
+            - name: openshift-node-group-config
+              value: node-config-master
+            - name: host-type
+              value: master
+            - name: sub-host-type
+              value: default
+          securityGroups:
+            - id: sg-00868b02fbe29de17
+            - id: sg-0a4658991dc5eb40a
+            - id: sg-009a70e28fa4ba84e
+            - id: sg-07323d56fb932c84c
+            - id: sg-08b1ffd32874d59a2
+          publicIP: true

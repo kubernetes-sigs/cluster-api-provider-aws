@@ -1,9 +1,24 @@
 ---
 apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: tb-asg-35
+  namespace: test
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks:
+        - "10.0.0.1/24"
+    pods:
+      cidrBlocks:
+        - "10.0.0.2/24"
+    serviceDomain: example.com
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Machine
 metadata:
   name: aws-actuator-testing-machine
-  namespace: default
+  namespace: test
   generateName: vs-master-
   labels:
     sigs.k8s.io/cluster-api-cluster: tb-asg-35
@@ -27,8 +42,6 @@ spec:
       iamInstanceProfile:
         id: openshift_master_launch_instances
       keyName: libra
-      userDataSecret:
-        name: aws-actuator-user-data-secret
       tags:
         - name: openshift-node-group-config
           value: node-config-master
