@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -36,6 +37,7 @@ func main() {
 	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
 	flag.CommandLine.Parse([]string{})
 	pflag.Parse()
+	fmt.Println("some test")
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
