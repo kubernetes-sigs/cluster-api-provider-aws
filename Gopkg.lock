@@ -831,6 +831,7 @@
     "transport",
     "util/buffer",
     "util/cert",
+    "util/cert/triple",
     "util/flowcontrol",
     "util/homedir",
     "util/integer",
@@ -899,6 +900,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "faa7adf72b05e8df2a49914cf4e1e2df86fdec4aa5014683e78eee5ee2783dc1"
+  inputs-digest = "cd431ffe5de5daa6e64d0f6d28f53f86bc9436a557c4b6576b7a13a26ef3bac2"
   solver-name = "gps-cdcl"
   solver-version = 1
