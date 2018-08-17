@@ -32,19 +32,19 @@ gendeepcopy:
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
-build: depend
+build:
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
 
-images: depend
+images:
 	$(MAKE) -C cmd/cluster-controller image
 	$(MAKE) -C cmd/machine-controller image
 
-push: depend
+push:
 	$(MAKE) -C cmd/cluster-controller push
 	$(MAKE) -C cmd/machine-controller push
 
-check: depend fmt vet
+check: fmt vet
 
 test:
 	go test -race -cover ./cmd/... ./cloud/...
