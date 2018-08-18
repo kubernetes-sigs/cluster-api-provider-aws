@@ -53,7 +53,6 @@ func init() {
 }
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	fmt.Printf("Registering v1alpha1 types\n")
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&AWSMachineProviderConfig{},
 	)
@@ -70,7 +69,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 }
 
 func NewScheme() (*runtime.Scheme, error) {
-	fmt.Printf("New Scheme v1alpha1 types\n")
 	scheme := runtime.NewScheme()
 	if err := AddToScheme(scheme); err != nil {
 		return nil, err
