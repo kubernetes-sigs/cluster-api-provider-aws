@@ -6,7 +6,7 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: test-aws-creds
+  name: aws-credentials-secret
   namespace: test
 type: Opaque
 data:

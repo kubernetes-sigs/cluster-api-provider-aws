@@ -3,7 +3,6 @@ package machine
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -19,10 +18,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/aws/aws-sdk-go/aws"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
 	fakeawsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client/fake"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
+	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 )
 
 const (
@@ -51,16 +51,7 @@ runcmd:
 `
 
 func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
-	awsCredentialsSecret := &apiv1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      awsCredentialsSecretName,
-			Namespace: defaultNamespace,
-		},
-		Data: map[string][]byte{
-			awsclient.AwsCredsSecretIDKey:     []byte(os.Getenv("AWS_ACCESS_KEY_ID")),
-			awsclient.AwsCredsSecretAccessKey: []byte(os.Getenv("AWS_SECRET_ACCESS_KEY")),
-		},
-	}
+	awsCredentialsSecret := utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, defaultNamespace)
 
 	userDataSecret := &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

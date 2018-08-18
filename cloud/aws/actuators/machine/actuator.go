@@ -41,7 +41,7 @@ import (
 )
 
 const (
-	userDataSecretKey         = "userDataKey"
+	userDataSecretKey         = "userData"
 	ec2InstanceIDNotFoundCode = "InvalidInstanceID.NotFound"
 )
 
@@ -111,7 +111,11 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil, err
 	}
 
-	client, err := a.awsClientBuilder(a.kubeClient, machineProviderConfig.CredentialsSecret.Name, machine.Namespace, machineProviderConfig.Placement.Region)
+	credentialsSecretName := ""
+	if machineProviderConfig.CredentialsSecret != nil {
+		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
+	}
+	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, machineProviderConfig.Placement.Region)
 	if err != nil {
 		return nil, fmt.Errorf("unable to obtain AWS client: %v", err)
 	}
@@ -191,7 +195,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		if data, exists := userDataSecret.Data[userDataSecretKey]; exists {
 			userData = data
 		} else {
-			glog.Warning("Secret %v/%v does not have %q field set. Thus, no user data applied when creating an instance.", machine.Namespace, machineProviderConfig.UserDataSecret.Name, userDataSecretKey)
+			glog.Warningf("Secret %v/%v does not have %q field set. Thus, no user data applied when creating an instance.", machine.Namespace, machineProviderConfig.UserDataSecret.Name, userDataSecretKey)
 		}
 	}
 
@@ -253,7 +257,11 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 
 	region := machineProviderConfig.Placement.Region
-	client, err := a.awsClientBuilder(a.kubeClient, machineProviderConfig.CredentialsSecret.Name, machine.Namespace, region)
+	credentialsSecretName := ""
+	if machineProviderConfig.CredentialsSecret != nil {
+		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
+	}
+	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
 		return fmt.Errorf("error getting EC2 client: %v", err)
 	}
@@ -284,7 +292,11 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	region := machineProviderConfig.Placement.Region
 	mLog.WithField("region", region).Debugf("obtaining EC2 client for region")
-	client, err := a.awsClientBuilder(a.kubeClient, machineProviderConfig.CredentialsSecret.Name, machine.Namespace, region)
+	credentialsSecretName := ""
+	if machineProviderConfig.CredentialsSecret != nil {
+		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
+	}
+	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
 		return fmt.Errorf("unable to obtain EC2 client: %v", err)
 	}
@@ -337,7 +349,11 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	region := machineProviderConfig.Placement.Region
-	client, err := a.awsClientBuilder(a.kubeClient, machineProviderConfig.CredentialsSecret.Name, machine.Namespace, region)
+	credentialsSecretName := ""
+	if machineProviderConfig.CredentialsSecret != nil {
+		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
+	}
+	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
 		return false, fmt.Errorf("error getting EC2 client: %v", err)
 	}
@@ -352,7 +368,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	// If more than one result was returned, it will be handled in Update.
-	mLog.Debug("instance exists")
+	mLog.Debugf("instance exists as %q", *instances[0].InstanceId)
 	return true, nil
 }
 

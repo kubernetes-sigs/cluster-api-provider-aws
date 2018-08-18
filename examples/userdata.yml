@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-actuator-user-data-secret
+  namespace: test
+type: Opaque
+data:
+  userData: IyEvYmluL2Jhc2gKZWNobyAiQWhvaiIgPiAvdG1wL3Rlc3QK

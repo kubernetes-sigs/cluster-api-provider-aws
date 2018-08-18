@@ -86,6 +86,11 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     $ kubectl apply -f examples/provider-components.yml
     ```
 
+    Deploy the cluster manigest:
+    ```sh
+    $ kubectl apply -f examples/cluster.yaml
+    ```
+
     Deploy the machines:
 
     ```sh
