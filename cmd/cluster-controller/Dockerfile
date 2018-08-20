@@ -23,7 +23,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
 
 # Final container
-FROM debian:stretch-slim
-RUN apt-get update && apt-get install -y ca-certificates openssh-server && rm -rf /var/lib/apt/lists/*
+FROM openshift/origin-base
+RUN yum install -y ca-certificates openssh
 
 COPY --from=builder /go/bin/cluster-controller .
