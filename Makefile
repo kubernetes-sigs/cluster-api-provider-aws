@@ -54,3 +54,6 @@ fmt:
 
 vet:
 	go vet ./...
+
+clusterctl-aws:
+	go build -o clusterctl-aws ./clusterctl
