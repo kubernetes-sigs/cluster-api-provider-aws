@@ -4,8 +4,7 @@
 *.yaml.template files - template example files that need values filled in before use.
 
 ## Generation
-For convenience, a generation script which populates templates based on openstack cloud provider
-configuration is provided.
+For convenience, a generation script which populates templates based on aws configuration is provided.
 
 1. Run the generation script.
 ```

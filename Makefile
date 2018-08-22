@@ -35,6 +35,7 @@ gendeepcopy: depend
 build: depend
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/clusterctl
 
 images: depend
 	$(MAKE) -C cmd/cluster-controller image
@@ -47,7 +48,7 @@ push: depend
 check: depend fmt vet
 
 test: depend
-	go test -race -cover ./cmd/... ./cloud/...
+	go test -race -cover ./cmd/... ./cloud/... ./clusterctl/...
 
 fmt:
 	hack/verify-gofmt.sh
