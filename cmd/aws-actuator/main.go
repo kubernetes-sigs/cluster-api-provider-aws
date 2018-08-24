@@ -21,9 +21,12 @@ package main
 // or creds in ~/.aws/credentials
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
+	"path"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -36,6 +39,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
+
+	"text/template"
 
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 )
@@ -56,13 +61,8 @@ var rootCmd = &cobra.Command{
 	Short: "Test for Cluster API AWS actuator",
 }
 
-func init() {
-	rootCmd.PersistentFlags().StringP("machine", "m", "", "Machine manifest")
-	rootCmd.PersistentFlags().StringP("cluster", "c", "", "Cluster manifest")
-	rootCmd.PersistentFlags().StringP("aws-credentials", "a", "", "Secret manifest with aws credentials")
-	rootCmd.PersistentFlags().StringP("userdata", "u", "", "User data manifest")
-
-	rootCmd.AddCommand(&cobra.Command{
+func createCommand() *cobra.Command {
+	return &cobra.Command{
 		Use:   "create",
 		Short: "Create machine instance for specified cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,10 +87,12 @@ func init() {
 			fmt.Printf("Machine creation was successful! InstanceID: %s\n", *result.InstanceId)
 			return nil
 		},
-	})
+	}
+}
 
-	rootCmd.AddCommand(&cobra.Command{
-		Use:   "delete INSTANCE-ID",
+func deleteCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete",
 		Short: "Delete machine instance",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := checkFlags(cmd); err != nil {
@@ -114,9 +116,11 @@ func init() {
 			fmt.Printf("Machine delete operation was successful.\n")
 			return nil
 		},
-	})
+	}
+}
 
-	rootCmd.AddCommand(&cobra.Command{
+func existsCommand() *cobra.Command {
+	return &cobra.Command{
 		Use:   "exists",
 		Short: "Determine if underlying machine instance exists",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -145,7 +149,203 @@ func init() {
 			}
 			return nil
 		},
-	})
+	}
+}
+
+func readMachineManifest(manifestLoc string) (*clusterv1.Machine, error) {
+	machine := &clusterv1.Machine{}
+	bytes, err := ioutil.ReadFile(manifestLoc)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+	}
+
+	if err = yaml.Unmarshal(bytes, &machine); err != nil {
+		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+	}
+
+	return machine, nil
+}
+
+func readClusterManifest(manifestLoc string) (*clusterv1.Cluster, error) {
+	cluster := &clusterv1.Cluster{}
+	bytes, err := ioutil.ReadFile(manifestLoc)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+	}
+
+	if err = yaml.Unmarshal(bytes, &cluster); err != nil {
+		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+	}
+
+	return cluster, nil
+}
+
+func readSecretManifest(manifestLoc string) (*apiv1.Secret, error) {
+	secret := &apiv1.Secret{}
+	bytes, err := ioutil.ReadFile(manifestLoc)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+	}
+	if err = yaml.Unmarshal(bytes, &secret); err != nil {
+		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+	}
+	return secret, nil
+}
+
+const workerUserDataBlob = `#!/bin/bash
+
+cat <<HEREDOC > /root/user-data.sh
+#!/bin/bash
+
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kube*
+EOF
+setenforce 0
+yum install -y kubelet kubeadm --disableexcludes=kubernetes
+
+cat <<EOF > /etc/default/kubelet
+KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=systemd
+EOF
+
+kubeadm join {{ .MasterIp }}:8443 --token 2iqzqm.85bs0x6miyx1nm7l --discovery-token-unsafe-skip-ca-verification
+
+HEREDOC
+
+bash /root/user-data.sh > /root/user-data.logs
+`
+
+type userDataParams struct {
+	MasterIp string
+}
+
+func generateWorkerUserData(masterIp string, workerUserDataSecret *apiv1.Secret) (*apiv1.Secret, error) {
+	params := userDataParams{
+		MasterIp: masterIp,
+	}
+	t, err := template.New("workeruserdata").Parse(workerUserDataBlob)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	err = t.Execute(&buf, params)
+	if err != nil {
+		return nil, err
+	}
+
+	secret := workerUserDataSecret.DeepCopy()
+	secret.Data["userData"] = []byte(buf.String())
+
+	return secret, nil
+}
+
+func bootstrapCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "bootstrap",
+		Short: "Bootstrap kubernetes cluster with kubeadm",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			manifestsDir := cmd.Flag("manifests").Value.String()
+			if manifestsDir == "" {
+				return fmt.Errorf("--manifests needs to be set")
+			}
+
+			log.Infof("Reading cluster manifest from %v", path.Join(manifestsDir, "cluster.yaml"))
+			cluster, err := readClusterManifest(path.Join(manifestsDir, "cluster.yaml"))
+			if err != nil {
+				return err
+			}
+
+			log.Infof("Reading master machine manifest from %v", path.Join(manifestsDir, "master-machine.yaml"))
+			masterMachine, err := readMachineManifest(path.Join(manifestsDir, "master-machine.yaml"))
+			if err != nil {
+				return err
+			}
+
+			log.Infof("Reading master user data manifest from %v", path.Join(manifestsDir, "master-userdata.yaml"))
+			masterUserDataSecret, err := readSecretManifest(path.Join(manifestsDir, "master-userdata.yaml"))
+			if err != nil {
+				return err
+			}
+
+			log.Infof("Reading worker machine manifest from %v", path.Join(manifestsDir, "worker-machine.yaml"))
+			workerMachine, err := readMachineManifest(path.Join(manifestsDir, "worker-machine.yaml"))
+			if err != nil {
+				return err
+			}
+
+			log.Infof("Reading worker user data manifest from %v", path.Join(manifestsDir, "worker-userdata.yaml"))
+			workerUserDataSecret, err := readSecretManifest(path.Join(manifestsDir, "worker-userdata.yaml"))
+			if err != nil {
+				return err
+			}
+
+			var awsCredentialsSecret *apiv1.Secret
+			if cmd.Flag("aws-credentials").Value.String() != "" {
+				log.Infof("Reading aws credentials manifest from %v", cmd.Flag("aws-credentials").Value.String())
+				awsCredentialsSecret, err = readSecretManifest(cmd.Flag("aws-credentials").Value.String())
+				if err != nil {
+					return err
+				}
+			}
+
+			log.Infof("Creating master machine")
+			actuator := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret, log.WithField("bootstrap", "create-master-machine"))
+			result, err := actuator.CreateMachine(cluster, masterMachine)
+			if err != nil {
+				return err
+			}
+
+			log.Infof("Master machine created with ipv4: %v, InstanceId: %v", *result.PrivateIpAddress, *result.InstanceId)
+
+			log.Infof("Generating worker user data for master listening at %v", *result.PrivateIpAddress)
+			workerUserDataSecret, err = generateWorkerUserData(*result.PrivateIpAddress, workerUserDataSecret)
+			if err != nil {
+				return fmt.Errorf("Unable to generate worker user data: %v\n", err)
+			}
+
+			log.Infof("Creating worker machine")
+			actuator = createActuator(workerMachine, awsCredentialsSecret, workerUserDataSecret, log.WithField("bootstrap", "create-worker-machine"))
+			result, err = actuator.CreateMachine(cluster, workerMachine)
+			if err != nil {
+				return err
+			}
+
+			log.Infof("Worker machine created with InstanceId: %v", *result.InstanceId)
+
+			return nil
+		},
+	}
+
+	cmd.PersistentFlags().StringP("manifests", "", "", "Directory with bootstrapping manifests")
+	cUser, err := user.Current()
+	if err != nil {
+		cmd.PersistentFlags().StringP("machine-prefix", "p", "", "Directory with bootstrapping manifests")
+	} else {
+		cmd.PersistentFlags().StringP("machine-prefix", "p", cUser.Username, "Machine prefix, by default set to the current user")
+	}
+
+	return cmd
+}
+
+func init() {
+	rootCmd.PersistentFlags().StringP("machine", "m", "", "Machine manifest")
+	rootCmd.PersistentFlags().StringP("cluster", "c", "", "Cluster manifest")
+	rootCmd.PersistentFlags().StringP("aws-credentials", "a", "", "Secret manifest with aws credentials")
+	rootCmd.PersistentFlags().StringP("userdata", "u", "", "User data manifest")
+
+	rootCmd.AddCommand(createCommand())
+
+	rootCmd.AddCommand(deleteCommand())
+
+	rootCmd.AddCommand(existsCommand())
+
+	rootCmd.AddCommand(bootstrapCommand())
 }
 
 func readClusterResources(clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *clusterv1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
