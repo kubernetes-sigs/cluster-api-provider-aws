@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Reproducible builder image
-FROM golang:1.10.0 as builder
+FROM openshift/origin-release:golang-1.10 as builder
 WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-aws
 # This expects that the context passed to the docker build command is
 # the cluster-api-provider-aws directory.
