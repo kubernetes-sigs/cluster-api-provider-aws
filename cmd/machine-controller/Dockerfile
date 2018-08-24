@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Reproducible builder image
-FROM golang:1.10.0 as builder
+FROM openshift/origin-release:golang-1.10 as builder
 WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-aws
 # This expects that the context passed to the docker build command is
 # the cluster-api-provider-aws directory.
@@ -23,7 +23,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
 
 # Final container
-FROM debian:stretch-slim
-RUN apt-get update && apt-get install -y ca-certificates openssh-server && rm -rf /var/lib/apt/lists/*
+FROM openshift/origin-base
+RUN yum install -y ca-certificates openssh
 
 COPY --from=builder /go/bin/machine-controller .
