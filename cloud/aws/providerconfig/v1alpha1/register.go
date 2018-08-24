@@ -31,7 +31,7 @@ type AWSProviderConfigCodec struct {
 	decoder runtime.Decoder
 }
 
-const GroupName = "awsproviderconfig"
+const GroupName = "aws.cluster.k8s.io"
 
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 

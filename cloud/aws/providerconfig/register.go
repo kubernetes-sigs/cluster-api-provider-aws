@@ -28,7 +28,7 @@ func init() {
 	localSchemeBuilder.Register(addKnownTypes)
 }
 
-const GroupName = "awsproviderconfig"
+const GroupName = "aws.cluster.k8s.io"
 
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 

@@ -10,7 +10,7 @@ metadata:
 spec:
   providerConfig:
     value:
-      apiVersion: awsproviderconfig/v1alpha1
+      apiVersion: aws.cluster.k8s.io/v1alpha1
       kind: AWSMachineProviderConfig
       ami:
         id: ami-0112c184e219ce91b
