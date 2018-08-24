@@ -294,6 +294,12 @@ func bootstrapCommand() *cobra.Command {
 				}
 			}
 
+			machinePrefix := cmd.Flag("machine-prefix").Value.String()
+			if machinePrefix != "" {
+				masterMachine.Name = machinePrefix + "-" + masterMachine.Name
+				workerMachine.Name = machinePrefix + "-" + workerMachine.Name
+			}
+
 			log.Infof("Creating master machine")
 			actuator := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret, log.WithField("bootstrap", "create-master-machine"))
 			result, err := actuator.CreateMachine(cluster, masterMachine)
