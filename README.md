@@ -71,17 +71,27 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
 
 4. **Deploying the cluster-api stack manifests**
 
-    Add your aws credentials to the `addons.yaml` file in base64 format:
+    Add your AWS credentials to the `addons.yaml` file (in base64
+    format). You can either do this manually or use the
+    `examples/render-aws-secrets.sh`.
+
+    The easy deployment is:
+
+    ```sh
+    ./examples/render-aws-secrets.sh examples/addons.yaml | kubectl apply -f -
+    ```
+
+    The manual deployment is:
 
     ``` sh
     $ echo -n 'your_id' | base64
     $ echo -n 'your_key' | base64
+    $ kubectl apply -f examples/addons.yaml
     ```
 
     Deploy the components:
 
     ```sh
-    $ kubectl apply -f examples/addons.yaml
     $ kubectl apply -f examples/cluster-api-server.yaml
     $ kubectl apply -f examples/provider-components.yml
     ```
