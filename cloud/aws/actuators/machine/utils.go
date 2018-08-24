@@ -224,7 +224,7 @@ func AWSMachineProviderStatusFromMachineStatus(s *clusterv1.MachineStatus) (*pro
 // EncodeAWSMachineProviderStatus encodes the machine status into RawExtension
 func EncodeAWSMachineProviderStatus(awsStatus *providerconfigv1.AWSMachineProviderStatus) (*runtime.RawExtension, error) {
 	awsStatus.TypeMeta = metav1.TypeMeta{
-		APIVersion: clusterv1.SchemeGroupVersion.String(),
+		APIVersion: providerconfigv1.SchemeGroupVersion.String(),
 		Kind:       "AWSMachineProviderStatus",
 	}
 	serializer := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, providerconfigv1.Scheme, providerconfigv1.Scheme, false)
