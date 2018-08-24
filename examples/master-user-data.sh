@@ -20,7 +20,10 @@ cat <<EOF > /etc/default/kubelet
 KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=systemd
 EOF
 
-kubeadm init --apiserver-bind-port 8443 --token 2iqzqm.85bs0x6miyx1nm7l
+kubeadm init --apiserver-bind-port 8443 --token 2iqzqm.85bs0x6miyx1nm7l --apiserver-cert-extra-sans=\$(curl -s http://169.254.169.254/latest/meta-data/public-hostname) --apiserver-cert-extra-sans=\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4) --pod-network-cidr=192.168.0.0/16
+
+# Enable networking by default.
+kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml --kubeconfig /etc/kubernetes/admin.conf
 
 mkdir -p /root/.kube
 cp -i /etc/kubernetes/admin.conf /root/.kube/config

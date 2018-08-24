@@ -15,7 +15,7 @@ spec:
       apiVersion: awsproviderconfig/v1alpha1
       kind: AWSMachineProviderConfig
       ami:
-        id: ami-0112c184e219ce91b
+        id: ami-060f14ef82deddfc6
       instanceType: m4.xlarge
       placement:
         region: us-east-1

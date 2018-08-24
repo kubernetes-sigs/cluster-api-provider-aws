@@ -50,9 +50,31 @@ Machine delete operation was successful.
 ./bin/aws-actuator create -m examples/master-machine.yaml -c examples/cluster.yaml -u examples/master-userdata.yaml
 ```
 
+By default networking is enabled on the master machine. You can
+interact with the master by copying the kubeconfig and using
+`kubectl`. You'll need to find the external IP address of your master
+and then:
+
+```sh
+ssh ec2-user@ec2-184-73-119-192.compute-1.amazonaws.com "sudo cat /etc/kubernetes/admin.conf" > kubeconfig
+export KUBECONFIG=$PWD/kubeconfig
+kubectl config set-cluster kubernetes --server=https://ec2-184-73-119-192.compute-1.amazonaws.com:8443
+kubectl get nodes
+NAME                           STATUS    ROLES     AGE       VERSION
+ip-172-31-34-42.ec2.internal   Ready     master    6m        v1.11.2
+```
+
 2. Once the ip address of the master node is known (e.g. 172.31.34.2), update the `kubeadm join` line in `examples/worker-user-data.sh` to:
 ```sh
 kubeadm join 172.31.34.2:8443 --token 2iqzqm.85bs0x6miyx1nm7l --discovery-token-unsafe-skip-ca-verification
+```
+
+You can get the internal IP address of the cluster dynamically by
+running:
+
+```sh
+echo $(ssh ec2-user@ec2-184-73-119-192.compute-1.amazonaws.com wget -qO - http://169.254.169.254/latest/meta-data/local-ipv4)
+172.31.34.42
 ```
 
 3. Encode the `examples/worker-user-data.sh` by running:
@@ -71,11 +93,3 @@ $ cat examples/worker-user-data.sh | base64
 
 After some time the kubernetes cluster with the control plane (master node) and the worker node gets provisioned
 and the worker joins the cluster.
-
-The cluster does not have any network plugin installed. You can extend the `examples/master-user-data.sh` with:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml --kubeconfig /etc/kubernetes/admin.conf
-```
-
-and regenerate the `data.userData` of `examples/master-user-data.yaml`.
