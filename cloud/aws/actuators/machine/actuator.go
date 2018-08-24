@@ -19,6 +19,7 @@ package machine
 import (
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	log "github.com/sirupsen/logrus"
@@ -133,27 +134,57 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 
-	// TODO(jchaloup): resolve ARN and/or Filters as well
-	if machineProviderConfig.AMI.ID == nil {
-		return nil, fmt.Errorf("machine does not have an AWS image set")
-	}
-
 	// Get AMI to use
-	amiName := *machineProviderConfig.AMI.ID
+	var amiID *string
+	if machineProviderConfig.AMI.ID != nil {
+		amiID = machineProviderConfig.AMI.ID
+		mLog.Debugf("Using AMI %s", *amiID)
+	} else if len(machineProviderConfig.AMI.Filters) > 0 {
+		filters := make([]*ec2.Filter, len(machineProviderConfig.AMI.Filters))
+		mLog.Debug("Describing AMI based on filters")
+		for i, f := range machineProviderConfig.AMI.Filters {
+			values := make([]*string, len(f.Values))
+			for j, v := range f.Values {
+				values[j] = aws.String(v)
+			}
+			filters[i] = &ec2.Filter{
+				Name:   aws.String(fmt.Sprintf("tag:%v", f.Name)),
+				Values: values,
+			}
+		}
 
-	mLog.Debugf("Describing AMI %s", amiName)
-	imageIds := []*string{aws.String(amiName)}
-	describeImagesRequest := ec2.DescribeImagesInput{
-		ImageIds: imageIds,
-	}
-	describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
-	if err != nil {
-		mLog.Errorf("error describing AMI %s: %v", amiName, err)
-		return nil, fmt.Errorf("error describing AMI %s: %v", amiName, err)
-	}
-	if len(describeAMIResult.Images) != 1 {
-		mLog.Errorf("Unexpected number of images returned: %d", len(describeAMIResult.Images))
-		return nil, fmt.Errorf("Unexpected number of images returned: %d", len(describeAMIResult.Images))
+		describeImagesRequest := ec2.DescribeImagesInput{
+			Filters: filters,
+		}
+		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
+		if err != nil {
+			mLog.Errorf("error describing AMI: %v", err)
+			return nil, fmt.Errorf("error describing AMI: %v", err)
+		}
+		if len(describeAMIResult.Images) < 1 {
+			mLog.Errorf("no image for given filters not found")
+			return nil, fmt.Errorf("no image for given filters not found")
+		}
+		latestImage := describeAMIResult.Images[0]
+		latestTime, err := time.Parse(time.RFC3339, *latestImage.CreationDate)
+		if err != nil {
+			mLog.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
+			return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
+		}
+		for _, image := range describeAMIResult.Images[1:] {
+			imageTime, err := time.Parse(time.RFC3339, *image.CreationDate)
+			if err != nil {
+				mLog.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
+				return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
+			}
+			if latestTime.Before(imageTime) {
+				latestImage = image
+				latestTime = imageTime
+			}
+		}
+		amiID = latestImage.ImageId
+	} else {
+		return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
 	}
 
 	var securityGroupIds []*string
@@ -209,7 +240,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	userDataEnc := base64.StdEncoding.EncodeToString(userData)
 
 	inputConfig := ec2.RunInstancesInput{
-		ImageId:      describeAMIResult.Images[0].ImageId,
+		ImageId:      amiID,
 		InstanceType: aws.String(machineProviderConfig.InstanceType),
 		// Only a single instance of the AWS instance allowed
 		MinCount: aws.Int64(1),

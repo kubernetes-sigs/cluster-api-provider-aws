@@ -15,7 +15,17 @@ spec:
       apiVersion: awsproviderconfig/v1alpha1
       kind: AWSMachineProviderConfig
       ami:
-        id: ami-060f14ef82deddfc6
+        # id: ami-060f14ef82deddfc6
+        filters:
+        - name: "image_stage"
+          values:
+          - "base"
+        - name: operating_system
+          values:
+          - "rhel"
+        - name: ready
+          values:
+          - "yes"
       credentialsSecret:
         name: aws-credentials-secret
       instanceType: m4.xlarge
