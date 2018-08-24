@@ -91,6 +91,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) removeStoppedMachine(machine *clusterv1.Machine, client awsclient.Client, mLog log.FieldLogger) error {
 	instances, err := GetStoppedInstances(machine, client)
 	if err != nil {
+		mLog.Errorf("Error getting stopped instances: %v", err)
 		return fmt.Errorf("Error getting stopped instances: %v", err)
 	}
 
@@ -108,6 +109,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 
 	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
+		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return nil, err
 	}
 
@@ -117,6 +119,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, machineProviderConfig.Placement.Region)
 	if err != nil {
+		mLog.Errorf("unable to obtain AWS client: %v", err)
 		return nil, fmt.Errorf("unable to obtain AWS client: %v", err)
 	}
 
@@ -125,6 +128,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		// Prevent having a lot of stopped nodes sitting around.
 		err = a.removeStoppedMachine(machine, client, mLog)
 		if err != nil {
+			mLog.Errorf("unable to remove stopped machines: %v", err)
 			return nil, fmt.Errorf("unable to remove stopped nodes: %v", err)
 		}
 	}
@@ -144,9 +148,11 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 	describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 	if err != nil {
+		mLog.Errorf("error describing AMI %s: %v", amiName, err)
 		return nil, fmt.Errorf("error describing AMI %s: %v", amiName, err)
 	}
 	if len(describeAMIResult.Images) != 1 {
+		mLog.Errorf("Unexpected number of images returned: %d", len(describeAMIResult.Images))
 		return nil, fmt.Errorf("Unexpected number of images returned: %d", len(describeAMIResult.Images))
 	}
 
@@ -190,6 +196,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	if machineProviderConfig.UserDataSecret != nil {
 		userDataSecret, err := a.kubeClient.CoreV1().Secrets(machine.Namespace).Get(machineProviderConfig.UserDataSecret.Name, metav1.GetOptions{})
 		if err != nil {
+			mLog.Errorf("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err)
 			return nil, err
 		}
 		if data, exists := userDataSecret.Data[userDataSecretKey]; exists {
@@ -218,7 +225,8 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 
 	runResult, err := client.RunInstances(&inputConfig)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create EC2 instance: %v", err)
+		mLog.Errorf("error creating EC2 instance: %v", err)
+		return nil, fmt.Errorf("error creating EC2 instance: %v", err)
 	}
 
 	if runResult == nil || len(runResult.Instances) != 1 {
@@ -253,6 +261,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 
 	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
+		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return err
 	}
 
@@ -263,11 +272,13 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
+		mLog.Errorf("error getting EC2 client: %v", err)
 		return fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
 	instances, err := GetRunningInstances(machine, client)
 	if err != nil {
+		mLog.Errorf("error getting running instances: %v", err)
 		return err
 	}
 	if len(instances) == 0 {
@@ -287,6 +298,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
+		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return err
 	}
 
@@ -298,14 +310,16 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
+		mLog.Errorf("error getting EC2 client: %v", err)
 		return fmt.Errorf("unable to obtain EC2 client: %v", err)
 	}
 
 	instances, err := GetRunningInstances(machine, client)
-	mLog.Debugf("found %d instances for machine", len(instances))
 	if err != nil {
+		mLog.Errorf("error getting running instances: %v", err)
 		return err
 	}
+	mLog.Debugf("found %d instances for machine", len(instances))
 
 	// Parent controller should prevent this from ever happening by calling Exists and then Create,
 	// but instance could be deleted between the two calls.
@@ -316,6 +330,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		if err != nil {
 			return err
 		}
+		mLog.Errorf("attempted to update machine but no instances found")
 		return fmt.Errorf("attempted to update machine but no instances found")
 	}
 	newestInstance, terminateInstances := SortInstances(instances)
@@ -345,6 +360,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
+		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return false, err
 	}
 
@@ -355,11 +371,13 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
+		mLog.Errorf("error getting EC2 client: %v", err)
 		return false, fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
 	instances, err := GetRunningInstances(machine, client)
 	if err != nil {
+		mLog.Errorf("error getting running instances: %v", err)
 		return false, err
 	}
 	if len(instances) == 0 {
@@ -380,6 +398,7 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	// Starting with a fresh status as we assume full control of it here.
 	awsStatus, err := AWSMachineProviderStatusFromClusterAPIMachine(machine)
 	if err != nil {
+		mLog.Errorf("error decoding machine provider status: %v", err)
 		return err
 	}
 	// Save this, we need to check if it changed later.
