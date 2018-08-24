@@ -27,7 +27,7 @@ spec:
           apiVersion: awsproviderconfig/v1alpha1
           kind: AWSMachineProviderConfig
           ami:
-            id: ami-a9acbbd6
+            id: ami-060f14ef82deddfc6
           credentialsSecret:
             name: aws-credentials-secret
           instanceType: m4.xlarge
