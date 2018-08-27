@@ -16,32 +16,94 @@ package machine
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
+
+// machinesSvc are the functions of the cluster-api that this actuator needs.
+type machinesSvc interface {
+	UpdateMachineStatus(*clusterv1.Machine) (*clusterv1.Machine, error)
+}
+
+// ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
+// This should never need to import the ec2 sdk.
+type ec2Svc interface {
+	CreateInstance(*clusterv1.Machine) (*ec2svc.Instance, error)
+	InstanceIfExists(*string) (*ec2svc.Instance, error)
+}
+
+// codec are the functions off the generated codec that this actuator uses.
+type codec interface {
+	DecodeFromProviderConfig(clusterv1.ProviderConfig, runtime.Object) error
+	DecodeProviderStatus(*runtime.RawExtension, runtime.Object) error
+	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
+}
 
 // Actuator is responsible for performing machine reconciliation
 type Actuator struct {
-	clusterClient client.ClusterInterface
+	codec codec
+
+	// Services
+	ec2      ec2Svc
+	machines machinesSvc
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
-	ClusterClient client.ClusterInterface
+	// Codec is needed to work with the provider configs and statuses.
+	Codec codec
+
+	// Services
+
+	// ClusterService is the interface to cluster-api.
+	MachinesService machinesSvc
+	// EC2Service is the interface to ec2.
+	EC2Service ec2Svc
 }
 
-// NewActuator creates a new Actuator
+// NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	return &Actuator{
-		clusterClient: params.ClusterClient,
+		codec:    params.Codec,
+		ec2:      params.EC2Service,
+		machines: params.MachinesService,
 	}, nil
 }
 
-// Create creates a machine and is invoked by the Machine Controller
+// Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Creating machine %v for cluster %v.", machine.Name, cluster.Name)
-	return fmt.Errorf("TODO: Not yet implemented")
+	// will need this machine config in a bit
+	_, err := a.machineProviderConfig(machine.Spec.ProviderConfig)
+	if err != nil {
+		glog.Errorf("Failed to decode the machine provider config: %v", err)
+		return err
+	}
+
+	// Get the machine status
+	status, err := a.machineProviderStatus(machine)
+	if err != nil {
+		return err
+	}
+
+	// does the instance exist with a valid status? we're good
+	// otherwise create it and move on.
+	_, err = a.ec2.InstanceIfExists(status.InstanceID)
+	if err != nil {
+		return err
+	}
+
+	i, err := a.ec2.CreateInstance(machine)
+	if err != nil {
+		return err
+	}
+
+	status.InstanceID = &i.ID
+	status.InstanceState = &i.State
+	return a.updateStatus(machine, status)
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
@@ -60,4 +122,30 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	glog.Info("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
 	return false, fmt.Errorf("TODO: Not yet implemented")
+}
+
+func (a *Actuator) machineProviderConfig(providerConfig clusterv1.ProviderConfig) (*v1alpha1.AWSMachineProviderConfig, error) {
+	machineProviderCfg := &v1alpha1.AWSMachineProviderConfig{}
+	err := a.codec.DecodeFromProviderConfig(providerConfig, machineProviderCfg)
+	return machineProviderCfg, err
+}
+
+func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
+	status := &v1alpha1.AWSMachineProviderStatus{}
+	err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
+	return status, err
+}
+
+func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
+	encodedProviderStatus, err := a.codec.EncodeProviderStatus(status)
+	if err != nil {
+		return fmt.Errorf("failed to encode machine status: %v", err)
+	}
+	if encodedProviderStatus != nil {
+		machine.Status.ProviderStatus = encodedProviderStatus
+		if _, err := a.machines.UpdateMachineStatus(machine); err != nil {
+			return fmt.Errorf("failed to update machine status: %v", err)
+		}
+	}
+	return nil
 }

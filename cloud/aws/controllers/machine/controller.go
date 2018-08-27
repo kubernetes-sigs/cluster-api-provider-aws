@@ -19,6 +19,7 @@ package machine
 import (
 	"os"
 
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	corev1 "k8s.io/api/core/v1"
@@ -39,6 +40,9 @@ import (
 
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine/options"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	clustersvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/cluster"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 )
 
 const (
@@ -56,8 +60,21 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
 	}
 
+	codec, err := v1alpha1.NewCodec()
+	if err != nil {
+		glog.Fatalf("Could not create codec: %v", err)
+	}
+
 	params := machineactuator.ActuatorParams{
-		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
+		MachinesService: &clustersvc.Service{
+			Machine: client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
+		},
+		EC2Service: &ec2svc.Service{
+			Instances: &ec2.EC2{},
+		},
+		Codec: codec,
+
+		//		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
 	}
 	actuator, err := machineactuator.NewActuator(params)
 	if err != nil {
