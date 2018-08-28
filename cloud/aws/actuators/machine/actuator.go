@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterclient "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -44,6 +45,7 @@ import (
 const (
 	userDataSecretKey         = "userData"
 	ec2InstanceIDNotFoundCode = "InvalidInstanceID.NotFound"
+	requeueAfterSeconds       = 20
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -558,6 +560,14 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 		}
 	} else {
 		mLog.Debug("status unchanged")
+	}
+
+	// If machine state is still pending, we will return an error to keep the controllers
+	// attempting to update status until it hits a more permanent state. This will ensure
+	// we get a public IP populated more quickly.
+	if awsStatus.InstanceState != nil && *awsStatus.InstanceState == ec2.InstanceStateNamePending {
+		mLog.Infof("instance state still pending, returning an error to requeue")
+		return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 	}
 	return nil
 }
