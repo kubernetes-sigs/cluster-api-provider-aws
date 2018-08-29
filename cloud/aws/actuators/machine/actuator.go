@@ -104,6 +104,73 @@ func (a *Actuator) removeStoppedMachine(machine *clusterv1.Machine, client awscl
 	return TerminateInstances(client, instances, mLog)
 }
 
+func buildEc2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter{
+	filters := make([]*ec2.Filter, len(inputFilters))
+	for i, f := range inputFilters {
+		values := make([]*string, len(f.Values))
+		for j, v := range f.Values {
+			values[j] = aws.String(v)
+		}
+		filters[i] = &ec2.Filter{
+			Name:   aws.String(f.Name),
+			Values: values,
+		}
+	}
+	return filters
+}
+
+func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference, client awsclient.Client, mLog log.FieldLogger) ([]*string, error) {
+	var securityGroupIDs []*string
+	for _, g := range securityGroups {
+		// ID has priority
+		if g.ID != nil {
+			securityGroupIDs = append(securityGroupIDs, g.ID)
+		} else if g.Filters != nil {
+			mLog.Debug("Describing security groups based on filters")
+			// Get groups based on filters
+			describeSecurityGroupsRequest := ec2.DescribeSecurityGroupsInput{
+				Filters: buildEc2Filters(g.Filters),
+			}
+			describeSecurityGroupsResult, err := client.DescribeSecurityGroups(&describeSecurityGroupsRequest)
+			if err != nil {
+				mLog.Errorf("error describing security groups: %v", err)
+				return nil, fmt.Errorf("error describing security groups: %v", err)
+			}
+			for _, g := range describeSecurityGroupsResult.SecurityGroups {
+				groupID := *g.GroupId
+				securityGroupIDs = append(securityGroupIDs, &groupID)
+			}
+		}
+	}
+	return securityGroupIDs, nil
+}
+
+func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, client awsclient.Client, mLog log.FieldLogger) ([]*string, error) {
+	var subnetIDs []*string
+	// ID has priority
+	if subnet.ID != nil {
+		subnetIDs = append(subnetIDs, subnet.ID)
+	} else {
+		mLog.Debug("Describing subnets based on filters")
+		describeSubnetRequest := ec2.DescribeSubnetsInput{
+			Filters: buildEc2Filters(subnet.Filters),
+		}
+		describeSubnetResult, err := client.DescribeSubnets(&describeSubnetRequest)
+		if err != nil {
+			mLog.Errorf("error describing security groups: %v", err)
+			return nil, fmt.Errorf("error describing security groups: %v", err)
+		}
+		for _, n := range describeSubnetResult.Subnets {
+			subnetID := *n.SubnetId
+			subnetIDs = append(subnetIDs, &subnetID)
+		}
+	}
+	if len(subnetIDs) == 0 {
+		return nil, fmt.Errorf("no subnet IDs were found")
+	}
+	return subnetIDs, nil
+}
+
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
 	mLog := clustoplog.WithMachine(a.logger, machine)
@@ -140,21 +207,9 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		amiID = machineProviderConfig.AMI.ID
 		mLog.Debugf("Using AMI %s", *amiID)
 	} else if len(machineProviderConfig.AMI.Filters) > 0 {
-		filters := make([]*ec2.Filter, len(machineProviderConfig.AMI.Filters))
 		mLog.Debug("Describing AMI based on filters")
-		for i, f := range machineProviderConfig.AMI.Filters {
-			values := make([]*string, len(f.Values))
-			for j, v := range f.Values {
-				values[j] = aws.String(v)
-			}
-			filters[i] = &ec2.Filter{
-				Name:   aws.String(fmt.Sprintf("tag:%v", f.Name)),
-				Values: values,
-			}
-		}
-
 		describeImagesRequest := ec2.DescribeImagesInput{
-			Filters: filters,
+			Filters: buildEc2Filters(machineProviderConfig.AMI.Filters),
 		}
 		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 		if err != nil {
@@ -187,10 +242,16 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
 	}
 
-	var securityGroupIds []*string
-	for _, g := range machineProviderConfig.SecurityGroups {
-		groupID := *g.ID
-		securityGroupIds = append(securityGroupIds, &groupID)
+	securityGroupsIDs, err := getSecurityGroupsIDs(machineProviderConfig.SecurityGroups, client, mLog)
+	if err != nil {
+		return nil, fmt.Errorf("error getting security groups IDs: %v,", err)
+	}
+	subnetIDs, err := getSubnetIDs(machineProviderConfig.Subnet, client, mLog)
+	if err != nil {
+		return nil, fmt.Errorf("error getting subnet IDs: %v,", err)
+	}
+	if len(subnetIDs) > 1 {
+		mLog.Warnf("More than one subnet id returned, only first one will be used")
 	}
 
 	// build list of networkInterfaces (just 1 for now)
@@ -198,8 +259,8 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		{
 			DeviceIndex:              aws.Int64(machineProviderConfig.DeviceIndex),
 			AssociatePublicIpAddress: machineProviderConfig.PublicIP,
-			SubnetId:                 machineProviderConfig.Subnet.ID,
-			Groups:                   securityGroupIds,
+			SubnetId:                 subnetIDs[0],
+			Groups:                   securityGroupsIDs,
 		},
 	}
 
@@ -210,7 +271,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 	tagList = append(tagList, []*ec2.Tag{
 		{Key: aws.String("clusterid"), Value: aws.String(cluster.Name)},
-		{Key: aws.String("kubernetes.io/cluster/" + cluster.Name), Value: aws.String(cluster.Name)},
+		{Key: aws.String("kubernetes.io/cluster/" + cluster.Name), Value: aws.String("owned")},
 		{Key: aws.String("Name"), Value: aws.String(machine.Name)},
 	}...)
 
