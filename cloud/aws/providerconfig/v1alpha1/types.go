@@ -150,4 +150,11 @@ type AWSMachineProviderCondition struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
+
+	VPC VPC `json:"vpc"`
+}
+
+// VPC is the aws vpc
+type VPC struct {
+	ID string `json:"id"`
 }
