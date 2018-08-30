@@ -1,0 +1,44 @@
+# Copyright 2018 The Kubernetes Authors.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+- import_tasks: debian.yml
+  when: ansible_os_family == "Debian"
+
+- import_tasks: redhat.yml
+  when: ansible_os_family == "RedHat"
+
+# TODO(vincepri): Use deb/rpm packages once available.
+# See https://github.com/containerd/containerd/issues/1508 for context.
+- name: download containerd
+  get_url:
+    url: https://storage.googleapis.com/cri-containerd-release/cri-containerd-{{ containerd_version }}.linux-amd64.tar.gz
+    checksum: "sha256:{{ containerd_sha256 }}"
+    dest: /tmp/containerd.tar.gz
+
+# TODO(vincepri): This unpacks the entire tar in the root directory
+# we should find a better way to check what's being unpacked and where.
+- name: unpack containerd
+  unarchive:
+    remote_src: True
+    src: /tmp/containerd.tar.gz
+    dest: /
+    extra_opts:
+      - --no-overwrite-dir
+
+- name: start containerd service
+  systemd:
+    name: containerd
+    daemon_reload: yes
+    enabled: True
+    state: started

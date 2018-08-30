@@ -13,3 +13,6 @@
 
 # Vendor director
 vendor
+
+# Ansible
+*.retry
