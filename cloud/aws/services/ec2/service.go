@@ -18,4 +18,5 @@ package service
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
 	Instances instances
+	VPCs      vpcs
 }
