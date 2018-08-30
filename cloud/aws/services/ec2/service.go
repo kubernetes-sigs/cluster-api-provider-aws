@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package service
+package ec2
 
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
