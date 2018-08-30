@@ -1,0 +1,44 @@
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: aws-actuator-testing-machine
+  namespace: test
+  generateName: vs-worker-
+  labels:
+    sigs.k8s.io/cluster-api-cluster: tb-asg-35
+    sigs.k8s.io/cluster-api-machine-role: compute
+    sigs.k8s.io/cluster-api-machine-type: worker
+spec:
+  providerConfig:
+    value:
+      apiVersion: aws.cluster.k8s.io/v1alpha1
+      kind: AWSMachineProviderConfig
+      ami:
+        id: ami-0518e1ac70d8a3389
+      instanceType: m4.large
+      placement:
+        region: eu-west-1
+        availabilityZone: eu-west-1c
+      subnet:
+        filters:
+        - name: "tag:Name"
+          values:
+          - "meh-worker-eu-west-1c"
+      publicIp: true
+      iamInstanceProfile:
+        id: meh-master-profile
+      keyName: tectonic
+      tags:
+        - name: "kubernetes.io/cluster/meh"
+          value: owned
+      securityGroups:
+        - filters:
+          - name: "tag:Name"
+            values:
+            - "meh_worker_sg"
+      userDataSecret:
+        name: ignition-worker
+  versions:
+    kubelet: ""
+    controlPlane: ""
