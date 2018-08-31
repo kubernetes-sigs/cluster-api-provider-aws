@@ -65,10 +65,10 @@ TODO: update flowchart
 
 #### Edge case coverage
 
-1. tagging is handled on creation
-2. since resources are tagged on creation, returning an error and requeing the create will find the tagged resource and attempt to retry the object update.
-3. there is no delete attempt since we can re-query the resource by tags.
-4. the next attempt to create the resource will find the already created resource by tags.
+1. Yes - tagging is handled on creation
+2. Yes - since resources are tagged on creation, returning an error and requeing the create will find the tagged resource and attempt to retry the object update.
+3. Yes - there is no delete attempt since we can re-query the resource by tags.
+4. Yes - the next attempt to create the resource will find the already created resource by tags.
 
 ### Resource with separate tagging required - option 1
 
@@ -77,7 +77,7 @@ TODO: update flowchart
 - Create resource
 - Update cluster/machine object config and status
   - If update fails attempt delete of created resource
-    - If delete fails log delete failure
+    - If delete fails log delete failure and return non-retryable error
 - Tag AWS resource
 - Enque cluster/machine update if not already available/ready or tagging fails
 
@@ -94,9 +94,9 @@ TODO: update flowchart
 #### Edge case coverage
 
 1. Yes - Since the resource ID is already recorded, the update process will reconccile missing tags
-2. Yes - If the object update fails, we attempt to rollback the creation
-3. No - If we fail to delete the resource, we will still orphan the resource, but output a log message for querying/followup
-4. No - If the process dies before recording the ID the resource is orphaned. If the process dies after recording the ID, but before tagging it is reconciled through update.
+2. Yes, with caveat - If the object update fails, we attempt to rollback the creation but edge case 3 comes into play
+3. Minor mitigation - If we fail to delete the resource, we will still orphan the resource, but output a log message for querying/followup and return a non-retryable error
+4. Minor mitigation - If the process dies before recording the ID the resource is orphaned. If the process dies after recording the ID, but before tagging it is reconciled through update.
 
 ### Resource with separate tagging required - option 2
 
@@ -123,7 +123,7 @@ TODO: flowchart
 
 #### Edge case coverage
 
-1. TODO
-2. TODO
-3. TODO
-4. TODO
+1. Yes - If only the tagging fails, then we will reconcile tags on update. If the update also fails, then we attempt to delete the resource.
+2. Yes, with caveat - If only the object update fails, then we throw a retryable error that will requeue the create operation and attempt to update the object after discovering the existing resource. If the tagging fails as well, then we attempt to delete the resource and edge case 3 will still apply.
+3. Minor mitigation - If we fail to delete the resource, we will still orphan the resource, but output a log message for querying/followup and return a non-retryable error
+4. Minor mitigation - If the process dies before recording the ID the resource is orphaned. If the process dies after recording the ID, but before tagging it is reconciled through update.
