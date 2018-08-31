@@ -54,8 +54,7 @@ Each resource has specific error codes that it will return and these can be used
   - If update fails return a retryable error to reque the create
 - Enque cluster/machine update if not already available/ready
 
-TODO: update flowchart
-![Create Resource](create-resource-with-tags.png)
+TODO: flowchart
 
 #### Update resource with tag on create support
 
@@ -81,8 +80,7 @@ TODO: update flowchart
 - Tag AWS resource
 - Enque cluster/machine update if not already available/ready or tagging fails
 
-TODO: update flowchart
-![Create Resource Separate Tagging](create-resource-separate-tags.png)
+TODO: flowchart
 
 #### Update resource with separate tagging required - option 1
 
