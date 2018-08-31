@@ -21,6 +21,11 @@ In contrast to the kops approach, Kubicorn mainly relies on recording the resour
 3. attempting to delete resource fails after an attempt to rollback due to a failure to record the ID of the created resource to the cluster/machine object for resources that do not support tagging on create.
 4. the controller/actuator dies after creating a resource but before tagging and or recording the resource
 
+## Misc TODOs
+
+- Incorporate retries for AWS or cluster-api requests?
+- Enumerate specific classes of workflows and identify which resources fall into which class based on tagging support, client token support, etc.
+
 ## Using client tokens
 
 Where possible use [client tokens](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html) in the create request so that subsequent requests will return the same response.
