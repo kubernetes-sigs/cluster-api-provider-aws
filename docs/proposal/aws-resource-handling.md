@@ -18,21 +18,19 @@ In contrast to the kops approach, Kubicorn mainly relies on recording the resour
 
 - resource create succeeds, but subsequent tagging fails
 - resource creates succeeds, but update of cluster/machine object fails
-- attempting to delete resource fails after a successful create it but before recording/tagging it
+- attempting to delete resource fails after an attempt to rollback due to a failure to record the ID of the created resource to the cluster/machine object for resources that do not support tagging on create.
 - the controller/actuator dies after creating a resource but before tagging and or recording the resource
 
 ## Proposed workflow
 
-Where possible use [client tokens](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html) in the create request so that subsequent requests will return the same response.
-
-### Create resource with tag support
+### Create resource with tag on create support
 
 - Query resource by tags to determine if resource already exists
 - Create the resource if it doesn't already exist
 - Attempt to record the ID to the cluster/machine object
 - Enque update for available/ready state if not already available/ready
 
-![Create Resource](create-resource.png)
+![Create Resource](create-resource-with-tags.png)
 
 ### Create resource with separate tagging required
 
@@ -42,4 +40,18 @@ Where possible use [client tokens](https://docs.aws.amazon.com/AWSEC2/latest/API
 - Attempt to tag resource
 - Enque update for available/ready state if not already available/ready
 
-![Create Resource Separate Tagging](create-resource-generic.png)
+![Create Resource Separate Tagging](create-resource-separate-tags.png)
+
+## Using client tokens
+
+Where possible use [client tokens](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html) in the create request so that subsequent requests will return the same response.
+
+## Tagging of resources
+
+Resources that are managed by the controllers/actuators should be tagged with: `kubernetes.io/cluster/<name or id>=owned`
+
+TODO: Define additional tags that can be used to provide additional metadata about the resource configuration/usage by the actuator.
+
+## Handling of errors
+
+Each resource has specific error codes that it will return and these can be used to differentiate fatal errors from retryable errors. These errors are well documented in some cases (elbv2 api), and poorly in others (ec2 api). We should provide a best effort to [properly handle these errors](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/handling-errors.html) in the correct manner.
