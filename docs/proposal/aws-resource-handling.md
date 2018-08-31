@@ -23,7 +23,12 @@ In contrast to the kops approach, Kubicorn mainly relies on recording the resour
 
 ## Misc TODOs
 
-- Incorporate retries for AWS or cluster-api requests?
+- Solicit feedback on whether aws-sdk-go and client-go retry defaults are sufficient:
+  - aws-sdk-go
+    - https://docs.aws.amazon.com/general/latest/gr/api-retries.html
+    - https://docs.aws.amazon.com/sdk-for-go/api/aws/client/#DefaultRetryer
+  - client-go
+    - https://github.com/kubernetes/client-go/blob/master/rest/request.go#L659
 - Identify which resources fall into which class of workflow based on tagging support, client token support, etc.
 - Better define mutatable/non-mutatable attributes for objects during update
 
@@ -33,9 +38,7 @@ Where possible use [client tokens](https://docs.aws.amazon.com/AWSEC2/latest/API
 
 ## Tagging of resources
 
-Resources that are managed by the controllers/actuators should be tagged with: `kubernetes.io/cluster/<name or id>=owned`
-
-Question: Since other tools/components interact and create resources using the `kubernetes.io/cluster/<name or id>=owned` tag, should we also add a cluster-api-provider-aws specific tag for filtering?
+Resources that are managed by the controllers/actuators should be tagged with: `kubernetes.io/cluster/<name or id>=owned` and `sigs.k8s.io/cluster-api-provider-aws=true`. The latter tag being used to differentiate from resources managed by other tools/components that make use of the common tag.
 
 TODO: Define additional tags that can be used to provide additional metadata about the resource configuration/usage by the actuator. This is would allow us to rebuild status without relying on polluting the object config.
 
@@ -52,8 +55,8 @@ Each resource has specific error codes that it will return and these can be used
 - Query resource by tags to determine if resource already exists
 - Create the resource if it doesn't already exist
 - Update the cluster/machine object config and status
-  - If update fails return a retryable error to reque the create
-- Enque cluster/machine update if not already available/ready
+  - If update fails return a retryable error to requeue the create
+- Enqueue cluster/machine update if not already available/ready
 
 TODO: flowchart
 
@@ -61,12 +64,12 @@ TODO: flowchart
 
 - Query resource by ID
 - Update object status
-- Enque cluster/machine update if not already available/ready
+- Enqueue cluster/machine update if not already available/ready
 
 #### Edge case coverage
 
 1. Yes - tagging is handled on creation
-2. Yes - since resources are tagged on creation, returning an error and requeing the create will find the tagged resource and attempt to retry the object update.
+2. Yes - since resources are tagged on creation, returning an error and requeueing the create will find the tagged resource and attempt to retry the object update.
 3. Yes - there is no delete attempt since we can re-query the resource by tags.
 4. Yes - the next attempt to create the resource will find the already created resource by tags.
 
@@ -76,9 +79,9 @@ TODO: flowchart
 
 - Create the resource using object uid as the client token
 - Update the cluster/machine object config and status
-  - If update fails return a retryable error to reque the create
+  - If update fails return a retryable error to requeue the create
 - Tag AWS resource
-- Enque cluster/machine update if not already available/ready
+- Enqueue cluster/machine update if not already available/ready
 
 TODO: flowchart
 
@@ -87,7 +90,7 @@ TODO: flowchart
 - Query resource by ID
 - tag resource if missing tags
 - Update object status
-- Enque cluster/machine update if not already available/ready
+- Enqueue cluster/machine update if not already available/ready
 
 #### Edge case coverage
 
@@ -105,7 +108,7 @@ TODO: flowchart
   - If update fails attempt delete of created resource
     - If delete fails log delete failure and return non-retryable error
 - Tag AWS resource
-- Enque cluster/machine update if not already available/ready or tagging fails
+- Enqueue cluster/machine update if not already available/ready or tagging fails
 
 TODO: flowchart
 
@@ -114,7 +117,7 @@ TODO: flowchart
 - Query resource by ID
 - tag resource if missing tags
 - Update object status
-- Enque cluster/machine update if not already available/ready
+- Enqueue cluster/machine update if not already available/ready
 
 #### Edge case coverage - option 1
 
@@ -134,7 +137,7 @@ TODO: flowchart
     - If delete fails log failure prominently, return non-retryable error
   - If only tagging fails, return retryable error
 - If update failed, return retryable error
-- Enque cluster/machine update if not already available/ready or tagging fails
+- Enqueue cluster/machine update if not already available/ready or tagging fails
 
 TODO: flowchart
 
@@ -142,7 +145,7 @@ TODO: flowchart
 
 - Query resource by ID
 - Update object status
-- Enque cluster/machine update if not already available/ready
+- Enqueue cluster/machine update if not already available/ready
 
 #### Edge case coverage - option 2
 
@@ -157,7 +160,7 @@ TODO: flowchart
 
 - Create the resource using the object uid as the client token
 - Update cluster/machine object config and status
-- Enque cluster/machine update if not already available/ready or tagging fails
+- Enqueue cluster/machine update if not already available/ready or tagging fails
 
 TODO: flowchart
 
@@ -165,7 +168,7 @@ TODO: flowchart
 
 - Query resource by ID
 - Update object status
-- Enque cluster/machine update if not already available/ready
+- Enqueue cluster/machine update if not already available/ready
 
 #### Edge case coverage
 
@@ -182,7 +185,7 @@ TODO: flowchart
 - Update cluster/machine object config and status
   - If update fails, delete resource
     - If delete fails log failure prominently, return non-retryable error
-- Enque cluster/machine update if not already available/ready or tagging fails
+- Enqueue cluster/machine update if not already available/ready or tagging fails
 
 TODO: flowchart
 
@@ -190,7 +193,7 @@ TODO: flowchart
 
 - Query resource by ID
 - Update object status
-- Enque cluster/machine update if not already available/ready
+- Enqueue cluster/machine update if not already available/ready
 
 #### Edge case coverage
 
