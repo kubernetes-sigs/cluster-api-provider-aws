@@ -63,7 +63,7 @@ TODO: update flowchart
 - Update object status
 - Enque cluster/machine update if not already available/ready
 
-#### Edge case coverage
+#### Edge case coverage - resource with tag on create support
 
 1. Yes - tagging is handled on creation
 2. Yes - since resources are tagged on creation, returning an error and requeing the create will find the tagged resource and attempt to retry the object update.
@@ -91,7 +91,7 @@ TODO: update flowchart
 - Update object status
 - Enque cluster/machine update if not already available/ready
 
-#### Edge case coverage
+#### Edge case coverage - Resource with separate tagging required - option 1
 
 1. Yes - Since the resource ID is already recorded, the update process will reconccile missing tags
 2. Yes, with caveat - If the object update fails, we attempt to rollback the creation but edge case 3 comes into play
@@ -121,9 +121,34 @@ TODO: flowchart
 - Update object status
 - Enque cluster/machine update if not already available/ready
 
-#### Edge case coverage
+#### Edge case coverage - Resource with separate tagging required - option 2
 
 1. Yes - If only the tagging fails, then we will reconcile tags on update. If the update also fails, then we attempt to delete the resource.
 2. Yes, with caveat - If only the object update fails, then we throw a retryable error that will requeue the create operation and attempt to update the object after discovering the existing resource. If the tagging fails as well, then we attempt to delete the resource and edge case 3 will still apply.
 3. Minor mitigation - If we fail to delete the resource, we will still orphan the resource, but output a log message for querying/followup and return a non-retryable error
 4. Minor mitigation - If the process dies before recording the ID the resource is orphaned. If the process dies after recording the ID, but before tagging it is reconciled through update.
+
+### Resource without tag support
+
+### Create resource without tag support
+
+- Create the resource
+- Update cluster/machine object config and status
+  - If update fails, delete resource
+    - If delete fails log failure prominently, return non-retryable error
+- Enque cluster/machine update if not already available/ready or tagging fails
+
+TODO: flowchart
+
+#### Update resource without tag support
+
+- Query resource by ID
+- Update object status
+- Enque cluster/machine update if not already available/ready
+
+#### Edge case coverage - Resource without tag support
+
+1. Yes - There is no tagging
+2. Yes, with caveat - If the update fails, then we attempt to delete the resource and edge case 3 will still apply.
+3. Minor mitigation - If we fail to delete the resource, we will still orphan the resource, but output a log message for querying/followup and return a non-retryable error
+4. No - If the process dies before recording the ID the resource is orphaned.
