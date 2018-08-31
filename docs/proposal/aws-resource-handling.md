@@ -24,7 +24,7 @@ In contrast to the kops approach, Kubicorn mainly relies on recording the resour
 ## Misc TODOs
 
 - Incorporate retries for AWS or cluster-api requests?
-- Enumerate specific classes of workflows and identify which resources fall into which class based on tagging support, client token support, etc.
+- Identify which resources fall into which class of workflow based on tagging support, client token support, etc.
 
 ## Using client tokens
 
@@ -44,9 +44,9 @@ Each resource has specific error codes that it will return and these can be used
 
 ## Proposed workflows
 
-### Resource with tag on create support
+### Resources that support tag on create support
 
-#### Create resource with tag on create support
+#### Create
 
 - Query resource by tags to determine if resource already exists
 - Create the resource if it doesn't already exist
@@ -56,22 +56,48 @@ Each resource has specific error codes that it will return and these can be used
 
 TODO: flowchart
 
-#### Update resource with tag on create support
+#### Update
 
 - Query resource by ID
 - Update object status
 - Enque cluster/machine update if not already available/ready
 
-#### Edge case coverage - resource with tag on create support
+#### Edge case coverage
 
 1. Yes - tagging is handled on creation
 2. Yes - since resources are tagged on creation, returning an error and requeing the create will find the tagged resource and attempt to retry the object update.
 3. Yes - there is no delete attempt since we can re-query the resource by tags.
 4. Yes - the next attempt to create the resource will find the already created resource by tags.
 
-### Resource with separate tagging required - option 1
+### Resources that support client tokens but do not support tag on create
 
-#### Create resource with separate tagging required - option 1
+#### Create
+
+- Create the resource using object uid as the client token
+- Update the cluster/machine object config and status
+  - If update fails return a retryable error to reque the create
+- Tag AWS resource
+- Enque cluster/machine update if not already available/ready
+
+TODO: flowchart
+
+#### Update
+
+- Query resource by ID
+- tag resource if missing tags
+- Update object status
+- Enque cluster/machine update if not already available/ready
+
+#### Edge case coverage
+
+1. Yes - If the update was successful, tagging will be reconciled the next time the object is updated on reconiliation. If the update was not successful, the next call using the same client token will return the same object as previously created.
+2. Yes - since we are using a client token, subsequent requests will return the same result.
+3. Yes - there is no delete attempt since we can repeat the request to create the resource safely.
+4. Yes - the next attempt to create the resource will return the already created resource.
+
+### Resources that require separate tagging without client token support
+
+#### Create - option 1
 
 - Create resource
 - Update cluster/machine object config and status
@@ -82,23 +108,21 @@ TODO: flowchart
 
 TODO: flowchart
 
-#### Update resource with separate tagging required - option 1
+#### Update - option 1
 
 - Query resource by ID
 - tag resource if missing tags
 - Update object status
 - Enque cluster/machine update if not already available/ready
 
-#### Edge case coverage - Resource with separate tagging required - option 1
+#### Edge case coverage - option 1
 
-1. Yes - Since the resource ID is already recorded, the update process will reconccile missing tags
+1. Yes - Since the resource ID is already recorded, the update process will reconcile missing tags
 2. Yes, with caveat - If the object update fails, we attempt to rollback the creation but edge case 3 comes into play
 3. Minor mitigation - If we fail to delete the resource, we will still orphan the resource, but output a log message for querying/followup and return a non-retryable error
 4. Minor mitigation - If the process dies before recording the ID the resource is orphaned. If the process dies after recording the ID, but before tagging it is reconciled through update.
 
-### Resource with separate tagging required - option 2
-
-### Create resource with separate tagging required - option 2
+#### Create - option 2
 
 - Query resource by tags to determine if resource already exists
 - Create the resource if it doesn't already exist
@@ -113,22 +137,45 @@ TODO: flowchart
 
 TODO: flowchart
 
-#### Update resource with separate tagging required - option 2
+#### Update - option 2
 
 - Query resource by ID
 - Update object status
 - Enque cluster/machine update if not already available/ready
 
-#### Edge case coverage - Resource with separate tagging required - option 2
+#### Edge case coverage - option 2
 
 1. Yes - If only the tagging fails, then we will reconcile tags on update. If the update also fails, then we attempt to delete the resource.
 2. Yes, with caveat - If only the object update fails, then we throw a retryable error that will requeue the create operation and attempt to update the object after discovering the existing resource. If the tagging fails as well, then we attempt to delete the resource and edge case 3 will still apply.
 3. Minor mitigation - If we fail to delete the resource, we will still orphan the resource, but output a log message for querying/followup and return a non-retryable error
 4. Minor mitigation - If the process dies before recording the ID the resource is orphaned. If the process dies after recording the ID, but before tagging it is reconciled through update.
 
-### Resource without tag support
+### Resources without tag support with client token support
 
-### Create resource without tag support
+#### Create
+
+- Create the resource using the object uid as the client token
+- Update cluster/machine object config and status
+- Enque cluster/machine update if not already available/ready or tagging fails
+
+TODO: flowchart
+
+#### Update
+
+- Query resource by ID
+- Update object status
+- Enque cluster/machine update if not already available/ready
+
+#### Edge case coverage
+
+1. Yes - There is no tagging
+2. Yes - If the update fails, subsequent calls will return the same resource.
+3. Yes - No delete is used
+4. Yes - If the process dies before recording the ID subsequent calls to create the resource return the same resource.
+
+### Resources without tag support without client token support
+
+#### Create
 
 - Create the resource
 - Update cluster/machine object config and status
@@ -138,13 +185,13 @@ TODO: flowchart
 
 TODO: flowchart
 
-#### Update resource without tag support
+#### Update
 
 - Query resource by ID
 - Update object status
 - Enque cluster/machine update if not already available/ready
 
-#### Edge case coverage - Resource without tag support
+#### Edge case coverage
 
 1. Yes - There is no tagging
 2. Yes, with caveat - If the update fails, then we attempt to delete the resource and edge case 3 will still apply.
