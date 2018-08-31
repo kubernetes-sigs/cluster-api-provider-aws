@@ -25,6 +25,7 @@ In contrast to the kops approach, Kubicorn mainly relies on recording the resour
 
 - Incorporate retries for AWS or cluster-api requests?
 - Identify which resources fall into which class of workflow based on tagging support, client token support, etc.
+- Better define mutatable/non-mutatable attributes for objects during update
 
 ## Using client tokens
 
@@ -38,7 +39,7 @@ Question: Since other tools/components interact and create resources using the `
 
 TODO: Define additional tags that can be used to provide additional metadata about the resource configuration/usage by the actuator. This is would allow us to rebuild status without relying on polluting the object config.
 
-## Handling of errors
+## Handling of AWS api errors
 
 Each resource has specific error codes that it will return and these can be used to differentiate fatal errors from retryable errors. These errors are well documented in some cases (elbv2 api), and poorly in others (ec2 api). We should provide a best effort to [properly handle these errors](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/handling-errors.html) in the correct manner.
 
