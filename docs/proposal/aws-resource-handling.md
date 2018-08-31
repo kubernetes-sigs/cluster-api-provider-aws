@@ -48,7 +48,7 @@ Each resource has specific error codes that it will return and these can be used
 
 ## Proposed workflows
 
-### Resources that support tag on create support
+### Resources that support tag on create support (with or without client tokens)
 
 #### Create
 
@@ -73,7 +73,7 @@ TODO: flowchart
 3. Yes - there is no delete attempt since we can re-query the resource by tags.
 4. Yes - the next attempt to create the resource will find the already created resource by tags.
 
-### Resources that support client tokens but do not support tag on create
+### Resources that support client tokens but require separate tagging
 
 #### Create
 
