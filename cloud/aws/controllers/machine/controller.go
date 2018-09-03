@@ -84,6 +84,7 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 
 		//		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
 	}
+
 	actuator, err := machineactuator.NewActuator(params)
 	if err != nil {
 		glog.Fatalf("Could not create aws machine actuator: %v", err)

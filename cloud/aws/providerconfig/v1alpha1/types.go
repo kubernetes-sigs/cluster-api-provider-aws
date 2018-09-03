@@ -156,5 +156,6 @@ type AWSClusterProviderStatus struct {
 
 // VPC is the aws vpc
 type VPC struct {
-	ID string `json:"id"`
+	ID        string `json:"id"`
+	CidrBlock string `json:"cidrBlock"`
 }

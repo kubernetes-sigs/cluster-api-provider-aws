@@ -32,7 +32,6 @@ func (i *instances) RunInstances(input *ec2.RunInstancesInput) (*ec2.Reservation
 
 func TestInstanceIfExists_DoesNotExist(t *testing.T) {
 	s := ec2svc.Service{
-		VPCs:      nil,
 		Instances: &instances{},
 	}
 	id := "hello"
