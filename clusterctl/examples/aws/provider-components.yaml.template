@@ -28,10 +28,10 @@ spec:
       - name: controller-manager
         image: gcr.io/k8s-cluster-api/controller-manager:0.0.7
         volumeMounts:
-          - name: config
-            mountPath: /etc/kubernetes
-          - name: certs
-            mountPath: /etc/ssl/certs
+        - name: config
+          mountPath: /etc/kubernetes
+        - name: certs
+          mountPath: /etc/ssl/certs
         command:
         - "./controller-manager"
         args:
@@ -47,11 +47,17 @@ spec:
       - name: aws-cluster-controller
         image: ${CLUSTER_CONTROLLER_IMAGE}
         volumeMounts:
-          - name: config
-            mountPath: /etc/kubernetes
-          - name: certs
-            mountPath: /etc/ssl/certs
+        - name: config
+          mountPath: /etc/kubernetes
+        - name: certs
+          mountPath: /etc/ssl/certs
         env:
+        - name: AWS_REGION
+          value: ${AWS_REGION}
+        - name: AWS_ACCESS_KEY_ID
+          value: ${AWS_ACCESS_KEY_ID}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: ${AWS_SECRET_ACCESS_KEY}
         - name: NODE_NAME
           valueFrom:
             fieldRef:
@@ -71,15 +77,21 @@ spec:
       - name: aws-machine-controller
         image: ${MACHINE_CONTROLLER_IMAGE}
         volumeMounts:
-          - name: config
-            mountPath: /etc/kubernetes
-          - name: certs
-            mountPath: /etc/ssl/certs
+        - name: config
+          mountPath: /etc/kubernetes
+        - name: certs
+          mountPath: /etc/ssl/certs
         env:
         - name: NODE_NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: AWS_REGION
+          value: ${AWS_REGION}
+        - name: AWS_ACCESS_KEY_ID
+          value: ${AWS_ACCESS_KEY_ID}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: ${AWS_SECRET_ACCESS_KEY}
         command:
         - "./machine-controller"
         args:
