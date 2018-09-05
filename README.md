@@ -16,6 +16,13 @@ Note: This repository is currently a skeleton implementation of a cluster-api pr
 0. Set project: `gcloud config set project YOUR_PROJECT_NAME`
 0. Pushing dev images: `make dev_push`
 
+### clusterctl
+
+1. `export CLUSTER_CONTROLLER_IMAGE=gcr.io/YOUR_PROJECT_NAME/aws-cluster-controller:0.0.1-dev`
+0. `export MACHINE_CONTROLLER_IMAGE=gcr.io/YOUR_PROJECT_NAME/aws-machine-controller:0.0.1-dev`
+0. Generate the input files with [clusterctl/examples/aws/generate-yaml.sh](/clusterctl/examples/aws/generate-yaml.sh)
+0. `clusterctl create cluster -c clusterctl/examples/aws/out/cluster.yaml -m clusterctl/examples/aws/out/machines.yaml -p clusterctl/examples/aws/out/provider-components.yaml --provider aws`
+
 ## Community, discussion, contribution, and support
 
 Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
