@@ -19,6 +19,7 @@ package machine
 import (
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
@@ -65,12 +66,19 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		glog.Fatalf("Could not create codec: %v", err)
 	}
 
+	// Requires setting environment variables:
+	// AWS_REGION=us-west-2,
+	// AWS_ACCESS_KEY_ID=
+	// AWS_SECRET_ACCESS_KEY=
+	sess := session.Must(session.NewSession())
+	ec2client := ec2.New(sess)
+
 	params := machineactuator.ActuatorParams{
 		MachinesService: &clustersvc.Service{
 			Machine: client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
 		},
 		EC2Service: &ec2svc.Service{
-			Instances: &ec2.EC2{},
+			Instances: ec2client,
 		},
 		Codec: codec,
 

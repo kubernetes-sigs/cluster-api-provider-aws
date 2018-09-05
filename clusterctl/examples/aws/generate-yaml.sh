@@ -8,6 +8,12 @@ OUTPUT_DIR=out
 export CLUSTER_CONTROLLER_IMAGE="${CLUSTER_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
 export MACHINE_CONTROLLER_IMAGE="${MACHINE_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1}"
 
+# aws credentials
+# TODO generate a secret instead of embedding directly in the YAML
+export AWS_REGION="${AWS_REGION:-us-west-2}"
+export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
+export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+
 PROVIDERCOMPONENT_TEMPLATE_FILE=provider-components.yaml.template
 PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 
