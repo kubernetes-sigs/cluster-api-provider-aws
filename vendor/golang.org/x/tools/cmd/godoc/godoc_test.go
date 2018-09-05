@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"go/build"
 	"io"
 	"io/ioutil"
 	"net"
@@ -53,20 +54,10 @@ func buildGodoc(t *testing.T) (bin string, cleanup func()) {
 	return bin, func() { os.RemoveAll(tmp) }
 }
 
-var isGo19 bool // godoc19_test.go sets it to true.
-
 // Basic regression test for godoc command-line tool.
 func TestCLI(t *testing.T) {
 	bin, cleanup := buildGodoc(t)
 	defer cleanup()
-
-	// condStr returns s if cond is true, otherwise empty string.
-	condStr := func(cond bool, s string) string {
-		if !cond {
-			return ""
-		}
-		return s
-	}
 
 	tests := []struct {
 		args      []string
@@ -90,13 +81,7 @@ func TestCLI(t *testing.T) {
 		{
 			args: []string{"nonexistingpkg"},
 			matches: []string{
-				`cannot find package` +
-					// TODO: Remove this when support for Go 1.8 is dropped.
-					condStr(!isGo19,
-						// For Go 1.8 and older, because it doesn't have CL 33158 change applied to go/build.
-						// The last pattern (does not e) is for plan9:
-						// http://build.golang.org/log/2d8e5e14ed365bfa434b37ec0338cd9e6f8dd9bf
-						`|no such file or directory|does not exist|cannot find the file|(?:' does not e)`),
+				`cannot find package`,
 			},
 		},
 		{
@@ -202,6 +187,17 @@ func waitForServer(t *testing.T, url, match string, timeout time.Duration, rever
 	t.Fatalf("Server failed to respond in %v", timeout)
 }
 
+// hasTag checks whether a given release tag is contained in the current version
+// of the go binary.
+func hasTag(t string) bool {
+	for _, v := range build.Default.ReleaseTags {
+		if t == v {
+			return true
+		}
+	}
+	return false
+}
+
 func killAndWait(cmd *exec.Cmd) {
 	cmd.Process.Kill()
 	cmd.Wait()
@@ -255,70 +251,108 @@ func testWeb(t *testing.T, withIndex bool) {
 	}
 
 	tests := []struct {
-		path      string
-		match     []string
-		dontmatch []string
-		needIndex bool
+		path        string
+		contains    []string // substring
+		match       []string // regexp
+		notContains []string
+		needIndex   bool
+		releaseTag  string // optional release tag that must be in go/build.ReleaseTags
 	}{
 		{
-			path:  "/",
-			match: []string{"Go is an open source programming language"},
+			path:     "/",
+			contains: []string{"Go is an open source programming language"},
 		},
 		{
-			path:  "/pkg/fmt/",
-			match: []string{"Package fmt implements formatted I/O"},
+			path:     "/pkg/fmt/",
+			contains: []string{"Package fmt implements formatted I/O"},
 		},
 		{
-			path:  "/src/fmt/",
-			match: []string{"scan_test.go"},
+			path:     "/src/fmt/",
+			contains: []string{"scan_test.go"},
 		},
 		{
-			path:  "/src/fmt/print.go",
-			match: []string{"// Println formats using"},
+			path:     "/src/fmt/print.go",
+			contains: []string{"// Println formats using"},
 		},
 		{
 			path: "/pkg",
-			match: []string{
+			contains: []string{
 				"Standard library",
 				"Package fmt implements formatted I/O",
 			},
-			dontmatch: []string{
+			notContains: []string{
 				"internal/syscall",
 				"cmd/gc",
 			},
 		},
 		{
 			path: "/pkg/?m=all",
-			match: []string{
+			contains: []string{
 				"Standard library",
 				"Package fmt implements formatted I/O",
 				"internal/syscall/?m=all",
 			},
-			dontmatch: []string{
+			notContains: []string{
 				"cmd/gc",
 			},
 		},
 		{
 			path: "/search?q=ListenAndServe",
-			match: []string{
+			contains: []string{
 				"/src",
 			},
-			dontmatch: []string{
+			notContains: []string{
 				"/pkg/bootstrap",
 			},
 			needIndex: true,
 		},
 		{
 			path: "/pkg/strings/",
-			match: []string{
+			contains: []string{
 				`href="/src/strings/strings.go"`,
 			},
 		},
 		{
 			path: "/cmd/compile/internal/amd64/",
-			match: []string{
+			contains: []string{
 				`href="/src/cmd/compile/internal/amd64/ssa.go"`,
 			},
+		},
+		{
+			path: "/pkg/math/bits/",
+			contains: []string{
+				`Added in Go 1.9`,
+			},
+		},
+		{
+			path: "/pkg/net/",
+			contains: []string{
+				`// IPv6 scoped addressing zone; added in Go 1.1`,
+			},
+		},
+		{
+			path: "/pkg/net/http/httptrace/",
+			match: []string{
+				`Got1xxResponse.*// Go 1\.11`,
+			},
+			releaseTag: "go1.11",
+		},
+		// Verify we don't add version info to a struct field added the same time
+		// as the struct itself:
+		{
+			path: "/pkg/net/http/httptrace/",
+			match: []string{
+				`(?m)GotFirstResponseByte func\(\)\s*$`,
+			},
+		},
+		// Remove trailing periods before adding semicolons:
+		{
+			path: "/pkg/database/sql/",
+			contains: []string{
+				"The number of connections currently in use; added in Go 1.11",
+				"The number of idle connections; added in Go 1.11",
+			},
+			releaseTag: "go1.11",
 		},
 	}
 	for _, test := range tests {
@@ -332,18 +366,34 @@ func testWeb(t *testing.T, withIndex bool) {
 			continue
 		}
 		body, err := ioutil.ReadAll(resp.Body)
+		strBody := string(body)
 		resp.Body.Close()
 		if err != nil {
 			t.Errorf("GET %s: failed to read body: %s (response: %v)", url, err, resp)
 		}
 		isErr := false
-		for _, substr := range test.match {
+		for _, substr := range test.contains {
+			if test.releaseTag != "" && !hasTag(test.releaseTag) {
+				continue
+			}
 			if !bytes.Contains(body, []byte(substr)) {
 				t.Errorf("GET %s: wanted substring %q in body", url, substr)
 				isErr = true
 			}
 		}
-		for _, substr := range test.dontmatch {
+		for _, re := range test.match {
+			if test.releaseTag != "" && !hasTag(test.releaseTag) {
+				continue
+			}
+			if ok, err := regexp.MatchString(re, strBody); !ok || err != nil {
+				if err != nil {
+					t.Fatalf("Bad regexp %q: %v", re, err)
+				}
+				t.Errorf("GET %s: wanted to match %s in body", url, re)
+				isErr = true
+			}
+		}
+		for _, substr := range test.notContains {
 			if bytes.Contains(body, []byte(substr)) {
 				t.Errorf("GET %s: didn't want substring %q in body", url, substr)
 				isErr = true

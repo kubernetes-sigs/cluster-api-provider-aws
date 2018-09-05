@@ -65,9 +65,6 @@ type MachineSpec struct {
 	// +optional
 	ProviderConfig ProviderConfig `json:"providerConfig"`
 
-	// A list of roles for this Machine to use.
-	Roles []clustercommon.MachineRole `json:"roles,omitempty"`
-
 	// Versions of key software to use. This field is optional at cluster
 	// creation time, and omitting the field indicates that the cluster
 	// installation tool should select defaults for the user. These
@@ -106,7 +103,7 @@ type MachineStatus struct {
 	//    so that if the structure of Node.Status.NodeInfo changes, only
 	//    machine controllers need to be updated, rather than every client
 	//    of the Machines API.
-	// 3) There is no other way simple way to check the ControlPlane
+	// 3) There is no other simple way to check the ControlPlane
 	//    version. A client would have to connect directly to the apiserver
 	//    running on the target node in order to find out its version.
 	// +optional
@@ -144,6 +141,14 @@ type MachineStatus struct {
 	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
 	// +optional
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+
+	// List of conditions synced from the node conditions of the corresponding node-object.
+	// Machine-controller is responsible for keeping conditions up-to-date.
+	// MachineSet controller will be taking these conditions as a signal to decide if
+	// machine is healthy or needs to be replaced.
+	// Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition
+	// +optional
+	Conditions []corev1.NodeCondition `json:"conditions,omitempty"`
 }
 
 type MachineVersionInfo struct {

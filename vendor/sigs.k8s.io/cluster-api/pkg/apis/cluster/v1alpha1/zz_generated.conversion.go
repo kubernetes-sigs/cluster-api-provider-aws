@@ -740,7 +740,6 @@ func autoConvert_v1alpha1_MachineSpec_To_cluster_MachineSpec(in *MachineSpec, ou
 	if err := Convert_v1alpha1_ProviderConfig_To_cluster_ProviderConfig(&in.ProviderConfig, &out.ProviderConfig, s); err != nil {
 		return err
 	}
-	out.Roles = *(*[]common.MachineRole)(unsafe.Pointer(&in.Roles))
 	if err := Convert_v1alpha1_MachineVersionInfo_To_cluster_MachineVersionInfo(&in.Versions, &out.Versions, s); err != nil {
 		return err
 	}
@@ -759,7 +758,6 @@ func autoConvert_cluster_MachineSpec_To_v1alpha1_MachineSpec(in *cluster.Machine
 	if err := Convert_cluster_ProviderConfig_To_v1alpha1_ProviderConfig(&in.ProviderConfig, &out.ProviderConfig, s); err != nil {
 		return err
 	}
-	out.Roles = *(*[]common.MachineRole)(unsafe.Pointer(&in.Roles))
 	if err := Convert_cluster_MachineVersionInfo_To_v1alpha1_MachineVersionInfo(&in.Versions, &out.Versions, s); err != nil {
 		return err
 	}
@@ -780,6 +778,7 @@ func autoConvert_v1alpha1_MachineStatus_To_cluster_MachineStatus(in *MachineStat
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	out.ProviderStatus = (*runtime.RawExtension)(unsafe.Pointer(in.ProviderStatus))
 	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Conditions = *(*[]v1.NodeCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -796,6 +795,7 @@ func autoConvert_cluster_MachineStatus_To_v1alpha1_MachineStatus(in *cluster.Mac
 	out.ErrorMessage = (*string)(unsafe.Pointer(in.ErrorMessage))
 	out.ProviderStatus = (*runtime.RawExtension)(unsafe.Pointer(in.ProviderStatus))
 	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Conditions = *(*[]v1.NodeCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
