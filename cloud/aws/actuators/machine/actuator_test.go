@@ -14,6 +14,7 @@
 package machine_test
 
 import (
+	"errors"
 	"testing"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
@@ -22,23 +23,21 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-type ec2 struct{}
+type instanceError struct {
+	instance *ec2svc.Instance
+	err      error
+}
+
+type ec2 struct {
+	createInstanceReturn   instanceError
+	instanceIfExistsReturn instanceError
+}
 
 func (e *ec2) CreateInstance(machine *clusterv1.Machine) (*ec2svc.Instance, error) {
-	return &ec2svc.Instance{
-		ID: "abc",
-	}, nil
+	return e.createInstanceReturn.instance, e.createInstanceReturn.err
 }
 func (e *ec2) InstanceIfExists(id *string) (*ec2svc.Instance, error) {
-	if id == nil {
-		return nil, nil
-	}
-	if *id == "abc" {
-		return &ec2svc.Instance{
-			ID: "abc",
-		}, nil
-	}
-	return nil, nil
+	return e.instanceIfExistsReturn.instance, e.instanceIfExistsReturn.err
 }
 
 type machines struct{}
@@ -48,21 +47,62 @@ func (m *machines) UpdateMachineStatus(machine *clusterv1.Machine) (*clusterv1.M
 }
 
 func TestCreate(t *testing.T) {
+	testCases := []struct {
+		name                   string
+		createInstanceReturn   instanceError
+		instanceIfExistsReturn instanceError
+
+		expected error
+	}{
+		{
+			name: "instance does not exist",
+			createInstanceReturn: instanceError{
+				instance: &ec2svc.Instance{
+					State: "Running",
+					ID:    "abc",
+				},
+			},
+			instanceIfExistsReturn: instanceError{
+				instance: nil,
+				err:      nil,
+			},
+			expected: nil,
+		},
+		{
+			name:                 "instance lookup fails",
+			createInstanceReturn: instanceError{},
+			instanceIfExistsReturn: instanceError{
+				instance: nil,
+				err:      errors.New("failed to create instance"),
+			},
+			expected: errors.New("failed to create instance"),
+		},
+	}
+
+	// shared codec
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		t.Fatalf("failed to create a codec: %v", err)
 	}
-	ap := machine.ActuatorParams{
-		Codec:           codec,
-		MachinesService: &machines{},
-		EC2Service:      &ec2{},
-	}
-	actuator, err := machine.NewActuator(ap)
-	if err != nil {
-		t.Fatalf("failed to create an actuator: %v", err)
-	}
 
-	if err := actuator.Create(&clusterv1.Cluster{}, &clusterv1.Machine{}); err != nil {
-		t.Fatalf("failed to create machine: %v", err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ap := machine.ActuatorParams{
+				Codec:           codec,
+				MachinesService: &machines{},
+				EC2Service: &ec2{
+					createInstanceReturn:   tc.createInstanceReturn,
+					instanceIfExistsReturn: tc.instanceIfExistsReturn,
+				},
+			}
+			actuator, err := machine.NewActuator(ap)
+			if err != nil {
+				t.Fatalf("failed to create an actuator: %v", err)
+			}
+
+			if err := actuator.Create(&clusterv1.Cluster{}, &clusterv1.Machine{}); err != nil && err.Error() != tc.expected.Error() {
+				t.Fatalf("expected error: %q but got error %q", err, tc.expected)
+			}
+		})
 	}
 }
