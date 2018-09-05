@@ -4,6 +4,10 @@ set -o nounset
 
 OUTPUT_DIR=out
 
+# provider-components
+export CLUSTER_CONTROLLER_IMAGE="${CLUSTER_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
+export MACHINE_CONTROLLER_IMAGE="${MACHINE_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1}"
+
 PROVIDERCOMPONENT_TEMPLATE_FILE=provider-components.yaml.template
 PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 
