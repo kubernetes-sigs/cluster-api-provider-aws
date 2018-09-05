@@ -17,22 +17,22 @@ import (
 	"testing"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	providerconfig "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
-
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 type ec2 struct{}
 
-func (e *ec2) ReconcileVPC(id string) (*ec2svc.VPC, error) {
+func (e *ec2) ReconcileVPC(input providerconfig.VPC) (*ec2svc.VPC, error) {
 	return &ec2svc.VPC{
-		ID: id,
+		ID:        input.ID,
+		CidrBlock: input.CidrBlock,
 	}, nil
 }
 
 func TestReconcile(t *testing.T) {
-	c, err := v1alpha1.NewCodec()
+	c, err := providerconfig.NewCodec()
 	if err != nil {
 		t.Fatalf("failed to create codec: %v", err)
 	}
