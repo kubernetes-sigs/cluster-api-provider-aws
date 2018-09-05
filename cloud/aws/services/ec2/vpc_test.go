@@ -78,7 +78,7 @@ func TestReconcileVPC(t *testing.T) {
 				Instances: nil,
 				VPCs:      &vpcs{},
 			}
-			vpc, err := s.ReconcileVPC(&v1alpha1.VPC{ID: tc.id})
+			vpc, err := s.ReconcileVPC(v1alpha1.VPC{ID: tc.id})
 			if err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
