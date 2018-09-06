@@ -34,7 +34,7 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
-  digest = "1:081455e4300dd039087af9ad92265c32498d02712efee0c20145278a473e9a6c"
+  digest = "1:b3d95f73c0f3ebafec1cade3f1b08fcded3536d685f761ff056986bd67893a84"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -65,11 +65,11 @@
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/ec2",
-    "service/sts"
+    "service/sts",
   ]
   pruneopts = ""
-  revision = "976387f594a8e42257c80835a924190942e931e2"
-  version = "v1.15.22"
+  revision = "80ad2657c5ff975b642b1febb11c3fcfd747c057"
+  version = "v1.15.28"
 
 [[projects]]
   branch = "master"
@@ -290,15 +290,15 @@
   revision = "9cad4c3443a7200dd6400aef47183728de563a38"
 
 [[projects]]
-  branch = "master"
-  digest = "1:9c776d7d9c54b7ed89f119e449983c3f24c0023e75001d6092442412ebca6b94"
+  digest = "1:3313a63031ae281e5f6fd7b0bbca733dfa04d2429df86519e3b4d4c016ccb836"
   name = "github.com/hashicorp/golang-lru"
   packages = [
     ".",
     "simplelru",
   ]
   pruneopts = ""
-  revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+  version = "v0.5.0"
 
 [[projects]]
   branch = "master"
@@ -337,7 +337,7 @@
   packages = ["."]
   pruneopts = ""
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
-  version = "1.1.5"
+  version = "v1.1.5"
 
 [[projects]]
   digest = "1:d26c006cbf54ca5c040463d5678013169e2bd91fb62c2f960ae283a1723d4278"
@@ -348,19 +348,19 @@
   version = "1.0.1"
 
 [[projects]]
-  digest = "1:cd615da8240ba516faaab9251a96fd0e940046c0f3379ffbeaa7e5bdf8c1699c"
+  digest = "1:c5f67fc5798614e530a02f177f684a943ac3bf3cc5113b74475da3c532068887"
   name = "github.com/kubernetes-incubator/apiserver-builder"
   packages = [
     "pkg/builders",
     "pkg/controller",
   ]
   pruneopts = ""
-  revision = "14201e804a58a140011a0044b15331f477535f91"
-  version = "v1.9-alpha.4"
+  revision = "e809ac2f9f0c238f08d08a876f8b3f499604f941"
+  version = "v1.9-alpha.3"
 
 [[projects]]
   branch = "master"
-  digest = "1:e977ed7b0619844e394c4e725d008ade0840f1882c500a66e797b98bde70cf87"
+  digest = "1:212bebc561f4f654a653225868b2a97353cd5e160dc0b0bbc7232b06608474ec"
   name = "github.com/mailru/easyjson"
   packages = [
     "buffer",
@@ -368,7 +368,7 @@
     "jwriter",
   ]
   pruneopts = ""
-  revision = "03f2033d19d5860aef995fe360ac7d395cd8ce65"
+  revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
 
 [[projects]]
   digest = "1:63722a4b1e1717be7b98fc686e0b30d5e7f734b9e93d7dee86293b6deab7ea28"
@@ -493,15 +493,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:793a79198b755828dec284c6f1325e24e09186f1b7ba818b65c7c35104ed86eb"
+  digest = "1:b2d8b39397ca07929a3de3a3fd2b6ca4c8d48e9cadaa7cf2b083e27fd9e78107"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = ""
-  revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
+  revision = "0709b304e793a5edb4a2c0145f281ecdc20838a4"
 
 [[projects]]
   branch = "master"
-  digest = "1:7a1f3a425a5c3cbef7ff19f11aeef1b3c057a71b4df7f396af5c62cd220ba120"
+  digest = "1:7dd0f1b8c8bd70dbae4d3ed3fbfaec224e2b27bcc0fc65882d6f1dba5b1f6e22"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -516,18 +516,18 @@
     "websocket",
   ]
   pruneopts = ""
-  revision = "922f4815f713f213882e8ef45e0d315b164d705c"
+  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
 
 [[projects]]
   branch = "master"
-  digest = "1:54d1b4c40f05586ddc168fc0f94ceebe85bdb285613ae4a5dafd5e43b52b4d0f"
+  digest = "1:6aa9d6311161f9ba8e84ec8d7d13ac5a7ee73c246cb6f7a62b7ffb7b695da280"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = ""
-  revision = "3b58ed4ad3395d483fc92d5d14123ce2c3581fec"
+  revision = "8cf3aee429924738c56c34bb819c4ea8273fc434"
 
 [[projects]]
   digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
@@ -555,7 +555,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:35e49a83df2b1bc056a1bf1c724d5966b17cbf12660644bf53637d04079a639c"
+  digest = "1:759c4dbcb9be9adda8e8fa1e4ececf72fc293bea072941a9e63ba403a43b8da2"
   name = "golang.org/x/tools"
   packages = [
     "go/ast/astutil",
@@ -563,15 +563,15 @@
     "internal/fastwalk",
   ]
   pruneopts = ""
-  revision = "447b503c8ba6e20bc730585499fc01c81a78c621"
+  revision = "0aa4b8830f481fed77b73cf7cea2bc3129e05148"
 
 [[projects]]
   branch = "master"
-  digest = "1:960f1fa3f12667fe595c15c12523718ed8b1b5428c83d70da54bb014da9a4c1a"
+  digest = "1:e43f1cb3f488a0c2be85939c2a594636f60b442a12a196c778bd2d6c9aca3df7"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = ""
-  revision = "c66870c02cf823ceb633bcd05be3c7cda29976f4"
+  revision = "11092d34479b07829b72e10713b159248caf5dad"
 
 [[projects]]
   digest = "1:ca75b3775a5d4e5d1fb48f57ef0865b4aaa8b3f00e6b52be68db991c4594e0a7"
@@ -728,7 +728,7 @@
 
 [[projects]]
   branch = "release-1.9"
-  digest = "1:781309e70698edaefb8f7147f22ea50d53a6571a5be3f6073ed805ba895a03c0"
+  digest = "1:34405474785afe7edbb702b6ba91a18e849b447a1594ba6cfc29eaa680cf2c95"
   name = "k8s.io/apiserver"
   packages = [
     "pkg/admission",
@@ -811,7 +811,7 @@
     "plugin/pkg/authorizer/webhook",
   ]
   pruneopts = ""
-  revision = "ac89a8a86cfeed91f4962fa34fea154b12c9a06a"
+  revision = "88bc12176361e8c9b418ff9a1c5b4ffa1835c678"
 
 [[projects]]
   branch = "release-6.0"
@@ -980,12 +980,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:66f1dd9685279ad1c30f11f6da211e80a5e79b1e764bd89995e72e9cc4f8fec5"
+  digest = "1:e507d771311f46326d0b299cba7dbdc1f551c3b0bfb20933567f320afdc004fd"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "clusterctl/clusterdeployer",
-    "clusterctl/clusterdeployer/externalclusterprovisioner",
-    "clusterctl/clusterdeployer/minikube",
+    "clusterctl/clusterdeployer/bootstrap/existing",
+    "clusterctl/clusterdeployer/bootstrap/minikube",
     "clusterctl/cmd",
     "clusterctl/providercomponents",
     "clusterctl/validation",
@@ -1003,20 +1003,23 @@
     "pkg/clientcmd",
     "pkg/controller/cluster",
     "pkg/controller/config",
+    "pkg/controller/error",
     "pkg/controller/machine",
     "pkg/controller/noderefutil",
     "pkg/controller/sharedinformers",
+    "pkg/deployer",
     "pkg/util",
   ]
   pruneopts = ""
-  revision = "051f338bdacb76117d73a86258bc58c946add7b5"
+  revision = "eef14f32d16997c88815d66eccf86955a704506f"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "53cd0474aa80f14ea1ed3778ec6ec6a1c38a679db1d0376a88f0054d5a6d2a90"
   input-imports = [
     "github.com/aws/aws-sdk-go/aws",
+    "github.com/aws/aws-sdk-go/aws/awserr",
+    "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/golang/glog",
     "github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
