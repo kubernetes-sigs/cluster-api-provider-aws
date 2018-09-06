@@ -13,6 +13,7 @@
 
 package machine
 
+// should not need to import the ec2 sdk here
 import (
 	"fmt"
 
@@ -145,10 +146,28 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	return fmt.Errorf("TODO: Not yet implemented")
 }
 
-// Exists test for the existance of a machine and is invoked by the Machine Controller
+// Exists test for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	glog.Infof("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
-	return false, fmt.Errorf("TODO: Not yet implemented")
+	glog.Info("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
+	status, err := a.machineProviderStatus(machine)
+	if err != nil {
+		return false, err
+	}
+
+	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	if err != nil {
+		return false, err
+	}
+	if instance == nil {
+		return false, nil
+	}
+	// TODO update status here
+	switch instance.State {
+	case ec2svc.InstanceStateRunning, ec2svc.InstanceStatePending:
+		return true, nil
+	default:
+		return false, nil
+	}
 }
 
 func (a *Actuator) machineProviderConfig(providerConfig clusterv1.ProviderConfig) (*v1alpha1.AWSMachineProviderConfig, error) {

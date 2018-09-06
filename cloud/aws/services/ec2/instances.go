@@ -14,6 +14,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -25,6 +27,12 @@ const (
 
 	// InstanceStateTerminated indicates the instance has been terminated
 	InstanceStateTerminated = ec2.InstanceStateNameTerminated
+
+	// InstanceStateRunning indicates the instance is running
+	InstanceStateRunning = ec2.InstanceStateNameRunning
+
+	// InstanceStatePending indicates the instance is pending
+	InstanceStatePending = ec2.InstanceStateNamePending
 )
 
 // Instance is an internal representation of an AWS instance.
@@ -41,10 +49,13 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
 	}
+	out, err := s.EC2.DescribeInstances(input)
 
-	out, err := s.ec2.DescribeInstances(input)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe instances")
+	switch {
+	case IsNotFound(err):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("failed to describe instances: %v", err)
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
@@ -61,7 +72,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 func (s *Service) CreateInstance(machine *clusterv1.Machine) (*Instance, error) {
 	input := &ec2.RunInstancesInput{}
 
-	reservation, err := s.ec2.RunInstances(input)
+	reservation, err := s.EC2.RunInstances(input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to run instances")
 	}
@@ -85,7 +96,7 @@ func (s *Service) TerminateInstance(instanceID *string) error {
 		},
 	}
 
-	_, err := s.ec2.TerminateInstances(input)
+	_, err := s.EC2.TerminateInstances(input)
 	if err != nil {
 		return err
 	}

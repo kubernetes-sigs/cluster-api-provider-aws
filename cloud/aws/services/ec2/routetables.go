@@ -26,7 +26,7 @@ func (s *Service) reconcileRouteTables(in *v1alpha1.Network) error {
 }
 
 func (s *Service) describeVpcRouteTables(vpcID string) ([]*ec2.RouteTable, error) {
-	out, err := s.ec2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+	out, err := s.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -43,7 +43,7 @@ func (s *Service) describeVpcRouteTables(vpcID string) ([]*ec2.RouteTable, error
 }
 
 func (s *Service) createRouteTable(rt *v1alpha1.RouteTable, vpc *v1alpha1.VPC) (*v1alpha1.RouteTable, error) {
-	out, err := s.ec2.CreateRouteTable(&ec2.CreateRouteTableInput{
+	out, err := s.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(vpc.ID),
 	})
 
@@ -57,7 +57,7 @@ func (s *Service) createRouteTable(rt *v1alpha1.RouteTable, vpc *v1alpha1.VPC) (
 }
 
 func (s *Service) associateRouteTable(rt *v1alpha1.RouteTable, subnetID string) error {
-	_, err := s.ec2.AssociateRouteTable(&ec2.AssociateRouteTableInput{
+	_, err := s.EC2.AssociateRouteTable(&ec2.AssociateRouteTableInput{
 		RouteTableId: aws.String(rt.ID),
 		SubnetId:     aws.String(subnetID),
 	})

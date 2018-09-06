@@ -53,13 +53,13 @@ func (s *Service) createVPC(v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
 		CidrBlock: aws.String(v.CidrBlock),
 	}
 
-	out, err := s.ec2.CreateVpc(input)
+	out, err := s.EC2.CreateVpc(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create vpc")
 	}
 
 	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
-	if err := s.ec2.WaitUntilVpcAvailable(wReq); err != nil {
+	if err := s.EC2.WaitUntilVpcAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
@@ -76,7 +76,7 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 		VpcId: aws.String(v.ID),
 	}
 
-	_, err := s.ec2.DeleteVpc(input)
+	_, err := s.EC2.DeleteVpc(input)
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
 	}
@@ -93,7 +93,7 @@ func (s *Service) describeVPC(id string) (*v1alpha1.VPC, error) {
 		VpcIds: []*string{aws.String(id)},
 	}
 
-	out, err := s.ec2.DescribeVpcs(input)
+	out, err := s.EC2.DescribeVpcs(input)
 	if err != nil {
 		return nil, err
 	}

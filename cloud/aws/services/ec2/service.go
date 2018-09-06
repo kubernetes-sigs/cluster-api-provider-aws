@@ -21,12 +21,12 @@ import (
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
-	ec2 ec2iface.EC2API
+	EC2 ec2iface.EC2API
 }
 
 // NewService returns a new service given the ec2 api client.
 func NewService(i ec2iface.EC2API) *Service {
 	return &Service{
-		ec2: i,
+		EC2: i,
 	}
 }

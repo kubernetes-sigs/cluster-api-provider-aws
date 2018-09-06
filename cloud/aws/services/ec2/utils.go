@@ -24,7 +24,7 @@ const (
 )
 
 func (s *Service) getRegion() string {
-	switch x := s.ec2.(type) {
+	switch x := s.EC2.(type) {
 	case *ec2.EC2:
 		return *x.Config.Region
 	default:
@@ -33,7 +33,7 @@ func (s *Service) getRegion() string {
 }
 
 func (s *Service) getAvailableZones() ([]string, error) {
-	out, err := s.ec2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
+	out, err := s.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("state"),
