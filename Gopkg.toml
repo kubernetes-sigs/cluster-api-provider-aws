@@ -35,3 +35,7 @@ required = [
 [[constraint]]
   name = "k8s.io/code-generator"
   branch = "release-1.9"
+
+[[constraint]]
+  name = "github.com/golang/mock"
+  branch = "master"
