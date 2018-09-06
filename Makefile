@@ -20,7 +20,7 @@ depend:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure
 
-depend-update: work
+depend-update:
 	dep ensure -update
 
 generate: gendeepcopy
