@@ -10,5 +10,5 @@ metadata:
   namespace: test
 type: Opaque
 data:
-  awsAccessKeyId: 
-  awsSecretAccessKey: 
+  awsAccessKeyId:
+  awsSecretAccessKey:

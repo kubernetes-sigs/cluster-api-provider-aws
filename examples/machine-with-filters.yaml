@@ -30,13 +30,13 @@ spec:
         id: meh-master-profile
       keyName: tectonic
       tags:
-        - name: "kubernetes.io/cluster/meh"
-          value: owned
+      - name: "kubernetes.io/cluster/meh"
+        value: owned
       securityGroups:
-        - filters:
-          - name: "tag:Name"
-            values:
-            - "meh_worker_sg"
+      - filters:
+        - name: "tag:Name"
+          values:
+          - "meh_worker_sg"
       userDataSecret:
         name: ignition-worker
   versions:

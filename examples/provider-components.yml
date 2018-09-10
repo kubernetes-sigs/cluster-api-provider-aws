@@ -28,10 +28,10 @@ spec:
       - name: controller-manager
         image: gcr.io/k8s-cluster-api/controller-manager:0.0.7
         volumeMounts:
-          - name: config
-            mountPath: /etc/kubernetes
-          - name: certs
-            mountPath: /etc/ssl/certs
+        - name: config
+          mountPath: /etc/kubernetes
+        - name: certs
+          mountPath: /etc/ssl/certs
         command:
         - "./controller-manager"
         args:
@@ -46,22 +46,22 @@ spec:
       - name: aws-machine-controller
         image: gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1
         volumeMounts:
-          - name: config
-            mountPath: /etc/kubernetes
-          - name: certs
-            mountPath: /etc/ssl/certs
-          - name: kubeadm
-            mountPath: /usr/bin/kubeadm
+        - name: config
+          mountPath: /etc/kubernetes
+        - name: certs
+          mountPath: /etc/ssl/certs
+        - name: kubeadm
+          mountPath: /usr/bin/kubeadm
         env:
-          - name: NODE_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: spec.nodeName
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         command:
-          - /machine-controller
+        - /machine-controller
         args:
-          - --log-level=debug
-          - --kubeconfig=/etc/kubernetes/admin.conf
+        - --log-level=debug
+        - --kubeconfig=/etc/kubernetes/admin.conf
         resources:
           requests:
             cpu: 100m
