@@ -32,7 +32,7 @@ type VPC struct {
 	CidrBlock string
 }
 
-func (s *Service) ReconcileVPC(v v1alpha1.VPC) (*VPC, error) {
+func (s *Service) ReconcileVPC(v *v1alpha1.VPC) (*VPC, error) {
 	// Does it exist and look in good working order? ok exit no error
 	vpc, err := s.lookupVPCByID(v.ID)
 	if err != nil {
@@ -44,11 +44,10 @@ func (s *Service) ReconcileVPC(v v1alpha1.VPC) (*VPC, error) {
 	}
 
 	// TODO(vincepri): tag vpc with https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/#ResourceGroupsTaggingAPI.TagResources
-
 	return vpc, nil
 }
 
-func (s *Service) createVPC(v v1alpha1.VPC) (*VPC, error) {
+func (s *Service) createVPC(v *v1alpha1.VPC) (*VPC, error) {
 	input := &ec2.CreateVpcInput{
 		CidrBlock: aws.String(v.CidrBlock),
 	}
@@ -64,7 +63,7 @@ func (s *Service) createVPC(v v1alpha1.VPC) (*VPC, error) {
 	}, nil
 }
 
-func (s *Service) deleteVPC(v v1alpha1.VPC) error {
+func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 	input := &ec2.DeleteVpcInput{
 		VpcId: aws.String(v.ID),
 	}

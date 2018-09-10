@@ -14,77 +14,85 @@
 package ec2_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
 )
 
-type vpcs struct{}
-
-func (v *vpcs) CreateVpc(i *ec2.CreateVpcInput) (*ec2.CreateVpcOutput, error) {
-	return &ec2.CreateVpcOutput{
-		Vpc: &ec2.Vpc{
-			VpcId:     aws.String("newVpc"),
-			CidrBlock: aws.String("10.0.0.0/16"),
-		},
-	}, nil
-}
-
-func (v *vpcs) DeleteVpc(i *ec2.DeleteVpcInput) (*ec2.DeleteVpcOutput, error) {
-	return &ec2.DeleteVpcOutput{}, nil
-}
-
-func (v *vpcs) DescribeVpcs(i *ec2.DescribeVpcsInput) (*ec2.DescribeVpcsOutput, error) {
-	if len(i.VpcIds) == 0 {
-		return nil, errors.New("invalid request")
-	}
-
-	if *i.VpcIds[0] == "oldVpc" {
-		return &ec2.DescribeVpcsOutput{
-			Vpcs: []*ec2.Vpc{
-				&ec2.Vpc{
-					VpcId:     aws.String("oldVpc"),
-					CidrBlock: aws.String("10.0.0.0/16"),
-				},
-			},
-		}, nil
-	}
-
-	return &ec2.DescribeVpcsOutput{}, nil
-}
-
 func TestReconcileVPC(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
 	testCases := []struct {
-		name string
-		id   string
+		name   string
+		vpc    *v1alpha1.VPC
+		expect func(m *mock_ec2iface.MockEC2API)
 	}{
 		{
 			name: "vpc exists",
-			id:   "oldVpc",
+			vpc:  &v1alpha1.VPC{ID: "vpc-exists"},
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+						VpcIds: []*string{
+							aws.String("vpc-exists"),
+						},
+					})).
+					Return(&ec2.DescribeVpcsOutput{
+						Vpcs: []*ec2.Vpc{
+							&ec2.Vpc{
+								VpcId:     aws.String("vpc-exists"),
+								CidrBlock: aws.String("10.0.0.0/16"),
+							},
+						},
+					}, nil)
+			},
 		},
 		{
 			name: "vpc does not exist",
-			id:   "newVpc",
+			vpc:  &v1alpha1.VPC{ID: "vpc-new"},
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+						VpcIds: []*string{
+							aws.String("vpc-new"),
+						},
+					})).
+					Return(&ec2.DescribeVpcsOutput{}, nil)
+
+				m.EXPECT().
+					CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
+					Return(&ec2.CreateVpcOutput{
+						Vpc: &ec2.Vpc{
+							VpcId:     aws.String("vpc-new"),
+							CidrBlock: aws.String("10.0.0.0/16"),
+						},
+					}, nil)
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			tc.expect(ec2Mock)
+
 			s := ec2svc.Service{
-				Instances: nil,
-				VPCs:      &vpcs{},
+				VPCs: ec2Mock,
 			}
-			vpc, err := s.ReconcileVPC(v1alpha1.VPC{ID: tc.id})
+
+			vpc, err := s.ReconcileVPC(tc.vpc)
 			if err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 
-			if vpc.ID != tc.id {
-				t.Fatalf("Expected an id of %v but found %v", tc.id, vpc.ID)
+			if vpc.ID != tc.vpc.ID {
+				t.Fatalf("Expected an id of %v but found %v", tc.vpc.ID, vpc.ID)
 			}
 		})
 	}

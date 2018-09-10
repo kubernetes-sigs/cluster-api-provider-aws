@@ -26,7 +26,7 @@ import (
 )
 
 type ec2Svc interface {
-	ReconcileVPC(providerconfigv1.VPC) (*ec2svc.VPC, error)
+	ReconcileVPC(*providerconfigv1.VPC) (*ec2svc.VPC, error)
 }
 
 type codec interface {
@@ -66,7 +66,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return fmt.Errorf("failed to load provider status: %v", err)
 	}
 
-	_, err = a.ec2.ReconcileVPC(status.VPC)
+	_, err = a.ec2.ReconcileVPC(&status.VPC)
 	if err != nil {
 		return fmt.Errorf("unable to reconcile VPC: %v", err)
 	}

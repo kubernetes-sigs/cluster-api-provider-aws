@@ -24,7 +24,7 @@ import (
 
 type ec2 struct{}
 
-func (e *ec2) ReconcileVPC(input providerconfig.VPC) (*ec2svc.VPC, error) {
+func (e *ec2) ReconcileVPC(input *providerconfig.VPC) (*ec2svc.VPC, error) {
 	return &ec2svc.VPC{
 		ID:        input.ID,
 		CidrBlock: input.CidrBlock,
