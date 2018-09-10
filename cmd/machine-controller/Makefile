@@ -21,7 +21,7 @@ NAME = aws-machine-controller
 TAG = 0.0.1
 
 image:
-	imagebuilder -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../..
+	imagebuilder -t "$(PREFIX)/$(NAME):$(TAG)" -f ../../Dockerfile ../..
 
 push: image
 	docker push "$(PREFIX)/$(NAME):$(TAG)"
@@ -32,7 +32,7 @@ fix_gcs_permissions:
 	gsutil -m acl ch -r -u AllUsers:READ gs://artifacts.$(GCR_BUCKET).appspot.com
 
 dev_image:
-	docker build -t "$(DEV_PREFIX)/$(NAME):$(TAG)-dev" -f ./Dockerfile ../..
+	docker build -t "$(DEV_PREFIX)/$(NAME):$(TAG)-dev" -f ../../Dockerfile ../..
 
 dev_push: dev_image
 	docker push "$(DEV_PREFIX)/$(NAME):$(TAG)-dev"
