@@ -104,7 +104,7 @@ func (a *Actuator) removeStoppedMachine(machine *clusterv1.Machine, client awscl
 	return TerminateInstances(client, instances, mLog)
 }
 
-func buildEc2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter{
+func buildEc2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {
 	filters := make([]*ec2.Filter, len(inputFilters))
 	for i, f := range inputFilters {
 		values := make([]*string, len(f.Values))
