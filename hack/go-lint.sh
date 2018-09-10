@@ -4,11 +4,10 @@
 if [ "$IS_CONTAINER" != "" ]; then
   golint -set_exit_status "${@}"
 else
-  echo "OK"
   docker run --rm \
     --env IS_CONTAINER=TRUE \
     --volume "${PWD}:/go/src/sigs.k8s.io/cluster-api-provider-aws:z" \
     --workdir /go/src/sigs.k8s.io/cluster-api-provider-aws \
-    openshift/origin-release:golang-1.10 \
+    openshift/origin-release:golang-1.11 \
     ./hack/go-lint.sh "${@}"
 fi
