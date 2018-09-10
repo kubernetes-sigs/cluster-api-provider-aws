@@ -16,36 +16,12 @@ package ec2_test
 import (
 	"testing"
 
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
 )
-
-type instances struct{}
-
-func (i *instances) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
-	return &ec2.DescribeInstancesOutput{}, nil
-}
-func (i *instances) RunInstances(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
-	return &ec2.Reservation{}, nil
-}
-
-func TestInstanceIfExists_DoesNotExist(t *testing.T) {
-	s := ec2svc.Service{
-		Instances: &instances{},
-	}
-	id := "hello"
-	out, err := s.InstanceIfExists(&id)
-	if err != nil {
-		t.Fatalf("did not expect error: %v", err)
-	}
-	if out != nil {
-		t.Fatal("Did not expect anything but got something")
-	}
-}
 
 func TestInstanceIfExists(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -121,7 +97,7 @@ func TestInstanceIfExists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
-			s := ec2svc.Service{Instances: ec2Mock}
+			s := ec2svc.NewService(ec2Mock)
 			instance, err := s.InstanceIfExists(&tc.instanceID)
 			tc.check(instance, err)
 		})

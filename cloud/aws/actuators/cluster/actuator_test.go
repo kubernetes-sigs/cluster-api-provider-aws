@@ -18,17 +18,13 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
 	providerconfig "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 type ec2 struct{}
 
-func (e *ec2) ReconcileVPC(input *providerconfig.VPC) (*ec2svc.VPC, error) {
-	return &ec2svc.VPC{
-		ID:        input.ID,
-		CidrBlock: input.CidrBlock,
-	}, nil
+func (e *ec2) ReconcileNetwork(input *providerconfig.Network) error {
+	return nil
 }
 
 func TestReconcile(t *testing.T) {

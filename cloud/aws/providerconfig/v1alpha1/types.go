@@ -151,11 +151,32 @@ type AWSMachineProviderCondition struct {
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
-	VPC VPC `json:"vpc"`
+	Network Network `json:"network"`
 }
 
-// VPC is the aws vpc
+// Network encapsulates AWS networking resources.
+type Network struct {
+
+	// VPC defines the cluster vpc.
+	VPC *VPC `json:"vpc"`
+
+	// Subnets includes all the subnets defined inside the VPC.
+	Subnets []*Subnet `json:"subnets"`
+}
+
+// VPC defines an AWS vpc.
 type VPC struct {
-	ID        string `json:"id"`
+	ID string `json:"id"`
+
 	CidrBlock string `json:"cidrBlock"`
+}
+
+// Subnet defines an AWS subnet attached to a VPC.
+type Subnet struct {
+	ID string `json:"id"`
+
+	VpcID            string `json:"vpcId"`
+	AvailabilityZone string `json:"availabilityZone"`
+	CidrBlock        string `json:"cidrBlock"`
+	IsPublic         bool   `json:"public"`
 }

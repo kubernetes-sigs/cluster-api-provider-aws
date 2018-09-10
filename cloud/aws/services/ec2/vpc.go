@@ -18,46 +18,46 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-type vpcs interface {
-	DescribeVpcs(input *ec2.DescribeVpcsInput) (*ec2.DescribeVpcsOutput, error)
-	CreateVpc(input *ec2.CreateVpcInput) (*ec2.CreateVpcOutput, error)
-	DeleteVpc(input *ec2.DeleteVpcInput) (*ec2.DeleteVpcOutput, error)
-}
+func (s *Service) reconcileVPC(in *v1alpha1.VPC) error {
+	vpc, err := s.describeVPC(in.ID)
+	if IsNotFound(err) {
 
-type VPC struct {
-	ID        string
-	CidrBlock string
-}
-
-func (s *Service) ReconcileVPC(v *v1alpha1.VPC) (*VPC, error) {
-	// Does it exist and look in good working order? ok exit no error
-	vpc, err := s.lookupVPCByID(v.ID)
-	if err != nil {
-		if IsNotFound(err) {
-			return s.createVPC(v)
+		// Create a new vpc.
+		vpc, err = s.createVPC(in)
+		if err != nil {
+			return err
 		}
 
-		return nil, err
+	} else if err != nil {
+		return err
 	}
 
-	// TODO(vincepri): tag vpc with https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/#ResourceGroupsTaggingAPI.TagResources
-	return vpc, nil
+	vpc.DeepCopyInto(in)
+	return nil
 }
 
-func (s *Service) createVPC(v *v1alpha1.VPC) (*VPC, error) {
+func (s *Service) createVPC(v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
 	input := &ec2.CreateVpcInput{
 		CidrBlock: aws.String(v.CidrBlock),
 	}
 
-	out, err := s.VPCs.CreateVpc(input)
+	out, err := s.ec2.CreateVpc(input)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create vpc")
 	}
 
-	return &VPC{
+	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
+	if err := s.ec2.WaitUntilVpcAvailable(wReq); err != nil {
+		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
+	}
+
+	// TODO(vincepri): tag vpc with https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/#ResourceGroupsTaggingAPI.TagResources
+
+	return &v1alpha1.VPC{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
 	}, nil
@@ -68,29 +68,35 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 		VpcId: aws.String(v.ID),
 	}
 
-	_, err := s.VPCs.DeleteVpc(input)
-	return err
-}
-
-func (s *Service) lookupVPCByID(id string) (*VPC, error) {
-	input := &ec2.DescribeVpcsInput{
-		VpcIds: []*string{
-			&id,
-		},
+	_, err := s.ec2.DeleteVpc(input)
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
 	}
 
-	out, err := s.VPCs.DescribeVpcs(input)
+	return nil
+}
+
+func (s *Service) describeVPC(id string) (*v1alpha1.VPC, error) {
+	if id == "" {
+		return nil, NewNotFound(fmt.Errorf("could not find vpc with empty id"))
+	}
+
+	input := &ec2.DescribeVpcsInput{
+		VpcIds: []*string{aws.String(id)},
+	}
+
+	out, err := s.ec2.DescribeVpcs(input)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(out.Vpcs) == 0 {
-		return nil, NewNotFound(fmt.Errorf("could not find vpc: %q", id))
+		return nil, NewNotFound(errors.Errorf("could not find vpc %q", id))
 	} else if len(out.Vpcs) > 1 {
-		return nil, NewConflict(fmt.Errorf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
+		return nil, NewConflict(errors.Errorf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
 	}
 
-	return &VPC{
+	return &v1alpha1.VPC{
 		ID:        *out.Vpcs[0].VpcId,
 		CidrBlock: *out.Vpcs[0].CidrBlock,
 	}, nil

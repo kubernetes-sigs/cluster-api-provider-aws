@@ -77,11 +77,8 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		MachinesService: &clustersvc.Service{
 			Machine: client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
 		},
-		EC2Service: &ec2svc.Service{
-			Instances: ec2client,
-		},
-		Codec: codec,
-
+		EC2Service: ec2svc.NewService(ec2client),
+		Codec:      codec,
 		//		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
 	}
 

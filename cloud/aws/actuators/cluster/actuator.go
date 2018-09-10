@@ -17,7 +17,6 @@ import (
 	"fmt"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,7 +25,7 @@ import (
 )
 
 type ec2Svc interface {
-	ReconcileVPC(*providerconfigv1.VPC) (*ec2svc.VPC, error)
+	ReconcileNetwork(*providerconfigv1.Network) error
 }
 
 type codec interface {
@@ -61,15 +60,16 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	glog.Infof("Reconciling cluster %v.", cluster.Name)
+
 	status, err := a.loadProviderStatus(cluster)
 	if err != nil {
 		return fmt.Errorf("failed to load provider status: %v", err)
 	}
 
-	_, err = a.ec2.ReconcileVPC(&status.VPC)
-	if err != nil {
+	if err := a.ec2.ReconcileNetwork(&status.Network); err != nil {
 		return fmt.Errorf("unable to reconcile VPC: %v", err)
 	}
+
 	return nil
 }
 

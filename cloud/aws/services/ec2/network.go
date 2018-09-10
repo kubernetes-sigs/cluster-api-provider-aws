@@ -13,20 +13,18 @@
 
 package ec2
 
-import (
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-)
+import "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 
-// Service holds a collection of interfaces.
-// The interfaces are broken down like this to group functions together.
-// One alternative is to have a large list of functions from the ec2 client.
-type Service struct {
-	ec2 ec2iface.EC2API
-}
-
-// NewService returns a new service given the ec2 api client.
-func NewService(i ec2iface.EC2API) *Service {
-	return &Service{
-		ec2: i,
+func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
+	// VPC.
+	if err := s.reconcileVPC(network.VPC); err != nil {
+		return err
 	}
+
+	// Subnets.
+	if err := s.reconcileSubnets(network.Subnets, network.VPC); err != nil {
+		return err
+	}
+
+	return nil
 }

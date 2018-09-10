@@ -11,16 +11,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ec2_test
+package ec2
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
 )
 
@@ -30,12 +30,14 @@ func TestReconcileVPC(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		vpc    *v1alpha1.VPC
+		input  *v1alpha1.VPC
+		output *v1alpha1.VPC
 		expect func(m *mock_ec2iface.MockEC2API)
 	}{
 		{
-			name: "vpc exists",
-			vpc:  &v1alpha1.VPC{ID: "vpc-exists"},
+			name:   "vpc exists",
+			input:  &v1alpha1.VPC{ID: "vpc-exists"},
+			output: &v1alpha1.VPC{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
 					DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
@@ -47,15 +49,16 @@ func TestReconcileVPC(t *testing.T) {
 						Vpcs: []*ec2.Vpc{
 							&ec2.Vpc{
 								VpcId:     aws.String("vpc-exists"),
-								CidrBlock: aws.String("10.0.0.0/16"),
+								CidrBlock: aws.String("10.0.0.0/8"),
 							},
 						},
 					}, nil)
 			},
 		},
 		{
-			name: "vpc does not exist",
-			vpc:  &v1alpha1.VPC{ID: "vpc-new"},
+			name:   "vpc does not exist",
+			input:  &v1alpha1.VPC{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
+			output: &v1alpha1.VPC{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
 					DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
@@ -70,9 +73,15 @@ func TestReconcileVPC(t *testing.T) {
 					Return(&ec2.CreateVpcOutput{
 						Vpc: &ec2.Vpc{
 							VpcId:     aws.String("vpc-new"),
-							CidrBlock: aws.String("10.0.0.0/16"),
+							CidrBlock: aws.String("10.1.0.0/16"),
 						},
 					}, nil)
+
+				m.EXPECT().
+					WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
+						VpcIds: []*string{aws.String("vpc-new")},
+					})).
+					Return(nil)
 			},
 		},
 	}
@@ -82,18 +91,12 @@ func TestReconcileVPC(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 
-			s := ec2svc.Service{
-				VPCs: ec2Mock,
-			}
-
-			vpc, err := s.ReconcileVPC(tc.vpc)
-			if err != nil {
+			s := NewService(ec2Mock)
+			if err := s.reconcileVPC(tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 
-			if vpc.ID != tc.vpc.ID {
-				t.Fatalf("Expected an id of %v but found %v", tc.vpc.ID, vpc.ID)
-			}
+			reflect.DeepEqual(tc.input, tc.output)
 		})
 	}
 }
