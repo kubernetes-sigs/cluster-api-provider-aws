@@ -183,7 +183,7 @@ func TerminateInstances(client awsclient.Client, instances []*ec2.Instance, mLog
 	return nil
 }
 
-// MachineConfigProviderFromClusterAPIMachineSpec gets the machine provider config MachineSetSpec from the
+// MachineProviderFromClusterAPIMachineSpec gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
 func MachineProviderConfigFromClusterAPIMachineSpec(ms *clusterv1.MachineSpec) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	if ms.ProviderConfig.Value == nil {

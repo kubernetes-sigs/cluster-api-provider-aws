@@ -214,7 +214,7 @@ cat <<EOF > /etc/default/kubelet
 KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=systemd
 EOF
 
-kubeadm join {{ .MasterIp }}:8443 --token 2iqzqm.85bs0x6miyx1nm7l --discovery-token-unsafe-skip-ca-verification
+kubeadm join {{ .MasterIP }}:8443 --token 2iqzqm.85bs0x6miyx1nm7l --discovery-token-unsafe-skip-ca-verification
 
 HEREDOC
 
@@ -222,12 +222,12 @@ bash /root/user-data.sh > /root/user-data.logs
 `
 
 type userDataParams struct {
-	MasterIp string
+	MasterIP string
 }
 
 func generateWorkerUserData(masterIp string, workerUserDataSecret *apiv1.Secret) (*apiv1.Secret, error) {
 	params := userDataParams{
-		MasterIp: masterIp,
+		MasterIP: masterIp,
 	}
 	t, err := template.New("workeruserdata").Parse(workerUserDataBlob)
 	if err != nil {
