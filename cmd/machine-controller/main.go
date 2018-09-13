@@ -80,7 +80,14 @@ func main() {
 
 	logger := log.WithField("controller", controllerLogName)
 
-	actuator, err := machineactuator.NewActuator(kubeClient, client, logger, awsclient.NewClient)
+	params := machineactuator.ActuatorParams{
+		ClusterClient:    client,
+		KubeClient:       kubeClient,
+		AwsClientBuilder: awsclient.NewClient,
+		Logger:           logger,
+	}
+
+	actuator, err := machineactuator.NewActuator(params)
 	if err != nil {
 		glog.Fatalf("Could not create AWS machine actuator: %v", err)
 	}

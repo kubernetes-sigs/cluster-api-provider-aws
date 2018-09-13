@@ -19,7 +19,9 @@ import (
 )
 
 var (
-	SchemeBuilder      runtime.SchemeBuilder
+	// SchemeBuilder with scheme builder
+	SchemeBuilder runtime.SchemeBuilder
+	// AddToScheme is method for adding objects to the scheme
 	AddToScheme        = SchemeBuilder.AddToScheme
 	localSchemeBuilder = &SchemeBuilder
 )
@@ -28,14 +30,18 @@ func init() {
 	localSchemeBuilder.Register(addKnownTypes)
 }
 
+// GroupName is group name of the cluster kinds
 const GroupName = "aws.cluster.k8s.io"
 
+// SchemeGroupVersion is scheme group version of the cluster kinds
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
+// Kind returns group kind for a given kind/object
 func Kind(kind string) schema.GroupKind {
 	return SchemeGroupVersion.WithKind(kind).GroupKind()
 }
 
+// Resource returns group resource for a given resource
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }

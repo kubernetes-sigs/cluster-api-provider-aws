@@ -114,6 +114,7 @@ type TagSpecification struct {
 	Value string
 }
 
+// AWSClusterProviderConfig is aws speific configuration
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderConfig struct {
 	metav1.TypeMeta
@@ -166,6 +167,7 @@ type AWSMachineProviderCondition struct {
 	Message string
 }
 
+// AWSClusterProviderStatus is AWS specific status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta

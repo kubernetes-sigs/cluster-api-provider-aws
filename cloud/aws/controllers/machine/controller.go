@@ -39,12 +39,16 @@ import (
 
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine/options"
+
+	log "github.com/sirupsen/logrus"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
 )
 
 const (
 	controllerName = "aws-machine-controller"
 )
 
+// Start starts the server
 func Start(server *options.Server, shutdown <-chan struct{}) {
 	config, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
@@ -56,8 +60,16 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
 	}
 
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		glog.Fatalf("Could not create kubernetes client to talk to the apiserver: %v", err)
+	}
+
 	params := machineactuator.ActuatorParams{
-		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
+		ClusterClient:    client,
+		KubeClient:       kubeClient,
+		AwsClientBuilder: awsclient.NewClient,
+		Logger:           log.WithField("controller", controllerName),
 	}
 	actuator, err := machineactuator.NewActuator(params)
 	if err != nil {
@@ -71,6 +83,7 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	select {}
 }
 
+// Run runs the server
 func Run(server *options.Server) error {
 	kubeConfig, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
