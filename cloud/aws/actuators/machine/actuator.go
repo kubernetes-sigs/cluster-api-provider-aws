@@ -179,7 +179,7 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, client awsclient
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
 	mLog := clustoplog.WithMachine(a.logger, machine)
 
-	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return nil, err
@@ -196,7 +196,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 
 	// We explicitly do NOT want to remove stopped masters.
-	if !MachineIsMaster(machine) {
+	if !IsMaster(machine) {
 		// Prevent having a lot of stopped nodes sitting around.
 		err = a.removeStoppedMachine(machine, client, mLog)
 		if err != nil {
@@ -355,7 +355,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	mLog := clustoplog.WithMachine(a.logger, machine)
 
-	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return err
@@ -392,7 +392,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	mLog := clustoplog.WithMachine(a.logger, machine)
 	mLog.Debugf("updating machine")
 
-	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return err
@@ -454,7 +454,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	mLog := clustoplog.WithMachine(a.logger, machine)
 	mLog.Debugf("checking if machine exists")
 
-	machineProviderConfig, err := MachineProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return false, err

@@ -222,12 +222,12 @@ bash /root/user-data.sh > /root/user-data.logs
 `
 
 type userDataParams struct {
-	MasterIP string
+	masterIP string
 }
 
-func generateWorkerUserData(masterIp string, workerUserDataSecret *apiv1.Secret) (*apiv1.Secret, error) {
+func generateWorkerUserData(masterIP string, workerUserDataSecret *apiv1.Secret) (*apiv1.Secret, error) {
 	params := userDataParams{
-		MasterIP: masterIp,
+		masterIP: masterIP,
 	}
 	t, err := template.New("workeruserdata").Parse(workerUserDataBlob)
 	if err != nil {
@@ -312,7 +312,7 @@ func bootstrapCommand() *cobra.Command {
 			log.Infof("Generating worker user data for master listening at %v", *result.PrivateIpAddress)
 			workerUserDataSecret, err = generateWorkerUserData(*result.PrivateIpAddress, workerUserDataSecret)
 			if err != nil {
-				return fmt.Errorf("Unable to generate worker user data: %v\n", err)
+				return fmt.Errorf("unable to generate worker user data: %v", err)
 			}
 
 			log.Infof("Creating worker machine")

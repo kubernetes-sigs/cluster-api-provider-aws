@@ -115,6 +115,7 @@ type TagSpecification struct {
 	Value string `json:"value"`
 }
 
+// AWSClusterProviderStatus is AWS specific status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`

@@ -8,6 +8,7 @@ import (
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
 )
 
+// GenerateAwsCredentialsSecretFromEnv generates secret with AWS credentials
 func GenerateAwsCredentialsSecretFromEnv(secretName, namespace string) *apiv1.Secret {
 	return &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

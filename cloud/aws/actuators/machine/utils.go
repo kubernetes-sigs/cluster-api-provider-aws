@@ -183,9 +183,9 @@ func TerminateInstances(client awsclient.Client, instances []*ec2.Instance, mLog
 	return nil
 }
 
-// MachineProviderFromClusterAPIMachineSpec gets the machine provider config MachineSetSpec from the
+// ProviderConfigFromClusterAPIMachineSpec gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func MachineProviderConfigFromClusterAPIMachineSpec(ms *clusterv1.MachineSpec) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func ProviderConfigFromClusterAPIMachineSpec(ms *clusterv1.MachineSpec) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	if ms.ProviderConfig.Value == nil {
 		return nil, fmt.Errorf("no Value in ProviderConfig")
 	}
@@ -238,16 +238,16 @@ func EncodeAWSMachineProviderStatus(awsStatus *providerconfigv1.AWSMachineProvid
 	}, nil
 }
 
-// MachineIsMaster returns true if the machine is part of a cluster's control plane
-func MachineIsMaster(machine *clusterv1.Machine) bool {
+// IsMaster returns true if the machine is part of a cluster's control plane
+func IsMaster(machine *clusterv1.Machine) bool {
 	if machineType, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineTypeLabel]; exists && machineType == "master" {
 		return true
 	}
 	return false
 }
 
-// MachineIsInfra returns true if the machine is part of a cluster's infra plane
-func MachineIsInfra(machine *clusterv1.Machine) bool {
+// IsInfra returns true if the machine is part of a cluster's infra plane
+func IsInfra(machine *clusterv1.Machine) bool {
 	if machineRole, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineRoleLabel]; exists && machineRole == "infra" {
 		return true
 	}

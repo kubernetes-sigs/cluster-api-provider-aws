@@ -34,10 +34,13 @@ import (
 //go:generate mockgen -source=./client.go -destination=./mock/client_generated.go -package=mock
 
 const (
-	AwsCredsSecretIDKey     = "awsAccessKeyId"
+	// AwsCredsSecretIDKey is secret key containing AWS KeyId
+	AwsCredsSecretIDKey = "awsAccessKeyId"
+	// AwsCredsSecretAccessKey is secret key containing AWS Secret Key
 	AwsCredsSecretAccessKey = "awsSecretAccessKey"
 )
 
+// AwsClientBuilderFuncType is function type for building aws client
 type AwsClientBuilderFuncType func(kubeClient kubernetes.Interface, secretName, namespace, region string) (Client, error)
 
 // Client is a wrapper object for actual AWS SDK clients to allow for easier testing.

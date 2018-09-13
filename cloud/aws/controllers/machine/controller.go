@@ -48,6 +48,7 @@ const (
 	controllerName = "aws-machine-controller"
 )
 
+// Start starts the server
 func Start(server *options.Server, shutdown <-chan struct{}) {
 	config, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
@@ -82,6 +83,7 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	select {}
 }
 
+// Run runs the server
 func Run(server *options.Server) error {
 	kubeConfig, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {

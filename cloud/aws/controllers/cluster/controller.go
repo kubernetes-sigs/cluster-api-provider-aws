@@ -45,6 +45,7 @@ const (
 	controllerName = "aws-cluster-controller"
 )
 
+// Start starts the cluster controller
 func Start(server *options.Server, shutdown <-chan struct{}) {
 	config, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
@@ -71,6 +72,7 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	select {}
 }
 
+// Run runs the cluster controller
 func Run(server *options.Server) error {
 	kubeConfig, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
