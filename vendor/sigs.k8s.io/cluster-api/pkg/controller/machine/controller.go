@@ -18,16 +18,20 @@ package machine
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
+
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	listers "sigs.k8s.io/cluster-api/pkg/client/listers_generated/cluster/v1alpha1"
+	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
@@ -50,6 +54,8 @@ type MachineControllerImpl struct {
 
 	// nodeName is the name of the node on which the machine controller is running, if not present, it is loaded from NODE_NAME.
 	nodeName string
+
+	informers *sharedinformers.SharedInformers
 }
 
 // Init initializes the controller and is called by the generated code
@@ -69,6 +75,7 @@ func (c *MachineControllerImpl) Init(arguments sharedinformers.ControllerInitArg
 		glog.Fatalf("error creating machine client: %v", err)
 	}
 	c.clientSet = clientset
+	c.informers = arguments.GetSharedInformers()
 	c.kubernetesClientSet = arguments.GetSharedInformers().KubernetesClientSet
 
 	c.linkedNodes = make(map[string]bool)
@@ -123,16 +130,45 @@ func (c *MachineControllerImpl) Reconcile(machine *clusterv1.Machine) error {
 
 	exist, err := c.actuator.Exists(cluster, m)
 	if err != nil {
-		glog.Errorf("Error checking existance of machine instance for machine object %v; %v", name, err)
+		glog.Errorf("Error checking existence of machine instance for machine object %v; %v", name, err)
 		return err
 	}
 	if exist {
-		glog.Infof("reconciling machine object %v triggers idempotent update.", name)
-		return c.update(m)
+		glog.Infof("Reconciling machine object %v triggers idempotent update.", name)
+		err = c.update(m)
+		if err != nil {
+			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
+				glog.Infof("Actuator returned requeue after error: %v", requeueErr)
+				return c.enqueueAfter(machine, requeueErr.RequeueAfter)
+			}
+		}
+		return err
 	}
 	// Machine resource created. Machine does not yet exist.
-	glog.Infof("reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
-	return c.create(m)
+	glog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
+	if err := c.create(m); err != nil {
+		glog.Warningf("Unable to create machine %v: %v", name, err)
+		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
+			glog.Infof("Actuator returned requeue-after error: %v", requeueErr)
+			return c.enqueueAfter(machine, requeueErr.RequeueAfter)
+		}
+		return err
+	}
+	return nil
+}
+
+func (c *MachineControllerImpl) enqueueAfter(machine *clusterv1.Machine, after time.Duration) error {
+	key, err := cache.MetaNamespaceKeyFunc(machine)
+	if err != nil {
+		glog.Errorf("Couldn't get key for object %+v: %v", machine, after)
+		return err
+	}
+	queue, ok := c.informers.WorkerQueues["Machine"]
+	if !ok {
+		return fmt.Errorf("Unable to find Machine worker queue")
+	}
+	queue.Queue.AddAfter(key, after)
+	return nil
 }
 
 func (c *MachineControllerImpl) Get(namespace, name string) (*clusterv1.Machine, error) {

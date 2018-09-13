@@ -556,11 +556,6 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 		}
 	}
 	in.ProviderConfig.DeepCopyInto(&out.ProviderConfig)
-	if in.Roles != nil {
-		in, out := &in.Roles, &out.Roles
-		*out = make([]common.MachineRole, len(*in))
-		copy(*out, *in)
-	}
 	out.Versions = in.Versions
 	if in.ConfigSource != nil {
 		in, out := &in.ConfigSource, &out.ConfigSource
@@ -637,6 +632,13 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 		in, out := &in.Addresses, &out.Addresses
 		*out = make([]v1.NodeAddress, len(*in))
 		copy(*out, *in)
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.NodeCondition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	return
 }

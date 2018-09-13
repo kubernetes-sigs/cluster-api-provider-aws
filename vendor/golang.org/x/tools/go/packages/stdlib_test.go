@@ -30,7 +30,8 @@ func TestStdlibMetadata(t *testing.T) {
 	alloc := memstats.Alloc
 
 	// Load, parse and type-check the program.
-	pkgs, err := packages.Metadata(nil, "std")
+	cfg := &packages.Config{Mode: packages.LoadAllSyntax}
+	pkgs, err := packages.Load(cfg, "std")
 	if err != nil {
 		t.Fatalf("failed to load metadata: %v", err)
 	}
@@ -42,7 +43,9 @@ func TestStdlibMetadata(t *testing.T) {
 
 	t.Logf("Loaded %d packages", len(pkgs))
 	numPkgs := len(pkgs)
-	if want := 340; numPkgs < want {
+
+	want := 150 // 186 on linux, 185 on windows.
+	if numPkgs < want {
 		t.Errorf("Loaded only %d packages, want at least %d", numPkgs, want)
 	}
 
@@ -90,49 +93,37 @@ func TestCgoOption(t *testing.T) {
 		{"net", "cgoLookupHost", "cgo_stub.go"},
 		{"os/user", "current", "lookup_stubs.go"},
 	} {
-		for i := 0; i < 2; i++ { // !cgo, cgo
-			opts := &packages.Options{
-				DisableCgo: i == 0,
-				Error:      func(error) {},
-			}
-			pkgs, err := packages.TypeCheck(opts, test.pkg)
-			if err != nil {
-				t.Errorf("Load failed: %v", err)
-				continue
-			}
-			pkg := pkgs[0]
-			obj := pkg.Type.Scope().Lookup(test.name)
-			if obj == nil {
-				t.Errorf("no object %s.%s", test.pkg, test.name)
-				continue
-			}
-			posn := pkg.Fset.Position(obj.Pos())
-			if false {
-				t.Logf("DisableCgo=%t, obj=%s, posn=%s", opts.DisableCgo, obj, posn)
-			}
+		cfg := &packages.Config{Mode: packages.LoadSyntax}
+		pkgs, err := packages.Load(cfg, test.pkg)
+		if err != nil {
+			t.Errorf("Load failed: %v", err)
+			continue
+		}
+		pkg := pkgs[0]
+		obj := pkg.Types.Scope().Lookup(test.name)
+		if obj == nil {
+			t.Errorf("no object %s.%s", test.pkg, test.name)
+			continue
+		}
+		posn := pkg.Fset.Position(obj.Pos())
+		gotFile := filepath.Base(posn.Filename)
+		filesMatch := gotFile == test.genericFile
 
-			gotFile := filepath.Base(posn.Filename)
-			filesMatch := gotFile == test.genericFile
+		if filesMatch {
+			t.Errorf("!DisableCgo: %s found in %s, want native file",
+				obj, gotFile)
+		}
 
-			if !opts.DisableCgo && filesMatch {
-				t.Errorf("!DisableCgo: %s found in %s, want native file",
-					obj, gotFile)
-			} else if opts.DisableCgo && !filesMatch {
-				t.Errorf("DisableCgo: %s found in %s, want %s",
-					obj, gotFile, test.genericFile)
-			}
-
-			// Load the file and check the object is declared at the right place.
-			b, err := ioutil.ReadFile(posn.Filename)
-			if err != nil {
-				t.Errorf("can't read %s: %s", posn.Filename, err)
-				continue
-			}
-			line := string(bytes.Split(b, []byte("\n"))[posn.Line-1])
-			// Don't assume posn.Column is accurate.
-			if !strings.Contains(line, "func "+test.name) {
-				t.Errorf("%s: %s not declared here (looking at %q)", posn, obj, line)
-			}
+		// Load the file and check the object is declared at the right place.
+		b, err := ioutil.ReadFile(posn.Filename)
+		if err != nil {
+			t.Errorf("can't read %s: %s", posn.Filename, err)
+			continue
+		}
+		line := string(bytes.Split(b, []byte("\n"))[posn.Line-1])
+		// Don't assume posn.Column is accurate.
+		if !strings.Contains(line, "func "+test.name) {
+			t.Errorf("%s: %s not declared here (looking at %q)", posn, obj, line)
 		}
 	}
 }

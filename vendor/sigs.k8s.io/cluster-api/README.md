@@ -16,25 +16,37 @@ To learn more, see the [Cluster API KEP][cluster-api-kep].
 
 ## Get involved!
 
+* Join the [sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
+Google Group for access to documents and calendars.
+
 * Join our Cluster API working group sessions
   * Weekly on Wednesdays @ 10:00 PT on [Zoom][zoomMeeting]
   * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
 
+* Provider implementer office hours
+  * Weekly on Mondays @ 09:30 PT and Tuesdays @ 12:00 PT on [Zoom][zoomMeeting]
+  * Previous meetings: \[ [notes][implementerNotes] \]
+
 * Chat with us on [Slack](http://slack.k8s.io/): #cluster-api
 
-* Pointers to repositories and PRs where some Cluster API provisioners are being
-  developed.
+## Provider Implementations
+
+The code in this repository is independent of any specific deployment environment.
+Provider specific code is being developed in separate repositories, some of which
+are also sponsored by SIG-cluster-lifecycle:
+
+  * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
   * AWS/Openshift, https://github.com/openshift/cluster-operator
   * Azure, https://github.com/platform9/azure-provider
-  * GCE, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/google
-  * VSphere, https://github.com/kubernetes-sigs/cluster-api/tree/master/cloud/vsphere
+  * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
+  * vSphere, https://github.com/kubernetes-sigs/cluster-api-provider-vsphere
 
 ## Getting Started
 ### Prerequisites
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](clusterctl)
- 
+
 ## How to use the API
 
 To see how to build tooling on top of the Cluster API, please check out a few examples below:
@@ -46,3 +58,4 @@ To see how to build tooling on top of the Cluster API, please check out a few ex
 [notes]: https://docs.google.com/document/d/16ils69KImmE94RlmzjWDrkmFZysgB2J4lGnYMRN89WM/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
 [zoomMeeting]: https://zoom.us/j/166836624
+[implementerNotes]: https://docs.google.com/document/d/1IZ2-AZhe4r3CYiJuttyciS7bGZTTx4iMppcA8_Pr3xE/edit

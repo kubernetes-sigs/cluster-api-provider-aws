@@ -20,16 +20,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
+	"time"
+
+	"k8s.io/client-go/kubernetes"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/deployer"
+	"sigs.k8s.io/cluster-api/pkg/util"
 
 	"github.com/golang/glog"
-	"k8s.io/client-go/kubernetes"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	"sigs.k8s.io/cluster-api/pkg/util"
-	"time"
 )
 
-// Provider specific logic. Logic here should eventually be optional & additive.
+// Deprecated interface for Provider specific logic. Please do not extend or add. This interface should be removed
+// once issues/158 and issues/160 below are fixed.
 type ProviderDeployer interface {
 	// TODO: This requirement can be removed once after: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error)
@@ -47,11 +50,20 @@ type ClusterProvisioner interface {
 // Provides interaction with a cluster
 type ClusterClient interface {
 	Apply(string) error
+	Delete(string) error
 	WaitForClusterV1alpha1Ready() error
 	GetClusterObjects() ([]*clusterv1.Cluster, error)
+	GetMachineDeploymentObjects() ([]*clusterv1.MachineDeployment, error)
+	GetMachineSetObjects() ([]*clusterv1.MachineSet, error)
 	GetMachineObjects() ([]*clusterv1.Machine, error)
 	CreateClusterObject(*clusterv1.Cluster) error
+	CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment) error
+	CreateMachineSetObjects([]*clusterv1.MachineSet) error
 	CreateMachineObjects([]*clusterv1.Machine) error
+	DeleteClusterObjects() error
+	DeleteMachineDeploymentObjects() error
+	DeleteMachineSetObjects() error
+	DeleteMachineObjects() error
 	UpdateClusterObjectEndpoint(string) error
 	Close() error
 }
@@ -72,31 +84,25 @@ type ProviderComponentsStoreFactory interface {
 }
 
 type ClusterDeployer struct {
-	externalProvisioner    ClusterProvisioner
-	clientFactory          ClientFactory
-	provider               ProviderDeployer
-	providerComponents     string
-	addonComponents        string
-	kubeconfigOutput       string
-	cleanupExternalCluster bool
+	bootstrapProvisioner    ClusterProvisioner
+	clientFactory           ClientFactory
+	providerComponents      string
+	addonComponents         string
+	cleanupBootstrapCluster bool
 }
 
 func New(
-	externalProvisioner ClusterProvisioner,
+	bootstrapProvisioner ClusterProvisioner,
 	clientFactory ClientFactory,
-	provider ProviderDeployer,
 	providerComponents string,
 	addonComponents string,
-	kubeconfigOutput string,
-	cleanupExternalCluster bool) *ClusterDeployer {
+	cleanupBootstrapCluster bool) *ClusterDeployer {
 	return &ClusterDeployer{
-		externalProvisioner:    externalProvisioner,
-		clientFactory:          clientFactory,
-		provider:               provider,
-		providerComponents:     providerComponents,
-		addonComponents:        addonComponents,
-		kubeconfigOutput:       kubeconfigOutput,
-		cleanupExternalCluster: cleanupExternalCluster,
+		bootstrapProvisioner:    bootstrapProvisioner,
+		clientFactory:           clientFactory,
+		providerComponents:      providerComponents,
+		addonComponents:         addonComponents,
+		cleanupBootstrapCluster: cleanupBootstrapCluster,
 	}
 }
 
@@ -106,141 +112,169 @@ const (
 )
 
 // Creates the a cluster from the provided cluster definition and machine list.
-func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
-	master, nodes, err := splitMachineRoles(machines)
+
+func (d *ClusterDeployer) Create(cluster *clusterv1.Cluster, machines []*clusterv1.Machine, provider ProviderDeployer, kubeconfigOutput string, providerComponentsStoreFactory ProviderComponentsStoreFactory) error {
+	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
 		return fmt.Errorf("unable to seperate master machines from node machines: %v", err)
 	}
 
-	glog.Info("Creating external cluster")
-	externalClient, cleanupExternalCluster, err := d.createExternalCluster()
-	defer cleanupExternalCluster()
+	glog.Info("Creating bootstrap cluster")
+	bootstrapClient, cleanupBootstrapCluster, err := d.createBootstrapCluster()
+	defer cleanupBootstrapCluster()
 	if err != nil {
-		return fmt.Errorf("could not create external client: %v", err)
+		return fmt.Errorf("could not create bootstrap cluster: %v", err)
 	}
-	defer func() {
-		err := externalClient.Close()
-		if err != nil {
-			glog.Errorf("Could not close external client: %v", err)
-		}
-	}()
+	defer closeClient(bootstrapClient, "bootstrap")
 
-	glog.Info("Applying Cluster API stack to external cluster")
-	if err := d.applyClusterAPIStack(externalClient); err != nil {
-		return fmt.Errorf("unable to apply cluster api stack to external cluster: %v", err)
+	glog.Info("Applying Cluster API stack to bootstrap cluster")
+	if err := d.applyClusterAPIStack(bootstrapClient); err != nil {
+		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
 	}
 
-	glog.Info("Provisioning internal cluster via external cluster")
+	glog.Info("Provisioning target cluster via bootstrap cluster")
 
-	glog.Infof("Creating cluster object %v on external cluster", cluster.Name)
-	if err := externalClient.CreateClusterObject(cluster); err != nil {
+	glog.Infof("Creating cluster object %v on bootstrap cluster", cluster.Name)
+	if err := bootstrapClient.CreateClusterObject(cluster); err != nil {
 		return fmt.Errorf("unable to create cluster object: %v", err)
 	}
 
 	glog.Infof("Creating master %v", master.Name)
-	if err := externalClient.CreateMachineObjects([]*clusterv1.Machine{master}); err != nil {
+	if err := bootstrapClient.CreateMachineObjects([]*clusterv1.Machine{master}); err != nil {
 		return fmt.Errorf("unable to create master machine: %v", err)
 	}
 
-	glog.Infof("Updating external cluster object with master (%s) endpoint", master.Name)
-	if err := d.updateClusterEndpoint(externalClient); err != nil {
-		return fmt.Errorf("unable to update external cluster endpoint: %v", err)
+	glog.Infof("Updating bootstrap cluster object with master (%s) endpoint", master.Name)
+	if err := d.updateClusterEndpoint(bootstrapClient, provider); err != nil {
+		return fmt.Errorf("unable to update bootstrap cluster endpoint: %v", err)
 	}
 
-	glog.Info("Creating internal cluster")
-	internalClient, err := d.createInternalCluster(externalClient)
+	glog.Info("Creating target cluster")
+	targetClient, err := d.createTargetClusterClient(bootstrapClient, provider, kubeconfigOutput)
 	if err != nil {
-		return fmt.Errorf("unable to create internal cluster: %v", err)
+		return fmt.Errorf("unable to create target cluster: %v", err)
 	}
-	defer func() {
-		err := internalClient.Close()
-		if err != nil {
-			glog.Errorf("Could not close internal client: %v", err)
-		}
-	}()
+	defer closeClient(targetClient, "target")
 
-	glog.Info("Applying Cluster API stack to internal cluster")
-	if err := d.applyClusterAPIStackWithPivoting(internalClient, externalClient); err != nil {
-		return fmt.Errorf("unable to apply cluster api stack to internal cluster: %v", err)
+	glog.Info("Applying Cluster API stack to target cluster")
+	if err := d.applyClusterAPIStackWithPivoting(targetClient, bootstrapClient); err != nil {
+		return fmt.Errorf("unable to apply cluster api stack to target cluster: %v", err)
 	}
 
-	glog.Info("Saving provider components to the internal cluster")
-	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, d.kubeconfigOutput)
+	glog.Info("Saving provider components to the target cluster")
+	err = d.saveProviderComponentsToCluster(providerComponentsStoreFactory, kubeconfigOutput)
 	if err != nil {
-		return fmt.Errorf("unable to save provider components to internal cluster: %v", err)
+		return fmt.Errorf("unable to save provider components to target cluster: %v", err)
 	}
 
-	// For some reason, endpoint doesn't get updated in external cluster sometimes. So we
-	// update the internal cluster endpoint as well to be sure.
-	glog.Infof("Updating internal cluster object with master (%s) endpoint", master.Name)
-	if err := d.updateClusterEndpoint(internalClient); err != nil {
-		return fmt.Errorf("unable to update internal cluster endpoint: %v", err)
+	// For some reason, endpoint doesn't get updated in bootstrap cluster sometimes. So we
+	// update the target cluster endpoint as well to be sure.
+	glog.Infof("Updating target cluster object with master (%s) endpoint", master.Name)
+	if err := d.updateClusterEndpoint(targetClient, provider); err != nil {
+		return fmt.Errorf("unable to update target cluster endpoint: %v", err)
 	}
 
-	glog.Info("Creating node machines in internal cluster.")
-	if err := internalClient.CreateMachineObjects(nodes); err != nil {
+	glog.Info("Creating node machines in target cluster.")
+	if err := targetClient.CreateMachineObjects(nodes); err != nil {
 		return fmt.Errorf("unable to create node machines: %v", err)
 	}
 
 	if d.addonComponents != "" {
-		glog.Info("Creating addons in internal cluster.")
-		if err := internalClient.Apply(d.addonComponents); err != nil {
+		glog.Info("Creating addons in target cluster.")
+		if err := targetClient.Apply(d.addonComponents); err != nil {
 			return fmt.Errorf("unable to apply addons: %v", err)
 		}
 	}
 
-	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", d.kubeconfigOutput)
+	glog.Infof("Done provisioning cluster. You can now access your cluster with kubectl --kubeconfig %v", kubeconfigOutput)
 
 	return nil
 }
 
-func (d *ClusterDeployer) createExternalCluster() (ClusterClient, func(), error) {
-	cleanupFn := func() {}
-	if err := d.externalProvisioner.Create(); err != nil {
-		return nil, cleanupFn, fmt.Errorf("could not create external control plane: %v", err)
+func (d *ClusterDeployer) Delete(targetClient ClusterClient) error {
+	glog.Info("Creating bootstrap cluster")
+	bootstrapClient, cleanupBootstrapCluster, err := d.createBootstrapCluster()
+	defer cleanupBootstrapCluster()
+	if err != nil {
+		return fmt.Errorf("could not create bootstrap cluster: %v", err)
 	}
-	if d.cleanupExternalCluster {
+	defer closeClient(bootstrapClient, "bootstrap")
+
+	glog.Info("Applying Cluster API stack to bootstrap cluster")
+	if err = d.applyClusterAPIStack(bootstrapClient); err != nil {
+		return fmt.Errorf("unable to apply cluster api stack to bootstrap cluster: %v", err)
+	}
+
+	glog.Info("Deleting Cluster API Provider Components from target cluster")
+	if err = targetClient.Delete(d.providerComponents); err != nil {
+		glog.Infof("error while removing provider components from target cluster: %v", err)
+		glog.Infof("Continuing with a best effort delete")
+	}
+
+	glog.Info("Copying objects from target cluster to bootstrap cluster")
+	if err = pivot(targetClient, bootstrapClient); err != nil {
+		return fmt.Errorf("unable to copy objects from target to bootstrap cluster: %v", err)
+	}
+
+	glog.Info("Deleting objects from bootstrap cluster")
+	if err = deleteObjects(bootstrapClient); err != nil {
+		return fmt.Errorf("unable to finish deleting objects in bootstrap cluster, resources may have been leaked: %v", err)
+	}
+	glog.Info("Deletion of cluster complete")
+
+	return nil
+}
+
+func (d *ClusterDeployer) createBootstrapCluster() (ClusterClient, func(), error) {
+	cleanupFn := func() {}
+	if err := d.bootstrapProvisioner.Create(); err != nil {
+		return nil, cleanupFn, fmt.Errorf("could not create bootstrap control plane: %v", err)
+	}
+
+	if d.cleanupBootstrapCluster {
 		cleanupFn = func() {
-			glog.Info("Cleaning up external cluster.")
-			d.externalProvisioner.Delete()
+			glog.Info("Cleaning up bootstrap cluster.")
+			d.bootstrapProvisioner.Delete()
 		}
 	}
-	externalKubeconfig, err := d.externalProvisioner.GetKubeconfig()
+
+	bootstrapKubeconfig, err := d.bootstrapProvisioner.GetKubeconfig()
 	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to get external cluster kubeconfig: %v", err)
+		return nil, cleanupFn, fmt.Errorf("unable to get bootstrap cluster kubeconfig: %v", err)
 	}
-	externalClient, err := d.clientFactory.NewClusterClientFromKubeconfig(externalKubeconfig)
+	bootstrapClient, err := d.clientFactory.NewClusterClientFromKubeconfig(bootstrapKubeconfig)
 	if err != nil {
-		return nil, cleanupFn, fmt.Errorf("unable to create external client: %v", err)
+		return nil, cleanupFn, fmt.Errorf("unable to create bootstrap client: %v", err)
 	}
-	return externalClient, cleanupFn, nil
+
+	return bootstrapClient, cleanupFn, nil
 }
 
-func (d *ClusterDeployer) createInternalCluster(externalClient ClusterClient) (ClusterClient, error) {
-	cluster, master, _, err := getClusterAPIObjects(externalClient)
+func (d *ClusterDeployer) createTargetClusterClient(bootstrapClient ClusterClient, provider ProviderDeployer, kubeconfigOutput string) (ClusterClient, error) {
+	cluster, master, _, err := getClusterAPIObjects(bootstrapClient)
 	if err != nil {
 		return nil, err
 	}
 
-	glog.V(1).Info("Getting internal cluster kubeconfig.")
-	internalKubeconfig, err := waitForKubeconfigReady(d.provider, cluster, master)
+	glog.V(1).Info("Getting target cluster kubeconfig.")
+	targetKubeconfig, err := waitForKubeconfigReady(provider, cluster, master)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get internal cluster kubeconfig: %v", err)
+		return nil, fmt.Errorf("unable to get target cluster kubeconfig: %v", err)
 	}
 
-	err = d.writeKubeconfig(internalKubeconfig)
-	if err != nil {
+	if err = d.writeKubeconfig(targetKubeconfig, kubeconfigOutput); err != nil {
 		return nil, err
 	}
 
-	internalClient, err := d.clientFactory.NewClusterClientFromKubeconfig(internalKubeconfig)
+	targetClient, err := d.clientFactory.NewClusterClientFromKubeconfig(targetKubeconfig)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create internal cluster client: %v", err)
+		return nil, fmt.Errorf("unable to create target cluster client: %v", err)
 	}
-	return internalClient, nil
+
+	return targetClient, nil
 }
 
-func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient) error {
+func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient, provider ProviderDeployer) error {
 	// Update cluster endpoint. Needed till this logic moves into cluster controller.
 	// TODO: https://github.com/kubernetes-sigs/cluster-api/issues/158
 	// Fetch fresh objects.
@@ -248,7 +282,7 @@ func (d *ClusterDeployer) updateClusterEndpoint(client ClusterClient) error {
 	if err != nil {
 		return err
 	}
-	masterIP, err := d.provider.GetIP(cluster, master)
+	masterIP, err := provider.GetIP(cluster, master)
 	if err != nil {
 		return fmt.Errorf("unable to get master IP: %v", err)
 	}
@@ -297,7 +331,7 @@ func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client ClusterClient,
 		return fmt.Errorf("unable to apply cluster api apiserver: %v", err)
 	}
 
-	glog.Info("Pivoting Cluster API objects from external to internal cluster.")
+	glog.Info("Pivoting Cluster API objects from bootstrap to target cluster.")
 	err = pivot(source, client)
 	if err != nil {
 		return fmt.Errorf("unable to pivot cluster API objects: %v", err)
@@ -313,7 +347,7 @@ func (d *ClusterDeployer) applyClusterAPIStackWithPivoting(client ClusterClient,
 }
 
 func (d *ClusterDeployer) applyClusterAPIApiserver(client ClusterClient) error {
-	yaml, err := getApiServerYaml()
+	yaml, err := deployer.GetApiServerYaml()
 	if err != nil {
 		return fmt.Errorf("unable to generate apiserver yaml: %v", err)
 	}
@@ -329,10 +363,10 @@ func (d *ClusterDeployer) applyClusterAPIControllers(client ClusterClient) error
 	return client.Apply(d.providerComponents)
 }
 
-func (d *ClusterDeployer) writeKubeconfig(kubeconfig string) error {
+func (d *ClusterDeployer) writeKubeconfig(kubeconfig string, kubeconfigOutput string) error {
 	const fileMode = 0666
-	os.Remove(d.kubeconfigOutput)
-	return ioutil.WriteFile(d.kubeconfigOutput, []byte(kubeconfig), fileMode)
+	os.Remove(kubeconfigOutput)
+	return ioutil.WriteFile(kubeconfigOutput, []byte(kubeconfig), fileMode)
 }
 
 func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
@@ -356,11 +390,11 @@ func waitForKubeconfigReady(provider ProviderDeployer, cluster *clusterv1.Cluste
 
 func pivot(from, to ClusterClient) error {
 	if err := from.WaitForClusterV1alpha1Ready(); err != nil {
-		return fmt.Errorf("Cluster v1aplpha1 resource not ready on source cluster.")
+		return fmt.Errorf("cluster v1alpha1 resource not ready on source cluster")
 	}
 
 	if err := to.WaitForClusterV1alpha1Ready(); err != nil {
-		return fmt.Errorf("Cluster v1aplpha1 resource not ready on target cluster.")
+		return fmt.Errorf("cluster v1alpha1 resource not ready on target cluster")
 	}
 
 	clusters, err := from.GetClusterObjects()
@@ -371,11 +405,36 @@ func pivot(from, to ClusterClient) error {
 	for _, cluster := range clusters {
 		// New objects cannot have a specified resource version. Clear it out.
 		cluster.SetResourceVersion("")
-		err = to.CreateClusterObject(cluster)
-		if err != nil {
-			return err
+		if err = to.CreateClusterObject(cluster); err != nil {
+			return fmt.Errorf("error moving Cluster '%v': %v", cluster.GetName(), err)
 		}
 		glog.Infof("Moved Cluster '%s'", cluster.GetName())
+	}
+
+	fromDeployments, err := from.GetMachineDeploymentObjects()
+	if err != nil {
+		return err
+	}
+	for _, deployment := range fromDeployments {
+		// New objects cannot have a specified resource version. Clear it out.
+		deployment.SetResourceVersion("")
+		if err = to.CreateMachineDeploymentObjects([]*clusterv1.MachineDeployment{deployment}); err != nil {
+			return fmt.Errorf("error moving MachineDeployment '%v': %v", deployment.GetName(), err)
+		}
+		glog.Infof("Moved MachineDeployment %v", deployment.GetName())
+	}
+
+	fromMachineSets, err := from.GetMachineSetObjects()
+	if err != nil {
+		return err
+	}
+	for _, machineSet := range fromMachineSets {
+		// New objects cannot have a specified resource version. Clear it out.
+		machineSet.SetResourceVersion("")
+		if err := to.CreateMachineSetObjects([]*clusterv1.MachineSet{machineSet}); err != nil {
+			return fmt.Errorf("error moving MachineSet '%v': %v", machineSet.GetName(), err)
+		}
+		glog.Infof("Moved MachineSet %v", machineSet.GetName())
 	}
 
 	machines, err := from.GetMachineObjects()
@@ -386,11 +445,38 @@ func pivot(from, to ClusterClient) error {
 	for _, machine := range machines {
 		// New objects cannot have a specified resource version. Clear it out.
 		machine.SetResourceVersion("")
-		err = to.CreateMachineObjects([]*clusterv1.Machine{machine})
-		if err != nil {
-			return err
+		if err = to.CreateMachineObjects([]*clusterv1.Machine{machine}); err != nil {
+			return fmt.Errorf("error moving Machine '%v': %v", machine.GetName(), err)
 		}
 		glog.Infof("Moved Machine '%s'", machine.GetName())
+	}
+	return nil
+}
+
+func deleteObjects(client ClusterClient) error {
+	var errors []string
+	glog.Infof("Deleting machine deployments")
+	if err := client.DeleteMachineDeploymentObjects(); err != nil {
+		err = fmt.Errorf("error deleting machine deployments: %v", err)
+		errors = append(errors, err.Error())
+	}
+	glog.Infof("Deleting machine sets")
+	if err := client.DeleteMachineSetObjects(); err != nil {
+		err = fmt.Errorf("error deleting machine sets: %v", err)
+		errors = append(errors, err.Error())
+	}
+	glog.Infof("Deleting machines")
+	if err := client.DeleteMachineObjects(); err != nil {
+		err = fmt.Errorf("error deleting machines: %v", err)
+		errors = append(errors, err.Error())
+	}
+	glog.Infof("Deleting clusters")
+	if err := client.DeleteClusterObjects(); err != nil {
+		err = fmt.Errorf("error deleting clusters: %v", err)
+		errors = append(errors, err.Error())
+	}
+	if len(errors) > 0 {
+		return fmt.Errorf("error(s) encountered deleting objects from bootstrap cluster: [%v]", strings.Join(errors, ", "))
 	}
 	return nil
 }
@@ -408,19 +494,21 @@ func getClusterAPIObjects(client ClusterClient) (*clusterv1.Cluster, *clusterv1.
 		return nil, nil, nil, fmt.Errorf("fetched not exactly one cluster object. Count %v", len(clusters))
 	}
 	cluster := clusters[0]
-	master, nodes, err := splitMachineRoles(machines)
+	master, nodes, err := extractMasterMachine(machines)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to fetch master machine: %v", err)
 	}
 	return cluster, master, nodes, nil
 }
 
-// Split the incoming machine set into the master and the non-masters
-func splitMachineRoles(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
+// extractMasterMachine separates the master (singular) from the incoming machines.
+// This is currently done by looking at which machine specifies the control plane version
+// (which implies that it is a master). This should be cleaned up in the future.
+func extractMasterMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
 	nodes := []*clusterv1.Machine{}
 	masters := []*clusterv1.Machine{}
 	for _, machine := range machines {
-		if containsMasterRole(machine.Spec.Roles) {
+		if util.IsMaster(machine) {
 			masters = append(masters, machine)
 		} else {
 			nodes = append(nodes, machine)
@@ -432,11 +520,8 @@ func splitMachineRoles(machines []*clusterv1.Machine) (*clusterv1.Machine, []*cl
 	return masters[0], nodes, nil
 }
 
-func containsMasterRole(roles []clustercommon.MachineRole) bool {
-	for _, role := range roles {
-		if role == clustercommon.MasterRole {
-			return true
-		}
+func closeClient(client ClusterClient, name string) {
+	if err := client.Close(); err != nil {
+		glog.Errorf("Could not close %v client: %v", name, err)
 	}
-	return false
 }

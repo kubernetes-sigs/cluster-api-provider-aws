@@ -25,16 +25,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/context"
 	channelzpb "google.golang.org/grpc/channelz/grpc_channelz_v1"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/internal/channelz"
 )
 
 func init() {
 	channelz.TurnOn()
 }
+
+type protoToSocketOptFunc func([]*channelzpb.SocketOption) *channelz.SocketOptionData
+
+// protoToSocketOpt is used in function socketProtoToStruct to extract socket option
+// data from unmarshaled proto message.
+// It is only defined under linux, non-appengine environment on x86 architecture.
+var protoToSocketOpt protoToSocketOptFunc
 
 // emptyTime is used for detecting unset value of time.Time type.
 // For go1.7 and earlier, ptypes.Timestamp will fill in the loc field of time.Time
@@ -92,11 +101,11 @@ type dummySocket struct {
 	lastMessageReceivedTimestamp     time.Time
 	localFlowControlWindow           int64
 	remoteFlowControlWindow          int64
-	//socket options
-	localAddr  net.Addr
-	remoteAddr net.Addr
-	// Security
-	remoteName string
+	socketOptions                    *channelz.SocketOptionData
+	localAddr                        net.Addr
+	remoteAddr                       net.Addr
+	security                         credentials.ChannelzSecurityValue
+	remoteName                       string
 }
 
 func (d *dummySocket) ChannelzMetric() *channelz.SocketInternalMetric {
@@ -113,11 +122,11 @@ func (d *dummySocket) ChannelzMetric() *channelz.SocketInternalMetric {
 		LastMessageReceivedTimestamp:     d.lastMessageReceivedTimestamp,
 		LocalFlowControlWindow:           d.localFlowControlWindow,
 		RemoteFlowControlWindow:          d.remoteFlowControlWindow,
-		//socket options
-		LocalAddr:  d.localAddr,
-		RemoteAddr: d.remoteAddr,
-		// Security
-		RemoteName: d.remoteName,
+		SocketOptions:                    d.socketOptions,
+		LocalAddr:                        d.localAddr,
+		RemoteAddr:                       d.remoteAddr,
+		Security:                         d.security,
+		RemoteName:                       d.remoteName,
 	}
 }
 
@@ -164,21 +173,6 @@ func serverProtoToStruct(s *channelzpb.Server) *dummyServer {
 	return ds
 }
 
-func protoToAddr(a *channelzpb.Address) net.Addr {
-	switch v := a.Address.(type) {
-	case *channelzpb.Address_TcpipAddress:
-		if port := v.TcpipAddress.GetPort(); port != 0 {
-			return &net.TCPAddr{IP: v.TcpipAddress.GetIpAddress(), Port: int(port)}
-		}
-		return &net.IPAddr{IP: v.TcpipAddress.GetIpAddress()}
-	case *channelzpb.Address_UdsAddress_:
-		return &net.UnixAddr{Name: v.UdsAddress.GetFilename(), Net: "unix"}
-	case *channelzpb.Address_OtherAddress_:
-		// TODO:
-	}
-	return nil
-}
-
 func socketProtoToStruct(s *channelzpb.Socket) *dummySocket {
 	ds := &dummySocket{}
 	pdata := s.GetData()
@@ -214,6 +208,12 @@ func socketProtoToStruct(s *channelzpb.Socket) *dummySocket {
 	if v := pdata.GetRemoteFlowControlWindow(); v != nil {
 		ds.remoteFlowControlWindow = v.Value
 	}
+	if v := pdata.GetOption(); v != nil && protoToSocketOpt != nil {
+		ds.socketOptions = protoToSocketOpt(v)
+	}
+	if v := s.GetSecurity(); v != nil {
+		ds.security = protoToSecurity(v)
+	}
 	if local := s.GetLocal(); local != nil {
 		ds.localAddr = protoToAddr(local)
 	}
@@ -224,12 +224,56 @@ func socketProtoToStruct(s *channelzpb.Socket) *dummySocket {
 	return ds
 }
 
+func protoToSecurity(protoSecurity *channelzpb.Security) credentials.ChannelzSecurityValue {
+	switch v := protoSecurity.Model.(type) {
+	case *channelzpb.Security_Tls_:
+		return &credentials.TLSChannelzSecurityValue{StandardName: v.Tls.GetStandardName(), LocalCertificate: v.Tls.GetLocalCertificate(), RemoteCertificate: v.Tls.GetRemoteCertificate()}
+	case *channelzpb.Security_Other:
+		sv := &credentials.OtherChannelzSecurityValue{Name: v.Other.GetName()}
+		var x ptypes.DynamicAny
+		if err := ptypes.UnmarshalAny(v.Other.GetValue(), &x); err == nil {
+			sv.Value = x.Message
+		}
+		return sv
+	}
+	return nil
+}
+
+func protoToAddr(a *channelzpb.Address) net.Addr {
+	switch v := a.Address.(type) {
+	case *channelzpb.Address_TcpipAddress:
+		if port := v.TcpipAddress.GetPort(); port != 0 {
+			return &net.TCPAddr{IP: v.TcpipAddress.GetIpAddress(), Port: int(port)}
+		}
+		return &net.IPAddr{IP: v.TcpipAddress.GetIpAddress()}
+	case *channelzpb.Address_UdsAddress_:
+		return &net.UnixAddr{Name: v.UdsAddress.GetFilename(), Net: "unix"}
+	case *channelzpb.Address_OtherAddress_:
+		// TODO:
+	}
+	return nil
+}
+
 func convertSocketRefSliceToMap(sktRefs []*channelzpb.SocketRef) map[int64]string {
 	m := make(map[int64]string)
 	for _, sr := range sktRefs {
 		m[sr.SocketId] = sr.Name
 	}
 	return m
+}
+
+type OtherSecurityValue struct {
+	LocalCertificate  []byte `protobuf:"bytes,1,opt,name=local_certificate,json=localCertificate,proto3" json:"local_certificate,omitempty"`
+	RemoteCertificate []byte `protobuf:"bytes,2,opt,name=remote_certificate,json=remoteCertificate,proto3" json:"remote_certificate,omitempty"`
+}
+
+func (m *OtherSecurityValue) Reset()         { *m = OtherSecurityValue{} }
+func (m *OtherSecurityValue) String() string { return proto.CompactTextString(m) }
+func (*OtherSecurityValue) ProtoMessage()    {}
+
+func init() {
+	// Ad-hoc registering the proto type here to facilitate UnmarshalAny of OtherSecurityValue.
+	proto.RegisterType((*OtherSecurityValue)(nil), "grpc.credentials.OtherChannelzSecurityValue")
 }
 
 func TestGetTopChannels(t *testing.T) {
@@ -459,6 +503,23 @@ func TestGetSocket(t *testing.T) {
 		},
 		{
 			localAddr: &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 10001},
+		},
+		{
+			security: &credentials.TLSChannelzSecurityValue{
+				StandardName:      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+				RemoteCertificate: []byte{48, 130, 2, 156, 48, 130, 2, 5, 160},
+			},
+		},
+		{
+			security: &credentials.OtherChannelzSecurityValue{
+				Name: "XXXX",
+			},
+		},
+		{
+			security: &credentials.OtherChannelzSecurityValue{
+				Name:  "YYYY",
+				Value: &OtherSecurityValue{LocalCertificate: []byte{1, 2, 3}, RemoteCertificate: []byte{4, 5, 6}},
+			},
 		},
 	}
 	svr := newCZServer()

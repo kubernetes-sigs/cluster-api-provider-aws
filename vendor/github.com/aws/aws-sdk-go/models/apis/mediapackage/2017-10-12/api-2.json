@@ -285,6 +285,8 @@
       }
     }, 
     "RotateChannelCredentials": {
+      "deprecated": true,
+      "deprecatedMessage": "This API is deprecated. Please use RotateIngestEndpointCredentials instead",
       "errors": [
         {
           "shape": "UnprocessableEntityException"
@@ -318,6 +320,40 @@
         "shape": "RotateChannelCredentialsResponse"
       }
     }, 
+    "RotateIngestEndpointCredentials": {
+      "errors": [
+        {
+          "shape": "UnprocessableEntityException"
+        },
+        {
+          "shape": "InternalServerErrorException"
+        },
+        {
+          "shape": "ForbiddenException"
+        },
+        {
+          "shape": "NotFoundException"
+        },
+        {
+          "shape": "ServiceUnavailableException"
+        },
+        {
+          "shape": "TooManyRequestsException"
+        }
+      ],
+      "http": {
+        "method": "PUT",
+        "requestUri": "/channels/{id}/ingest_endpoints/{ingest_endpoint_id}/credentials",
+        "responseCode": 200
+      },
+      "input": {
+        "shape": "RotateIngestEndpointCredentialsRequest"
+      },
+      "name": "RotateIngestEndpointCredentials",
+      "output": {
+        "shape": "RotateIngestEndpointCredentialsResponse"
+      }
+    },
     "UpdateChannel": {
       "errors": [
         {
@@ -1039,6 +1075,10 @@
     }, 
     "IngestEndpoint": {
       "members": {
+        "Id": {
+          "locationName": "id",
+          "shape": "__string"
+        },
         "Password": {
           "locationName": "password", 
           "shape": "__string"
@@ -1359,6 +1399,7 @@
       "type": "string"
     }, 
     "RotateChannelCredentialsRequest": {
+      "deprecated": true,
       "members": {
         "Id": {
           "location": "uri", 
@@ -1372,6 +1413,47 @@
       "type": "structure"
     }, 
     "RotateChannelCredentialsResponse": {
+      "deprecated": true,
+      "members": {
+        "Arn": {
+          "locationName": "arn",
+          "shape": "__string"
+        },
+        "Description": {
+          "locationName": "description",
+          "shape": "__string"
+        },
+        "HlsIngest": {
+          "locationName": "hlsIngest",
+          "shape": "HlsIngest"
+        },
+        "Id": {
+          "locationName": "id",
+          "shape": "__string"
+        }
+      },
+      "type": "structure"
+    },
+    "RotateIngestEndpointCredentialsRequest": {
+      "members": {
+        "Id": {
+          "location": "uri",
+          "locationName": "id",
+          "shape": "__string"
+        },
+        "IngestEndpointId": {
+          "location": "uri",
+          "locationName": "ingest_endpoint_id",
+          "shape": "__string"
+        }
+      },
+      "required": [
+        "IngestEndpointId",
+        "Id"
+      ],
+      "type": "structure"
+    },
+    "RotateIngestEndpointCredentialsResponse": {
       "members": {
         "Arn": {
           "locationName": "arn", 

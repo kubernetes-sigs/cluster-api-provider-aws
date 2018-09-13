@@ -452,6 +452,8 @@ type test struct {
 	maxClientSendMsgSize    *int
 	maxServerReceiveMsgSize *int
 	maxServerSendMsgSize    *int
+	maxClientHeaderListSize *uint32
+	maxServerHeaderListSize *uint32
 	userAgent               string
 	// clientCompression and serverCompression are set to test the deprecated API
 	// WithCompressor and WithDecompressor.
@@ -545,6 +547,9 @@ func (te *test) listenAndServe(ts testpb.TestServiceServer, listen func(network,
 	}
 	if te.maxServerSendMsgSize != nil {
 		sopts = append(sopts, grpc.MaxSendMsgSize(*te.maxServerSendMsgSize))
+	}
+	if te.maxServerHeaderListSize != nil {
+		sopts = append(sopts, grpc.MaxHeaderListSize(*te.maxServerHeaderListSize))
 	}
 	if te.tapHandle != nil {
 		sopts = append(sopts, grpc.InTapHandle(te.tapHandle))
@@ -696,6 +701,9 @@ func (te *test) configDial(opts ...grpc.DialOption) ([]grpc.DialOption, string) 
 	}
 	if te.maxClientSendMsgSize != nil {
 		opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(*te.maxClientSendMsgSize)))
+	}
+	if te.maxClientHeaderListSize != nil {
+		opts = append(opts, grpc.WithMaxHeaderListSize(*te.maxClientHeaderListSize))
 	}
 	switch te.e.security {
 	case "tls":
@@ -1888,9 +1896,7 @@ func TestStreamingRPCWithTimeoutInServiceConfigRecv(t *testing.T) {
 
 	te.resolverScheme = r.Scheme()
 	te.nonBlockingDial = true
-	fmt.Println("1")
 	cc := te.clientConn()
-	fmt.Println("10")
 	tc := testpb.NewTestServiceClient(cc)
 
 	r.NewAddress([]resolver.Address{{Addr: te.srvAddr}})
@@ -3075,7 +3081,9 @@ func testMultipleSetHeaderStreamingRPCError(t *testing.T, e env) {
 		argSize  = 1
 		respSize = -1
 	)
-	ctx := metadata.NewOutgoingContext(context.Background(), testMetadata)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ctx = metadata.NewOutgoingContext(ctx, testMetadata)
 	stream, err := tc.FullDuplexCall(ctx)
 	if err != nil {
 		t.Fatalf("%v.FullDuplexCall(_) = _, %v, want <nil>", tc, err)
@@ -3151,20 +3159,20 @@ func testMalformedHTTP2Metadata(t *testing.T, e env) {
 	}
 }
 
-func TestRetry(t *testing.T) {
+func TestTransparentRetry(t *testing.T) {
 	defer leakcheck.Check(t)
 	for _, e := range listTestEnv() {
 		if e.name == "handler-tls" {
 			// Fails with RST_STREAM / FLOW_CONTROL_ERROR
 			continue
 		}
-		testRetry(t, e)
+		testTransparentRetry(t, e)
 	}
 }
 
-// This test make sure RPCs are retried times when they receive a RST_STREAM
+// This test makes sure RPCs are retried times when they receive a RST_STREAM
 // with the REFUSED_STREAM error code, which the InTapHandle provokes.
-func testRetry(t *testing.T, e env) {
+func testTransparentRetry(t *testing.T, e env) {
 	te := newTest(t, e)
 	attempts := 0
 	successAttempt := 2
@@ -4845,8 +4853,11 @@ type stubServer struct {
 
 	// A client connected to this service the test may use.  Created in Start().
 	client testpb.TestServiceClient
+	cc     *grpc.ClientConn
 
 	cleanups []func() // Lambdas executed in Stop(); populated by Start().
+
+	r *manual.Resolver
 }
 
 func (ss *stubServer) EmptyCall(ctx context.Context, in *testpb.Empty) (*testpb.Empty, error) {
@@ -4858,7 +4869,11 @@ func (ss *stubServer) FullDuplexCall(stream testpb.TestService_FullDuplexCallSer
 }
 
 // Start starts the server and creates a client connected to it.
-func (ss *stubServer) Start(sopts []grpc.ServerOption) error {
+func (ss *stubServer) Start(sopts []grpc.ServerOption, dopts ...grpc.DialOption) error {
+	r, cleanup := manual.GenerateAndRegisterManualResolver()
+	ss.r = r
+	ss.cleanups = append(ss.cleanups, cleanup)
+
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		return fmt.Errorf(`net.Listen("tcp", "localhost:0") = %v`, err)
@@ -4870,14 +4885,38 @@ func (ss *stubServer) Start(sopts []grpc.ServerOption) error {
 	go s.Serve(lis)
 	ss.cleanups = append(ss.cleanups, s.Stop)
 
-	cc, err := grpc.Dial(lis.Addr().String(), grpc.WithInsecure(), grpc.WithBlock())
+	target := ss.r.Scheme() + ":///" + lis.Addr().String()
+
+	opts := append([]grpc.DialOption{grpc.WithInsecure()}, dopts...)
+	cc, err := grpc.Dial(target, opts...)
 	if err != nil {
-		return fmt.Errorf("grpc.Dial(%q) = %v", lis.Addr().String(), err)
+		return fmt.Errorf("grpc.Dial(%q) = %v", target, err)
 	}
+	ss.cc = cc
+	ss.r.NewAddress([]resolver.Address{{Addr: lis.Addr().String()}})
+	if err := ss.waitForReady(cc); err != nil {
+		return err
+	}
+
 	ss.cleanups = append(ss.cleanups, func() { cc.Close() })
 
 	ss.client = testpb.NewTestServiceClient(cc)
 	return nil
+}
+
+func (ss *stubServer) waitForReady(cc *grpc.ClientConn) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	for {
+		s := cc.GetState()
+		if s == connectivity.Ready {
+			return nil
+		}
+		if !cc.WaitForStateChange(ctx, s) {
+			// ctx got timeout or canceled.
+			return ctx.Err()
+		}
+	}
 }
 
 func (ss *stubServer) Stop() {
@@ -5125,7 +5164,7 @@ func TestClientWriteFailsAfterServerClosesStream(t *testing.T) {
 	}
 	sopts := []grpc.ServerOption{}
 	if err := ss.Start(sopts); err != nil {
-		t.Fatalf("Error starting endpoing server: %v", err)
+		t.Fatalf("Error starting endpoint server: %v", err)
 	}
 	defer ss.Stop()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -5143,7 +5182,6 @@ func TestClientWriteFailsAfterServerClosesStream(t *testing.T) {
 			t.Fatalf("stream.Send(_) = %v, want io.EOF", err)
 		}
 	}
-
 }
 
 type windowSizeConfig struct {
@@ -6338,5 +6376,252 @@ func testRPCTimeout(t *testing.T, e env) {
 			t.Fatalf("TestService/UnaryCallv(_, _) = _, %v; want <nil>, error code: %s", err, codes.DeadlineExceeded)
 		}
 		cancel()
+	}
+}
+
+func TestDisabledIOBuffers(t *testing.T) {
+	defer leakcheck.Check(t)
+
+	payload, err := newPayload(testpb.PayloadType_COMPRESSABLE, int32(60000))
+	if err != nil {
+		t.Fatalf("Failed to create payload: %v", err)
+	}
+	req := &testpb.StreamingOutputCallRequest{
+		Payload: payload,
+	}
+	resp := &testpb.StreamingOutputCallResponse{
+		Payload: payload,
+	}
+
+	ss := &stubServer{
+		fullDuplexCall: func(stream testpb.TestService_FullDuplexCallServer) error {
+			for {
+				in, err := stream.Recv()
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					t.Errorf("stream.Recv() = _, %v, want _, <nil>", err)
+					return err
+				}
+				if !reflect.DeepEqual(in.Payload.Body, payload.Body) {
+					t.Errorf("Received message(len: %v) on server not what was expected(len: %v).", len(in.Payload.Body), len(payload.Body))
+					return err
+				}
+				if err := stream.Send(resp); err != nil {
+					t.Errorf("stream.Send(_)= %v, want <nil>", err)
+					return err
+				}
+
+			}
+		},
+	}
+
+	s := grpc.NewServer(grpc.WriteBufferSize(0), grpc.ReadBufferSize(0))
+	testpb.RegisterTestServiceServer(s, ss)
+
+	lis, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Fatalf("Failed to create listener: %v", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		s.Serve(lis)
+		close(done)
+	}()
+	defer s.Stop()
+	dctx, dcancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer dcancel()
+	cc, err := grpc.DialContext(dctx, lis.Addr().String(), grpc.WithInsecure(), grpc.WithBlock(), grpc.WithWriteBufferSize(0), grpc.WithReadBufferSize(0))
+	if err != nil {
+		t.Fatalf("Failed to dial server")
+	}
+	defer cc.Close()
+	c := testpb.NewTestServiceClient(cc)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	stream, err := c.FullDuplexCall(ctx, grpc.FailFast(false))
+	if err != nil {
+		t.Fatalf("Failed to send test RPC to server")
+	}
+	for i := 0; i < 10; i++ {
+		if err := stream.Send(req); err != nil {
+			t.Fatalf("stream.Send(_) = %v, want <nil>", err)
+		}
+		in, err := stream.Recv()
+		if err != nil {
+			t.Fatalf("stream.Recv() = _, %v, want _, <nil>", err)
+		}
+		if !reflect.DeepEqual(in.Payload.Body, payload.Body) {
+			t.Fatalf("Received message(len: %v) on client not what was expected(len: %v).", len(in.Payload.Body), len(payload.Body))
+		}
+	}
+	stream.CloseSend()
+	if _, err := stream.Recv(); err != io.EOF {
+		t.Fatalf("stream.Recv() = _, %v, want _, io.EOF", err)
+	}
+}
+
+func TestServerMaxHeaderListSizeClientUserViolation(t *testing.T) {
+	defer leakcheck.Check(t)
+	for _, e := range listTestEnv() {
+		if e.httpHandler {
+			continue
+		}
+		testServerMaxHeaderListSizeClientUserViolation(t, e)
+	}
+}
+
+func testServerMaxHeaderListSizeClientUserViolation(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.maxServerHeaderListSize = new(uint32)
+	*te.maxServerHeaderListSize = 216
+	te.startServer(&testServer{security: e.security})
+	defer te.tearDown()
+
+	cc := te.clientConn()
+	tc := testpb.NewTestServiceClient(cc)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	metadata.AppendToOutgoingContext(ctx, "oversize", string(make([]byte, 216)))
+	var err error
+	if err = verifyResultWithDelay(func() (bool, error) {
+		if _, err = tc.EmptyCall(ctx, &testpb.Empty{}); err != nil && status.Code(err) == codes.Internal {
+			return true, nil
+		}
+		return false, fmt.Errorf("tc.EmptyCall() = _, err: %v, want _, error code: %v", err, codes.Internal)
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestClientMaxHeaderListSizeServerUserViolation(t *testing.T) {
+	defer leakcheck.Check(t)
+	for _, e := range listTestEnv() {
+		if e.httpHandler == true {
+			continue
+		}
+		testClientMaxHeaderListSizeServerUserViolation(t, e)
+	}
+}
+
+func testClientMaxHeaderListSizeServerUserViolation(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.maxClientHeaderListSize = new(uint32)
+	*te.maxClientHeaderListSize = 1 // any header server sends will violate
+	te.startServer(&testServer{security: e.security})
+	defer te.tearDown()
+
+	cc := te.clientConn()
+	tc := testpb.NewTestServiceClient(cc)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var err error
+	if err = verifyResultWithDelay(func() (bool, error) {
+		if _, err = tc.EmptyCall(ctx, &testpb.Empty{}); err != nil && status.Code(err) == codes.Internal {
+			return true, nil
+		}
+		return false, fmt.Errorf("tc.EmptyCall() = _, err: %v, want _, error code: %v", err, codes.Internal)
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestServerMaxHeaderListSizeClientIntentionalViolation(t *testing.T) {
+	defer leakcheck.Check(t)
+	for _, e := range listTestEnv() {
+		if e.httpHandler == true || e.security == "tls" {
+			continue
+		}
+		testServerMaxHeaderListSizeClientIntentionalViolation(t, e)
+	}
+}
+
+func testServerMaxHeaderListSizeClientIntentionalViolation(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.maxServerHeaderListSize = new(uint32)
+	*te.maxServerHeaderListSize = 512
+	te.startServer(&testServer{security: e.security})
+	defer te.tearDown()
+
+	cc, dw := te.clientConnWithConnControl()
+	tc := &testServiceClientWrapper{TestServiceClient: testpb.NewTestServiceClient(cc)}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	stream, err := tc.FullDuplexCall(ctx)
+	if err != nil {
+		t.Fatalf("%v.FullDuplexCall(_) = _, %v, want _, <nil>", tc, err)
+	}
+	rcw := dw.getRawConnWrapper()
+	val := make([]string, 512)
+	for i := range val {
+		val[i] = "a"
+	}
+	// allow for client to send the initial header
+	time.Sleep(100 * time.Millisecond)
+	rcw.writeHeaders(http2.HeadersFrameParam{
+		StreamID:      tc.getCurrentStreamID(),
+		BlockFragment: rcw.encodeHeader("oversize", strings.Join(val, "")),
+		EndStream:     false,
+		EndHeaders:    true,
+	})
+	if _, err := stream.Recv(); err == nil || status.Code(err) != codes.Internal {
+		t.Fatalf("stream.Recv() = _, %v, want _, error code: %v", err, codes.Internal)
+	}
+}
+
+func TestClientMaxHeaderListSizeServerIntentionalViolation(t *testing.T) {
+	defer leakcheck.Check(t)
+	for _, e := range listTestEnv() {
+		if e.httpHandler == true || e.security == "tls" {
+			continue
+		}
+		testClientMaxHeaderListSizeServerIntentionalViolation(t, e)
+	}
+}
+
+func testClientMaxHeaderListSizeServerIntentionalViolation(t *testing.T, e env) {
+	te := newTest(t, e)
+	te.maxClientHeaderListSize = new(uint32)
+	*te.maxClientHeaderListSize = 200
+	lw := te.startServerWithConnControl(&testServer{security: e.security, setHeaderOnly: true})
+	defer te.tearDown()
+	cc, _ := te.clientConnWithConnControl()
+	tc := &testServiceClientWrapper{TestServiceClient: testpb.NewTestServiceClient(cc)}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	stream, err := tc.FullDuplexCall(ctx)
+	if err != nil {
+		t.Fatalf("%v.FullDuplexCall(_) = _, %v, want _, <nil>", tc, err)
+	}
+	var i int
+	var rcw *rawConnWrapper
+	for i = 0; i < 100; i++ {
+		rcw = lw.getLastConn()
+		if rcw != nil {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+		continue
+	}
+	if i == 100 {
+		t.Fatalf("failed to create server transport after 1s")
+	}
+
+	val := make([]string, 200)
+	for i := range val {
+		val[i] = "a"
+	}
+	// allow for client to send the initial header.
+	time.Sleep(100 * time.Millisecond)
+	rcw.writeHeaders(http2.HeadersFrameParam{
+		StreamID:      tc.getCurrentStreamID(),
+		BlockFragment: rcw.encodeHeader("oversize", strings.Join(val, "")),
+		EndStream:     false,
+		EndHeaders:    true,
+	})
+	if _, err := stream.Recv(); err == nil || status.Code(err) != codes.Internal {
+		t.Fatalf("stream.Recv() = _, %v, want _, error code: %v", err, codes.Internal)
 	}
 }
