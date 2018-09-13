@@ -149,7 +149,14 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset(machine)
 	logger := log.WithField("controller", controllerLogName)
 
-	actuator, err := NewActuator(fakeKubeClient, fakeClient, logger, fakeawsclient.NewClient)
+	params := ActuatorParams{
+		ClusterClient:    fakeClient,
+		KubeClient:       fakeKubeClient,
+		AwsClientBuilder: fakeawsclient.NewClient,
+		Logger:           logger,
+	}
+
+	actuator, err := NewActuator(params)
 	if err != nil {
 		t.Fatalf("Could not create Openstack machine actuator: %v", err)
 	}

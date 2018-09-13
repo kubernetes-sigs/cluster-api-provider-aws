@@ -418,7 +418,15 @@ func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, us
 	}
 	fakeKubeClient := kubernetesfake.NewSimpleClientset(objList...)
 	fakeClient := fake.NewSimpleClientset(machine)
-	actuator, _ := machineactuator.NewActuator(fakeKubeClient, fakeClient, logger, awsclient.NewClient)
+
+	params := machineactuator.ActuatorParams{
+		ClusterClient:    fakeClient,
+		KubeClient:       fakeKubeClient,
+		AwsClientBuilder: awsclient.NewClient,
+		Logger:           logger,
+	}
+
+	actuator, _ := machineactuator.NewActuator(params)
 	return actuator
 }
 

@@ -32,7 +32,6 @@ import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterclient "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -58,16 +57,19 @@ type Actuator struct {
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
-	ClusterClient client.ClusterInterface
+	KubeClient       kubernetes.Interface
+	ClusterClient    clusterclient.Interface
+	Logger           *log.Entry
+	AwsClientBuilder awsclient.AwsClientBuilderFuncType
 }
 
 // NewActuator returns a new AWS Actuator
-func NewActuator(kubeClient kubernetes.Interface, clusterClient clusterclient.Interface, logger *log.Entry, awsClientBuilder awsclient.AwsClientBuilderFuncType) (*Actuator, error) {
+func NewActuator(params ActuatorParams) (*Actuator, error) {
 	actuator := &Actuator{
-		kubeClient:       kubeClient,
-		clusterClient:    clusterClient,
-		logger:           logger,
-		awsClientBuilder: awsClientBuilder,
+		kubeClient:       params.KubeClient,
+		clusterClient:    params.ClusterClient,
+		logger:           params.Logger,
+		awsClientBuilder: params.AwsClientBuilder,
 	}
 	return actuator, nil
 }
