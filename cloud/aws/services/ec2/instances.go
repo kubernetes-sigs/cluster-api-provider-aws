@@ -14,18 +14,10 @@
 package ec2
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
-
-// instances is used to scope down/organize the ec2 client.
-type instances interface {
-	DescribeInstances(*ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error)
-	RunInstances(*ec2.RunInstancesInput) (*ec2.Reservation, error)
-}
 
 // Instance is an internal representation of an AWS instance.
 // This contains more data than the provider config struct tracked in the status.
@@ -41,29 +33,35 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
 	}
-	out, err := s.Instances.DescribeInstances(input)
+
+	out, err := s.ec2.DescribeInstances(input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to describe instances: %v", err)
+		return nil, errors.Wrapf(err, "failed to describe instances")
 	}
+
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
 		return &Instance{
 			State: *out.Reservations[0].Instances[0].State.Name,
 			ID:    *out.Reservations[0].Instances[0].InstanceId,
 		}, nil
 	}
+
 	return nil, nil
 }
 
 // CreateInstance runs an ec2 instance.
 func (s *Service) CreateInstance(machine *clusterv1.Machine) (*Instance, error) {
 	input := &ec2.RunInstancesInput{}
-	reservation, err := s.Instances.RunInstances(input)
+
+	reservation, err := s.ec2.RunInstances(input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run instances: %v", err)
+		return nil, errors.Wrapf(err, "failed to run instances")
 	}
+
 	if len(reservation.Instances) <= 0 {
 		return nil, errors.New("no instance was created after run was called")
 	}
+
 	return &Instance{
 		State: *reservation.Instances[0].State.Name,
 		ID:    *reservation.Instances[0].InstanceId,

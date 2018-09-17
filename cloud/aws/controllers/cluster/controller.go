@@ -73,11 +73,9 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	params := clusteractuator.ActuatorParams{
 		Codec:         codec,
 		ClusterClient: nil, // unused right now
-		EC2Service: &ec2svc.Service{
-			Instances: ec2client,
-			VPCs:      ec2client,
-		},
+		EC2Service:    ec2svc.NewService(ec2client),
 	}
+
 	actuator, err := clusteractuator.NewActuator(params)
 	if err != nil {
 		glog.Fatalf("Could not create aws cluster actuator: %v", err)
