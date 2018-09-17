@@ -20,6 +20,7 @@ import (
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -34,6 +35,7 @@ type machinesSvc interface {
 type ec2Svc interface {
 	CreateInstance(*clusterv1.Machine) (*ec2svc.Instance, error)
 	InstanceIfExists(*string) (*ec2svc.Instance, error)
+	TerminateInstance(*string) error
 }
 
 // codec are the functions off the generated codec that this actuator uses.
@@ -109,7 +111,32 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
-	return fmt.Errorf("TODO: Not yet implemented")
+
+	status, err := a.machineProviderStatus(machine)
+	if err != nil {
+		return errors.Wrap(err, "failed to get machine provider status")
+	}
+
+	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	if err != nil {
+		return errors.Wrap(err, "failed to get instance")
+	}
+
+	// Check the instance state. If it's already shutting down or terminated,
+	// do nothing. Otherwise attempt to delete it.
+	// This decision is based on the ec2-instance-lifecycle graph at
+	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
+	switch instance.State {
+	case ec2svc.InstanceStateShuttingDown, ec2svc.InstanceStateTerminated:
+		return nil
+	default:
+		err = a.ec2.TerminateInstance(status.InstanceID)
+		if err != nil {
+			return errors.Wrap(err, "failed to terminate instance")
+		}
+	}
+
+	return nil
 }
 
 // Update updates a machine and is invoked by the Machine Controller

@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
 )
@@ -100,6 +101,63 @@ func TestInstanceIfExists(t *testing.T) {
 			s := ec2svc.NewService(ec2Mock)
 			instance, err := s.InstanceIfExists(&tc.instanceID)
 			tc.check(instance, err)
+		})
+	}
+}
+
+func TestTerminateInstance(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	instanceNotFoundError := errors.New("instance not found")
+
+	testCases := []struct {
+		name       string
+		instanceID string
+		expect     func(m *mock_ec2iface.MockEC2API)
+		check      func(err error)
+	}{
+		{
+			name:       "instance exists",
+			instanceID: "i-exist",
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
+						InstanceIds: []*string{aws.String("i-exist")},
+					})).
+					Return(&ec2.TerminateInstancesOutput{}, nil)
+			},
+			check: func(err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name:       "instance does not exist",
+			instanceID: "i-donotexist",
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
+						InstanceIds: []*string{aws.String("i-donotexist")},
+					})).
+					Return(&ec2.TerminateInstancesOutput{}, instanceNotFoundError)
+			},
+			check: func(err error) {
+				if err == nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			tc.expect(ec2Mock)
+			s := ec2svc.NewService(ec2Mock)
+			err := s.TerminateInstance(&tc.instanceID)
+			tc.check(err)
 		})
 	}
 }
