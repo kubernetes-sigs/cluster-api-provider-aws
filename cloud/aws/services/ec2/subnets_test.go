@@ -37,16 +37,27 @@ func TestReconcileSubnets(t *testing.T) {
 		expect func(m *mock_ec2iface.MockEC2API)
 	}{
 		{
-			name: "single subnet exists",
+			name: "single private subnet exists, should create public with defaults",
 			input: []*v1alpha1.Subnet{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
-					CidrBlock:        "10.1.0.0/16",
+					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         false,
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					DescribeAvailabilityZones(gomock.AssignableToTypeOf(&ec2.DescribeAvailabilityZonesInput{})).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								RegionName: aws.String("us-east-1"),
+								ZoneName:   aws.String("us-east-1a"),
+							},
+						},
+					}, nil)
+
 				m.EXPECT().
 					DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
@@ -62,11 +73,38 @@ func TestReconcileSubnets(t *testing.T) {
 								VpcId:               aws.String(subnetsVPCID),
 								SubnetId:            aws.String("subnet-1"),
 								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.1.0.0/16"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
 								MapPublicIpOnLaunch: aws.Bool(false),
 							},
 						},
 					}, nil)
+
+				m.EXPECT().
+					CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+						VpcId:            aws.String(subnetsVPCID),
+						CidrBlock:        aws.String(defaultPublicSubnetCidr),
+						AvailabilityZone: aws.String("us-east-1a"),
+					})).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &ec2.Subnet{
+							VpcId:               aws.String(subnetsVPCID),
+							SubnetId:            aws.String("subnet-2"),
+							CidrBlock:           aws.String("10.1.0.0/16"),
+							AvailabilityZone:    aws.String("us-east-1a"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						},
+					}, nil)
+
+				m.EXPECT().
+					WaitUntilSubnetAvailable(gomock.Any())
+
+				m.EXPECT().
+					ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+						MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
+							Value: aws.Bool(true),
+						},
+					}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil)
 
 			},
 		},
