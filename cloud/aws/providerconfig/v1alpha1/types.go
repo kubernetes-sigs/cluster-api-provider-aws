@@ -160,6 +160,9 @@ type Network struct {
 	// VPC defines the cluster vpc.
 	VPC *VPC `json:"vpc"`
 
+	// InternetGatewayID is the id of the internet gateway associated with the VPC.
+	InternetGatewayID *string `json:"internetGatewayId"`
+
 	// Subnets includes all the subnets defined inside the VPC.
 	Subnets Subnets `json:"subnets"`
 }
