@@ -26,5 +26,10 @@ func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
 		return err
 	}
 
+	// Gateways.
+	if err := s.reconcileGateways(network); err != nil {
+		return err
+	}
+
 	return nil
 }
