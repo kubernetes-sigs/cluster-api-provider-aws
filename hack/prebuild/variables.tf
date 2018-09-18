@@ -3,14 +3,6 @@ variable "aws_user" {
   type = "string"
 }
 
-variable "cluster_domain" {
-  type = "string"
-}
-
-variable "cluster_namespace" {
-  type = "string"
-}
-
 variable "cluster_name" {
   type = "string"
 }
@@ -39,18 +31,4 @@ variable "vpc_private_networks" {
     "10.0.2.0/24",
     "10.0.3.0/24",
   ]
-}
-
-// only needed if we want to dynamically generate
-// the manifests
-variable "container_images" {
-  description = "Container images to use"
-  type        = "map"
-
-  default = {
-    aws_machine_controller = "openshift/origin-aws-machine-controllers"
-    cluster_apiserver      = "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.6"
-    controller_manager     = "gcr.io/k8s-cluster-api/controller-manager:0.0.7"
-    etcd                   = "k8s.gcr.io/etcd:3.1.12"
-  }
 }

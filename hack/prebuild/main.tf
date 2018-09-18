@@ -33,30 +33,3 @@ module "vpc" {
     Name = "vpc-${var.cluster_name}"
   }
 }
-
-/*
-# Generate Manifest Dir
-resource "template_dir" "manifests" {
-  source_dir      = "${path.module}/resources"
-  destination_dir = "${path.cwd}/tfManifests"
-
-  vars {
-    aws_availability_zone        = "${data.aws_availability_zones.azs.names[0]}"
-    aws_machine_controller_image = "${var.container_images["aws_machine_controller"]}"
-    aws_region                   = "${data.aws_region.current.name}"
-    cluster_apiserver_image      = "${var.container_images["cluster_apiserver"]}"
-    cluster_cidr                 = "${var.vpc_cidr}"
-    cluster_name                 = "${var.cluster_name}"
-    cluster_domain               = "${var.cluster_domain}"
-    cluster_namespace            = "${var.cluster_namespace}"
-    cluster_security_group       = "${aws_security_group.cluster_default.id}"
-    controller_manager_image     = "${var.container_images["controller_manager"]}"
-    etcd_image                   = "${var.container_images["etcd"]}"
-    apiserver_image              = "${var.container_images["cluster_apiserver"]}"
-    pod_cidr                     = "${var.vpc_private_networks[1]}"
-    service_cidr                 = "${var.vpc_private_networks[0]}"
-    ssh_key_name                 = "${var.sshKey}"
-  }
-}
-*/
-
