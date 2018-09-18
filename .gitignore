@@ -11,3 +11,16 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+### Terraform ###
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Terraform plan file
+*.tfplan.*
+
+# Auto-generated manifests
+tfManifests/
