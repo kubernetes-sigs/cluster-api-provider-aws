@@ -18,12 +18,12 @@ resource "aws_security_group_rule" "deault_egress" {
   cidr_blocks = ["0.0.0.0/0"]
 }
 
-resource "aws_security_group_rule" "default_ingress_ssh" {
+resource "aws_security_group_rule" "default_ingress" {
   type              = "ingress"
   security_group_id = "${aws_security_group.cluster_default.id}"
 
-  protocol    = "tcp"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
   cidr_blocks = ["0.0.0.0/0"]
-  from_port   = 22
-  to_port     = 22
 }

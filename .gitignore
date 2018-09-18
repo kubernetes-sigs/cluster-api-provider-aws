@@ -19,5 +19,8 @@
 *.tfstate
 *.tfstate.*
 
+# Terraform plan file
+*.tfplan.*
+
 # Auto-generated manifests
 tfManifests/

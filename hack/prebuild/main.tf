@@ -7,7 +7,7 @@ data "aws_region" "current" {}
 
 module "vpc" {
   source          = "terraform-aws-modules/vpc/aws"
-  name            = "${var.vpc_name}"
+  name            = "vpc-${var.cluster_name}"
   cidr            = "${var.vpc_cidr}"
   azs             = "${data.aws_availability_zones.azs.names}"
   public_subnets  = "${var.vpc_public_networks}"
@@ -25,15 +25,16 @@ module "vpc" {
   single_nat_gateway = true
 
   tags = {
-    Owner       = "user"
+    Owner       = "${var.aws_user}"
     Environment = "dev"
   }
 
   vpc_tags = {
-    Name = "${var.vpc_name}"
+    Name = "vpc-${var.cluster_name}"
   }
 }
 
+/*
 # Generate Manifest Dir
 resource "template_dir" "manifests" {
   source_dir      = "${path.module}/resources"
@@ -57,3 +58,5 @@ resource "template_dir" "manifests" {
     ssh_key_name                 = "${var.sshKey}"
   }
 }
+*/
+
