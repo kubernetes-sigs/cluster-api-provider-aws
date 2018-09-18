@@ -6,6 +6,12 @@ Note: This repository is currently a skeleton implementation of a cluster-api pr
 
 ## Development
 
+### Updating mocks
+
+When you update the mocks, please make sure the imports are not from the dependencies vendor directory. Instead, make them an explicit dependency of this project.
+
+For example, if you see ``types "sigs.k8s.io/cluster-api/vendor/k8s.io/apimachinery/pkg/types"` in the import path, replace it with `types "k8s.io/apimachinery/pkg/types"`.
+
 ### Requirements
 
 * a google cloud project
