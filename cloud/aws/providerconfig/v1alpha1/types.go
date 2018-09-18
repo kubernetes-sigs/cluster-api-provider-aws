@@ -161,7 +161,7 @@ type Network struct {
 	VPC *VPC `json:"vpc"`
 
 	// Subnets includes all the subnets defined inside the VPC.
-	Subnets []*Subnet `json:"subnets"`
+	Subnets Subnets `json:"subnets"`
 }
 
 // VPC defines an AWS vpc.
@@ -179,4 +179,27 @@ type Subnet struct {
 	AvailabilityZone string `json:"availabilityZone"`
 	CidrBlock        string `json:"cidrBlock"`
 	IsPublic         bool   `json:"public"`
+}
+
+// Subnets is a slice of Subnet.
+type Subnets []*Subnet
+
+// FilterPrivate returns a slice containing all subnets marked as private.
+func (s Subnets) FilterPrivate() (res []*Subnet) {
+	for _, x := range s {
+		if !x.IsPublic {
+			res = append(res, x)
+		}
+	}
+	return
+}
+
+// FilterPublic returns a slice containing all subnets marked as public.
+func (s Subnets) FilterPublic() (res []*Subnet) {
+	for _, x := range s {
+		if x.IsPublic {
+			res = append(res, x)
+		}
+	}
+	return
 }

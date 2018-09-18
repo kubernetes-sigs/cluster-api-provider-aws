@@ -22,6 +22,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
+const (
+	defaultVpcCidr = "10.0.0.0/16"
+)
+
 func (s *Service) reconcileVPC(in *v1alpha1.VPC) error {
 	vpc, err := s.describeVPC(in.ID)
 	if IsNotFound(err) {
@@ -41,6 +45,10 @@ func (s *Service) reconcileVPC(in *v1alpha1.VPC) error {
 }
 
 func (s *Service) createVPC(v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
+	if v.CidrBlock == "" {
+		v.CidrBlock = defaultVpcCidr
+	}
+
 	input := &ec2.CreateVpcInput{
 		CidrBlock: aws.String(v.CidrBlock),
 	}

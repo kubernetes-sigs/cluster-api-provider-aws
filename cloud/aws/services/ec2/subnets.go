@@ -20,40 +20,87 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-func (s *Service) reconcileSubnets(subnets []*v1alpha1.Subnet, vpc *v1alpha1.VPC) error {
+const (
+	defaultPrivateSubnetCidr = "10.0.0.0/24"
+	defaultPublicSubnetCidr  = "10.0.1.0/24"
+)
+
+func (s *Service) reconcileSubnets(subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+	// Make sure all subnets have a vpc id.
+	for _, sn := range subnets {
+		if sn.VpcID == "" {
+			sn.VpcID = vpc.ID
+		}
+	}
+
+	// Describe subnets in the vpc.
 	existing, err := s.describeVpcSubnets(vpc.ID)
 	if err != nil {
 		return err
 	}
 
-	for _, sn := range subnets {
-		if sn.VpcID == "" {
-			sn.VpcID = vpc.ID
-		}
-
-		if xsn, ok := existing[sn.ID]; ok {
-			// TODO(vincepri): check tags, check attr match.
-			xsn.DeepCopyInto(sn)
-			delete(existing, sn.ID)
-			continue
-		}
-
-		nsn, err := s.createSubnet(sn)
+	// If the subnets are empty, populate the slice with the default configuration.
+	// Adds a single private and public subnet in the first available zone.
+	if len(subnets) < 2 {
+		zones, err := s.getAvailableZones()
 		if err != nil {
 			return err
 		}
 
-		nsn.DeepCopyInto(sn)
-		delete(existing, sn.ID)
+		if len(subnets.FilterPrivate()) == 0 {
+			subnets = append(subnets, &v1alpha1.Subnet{
+				VpcID:            vpc.ID,
+				CidrBlock:        defaultPrivateSubnetCidr,
+				AvailabilityZone: zones[0],
+				IsPublic:         false,
+			})
+		}
+
+		if len(subnets.FilterPublic()) == 0 {
+			subnets = append(subnets, &v1alpha1.Subnet{
+				VpcID:            vpc.ID,
+				CidrBlock:        defaultPublicSubnetCidr,
+				AvailabilityZone: zones[0],
+				IsPublic:         true,
+			})
+		}
+
 	}
 
-	// TODO(vincepri): at this point `existing` contains all the other subnets that aren't
-	// in our state and that we might have to delete if they are managed by us (e.g. they contain a specific tag).
+	for _, exsn := range existing {
+		// Check if the subnet already exists in the state, in that case reconcile it.
+		for _, sn := range subnets {
+			// Two subnets are defined equal to each other if their id is equal
+			// or if they are in the same vpc and the cidr block is the same.
+			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.VpcID == exsn.VpcID && sn.CidrBlock == exsn.CidrBlock) {
+				// TODO(vincepri): check if subnet needs to be updated.
+				exsn.DeepCopyInto(sn)
+				break
+			}
+		}
+
+		// TODO(vincepri): delete extra subnets that exist and are managed by us.
+		subnets = append(subnets, exsn)
+	}
+
+	// Proceed to create the rest of the subnets that don't have an ID.
+	for _, subnet := range subnets {
+		if subnet.ID != "" {
+			continue
+		}
+
+		nsn, err := s.createSubnet(subnet)
+		if err != nil {
+			return err
+		}
+
+		nsn.DeepCopyInto(subnet)
+	}
 
 	return nil
 }
 
-func (s *Service) describeVpcSubnets(vpcID string) (map[string]*v1alpha1.Subnet, error) {
+func (s *Service) describeVpcSubnets(vpcID string) (v1alpha1.Subnets, error) {
 	out, err := s.ec2.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -67,15 +114,15 @@ func (s *Service) describeVpcSubnets(vpcID string) (map[string]*v1alpha1.Subnet,
 		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", vpcID)
 	}
 
-	subnets := make(map[string]*v1alpha1.Subnet, len(out.Subnets))
+	subnets := make([]*v1alpha1.Subnet, 0, len(out.Subnets))
 	for _, ec2sn := range out.Subnets {
-		subnets[*ec2sn.SubnetId] = &v1alpha1.Subnet{
+		subnets = append(subnets, &v1alpha1.Subnet{
 			ID:               *ec2sn.SubnetId,
 			VpcID:            *ec2sn.VpcId,
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
 			IsPublic:         *ec2sn.MapPublicIpOnLaunch,
-		}
+		})
 	}
 
 	return subnets, nil
