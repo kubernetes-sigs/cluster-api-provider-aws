@@ -3,10 +3,6 @@ variable "aws_user" {
   type = "string"
 }
 
-variable "cluster_name" {
-  type = "string"
-}
-
 variable "aws_region" {
   type    = "string"
   default = "us-east-1"
@@ -31,4 +27,10 @@ variable "vpc_private_networks" {
     "10.0.2.0/24",
     "10.0.3.0/24",
   ]
+}
+
+variable "environment_id" {
+  type        = "string"
+  default     = "testCluster"
+  description = "The id of the environment."
 }
