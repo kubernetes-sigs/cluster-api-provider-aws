@@ -15,13 +15,13 @@ spec:
       ami:
         # id: ami-060f14ef82deddfc6
         filters:
-        - name: "image_stage"
+        - name: "tag:image_stage"
           values:
           - "base"
-        - name: operating_system
+        - name: "tag:operating_system"
           values:
           - "rhel"
-        - name: ready
+        - name: "tag:ready"
           values:
           - "yes"
       instanceType: m4.xlarge
@@ -29,7 +29,10 @@ spec:
         region: us-east-1
         availabilityZone: us-east-1a
       subnet:
-        id: subnet-0e56b13a64ff8a941
+        filters:
+          - name: "tag:Name"
+            values:
+            - "{{ .ClusterID }}-worker-*"
       iamInstanceProfile:
         id: openshift_master_launch_instances
       keyName: libra
@@ -41,11 +44,10 @@ spec:
       - name: sub-host-type
         value: default
       securityGroups:
-      - id: sg-00868b02fbe29de17
-      - id: sg-0a4658991dc5eb40a
-      - id: sg-009a70e28fa4ba84e
-      - id: sg-07323d56fb932c84c
-      - id: sg-08b1ffd32874d59a2
+        - filters:
+            - name: "tag:Name"
+              values:
+              - "{{ .ClusterID }}-*"
       publicIp: true
       userDataSecret:
         name: aws-actuator-node-user-data-secret

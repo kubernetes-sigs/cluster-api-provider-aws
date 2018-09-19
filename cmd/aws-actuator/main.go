@@ -70,6 +70,9 @@ func createCommand() *cobra.Command {
 				return err
 			}
 			cluster, machine, awsCredentials, userData, err := readClusterResources(
+				&manifestParams{
+					ClusterID: cmd.Flag("environment-id").Value.String(),
+				},
 				cmd.Flag("cluster").Value.String(),
 				cmd.Flag("machine").Value.String(),
 				cmd.Flag("aws-credentials").Value.String(),
@@ -99,6 +102,9 @@ func deleteCommand() *cobra.Command {
 				return err
 			}
 			cluster, machine, awsCredentials, userData, err := readClusterResources(
+				&manifestParams{
+					ClusterID: cmd.Flag("environment-id").Value.String(),
+				},
 				cmd.Flag("cluster").Value.String(),
 				cmd.Flag("machine").Value.String(),
 				cmd.Flag("aws-credentials").Value.String(),
@@ -128,6 +134,9 @@ func existsCommand() *cobra.Command {
 				return err
 			}
 			cluster, machine, awsCredentials, userData, err := readClusterResources(
+				&manifestParams{
+					ClusterID: cmd.Flag("environment-id").Value.String(),
+				},
 				cmd.Flag("cluster").Value.String(),
 				cmd.Flag("machine").Value.String(),
 				cmd.Flag("aws-credentials").Value.String(),
@@ -152,14 +161,24 @@ func existsCommand() *cobra.Command {
 	}
 }
 
-func readMachineManifest(manifestLoc string) (*clusterv1.Machine, error) {
+func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*clusterv1.Machine, error) {
 	machine := &clusterv1.Machine{}
-	bytes, err := ioutil.ReadFile(manifestLoc)
+	manifestBytes, err := ioutil.ReadFile(manifestLoc)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
 	}
 
-	if err = yaml.Unmarshal(bytes, &machine); err != nil {
+	t, err := template.New("machineuserdata").Parse(string(manifestBytes))
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	err = t.Execute(&buf, *manifestParams)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = yaml.Unmarshal(buf.Bytes(), &machine); err != nil {
 		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
 	}
 
@@ -222,12 +241,12 @@ bash /root/user-data.sh > /root/user-data.logs
 `
 
 type userDataParams struct {
-	masterIP string
+	MasterIP string
 }
 
 func generateWorkerUserData(masterIP string, workerUserDataSecret *apiv1.Secret) (*apiv1.Secret, error) {
 	params := userDataParams{
-		masterIP: masterIP,
+		MasterIP: masterIP,
 	}
 	t, err := template.New("workeruserdata").Parse(workerUserDataBlob)
 	if err != nil {
@@ -255,6 +274,8 @@ func bootstrapCommand() *cobra.Command {
 				return fmt.Errorf("--manifests needs to be set")
 			}
 
+			machinePrefix := cmd.Flag("environment-id").Value.String()
+
 			log.Infof("Reading cluster manifest from %v", path.Join(manifestsDir, "cluster.yaml"))
 			cluster, err := readClusterManifest(path.Join(manifestsDir, "cluster.yaml"))
 			if err != nil {
@@ -262,7 +283,12 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			log.Infof("Reading master machine manifest from %v", path.Join(manifestsDir, "master-machine.yaml"))
-			masterMachine, err := readMachineManifest(path.Join(manifestsDir, "master-machine.yaml"))
+			masterMachine, err := readMachineManifest(
+				&manifestParams{
+					ClusterID: machinePrefix,
+				},
+				path.Join(manifestsDir, "master-machine.yaml"),
+			)
 			if err != nil {
 				return err
 			}
@@ -274,7 +300,12 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			log.Infof("Reading worker machine manifest from %v", path.Join(manifestsDir, "worker-machine.yaml"))
-			workerMachine, err := readMachineManifest(path.Join(manifestsDir, "worker-machine.yaml"))
+			workerMachine, err := readMachineManifest(
+				&manifestParams{
+					ClusterID: machinePrefix,
+				},
+				path.Join(manifestsDir, "worker-machine.yaml"),
+			)
 			if err != nil {
 				return err
 			}
@@ -294,7 +325,6 @@ func bootstrapCommand() *cobra.Command {
 				}
 			}
 
-			machinePrefix := cmd.Flag("machine-prefix").Value.String()
 			if machinePrefix != "" {
 				masterMachine.Name = machinePrefix + "-" + masterMachine.Name
 				workerMachine.Name = machinePrefix + "-" + workerMachine.Name
@@ -329,13 +359,6 @@ func bootstrapCommand() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().StringP("manifests", "", "", "Directory with bootstrapping manifests")
-	cUser, err := user.Current()
-	if err != nil {
-		cmd.PersistentFlags().StringP("machine-prefix", "p", "", "Directory with bootstrapping manifests")
-	} else {
-		cmd.PersistentFlags().StringP("machine-prefix", "p", cUser.Username, "Machine prefix, by default set to the current user")
-	}
-
 	return cmd
 }
 
@@ -344,6 +367,12 @@ func init() {
 	rootCmd.PersistentFlags().StringP("cluster", "c", "", "Cluster manifest")
 	rootCmd.PersistentFlags().StringP("aws-credentials", "a", "", "Secret manifest with aws credentials")
 	rootCmd.PersistentFlags().StringP("userdata", "u", "", "User data manifest")
+	cUser, err := user.Current()
+	if err != nil {
+		rootCmd.PersistentFlags().StringP("environment-id", "p", "", "Directory with bootstrapping manifests")
+	} else {
+		rootCmd.PersistentFlags().StringP("environment-id", "p", cUser.Username, "Machine prefix, by default set to the current user")
+	}
 
 	rootCmd.AddCommand(createCommand())
 
@@ -354,16 +383,17 @@ func init() {
 	rootCmd.AddCommand(bootstrapCommand())
 }
 
-func readClusterResources(clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *clusterv1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
+type manifestParams struct {
+	ClusterID string
+}
+
+func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *clusterv1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
+	var err error
 	machine := &clusterv1.Machine{}
 	{
-		bytes, err := ioutil.ReadFile(machineLoc)
+		machine, err = readMachineManifest(manifestParams, machineLoc)
 		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("machine manifest %q: %v", machineLoc, err)
-		}
-
-		if err = yaml.Unmarshal(bytes, &machine); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("machine manifest %q: %v", machineLoc, err)
+			return nil, nil, nil, nil, err
 		}
 	}
 

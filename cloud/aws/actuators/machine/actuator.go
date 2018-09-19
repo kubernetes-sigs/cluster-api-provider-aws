@@ -146,6 +146,11 @@ func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference
 			}
 		}
 	}
+
+	if len(securityGroups) == 0 {
+		mLog.Debug("No security group found")
+	}
+
 	return securityGroupIDs, nil
 }
 
