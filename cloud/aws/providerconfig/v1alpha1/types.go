@@ -206,3 +206,8 @@ func (s Subnets) FilterPublic() (res []*Subnet) {
 	}
 	return
 }
+
+// RouteTable defines an AWS routing table.
+type RouteTable struct {
+	ID string `json:"id"`
+}
