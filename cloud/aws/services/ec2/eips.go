@@ -13,28 +13,20 @@
 
 package ec2
 
-import "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+import (
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/pkg/errors"
+)
 
-func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
-	// VPC.
-	if err := s.reconcileVPC(network.VPC); err != nil {
-		return err
+func (s *Service) allocateAddress() (string, error) {
+	out, err := s.EC2.AllocateAddress(&ec2.AllocateAddressInput{
+		Domain: aws.String("vpc"),
+	})
+
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to create Elastic IP address")
 	}
 
-	// Subnets.
-	if err := s.reconcileSubnets(network.Subnets, network.VPC); err != nil {
-		return err
-	}
-
-	// Internet Gateways.
-	if err := s.reconcileInternetGateways(network); err != nil {
-		return err
-	}
-
-	// NAT Gateways.
-	if err := s.reconcileNatGateways(network.Subnets, network.VPC); err != nil {
-		return err
-	}
-
-	return nil
+	return *out.AllocationId, nil
 }
