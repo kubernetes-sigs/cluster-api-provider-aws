@@ -14,7 +14,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cl
 exclude=kube*
 EOF
 setenforce 0
-yum install -y kubelet kubeadm --disableexcludes=kubernetes
+yum install -y kubelet-1.11.3 kubeadm-1.11.3 --disableexcludes=kubernetes
 
 cat <<EOF > /etc/default/kubelet
 KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=systemd
