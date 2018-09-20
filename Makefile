@@ -12,19 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: gendeepcopy
-
+.PHONY: all
 all: generate build images
 
+.PHONY: depend
 depend:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure
 
+.PHONY: depend-update
 depend-update: work
 	dep ensure -update
 
+.PHONY: generate
 generate: gendeepcopy
 
+.PHONY: gendeepcopy
 gendeepcopy:
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
@@ -39,27 +42,39 @@ build:
 aws-actuator:
 	go build -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
 
-images:
+.PHONY: images
+images: ## Create images
 	$(MAKE) -C cmd/cluster-controller image
 	$(MAKE) -C cmd/machine-controller image
 
+.PHONY: push
 push:
 	$(MAKE) -C cmd/cluster-controller push
 	$(MAKE) -C cmd/machine-controller push
 
-check: fmt vet lint
+.PHONY: check
+check: fmt vet lint test ## Check your code
 
-test:
+.PHONY: test
+test: # Run unit test
 	go test -race -cover ./cmd/... ./cloud/...
 
-integration:
+.PHONY: integration
+integration: ## Run integration test
 	go test -v sigs.k8s.io/cluster-api-provider-aws/test/integration
 
-fmt:
-	hack/go-fmt.sh .
+.PHONY: lint
+lint: ## Go lint your code
+	hack/go-lint.sh $(go list -f '{{ .ImportPath }}' ./...)
 
-vet:
+.PHONY: fmt
+fmt: ## Go fmt your code
+	hack/verify-gofmt.sh
+
+.PHONY: vet
+vet: ## Apply go vet to all go files
 	hack/go-vet.sh ./...
 
-lint:
-	hack/go-lint.sh $$(go list -f '{{ .ImportPath }}' ./...)
+.PHONY: help
+help:
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
