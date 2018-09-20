@@ -459,24 +459,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	mLog := clustoplog.WithMachine(a.logger, machine)
 	mLog.Debugf("checking if machine exists")
 
-	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
-	if err != nil {
-		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
-		return false, err
-	}
-
-	region := machineProviderConfig.Placement.Region
-	credentialsSecretName := ""
-	if machineProviderConfig.CredentialsSecret != nil {
-		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
-	}
-	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
-	if err != nil {
-		mLog.Errorf("error getting EC2 client: %v", err)
-		return false, fmt.Errorf("error getting EC2 client: %v", err)
-	}
-
-	instances, err := GetRunningInstances(machine, client)
+	instances, err := a.getMachineInstances(cluster, machine)
 	if err != nil {
 		mLog.Errorf("error getting running instances: %v", err)
 		return false, err
@@ -489,6 +472,47 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// If more than one result was returned, it will be handled in Update.
 	mLog.Debugf("instance exists as %q", *instances[0].InstanceId)
 	return true, nil
+}
+
+// Describe provides information about machine's instance(s)
+func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
+	mLog := clustoplog.WithMachine(a.logger, machine)
+	mLog.Debugf("checking if machine exists")
+
+	instances, err := a.getMachineInstances(cluster, machine)
+	if err != nil {
+		mLog.Errorf("error getting running instances: %v", err)
+		return nil, err
+	}
+	if len(instances) == 0 {
+		mLog.Debug("instance does not exist")
+		return nil, nil
+	}
+
+	return instances[0], nil
+}
+
+func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clusterv1.Machine) ([]*ec2.Instance, error) {
+	mLog := clustoplog.WithMachine(a.logger, machine)
+
+	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	if err != nil {
+		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
+		return nil, err
+	}
+
+	region := machineProviderConfig.Placement.Region
+	credentialsSecretName := ""
+	if machineProviderConfig.CredentialsSecret != nil {
+		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
+	}
+	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
+	if err != nil {
+		mLog.Errorf("error getting EC2 client: %v", err)
+		return nil, fmt.Errorf("error getting EC2 client: %v", err)
+	}
+
+	return GetRunningInstances(machine, client)
 }
 
 // updateStatus calculates the new machine status, checks if anything has changed, and updates if so.

@@ -135,3 +135,81 @@ DEBU[0014] Describing subnets based on filters           bootstrap=create-worker
 WARN[0015] More than one subnet id returned, only first one will be used  bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
 INFO[0016] Worker machine created with InstanceId: i-0763fb7fafc607ecf
 ```
+
+## Bootstrapping cluster API stack
+
+Running the `aws-actuator bootstrap` with `--cluster-api-stack` will deploy the cluster API stack as well.
+It's assumed both `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are set.
+
+```sh
+$ ./bin/aws-actuator bootstrap --manifests examples --environment-id UNIQUE_ID --cluster-api-stack
+INFO[0000] Reading cluster manifest from examples/cluster.yaml
+INFO[0000] Reading master machine manifest from examples/master-machine.yaml
+INFO[0000] Reading master user data manifest from examples/master-userdata.yaml
+INFO[0000] Reading worker machine manifest from examples/worker-machine.yaml
+INFO[0000] Reading worker user data manifest from examples/worker-userdata.yaml
+INFO[0000] Creating master machine                      
+DEBU[0000] Describing AMI based on filters               bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
+DEBU[0007] Describing security groups based on filters   bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
+DEBU[0007] Describing subnets based on filters           bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
+WARN[0007] More than one subnet id returned, only first one will be used  bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
+INFO[0008] Master machine created with ipv4: 10.0.101.159, InstanceId: i-04c41ad24e885a8c6
+INFO[0008] Generating worker user data for master listening at 10.0.101.159
+INFO[0008] Creating worker machine                      
+INFO[0009] no stopped instances found for machine UNIQUE_ID-aws-actuator-testing-machine-worker  bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
+DEBU[0009] Describing AMI based on filters               bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
+DEBU[0012] Describing security groups based on filters   bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
+DEBU[0013] Describing subnets based on filters           bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
+WARN[0013] More than one subnet id returned, only first one will be used  bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
+INFO[0014] Worker machine created with InstanceId: i-0d548c5592e4e78a7
+INFO[0019] Waiting for master machine PublicDNS         
+DEBU[0019] checking if machine exists                    bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
+INFO[0019] PublicDnsName: ec2-34-239-226-191.compute-1.amazonaws.com
+
+INFO[0024] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0093] Unable to pull kubeconfig: exit status 1, Warning: Permanently added 'ec2-34-239-226-191.compute-1.amazonaws.com,34.239.226.191' (ECDSA) to the list of known hosts.
+cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0094] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0096] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0099] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0101] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0104] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0106] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0109] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0111] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0114] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0116] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0119] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0121] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0124] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0126] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0129] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0131] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0134] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0136] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+
+INFO[0139] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0146] Running kubectl config set-cluster kubernetes --server=https://ec2-34-239-226-191.compute-1.amazonaws.com:8443
+INFO[0151] Waiting for all nodes to come up             
+INFO[0156] Waiting for all nodes to come up             
+INFO[0161] Waiting for all nodes to come up             
+INFO[0166] Waiting for all nodes to come up             
+INFO[0171] Waiting for all nodes to come up             
+INFO[0179] Is node "ip-10-0-101-159.ec2.internal" ready?: true
+
+INFO[0179] Deploying cluster-api stack                  
+INFO[0179] Deploying aws credentials                    
+INFO[0179] Creating "test" namespace...                 
+INFO[0179] Creating "test/aws-credentials-secret" secret...
+INFO[0185] Deploying cluster-api server                 
+INFO[0197] Deploying cluster-api controllers
+```
