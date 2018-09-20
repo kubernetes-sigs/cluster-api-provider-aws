@@ -16,3 +16,7 @@ vendor
 
 # Ansible
 *.retry
+
+# vim
+*~
+*.swp

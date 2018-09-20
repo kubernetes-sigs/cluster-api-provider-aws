@@ -14,6 +14,7 @@
 package machine_test
 
 import (
+	"errors"
 	"testing"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
@@ -41,6 +42,14 @@ func (e *ec2) InstanceIfExists(id *string) (*ec2svc.Instance, error) {
 	return nil, nil
 }
 
+func (e *ec2) TerminateInstance(instanceID *string) error {
+	if instanceID == nil {
+		return errors.New("didn't receive an instanceID")
+	}
+
+	return nil
+}
+
 type machines struct{}
 
 func (m *machines) UpdateMachineStatus(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
@@ -64,5 +73,37 @@ func TestCreate(t *testing.T) {
 
 	if err := actuator.Create(&clusterv1.Cluster{}, &clusterv1.Machine{}); err != nil {
 		t.Fatalf("failed to create machine: %v", err)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	codec, err := v1alpha1.NewCodec()
+	if err != nil {
+		t.Fatalf("failed to create a codec: %v", err)
+	}
+
+	ap := machine.ActuatorParams{
+		Codec:           codec,
+		MachinesService: &machines{},
+		EC2Service:      &ec2{},
+	}
+
+	actuator, err := machine.NewActuator(ap)
+	if err != nil {
+		t.Fatalf("failed to create an actuator: %v", err)
+	}
+
+	// Get some empty cluster and machine structs.
+	testCluster := &clusterv1.Cluster{}
+	testMachine := &clusterv1.Machine{}
+
+	// Create a machine that we can delete.
+	if err := actuator.Create(testCluster, testMachine); err != nil {
+		t.Fatalf("failed to create machine: %v", err)
+	}
+
+	// Delete the machine.
+	if err := actuator.Delete(testCluster, testMachine); err != nil {
+		t.Fatalf("failed to delete machine: %v", err)
 	}
 }

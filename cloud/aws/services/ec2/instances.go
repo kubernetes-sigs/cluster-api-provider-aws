@@ -19,6 +19,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+const (
+	// InstanceStateShuttingDown indicates the instance is shutting-down
+	InstanceStateShuttingDown = ec2.InstanceStateNameShuttingDown
+
+	// InstanceStateTerminated indicates the instance has been terminated
+	InstanceStateTerminated = ec2.InstanceStateNameTerminated
+)
+
 // Instance is an internal representation of an AWS instance.
 // This contains more data than the provider config struct tracked in the status.
 type Instance struct {
@@ -66,4 +74,21 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine) (*Instance, error) 
 		State: *reservation.Instances[0].State.Name,
 		ID:    *reservation.Instances[0].InstanceId,
 	}, nil
+}
+
+// TerminateInstance terminates an EC2 instance.
+// Returns nil on success, error in all other cases.
+func (s *Service) TerminateInstance(instanceID *string) error {
+	input := &ec2.TerminateInstancesInput{
+		InstanceIds: []*string{
+			instanceID,
+		},
+	}
+
+	_, err := s.ec2.TerminateInstances(input)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
