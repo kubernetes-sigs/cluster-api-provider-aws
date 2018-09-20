@@ -20,8 +20,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -42,7 +45,7 @@ func TestInstanceIfExists(t *testing.T) {
 					DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 						InstanceIds: []*string{aws.String("hello")},
 					})).
-					Return(&ec2.DescribeInstancesOutput{}, nil)
+					Return(nil, ec2svc.NewNotFound(errors.New("not found")))
 			},
 			check: func(instance *ec2svc.Instance, err error) {
 				if err != nil {
@@ -89,6 +92,20 @@ func TestInstanceIfExists(t *testing.T) {
 
 				if instance.ID != "id-1" {
 					t.Fatalf("expected id-1 but got: %v", instance.ID)
+				}
+			},
+		},
+		{
+			name:       "error describing instances",
+			instanceID: "one",
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					DescribeInstances(&ec2.DescribeInstancesInput{InstanceIds: []*string{aws.String("one")}}).
+					Return(nil, errors.New("some unknown error"))
+			},
+			check: func(i *ec2svc.Instance, err error) {
+				if err == nil {
+					t.Fatalf("expected an error but got none.")
 				}
 			},
 		},
@@ -158,6 +175,69 @@ func TestTerminateInstance(t *testing.T) {
 			s := ec2svc.NewService(ec2Mock)
 			err := s.TerminateInstance(&tc.instanceID)
 			tc.check(err)
+		})
+	}
+}
+
+func TestCreateInstance(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testcases := []struct {
+		name    string
+		machine clusterv1.Machine
+		expect  func(m *mock_ec2iface.MockEC2API)
+		check   func(instance *ec2svc.Instance, err error)
+	}{
+		{
+			name: "simple",
+			machine: clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					ProviderConfig: clusterv1.ProviderConfig{
+						Value: &runtime.RawExtension{
+							Raw: []byte(`apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  generateName: aws-controlplane-
+  labels:
+    set: controlplane
+spec:
+  versions:
+    kubelet: v1.11.2
+    controlPlane: v1.11.2`),
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					RunInstances(&ec2.RunInstancesInput{}).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							&ec2.Instance{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								InstanceId: aws.String("two"),
+							},
+						},
+					}, nil)
+			},
+			check: func(instance *ec2svc.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			tc.expect(ec2Mock)
+			s := ec2svc.NewService(ec2Mock)
+			instance, err := s.CreateInstance(&tc.machine)
+			tc.check(instance, err)
 		})
 	}
 }

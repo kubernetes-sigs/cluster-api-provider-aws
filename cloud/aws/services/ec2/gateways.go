@@ -37,12 +37,12 @@ func (s *Service) reconcileInternetGateways(in *v1alpha1.Network) error {
 }
 
 func (s *Service) createInternetGateway(vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
-	ig, err := s.ec2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
+	ig, err := s.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
 
-	_, err = s.ec2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
+	_, err = s.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
 		VpcId:             aws.String(vpc.ID),
 	})
@@ -55,7 +55,7 @@ func (s *Service) createInternetGateway(vpc *v1alpha1.VPC) (*ec2.InternetGateway
 }
 
 func (s *Service) describeVpcInternetGateways(vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
-	out, err := s.ec2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
+	out, err := s.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("attachment.vpc-id"),

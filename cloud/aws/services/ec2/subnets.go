@@ -101,7 +101,7 @@ func (s *Service) reconcileSubnets(subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) 
 }
 
 func (s *Service) describeVpcSubnets(vpcID string) (v1alpha1.Subnets, error) {
-	out, err := s.ec2.DescribeSubnets(&ec2.DescribeSubnetsInput{
+	out, err := s.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -129,7 +129,7 @@ func (s *Service) describeVpcSubnets(vpcID string) (v1alpha1.Subnets, error) {
 }
 
 func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
-	out, err := s.ec2.CreateSubnet(&ec2.CreateSubnetInput{
+	out, err := s.EC2.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(sn.VpcID),
 		CidrBlock:        aws.String(sn.CidrBlock),
 		AvailabilityZone: aws.String(sn.AvailabilityZone),
@@ -140,7 +140,7 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 	}
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
-	if err := s.ec2.WaitUntilSubnetAvailable(wReq); err != nil {
+	if err := s.EC2.WaitUntilSubnetAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
@@ -151,7 +151,7 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 			},
 		}
 
-		if _, err := s.ec2.ModifySubnetAttribute(attReq); err != nil {
+		if _, err := s.EC2.ModifySubnetAttribute(attReq); err != nil {
 			return nil, errors.Wrapf(err, "failed to set subnet %q attributes", *out.Subnet.SubnetId)
 		}
 	}
@@ -166,7 +166,7 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 }
 
 func (s *Service) deleteSubnet(sn *v1alpha1.Subnet) error {
-	_, err := s.ec2.DeleteSubnet(&ec2.DeleteSubnetInput{
+	_, err := s.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
 		SubnetId: aws.String(sn.ID),
 	})
 
