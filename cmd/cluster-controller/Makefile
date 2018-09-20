@@ -16,7 +16,24 @@
 
 GCR_BUCKET = k8s-cluster-api
 PREFIX = gcr.io/$(GCR_BUCKET)
-DEV_PREFIX ?= gcr.io/$(shell gcloud config get-value project)
+
+ifndef DEV_REPO_TYPE
+DEV_REPO_TYPE=GCR
+endif
+
+ifeq ($(DEV_REPO_TYPE),GCR)
+DEV_PREFIX := gcr.io/$(shell gcloud config get-value project)
+endif
+
+ifdef AWS_DEFAULT_REGION
+AWS_REGION ?= $(AWS_DEFAULT_REGION)
+endif
+
+ifeq ($(DEV_REPO_TYPE), ECR)
+ACCOUNT_ID := $(shell aws sts get-caller-identity | jq -r .Account)
+DEV_PREFIX := $(ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+endif
+
 NAME = aws-cluster-controller
 TAG = 0.0.1
 
