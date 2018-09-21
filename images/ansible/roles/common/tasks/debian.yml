@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+- name: Add cloud-init ppa repo
+  apt_repository:
+    repo: "{{ common_deb_cloud_init_ppr_repo }}"
+
 - name: update apt cache
   apt:
     force_apt_get: True

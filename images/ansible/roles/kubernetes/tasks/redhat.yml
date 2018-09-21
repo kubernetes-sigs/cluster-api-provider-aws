@@ -16,9 +16,9 @@
   yum_repository:
     name: kubernetes
     description: the kubernetes yum repo
-    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-    gpgcheck: True
-    gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    baseurl: "{{ kubernetes_rpm_repo }}"
+    gpgcheck: "{{ kubernetes_rpm_gpg_check }}"
+    gpgkey: "{{ kubernetes_rpm_gpg_key }}"
 
 - name: install the kubernetes yum packages
   yum:

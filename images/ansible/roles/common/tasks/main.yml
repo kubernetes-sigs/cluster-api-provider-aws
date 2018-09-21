@@ -18,31 +18,43 @@
 - import_tasks: redhat.yml
   when: ansible_os_family == "RedHat"
 
-- modprobe:
+- name: Ensure overlay module is present
+  modprobe:
     name: overlay
     state: present
 
-- modprobe:
+- name: Ensure br_netfilter module is present
+  modprobe:
     name: br_netfilter
     state: present
 
-- sysctl:
+- name: Persist required kernel modules
+  copy:
+    content: |
+      overlay
+      br_netfilter
+    dest: /etc/modules-load.d/kubernetes.conf
+
+- name: Ensure net.ipv4.ip_forward sysctl is present
+  sysctl:
     name: net.ipv4.ip_forward
-    value: 1
+    value: "1"
     state: present
     sysctl_set: yes
     reload: yes
 
-- sysctl:
+- name: Ensure net.bridge.bridge-nf-call-iptables sysctl is present
+  sysctl:
     name: net.bridge.bridge-nf-call-iptables
-    value: 1
+    value: "1"
     state: present
     sysctl_set: yes
     reload: yes
 
-- sysctl:
+- name: Ensure net.bridge.bridge-nf-call-ip6tables sysctl is present
+  sysctl:
     name: net.bridge.bridge-nf-call-ip6tables
-    value: 1
+    value: "1"
     state: present
     sysctl_set: yes
     reload: yes

@@ -1,5 +1,5 @@
 {
-    "ubuntu_16_04_ami": "ami-04169656fea786776",
-    "centos_7_4_ami": "ami-9887c6e7",
+    "ubuntu_18_04_ami": "ami-0ac019f4fcb7cb7e6",
+    "centos_7_ami": "ami-77ec9308",
     "amazon_2_ami": "ami-04681a1dbd79675a5"
 }
