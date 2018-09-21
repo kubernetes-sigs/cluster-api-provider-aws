@@ -448,8 +448,8 @@ func bootstrapCommand() *cobra.Command {
 					return true, nil
 				})
 
-				log.Infof("Running kubectl config set-cluster kubernetes --server=https://%v:8443", masterMachinePublicDNS)
-				if _, err := cmdRun("kubectl", "config", "set-cluster", "kubernetes", fmt.Sprintf("--server=https://%v:8443", masterMachinePublicDNS)); err != nil {
+				log.Infof("Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://%v:8443", masterMachinePublicDNS)
+				if _, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "config", "set-cluster", "kubernetes", fmt.Sprintf("--server=https://%v:8443", masterMachinePublicDNS)); err != nil {
 					return err
 				}
 
@@ -516,7 +516,7 @@ func bootstrapCommand() *cobra.Command {
 
 				err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
 					log.Info("Deploying cluster-api server")
-					if output, err := cmdRun("kubectl", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "cluster-api-server.yaml")), "--validate=false"); err != nil {
+					if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "cluster-api-server.yaml")), "--validate=false"); err != nil {
 						log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "cluster-api-server.yaml"), err, string(output))
 						return false, nil
 					}
@@ -526,7 +526,7 @@ func bootstrapCommand() *cobra.Command {
 
 				err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
 					log.Info("Deploying cluster-api controllers")
-					if output, err := cmdRun("kubectl", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "provider-components.yml"))); err != nil {
+					if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "provider-components.yml"))); err != nil {
 						log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "provider-components.yml"), err, string(output))
 						return false, nil
 					}
