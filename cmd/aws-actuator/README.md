@@ -109,107 +109,102 @@ $ cat examples/worker-user-data.sh | base64
 After some time the kubernetes cluster with the control plane (master node) and the worker node gets provisioned
 and the worker joins the cluster.
 
-### All in one
-
-Alternatively, you can run the `aws-actuator bootstrap` that does all the above (up to step 2.):
-
-```sh
-./bin/aws-actuator bootstrap --manifests examples --environment-id UNIQUE_ID
-INFO[0000] Reading cluster manifest from examples/cluster.yaml
-INFO[0000] Reading master machine manifest from examples/master-machine.yaml
-INFO[0000] Reading master user data manifest from examples/master-userdata.yaml
-INFO[0000] Reading worker machine manifest from examples/worker-machine.yaml
-INFO[0000] Reading worker user data manifest from examples/worker-userdata.yaml
-INFO[0000] Creating master machine                      
-DEBU[0000] Describing AMI based on filters               bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-DEBU[0007] Describing security groups based on filters   bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-DEBU[0008] Describing subnets based on filters           bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-WARN[0008] More than one subnet id returned, only first one will be used  bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-INFO[0009] Master machine created with ipv4: 10.0.102.149, InstanceId: i-0cd65d6ce5640d343
-INFO[0009] Generating worker user data for master listening at 10.0.102.149
-INFO[0009] Creating worker machine                      
-INFO[0009] no stopped instances found for machine UNIQUE_ID-aws-actuator-testing-machine-worker  bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-DEBU[0009] Describing AMI based on filters               bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-DEBU[0014] Describing security groups based on filters   bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-DEBU[0014] Describing subnets based on filters           bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-WARN[0015] More than one subnet id returned, only first one will be used  bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-INFO[0016] Worker machine created with InstanceId: i-0763fb7fafc607ecf
-```
-
 ## Bootstrapping cluster API stack
 
-Running the `aws-actuator bootstrap` with `--cluster-api-stack` will deploy the cluster API stack as well.
+The following command will deploy kubernetes cluster with cluster API stack
+deployed inside. Worker nodes are deployed with a machineset.
 It's assumed both `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are set.
+It takes some time before the worker node joins the cluster (~3 minutes).
 
 ```sh
-$ ./bin/aws-actuator bootstrap --manifests examples --environment-id UNIQUE_ID --cluster-api-stack
+$ ./bin/aws-actuator bootstrap --manifests examples --environment-id UNIQUE_ID
 INFO[0000] Reading cluster manifest from examples/cluster.yaml
 INFO[0000] Reading master machine manifest from examples/master-machine.yaml
 INFO[0000] Reading master user data manifest from examples/master-userdata.yaml
-INFO[0000] Reading worker machine manifest from examples/worker-machine.yaml
-INFO[0000] Reading worker user data manifest from examples/worker-userdata.yaml
 INFO[0000] Creating master machine                      
-DEBU[0000] Describing AMI based on filters               bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-DEBU[0007] Describing security groups based on filters   bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-DEBU[0007] Describing subnets based on filters           bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-WARN[0007] More than one subnet id returned, only first one will be used  bootstrap=create-master-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-INFO[0008] Master machine created with ipv4: 10.0.101.159, InstanceId: i-04c41ad24e885a8c6
-INFO[0008] Generating worker user data for master listening at 10.0.101.159
-INFO[0008] Creating worker machine                      
-INFO[0009] no stopped instances found for machine UNIQUE_ID-aws-actuator-testing-machine-worker  bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-DEBU[0009] Describing AMI based on filters               bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-DEBU[0012] Describing security groups based on filters   bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-DEBU[0013] Describing subnets based on filters           bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-WARN[0013] More than one subnet id returned, only first one will be used  bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-worker
-INFO[0014] Worker machine created with InstanceId: i-0d548c5592e4e78a7
-INFO[0019] Waiting for master machine PublicDNS         
-DEBU[0019] checking if machine exists                    bootstrap=create-worker-machine machine=test/UNIQUE_ID-aws-actuator-testing-machine-master
-INFO[0019] PublicDnsName: ec2-34-239-226-191.compute-1.amazonaws.com
+DEBU[0000] Describing AMI based on filters               bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
+DEBU[0007] Describing security groups based on filters   bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
+DEBU[0007] Describing subnets based on filters           bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
+WARN[0008] More than one subnet id returned, only first one will be used  bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
+INFO[0009] Master machine created with ipv4: 10.0.102.217, InstanceId: i-0eea29823ae5d50e8
+INFO[0014] Waiting for master machine PublicDNS         
+DEBU[0014] checking if machine exists                    bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
+INFO[0014] PublicDnsName: ec2-34-207-227-3.compute-1.amazonaws.com
 
-INFO[0024] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0093] Unable to pull kubeconfig: exit status 1, Warning: Permanently added 'ec2-34-239-226-191.compute-1.amazonaws.com,34.239.226.191' (ECDSA) to the list of known hosts.
+INFO[0019] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0150] Unable to pull kubeconfig: exit status 255, ssh: connect to host ec2-34-207-227-3.compute-1.amazonaws.com port 22: Connection timed out
+
+INFO[0154] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0158] Unable to pull kubeconfig: exit status 1, Warning: Permanently added 'ec2-34-207-227-3.compute-1.amazonaws.com,34.207.227.3' (ECDSA) to the list of known hosts.
 cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0094] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0096] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0159] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0162] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0099] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0101] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0164] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0167] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0104] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0106] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0169] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0172] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0109] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0111] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0174] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0177] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0114] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0116] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0179] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0182] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0119] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0121] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0184] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0187] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0124] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0126] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0189] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0191] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0129] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0131] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0194] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0197] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0134] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0136] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
+INFO[0199] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0202] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0139] Pulling kubeconfig from ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0146] Running kubectl config set-cluster kubernetes --server=https://ec2-34-239-226-191.compute-1.amazonaws.com:8443
-INFO[0151] Waiting for all nodes to come up             
-INFO[0156] Waiting for all nodes to come up             
-INFO[0161] Waiting for all nodes to come up             
-INFO[0166] Waiting for all nodes to come up             
-INFO[0171] Waiting for all nodes to come up             
-INFO[0179] Is node "ip-10-0-101-159.ec2.internal" ready?: true
+INFO[0204] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0207] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
 
-INFO[0179] Deploying cluster-api stack                  
-INFO[0179] Deploying aws credentials                    
-INFO[0179] Creating "test" namespace...                 
-INFO[0179] Creating "test/aws-credentials-secret" secret...
-INFO[0185] Deploying cluster-api server                 
-INFO[0197] Deploying cluster-api controllers
+INFO[0209] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0212] Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://ec2-34-207-227-3.compute-1.amazonaws.com:8443
+INFO[0217] Waiting for all nodes to come up             
+INFO[0222] Waiting for all nodes to come up             
+INFO[0227] Waiting for all nodes to come up             
+INFO[0232] Waiting for all nodes to come up             
+INFO[0237] Waiting for all nodes to come up             
+INFO[0242] Waiting for all nodes to come up             
+INFO[0248] Is node "ip-10-0-102-217.ec2.internal" ready?: true
+
+INFO[0248] Deploying cluster-api stack                  
+INFO[0248] Deploying aws credentials                    
+INFO[0248] Creating "test" namespace...                 
+INFO[0248] Creating "test/aws-credentials-secret" secret...
+INFO[0254] Deploying cluster-api server                 
+INFO[0271] Deploying cluster-api controllers            
+INFO[0277] Deploying cluster resource                   
+INFO[0277] Creating "test/tb-asg-35" cluster...         
+INFO[0277] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
+INFO[0282] Deploying cluster resource                   
+INFO[0282] Creating "test/tb-asg-35" cluster...         
+INFO[0282] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
+INFO[0287] Deploying cluster resource                   
+INFO[0287] Creating "test/tb-asg-35" cluster...         
+INFO[0287] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
+INFO[0292] Deploying cluster resource                   
+INFO[0292] Creating "test/tb-asg-35" cluster...         
+INFO[0292] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
+INFO[0297] Deploying cluster resource                   
+INFO[0297] Creating "test/tb-asg-35" cluster...         
+INFO[0297] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
+INFO[0302] Deploying cluster resource                   
+INFO[0302] Creating "test/tb-asg-35" cluster...         
+INFO[0302] Reading worker user data manifest from examples/worker-userdata.yaml
+INFO[0302] Generating worker machine set user data for master listening at 10.0.102.217
+INFO[0302] Creating "test/aws-actuator-node-user-data-secret" secret...
+INFO[0302] Reading worker machine manifest from examples/worker-machineset.yaml
+INFO[0307] Deploying worker machineset                  
+INFO[0307] Creating "test/jchaloup-cama-default-worker-machineset" machineset...
 ```
