@@ -1,0 +1,67 @@
+---
+apiVersion: cluster.k8s.io/v1alpha1
+kind: MachineSet
+metadata:
+  name: default-worker-machineset
+  namespace: test
+  labels:
+    sigs.k8s.io/cluster-api-cluster: tb-asg-35
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      sigs.k8s.io/cluster-api-machineset: worker-machine
+      sigs.k8s.io/cluster-api-cluster: tb-asg-35
+  template:
+    metadata:
+      labels:
+        sigs.k8s.io/cluster-api-machineset: worker-machine
+        sigs.k8s.io/cluster-api-cluster: tb-asg-35
+    spec:
+      providerConfig:
+        value:
+          apiVersion: aws.cluster.k8s.io/v1alpha1
+          kind: AWSMachineProviderConfig
+          ami:
+            filters:
+            - name: "tag:image_stage"
+              values:
+              - "base"
+            - name: "tag:operating_system"
+              values:
+              - "rhel"
+            - name: "tag:ready"
+              values:
+              - "yes"
+          credentialsSecret:
+            name: aws-credentials-secret
+          instanceType: m4.xlarge
+          placement:
+            region: us-east-1
+            availabilityZone: us-east-1a
+          subnet:
+            filters:
+              - name: "tag:Name"
+                values:
+                - "{{ .ClusterID }}-worker-*"
+          iamInstanceProfile:
+            id: openshift_master_launch_instances
+          keyName: libra
+          tags:
+          - name: openshift-node-group-config
+            value: node-config-worker
+          - name: host-type
+            value: worker
+          - name: sub-host-type
+            value: default
+          securityGroups:
+            - filters:
+                - name: "tag:Name"
+                  values:
+                  - "{{ .ClusterID }}-*"
+          publicIp: true
+          userDataSecret:
+            name: aws-actuator-node-user-data-secret
+      versions:
+        kubelet: 1.10.1
+        controlPlane: 1.10.1

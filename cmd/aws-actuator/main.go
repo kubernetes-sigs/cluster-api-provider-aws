@@ -46,6 +46,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 
 	"text/template"
 
@@ -172,6 +173,30 @@ func existsCommand() *cobra.Command {
 	}
 }
 
+func readMachineSetManifest(manifestParams *manifestParams, manifestLoc string) (*clusterv1.MachineSet, error) {
+	machineset := &clusterv1.MachineSet{}
+	manifestBytes, err := ioutil.ReadFile(manifestLoc)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+	}
+
+	t, err := template.New("machinesetuserdata").Parse(string(manifestBytes))
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	err = t.Execute(&buf, *manifestParams)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = yaml.Unmarshal(buf.Bytes(), &machineset); err != nil {
+		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+	}
+
+	return machineset, nil
+}
+
 func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*clusterv1.Machine, error) {
 	machine := &clusterv1.Machine{}
 	manifestBytes, err := ioutil.ReadFile(manifestLoc)
@@ -278,6 +303,29 @@ func generateWorkerUserData(masterIP string, workerUserDataSecret *apiv1.Secret)
 // TestConfig stores clients for managing various resources
 type TestConfig struct {
 	KubeClient *kubernetes.Clientset
+	CAPIClient *clientset.Clientset
+}
+
+func createCluster(testConfig *TestConfig, cluster *clusterv1.Cluster) error {
+	log.Infof("Creating %q cluster...", strings.Join([]string{cluster.Namespace, cluster.Name}, "/"))
+	if _, err := testConfig.CAPIClient.ClusterV1alpha1().Clusters(cluster.Namespace).Get(cluster.Name, metav1.GetOptions{}); err != nil {
+		if _, err := testConfig.CAPIClient.ClusterV1alpha1().Clusters(cluster.Namespace).Create(cluster); err != nil {
+			return fmt.Errorf("unable to create cluster: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func createMachineSet(testConfig *TestConfig, machineset *clusterv1.MachineSet) error {
+	log.Infof("Creating %q machineset...", strings.Join([]string{machineset.Namespace, machineset.Name}, "/"))
+	if _, err := testConfig.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Get(machineset.Name, metav1.GetOptions{}); err != nil {
+		if _, err := testConfig.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Create(machineset); err != nil {
+			return fmt.Errorf("unable to create machineset: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func createSecret(testConfig *TestConfig, secret *apiv1.Secret) error {
@@ -320,13 +368,11 @@ func bootstrapCommand() *cobra.Command {
 
 			machinePrefix := cmd.Flag("environment-id").Value.String()
 
-			if cmd.Flag("cluster-api-stack").Value.String() == "true" {
-				if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
-					return fmt.Errorf("AWS_ACCESS_KEY_ID env needs to be set")
-				}
-				if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
-					return fmt.Errorf("AWS_SECRET_ACCESS_KEY env needs to be set")
-				}
+			if os.Getenv("AWS_ACCESS_KEY_ID") == "" {
+				return fmt.Errorf("AWS_ACCESS_KEY_ID env needs to be set")
+			}
+			if os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+				return fmt.Errorf("AWS_SECRET_ACCESS_KEY env needs to be set")
 			}
 
 			log.Infof("Reading cluster manifest from %v", path.Join(manifestsDir, "cluster.yaml"))
@@ -352,21 +398,8 @@ func bootstrapCommand() *cobra.Command {
 				return err
 			}
 
-			log.Infof("Reading worker machine manifest from %v", path.Join(manifestsDir, "worker-machine.yaml"))
-			workerMachine, err := readMachineManifest(
-				&manifestParams{
-					ClusterID: machinePrefix,
-				},
-				path.Join(manifestsDir, "worker-machine.yaml"),
-			)
-			if err != nil {
-				return err
-			}
-
-			log.Infof("Reading worker user data manifest from %v", path.Join(manifestsDir, "worker-userdata.yaml"))
-			workerUserDataSecret, err := readSecretManifest(path.Join(manifestsDir, "worker-userdata.yaml"))
-			if err != nil {
-				return err
+			if machinePrefix != "" {
+				masterMachine.Name = machinePrefix + "-" + masterMachine.Name
 			}
 
 			var awsCredentialsSecret *apiv1.Secret
@@ -378,11 +411,6 @@ func bootstrapCommand() *cobra.Command {
 				}
 			}
 
-			if machinePrefix != "" {
-				masterMachine.Name = machinePrefix + "-" + masterMachine.Name
-				workerMachine.Name = machinePrefix + "-" + workerMachine.Name
-			}
-
 			log.Infof("Creating master machine")
 			actuator := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret, log.WithField("bootstrap", "create-master-machine"))
 			result, err := actuator.CreateMachine(cluster, masterMachine)
@@ -392,154 +420,215 @@ func bootstrapCommand() *cobra.Command {
 
 			log.Infof("Master machine created with ipv4: %v, InstanceId: %v", *result.PrivateIpAddress, *result.InstanceId)
 
-			log.Infof("Generating worker user data for master listening at %v", *result.PrivateIpAddress)
-			workerUserDataSecret, err = generateWorkerUserData(*result.PrivateIpAddress, workerUserDataSecret)
-			if err != nil {
-				return fmt.Errorf("unable to generate worker user data: %v", err)
+			masterMachinePublicDNS := ""
+			masterMachinePrivateIP := ""
+			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
+				log.Info("Waiting for master machine PublicDNS")
+				result, err := actuator.Describe(cluster, masterMachine)
+				if err != nil {
+					log.Info(err)
+					return false, nil
+				}
+
+				log.Infof("PublicDnsName: %v\n", *result.PublicDnsName)
+				if *result.PublicDnsName == "" {
+					return false, nil
+				}
+
+				masterMachinePublicDNS = *result.PublicDnsName
+				masterMachinePrivateIP = *result.PrivateIpAddress
+				return true, nil
+			})
+
+			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
+				log.Infof("Pulling kubeconfig from %v:8443", masterMachinePublicDNS)
+				output, err := cmdRun("ssh", fmt.Sprintf("ec2-user@%v", masterMachinePublicDNS), "sudo cat /etc/kubernetes/admin.conf")
+				if err != nil {
+					log.Infof("Unable to pull kubeconfig: %v, %v", err, string(output))
+					return false, nil
+				}
+
+				f, err := os.Create("kubeconfig")
+				if err != nil {
+					return false, err
+				}
+
+				if _, err = f.Write(output); err != nil {
+					f.Close()
+					return false, err
+				}
+				f.Close()
+
+				return true, nil
+			})
+
+			log.Infof("Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://%v:8443", masterMachinePublicDNS)
+			if _, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "config", "set-cluster", "kubernetes", fmt.Sprintf("--server=https://%v:8443", masterMachinePublicDNS)); err != nil {
+				return err
 			}
 
-			log.Infof("Creating worker machine")
-			actuator = createActuator(workerMachine, awsCredentialsSecret, workerUserDataSecret, log.WithField("bootstrap", "create-worker-machine"))
-			result, err = actuator.CreateMachine(cluster, workerMachine)
+			// Wait until the cluster comes up
+			config, err := controller.GetConfig("kubeconfig")
+			if err != nil {
+				return fmt.Errorf("Unable to create config: %v", err)
+			}
+
+			kubeClient, err := kubernetes.NewForConfig(config)
+			if err != nil {
+				glog.Fatalf("Could not create kubernetes client to talk to the apiserver: %v", err)
+			}
+
+			capiclient, err := clientset.NewForConfig(config)
+			if err != nil {
+				glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
+			}
+
+			tc := &TestConfig{
+				KubeClient: kubeClient,
+				CAPIClient: capiclient,
+			}
+
+			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
+				log.Info("Waiting for all nodes to come up")
+				nodesList, err := kubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
+				if err != nil {
+					return false, nil
+				}
+
+				nodesReady := true
+				for _, node := range nodesList.Items {
+					ready := false
+					for _, c := range node.Status.Conditions {
+						if c.Type != apiv1.NodeReady {
+							continue
+						}
+						ready = true
+					}
+					log.Infof("Is node %q ready?: %v\n", node.Name, ready)
+					if !ready {
+						nodesReady = false
+					}
+				}
+
+				return nodesReady, nil
+			})
+
+			log.Info("Deploying cluster-api stack")
+			log.Info("Deploying aws credentials")
+
+			if err := createNamespace(tc, "test"); err != nil {
+				return err
+			}
+
+			awsCredentials := &apiv1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "aws-credentials-secret",
+					Namespace: "test",
+				},
+				Data: map[string][]byte{
+					"awsAccessKeyId":     []byte(os.Getenv("AWS_ACCESS_KEY_ID")),
+					"awsSecretAccessKey": []byte(os.Getenv("AWS_SECRET_ACCESS_KEY")),
+				},
+			}
+
+			if err := createSecret(tc, awsCredentials); err != nil {
+				return err
+			}
+
+			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
+				log.Info("Deploying cluster-api server")
+				if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "cluster-api-server.yaml")), "--validate=false"); err != nil {
+					log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "cluster-api-server.yaml"), err, string(output))
+					return false, nil
+				}
+
+				return true, nil
+			})
+
+			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
+				log.Info("Deploying cluster-api controllers")
+				if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "provider-components.yml"))); err != nil {
+					log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "provider-components.yml"), err, string(output))
+					return false, nil
+				}
+				return true, nil
+			})
+
+			testCluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "tb-asg-35",
+					Namespace: "test",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+						Services: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.0.0.1/24"},
+						},
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.0.0.1/24"},
+						},
+						ServiceDomain: "example.com",
+					},
+				},
+			}
+
+			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
+				log.Infof("Deploying cluster resource")
+
+				if err := createCluster(tc, testCluster); err != nil {
+					log.Infof("Unable to deploy cluster manifest: %v", err)
+					return false, nil
+				}
+
+				return true, nil
+			})
+
+			log.Infof("Reading worker user data manifest from %v", path.Join(manifestsDir, "worker-userdata.yaml"))
+			workerUserDataSecret, err := readSecretManifest(path.Join(manifestsDir, "worker-userdata.yaml"))
 			if err != nil {
 				return err
 			}
 
-			log.Infof("Worker machine created with InstanceId: %v", *result.InstanceId)
-
-			if cmd.Flag("cluster-api-stack").Value.String() == "true" {
-				masterMachinePublicDNS := ""
-				err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-					log.Info("Waiting for master machine PublicDNS")
-					result, err := actuator.Describe(cluster, masterMachine)
-					if err != nil {
-						log.Info(err)
-						return false, nil
-					}
-
-					log.Infof("PublicDnsName: %v\n", *result.PublicDnsName)
-					if *result.PublicDnsName == "" {
-						return false, nil
-					}
-
-					masterMachinePublicDNS = *result.PublicDnsName
-					return true, nil
-				})
-
-				err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-					log.Infof("Pulling kubeconfig from %v:8443", masterMachinePublicDNS)
-					output, err := cmdRun("ssh", fmt.Sprintf("ec2-user@%v", masterMachinePublicDNS), "sudo cat /etc/kubernetes/admin.conf")
-					if err != nil {
-						log.Infof("Unable to pull kubeconfig: %v, %v", err, string(output))
-						return false, nil
-					}
-
-					f, err := os.Create("kubeconfig")
-					if err != nil {
-						return false, err
-					}
-
-					if _, err = f.Write(output); err != nil {
-						f.Close()
-						return false, err
-					}
-					f.Close()
-
-					return true, nil
-				})
-
-				log.Infof("Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://%v:8443", masterMachinePublicDNS)
-				if _, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "config", "set-cluster", "kubernetes", fmt.Sprintf("--server=https://%v:8443", masterMachinePublicDNS)); err != nil {
-					return err
-				}
-
-				// Wait until the cluster comes up
-				config, err := controller.GetConfig("kubeconfig")
-				if err != nil {
-					return fmt.Errorf("Unable to create config: %v", err)
-				}
-				kubeClient, err := kubernetes.NewForConfig(config)
-				if err != nil {
-					glog.Fatalf("Could not create kubernetes client to talk to the apiserver: %v", err)
-				}
-
-				tc := &TestConfig{
-					KubeClient: kubeClient,
-				}
-
-				err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-					log.Info("Waiting for all nodes to come up")
-					nodesList, err := kubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
-					if err != nil {
-						return false, nil
-					}
-
-					nodesReady := true
-					for _, node := range nodesList.Items {
-						ready := false
-						for _, c := range node.Status.Conditions {
-							if c.Type != apiv1.NodeReady {
-								continue
-							}
-							ready = true
-						}
-						log.Infof("Is node %q ready?: %v\n", node.Name, ready)
-						if !ready {
-							nodesReady = false
-						}
-					}
-
-					return nodesReady, nil
-				})
-
-				log.Info("Deploying cluster-api stack")
-				log.Info("Deploying aws credentials")
-
-				if err := createNamespace(tc, "test"); err != nil {
-					return err
-				}
-
-				awsCredentials := &apiv1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "aws-credentials-secret",
-						Namespace: "test",
-					},
-					Data: map[string][]byte{
-						"awsAccessKeyId":     []byte(os.Getenv("AWS_ACCESS_KEY_ID")),
-						"awsSecretAccessKey": []byte(os.Getenv("AWS_SECRET_ACCESS_KEY")),
-					},
-				}
-
-				if err := createSecret(tc, awsCredentials); err != nil {
-					return err
-				}
-
-				err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-					log.Info("Deploying cluster-api server")
-					if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "cluster-api-server.yaml")), "--validate=false"); err != nil {
-						log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "cluster-api-server.yaml"), err, string(output))
-						return false, nil
-					}
-
-					return true, nil
-				})
-
-				err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-					log.Info("Deploying cluster-api controllers")
-					if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "provider-components.yml"))); err != nil {
-						log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "provider-components.yml"), err, string(output))
-						return false, nil
-					}
-					return true, nil
-				})
+			log.Infof("Generating worker machine set user data for master listening at %v", masterMachinePrivateIP)
+			workerUserDataSecret, err = generateWorkerUserData(masterMachinePrivateIP, workerUserDataSecret)
+			if err != nil {
+				return fmt.Errorf("unable to generate worker user data: %v", err)
 			}
+
+			if err := createSecret(tc, workerUserDataSecret); err != nil {
+				return err
+			}
+
+			log.Infof("Reading worker machine manifest from %v", path.Join(manifestsDir, "worker-machineset.yaml"))
+			workerMachineSet, err := readMachineSetManifest(
+				&manifestParams{
+					ClusterID: machinePrefix,
+				},
+				path.Join(manifestsDir, "worker-machineset.yaml"),
+			)
+			if err != nil {
+				return err
+			}
+
+			if machinePrefix != "" {
+				workerMachineSet.Name = machinePrefix + "-" + workerMachineSet.Name
+			}
+
+			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
+				log.Info("Deploying worker machineset")
+				if err := createMachineSet(tc, workerMachineSet); err != nil {
+					log.Infof("unable to create machineset: %v", err)
+					return false, nil
+				}
+
+				return true, nil
+			})
 
 			return nil
 		},
 	}
 
 	cmd.PersistentFlags().StringP("manifests", "", "", "Directory with bootstrapping manifests")
-	cmd.PersistentFlags().BoolP("cluster-api-stack", "", false, "Deploy cluster API stack")
 	return cmd
 }
 
