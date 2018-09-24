@@ -37,6 +37,10 @@ endif
 NAME = aws-cluster-controller
 TAG = 0.0.1
 
+ifndef DEV_TAG
+DEV_TAG = $(TAG)-dev
+endif
+
 image:
 	docker build -t "$(PREFIX)/$(NAME):$(TAG)" -f ./Dockerfile ../..
 
@@ -49,7 +53,7 @@ fix_gcs_permissions:
 	gsutil -m acl ch -r -u AllUsers:READ gs://artifacts.$(GCR_BUCKET).appspot.com
 
 dev_image:
-	docker build -t "$(DEV_PREFIX)/$(NAME):$(TAG)-dev" -f ./Dockerfile ../..
+	docker build -t "$(DEV_PREFIX)/$(NAME):$(DEV_TAG)" -f ./Dockerfile ../..
 
 dev_push: dev_image
-	docker push "$(DEV_PREFIX)/$(NAME):$(TAG)-dev"
+	docker push "$(DEV_PREFIX)/$(NAME):$(DEV_TAG)"
