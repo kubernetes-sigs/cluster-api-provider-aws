@@ -149,6 +149,7 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 			MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 				Value: aws.Bool(true),
 			},
+			SubnetId: out.Subnet.SubnetId,
 		}
 
 		if _, err := s.EC2.ModifySubnetAttribute(attReq); err != nil {

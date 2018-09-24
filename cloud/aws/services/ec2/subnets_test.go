@@ -103,6 +103,7 @@ func TestReconcileSubnets(t *testing.T) {
 						MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 							Value: aws.Bool(true),
 						},
+						SubnetId: aws.String("subnet-2"),
 					}).
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil)
 
@@ -181,6 +182,7 @@ func TestReconcileSubnets(t *testing.T) {
 						MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 							Value: aws.Bool(true),
 						},
+						SubnetId: aws.String("subnet-2"),
 					}).
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
