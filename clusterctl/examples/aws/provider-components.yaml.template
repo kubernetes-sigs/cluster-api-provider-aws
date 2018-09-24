@@ -4,12 +4,18 @@ metadata:
   name: clusterapi-controllers
   labels:
     api: clusterapi
+    controllers: "true"
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      api: clusterapi
+      controllers: "true"
   template:
     metadata:
       labels:
         api: clusterapi
+        controllers: "true"
     spec:
       nodeSelector:
         node-role.kubernetes.io/master: ""
