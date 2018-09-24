@@ -143,7 +143,24 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 // Update updates a machine and is invoked by the Machine Controller
 func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
-	return fmt.Errorf("TODO: Not yet implemented")
+
+	// Handling of machine config changes is not yet implemented.
+	// We should check which pieces of configuration have been updated, throw
+	// errors if an attempt is made to modify any immutable state, otherwise
+	// go ahead and modify what we can.
+
+	// Get the new status from the provided machine object.
+	status, err := a.machineProviderStatus(machine)
+	if err != nil {
+		return errors.Wrap(err, "failed to get machine status")
+	}
+
+	err = a.updateStatus(machine, status)
+	if err != nil {
+		return errors.Wrap(err, "failed to update machine status")
+	}
+
+	return nil
 }
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller
