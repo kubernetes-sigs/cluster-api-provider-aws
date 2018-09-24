@@ -16,6 +16,21 @@ package ec2
 import "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 
 func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
+	if network == nil {
+		network = &v1alpha1.Network{}
+	}
+
+	if network.VPC == nil {
+		network.VPC = &v1alpha1.VPC{
+			ID:        "",
+			CidrBlock: "",
+		}
+	}
+
+	if network.Subnets == nil {
+		network.Subnets = []*v1alpha1.Subnet{}
+	}
+
 	// VPC.
 	if err := s.reconcileVPC(network.VPC); err != nil {
 		return err
