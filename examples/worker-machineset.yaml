@@ -17,6 +17,8 @@ spec:
       labels:
         sigs.k8s.io/cluster-api-machineset: worker-machine
         sigs.k8s.io/cluster-api-cluster: tb-asg-35
+      annotations:
+        sigs.k8s.io/cluster-api-node-role: compute
     spec:
       providerConfig:
         value:
