@@ -16,7 +16,9 @@ package cluster_test
 import (
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster/mock_clusteriface"
 	providerconfig "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -28,13 +30,22 @@ func (e *ec2) ReconcileNetwork(input *providerconfig.Network) error {
 }
 
 func TestReconcile(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	clusterMock := mock_clusteriface.NewMockClusterInterface(mockCtrl)
+	clusterMock.EXPECT().
+		UpdateStatus(gomock.AssignableToTypeOf(&clusterv1.Cluster{})).
+		Return(&clusterv1.Cluster{}, nil)
+
 	c, err := providerconfig.NewCodec()
 	if err != nil {
 		t.Fatalf("failed to create codec: %v", err)
 	}
 	ap := cluster.ActuatorParams{
-		Codec:      c,
-		EC2Service: &ec2{},
+		Codec:         c,
+		EC2Service:    &ec2{},
+		ClusterClient: clusterMock,
 	}
 
 	a, err := cluster.NewActuator(ap)

@@ -158,7 +158,7 @@ type AWSClusterProviderStatus struct {
 type Network struct {
 
 	// VPC defines the cluster vpc.
-	VPC *VPC `json:"vpc"`
+	VPC VPC `json:"vpc"`
 
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
 	InternetGatewayID *string `json:"internetGatewayId"`

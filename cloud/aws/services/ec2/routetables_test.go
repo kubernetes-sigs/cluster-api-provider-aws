@@ -39,7 +39,7 @@ func TestReconcileRouteTables(t *testing.T) {
 			name: "no routes existing, single private and single public, same AZ",
 			input: &v1alpha1.Network{
 				InternetGatewayID: aws.String("igw-01"),
-				VPC: &v1alpha1.VPC{
+				VPC: v1alpha1.VPC{
 					ID: "vpc-routetables",
 				},
 				Subnets: v1alpha1.Subnets{
@@ -108,7 +108,7 @@ func TestReconcileRouteTables(t *testing.T) {
 			name: "subnets in different availability zones, returns error",
 			input: &v1alpha1.Network{
 				InternetGatewayID: aws.String("igw-01"),
-				VPC: &v1alpha1.VPC{
+				VPC: v1alpha1.VPC{
 					ID: "vpc-routetables",
 				},
 				Subnets: v1alpha1.Subnets{

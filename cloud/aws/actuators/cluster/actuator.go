@@ -19,6 +19,7 @@ import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -31,7 +32,7 @@ type ec2Svc interface {
 type codec interface {
 	DecodeFromProviderConfig(clusterv1.ProviderConfig, runtime.Object) error
 	DecodeProviderStatus(*runtime.RawExtension, runtime.Object) error
-	//	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
+	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
 }
 
 // Actuator is responsible for performing cluster reconciliation
@@ -63,11 +64,19 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	status, err := a.loadProviderStatus(cluster)
 	if err != nil {
-		return fmt.Errorf("failed to load provider status: %v", err)
+		return errors.Errorf("failed to load cluster provider status: %v", err)
 	}
 
 	if err := a.ec2.ReconcileNetwork(&status.Network); err != nil {
-		return fmt.Errorf("unable to reconcile VPC: %v", err)
+		return errors.Errorf("unable to reconcile network: %v", err)
+	}
+
+	if err := a.storeProviderStatus(cluster, status); err != nil {
+		return errors.Errorf("unable to store cluster provider status: %v", err)
+	}
+
+	if _, err := a.clusterClient.UpdateStatus(cluster); err != nil {
+		return errors.Errorf("failed to update cluster status: %v", err)
 	}
 
 	return nil
@@ -89,4 +98,14 @@ func (a *Actuator) loadProviderStatus(cluster *clusterv1.Cluster) (*providerconf
 	providerStatus := &providerconfigv1.AWSClusterProviderStatus{}
 	err := a.codec.DecodeProviderStatus(cluster.Status.ProviderStatus, providerStatus)
 	return providerStatus, err
+}
+
+func (a *Actuator) storeProviderStatus(cluster *clusterv1.Cluster, status *providerconfigv1.AWSClusterProviderStatus) error {
+	raw, err := a.codec.EncodeProviderStatus(status)
+	if err != nil {
+		return errors.Errorf("failed to encode provider status: %v", err)
+	}
+
+	cluster.Status.ProviderStatus = raw
+	return nil
 }

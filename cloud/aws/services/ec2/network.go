@@ -16,13 +16,14 @@ package ec2
 import "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 
 func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
+
 	// VPC.
-	if err := s.reconcileVPC(network.VPC); err != nil {
+	if err := s.reconcileVPC(&network.VPC); err != nil {
 		return err
 	}
 
 	// Subnets.
-	if err := s.reconcileSubnets(network.Subnets, network.VPC); err != nil {
+	if err := s.reconcileSubnets(network.Subnets, &network.VPC); err != nil {
 		return err
 	}
 
@@ -32,7 +33,7 @@ func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
 	}
 
 	// NAT Gateways.
-	if err := s.reconcileNatGateways(network.Subnets, network.VPC); err != nil {
+	if err := s.reconcileNatGateways(network.Subnets, &network.VPC); err != nil {
 		return err
 	}
 

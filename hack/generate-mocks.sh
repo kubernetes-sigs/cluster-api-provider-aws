@@ -36,11 +36,15 @@ EOF
 
 TEMPLATE+="\n\n"
 
-which mockgen || go install github.com/golang/mock/mockgen
+which mockgen || go get -u github.com/golang/mock/mockgen
 
-mockgen_source=$1
-mockfile_destination=$2
+mockgen_source="$1"
+mockfile_destination="$2"
+mockfile_package=$(basename $(dirname $mockfile_destination))
 
-TEMPLATE+=$(mockgen $mockgen_source)
+mkdir -p $(dirname $2)
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+TEMPLATE+=$(cd $DIR/..; mockgen -package=$mockfile_package $mockgen_source)
 
 echo -e "$TEMPLATE" > $mockfile_destination

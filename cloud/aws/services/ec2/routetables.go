@@ -51,7 +51,7 @@ func (s *Service) reconcileRouteTables(in *v1alpha1.Network) error {
 			routes = s.getDefaultPrivateRoutes(natGatewayId)
 		}
 
-		rt, err := s.createRouteTableWithRoutes(in.VPC, routes)
+		rt, err := s.createRouteTableWithRoutes(&in.VPC, routes)
 		if err != nil {
 			return err
 		}
