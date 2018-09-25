@@ -1,4 +1,4 @@
-# See the OWNERS docs: https://git.k8s.io/community/docs/devel/owners.md
+# See the OWNERS docs: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md
 
 aliases:
   sig-cluster-lifecycle-leads:
@@ -34,4 +34,5 @@ aliases:
     - d-nishi
     - enxebre
     - ingvagabund
+    - vincepri
 
