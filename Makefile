@@ -64,3 +64,16 @@ fmt:
 
 vet:
 	go vet ./...
+
+examples = clusterctl/examples/aws/out/cluster.yaml clusterctl/examples/aws/out/machines.yaml clusterctl/examples/aws/out/provider-components.yaml
+templates = clusterctl/examples/aws/cluster.yaml.template clusterctl/examples/aws/machines.yaml.template clusterctl/examples/aws/provider-components.yaml.template
+example: $(examples)
+$(examples) : envfile $(templates)
+	source envfile && cd ./clusterctl/examples/aws && ./generate-yaml.sh
+
+envfile: envfile.example
+	echo "\033[0;31mPlease fill out your envfile!\033[0m"
+	cp envfile.example envfile
+
+clean:
+	rm -rf clusterctl/examples/aws/out

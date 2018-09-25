@@ -1,0 +1,8 @@
+# copy this file locally, rename to envfile
+export AWS_REGION=us-west-2
+export AWS_ACCESS_KEY_ID=""
+export AWS_SECRET_ACCESS_KEY=""
+
+# use a dev image instead of the released image
+export CLUSTER_CONTROLLER_IMAGE=
+export MACHINE_CONTROLLER_IMAGE=
