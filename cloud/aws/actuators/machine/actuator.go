@@ -123,6 +123,11 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get instance")
 	}
 
+	// The machine hasn't been created yet
+	if instance == nil {
+		return nil
+	}
+
 	// Check the instance state. If it's already shutting down or terminated,
 	// do nothing. Otherwise attempt to delete it.
 	// This decision is based on the ec2-instance-lifecycle graph at

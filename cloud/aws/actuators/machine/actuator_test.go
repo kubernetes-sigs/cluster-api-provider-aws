@@ -109,6 +109,33 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestDeleteNotExisting(t *testing.T) {
+	codec, err := v1alpha1.NewCodec()
+	if err != nil {
+		t.Fatalf("failed to create a codec: %v", err)
+	}
+
+	ap := machine.ActuatorParams{
+		Codec:           codec,
+		MachinesService: &machines{},
+		EC2Service:      &ec2{},
+	}
+
+	actuator, err := machine.NewActuator(ap)
+	if err != nil {
+		t.Fatalf("failed to create an actuator: %v", err)
+	}
+
+	// Get some empty cluster and machine structs.
+	testCluster := &clusterv1.Cluster{}
+	testMachine := &clusterv1.Machine{}
+
+	// Delete the machine.
+	if err := actuator.Delete(testCluster, testMachine); err != nil {
+		t.Fatalf("failed to delete machine: %v", err)
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
