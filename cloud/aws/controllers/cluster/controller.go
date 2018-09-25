@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clusterapiclientsetscheme "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
 	"sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
@@ -54,10 +55,10 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		glog.Fatalf("Could not create Config for talking to the apiserver: %v", err)
 	}
 
-	// client, err := clientset.NewForConfig(config)
-	// if err != nil {
-	// 	glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
-	// }
+	clients, err := clientset.NewForConfig(config)
+	if err != nil {
+		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
+	}
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		glog.Fatalf("Could not create codec: %v", err)
@@ -71,8 +72,9 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	ec2client := ec2.New(sess)
 
 	params := clusteractuator.ActuatorParams{
-		Codec:         codec,
-		ClusterClient: nil, // unused right now
+		Codec: codec,
+		// TODO(chuckha) make the namespace dynamic
+		ClusterClient: clients.ClusterV1alpha1().Clusters("default"),
 		EC2Service:    ec2svc.NewService(ec2client),
 	}
 
