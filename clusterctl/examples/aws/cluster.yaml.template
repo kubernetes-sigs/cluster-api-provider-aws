@@ -3,14 +3,14 @@ kind: Cluster
 metadata:
   name: test1
 spec:
-    clusterNetwork:
-        services:
-            cidrBlocks: ["10.96.0.0/12"]
-        pods:
-            cidrBlocks: ["192.168.0.0/16"]
-        serviceDomain: "cluster.local"
-    providerConfig:
-      value:
-        apiVersion: "awsproviderconfig/v1alpha1"
-        kind: "AWSClusterProviderConfig"
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: "cluster.local"
+  providerConfig:
+    value:
+      apiVersion: "awsproviderconfig/v1alpha1"
+      kind: "AWSClusterProviderConfig"
 

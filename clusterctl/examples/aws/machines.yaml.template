@@ -16,3 +16,5 @@ items:
     labels:
       set: node
   spec:
+    versions:
+      kubelet: v1.11.3
