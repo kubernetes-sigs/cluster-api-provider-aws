@@ -10,3 +10,4 @@ responses:
           "code": "PERMISSION_DENIED",
           "message": "The requested resource cannot be accessed using the provided authentication details."
         }
+

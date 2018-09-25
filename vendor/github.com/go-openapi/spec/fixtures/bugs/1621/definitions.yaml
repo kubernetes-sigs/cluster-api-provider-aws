@@ -615,3 +615,4 @@ definitions:
       auth_token:
         type: string
         description: The newly created API token
+

@@ -1,0 +1,52 @@
+From 4721e795796f7360fabfd8089d28c28598e87473 Mon Sep 17 00:00:00 2001
+From: Jan Chaloupka <jchaloup@redhat.com>
+Date: Tue, 25 Sep 2018 12:33:32 +0200
+Subject: [PATCH 1/2] Delete annotated machines first when scaling down
+
+---
+ .../pkg/controller/machineset/controller.go        | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
+index 6290ec4..89f3bc5 100644
+--- a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
++++ b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
+@@ -48,6 +48,9 @@ var stateConfirmationTimeout = 10 * time.Second
+ // The polling is against a local memory cache.
+ var stateConfirmationInterval = 100 * time.Millisecond
+ 
++// machineDeleteAnnotationKey annotates machines to be delete among first ones
++var machineDeleteAnnotationKey = "sigs.k8s.io/cluster-api-delete-machine"
++
+ // +controller:group=cluster,version=v1alpha1,kind=MachineSet,resource=machinesets
+ type MachineSetControllerImpl struct {
+ 	builders.DefaultControllerFns
+@@ -325,7 +328,24 @@ func (c *MachineSetControllerImpl) enqueueAfter(machineSet *v1alpha1.MachineSet,
+ func getMachinesToDelete(filteredMachines []*v1alpha1.Machine, diff int) []*v1alpha1.Machine {
+ 	// TODO: Define machines deletion policies.
+ 	// see: https://github.com/kubernetes/kube-deploy/issues/625
+-	return filteredMachines[:diff]
++
++	// First delete all machines with sigs.k8s.io/cluster-api-delete-machine annotation
++	var machinesToDelete []*v1alpha1.Machine
++	var remainingMachines []*v1alpha1.Machine
++	for _, machine := range filteredMachines {
++		if _, delete := machine.Annotations[machineDeleteAnnotationKey]; delete {
++			machinesToDelete = append(machinesToDelete, machine)
++		} else {
++			remainingMachines = append(remainingMachines, machine)
++		}
++	}
++
++	machinesToDeleteLen := len(machinesToDelete)
++	if machinesToDeleteLen >= diff {
++		return machinesToDelete[:diff]
++	}
++
++	return append(machinesToDelete, remainingMachines[:(diff-machinesToDeleteLen)]...)
+ }
+ 
+ func (c *MachineSetControllerImpl) waitForMachineCreation(machineList []*v1alpha1.Machine) error {
+-- 
+2.7.5
+

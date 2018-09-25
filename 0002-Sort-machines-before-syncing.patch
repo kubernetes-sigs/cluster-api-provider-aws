@@ -1,0 +1,52 @@
+From 7200e6dadae55cd330ca567d88521297c94f0acd Mon Sep 17 00:00:00 2001
+From: Jan Chaloupka <jchaloup@redhat.com>
+Date: Tue, 25 Sep 2018 13:34:47 +0200
+Subject: [PATCH 2/2] Sort machines before syncing
+
+---
+ .../cluster-api/pkg/controller/machineset/controller.go   | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
+index 89f3bc5..49b68fb 100644
+--- a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
++++ b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
+@@ -18,6 +18,7 @@ package machineset
+ 
+ import (
+ 	"fmt"
++	"sort"
+ 	"strings"
+ 	"sync"
+ 	"time"
+@@ -120,7 +121,8 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
+ 	}
+ 
+ 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
+-	var filteredMachines []*v1alpha1.Machine
++	var machineNames []string
++	machineSetMachines := make(map[string]*v1alpha1.Machine)
+ 	for _, machine := range allMachines {
+ 		if shouldExcludeMachine(machineSet, machine) {
+ 			continue
+@@ -132,7 +134,16 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
+ 				continue
+ 			}
+ 		}
+-		filteredMachines = append(filteredMachines, machine)
++		machineNames = append(machineNames, machine.Name)
++		machineSetMachines[machine.Name] = machine
++	}
++
++	// sort the filteredMachines from the oldest to the youngest
++	sort.Strings(machineNames)
++
++	var filteredMachines []*v1alpha1.Machine
++	for _, machineName := range machineNames {
++		filteredMachines = append(filteredMachines, machineSetMachines[machineName])
+ 	}
+ 
+ 	syncErr := c.syncReplicas(machineSet, filteredMachines)
+-- 
+2.7.5
+

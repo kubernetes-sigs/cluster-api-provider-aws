@@ -267,9 +267,9 @@ func TestFile_WriteTo(t *testing.T) {
 
 	Convey("Support multiline comments", t, func() {
 		f, err := ini.Load([]byte(`
-#
+# 
 # general.domain
-#
+# 
 # Domain name of XX system.
 domain      = mydomain.com
 `))
@@ -281,14 +281,14 @@ domain      = mydomain.com
 		_, err = f.WriteTo(&buf)
 		So(err, ShouldBeNil)
 
-		So(buf.String(), ShouldEqual, `#
+		So(buf.String(), ShouldEqual, `# 
 # general.domain
-#
+# 
 # Domain name of XX system.
 domain = mydomain.com
 ; Multiline
 ; Comment
-test   =
+test   = 
 
 `)
 
