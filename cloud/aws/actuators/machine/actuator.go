@@ -17,22 +17,21 @@ package machine
 import (
 	"fmt"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/infra"
-
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/infra"
 )
 
 // ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
 // This should never need to import the ec2 sdk.
 type ec2Svc interface {
-	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*ec2svc.Instance, error)
+	CreateInstance(*clusterv1.Machine, *providerconfigv1.AWSMachineProviderConfig, *clusterv1.Cluster, *providerconfigv1.AWSClusterProviderConfig, *providerconfigv1.AWSClusterProviderStatus) (*ec2svc.Instance, error)
 	InstanceIfExists(*string) (*ec2svc.Instance, error)
 	TerminateInstance(*string) error
 }
@@ -97,19 +96,18 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine config")
 	}
+	clusterConfig, err := a.clusterProviderConfig(cluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to get cluster config")
+	}
 
-	i, err := a.infra.CreateOrGetMachine(machine, status, config, clusterStatus)
+	i, err := a.infra.CreateOrGetMachine(machine, status, config, cluster, clusterStatus, clusterConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to create or get machine")
 	}
 
 	status.InstanceID = &i.ID
 	status.InstanceState = &i.State
-	machine.Status.NodeRef = &corev1.ObjectReference{
-		Kind:      machine.Kind,
-		Namespace: machine.Namespace,
-		Name:      machine.Name,
-	}
 	return a.updateStatus(machine, status)
 }
 
@@ -196,25 +194,31 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 }
 
-func (a *Actuator) machineProviderConfig(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderConfig, error) {
-	machineProviderCfg := &v1alpha1.AWSMachineProviderConfig{}
+func (a *Actuator) clusterProviderConfig(cluster *clusterv1.Cluster) (*providerconfigv1.AWSClusterProviderConfig, error) {
+	clusterProviderCfg := &providerconfigv1.AWSClusterProviderConfig{}
+	err := a.codec.DecodeFromProviderConfig(cluster.Spec.ProviderConfig, clusterProviderCfg)
+	return clusterProviderCfg, err
+}
+
+func (a *Actuator) machineProviderConfig(machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderConfig, error) {
+	machineProviderCfg := &providerconfigv1.AWSMachineProviderConfig{}
 	err := a.codec.DecodeFromProviderConfig(machine.Spec.ProviderConfig, machineProviderCfg)
 	return machineProviderCfg, err
 }
 
-func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
-	status := &v1alpha1.AWSMachineProviderStatus{}
+func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
+	status := &providerconfigv1.AWSMachineProviderStatus{}
 	err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
 	return status, err
 }
 
-func (a *Actuator) clusterProviderStatus(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderStatus, error) {
-	providerStatus := &v1alpha1.AWSClusterProviderStatus{}
+func (a *Actuator) clusterProviderStatus(cluster *clusterv1.Cluster) (*providerconfigv1.AWSClusterProviderStatus, error) {
+	providerStatus := &providerconfigv1.AWSClusterProviderStatus{}
 	err := a.codec.DecodeProviderStatus(cluster.Status.ProviderStatus, providerStatus)
 	return providerStatus, err
 }
 
-func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
+func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *providerconfigv1.AWSMachineProviderStatus) error {
 	machinesClient := a.machinesGetter.Machines(machine.Namespace)
 	encodedProviderStatus, err := a.codec.EncodeProviderStatus(status)
 	if err != nil {

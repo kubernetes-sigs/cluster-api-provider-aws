@@ -35,6 +35,9 @@ type AWSMachineProviderConfig struct {
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType"`
 
+	// KeyName is the name of the name of the pre-existing ssh keypair to use when creating the instance
+	KeyName string `json:"keyName"`
+
 	// AdditionalTags is the set of tags to add to an instance, in addition to the ones
 	// added by default by the actuator. These tags are additive. The actuator will ensure
 	// these tags are present, but will not remove any other tags that may exist on the
@@ -64,6 +67,10 @@ type AWSMachineProviderConfig struct {
 	// the cluster subnet will be used.
 	// +optional
 	Subnet *AWSResourceReference `json:"subnet,omitempty"`
+
+	// NodeRole is used to differentiate how to bootstrap the node into the cluster,
+	// valid values are "controlplane" and "worker"
+	NodeRole string `json:"nodeRole,omitempty"`
 }
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -77,6 +84,10 @@ type AWSResourceReference struct {
 	// ARN of resource
 	// +optional
 	ARN *string `json:"arn,omitempty"`
+
+	// Name of a resource
+	// +optional
+	Name *string `json:"name,omitempty"`
 
 	// Filters is a set of key/value pairs used to identify a resource
 	// They are applied according to the rules defined by the AWS API:

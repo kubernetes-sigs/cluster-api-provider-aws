@@ -14,6 +14,7 @@
 package ec2
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
 const (
@@ -37,7 +38,12 @@ const (
 	// InstanceStatePending indicates the instance is pending
 	InstanceStatePending = ec2.InstanceStateNamePending
 
+	// TODO: Get default AMI using a lookup/filter based on tags added with image baking utils
 	defaultAMIID = "ami-057c58c0eca3e6fe3"
+
+	defaultInstanceType = ec2.InstanceTypeT3Medium
+
+	defaultKeyName = "default"
 )
 
 // Instance is an internal representation of an AWS instance.
@@ -74,21 +80,147 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*Instance, error) {
-	id := config.AMI.ID
+func (s *Service) CreateInstance(machine *clusterv1.Machine, providerConfig *providerconfigv1.AWSMachineProviderConfig, cluster *clusterv1.Cluster, clusterProviderConfig *providerconfigv1.AWSClusterProviderConfig, clusterStatus *providerconfigv1.AWSClusterProviderStatus) (*Instance, error) {
+	// TODO: attempt to infer image id from cluster
+	id := providerConfig.AMI.ID
 	if id == nil {
 		id = aws.String(defaultAMIID)
 	}
-	subnets := clusterStatus.Network.Subnets.FilterPrivate()
-	if len(subnets) == 0 {
-		return nil, errors.New("need at least one subnet but didn't find any")
+
+	// TODO: attempt to infer instance type from cluster
+	instanceType := providerConfig.InstanceType
+	if instanceType == "" {
+		instanceType = defaultInstanceType
 	}
+
+	// TODO: attempt to infer KeyName from cluster
+	keyName := providerConfig.KeyName
+	if keyName == "" {
+		keyName = defaultKeyName
+	}
+
+	var subnetID *string
+	if providerConfig.Subnet == nil || providerConfig.Subnet.ID == nil {
+		subnets := clusterStatus.Network.Subnets.FilterPrivate()
+		if len(subnets) == 0 {
+			return nil, errors.New("need at least one subnet but didn't find any")
+		}
+		subnetID = aws.String(subnets[0].ID)
+	} else {
+		subnetID = providerConfig.Subnet.ID
+	}
+
+	// TODO: handle common cluster config for security groups
+	// TODO: better error handling
+	var sgIds []*string
+	for _, sg := range providerConfig.AdditionalSecurityGroups {
+		sgIds = append(sgIds, sg.ID)
+	}
+
+	// TODO: handle common cluster config for tags
+	var tags []*ec2.Tag
+	for key, val := range providerConfig.AdditionalTags {
+		tags = append(tags, &ec2.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(val),
+		})
+	}
+
+	var userDataText string
+
+	// TODO: ensure cluster config and additional machine config are plumbed through
+	if providerConfig.NodeRole == "controlplane" {
+		// TODO: remove hard coded bootstrap token
+		userDataText = `#cloud-config
+kubeadm:
+  operation: init
+  config: /run/kubeadm/kubeadm.config
+write_files:
+- path: /run/kubeadm/kubeadm.config
+  content: |
+    apiVersion: kubeadm.k8s.io/v1alpha2
+    kind: MasterConfiguration
+    nodeRegistration:
+      criSocket: /run/containerd/containerd.sock
+    bootstrapTokens:
+    - groups:
+      - system:bootstrappers:kubeadm:default-node-token
+      token: abcdef.0123456789abcdef
+      ttl: 8760h0m0s
+      usages:
+      - signing
+      - authentication
+`
+		// TODO: override the controlPlaneEndpoint
+		//userDataText += "    api:\n"
+		//userDataText += fmt.Sprintf("      controlPlaneEndpoint: \"%s:443\"\n", apiEndpoint)
+
+		userDataText += fmt.Sprintf("    clusterName: %s\n", cluster.Name)
+		userDataText += "    networking:\n"
+		userDataText += fmt.Sprintf("      dnsDomain: %s\n", cluster.Spec.ClusterNetwork.ServiceDomain)
+		userDataText += fmt.Sprintf("      podSubnet: %s\n", cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0])
+		userDataText += fmt.Sprintf("      serviceSubnet: %s\n", cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0])
+
+	} else {
+		// TODO: remove hard coded bootstrap token
+		userDataText = `#cloud-config
+kubeadm:
+  operation: init
+  config: /run/kubeadm/kubeadm.config
+write_files:
+- path: /run/kubeadm/kubeadm.config
+  content: |
+	apiVersion: kubeadm.k8s.io/v1alpha2
+	kind: NodeConfiguration
+    nodeRegistration:
+      criSocket: /run/containerd/containerd.sock
+	token: abcdef.0123456789abcdef
+    discoveryTokenUnsafeSkipCAVerification: true
+`
+		// TODO: override the controlPlaneEndpoint
+		//userDataText += "    discoveryTokenAPIServers:\n"
+		//userDataText += fmt.Sprintf("    - %s:443\n", apiEndpoint)
+
+		userDataText += fmt.Sprintf("    clusterName: %s\n", cluster.Name)
+	}
+
+	userData := base64.StdEncoding.EncodeToString([]byte(userDataText))
+
+	var iamInstanceProfileSpec *ec2.IamInstanceProfileSpecification
+	if providerConfig.IAMInstanceProfile != nil {
+		iamInstanceProfileSpec = &ec2.IamInstanceProfileSpecification{
+			Arn:  providerConfig.IAMInstanceProfile.ARN,
+			Name: providerConfig.IAMInstanceProfile.Name,
+		}
+	}
+
+	tagSpecifications := []*ec2.TagSpecification{}
+	if len(tags) > 0 {
+		tagSpecifications = append(tagSpecifications, &ec2.TagSpecification{
+			ResourceType: aws.String("instance"),
+			Tags:         tags,
+		})
+		tagSpecifications = append(tagSpecifications, &ec2.TagSpecification{
+			ResourceType: aws.String("volume"),
+			Tags:         tags,
+		})
+	}
+
+	// TODO: handle providerConfig.PublicIP
 	input := &ec2.RunInstancesInput{
-		ImageId:      config.AMI.ID,
-		InstanceType: aws.String(config.InstanceType),
-		MaxCount:     aws.Int64(1),
-		MinCount:     aws.Int64(1),
-		SubnetId:     aws.String(subnets[0].ID),
+		// TODO: using machine.UID here will likely cause issues for update workflows that involve
+		// deleting and re-creating the instance.
+		//ClientToken:        aws.String(string(machine.UID)),
+		IamInstanceProfile: iamInstanceProfileSpec,
+		ImageId:            id,
+		InstanceType:       aws.String(instanceType),
+		KeyName:            aws.String(keyName),
+		MaxCount:           aws.Int64(1),
+		MinCount:           aws.Int64(1),
+		SecurityGroupIds:   sgIds,
+		SubnetId:           subnetID,
+		TagSpecifications:  tagSpecifications,
+		UserData:           aws.String(userData),
 	}
 
 	reservation, err := s.EC2.RunInstances(input)

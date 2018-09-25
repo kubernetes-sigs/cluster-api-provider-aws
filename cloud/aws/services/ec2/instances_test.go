@@ -20,11 +20,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -184,34 +185,38 @@ func TestCreateInstance(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testcases := []struct {
-		name    string
-		machine clusterv1.Machine
-		expect  func(m *mock_ec2iface.MockEC2API)
-		check   func(instance *ec2svc.Instance, err error)
+		name           string
+		machine        clusterv1.Machine
+		providerConfig providerconfigv1.AWSMachineProviderConfig
+		expect         func(m *mock_ec2iface.MockEC2API)
+		check          func(instance *ec2svc.Instance, err error)
 	}{
 		{
 			name: "simple",
 			machine: clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					ProviderConfig: clusterv1.ProviderConfig{
-						Value: &runtime.RawExtension{
-							Raw: []byte(`apiVersion: "cluster.k8s.io/v1alpha1"
-kind: Machine
-metadata:
-  generateName: aws-controlplane-
-  labels:
-    set: controlplane
-spec:
-  versions:
-    kubelet: v1.11.2
-    controlPlane: v1.11.2`),
-						},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-1",
+					},
+					Versions: clusterv1.MachineVersionInfo{
+						Kubelet:      "v1.11.3",
+						ControlPlane: "v1.11.3",
 					},
 				},
 			},
+			providerConfig: providerconfigv1.AWSMachineProviderConfig{
+				Subnet: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("subnet-id"),
+				},
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-id"),
+				},
+				InstanceType: "t3.medium",
+				KeyName:      "default",
+			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
-					RunInstances(&ec2.RunInstancesInput{}).
+					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							&ec2.Instance{
@@ -225,7 +230,95 @@ spec:
 			},
 			check: func(instance *ec2svc.Instance, err error) {
 				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
+					t.Errorf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "simple controlplane instance",
+			machine: clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-cp-1",
+					},
+					Versions: clusterv1.MachineVersionInfo{
+						Kubelet:      "v1.11.3",
+						ControlPlane: "v1.11.3",
+					},
+				},
+			},
+			providerConfig: providerconfigv1.AWSMachineProviderConfig{
+				Subnet: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("subnet-id"),
+				},
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-id"),
+				},
+				InstanceType: "t3.medium",
+				KeyName:      "default",
+				NodeRole:     "controlplane",
+			},
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							&ec2.Instance{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								InstanceId: aws.String("two"),
+							},
+						},
+					}, nil)
+			},
+			check: func(instance *ec2svc.Instance, err error) {
+				if err != nil {
+					t.Errorf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "override subnet",
+			machine: clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-cp-subnet-1",
+					},
+					Versions: clusterv1.MachineVersionInfo{
+						Kubelet:      "v1.11.3",
+						ControlPlane: "v1.11.3",
+					},
+				},
+			},
+			providerConfig: providerconfigv1.AWSMachineProviderConfig{
+				Subnet: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("subnet-id"),
+				},
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-id"),
+				},
+				InstanceType: "t3.medium",
+				KeyName:      "default",
+				NodeRole:     "controlplane",
+			},
+			expect: func(m *mock_ec2iface.MockEC2API) {
+				m.EXPECT().
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							&ec2.Instance{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								InstanceId: aws.String("two"),
+							},
+						},
+					}, nil)
+			},
+			check: func(instance *ec2svc.Instance, err error) {
+				if err != nil {
+					t.Errorf("did not expect error: %v", err)
 				}
 			},
 		},
@@ -236,7 +329,7 @@ spec:
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine)
+			instance, err := s.CreateInstance(&tc.machine, &tc.providerConfig, "test-cluster", "cluster.local", "192.168.0.0/16", "10.96.0.0/12")
 			tc.check(instance, err)
 		})
 	}
