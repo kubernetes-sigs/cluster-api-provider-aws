@@ -21,8 +21,67 @@ import (
 )
 
 func (s *Service) reconcileRouteTables(in *v1alpha1.Network) error {
-	// TODO(vincepri): add reconcile code when NAT gateways are ready.
+	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(in.VPC.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, sn := range in.Subnets {
+		if _, ok := subnetRouteMap[sn.ID]; ok {
+			// TODO(vincepri): if the route table ids are both non-empty and they don't match, replace the association.
+			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
+			continue
+		}
+
+		// For each subnet that doesn't have a routing table associated with it,
+		// create a new table with the appropriate default routes and associate it to the subnet.
+		var routes []*ec2.Route
+		if sn.IsPublic {
+			if in.InternetGatewayID == nil {
+				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", in.VPC.ID)
+			}
+
+			routes = s.getDefaultPublicRoutes(*in.InternetGatewayID)
+		} else {
+			natGatewayId, err := s.getNatGatewayForSubnet(in.Subnets, sn)
+			if err != nil {
+				return err
+			}
+
+			routes = s.getDefaultPrivateRoutes(natGatewayId)
+		}
+
+		rt, err := s.createRouteTableWithRoutes(in.VPC, routes)
+		if err != nil {
+			return err
+		}
+
+		if err := s.associateRouteTable(rt, sn.ID); err != nil {
+			return err
+		}
+
+		sn.RouteTableID = aws.String(rt.ID)
+	}
+
 	return nil
+}
+
+func (s *Service) describeVpcRouteTablesBySubnet(vpcID string) (map[string]*ec2.RouteTable, error) {
+	rts, err := s.describeVpcRouteTables(vpcID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Amazon allows a subnet to be associated only with a single routing table
+	// https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html.
+	res := make(map[string]*ec2.RouteTable)
+	for _, rt := range rts {
+		for _, as := range rt.Associations {
+			res[*as.SubnetId] = rt
+		}
+	}
+
+	return res, nil
 }
 
 func (s *Service) describeVpcRouteTables(vpcID string) ([]*ec2.RouteTable, error) {
@@ -42,13 +101,32 @@ func (s *Service) describeVpcRouteTables(vpcID string) ([]*ec2.RouteTable, error
 	return out.RouteTables, nil
 }
 
-func (s *Service) createRouteTable(rt *v1alpha1.RouteTable, vpc *v1alpha1.VPC) (*v1alpha1.RouteTable, error) {
+func (s *Service) createRouteTableWithRoutes(vpc *v1alpha1.VPC, routes []*ec2.Route) (*v1alpha1.RouteTable, error) {
 	out, err := s.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(vpc.ID),
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create route table")
+		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", vpc.ID)
+	}
+
+	for _, route := range routes {
+		_, err := s.EC2.CreateRoute(&ec2.CreateRouteInput{
+			RouteTableId:                out.RouteTable.RouteTableId,
+			DestinationCidrBlock:        route.DestinationCidrBlock,
+			DestinationIpv6CidrBlock:    route.DestinationIpv6CidrBlock,
+			EgressOnlyInternetGatewayId: route.EgressOnlyInternetGatewayId,
+			GatewayId:                   route.GatewayId,
+			InstanceId:                  route.InstanceId,
+			NatGatewayId:                route.NatGatewayId,
+			NetworkInterfaceId:          route.NetworkInterfaceId,
+			VpcPeeringConnectionId:      route.VpcPeeringConnectionId,
+		})
+
+		if err != nil {
+			// TODO(vincepri): cleanup the route table if this fails.
+			return nil, errors.Wrapf(err, "failed to create route in route table %q: %s", *out.RouteTable.RouteTableId, route.GoString())
+		}
 	}
 
 	return &v1alpha1.RouteTable{
@@ -67,4 +145,22 @@ func (s *Service) associateRouteTable(rt *v1alpha1.RouteTable, subnetID string) 
 	}
 
 	return nil
+}
+
+func (s *Service) getDefaultPrivateRoutes(natGatewayId string) []*ec2.Route {
+	return []*ec2.Route{
+		{
+			DestinationCidrBlock: aws.String("0.0.0.0/0"),
+			NatGatewayId:         aws.String(natGatewayId),
+		},
+	}
+}
+
+func (s *Service) getDefaultPublicRoutes(internetGatewayId string) []*ec2.Route {
+	return []*ec2.Route{
+		{
+			DestinationCidrBlock: aws.String("0.0.0.0/0"),
+			GatewayId:            aws.String(internetGatewayId),
+		},
+	}
 }

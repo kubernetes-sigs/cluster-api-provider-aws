@@ -34,15 +34,19 @@ func (s *Service) reconcileNatGateways(subnets v1alpha1.Subnets, vpc *v1alpha1.V
 		if sn.ID == "" {
 			continue
 		}
+
 		if _, ok := existing[sn.ID]; ok {
 			continue
 		}
 
-		_, err := s.createNatGateway(sn.ID)
+		ng, err := s.createNatGateway(sn.ID)
 		if err != nil {
 			return err
 		}
+
+		sn.NatGatewayID = ng.NatGatewayId
 	}
+
 	return nil
 }
 
@@ -70,11 +74,11 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to describe NAT gateways with VPC ID %q", vpcID)
 	}
+
 	return gateways, nil
 }
 
 func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
-
 	ip, err := s.allocateAddress()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
@@ -85,12 +89,35 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		AllocationId: aws.String(ip),
 	})
 
-	err = s.EC2.WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
-		NatGatewayIds: []*string{out.NatGateway.NatGatewayId},
-	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 
+	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
+	if err := s.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
+		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
+	}
+
 	return out.NatGateway, nil
+}
+
+func (s *Service) getNatGatewayForSubnet(subnets v1alpha1.Subnets, sn *v1alpha1.Subnet) (string, error) {
+	if sn.IsPublic {
+		return "", errors.Errorf("cannot get NAT gateway for public subnet %q", sn.ID)
+	}
+
+	azGateways := make(map[string][]string)
+	for _, psn := range subnets.FilterPublic() {
+		if psn.NatGatewayID == nil {
+			continue
+		}
+
+		azGateways[psn.AvailabilityZone] = append(azGateways[psn.AvailabilityZone], *psn.NatGatewayID)
+	}
+
+	if gws, ok := azGateways[sn.AvailabilityZone]; ok && len(gws) > 0 {
+		return gws[0], nil
+	}
+
+	return "", errors.Errorf("no nat gateways are available in availability zone %q for subnet %q", sn.AvailabilityZone, sn.ID)
 }

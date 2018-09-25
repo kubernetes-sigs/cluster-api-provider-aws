@@ -178,17 +178,28 @@ type VPC struct {
 type Subnet struct {
 	ID string `json:"id"`
 
-	VpcID            string `json:"vpcId"`
-	AvailabilityZone string `json:"availabilityZone"`
-	CidrBlock        string `json:"cidrBlock"`
-	IsPublic         bool   `json:"public"`
+	VpcID            string  `json:"vpcId"`
+	AvailabilityZone string  `json:"availabilityZone"`
+	CidrBlock        string  `json:"cidrBlock"`
+	IsPublic         bool    `json:"public"`
+	RouteTableID     *string `json:"routeTableId"`
+	NatGatewayID     *string `json:"natGatewayId"`
 }
 
 // Subnets is a slice of Subnet.
 type Subnets []*Subnet
 
+// ToMap returns a map from id to subnet.
+func (s Subnets) ToMap() map[string]*Subnet {
+	res := make(map[string]*Subnet)
+	for _, x := range s {
+		res[x.ID] = x
+	}
+	return res
+}
+
 // FilterPrivate returns a slice containing all subnets marked as private.
-func (s Subnets) FilterPrivate() (res []*Subnet) {
+func (s Subnets) FilterPrivate() (res Subnets) {
 	for _, x := range s {
 		if !x.IsPublic {
 			res = append(res, x)
@@ -198,7 +209,7 @@ func (s Subnets) FilterPrivate() (res []*Subnet) {
 }
 
 // FilterPublic returns a slice containing all subnets marked as public.
-func (s Subnets) FilterPublic() (res []*Subnet) {
+func (s Subnets) FilterPublic() (res Subnets) {
 	for _, x := range s {
 		if x.IsPublic {
 			res = append(res, x)
