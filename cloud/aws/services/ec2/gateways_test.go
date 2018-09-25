@@ -35,7 +35,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 		{
 			name: "has igw",
 			input: &v1alpha1.Network{
-				VPC: &v1alpha1.VPC{
+				VPC: v1alpha1.VPC{
 					ID: "vpc-gateways",
 				},
 			},
@@ -60,7 +60,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 		{
 			name: "no igw attached, creates one",
 			input: &v1alpha1.Network{
-				VPC: &v1alpha1.VPC{
+				VPC: v1alpha1.VPC{
 					ID: "vpc-gateways",
 				},
 			},

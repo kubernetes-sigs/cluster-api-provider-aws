@@ -21,9 +21,9 @@ import (
 )
 
 func (s *Service) reconcileInternetGateways(in *v1alpha1.Network) error {
-	igs, err := s.describeVpcInternetGateways(in.VPC)
+	igs, err := s.describeVpcInternetGateways(&in.VPC)
 	if IsNotFound(err) {
-		ig, err := s.createInternetGateway(in.VPC)
+		ig, err := s.createInternetGateway(&in.VPC)
 		if err != nil {
 			return nil
 		}
