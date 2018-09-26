@@ -2,7 +2,9 @@
 set -o errexit
 set -o nounset
 
-OUTPUT_DIR=out
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+OUTPUT_DIR=${DIR}/out
 
 # provider-components
 export CLUSTER_CONTROLLER_IMAGE="${CLUSTER_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
@@ -14,13 +16,13 @@ export AWS_REGION="${AWS_REGION:-us-west-2}"
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
 
-PROVIDERCOMPONENT_TEMPLATE_FILE=provider-components.yaml.template
+PROVIDERCOMPONENT_TEMPLATE_FILE=${DIR}/provider-components.yaml.template
 PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 
-CLUSTER_TEMPLATE_FILE=cluster.yaml.template
+CLUSTER_TEMPLATE_FILE=${DIR}/cluster.yaml.template
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 
-MACHINES_TEMPLATE_FILE=machines.yaml.template
+MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
 
 OVERWRITE=0
