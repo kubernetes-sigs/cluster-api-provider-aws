@@ -47,8 +47,8 @@ You can use Google Cloud or AWS ECR to host repositories.
 
 #### Using images on Google Cloud
 ``` shell
-export CLUSTER_CONTROLLER_IMAGE=gcr.io/YOUR_PROJECT_NAME/aws-cluster-controller:0.0.1-dev
-export MACHINE_CONTROLLER_IMAGE=gcr.io/YOUR_PROJECT_NAME/aws-machine-controller:0.0.1-dev
+export CLUSTER_CONTROLLER_IMAGE=gcr.io/$(gcloud config get-value project)/aws-cluster-controller:0.0.1-dev
+export MACHINE_CONTROLLER_IMAGE=gcr.io/$(gcloud config get-value project)/aws-machine-controller:0.0.1-dev
 ```
 
 #### Using images on Elastic Container Registry
@@ -62,11 +62,35 @@ You will also need to configure minikube or your bootstrap cluster with credenti
 or another mechanism.
 
 #### Running clusterctl
-3. Generate the input files with [clusterctl/examples/aws/generate-yaml.sh](/clusterctl/examples/aws/generate-yaml.sh)
-4. Instantiate the cluster
-
+3. Generate environment file with `make envfile` and fill out the desired variables.
+3. Generate the input files with `make example`.
+4. Instantiate the cluster with:
 ``` shell
-clusterctl create cluster -c clusterctl/examples/aws/out/cluster.yaml -m clusterctl/examples/aws/out/machines.yaml -p clusterctl/examples/aws/out/provider-components.yaml --provider aws
+clusterctl create cluster -v 2 -c clusterctl/examples/aws/out/cluster.yaml -m clusterctl/examples/aws/out/machines.yaml -p clusterctl/examples/aws/out/provider-components.yaml --provider aws
+```
+
+At this point clusterctl will spin up a local minikube and create a new cluster, the output should look like:
+```bash
+Starting VM...
+Getting VM IP address...
+Moving files into cluster...
+Setting up certs...
+Connecting to cluster...
+Setting up kubeconfig...
+Starting cluster components...
+Kubectl is now configured to use the cluster.
+Loading cached images from config file.
+I0926 14:05:25.555809   15312 clusterdeployer.go:112] Applying Cluster API stack to bootstrap cluster
+I0926 14:05:25.555827   15312 clusterdeployer.go:301] Applying Cluster API APIServer
+I0926 14:05:25.720092   15312 clusterclient.go:511] Waiting for kubectl apply...
+I0926 14:05:25.971457   15312 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
+I0926 14:05:55.978996   15312 clusterclient.go:552] Waiting for Cluster v1alpha resources to be listable...
+I0926 14:05:56.024979   15312 clusterdeployer.go:307] Applying Cluster API Provider Components
+I0926 14:05:56.025001   15312 clusterclient.go:511] Waiting for kubectl apply...
+I0926 14:05:56.168724   15312 clusterdeployer.go:117] Provisioning target cluster via bootstrap cluster
+I0926 14:05:56.168752   15312 clusterdeployer.go:119] Creating cluster object test1 on bootstrap cluster in namespace "default"
+I0926 14:05:56.173557   15312 clusterdeployer.go:124] Creating master  in namespace "default"
+I0926 14:05:56.183134   15312 clusterclient.go:563] Waiting for Machine aws-controlplane-65vtk to become ready...
 ```
 
 ## Community, discussion, contribution, and support
