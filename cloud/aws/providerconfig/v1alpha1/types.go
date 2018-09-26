@@ -183,6 +183,9 @@ type Network struct {
 
 	// Subnets includes all the subnets defined inside the VPC.
 	Subnets Subnets `json:"subnets"`
+
+	// API server loadbalancer
+	APIServerLoadBalancer LoadBalancer `json:"apiServerLoadbalancer"`
 }
 
 // VPC defines an AWS vpc.
@@ -212,6 +215,14 @@ type Subnet struct {
 // String returns a string representation of the subnet.
 func (s *Subnet) String() string {
 	return fmt.Sprintf("id=%s/az=%s/public=%v", s.ID, s.AvailabilityZone, s.IsPublic)
+}
+
+// LoadBalancer defines an AWS loadbalancer.
+type LoadBalancer struct {
+	ID string `json:"id"`
+
+	// TODO: figure out other fields for the loadbalancer
+	Name string `json:"name`
 }
 
 // Subnets is a slice of Subnet.

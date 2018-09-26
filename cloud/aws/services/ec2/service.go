@@ -15,6 +15,7 @@ package ec2
 
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 )
 
 // Service holds a collection of interfaces.
@@ -22,6 +23,7 @@ import (
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
 	EC2 ec2iface.EC2API
+	ELB elbiface.ELBAPI
 }
 
 // NewService returns a new service given the ec2 api client.

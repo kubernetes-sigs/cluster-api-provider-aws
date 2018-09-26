@@ -51,6 +51,11 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 		return err
 	}
 
+	// API server loadbalancer.
+	if err := s.reconcileAPIServerLoadbalancer(network.Loadbalancer); err != nil {
+		return err
+	}
+
 	glog.V(2).Info("Reconciled network completed successfully")
 	return nil
 }
@@ -91,5 +96,6 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	}
 
 	glog.V(2).Info("Deleted network completed successfully")
+
 	return nil
 }
