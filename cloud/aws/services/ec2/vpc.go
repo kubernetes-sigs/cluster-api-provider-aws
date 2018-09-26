@@ -14,8 +14,6 @@
 package ec2
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
@@ -27,13 +25,13 @@ const (
 	defaultVpcCidr = "10.0.0.0/16"
 )
 
-func (s *Service) reconcileVPC(in *v1alpha1.VPC) error {
+func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
 	glog.V(2).Infof("Reconciling VPC")
 
-	vpc, err := s.describeVPC(in.ID)
+	vpc, err := s.describeVPC(clusterName, in.ID)
 	if IsNotFound(err) {
 		// Create a new vpc.
-		vpc, err = s.createVPC(in)
+		vpc, err = s.createVPC(clusterName, in)
 		if err != nil {
 			return err
 		}
@@ -47,7 +45,7 @@ func (s *Service) reconcileVPC(in *v1alpha1.VPC) error {
 	return nil
 }
 
-func (s *Service) createVPC(v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
+func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
 	if v.CidrBlock == "" {
 		v.CidrBlock = defaultVpcCidr
 	}
@@ -66,8 +64,12 @@ func (s *Service) createVPC(v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
-	// TODO(vincepri): tag vpc with https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/#ResourceGroupsTaggingAPI.TagResources
+	if err := s.createTags(clusterName, *out.Vpc.VpcId, ResourceLifecycleOwned, nil); err != nil {
+		return nil, errors.Wrapf(err, "failed to tag vpc %q", *out.Vpc.VpcId)
+	}
+
 	glog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
+
 	return &v1alpha1.VPC{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
@@ -75,6 +77,7 @@ func (s *Service) createVPC(v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
 }
 
 func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
+	// TODO(johanneswuerbach): ensure that the VPC is owned by this cluster before deleting
 	input := &ec2.DeleteVpcInput{
 		VpcId: aws.String(v.ID),
 	}
@@ -88,13 +91,14 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 	return nil
 }
 
-func (s *Service) describeVPC(id string) (*v1alpha1.VPC, error) {
-	if id == "" {
-		return nil, NewNotFound(fmt.Errorf("could not find vpc with empty id"))
-	}
+func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, error) {
+	input := &ec2.DescribeVpcsInput{}
 
-	input := &ec2.DescribeVpcsInput{
-		VpcIds: []*string{aws.String(id)},
+	if id == "" {
+		// Try to find a previously created and tagged VPC
+		input.Filters = s.addTagFilters(clusterName, []*ec2.Filter{})
+	} else {
+		input.VpcIds = []*string{aws.String(id)}
 	}
 
 	out, err := s.EC2.DescribeVpcs(input)

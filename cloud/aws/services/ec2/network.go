@@ -18,11 +18,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
+func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network) (err error) {
 	glog.V(2).Info("Reconciling network")
 
 	// VPC.
-	if err := s.reconcileVPC(&network.VPC); err != nil {
+	if err := s.reconcileVPC(clusterName, &network.VPC); err != nil {
 		return err
 	}
 

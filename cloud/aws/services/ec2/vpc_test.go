@@ -82,6 +82,16 @@ func TestReconcileVPC(t *testing.T) {
 						VpcIds: []*string{aws.String("vpc-new")},
 					})).
 					Return(nil)
+
+				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: []*string{aws.String("vpc-new")},
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
 			},
 		},
 	}
@@ -92,7 +102,7 @@ func TestReconcileVPC(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileVPC(tc.input); err != nil {
+			if err := s.reconcileVPC("test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 

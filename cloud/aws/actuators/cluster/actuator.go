@@ -26,7 +26,7 @@ import (
 )
 
 type ec2Svc interface {
-	ReconcileNetwork(*providerconfigv1.Network) error
+	ReconcileNetwork(string, *providerconfigv1.Network) error
 }
 
 type codec interface {
@@ -80,7 +80,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		}
 	}()
 
-	if err := a.ec2.ReconcileNetwork(&status.Network); err != nil {
+	if err := a.ec2.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
