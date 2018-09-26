@@ -23,6 +23,7 @@ import (
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/bootstrap/minikube"
+	"sigs.k8s.io/cluster-api/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/clusterctl/providercomponents"
 	"sigs.k8s.io/cluster-api/pkg/clientcmd"
 
@@ -33,6 +34,8 @@ import (
 type DeleteOptions struct {
 	KubeconfigPath      string
 	ProviderComponents  string
+	ClusterNamespace    string
+	VmDriver            string
 	KubeconfigOverrides tcmd.ConfigOverrides
 }
 
@@ -52,6 +55,8 @@ var deleteClusterCmd = &cobra.Command{
 func init() {
 	deleteClusterCmd.Flags().StringVarP(&do.KubeconfigPath, "kubeconfig", "", "", "Path to the kubeconfig file to use for connecting to the cluster to be deleted, if empty, the default KUBECONFIG load path is used.")
 	deleteClusterCmd.Flags().StringVarP(&do.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects, if empty the value is loaded from the cluster's configuration store.")
+	deleteClusterCmd.Flags().StringVarP(&do.ClusterNamespace, "cluster-namespace", "", v1.NamespaceDefault, "Namespace where the cluster to be deleted resides")
+	deleteClusterCmd.Flags().StringVarP(&do.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	// BindContextFlags will bind the flags cluster, namespace, and user
 	tcmd.BindContextFlags(&do.KubeconfigOverrides.Context, deleteClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
 	deleteCmd.AddCommand(deleteClusterCmd)
@@ -62,18 +67,18 @@ func RunDelete() error {
 	if err != nil {
 		return err
 	}
-	clusterClient, err := clusterdeployer.NewClusterClientFromDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
+	clusterClient, err := clusterclient.NewFromDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
 	if err != nil {
 		return fmt.Errorf("error when creating cluster client: %v", err)
 	}
 	defer clusterClient.Close()
-	mini := minikube.New(co.VmDriver)
+	mini := minikube.New(do.VmDriver)
 	deployer := clusterdeployer.New(mini,
-		clusterdeployer.NewClientFactory(),
+		clusterclient.NewFactory(),
 		providerComponents,
 		"",
 		true)
-	return deployer.Delete(clusterClient)
+	return deployer.Delete(clusterClient, do.ClusterNamespace)
 }
 
 func loadProviderComponents() (string, error) {

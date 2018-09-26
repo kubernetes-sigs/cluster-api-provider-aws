@@ -39,3 +39,8 @@ required = [
 [[constraint]]
   name = "github.com/aws/aws-sdk-go"
   version = "v1.15.5"
+
+# We need to specify fsnotify source to avoid dep panic
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"

@@ -661,8 +661,8 @@
     "UntagResource": {
       "name": "UntagResource",
       "http": {
-        "method": "DELETE",
-        "requestUri": "/2017-08-29/tags",
+        "method": "PUT",
+        "requestUri": "/2017-08-29/tags/{arn}",
         "responseCode": 200
       },
       "input": {
@@ -1265,6 +1265,14 @@
         "httpStatusCode": 400
       }
     },
+    "BillingTagsSource": {
+      "type": "string",
+      "enum": [
+        "QUEUE",
+        "PRESET",
+        "JOB_TEMPLATE"
+      ]
+    },
     "BurninDestinationSettings": {
       "type": "structure",
       "members": {
@@ -1789,6 +1797,12 @@
         "FALLBACK"
       ]
     },
+    "Commitment": {
+      "type": "string",
+      "enum": [
+        "ONE_YEAR"
+      ]
+    },
     "ConflictException": {
       "type": "structure",
       "members": {
@@ -1849,6 +1863,10 @@
     "CreateJobRequest": {
       "type": "structure",
       "members": {
+        "BillingTagsSource": {
+          "shape": "BillingTagsSource",
+          "locationName": "billingTagsSource"
+        },
         "ClientRequestToken": {
           "shape": "__string",
           "locationName": "clientRequestToken",
@@ -1979,6 +1997,14 @@
         "Name": {
           "shape": "__string",
           "locationName": "name"
+        },
+        "PricingPlan": {
+          "shape": "PricingPlan",
+          "locationName": "pricingPlan"
+        },
+        "ReservationPlanSettings": {
+          "shape": "ReservationPlanSettings",
+          "locationName": "reservationPlanSettings"
         },
         "Tags": {
           "shape": "__mapOf__string",
@@ -2164,12 +2190,23 @@
       "members": {
       }
     },
+    "DescribeEndpointsMode": {
+      "type": "string",
+      "enum": [
+        "DEFAULT",
+        "GET_ONLY"
+      ]
+    },
     "DescribeEndpointsRequest": {
       "type": "structure",
       "members": {
         "MaxResults": {
           "shape": "__integer",
           "locationName": "maxResults"
+        },
+        "Mode": {
+          "shape": "DescribeEndpointsMode",
+          "locationName": "mode"
         },
         "NextToken": {
           "shape": "__string",
@@ -4124,6 +4161,10 @@
           "shape": "__string",
           "locationName": "arn"
         },
+        "BillingTagsSource": {
+          "shape": "BillingTagsSource",
+          "locationName": "billingTagsSource"
+        },
         "CreatedAt": {
           "shape": "__timestampUnix",
           "locationName": "createdAt"
@@ -5742,6 +5783,13 @@
         }
       }
     },
+    "PricingPlan": {
+      "type": "string",
+      "enum": [
+        "ON_DEMAND",
+        "RESERVED"
+      ]
+    },
     "ProresCodecProfile": {
       "type": "string",
       "enum": [
@@ -5868,9 +5916,17 @@
           "shape": "__string",
           "locationName": "name"
         },
+        "PricingPlan": {
+          "shape": "PricingPlan",
+          "locationName": "pricingPlan"
+        },
         "ProgressingJobsCount": {
           "shape": "__integer",
           "locationName": "progressingJobsCount"
+        },
+        "ReservationPlan": {
+          "shape": "ReservationPlan",
+          "locationName": "reservationPlan"
         },
         "Status": {
           "shape": "QueueStatus",
@@ -5940,6 +5996,71 @@
           "locationName": "channelsOut"
         }
       }
+    },
+    "RenewalType": {
+      "type": "string",
+      "enum": [
+        "AUTO_RENEW",
+        "EXPIRE"
+      ]
+    },
+    "ReservationPlan": {
+      "type": "structure",
+      "members": {
+        "Commitment": {
+          "shape": "Commitment",
+          "locationName": "commitment"
+        },
+        "ExpiresAt": {
+          "shape": "__timestampUnix",
+          "locationName": "expiresAt"
+        },
+        "PurchasedAt": {
+          "shape": "__timestampUnix",
+          "locationName": "purchasedAt"
+        },
+        "RenewalType": {
+          "shape": "RenewalType",
+          "locationName": "renewalType"
+        },
+        "ReservedSlots": {
+          "shape": "__integer",
+          "locationName": "reservedSlots"
+        },
+        "Status": {
+          "shape": "ReservationPlanStatus",
+          "locationName": "status"
+        }
+      }
+    },
+    "ReservationPlanSettings": {
+      "type": "structure",
+      "members": {
+        "Commitment": {
+          "shape": "Commitment",
+          "locationName": "commitment"
+        },
+        "RenewalType": {
+          "shape": "RenewalType",
+          "locationName": "renewalType"
+        },
+        "ReservedSlots": {
+          "shape": "__integer",
+          "locationName": "reservedSlots"
+        }
+      },
+      "required": [
+        "ReservedSlots",
+        "Commitment",
+        "RenewalType"
+      ]
+    },
+    "ReservationPlanStatus": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "EXPIRED"
+      ]
     },
     "ResourceTags": {
       "type": "structure",
@@ -6199,13 +6320,17 @@
       "members": {
         "Arn": {
           "shape": "__string",
-          "locationName": "arn"
+          "locationName": "arn",
+          "location": "uri"
         },
         "TagKeys": {
           "shape": "__listOf__string",
           "locationName": "tagKeys"
         }
-      }
+      },
+      "required": [
+        "Arn"
+      ]
     },
     "UntagResourceResponse": {
       "type": "structure",
@@ -6295,6 +6420,10 @@
           "shape": "__string",
           "locationName": "name",
           "location": "uri"
+        },
+        "ReservationPlanSettings": {
+          "shape": "ReservationPlanSettings",
+          "locationName": "reservationPlanSettings"
         },
         "Status": {
           "shape": "QueueStatus",

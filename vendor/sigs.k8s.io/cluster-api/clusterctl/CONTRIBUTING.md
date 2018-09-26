@@ -29,7 +29,7 @@ You should run all the tests in the repository. To run the tests, run the follow
 To get all the tests to pass, it is required that you have `etcd` installed in your development environment. Specifically,
 the `TestMachineSet` tests will fail if you don't have `etcd` installed and the failure will look like this
 
-```
+``` 
 === RUN   TestMachineSet
 [::]:58989
 [::]:58990

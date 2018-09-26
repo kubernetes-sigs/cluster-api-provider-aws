@@ -1,3 +1,134 @@
+Release v1.15.41 (2018-09-24)
+===
+
+### Service Client Updates
+* `service/connect`: Updates service API, documentation, and paginators
+* `service/rds`: Updates service API and documentation
+  * Adds DB engine version requirements for option group option settings, and specifies if an option setting requires a value.
+
+Release v1.15.40 (2018-09-21)
+===
+
+### Service Client Updates
+* `service/mediaconvert`: Updates service API and documentation
+  * To offer lower prices for predictable, non-urgent workloads, we propose the concept of Reserved Transcode pricing. Reserved Transcode pricing Reserved Transcoding pricing would offer the customer access to a fixed parallel processing capacity for a fixed monthly rate. This capacity would be stated in terms of number of Reserved Transcode Slots (RTSs). One RTS would be able to process one job at a time for a fixed monthly fee.
+
+Release v1.15.39 (2018-09-20)
+===
+
+### Service Client Updates
+* `service/ds`: Updates service API and documentation
+  * Added CreateLogSubscription, DeleteLogSubscription, and ListLogSubscriptions APIs for Microsoft AD. Customers can now opt in to have Windows security event logs from the domain controllers forwarded to a log group in their account.
+* `service/ec2`: Updates service API
+  * You can now launch f1.4xlarge, a new instance size within the existing f1 family which provides two Xilinx Virtex Field Programmable Arrays (FPGAs) for acceleration. FPGA acceleration provide additional performance and time sensitivity for specialized accelerated workloads such as clinical genomics and real-time video processing. F1.4xlarge instances are available in the US East (N. Virginia), US West (Oregon), GovCloud (US), and EU West (Dublin) AWS Regions.
+* `service/rds`: Updates service API and documentation
+  * This launch enables RDS start-db-cluster and stop-db-cluster. Stopping and starting Amazon Aurora clusters helps you manage costs for development and test environments. You can temporarily stop all the DB instances in your cluster, instead of setting up and tearing down all the DB instances each time that you use the cluster.
+
+Release v1.15.38 (2018-09-19)
+===
+
+### Service Client Updates
+* `service/monitoring`: Updates service API and documentation
+  * Amazon CloudWatch adds the ability to request png image snapshots of metric widgets using the GetMetricWidgetImage API.
+* `service/organizations`: Updates service API and documentation
+  * Introducing a new exception - AccountOwnerNotVerifiedException which will be returned for InviteAccountToOrganization call for unverified accounts.
+* `service/s3`: Updates service API and documentation
+  * S3 Cross Region Replication now allows customers to use S3 object tags to filter the scope of replication. By using S3 object tags, customers can identify individual objects for replication across AWS Regions for compliance and data protection. Cross Region Replication for S3 enables automatic and asynchronous replication of objects to another AWS Region, and with this release customers can replicate at a bucket level, prefix level or by using object tags.
+
+Release v1.15.37 (2018-09-18)
+===
+
+### Service Client Updates
+* `service/es`: Updates service API and documentation
+  * Amazon Elasticsearch Service adds support for node-to-node encryption for new domains running Elasticsearch version 6.0 and above
+* `service/rekognition`: Updates service API and documentation
+  * This release updates the Amazon Rekognition IndexFaces API operation. It introduces a QualityFilter parameter that allows you to automatically filter out detected faces that are deemed to be of low quality by Amazon Rekognition. The quality bar is based on a variety of common use cases.  You can filter low-quality detected faces by setting QualityFilter to AUTO, which is also the default setting. To index all detected faces regardless of quality, you can specify NONE.  This release also provides a MaxFaces parameter that is useful when you want to only index the most prominent and largest faces in an image and don't want to index other faces detected in the image, such as smaller faces belonging to people standing in the background.
+
+Release v1.15.36 (2018-09-17)
+===
+
+### Service Client Updates
+* `service/codebuild`: Updates service API and documentation
+  * Support build logs configuration.
+* `service/ec2`: Updates service API and documentation
+  * Added support for customers to tag EC2 Dedicated Hosts on creation.
+* `service/ecs`: Updates service API and documentation
+  * This release of Amazon Elastic Container Service (Amazon ECS) introduces support for additional Docker flags as Task Definition parameters. Customers can now configure their ECS Tasks to use systemControls (sysctl), pseudoTerminal (tty), and interactive (i) Docker flags.
+* `service/elasticache`: Updates service API and documentation
+  * ElastiCache for Redis added support for adding and removing read-replicas from any cluster with no cluster downtime, Shard naming: ElastiCache for Redis customers have the option of allowing ElastiCache to create names for their node groups (shards) or generating their own node group names. For more information, see https:// docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_NodeGroupConfiguration.html, ShardsToRetain: When reducing the number of node groups (shards) in an ElastiCache for Redis (cluster mode enabled) you have the option of specifying which node groups to retain or which node groups to remove. For more information, see https:// docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyReplicationGroupShardConfiguration.html, ReservationARN: ReservedNode includes an ARN, ReservationARN, member which identifies the reserved node. For more information, see https:// docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ReservedCacheNode.html
+* `service/elastictranscoder`: Updates service API, documentation, and paginators
+  * Added support for MP2 container
+* `service/monitoring`: Updates service API and documentation
+  * Amazon CloudWatch adds the ability to publish values and counts using PutMetricData
+* `service/secretsmanager`: Updates service documentation
+  * Documentation updates for secretsmanager
+
+Release v1.15.35 (2018-09-13)
+===
+
+### Service Client Updates
+* `service/polly`: Updates service API and documentation
+  * Amazon Polly adds Mandarin Chinese language support with new female voice - "Zhiyu"
+
+Release v1.15.34 (2018-09-12)
+===
+
+### Service Client Updates
+* `service/connect`: Updates service API and documentation
+* `service/ec2`: Updates service API, documentation, and paginators
+  * Pagination Support for DescribeNetworkInterfaces API
+* `service/email`: Updates service documentation
+  * Documentation updates for Amazon Simple Email Service
+* `service/fms`: Updates service API and documentation
+
+Release v1.15.33 (2018-09-11)
+===
+
+### Service Client Updates
+* `service/opsworkscm`: Updates service documentation
+  * Documentation updates for opsworkscm
+* `service/ssm`: Updates service API and documentation
+  * Session Manager is a fully managed AWS Systems Manager capability that provides interactive one-click access to Amazon EC2 Linux and Windows instances.
+
+Release v1.15.32 (2018-09-10)
+===
+
+### Service Client Updates
+* `service/cloudhsmv2`: Updates service API and documentation
+  * With this release, we are adding 2 new APIs. DeleteBackup deletes a specified AWS CloudHSM backup. A backup can be restored up to 7 days after the DeleteBackup request. During this 7-day period, the backup will be in state PENDING_DELETION. Backups can be restored using the RestoreBackup API, which will move the backup from state PENDING_DELETION back to ACTIVE.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/redshift`: Updates service API and documentation
+  * Adding support to Redshift to change the encryption type after cluster creation completes.
+
+Release v1.15.31 (2018-09-07)
+===
+
+### Service Client Updates
+* `service/config`: Updates service API and documentation
+* `service/logs`: Updates service API and documentation
+  * * Adding a log prefix parameter for filter log events API and minor updates to the documentation
+
+### SDK Enhancements
+* `private/protocol/json/jsonutil`: Use json.Decoder to decrease memory allocation ([#2115](https://github.com/aws/aws-sdk-go/pull/2115))
+  * Updates the SDK's JSON protocol marshaler to use `json.Decoder` instead of `ioutil.ReadAll`. This reduces the memory unmarshaling JSON payloads by about 50%.
+  * Fix [#2114](https://github.com/aws/aws-sdk-go/pull/2114)
+
+Release v1.15.29 (2018-09-06)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * Add support for Active X-Ray with API Gateway
+* `service/codecommit`: Updates service API and documentation
+  * This release adds additional optional fields to the pull request APIs.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/mediaconvert`: Updates service API and documentation
+  * This release adds support for Cost Allocation through tagging and also enables adding, editing, and removal of tags from the MediaConvert console.
+
+### SDK Enhancements
+* `private/protocol`: Serialization errors will now be wrapped in `awserr.RequestFailure` types ([#2135](https://github.com/aws/aws-sdk-go/pull/2135))
+  * Updates the SDK protocol unmarshaling to handle the `SerializationError` as a request failure allowing for inspection of `requestID`s and status codes.
+
 Release v1.15.28 (2018-09-05)
 ===
 

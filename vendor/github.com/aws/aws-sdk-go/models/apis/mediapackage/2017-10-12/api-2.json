@@ -285,8 +285,8 @@
       }
     }, 
     "RotateChannelCredentials": {
-      "deprecated": true,
-      "deprecatedMessage": "This API is deprecated. Please use RotateIngestEndpointCredentials instead",
+      "deprecated": true, 
+      "deprecatedMessage": "This API is deprecated. Please use RotateIngestEndpointCredentials instead", 
       "errors": [
         {
           "shape": "UnprocessableEntityException"
@@ -324,36 +324,36 @@
       "errors": [
         {
           "shape": "UnprocessableEntityException"
-        },
+        }, 
         {
           "shape": "InternalServerErrorException"
-        },
+        }, 
         {
           "shape": "ForbiddenException"
-        },
+        }, 
         {
           "shape": "NotFoundException"
-        },
+        }, 
         {
           "shape": "ServiceUnavailableException"
-        },
+        }, 
         {
           "shape": "TooManyRequestsException"
         }
-      ],
+      ], 
       "http": {
-        "method": "PUT",
-        "requestUri": "/channels/{id}/ingest_endpoints/{ingest_endpoint_id}/credentials",
+        "method": "PUT", 
+        "requestUri": "/channels/{id}/ingest_endpoints/{ingest_endpoint_id}/credentials", 
         "responseCode": 200
-      },
+      }, 
       "input": {
         "shape": "RotateIngestEndpointCredentialsRequest"
-      },
-      "name": "RotateIngestEndpointCredentials",
+      }, 
+      "name": "RotateIngestEndpointCredentials", 
       "output": {
         "shape": "RotateIngestEndpointCredentialsResponse"
       }
-    },
+    }, 
     "UpdateChannel": {
       "errors": [
         {
@@ -737,11 +737,11 @@
         "MinUpdatePeriodSeconds": {
           "locationName": "minUpdatePeriodSeconds", 
           "shape": "__integer"
-        },
+        }, 
         "PeriodTriggers": {
-          "locationName": "periodTriggers",
+          "locationName": "periodTriggers", 
           "shape": "__listOf__PeriodTriggersElement"
-        },
+        }, 
         "Profile": {
           "locationName": "profile", 
           "shape": "Profile"
@@ -1076,9 +1076,9 @@
     "IngestEndpoint": {
       "members": {
         "Id": {
-          "locationName": "id",
+          "locationName": "id", 
           "shape": "__string"
-        },
+        }, 
         "Password": {
           "locationName": "password", 
           "shape": "__string"
@@ -1399,7 +1399,7 @@
       "type": "string"
     }, 
     "RotateChannelCredentialsRequest": {
-      "deprecated": true,
+      "deprecated": true, 
       "members": {
         "Id": {
           "location": "uri", 
@@ -1413,46 +1413,46 @@
       "type": "structure"
     }, 
     "RotateChannelCredentialsResponse": {
-      "deprecated": true,
+      "deprecated": true, 
       "members": {
         "Arn": {
-          "locationName": "arn",
+          "locationName": "arn", 
           "shape": "__string"
-        },
+        }, 
         "Description": {
-          "locationName": "description",
+          "locationName": "description", 
           "shape": "__string"
-        },
+        }, 
         "HlsIngest": {
-          "locationName": "hlsIngest",
+          "locationName": "hlsIngest", 
           "shape": "HlsIngest"
-        },
+        }, 
         "Id": {
-          "locationName": "id",
+          "locationName": "id", 
           "shape": "__string"
         }
-      },
+      }, 
       "type": "structure"
-    },
+    }, 
     "RotateIngestEndpointCredentialsRequest": {
       "members": {
         "Id": {
-          "location": "uri",
-          "locationName": "id",
+          "location": "uri", 
+          "locationName": "id", 
           "shape": "__string"
-        },
+        }, 
         "IngestEndpointId": {
-          "location": "uri",
-          "locationName": "ingest_endpoint_id",
+          "location": "uri", 
+          "locationName": "ingest_endpoint_id", 
           "shape": "__string"
         }
-      },
+      }, 
       "required": [
-        "IngestEndpointId",
+        "IngestEndpointId", 
         "Id"
-      ],
+      ], 
       "type": "structure"
-    },
+    }, 
     "RotateIngestEndpointCredentialsResponse": {
       "members": {
         "Arn": {
@@ -1708,13 +1708,13 @@
         }
       }, 
       "type": "structure"
-    },
+    }, 
     "__PeriodTriggersElement": {
       "enum": [
         "ADS"
-      ],
+      ], 
       "type": "string"
-    },
+    }, 
     "__boolean": {
       "type": "boolean"
     }, 
@@ -1753,13 +1753,13 @@
         "shape": "OriginEndpoint"
       }, 
       "type": "list"
-    },
+    }, 
     "__listOf__PeriodTriggersElement": {
       "member": {
         "shape": "__PeriodTriggersElement"
-      },
+      }, 
       "type": "list"
-    },
+    }, 
     "__listOf__string": {
       "member": {
         "shape": "__string"

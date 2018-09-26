@@ -2,7 +2,9 @@
 
 This repository hosts an implementation of a provider for AWS for the [cluster-api project](https://sigs.k8s.io/cluster-api).
 
-Note: This repository is currently a skeleton implementation of a cluster-api provider, implementation will begin once there is agreement on the [Design Spec](https://docs.google.com/document/d/1G7DRQccoTY5YBrinQb6sz_fRLB9zFbCnI1O984XFk7Q).
+Note: The additionals PRs are applied on top of  vendored `https://sigs.k8s.io/cluster-api`:
+- [https://github.com/kubernetes-sigs/cluster-api/pull/512](https://github.com/kubernetes-sigs/cluster-api/pull/512)
+- [https://github.com/kubernetes-sigs/cluster-api/pull/513](https://github.com/kubernetes-sigs/cluster-api/pull/513)
 
 ## Community, discussion, contribution, and support
 
@@ -112,4 +114,3 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     ```sh
     $ kubectl apply -f examples/machine-set.yaml --validate=false
     ```
-

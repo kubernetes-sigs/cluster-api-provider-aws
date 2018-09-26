@@ -18,6 +18,7 @@ package machineset
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +48,9 @@ var stateConfirmationTimeout = 10 * time.Second
 // stateConfirmationInterval is the amount of time between polling for the desired state.
 // The polling is against a local memory cache.
 var stateConfirmationInterval = 100 * time.Millisecond
+
+// machineDeleteAnnotationKey annotates machines to be delete among first ones
+var machineDeleteAnnotationKey = "sigs.k8s.io/cluster-api-delete-machine"
 
 // +controller:group=cluster,version=v1alpha1,kind=MachineSet,resource=machinesets
 type MachineSetControllerImpl struct {
@@ -117,7 +121,8 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 	}
 
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
-	var filteredMachines []*v1alpha1.Machine
+	var machineNames []string
+	machineSetMachines := make(map[string]*v1alpha1.Machine)
 	for _, machine := range allMachines {
 		if shouldExcludeMachine(machineSet, machine) {
 			continue
@@ -129,7 +134,16 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
 				continue
 			}
 		}
-		filteredMachines = append(filteredMachines, machine)
+		machineNames = append(machineNames, machine.Name)
+		machineSetMachines[machine.Name] = machine
+	}
+
+	// sort the filteredMachines from the oldest to the youngest
+	sort.Strings(machineNames)
+
+	var filteredMachines []*v1alpha1.Machine
+	for _, machineName := range machineNames {
+		filteredMachines = append(filteredMachines, machineSetMachines[machineName])
 	}
 
 	syncErr := c.syncReplicas(machineSet, filteredMachines)
@@ -325,7 +339,24 @@ func (c *MachineSetControllerImpl) enqueueAfter(machineSet *v1alpha1.MachineSet,
 func getMachinesToDelete(filteredMachines []*v1alpha1.Machine, diff int) []*v1alpha1.Machine {
 	// TODO: Define machines deletion policies.
 	// see: https://github.com/kubernetes/kube-deploy/issues/625
-	return filteredMachines[:diff]
+
+	// First delete all machines with sigs.k8s.io/cluster-api-delete-machine annotation
+	var machinesToDelete []*v1alpha1.Machine
+	var remainingMachines []*v1alpha1.Machine
+	for _, machine := range filteredMachines {
+		if _, delete := machine.Annotations[machineDeleteAnnotationKey]; delete {
+			machinesToDelete = append(machinesToDelete, machine)
+		} else {
+			remainingMachines = append(remainingMachines, machine)
+		}
+	}
+
+	machinesToDeleteLen := len(machinesToDelete)
+	if machinesToDeleteLen >= diff {
+		return machinesToDelete[:diff]
+	}
+
+	return append(machinesToDelete, remainingMachines[:(diff-machinesToDeleteLen)]...)
 }
 
 func (c *MachineSetControllerImpl) waitForMachineCreation(machineList []*v1alpha1.Machine) error {
