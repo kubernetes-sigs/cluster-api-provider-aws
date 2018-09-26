@@ -37,29 +37,31 @@ type codec interface {
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
-	codec         codec
-	clusterClient client.ClusterInterface
-	ec2           ec2Svc
+	codec          codec
+	clustersGetter client.ClustersGetter
+	ec2            ec2Svc
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
-	Codec         codec
-	ClusterClient client.ClusterInterface
-	EC2Service    ec2Svc
+	Codec          codec
+	ClustersGetter client.ClustersGetter
+	EC2Service     ec2Svc
 }
 
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	return &Actuator{
-		codec:         params.Codec,
-		clusterClient: params.ClusterClient,
-		ec2:           params.EC2Service,
+		codec:          params.Codec,
+		clustersGetter: params.ClustersGetter,
+		ec2:            params.EC2Service,
 	}, nil
 }
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
+	// get a cluster api client for the namespace of the cluster
+	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
 	glog.Infof("Reconciling cluster %v.", cluster.Name)
 
 	status, err := a.loadProviderStatus(cluster)
@@ -75,7 +77,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return errors.Errorf("unable to store cluster provider status: %v", err)
 	}
 
-	if _, err := a.clusterClient.UpdateStatus(cluster); err != nil {
+	if _, err := clusterClient.UpdateStatus(cluster); err != nil {
 		return errors.Errorf("failed to update cluster status: %v", err)
 	}
 

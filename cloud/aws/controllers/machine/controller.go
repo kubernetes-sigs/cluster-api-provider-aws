@@ -42,7 +42,6 @@ import (
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine/options"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	clustersvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/cluster"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 )
 
@@ -74,11 +73,9 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	ec2client := ec2.New(sess)
 
 	params := machineactuator.ActuatorParams{
-		MachinesService: &clustersvc.Service{
-			Machine: client.ClusterV1alpha1().Machines(corev1.NamespaceDefault),
-		},
-		EC2Service: ec2svc.NewService(ec2client),
-		Codec:      codec,
+		MachinesGetter: client.ClusterV1alpha1(),
+		EC2Service:     ec2svc.NewService(ec2client),
+		Codec:          codec,
 		//		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
 	}
 

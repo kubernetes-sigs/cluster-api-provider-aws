@@ -17,55 +17,77 @@ import (
 	"errors"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/mock/gomock"
+	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine/mock_machineiface"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
 )
 
-type ec2 struct{}
-
-func (e *ec2) CreateInstance(machine *clusterv1.Machine) (*ec2svc.Instance, error) {
-	return &ec2svc.Instance{
-		ID: "abc",
-	}, nil
-}
-func (e *ec2) InstanceIfExists(id *string) (*ec2svc.Instance, error) {
-	if id == nil {
-		return nil, nil
-	}
-	if *id == "abc" {
-		return &ec2svc.Instance{
-			ID: "abc",
-		}, nil
-	}
-	return nil, nil
+type machinesGetter struct {
+	mi *mock_machineiface.MockMachineInterface
 }
 
-func (e *ec2) TerminateInstance(instanceID *string) error {
-	if instanceID == nil {
-		return errors.New("didn't receive an instanceID")
-	}
-
-	return nil
-}
-
-type machines struct{}
-
-func (m *machines) UpdateMachineStatus(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
-	return machine, nil
+func (m *machinesGetter) Machines(ns string) clientv1.MachineInterface {
+	return m.mi
 }
 
 func TestCreate(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	mg := &machinesGetter{
+		mi: mock_machineiface.NewMockMachineInterface(mockCtrl),
+	}
+	me := mock_ec2iface.NewMockEC2API(mockCtrl)
+	defer mockCtrl.Finish()
+
+	// clusterapi calls
+	mg.mi.EXPECT().
+		UpdateStatus(&clusterv1.Machine{
+			Status: clusterv1.MachineStatus{
+				ProviderStatus: &runtime.RawExtension{
+					Raw: []byte(`{"kind":"AWSMachineProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","instanceID":"1234","instanceState":"running"}
+`),
+				},
+			},
+		}).
+		Return(&clusterv1.Machine{}, nil)
+
+	// ec2 calls
+	me.EXPECT().
+		DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{nil},
+		}).
+		Return(nil, ec2svc.NewNotFound(errors.New("")))
+	me.EXPECT().
+		RunInstances(&ec2.RunInstancesInput{}).
+		Return(&ec2.Reservation{
+			Instances: []*ec2.Instance{
+				&ec2.Instance{
+					State: &ec2.InstanceState{
+						Name: aws.String(ec2.InstanceStateNameRunning),
+					},
+					InstanceId: aws.String("1234"),
+				},
+			},
+		}, nil)
+
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		t.Fatalf("failed to create a codec: %v", err)
 	}
 	ap := machine.ActuatorParams{
-		Codec:           codec,
-		MachinesService: &machines{},
-		EC2Service:      &ec2{},
+		Codec:          codec,
+		MachinesGetter: mg,
+		EC2Service: &ec2svc.Service{
+			EC2: me,
+		},
 	}
 	actuator, err := machine.NewActuator(ap)
 	if err != nil {
@@ -78,15 +100,79 @@ func TestCreate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	mg := &machinesGetter{
+		mi: mock_machineiface.NewMockMachineInterface(mockCtrl),
+	}
+	me := mock_ec2iface.NewMockEC2API(mockCtrl)
+	defer mockCtrl.Finish()
+
+	// clusterapi calls
+	mg.mi.EXPECT().
+		UpdateStatus(&clusterv1.Machine{
+			Status: clusterv1.MachineStatus{
+				ProviderStatus: &runtime.RawExtension{
+					Raw: []byte(`{"kind":"AWSMachineProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","instanceID":"2345","instanceState":"running"}
+`),
+				},
+			},
+		}).
+		Return(&clusterv1.Machine{}, nil)
+	gomock.InOrder(
+		// ec2 calls
+		me.EXPECT().
+			DescribeInstances(&ec2.DescribeInstancesInput{
+				InstanceIds: []*string{nil},
+			}).
+			Return(nil, ec2svc.NewNotFound(errors.New(""))),
+		me.EXPECT().
+			DescribeInstances(&ec2.DescribeInstancesInput{
+				InstanceIds: []*string{aws.String("2345")},
+			}).
+			Return(&ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							&ec2.Instance{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNameRunning),
+								},
+								InstanceId: aws.String("2345"),
+							},
+						},
+					},
+				},
+			}, nil),
+	)
+	me.EXPECT().
+		RunInstances(&ec2.RunInstancesInput{}).
+		Return(&ec2.Reservation{
+			Instances: []*ec2.Instance{
+				&ec2.Instance{
+					State: &ec2.InstanceState{
+						Name: aws.String(ec2.InstanceStateNameRunning),
+					},
+					InstanceId: aws.String("2345"),
+				},
+			},
+		}, nil)
+	me.EXPECT().
+		TerminateInstances(&ec2.TerminateInstancesInput{
+			InstanceIds: []*string{aws.String("2345")},
+		}).
+		Return(nil, nil)
+
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		t.Fatalf("failed to create a codec: %v", err)
 	}
 
 	ap := machine.ActuatorParams{
-		Codec:           codec,
-		MachinesService: &machines{},
-		EC2Service:      &ec2{},
+		Codec:          codec,
+		MachinesGetter: mg,
+		EC2Service: &ec2svc.Service{
+			EC2: me,
+		},
 	}
 
 	actuator, err := machine.NewActuator(ap)
@@ -94,31 +180,52 @@ func TestDelete(t *testing.T) {
 		t.Fatalf("failed to create an actuator: %v", err)
 	}
 
-	// Get some empty cluster and machine structs.
-	testCluster := &clusterv1.Cluster{}
-	testMachine := &clusterv1.Machine{}
-
 	// Create a machine that we can delete.
-	if err := actuator.Create(testCluster, testMachine); err != nil {
+	if err := actuator.Create(&clusterv1.Cluster{}, &clusterv1.Machine{}); err != nil {
 		t.Fatalf("failed to create machine: %v", err)
 	}
 
+	testMachine := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			ProviderStatus: &runtime.RawExtension{
+				Raw: []byte(`{"kind":"AWSMachineProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","instanceID":"2345","instanceState":"running"}
+`),
+			},
+		},
+	}
+
 	// Delete the machine.
-	if err := actuator.Delete(testCluster, testMachine); err != nil {
+	if err := actuator.Delete(&clusterv1.Cluster{}, testMachine); err != nil {
 		t.Fatalf("failed to delete machine: %v", err)
 	}
 }
 
 func TestDeleteNotExisting(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	mg := &machinesGetter{
+		mi: mock_machineiface.NewMockMachineInterface(mockCtrl),
+	}
+	me := mock_ec2iface.NewMockEC2API(mockCtrl)
+	defer mockCtrl.Finish()
+
+	// ec2 calls
+	me.EXPECT().
+		DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{nil},
+		}).
+		Return(nil, ec2svc.NewNotFound(errors.New("")))
+
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		t.Fatalf("failed to create a codec: %v", err)
 	}
 
 	ap := machine.ActuatorParams{
-		Codec:           codec,
-		MachinesService: &machines{},
-		EC2Service:      &ec2{},
+		Codec:          codec,
+		MachinesGetter: mg,
+		EC2Service: &ec2svc.Service{
+			EC2: me,
+		},
 	}
 
 	actuator, err := machine.NewActuator(ap)
@@ -137,15 +244,35 @@ func TestDeleteNotExisting(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	mg := &machinesGetter{
+		mi: mock_machineiface.NewMockMachineInterface(mockCtrl),
+	}
+	me := mock_ec2iface.NewMockEC2API(mockCtrl)
+	defer mockCtrl.Finish()
+
+	mg.mi.EXPECT().
+		UpdateStatus(&clusterv1.Machine{
+			Status: clusterv1.MachineStatus{
+				ProviderStatus: &runtime.RawExtension{
+					Raw: []byte(`{"kind":"AWSMachineProviderStatus","apiVersion":"awsproviderconfig/v1alpha1"}
+`),
+				},
+			},
+		}).
+		Return(&clusterv1.Machine{}, nil)
+
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		t.Fatalf("failed to create a codec: %v", err)
 	}
 
 	ap := machine.ActuatorParams{
-		Codec:           codec,
-		MachinesService: &machines{},
-		EC2Service:      &ec2{},
+		Codec:          codec,
+		MachinesGetter: mg,
+		EC2Service: &ec2svc.Service{
+			EC2: me,
+		},
 	}
 
 	actuator, err := machine.NewActuator(ap)
@@ -153,17 +280,8 @@ func TestUpdate(t *testing.T) {
 		t.Fatalf("failed to create an actuator: %v", err)
 	}
 
-	// Get some empty cluster and machine structs.
 	testCluster := &clusterv1.Cluster{}
 	testMachine := &clusterv1.Machine{}
-
-	// Create a machine that we can update.
-	if err := actuator.Create(testCluster, testMachine); err != nil {
-		t.Fatalf("failed to create machine: %v", err)
-	}
-
-	// Update a status field.
-	testMachine.Status.LastUpdated = metav1.Now()
 
 	// Update the machine.
 	if err := actuator.Update(testCluster, testMachine); err != nil {
