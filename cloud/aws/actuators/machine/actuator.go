@@ -24,12 +24,8 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
-
-// machinesSvc are the functions of the cluster-api that this actuator needs.
-type machinesSvc interface {
-	UpdateMachineStatus(*clusterv1.Machine) (*clusterv1.Machine, error)
-}
 
 // ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
 // This should never need to import the ec2 sdk.
@@ -51,8 +47,8 @@ type Actuator struct {
 	codec codec
 
 	// Services
-	ec2      ec2Svc
-	machines machinesSvc
+	ec2            ec2Svc
+	machinesGetter client.MachinesGetter
 }
 
 // ActuatorParams holds parameter information for Actuator
@@ -63,7 +59,7 @@ type ActuatorParams struct {
 	// Services
 
 	// ClusterService is the interface to cluster-api.
-	MachinesService machinesSvc
+	MachinesGetter client.MachinesGetter
 	// EC2Service is the interface to ec2.
 	EC2Service ec2Svc
 }
@@ -71,9 +67,9 @@ type ActuatorParams struct {
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	return &Actuator{
-		codec:    params.Codec,
-		ec2:      params.EC2Service,
-		machines: params.MachinesService,
+		codec:          params.Codec,
+		ec2:            params.EC2Service,
+		machinesGetter: params.MachinesGetter,
 	}, nil
 }
 
@@ -205,13 +201,14 @@ func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.
 }
 
 func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
+	machinesClient := a.machinesGetter.Machines(machine.Namespace)
 	encodedProviderStatus, err := a.codec.EncodeProviderStatus(status)
 	if err != nil {
 		return fmt.Errorf("failed to encode machine status: %v", err)
 	}
 	if encodedProviderStatus != nil {
 		machine.Status.ProviderStatus = encodedProviderStatus
-		if _, err := a.machines.UpdateMachineStatus(machine); err != nil {
+		if _, err := machinesClient.UpdateStatus(machine); err != nil {
 			return fmt.Errorf("failed to update machine status: %v", err)
 		}
 	}

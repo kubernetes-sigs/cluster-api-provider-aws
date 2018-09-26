@@ -72,10 +72,9 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	ec2client := ec2.New(sess)
 
 	params := clusteractuator.ActuatorParams{
-		Codec: codec,
-		// TODO(chuckha) make the namespace dynamic
-		ClusterClient: clients.ClusterV1alpha1().Clusters("default"),
-		EC2Service:    ec2svc.NewService(ec2client),
+		Codec:          codec,
+		ClustersGetter: clients.ClusterV1alpha1(),
+		EC2Service:     ec2svc.NewService(ec2client),
 	}
 
 	actuator, err := clusteractuator.NewActuator(params)
