@@ -37,5 +37,10 @@ func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
 		return err
 	}
 
+	// API server loadbalancer.
+	if err := s.reconcileAPIServerLoadbalancer(network.Loadbalancer); err != nil {
+		return err
+	}
+
 	return nil
 }
