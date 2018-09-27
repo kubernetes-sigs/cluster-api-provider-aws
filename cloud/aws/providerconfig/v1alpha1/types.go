@@ -165,6 +165,9 @@ type Network struct {
 
 	// Subnets includes all the subnets defined inside the VPC.
 	Subnets Subnets `json:"subnets"`
+
+	// API server loadbalancer
+	APIServerLoadBalancer LoadBalancer `json:"apiServerLoadbalancer"`
 }
 
 // VPC defines an AWS vpc.
@@ -184,6 +187,14 @@ type Subnet struct {
 	IsPublic         bool    `json:"public"`
 	RouteTableID     *string `json:"routeTableId"`
 	NatGatewayID     *string `json:"natGatewayId"`
+}
+
+// LoadBalancer defines an AWS loadbalancer.
+type LoadBalancer struct {
+	ID string `json:"id"`
+
+	// TODO: figure out other fields for the loadbalancer
+	Name string `json:"name`
 }
 
 // Subnets is a slice of Subnet.
