@@ -72,8 +72,10 @@ $(examples) : envfile $(templates)
 	source envfile && cd ./clusterctl/examples/aws && ./generate-yaml.sh
 
 envfile: envfile.example
+	# create the envfile and exit if the envfile doesn't already exist
+	cp -n envfile.example envfile
 	echo "\033[0;31mPlease fill out your envfile!\033[0m"
-	cp envfile.example envfile
+	exit 1
 
 clean:
 	rm -rf clusterctl/examples/aws/out
