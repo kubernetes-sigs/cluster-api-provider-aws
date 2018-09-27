@@ -67,7 +67,7 @@ spec:
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
         - --leader-elect
-        - -v1
+        - -v2
         resources:
           requests:
             cpu: 200m
@@ -98,7 +98,7 @@ spec:
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
         - --leader-elect
-        - -v1
+        - -v2
         resources:
           requests:
             cpu: 200m

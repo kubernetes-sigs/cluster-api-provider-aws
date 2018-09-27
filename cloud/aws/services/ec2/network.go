@@ -13,9 +13,13 @@
 
 package ec2
 
-import "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+import (
+	"github.com/golang/glog"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+)
 
 func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
+	glog.V(2).Info("Reconciling network")
 
 	// VPC.
 	if err := s.reconcileVPC(&network.VPC); err != nil {
@@ -23,7 +27,7 @@ func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
 	}
 
 	// Subnets.
-	if err := s.reconcileSubnets(network.Subnets, &network.VPC); err != nil {
+	if err := s.reconcileSubnets(network); err != nil {
 		return err
 	}
 
@@ -37,5 +41,11 @@ func (s *Service) ReconcileNetwork(network *v1alpha1.Network) (err error) {
 		return err
 	}
 
+	// Routing tables.
+	if err := s.reconcileRouteTables(network); err != nil {
+		return err
+	}
+
+	glog.V(2).Info("Renconcile network completed successfully")
 	return nil
 }

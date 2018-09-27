@@ -16,18 +16,22 @@ package ec2
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
 func (s *Service) reconcileRouteTables(in *v1alpha1.Network) error {
+	glog.V(2).Infof("Reconciling routing tables")
+
 	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(in.VPC.ID)
 	if err != nil {
 		return err
 	}
 
 	for _, sn := range in.Subnets {
-		if _, ok := subnetRouteMap[sn.ID]; ok {
+		if igw, ok := subnetRouteMap[sn.ID]; ok {
+			glog.V(2).Infof("Subnet %q is already associated with route table %q", sn.ID, *igw.RouteTableId)
 			// TODO(vincepri): if the route table ids are both non-empty and they don't match, replace the association.
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 			continue
@@ -60,6 +64,7 @@ func (s *Service) reconcileRouteTables(in *v1alpha1.Network) error {
 			return err
 		}
 
+		glog.V(2).Infof("Subnet %q has been associated with route table %q", sn.ID, rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 
@@ -77,6 +82,10 @@ func (s *Service) describeVpcRouteTablesBySubnet(vpcID string) (map[string]*ec2.
 	res := make(map[string]*ec2.RouteTable)
 	for _, rt := range rts {
 		for _, as := range rt.Associations {
+			if as.SubnetId == nil {
+				continue
+			}
+
 			res[*as.SubnetId] = rt
 		}
 	}

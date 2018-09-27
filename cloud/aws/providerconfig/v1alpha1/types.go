@@ -14,6 +14,8 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -174,6 +176,11 @@ type VPC struct {
 	CidrBlock string `json:"cidrBlock"`
 }
 
+// String returns a string representation of the VPC.
+func (v *VPC) String() string {
+	return fmt.Sprintf("id=%s", v.ID)
+}
+
 // Subnet defines an AWS subnet attached to a VPC.
 type Subnet struct {
 	ID string `json:"id"`
@@ -184,6 +191,11 @@ type Subnet struct {
 	IsPublic         bool    `json:"public"`
 	RouteTableID     *string `json:"routeTableId"`
 	NatGatewayID     *string `json:"natGatewayId"`
+}
+
+// String returns a string representation of the subnet.
+func (s *Subnet) String() string {
+	return fmt.Sprintf("id=%s/az=%s", s.ID, s.AvailabilityZone)
 }
 
 // Subnets is a slice of Subnet.
