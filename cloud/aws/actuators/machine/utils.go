@@ -23,6 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	log "github.com/sirupsen/logrus"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 
@@ -263,4 +265,100 @@ func StringPtrsEqual(s1, s2 *string) bool {
 		return false
 	}
 	return *s1 == *s2
+}
+
+// UpdateConditionCheck tests whether a condition should be updated from the
+// old condition to the new condition. Returns true if the condition should
+// be updated.
+type UpdateConditionCheck func(oldReason, oldMessage, newReason, newMessage string) bool
+
+// UpdateConditionAlways returns true. The condition will always be updated.
+func UpdateConditionAlways(_, _, _, _ string) bool {
+	return true
+}
+
+// UpdateConditionNever return false. The condition will never be updated,
+// unless there is a change in the status of the condition.
+func UpdateConditionNever(_, _, _, _ string) bool {
+	return false
+}
+
+// UpdateConditionIfReasonOrMessageChange returns true if there is a change
+// in the reason or the message of the condition.
+func UpdateConditionIfReasonOrMessageChange(oldReason, oldMessage, newReason, newMessage string) bool {
+	return oldReason != newReason ||
+		oldMessage != newMessage
+}
+
+func shouldUpdateCondition(
+	oldStatus corev1.ConditionStatus, oldReason, oldMessage string,
+	newStatus corev1.ConditionStatus, newReason, newMessage string,
+	updateConditionCheck UpdateConditionCheck,
+) bool {
+	if oldStatus != newStatus {
+		return true
+	}
+	return updateConditionCheck(oldReason, oldMessage, newReason, newMessage)
+}
+
+// SetAWSMachineProviderCondition sets the condition for the machine and
+// returns the new slice of conditions.
+// If the machine does not already have a condition with the specified type,
+// a condition will be added to the slice if and only if the specified
+// status is True.
+// If the machine does already have a condition with the specified type,
+// the condition will be updated if either of the following are true.
+// 1) Requested status is different than existing status.
+// 2) The updateConditionCheck function returns true.
+func SetAWSMachineProviderCondition(
+	conditions []providerconfigv1.AWSMachineProviderCondition,
+	conditionType providerconfigv1.AWSMachineProviderConditionType,
+	status corev1.ConditionStatus,
+	reason string,
+	message string,
+	updateConditionCheck UpdateConditionCheck,
+) []providerconfigv1.AWSMachineProviderCondition {
+	now := metav1.Now()
+	existingCondition := FindAWSMachineProviderCondition(conditions, conditionType)
+	if existingCondition == nil {
+		if status == corev1.ConditionTrue {
+			conditions = append(
+				conditions,
+				providerconfigv1.AWSMachineProviderCondition{
+					Type:               conditionType,
+					Status:             status,
+					Reason:             reason,
+					Message:            message,
+					LastTransitionTime: now,
+					LastProbeTime:      now,
+				},
+			)
+		}
+	} else {
+		if shouldUpdateCondition(
+			existingCondition.Status, existingCondition.Reason, existingCondition.Message,
+			status, reason, message,
+			updateConditionCheck,
+		) {
+			if existingCondition.Status != status {
+				existingCondition.LastTransitionTime = now
+			}
+			existingCondition.Status = status
+			existingCondition.Reason = reason
+			existingCondition.Message = message
+			existingCondition.LastProbeTime = now
+		}
+	}
+	return conditions
+}
+
+// FindAWSMachineProviderCondition finds in the machine the condition that has the
+// specified condition type. If none exists, then returns nil.
+func FindAWSMachineProviderCondition(conditions []providerconfigv1.AWSMachineProviderCondition, conditionType providerconfigv1.AWSMachineProviderConditionType) *providerconfigv1.AWSMachineProviderCondition {
+	for i, condition := range conditions {
+		if condition.Type == conditionType {
+			return &conditions[i]
+		}
+	}
+	return nil
 }

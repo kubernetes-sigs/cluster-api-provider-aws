@@ -2,13 +2,18 @@ package machine
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
@@ -18,7 +23,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/aws/aws-sdk-go/aws"
-	fakeawsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client/fake"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client/mock"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
@@ -134,61 +141,155 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 }
 
 func TestCreateAndDeleteMachine(t *testing.T) {
-
-	// kube client is needed to fetch aws credentials:
-	// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
-	// cluster client for updating machine statues
-	// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
-
-	machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterName)
-	if err != nil {
-		t.Fatal(err)
+	cases := []struct {
+		name                string
+		createErrorExpected bool
+	}{
+		{
+			name:                "machine creation succeeds",
+			createErrorExpected: false,
+		},
+		{
+			name:                "machine creation fails",
+			createErrorExpected: true,
+		},
 	}
 
-	fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
-	fakeClient := fake.NewSimpleClientset(machine)
-	logger := log.WithField("controller", controllerLogName)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// kube client is needed to fetch aws credentials:
+			// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
+			// cluster client for updating machine statues
+			// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
 
-	params := ActuatorParams{
-		ClusterClient:    fakeClient,
-		KubeClient:       fakeKubeClient,
-		AwsClientBuilder: fakeawsclient.NewClient,
-		Logger:           logger,
+			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterName)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
+			fakeClient := fake.NewSimpleClientset(machine)
+			logger := log.WithField("controller", controllerLogName)
+
+			mockCtrl := gomock.NewController(t)
+			mockAWSClient := mockaws.NewMockClient(mockCtrl)
+
+			params := ActuatorParams{
+				ClusterClient: fakeClient,
+				KubeClient:    fakeKubeClient,
+				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+					return mockAWSClient, nil
+				},
+				Logger: logger,
+			}
+
+			actuator, err := NewActuator(params)
+			if err != nil {
+				t.Fatalf("Could not create AWS machine actuator: %v", err)
+			}
+
+			mockRunInstances(mockAWSClient, tc.createErrorExpected)
+			mockDescribeInstances(mockAWSClient)
+			mockTerminateInstances(mockAWSClient)
+
+			// Create the machine
+			createErr := actuator.Create(cluster, machine)
+
+			// Get updated machine object from the cluster client
+			machine, err = fakeClient.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
+			if err != nil {
+				t.Fatalf("Unable to retrieve machine: %v", err)
+			}
+
+			machineStatus, err := AWSMachineProviderStatusFromClusterAPIMachine(machine)
+			if err != nil {
+				t.Fatalf("Error decoding machine provider status: %v", err)
+			}
+
+			if tc.createErrorExpected {
+				assert.Error(t, createErr)
+				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationFailed)
+			} else {
+				assert.NoError(t, createErr)
+				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationSucceeded)
+			}
+
+			if !tc.createErrorExpected {
+				// Get the machine
+				if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
+					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
+				} else {
+					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
+				}
+
+				// TODO(jchaloup): Wait until the machine is ready
+
+				// Update a machine
+				if err := actuator.Update(cluster, machine); err != nil {
+					t.Errorf("Unable to create instance for machine: %v", err)
+				}
+
+				// Get the machine
+				if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
+					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
+				} else {
+					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
+				}
+
+				// Delete a machine
+				if err := actuator.Delete(cluster, machine); err != nil {
+					t.Errorf("Unable to delete instance for machine: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func mockRunInstances(mockAWSClient *mockaws.MockClient, genError bool) {
+	var err error
+
+	if genError {
+		err = errors.New("requested RunInstances error")
 	}
 
-	actuator, err := NewActuator(params)
-	if err != nil {
-		t.Fatalf("Could not create Openstack machine actuator: %v", err)
-	}
+	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(
+		&ec2.Reservation{
+			Instances: []*ec2.Instance{
+				{
+					ImageId:    aws.String("ami-a9acbbd6"),
+					InstanceId: aws.String("i-02fcb933c5da7085c"),
+					State: &ec2.InstanceState{
+						Name: aws.String("Running"),
+						Code: aws.Int64(16),
+					},
+					LaunchTime: aws.Time(time.Now()),
+				},
+			},
+		}, err)
+}
 
-	// Create a machine
-	if err := actuator.Create(cluster, machine); err != nil {
-		t.Errorf("Unable to create instance for machine: %v", err)
-	}
+func mockDescribeInstances(mockAWSClient *mockaws.MockClient) {
+	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(
+		&ec2.DescribeInstancesOutput{
+			Reservations: []*ec2.Reservation{
+				{
+					Instances: []*ec2.Instance{
+						{
+							ImageId:    aws.String("ami-a9acbbd6"),
+							InstanceId: aws.String("i-02fcb933c5da7085c"),
+							State: &ec2.InstanceState{
+								Name: aws.String("Running"),
+								Code: aws.Int64(16),
+							},
+							LaunchTime: aws.Time(time.Now()),
+						},
+					},
+				},
+			},
+		}, nil).AnyTimes()
+}
 
-	// Get the machine
-	if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
-		t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
-	} else {
-		t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
-	}
-
-	// TODO(jchaloup): Wait until the machine is ready
-
-	// Update a machine
-	if err := actuator.Update(cluster, machine); err != nil {
-		t.Errorf("Unable to create instance for machine: %v", err)
-	}
-
-	// Get the machine
-	if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
-		t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
-	} else {
-		t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
-	}
-
-	// Delete a machine
-	if err := actuator.Delete(cluster, machine); err != nil {
-		t.Errorf("Unable to delete instance for machine: %v", err)
-	}
+func mockTerminateInstances(mockAWSClient *mockaws.MockClient) {
+	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(
+		&ec2.TerminateInstancesOutput{}, nil)
 }
