@@ -16,9 +16,12 @@ package ec2
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
 const (
@@ -33,6 +36,8 @@ const (
 
 	// InstanceStatePending indicates the instance is pending
 	InstanceStatePending = ec2.InstanceStateNamePending
+
+	defaultAMIID = "ami-057c58c0eca3e6fe3"
 )
 
 // Instance is an internal representation of an AWS instance.
@@ -69,8 +74,22 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine) (*Instance, error) {
-	input := &ec2.RunInstancesInput{}
+func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*Instance, error) {
+	id := config.AMI.ID
+	if id == nil {
+		id = aws.String(defaultAMIID)
+	}
+	subnets := clusterStatus.Network.Subnets.FilterPrivate()
+	if len(subnets) == 0 {
+		return nil, errors.New("need at least one subnet but didn't find any")
+	}
+	input := &ec2.RunInstancesInput{
+		ImageId:      config.AMI.ID,
+		InstanceType: aws.String(config.InstanceType),
+		MaxCount:     aws.Int64(1),
+		MinCount:     aws.Int64(1),
+		SubnetId:     aws.String(subnets[0].ID),
+	}
 
 	reservation, err := s.EC2.RunInstances(input)
 	if err != nil {
