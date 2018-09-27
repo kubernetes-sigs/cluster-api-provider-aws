@@ -18,6 +18,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
@@ -27,9 +28,10 @@ const (
 )
 
 func (s *Service) reconcileVPC(in *v1alpha1.VPC) error {
+	glog.V(2).Infof("Reconciling VPC")
+
 	vpc, err := s.describeVPC(in.ID)
 	if IsNotFound(err) {
-
 		// Create a new vpc.
 		vpc, err = s.createVPC(in)
 		if err != nil {
@@ -41,6 +43,7 @@ func (s *Service) reconcileVPC(in *v1alpha1.VPC) error {
 	}
 
 	vpc.DeepCopyInto(in)
+	glog.V(2).Infof("Working on VPC %q", in.ID)
 	return nil
 }
 
@@ -64,7 +67,7 @@ func (s *Service) createVPC(v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
 	}
 
 	// TODO(vincepri): tag vpc with https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/#ResourceGroupsTaggingAPI.TagResources
-
+	glog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
 	return &v1alpha1.VPC{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
@@ -81,6 +84,7 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 		return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
 	}
 
+	glog.V(2).Infof("Deleted VPC %q", v.ID)
 	return nil
 }
 

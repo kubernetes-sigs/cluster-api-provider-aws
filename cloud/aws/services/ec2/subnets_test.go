@@ -33,17 +33,20 @@ func TestReconcileSubnets(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  []*v1alpha1.Subnet
+		input  *v1alpha1.Network
 		expect func(m *mock_ec2iface.MockEC2API)
 	}{
 		{
 			name: "single private subnet exists, should create public with defaults",
-			input: []*v1alpha1.Subnet{
-				{
-					ID:               "subnet-1",
-					AvailabilityZone: "us-east-1a",
-					CidrBlock:        "10.0.10.0/24",
-					IsPublic:         false,
+			input: &v1alpha1.Network{
+				VPC: v1alpha1.VPC{ID: subnetsVPCID},
+				Subnets: []*v1alpha1.Subnet{
+					{
+						ID:               "subnet-1",
+						AvailabilityZone: "us-east-1a",
+						CidrBlock:        "10.0.10.0/24",
+						IsPublic:         false,
+					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
@@ -111,16 +114,19 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "no subnet exist, create private and public",
-			input: []*v1alpha1.Subnet{
-				{
-					AvailabilityZone: "us-east-1a",
-					CidrBlock:        "10.1.0.0/16",
-					IsPublic:         false,
-				},
-				{
-					AvailabilityZone: "us-east-1b",
-					CidrBlock:        "10.2.0.0/16",
-					IsPublic:         true,
+			input: &v1alpha1.Network{
+				VPC: v1alpha1.VPC{ID: subnetsVPCID},
+				Subnets: []*v1alpha1.Subnet{
+					{
+						AvailabilityZone: "us-east-1a",
+						CidrBlock:        "10.1.0.0/16",
+						IsPublic:         false,
+					},
+					{
+						AvailabilityZone: "us-east-1b",
+						CidrBlock:        "10.2.0.0/16",
+						IsPublic:         true,
+					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
@@ -197,7 +203,7 @@ func TestReconcileSubnets(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileSubnets(tc.input, &v1alpha1.VPC{ID: subnetsVPCID}); err != nil {
+			if err := s.reconcileSubnets(tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})

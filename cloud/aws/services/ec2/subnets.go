@@ -16,6 +16,7 @@ package ec2
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
@@ -25,40 +26,42 @@ const (
 	defaultPublicSubnetCidr  = "10.0.1.0/24"
 )
 
-func (s *Service) reconcileSubnets(subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+func (s *Service) reconcileSubnets(network *v1alpha1.Network) error {
+	glog.V(2).Infof("Reconciling subnets")
+
 	// Make sure all subnets have a vpc id.
-	for _, sn := range subnets {
+	for _, sn := range network.Subnets {
 		if sn.VpcID == "" {
-			sn.VpcID = vpc.ID
+			sn.VpcID = network.VPC.ID
 		}
 	}
 
 	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets(vpc.ID)
+	existing, err := s.describeVpcSubnets(network.VPC.ID)
 	if err != nil {
 		return err
 	}
 
 	// If the subnets are empty, populate the slice with the default configuration.
 	// Adds a single private and public subnet in the first available zone.
-	if len(subnets) < 2 {
+	if len(network.Subnets) < 2 {
 		zones, err := s.getAvailableZones()
 		if err != nil {
 			return err
 		}
 
-		if len(subnets.FilterPrivate()) == 0 {
-			subnets = append(subnets, &v1alpha1.Subnet{
-				VpcID:            vpc.ID,
+		if len(network.Subnets.FilterPrivate()) == 0 {
+			network.Subnets = append(network.Subnets, &v1alpha1.Subnet{
+				VpcID:            network.VPC.ID,
 				CidrBlock:        defaultPrivateSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         false,
 			})
 		}
 
-		if len(subnets.FilterPublic()) == 0 {
-			subnets = append(subnets, &v1alpha1.Subnet{
-				VpcID:            vpc.ID,
+		if len(network.Subnets.FilterPublic()) == 0 {
+			network.Subnets = append(network.Subnets, &v1alpha1.Subnet{
+				VpcID:            network.VPC.ID,
 				CidrBlock:        defaultPublicSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         true,
@@ -67,24 +70,25 @@ func (s *Service) reconcileSubnets(subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) 
 
 	}
 
+LoopExisting:
 	for _, exsn := range existing {
 		// Check if the subnet already exists in the state, in that case reconcile it.
-		for _, sn := range subnets {
+		for _, sn := range network.Subnets {
 			// Two subnets are defined equal to each other if their id is equal
 			// or if they are in the same vpc and the cidr block is the same.
 			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.VpcID == exsn.VpcID && sn.CidrBlock == exsn.CidrBlock) {
 				// TODO(vincepri): check if subnet needs to be updated.
 				exsn.DeepCopyInto(sn)
-				break
+				continue LoopExisting
 			}
 		}
 
 		// TODO(vincepri): delete extra subnets that exist and are managed by us.
-		subnets = append(subnets, exsn)
+		network.Subnets = append(network.Subnets, exsn)
 	}
 
 	// Proceed to create the rest of the subnets that don't have an ID.
-	for _, subnet := range subnets {
+	for _, subnet := range network.Subnets {
 		if subnet.ID != "" {
 			continue
 		}
@@ -97,6 +101,7 @@ func (s *Service) reconcileSubnets(subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) 
 		nsn.DeepCopyInto(subnet)
 	}
 
+	glog.V(2).Infof("Subnets available: %v", network.Subnets)
 	return nil
 }
 
@@ -157,6 +162,9 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 		}
 	}
 
+	glog.V(2).Infof("Created new subnet %q in VPC %q with cidr %q and availability zone %q",
+		*out.Subnet.SubnetId, *out.Subnet.VpcId, *out.Subnet.CidrBlock, *out.Subnet.AvailabilityZone)
+
 	return &v1alpha1.Subnet{
 		ID:               *out.Subnet.SubnetId,
 		VpcID:            *out.Subnet.VpcId,
@@ -175,5 +183,6 @@ func (s *Service) deleteSubnet(sn *v1alpha1.Subnet) error {
 		return errors.Wrapf(err, "failed to delete subnet %q", sn.ID)
 	}
 
+	glog.V(2).Infof("Deleted subnet %q", sn.ID)
 	return nil
 }

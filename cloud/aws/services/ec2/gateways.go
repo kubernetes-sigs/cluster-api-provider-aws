@@ -16,11 +16,14 @@ package ec2
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
 func (s *Service) reconcileInternetGateways(in *v1alpha1.Network) error {
+	glog.V(2).Infof("Reconciling internet gateways")
+
 	igs, err := s.describeVpcInternetGateways(&in.VPC)
 	if IsNotFound(err) {
 		ig, err := s.createInternetGateway(&in.VPC)

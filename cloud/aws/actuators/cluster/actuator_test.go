@@ -124,6 +124,62 @@ func TestReconcile(t *testing.T) {
 					},
 				},
 			}, nil),
+		me.EXPECT().
+			DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).
+			Return(nil),
+		me.EXPECT().
+			AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
+			Return(&ec2.AllocateAddressOutput{AllocationId: aws.String("scarf")}, nil),
+		me.EXPECT().
+			CreateNatGateway(&ec2.CreateNatGatewayInput{
+				AllocationId: aws.String("scarf"),
+				SubnetId:     aws.String("ice"),
+			}).
+			Return(&ec2.CreateNatGatewayOutput{
+				NatGateway: &ec2.NatGateway{
+					NatGatewayId: aws.String("nat-ice1"),
+				},
+			}, nil),
+		me.EXPECT().
+			WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{aws.String("nat-ice1")}}).
+			Return(nil),
+		me.EXPECT().
+			DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+				Filters: []*ec2.Filter{
+					&ec2.Filter{
+						Name: aws.String("vpc-id"),
+						Values: []*string{
+							aws.String("1234"),
+						},
+					},
+				},
+			}).Return(&ec2.DescribeRouteTablesOutput{}, nil),
+		me.EXPECT().
+			CreateRouteTable(&ec2.CreateRouteTableInput{VpcId: aws.String("1234")}).
+			Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil),
+		me.EXPECT().
+			CreateRoute(&ec2.CreateRouteInput{
+				RouteTableId:         aws.String("rt-1"),
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				NatGatewayId:         aws.String("nat-ice1"),
+			}).
+			Return(&ec2.CreateRouteOutput{}, nil),
+		me.EXPECT().
+			AssociateRouteTable(&ec2.AssociateRouteTableInput{RouteTableId: aws.String("rt-1"), SubnetId: aws.String("snow")}).
+			Return(&ec2.AssociateRouteTableOutput{}, nil),
+		me.EXPECT().
+			CreateRouteTable(&ec2.CreateRouteTableInput{VpcId: aws.String("1234")}).
+			Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-2")}}, nil),
+		me.EXPECT().
+			CreateRoute(&ec2.CreateRouteInput{
+				RouteTableId:         aws.String("rt-2"),
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				GatewayId:            aws.String("carrot"),
+			}).
+			Return(&ec2.CreateRouteOutput{}, nil),
+		me.EXPECT().
+			AssociateRouteTable(&ec2.AssociateRouteTableInput{RouteTableId: aws.String("rt-2"), SubnetId: aws.String("ice")}).
+			Return(&ec2.AssociateRouteTableOutput{}, nil),
 	)
 
 	c, err := providerconfig.NewCodec()

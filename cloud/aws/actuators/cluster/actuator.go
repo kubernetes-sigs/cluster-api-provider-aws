@@ -59,26 +59,29 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 }
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
-func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
-	// get a cluster api client for the namespace of the cluster
-	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
+func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	glog.Infof("Reconciling cluster %v.", cluster.Name)
 
+	// Get a cluster api client for the namespace of the cluster.
+	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
+
+	// Load provider status.
 	status, err := a.loadProviderStatus(cluster)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider status: %v", err)
 	}
 
+	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
+	// the cluster state might have partial changes that should be stored.
+	defer func() {
+		// TODO(vincepri): remove this after moving to tag-discovery based approach.
+		if err := a.storeProviderStatus(clusterClient, cluster, status); err != nil {
+			glog.Errorf("failed to store provider status for cluster %q: %v", cluster.Name, err)
+		}
+	}()
+
 	if err := a.ec2.ReconcileNetwork(&status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
-	}
-
-	if err := a.storeProviderStatus(cluster, status); err != nil {
-		return errors.Errorf("unable to store cluster provider status: %v", err)
-	}
-
-	if _, err := clusterClient.UpdateStatus(cluster); err != nil {
-		return errors.Errorf("failed to update cluster status: %v", err)
 	}
 
 	return nil
@@ -102,12 +105,16 @@ func (a *Actuator) loadProviderStatus(cluster *clusterv1.Cluster) (*providerconf
 	return providerStatus, err
 }
 
-func (a *Actuator) storeProviderStatus(cluster *clusterv1.Cluster, status *providerconfigv1.AWSClusterProviderStatus) error {
+func (a *Actuator) storeProviderStatus(clusterClient client.ClusterInterface, cluster *clusterv1.Cluster, status *providerconfigv1.AWSClusterProviderStatus) error {
 	raw, err := a.codec.EncodeProviderStatus(status)
 	if err != nil {
 		return errors.Errorf("failed to encode provider status: %v", err)
 	}
 
 	cluster.Status.ProviderStatus = raw
+	if _, err := clusterClient.UpdateStatus(cluster); err != nil {
+		return err
+	}
+
 	return nil
 }

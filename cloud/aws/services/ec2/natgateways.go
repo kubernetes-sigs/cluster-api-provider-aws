@@ -16,12 +16,16 @@ package ec2
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
 func (s *Service) reconcileNatGateways(subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+	glog.V(2).Infof("Reconciling NAT gateways")
+
 	if len(subnets.FilterPrivate()) == 0 {
+		glog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
 	}
 
@@ -51,7 +55,7 @@ func (s *Service) reconcileNatGateways(subnets v1alpha1.Subnets, vpc *v1alpha1.V
 }
 
 func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.NatGateway, error) {
-	describeNatGatewayInput := ec2.DescribeNatGatewaysInput{
+	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
 		Filter: []*ec2.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -62,8 +66,7 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 
 	gateways := make(map[string]*ec2.NatGateway)
 
-	err := s.EC2.DescribeNatGatewaysPages(
-		&describeNatGatewayInput,
+	err := s.EC2.DescribeNatGatewaysPages(describeNatGatewayInput,
 		func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool {
 			for _, r := range page.NatGateways {
 				gateways[*r.SubnetId] = r
