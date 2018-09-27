@@ -56,17 +56,26 @@ func TestCreate(t *testing.T) {
 `),
 				},
 			},
+			Spec: clusterv1.MachineSpec{
+				ProviderConfig: clusterv1.ProviderConfig{
+					Value: &runtime.RawExtension{
+						Raw: []byte(`{"kind":"AWSMachineProviderConfig","apiVersion":"awsproviderconfig/v1alpha1","ami":{"id":"aws-instance-id"}}
+`),
+					},
+				},
+			},
 		}).
 		Return(&clusterv1.Machine{}, nil)
 
 	// ec2 calls
 	me.EXPECT().
-		DescribeInstances(&ec2.DescribeInstancesInput{
-			InstanceIds: []*string{nil},
+		RunInstances(&ec2.RunInstancesInput{
+			ImageId:      aws.String("aws-instance-id"),
+			InstanceType: aws.String(""),
+			MaxCount:     aws.Int64(1),
+			MinCount:     aws.Int64(1),
+			SubnetId:     aws.String(""),
 		}).
-		Return(nil, ec2svc.NewNotFound(errors.New("")))
-	me.EXPECT().
-		RunInstances(&ec2.RunInstancesInput{}).
 		Return(&ec2.Reservation{
 			Instances: []*ec2.Instance{
 				&ec2.Instance{
@@ -94,7 +103,23 @@ func TestCreate(t *testing.T) {
 		t.Fatalf("failed to create an actuator: %v", err)
 	}
 
-	if err := actuator.Create(&clusterv1.Cluster{}, &clusterv1.Machine{}); err != nil {
+	if err := actuator.Create(&clusterv1.Cluster{
+		Status: clusterv1.ClusterStatus{
+			ProviderStatus: &runtime.RawExtension{
+				Raw: []byte(`{"kind":"AWSClusterProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","network":{"subnets":[{"public": true}]}}
+`),
+			},
+		},
+	}, &clusterv1.Machine{
+		Spec: clusterv1.MachineSpec{
+			ProviderConfig: clusterv1.ProviderConfig{
+				Value: &runtime.RawExtension{
+					Raw: []byte(`{"kind":"AWSMachineProviderConfig","apiVersion":"awsproviderconfig/v1alpha1","ami":{"id":"aws-instance-id"}}
+`),
+				},
+			},
+		},
+	}); err != nil {
 		t.Fatalf("failed to create machine: %v", err)
 	}
 }
@@ -107,24 +132,8 @@ func TestDelete(t *testing.T) {
 	me := mock_ec2iface.NewMockEC2API(mockCtrl)
 	defer mockCtrl.Finish()
 
-	// clusterapi calls
-	mg.mi.EXPECT().
-		UpdateStatus(&clusterv1.Machine{
-			Status: clusterv1.MachineStatus{
-				ProviderStatus: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSMachineProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","instanceID":"2345","instanceState":"running"}
-`),
-				},
-			},
-		}).
-		Return(&clusterv1.Machine{}, nil)
 	gomock.InOrder(
 		// ec2 calls
-		me.EXPECT().
-			DescribeInstances(&ec2.DescribeInstancesInput{
-				InstanceIds: []*string{nil},
-			}).
-			Return(nil, ec2svc.NewNotFound(errors.New(""))),
 		me.EXPECT().
 			DescribeInstances(&ec2.DescribeInstancesInput{
 				InstanceIds: []*string{aws.String("2345")},
@@ -144,18 +153,6 @@ func TestDelete(t *testing.T) {
 				},
 			}, nil),
 	)
-	me.EXPECT().
-		RunInstances(&ec2.RunInstancesInput{}).
-		Return(&ec2.Reservation{
-			Instances: []*ec2.Instance{
-				&ec2.Instance{
-					State: &ec2.InstanceState{
-						Name: aws.String(ec2.InstanceStateNameRunning),
-					},
-					InstanceId: aws.String("2345"),
-				},
-			},
-		}, nil)
 	me.EXPECT().
 		TerminateInstances(&ec2.TerminateInstancesInput{
 			InstanceIds: []*string{aws.String("2345")},
@@ -178,11 +175,6 @@ func TestDelete(t *testing.T) {
 	actuator, err := machine.NewActuator(ap)
 	if err != nil {
 		t.Fatalf("failed to create an actuator: %v", err)
-	}
-
-	// Create a machine that we can delete.
-	if err := actuator.Create(&clusterv1.Cluster{}, &clusterv1.Machine{}); err != nil {
-		t.Fatalf("failed to create machine: %v", err)
 	}
 
 	testMachine := &clusterv1.Machine{

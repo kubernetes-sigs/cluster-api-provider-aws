@@ -134,6 +134,8 @@ func (s *Service) describeVpcSubnets(vpcID string) (v1alpha1.Subnets, error) {
 }
 
 func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
+	mapPublicIP := sn.IsPublic
+
 	out, err := s.EC2.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(sn.VpcID),
 		CidrBlock:        aws.String(sn.CidrBlock),
@@ -153,7 +155,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
 	}
 
-	if sn.IsPublic {
+	if mapPublicIP {
 		attReq := &ec2.ModifySubnetAttributeInput{
 			MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 				Value: aws.Bool(true),
@@ -174,7 +176,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 		VpcID:            *out.Subnet.VpcId,
 		AvailabilityZone: *out.Subnet.AvailabilityZone,
 		CidrBlock:        *out.Subnet.CidrBlock,
-		IsPublic:         *out.Subnet.MapPublicIpOnLaunch,
+		IsPublic:         mapPublicIP,
 	}, nil
 }
 

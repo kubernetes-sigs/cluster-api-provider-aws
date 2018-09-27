@@ -64,6 +64,10 @@ type AWSMachineProviderConfig struct {
 	// the cluster subnet will be used.
 	// +optional
 	Subnet *AWSResourceReference `json:"subnet,omitempty"`
+
+	// KeyName is the name of the SSH key to install on the instance.
+	// +optional
+	KeyName string `json:"keyName"`
 }
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
