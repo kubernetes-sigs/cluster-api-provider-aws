@@ -68,7 +68,7 @@ integration: ## Run integration test
 
 .PHONY: lint
 lint: ## Go lint your code
-	hack/go-lint.sh $(go list -f '{{ .ImportPath }}' ./...)
+	hack/go-lint.sh -min_confidence 0.3 $(go list -f '{{ .ImportPath }}' ./...)
 
 .PHONY: fmt
 fmt: ## Go fmt your code
