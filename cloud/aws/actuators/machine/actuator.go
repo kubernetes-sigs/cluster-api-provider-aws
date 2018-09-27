@@ -309,19 +309,24 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 
 	userDataEnc := base64.StdEncoding.EncodeToString(userData)
 
+	var iamInstanceProfile *ec2.IamInstanceProfileSpecification
+	if machineProviderConfig.IAMInstanceProfile != nil && machineProviderConfig.IAMInstanceProfile.ID != nil {
+		iamInstanceProfile = &ec2.IamInstanceProfileSpecification{
+			Name: aws.String(*machineProviderConfig.IAMInstanceProfile.ID),
+		}
+	}
+
 	inputConfig := ec2.RunInstancesInput{
 		ImageId:      amiID,
 		InstanceType: aws.String(machineProviderConfig.InstanceType),
 		// Only a single instance of the AWS instance allowed
-		MinCount: aws.Int64(1),
-		MaxCount: aws.Int64(1),
-		KeyName:  machineProviderConfig.KeyName,
-		IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
-			Name: aws.String(*machineProviderConfig.IAMInstanceProfile.ID),
-		},
-		TagSpecifications: []*ec2.TagSpecification{tagInstance, tagVolume},
-		NetworkInterfaces: networkInterfaces,
-		UserData:          &userDataEnc,
+		MinCount:           aws.Int64(1),
+		MaxCount:           aws.Int64(1),
+		KeyName:            machineProviderConfig.KeyName,
+		IamInstanceProfile: iamInstanceProfile,
+		TagSpecifications:  []*ec2.TagSpecification{tagInstance, tagVolume},
+		NetworkInterfaces:  networkInterfaces,
+		UserData:           &userDataEnc,
 	}
 
 	runResult, err := client.RunInstances(&inputConfig)
