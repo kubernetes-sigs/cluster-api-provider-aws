@@ -11,7 +11,7 @@ type Infra struct {
 	EC2Svc *ec2.Service
 }
 
-func (i *Infra) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*ec2.Instance, error) {
+func (i *Infra) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, cluster *clusterv1.Cluster, clusterStatus *v1alpha1.AWSClusterProviderStatus, clusterConfig *v1alpha1.AWSClusterProviderConfig) (*ec2.Instance, error) {
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
 		instance, err := i.EC2Svc.InstanceIfExists(status.InstanceID)
@@ -28,5 +28,5 @@ func (i *Infra) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.
 	}
 
 	// otherwise let's create it
-	return i.EC2Svc.CreateInstance(machine, config, clusterStatus)
+	return i.EC2Svc.CreateInstance(machine, config, cluster, clusterConfig, clusterStatus)
 }

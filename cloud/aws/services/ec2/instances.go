@@ -39,7 +39,7 @@ const (
 	InstanceStatePending = ec2.InstanceStateNamePending
 
 	// TODO: Get default AMI using a lookup/filter based on tags added with image baking utils
-	defaultAMIID = "ami-057c58c0eca3e6fe3"
+	defaultAMIID = "ami-030cd17b75425e48d"
 
 	defaultInstanceType = ec2.InstanceTypeT3Medium
 
@@ -53,6 +53,8 @@ type Instance struct {
 	State string
 	// ID is the AWS InstanceID.
 	ID string
+	// SubnetID is the AWS SubnetID that the interface exists in
+	SubnetID string
 }
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
@@ -71,8 +73,9 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
 		return &Instance{
-			State: *out.Reservations[0].Instances[0].State.Name,
-			ID:    *out.Reservations[0].Instances[0].InstanceId,
+			State:    aws.StringValue(out.Reservations[0].Instances[0].State.Name),
+			ID:       aws.StringValue(out.Reservations[0].Instances[0].InstanceId),
+			SubnetID: aws.StringValue(out.Reservations[0].Instances[0].SubnetId),
 		}, nil
 	}
 

@@ -185,11 +185,14 @@ func TestCreateInstance(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testcases := []struct {
-		name           string
-		machine        clusterv1.Machine
-		providerConfig providerconfigv1.AWSMachineProviderConfig
-		expect         func(m *mock_ec2iface.MockEC2API)
-		check          func(instance *ec2svc.Instance, err error)
+		name                  string
+		machine               clusterv1.Machine
+		providerConfig        providerconfigv1.AWSMachineProviderConfig
+		cluster               clusterv1.Cluster
+		clusterProviderconfig providerconfigv1.AWSClusterProviderConfig
+		clusterStatus         providerconfigv1.AWSClusterProviderStatus
+		expect                func(m *mock_ec2iface.MockEC2API)
+		check                 func(instance *ec2svc.Instance, err error)
 	}{
 		{
 			name: "simple",
@@ -204,15 +207,29 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			providerConfig: providerconfigv1.AWSMachineProviderConfig{
-				Subnet: &providerconfigv1.AWSResourceReference{
-					ID: aws.String("subnet-id"),
+			providerConfig: providerconfigv1.AWSMachineProviderConfig{},
+			cluster: clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+						ServiceDomain: "cluster.local",
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.96.0.0/12"},
+						},
+						Services: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+					},
 				},
-				AMI: providerconfigv1.AWSResourceReference{
-					ID: aws.String("ami-id"),
+			},
+			clusterStatus: providerconfigv1.AWSClusterProviderStatus{
+				Network: providerconfigv1.Network{
+					Subnets: providerconfigv1.Subnets{
+						&providerconfigv1.Subnet{
+							ID:       "subnet-id",
+							IsPublic: false,
+						},
+					},
 				},
-				InstanceType: "t3.medium",
-				KeyName:      "default",
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
@@ -258,49 +275,28 @@ func TestCreateInstance(t *testing.T) {
 				KeyName:      "default",
 				NodeRole:     "controlplane",
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					RunInstances(gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
-							&ec2.Instance{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
-								},
-								InstanceId: aws.String("two"),
-							},
+			cluster: clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+						ServiceDomain: "cluster.local",
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.96.0.0/12"},
 						},
-					}, nil)
-			},
-			check: func(instance *ec2svc.Instance, err error) {
-				if err != nil {
-					t.Errorf("did not expect error: %v", err)
-				}
-			},
-		},
-		{
-			name: "override subnet",
-			machine: clusterv1.Machine{
-				Spec: clusterv1.MachineSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-cp-subnet-1",
-					},
-					Versions: clusterv1.MachineVersionInfo{
-						Kubelet:      "v1.11.3",
-						ControlPlane: "v1.11.3",
+						Services: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
 					},
 				},
 			},
-			providerConfig: providerconfigv1.AWSMachineProviderConfig{
-				Subnet: &providerconfigv1.AWSResourceReference{
-					ID: aws.String("subnet-id"),
+			clusterStatus: providerconfigv1.AWSClusterProviderStatus{
+				Network: providerconfigv1.Network{
+					Subnets: providerconfigv1.Subnets{
+						&providerconfigv1.Subnet{
+							ID:       "subnet-id",
+							IsPublic: false,
+						},
+					},
 				},
-				AMI: providerconfigv1.AWSResourceReference{
-					ID: aws.String("ami-id"),
-				},
-				InstanceType: "t3.medium",
-				KeyName:      "default",
-				NodeRole:     "controlplane",
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
@@ -329,7 +325,7 @@ func TestCreateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine, &tc.providerConfig, "test-cluster", "cluster.local", "192.168.0.0/16", "10.96.0.0/12")
+			instance, err := s.CreateInstance(&tc.machine, &tc.providerConfig, &tc.cluster, &tc.clusterProviderconfig, &tc.clusterStatus)
 			tc.check(instance, err)
 		})
 	}
