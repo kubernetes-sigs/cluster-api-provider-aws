@@ -1,6 +1,6 @@
-# Building Images
+# Building Base Images
 
-This directory contains tooling for building base images for use as nodes in Kubernetes Clusters. [Packer](https://www.packer.io) is used for building these images.
+This directory contains tooling for building base images for use as nodes in Kubernetes Clusters. [Packer](https://www.packer.io) is used for building these images. This tooling has been forked and extended from the [Wardroom](https://github.com/heptiolabs/wardroom) project.
 
 ## Prerequisites
 
@@ -22,13 +22,13 @@ The following variables can be overriden when building images using the `-var` o
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| kubernetes_version | 1.11.2-00 | Kubernetes Version to install |
+| kubernetes_version | 1.12.0-00 | Kubernetes Version to install |
 | kubernetes_cni_version | 0.6.0-00 | CNI Version to install |
 
-For example, to build all images for use with Kubernetes 1.11.2 for build version 1:
+For example, to build all images for use with Kubernetes 1.11.3 for build version 1:
 
 ```sh
-packer build -var kubernetes_version=1.11.2-00
+packer build -var kubernetes_version=1.11.3-00
 ```
 
 There are additional variables that may be set that affect the behavior of specific builds or packer post-processors. `packer inspect packer.json` will list all available variables and their default values.
@@ -37,10 +37,10 @@ There are additional variables that may be set that affect the behavior of speci
 
 If packer build is run without specifying which images to build, then it will attempt to build all configured images. `packer inspect packer.json` will list the configured builders. The `--only` option can be specified when running `packer build` to limit the images built.
 
-For example, to build only the Ubuntu image:
+For example, to build only the Ubuntu Bionic image:
 
 ```sh
-packer build --only=ami-ubuntu packer.json
+packer build --only=ubuntu-1804 packer.json
 ```
 
 ### Required Permissions to Build the AWS AMIs
@@ -95,13 +95,16 @@ The [Packer documentation for the Amazon AMI builder](https://www.packer.io/docs
 
 Building images requires setting additional variables not set by default. The `base-images-us-east-1.json` file is provided as an example.
 
-To build both the Ubuntu and CentOS AMIs:
+Note: If making the images public (the default), you must use one of the [Public CentOS images](https://wiki.centos.org/Cloud/AWS) as a base rather than a Marketplace image.
+
+To build the Ubuntu, CentOS, and Amazon Linux 2 AMIs:
 
 ```sh
 packer build -var-file base-images-us-east-1.json packer.json
 ```
 
 By default images are copied to all available AWS regions. The list can be obtained running:
+
 ```sh
 aws ec2 describe-regions --query "Regions[].{Name:RegionName}" --output text | paste -sd "," -
 ```
@@ -109,6 +112,7 @@ aws ec2 describe-regions --query "Regions[].{Name:RegionName}" --output text | p
 To limit the regions, provide the `ami_regions` variable as a comma-delimited list of AWS regions. 
 
 For example, to build all images in us-east-1 and copy only to us-west-2:
+
 ```sh
 packer build -var-file base-images-us-east-1.json -var ami_regions='us-west-2'
 ```

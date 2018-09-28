@@ -16,6 +16,18 @@
   yum:
     name: "{{ common_redhat_epel_rpm }}"
 
+- name: add cloud-init copr repo
+  get_url:
+    url: "{{ common_redhat_cloud_init_copr_rpm }}"
+    dest: /etc/yum.repos.d/cloud-init-copr.repo
+
+- name: add yum priority
+  lineinfile:
+    path: /etc/yum.repos.d/cloud-init-copr.repo
+    regexp: '^priority='
+    line: 'priority=1'
+  when: ansible_distribution == "Amazon"
+
 - name: perform a yum update
   yum:
     name: '*'

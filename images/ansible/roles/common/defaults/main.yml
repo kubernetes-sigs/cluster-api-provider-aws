@@ -35,3 +35,5 @@ common_debs:
 - nfs-client
 common_extra_debs: []
 common_redhat_epel_rpm: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+common_redhat_cloud_init_copr_rpm: "https://copr.fedorainfracloud.org/coprs/jdetiber/cloud-init/repo/epel-7/jdetiber-cloud-init-epel-7.repo"
+common_deb_cloud_init_ppr_repo: "ppa:detiber/cloud-init"

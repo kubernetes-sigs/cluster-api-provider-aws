@@ -3,7 +3,7 @@
     "aws_access_key": "",
     "aws_secret_key": "",
     "build_timestamp": "{{timestamp}}",
-    "kubernetes_version": "1.11.2-00",
+    "kubernetes_version": "1.12.0-00",
     "kubernetes_cni_version": "0.6.0-00",
     "existing_ansible_ssh_args": "{{env `ANSIBLE_SSH_ARGS`}}",
     "ami_groups": "all",
@@ -11,11 +11,11 @@
   },
   "builders": [
     {
-      "name": "ubuntu-1604",
+      "name": "ubuntu-1804",
       "type": "amazon-ebs",
       "instance_type": "t2.small",
-      "source_ami": "{{user `ubuntu_16_04_ami`}}",
-      "ami_name": "ami-ubuntu-16.04-{{user `kubernetes_version`}}-{{user `build_timestamp`}}",
+      "source_ami": "{{user `ubuntu_18_04_ami`}}",
+      "ami_name": "ami-ubuntu-18.04-{{user `kubernetes_version`}}-{{user `build_timestamp`}}",
       "ami_groups": "{{user `ami_groups`}}",
       "ami_regions": "{{user `ami_regions`}}",
       "access_key": "{{user `aws_access_key`}}",
@@ -23,33 +23,34 @@
       "ssh_username": "ubuntu",
       "tags": {
         "build_timestamp": "{{user `build_timestamp`}}",
-        "source_ami": "{{user `ubuntu_16_04_ami`}}",
+        "source_ami": "{{user `ubuntu_18_04_ami`}}",
         "build_date": "{{isotime}}",
         "distribution": "Ubuntu",
-        "distribution_release": "xenial",
-        "distribution_version": "16.04",
+        "distribution_release": "bionic",
+        "distribution_version": "18.04",
         "kubernetes_version": "{{user `kubernetes_version`}}",
         "kubernetes_cni_version": "{{user `kubernetes_cni_version`}}"
       }
     },
     {
-      "name": "centos-74",
+      "name": "centos-7",
       "type": "amazon-ebs",
       "instance_type": "t2.small",
-      "source_ami": "{{user `centos_7_4_ami`}}",
-      "ami_name": "ami-centos-7.4-{{user `kubernetes_version`}}-{{user `build_timestamp`}}",
+      "source_ami": "{{user `centos_7_ami`}}",
+      "ami_name": "ami-centos-7-{{user `kubernetes_version`}}-{{user `build_timestamp`}}",
       "ami_groups": "{{user `ami_groups`}}",
+      "ami_product_codes": "",
       "ami_regions": "{{user `ami_regions`}}",
       "access_key": "{{user `aws_access_key`}}",
       "secret_key": "{{user `aws_secret_key`}}",
       "ssh_username": "centos",
       "tags": {
         "build_timestamp": "{{user `build_timestamp`}}",
-        "source_ami": "{{user `centos_7_4_ami`}}",
+        "source_ami": "{{user `centos_7_ami`}}",
         "build_date": "{{isotime}}",
         "distribution": "CentOS",
         "distribution_release": "Core",
-        "distribution_version": "7.4",
+        "distribution_version": "7",
         "kubernetes_version": "{{user `kubernetes_version`}}",
         "kubernetes_cni_version": "{{user `kubernetes_cni_version`}}"
       }
@@ -81,11 +82,10 @@
     {
       "type": "shell",
       "inline": [
-        "sudo apt-get -qqy update",
-        "sudo apt-get install -qqy python python-pip"
+        "sudo apt-get -qqy update && sudo apt-get install -qqy python python-pip"
       ],
       "only": [
-        "ubuntu-1604"
+        "ubuntu-1804"
       ]
     },
     {

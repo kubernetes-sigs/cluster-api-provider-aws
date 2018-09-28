@@ -14,12 +14,12 @@
 ---
 - name: add the kubernetes apt repo key
   apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    url: "{{ kubernetes_deb_gpg_key }}"
     state: present
 
 - name: add the kubernetes apt repo
   apt_repository:
-    repo: "{{ 'deb http://apt.kubernetes.io/ kubernetes-' + (ansible_distribution_release | lower) + ' main' }}"
+    repo: "{{ 'deb ' ~ kubernetes_deb_repo ~ ' main' }}"
     update_cache: True
     state: present
 
