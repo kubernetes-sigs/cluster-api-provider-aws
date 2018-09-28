@@ -51,6 +51,16 @@ func TestReconcile(t *testing.T) {
 
 	gomock.InOrder(
 		me.EXPECT().
+			DescribeVpcs(&ec2.DescribeVpcsInput{
+				Filters: []*ec2.Filter{&ec2.Filter{
+					Name:   aws.String("tag-key"),
+					Values: aws.StringSlice([]string{"kubernetes.io/cluster/"}),
+				}},
+			}).
+			Return(&ec2.DescribeVpcsOutput{
+				Vpcs: []*ec2.Vpc{},
+			}, nil),
+		me.EXPECT().
 			CreateVpc(&ec2.CreateVpcInput{
 				CidrBlock: aws.String("10.0.0.0/16"),
 			}).
@@ -65,6 +75,15 @@ func TestReconcile(t *testing.T) {
 				VpcIds: []*string{aws.String("1234")},
 			}).
 			Return(nil),
+		me.EXPECT().
+			CreateTags(&ec2.CreateTagsInput{
+				Resources: aws.StringSlice([]string{"1234"}),
+				Tags: []*ec2.Tag{&ec2.Tag{
+					Key:   aws.String("kubernetes.io/cluster/"),
+					Value: aws.String("owned"),
+				}},
+			}).
+			Return(&ec2.CreateTagsOutput{}, nil),
 		me.EXPECT().
 			DescribeSubnets(&ec2.DescribeSubnetsInput{
 				Filters: []*ec2.Filter{
