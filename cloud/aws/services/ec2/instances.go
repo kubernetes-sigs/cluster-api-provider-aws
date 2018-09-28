@@ -121,13 +121,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, providerConfig *pro
 	}
 
 	// TODO: handle common cluster config for tags
-	var tags []*ec2.Tag
-	for key, val := range providerConfig.AdditionalTags {
-		tags = append(tags, &ec2.Tag{
-			Key:   aws.String(key),
-			Value: aws.String(val),
-		})
-	}
+	tags := tagMapToEC2Tags(s.buildTags(cluster.Name, ResourceLifecycleOwned, providerConfig.AdditionalTags))
 
 	var userDataText string
 

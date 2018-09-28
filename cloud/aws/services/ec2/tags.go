@@ -24,6 +24,7 @@ import (
 // The tag key = TagNameKubernetesClusterPrefix + clusterID
 // The tag value is an ownership value
 const TagNameKubernetesClusterPrefix = "kubernetes.io/cluster/"
+const TagNameProvider = "sigs.k8s.io/cluster-api-provider-aws"
 
 // ResourceLifecycle configures the lifecycle of a resource
 type ResourceLifecycle string
@@ -46,15 +47,7 @@ func (s *Service) clusterTagKey(clusterName string) string {
 // createTags tags a resource with tags including the cluster tag
 func (s *Service) createTags(clusterName string, resourceID string, lifecycle ResourceLifecycle, additionalTags map[string]string) error {
 	tags := s.buildTags(clusterName, lifecycle, additionalTags)
-
-	awsTags := make([]*ec2.Tag, 0, len(tags))
-	for k, v := range tags {
-		tag := &ec2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		}
-		awsTags = append(awsTags, tag)
-	}
+	awsTags := tagMapToEC2Tags(tags)
 
 	createTagsInput := &ec2.CreateTagsInput{
 		Resources: aws.StringSlice([]string{resourceID}),
@@ -75,7 +68,7 @@ func (s *Service) addTagFilters(clusterName string, filters []*ec2.Filter) []*ec
 	return filters
 }
 
-// buildTags builds tags including the cluster tag
+// buildTags builds tags including the cluster and provider tags
 func (s *Service) buildTags(clusterName string, lifecycle ResourceLifecycle, additionalTags map[string]string) map[string]string {
 	tags := make(map[string]string)
 	for k, v := range additionalTags {
@@ -84,5 +77,21 @@ func (s *Service) buildTags(clusterName string, lifecycle ResourceLifecycle, add
 
 	tags[s.clusterTagKey(clusterName)] = string(lifecycle)
 
+	if lifecycle == ResourceLifecycleOwned {
+		tags[TagNameProvider] = "true"
+	}
+
 	return tags
+}
+
+func tagMapToEC2Tags(tags map[string]string) []*ec2.Tag {
+	awsTags := make([]*ec2.Tag, 0, len(tags))
+	for k, v := range tags {
+		tag := &ec2.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		}
+		awsTags = append(awsTags, tag)
+	}
+	return awsTags
 }
