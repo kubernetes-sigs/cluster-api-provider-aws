@@ -177,7 +177,7 @@ func readMachineSetManifest(manifestParams *manifestParams, manifestLoc string) 
 	machineset := &clusterv1.MachineSet{}
 	manifestBytes, err := ioutil.ReadFile(manifestLoc)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to read %v: %v", manifestLoc, err)
 	}
 
 	t, err := template.New("machinesetuserdata").Parse(string(manifestBytes))
@@ -191,7 +191,7 @@ func readMachineSetManifest(manifestParams *manifestParams, manifestLoc string) 
 	}
 
 	if err = yaml.Unmarshal(buf.Bytes(), &machineset); err != nil {
-		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to unmarshal %v: %v", manifestLoc, err)
 	}
 
 	return machineset, nil
@@ -201,7 +201,7 @@ func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*c
 	machine := &clusterv1.Machine{}
 	manifestBytes, err := ioutil.ReadFile(manifestLoc)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to read %v: %v", manifestLoc, err)
 	}
 
 	t, err := template.New("machineuserdata").Parse(string(manifestBytes))
@@ -215,7 +215,7 @@ func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*c
 	}
 
 	if err = yaml.Unmarshal(buf.Bytes(), &machine); err != nil {
-		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to unmarshal %v: %v", manifestLoc, err)
 	}
 
 	return machine, nil
@@ -225,11 +225,11 @@ func readClusterManifest(manifestLoc string) (*clusterv1.Cluster, error) {
 	cluster := &clusterv1.Cluster{}
 	bytes, err := ioutil.ReadFile(manifestLoc)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to read %v: %v", manifestLoc, err)
 	}
 
 	if err = yaml.Unmarshal(bytes, &cluster); err != nil {
-		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to unmarshal %v: %v", manifestLoc, err)
 	}
 
 	return cluster, nil
@@ -239,10 +239,10 @@ func readSecretManifest(manifestLoc string) (*apiv1.Secret, error) {
 	secret := &apiv1.Secret{}
 	bytes, err := ioutil.ReadFile(manifestLoc)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to read %v: %v", manifestLoc, err)
 	}
 	if err = yaml.Unmarshal(bytes, &secret); err != nil {
-		return nil, fmt.Errorf("Unable to unmarshal %v: %v", manifestLoc, err)
+		return nil, fmt.Errorf("unable to unmarshal %v: %v", manifestLoc, err)
 	}
 	return secret, nil
 }
@@ -470,7 +470,7 @@ func bootstrapCommand() *cobra.Command {
 			// Wait until the cluster comes up
 			config, err := controller.GetConfig("kubeconfig")
 			if err != nil {
-				return fmt.Errorf("Unable to create config: %v", err)
+				return fmt.Errorf("unable to create config: %v", err)
 			}
 
 			kubeClient, err := kubernetes.NewForConfig(config)
