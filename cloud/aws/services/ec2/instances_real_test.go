@@ -78,14 +78,18 @@ network:
 				},
 				Spec: clusterv1.MachineSpec{
 					Versions: clusterv1.MachineVersionInfo{
-						Kubelet:      "v1.11.3",
-						ControlPlane: "v1.11.3",
+						Kubelet:      "v1.12.0",
+						ControlPlane: "v1.12.0",
 					},
 					ProviderConfig: clusterv1.ProviderConfig{
 						Value: &runtime.RawExtension{
 							Raw: []byte(`apiVersion: "awsproviderconfig/v1alpha1"
 kind: AWSMachineProviderConfig
 nodeRole: "controlplane"
+additionalSecurityGroups:
+- id: sg-7c40340a
+- id: sg-225df755
+- id: sg-f448e4bf
 `),
 						},
 					},

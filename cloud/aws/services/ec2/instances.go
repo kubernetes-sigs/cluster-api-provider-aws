@@ -39,7 +39,7 @@ const (
 	InstanceStatePending = ec2.InstanceStateNamePending
 
 	// TODO: Get default AMI using a lookup/filter based on tags added with image baking utils
-	defaultAMIID = "ami-030cd17b75425e48d"
+	defaultAMIID = "ami-0de61b6929e8f091c"
 
 	defaultInstanceType = ec2.InstanceTypeT3Medium
 
@@ -121,7 +121,14 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, providerConfig *pro
 	}
 
 	// TODO: handle common cluster config for tags
-	tags := tagMapToEC2Tags(s.buildTags(cluster.Name, ResourceLifecycleOwned, providerConfig.AdditionalTags))
+	additionalTags := providerConfig.AdditionalTags
+	if additionalTags == nil {
+		additionalTags = make(map[string]string)
+	}
+	if _, ok := additionalTags["Name"]; !ok {
+		additionalTags["Name"] = machine.Name
+	}
+	tags := tagMapToEC2Tags(s.buildTags(cluster.Name, ResourceLifecycleOwned, additionalTags))
 
 	var userDataText string
 
@@ -135,8 +142,20 @@ kubeadm:
 write_files:
 - path: /run/kubeadm/kubeadm.config
   content: |
-    apiVersion: kubeadm.k8s.io/v1alpha2
-    kind: MasterConfiguration
+    apiVersion: kubeadm.k8s.io/v1alpha3
+    kind: InitConfiguration
+`
+		userDataText += fmt.Sprintf("    apiServerCertSANs: [\"%s\"]\n", clusterStatus.Network.APIServerLoadBalancer.DNSName)
+		userDataText += fmt.Sprintf("    controlPlaneEndpoint: \"%s:443\"\n", clusterStatus.Network.APIServerLoadBalancer.DNSName)
+		userDataText += fmt.Sprintf("    clusterName: %s\n", cluster.Name)
+		userDataText += "    networking:\n"
+		userDataText += fmt.Sprintf("      dnsDomain: %s\n", cluster.Spec.ClusterNetwork.ServiceDomain)
+		userDataText += fmt.Sprintf("      podSubnet: %s\n", cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0])
+		userDataText += fmt.Sprintf("      serviceSubnet: %s\n", cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0])
+
+		// Set kubernetes version
+		userDataText += fmt.Sprintf("    kubernetesVersion: %s\n", machine.Spec.Versions.ControlPlane)
+		userDataText += `
     nodeRegistration:
       criSocket: /run/containerd/containerd.sock
     bootstrapTokens:
@@ -148,25 +167,17 @@ write_files:
       - signing
       - authentication
 `
-		userDataText += "    api:\n"
-		userDataText += fmt.Sprintf("      controlPlaneEndpoint: \"%s:443\"\n", clusterStatus.Network.APIServerLoadBalancer.DNSName)
-		userDataText += fmt.Sprintf("    clusterName: %s\n", cluster.Name)
-		userDataText += "    networking:\n"
-		userDataText += fmt.Sprintf("      dnsDomain: %s\n", cluster.Spec.ClusterNetwork.ServiceDomain)
-		userDataText += fmt.Sprintf("      podSubnet: %s\n", cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0])
-		userDataText += fmt.Sprintf("      serviceSubnet: %s\n", cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0])
-
 	} else {
 		// TODO: remove hard coded bootstrap token
 		userDataText = `#cloud-config
 kubeadm:
-  operation: init
+  operation: join
   config: /run/kubeadm/kubeadm.config
 write_files:
 - path: /run/kubeadm/kubeadm.config
   content: |
-	apiVersion: kubeadm.k8s.io/v1alpha2
-	kind: NodeConfiguration
+    apiVersion: kubeadm.k8s.io/v1alpha3
+    kind: JoinConfiguration
     nodeRegistration:
       criSocket: /run/containerd/containerd.sock
 	token: abcdef.0123456789abcdef
