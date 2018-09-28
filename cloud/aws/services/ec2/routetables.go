@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-func (s *Service) reconcileRouteTables(in *v1alpha1.Network) error {
+func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network) error {
 	glog.V(2).Infof("Reconciling routing tables")
 
 	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(in.VPC.ID)
@@ -55,7 +55,7 @@ func (s *Service) reconcileRouteTables(in *v1alpha1.Network) error {
 			routes = s.getDefaultPrivateRoutes(natGatewayId)
 		}
 
-		rt, err := s.createRouteTableWithRoutes(&in.VPC, routes)
+		rt, err := s.createRouteTableWithRoutes(clusterName, &in.VPC, routes)
 		if err != nil {
 			return err
 		}
@@ -110,10 +110,14 @@ func (s *Service) describeVpcRouteTables(vpcID string) ([]*ec2.RouteTable, error
 	return out.RouteTables, nil
 }
 
-func (s *Service) createRouteTableWithRoutes(vpc *v1alpha1.VPC, routes []*ec2.Route) (*v1alpha1.RouteTable, error) {
+func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.VPC, routes []*ec2.Route) (*v1alpha1.RouteTable, error) {
 	out, err := s.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(vpc.ID),
 	})
+
+	if err := s.createTags(clusterName, *out.RouteTable.RouteTableId, ResourceLifecycleOwned, nil); err != nil {
+		return nil, errors.Wrapf(err, "failed to tag route table %q", *out.RouteTable.RouteTableId)
+	}
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", vpc.ID)

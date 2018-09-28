@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-func (s *Service) reconcileNatGateways(subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
 	glog.V(2).Infof("Reconciling NAT gateways")
 
 	if len(subnets.FilterPrivate()) == 0 {
@@ -43,7 +43,7 @@ func (s *Service) reconcileNatGateways(subnets v1alpha1.Subnets, vpc *v1alpha1.V
 			continue
 		}
 
-		ng, err := s.createNatGateway(sn.ID)
+		ng, err := s.createNatGateway(clusterName, sn.ID)
 		if err != nil {
 			return err
 		}
@@ -81,7 +81,7 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 	return gateways, nil
 }
 
-func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
+func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.NatGateway, error) {
 	ip, err := s.allocateAddress()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
@@ -99,6 +99,10 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
 	if err := s.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
+	}
+
+	if err := s.createTags(clusterName, *out.NatGateway.NatGatewayId, ResourceLifecycleOwned, nil); err != nil {
+		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 
 	return out.NatGateway, nil

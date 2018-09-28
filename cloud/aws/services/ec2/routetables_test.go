@@ -68,6 +68,16 @@ func TestReconcileRouteTables(t *testing.T) {
 					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil)
 
 				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"rt-1"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
+
+				m.EXPECT().
 					CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
 						NatGatewayId:         aws.String("nat-01"),
 						DestinationCidrBlock: aws.String("0.0.0.0/0"),
@@ -94,6 +104,16 @@ func TestReconcileRouteTables(t *testing.T) {
 						RouteTableId:         aws.String("rt-2"),
 					})).
 					After(publicRouteTable)
+
+				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"rt-2"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
 
 				m.EXPECT().
 					AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
@@ -142,7 +162,7 @@ func TestReconcileRouteTables(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileRouteTables(tc.input); err != nil && tc.err != nil {
+			if err := s.reconcileRouteTables("test-cluster", tc.input); err != nil && tc.err != nil {
 				if !strings.Contains(err.Error(), tc.err.Error()) {
 					t.Fatalf("was expecting error to look like '%v', but got '%v'", tc.err, err)
 				}

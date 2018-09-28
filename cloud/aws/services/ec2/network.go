@@ -27,22 +27,22 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 	}
 
 	// Subnets.
-	if err := s.reconcileSubnets(network); err != nil {
+	if err := s.reconcileSubnets(clusterName, network); err != nil {
 		return err
 	}
 
 	// Internet Gateways.
-	if err := s.reconcileInternetGateways(network); err != nil {
+	if err := s.reconcileInternetGateways(clusterName, network); err != nil {
 		return err
 	}
 
 	// NAT Gateways.
-	if err := s.reconcileNatGateways(network.Subnets, &network.VPC); err != nil {
+	if err := s.reconcileNatGateways(clusterName, network.Subnets, &network.VPC); err != nil {
 		return err
 	}
 
 	// Routing tables.
-	if err := s.reconcileRouteTables(network); err != nil {
+	if err := s.reconcileRouteTables(clusterName, network); err != nil {
 		return err
 	}
 

@@ -102,6 +102,16 @@ func TestReconcileSubnets(t *testing.T) {
 					WaitUntilSubnetAvailable(gomock.Any())
 
 				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"subnet-2"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
+
+				m.EXPECT().
 					ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
 						MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 							Value: aws.Bool(true),
@@ -162,6 +172,16 @@ func TestReconcileSubnets(t *testing.T) {
 					WaitUntilSubnetAvailable(gomock.Any()).
 					After(firstSubnet)
 
+				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"subnet-1"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
+
 				secondSubnet := m.EXPECT().
 					CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
 						VpcId:            aws.String(subnetsVPCID),
@@ -184,6 +204,16 @@ func TestReconcileSubnets(t *testing.T) {
 					After(secondSubnet)
 
 				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"subnet-2"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
+
+				m.EXPECT().
 					ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
 						MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 							Value: aws.Bool(true),
@@ -203,7 +233,7 @@ func TestReconcileSubnets(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileSubnets(tc.input); err != nil {
+			if err := s.reconcileSubnets("test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})
