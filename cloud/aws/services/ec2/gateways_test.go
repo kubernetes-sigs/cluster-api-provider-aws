@@ -76,6 +76,16 @@ func TestReconcileInternetGateways(t *testing.T) {
 					}, nil)
 
 				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"igw-1"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
+
+				m.EXPECT().
 					AttachInternetGateway(gomock.Eq(&ec2.AttachInternetGatewayInput{
 						InternetGatewayId: aws.String("igw-1"),
 						VpcId:             aws.String("vpc-gateways"),
@@ -92,7 +102,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileInternetGateways(tc.input); err != nil {
+			if err := s.reconcileInternetGateways("test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})

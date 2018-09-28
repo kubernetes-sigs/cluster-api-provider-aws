@@ -21,12 +21,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-func (s *Service) reconcileInternetGateways(in *v1alpha1.Network) error {
+func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Network) error {
 	glog.V(2).Infof("Reconciling internet gateways")
 
 	igs, err := s.describeVpcInternetGateways(&in.VPC)
 	if IsNotFound(err) {
-		ig, err := s.createInternetGateway(&in.VPC)
+		ig, err := s.createInternetGateway(clusterName, &in.VPC)
 		if err != nil {
 			return nil
 		}
@@ -39,10 +39,14 @@ func (s *Service) reconcileInternetGateways(in *v1alpha1.Network) error {
 	return nil
 }
 
-func (s *Service) createInternetGateway(vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
+func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
 	ig, err := s.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
+	}
+
+	if err := s.createTags(clusterName, *ig.InternetGateway.InternetGatewayId, ResourceLifecycleOwned, nil); err != nil {
+		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 
 	_, err = s.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{

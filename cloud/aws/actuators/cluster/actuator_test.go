@@ -83,7 +83,7 @@ func TestReconcile(t *testing.T) {
 					Value: aws.String("owned"),
 				}},
 			}).
-			Return(&ec2.CreateTagsOutput{}, nil),
+			Return(nil, nil),
 		me.EXPECT().
 			DescribeSubnets(&ec2.DescribeSubnetsInput{
 				Filters: []*ec2.Filter{
@@ -163,6 +163,15 @@ func TestReconcile(t *testing.T) {
 			WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{aws.String("nat-ice1")}}).
 			Return(nil),
 		me.EXPECT().
+			CreateTags(&ec2.CreateTagsInput{
+				Resources: aws.StringSlice([]string{"nat-ice1"}),
+				Tags: []*ec2.Tag{&ec2.Tag{
+					Key:   aws.String("kubernetes.io/cluster/"),
+					Value: aws.String("owned"),
+				}},
+			}).
+			Return(nil, nil),
+		me.EXPECT().
 			DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 				Filters: []*ec2.Filter{
 					&ec2.Filter{
@@ -177,6 +186,15 @@ func TestReconcile(t *testing.T) {
 			CreateRouteTable(&ec2.CreateRouteTableInput{VpcId: aws.String("1234")}).
 			Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil),
 		me.EXPECT().
+			CreateTags(&ec2.CreateTagsInput{
+				Resources: aws.StringSlice([]string{"rt-1"}),
+				Tags: []*ec2.Tag{&ec2.Tag{
+					Key:   aws.String("kubernetes.io/cluster/"),
+					Value: aws.String("owned"),
+				}},
+			}).
+			Return(nil, nil),
+		me.EXPECT().
 			CreateRoute(&ec2.CreateRouteInput{
 				RouteTableId:         aws.String("rt-1"),
 				DestinationCidrBlock: aws.String("0.0.0.0/0"),
@@ -189,6 +207,15 @@ func TestReconcile(t *testing.T) {
 		me.EXPECT().
 			CreateRouteTable(&ec2.CreateRouteTableInput{VpcId: aws.String("1234")}).
 			Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-2")}}, nil),
+		me.EXPECT().
+			CreateTags(&ec2.CreateTagsInput{
+				Resources: aws.StringSlice([]string{"rt-2"}),
+				Tags: []*ec2.Tag{&ec2.Tag{
+					Key:   aws.String("kubernetes.io/cluster/"),
+					Value: aws.String("owned"),
+				}},
+			}).
+			Return(nil, nil),
 		me.EXPECT().
 			CreateRoute(&ec2.CreateRouteInput{
 				RouteTableId:         aws.String("rt-2"),

@@ -139,6 +139,16 @@ func TestReconcileNatGateways(t *testing.T) {
 						NatGatewayIds: []*string{aws.String("natgateway")},
 					}).Return(nil)
 
+				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"natgateway"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
+
 			},
 		},
 		{
@@ -207,6 +217,15 @@ func TestReconcileNatGateways(t *testing.T) {
 						NatGatewayIds: []*string{aws.String("natgateway")},
 					}).Return(nil)
 
+				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{"natgateway"}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
 			},
 		},
 		{
@@ -288,7 +307,7 @@ func TestReconcileNatGateways(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileNatGateways(tc.input, &v1alpha1.VPC{ID: subnetsVPCID}); err != nil {
+			if err := s.reconcileNatGateways("test-cluster", tc.input, &v1alpha1.VPC{ID: subnetsVPCID}); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})

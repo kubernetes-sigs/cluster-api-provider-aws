@@ -26,7 +26,7 @@ const (
 	defaultPublicSubnetCidr  = "10.0.1.0/24"
 )
 
-func (s *Service) reconcileSubnets(network *v1alpha1.Network) error {
+func (s *Service) reconcileSubnets(clusterName string, network *v1alpha1.Network) error {
 	glog.V(2).Infof("Reconciling subnets")
 
 	// Make sure all subnets have a vpc id.
@@ -93,7 +93,7 @@ LoopExisting:
 			continue
 		}
 
-		nsn, err := s.createSubnet(subnet)
+		nsn, err := s.createSubnet(clusterName, subnet)
 		if err != nil {
 			return err
 		}
@@ -133,7 +133,7 @@ func (s *Service) describeVpcSubnets(vpcID string) (v1alpha1.Subnets, error) {
 	return subnets, nil
 }
 
-func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
+func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 	out, err := s.EC2.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(sn.VpcID),
 		CidrBlock:        aws.String(sn.CidrBlock),
@@ -147,6 +147,10 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
 	if err := s.EC2.WaitUntilSubnetAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
+	}
+
+	if err := s.createTags(clusterName, *out.Subnet.SubnetId, ResourceLifecycleOwned, nil); err != nil {
+		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
 	}
 
 	if sn.IsPublic {
