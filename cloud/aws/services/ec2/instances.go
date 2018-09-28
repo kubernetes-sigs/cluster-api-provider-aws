@@ -154,10 +154,8 @@ write_files:
       - signing
       - authentication
 `
-		// TODO: override the controlPlaneEndpoint
-		//userDataText += "    api:\n"
-		//userDataText += fmt.Sprintf("      controlPlaneEndpoint: \"%s:443\"\n", apiEndpoint)
-
+		userDataText += "    api:\n"
+		userDataText += fmt.Sprintf("      controlPlaneEndpoint: \"%s:443\"\n", clusterStatus.Network.APIServerLoadBalancer.DNSName)
 		userDataText += fmt.Sprintf("    clusterName: %s\n", cluster.Name)
 		userDataText += "    networking:\n"
 		userDataText += fmt.Sprintf("      dnsDomain: %s\n", cluster.Spec.ClusterNetwork.ServiceDomain)
@@ -180,10 +178,8 @@ write_files:
 	token: abcdef.0123456789abcdef
     discoveryTokenUnsafeSkipCAVerification: true
 `
-		// TODO: override the controlPlaneEndpoint
-		//userDataText += "    discoveryTokenAPIServers:\n"
-		//userDataText += fmt.Sprintf("    - %s:443\n", apiEndpoint)
-
+		userDataText += "    discoveryTokenAPIServers:\n"
+		userDataText += fmt.Sprintf("    - %s:443\n", clusterStatus.Network.APIServerLoadBalancer.DNSName)
 		userDataText += fmt.Sprintf("    clusterName: %s\n", cluster.Name)
 	}
 

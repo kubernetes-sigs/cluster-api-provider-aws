@@ -178,6 +178,9 @@ type Network struct {
 
 	// Subnets includes all the subnets defined inside the VPC.
 	Subnets Subnets `json:"subnets"`
+
+	// API Server Load Balancer
+	APIServerLoadBalancer LoadBalancer `json:"apiServerLoadBalancer"`
 }
 
 // VPC defines an AWS vpc.
@@ -244,4 +247,12 @@ func (s Subnets) FilterPublic() (res Subnets) {
 // RouteTable defines an AWS routing table.
 type RouteTable struct {
 	ID string `json:"id"`
+}
+
+// LoadBalancer defines an AWS loadbalancer.
+type LoadBalancer struct {
+	ID string `json:"id"`
+	// TODO: figure out other fields for the loadbalancer
+	Name    string `json:"name"`
+	DNSName string `json:"dnsName"`
 }
