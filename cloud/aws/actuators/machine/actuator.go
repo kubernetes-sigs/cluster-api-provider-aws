@@ -96,8 +96,8 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) removeStoppedMachine(machine *clusterv1.Machine, client awsclient.Client, mLog log.FieldLogger) error {
 	instances, err := GetStoppedInstances(machine, client)
 	if err != nil {
-		mLog.Errorf("Error getting stopped instances: %v", err)
-		return fmt.Errorf("Error getting stopped instances: %v", err)
+		mLog.Errorf("error getting stopped instances: %v", err)
+		return fmt.Errorf("error getting stopped instances: %v", err)
 	}
 
 	if len(instances) == 0 {
