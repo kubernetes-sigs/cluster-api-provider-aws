@@ -66,9 +66,13 @@ test: # Run unit test
 integration: ## Run integration test
 	go test -v sigs.k8s.io/cluster-api-provider-aws/test/integration
 
+.PHONY: test-e2e
+test-e2e: ## Run e2e test
+	go test -v sigs.k8s.io/cluster-api-provider-aws/test/machines -kubeconfig $${KUBECONFIG:-~/.kube/config} -cluster-id $${ENVIRONMENT_ID:-""} -ginkgo.v
+
 .PHONY: lint
 lint: ## Go lint your code
-	hack/go-lint.sh -min_confidence 0.3 $(go list -f '{{ .ImportPath }}' ./...)
+	hack/go-lint.sh -min_confidence 0.3 $$(go list -f '{{ .ImportPath }}' ./... | grep -v 'sigs.k8s.io/cluster-api-provider-aws/test')
 
 .PHONY: fmt
 fmt: ## Go fmt your code

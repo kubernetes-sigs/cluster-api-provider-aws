@@ -26,7 +26,7 @@ import (
 	"k8s.io/gengo/types"
 )
 
-// apiLinter is the framework hosting mutliple API rules and recording API rule
+// apiLinter is the framework hosting multiple API rules and recording API rule
 // violations
 type apiLinter struct {
 	// API rules that implement APIRule interface and output API rule violations
