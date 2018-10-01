@@ -28,7 +28,10 @@ vendor:
 	patch -p1 < 0002-Sort-machines-before-syncing.patch
 
 .PHONY: generate
-generate: gendeepcopy
+generate: gendeepcopy generate-mocks
+
+.PHONY: test
+test: generate-mocks unit
 
 .PHONY: gendeepcopy
 gendeepcopy:
@@ -37,6 +40,11 @@ gendeepcopy:
 	  -i ./cloud/aws/providerconfig,./cloud/aws/providerconfig/v1alpha1 \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
+
+.PHONY: generate-mocks
+generate-mocks:
+	go build -o $$GOPATH/bin/mockgen sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/golang/mock/mockgen/
+	go generate ./cloud/aws/client/
 
 build:
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
@@ -58,8 +66,8 @@ push:
 .PHONY: check
 check: fmt vet lint test ## Check your code
 
-.PHONY: test
-test: # Run unit test
+.PHONY: unit
+unit: # Run unit test
 	go test -race -cover ./cmd/... ./cloud/...
 
 .PHONY: integration

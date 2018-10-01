@@ -259,6 +259,14 @@
   revision = "6f2cf27854a4a29e3811b0371547be335d411b8b"
 
 [[projects]]
+  digest = "1:73a7106c799f98af4f3da7552906efc6a2570329f4cd2d2f5fb8f9d6c053ff2f"
+  name = "github.com/golang/mock"
+  packages = ["gomock"]
+  pruneopts = ""
+  revision = "c34cdb4725f4c3844d095133c6e40e448b86589b"
+  version = "v1.1.1"
+
+[[projects]]
   digest = "1:3dd078fda7500c341bc26cfbc6c6a34614f295a2457149fc1045cab767cbcf18"
   name = "github.com/golang/protobuf"
   packages = [
@@ -527,6 +535,14 @@
   version = "v2.0.1"
 
 [[projects]]
+  digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = ""
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:4142d94383572e74b42352273652c62afec5b23f325222ed09198f46009022d1"
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
@@ -591,6 +607,14 @@
   pruneopts = ""
   revision = "9a97c102cda95a86cec2345a6f09f55a939babf5"
   version = "v1.0.2"
+
+[[projects]]
+  digest = "1:c587772fb8ad29ad4db67575dad25ba17a51f072ff18a22b4f0257a4d9c24f75"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  pruneopts = ""
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   digest = "1:2e7f653483e51243b6cd6de60ce39bde0d6927d10a3c24295ab0f82cb1efeae2"
@@ -1213,6 +1237,7 @@
     "github.com/aws/aws-sdk-go/service/elb/elbiface",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
+    "github.com/golang/mock/gomock",
     "github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
@@ -1221,6 +1246,7 @@
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "k8s.io/api/apps/v1beta2",
+    "github.com/stretchr/testify/assert",
     "k8s.io/api/core/v1",
     "k8s.io/api/rbac/v1",
     "k8s.io/apimachinery/pkg/api/equality",

@@ -178,9 +178,9 @@ type AWSMachineProviderConditionType string
 
 // Valid conditions for an AWS machine instance
 const (
-	// MachineCreated indicates whether the machine has been created or not. If not,
+	// MachineCreation indicates whether the machine has been created or not. If not,
 	// it should include a reason and message for the failure.
-	MachineCreated AWSMachineProviderConditionType = "MachineCreated"
+	MachineCreation AWSMachineProviderConditionType = "MachineCreation"
 )
 
 // AWSMachineProviderCondition is a condition in a AWSMachineProviderStatus

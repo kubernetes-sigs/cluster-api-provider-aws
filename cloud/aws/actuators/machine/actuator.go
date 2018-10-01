@@ -45,6 +45,12 @@ const (
 	userDataSecretKey         = "userData"
 	ec2InstanceIDNotFoundCode = "InvalidInstanceID.NotFound"
 	requeueAfterSeconds       = 20
+
+	// MachineCreationSucceeded indicates success for machine creation
+	MachineCreationSucceeded = "MachineCreationSucceeded"
+
+	// MachineCreationFailed indicates that machine creation failed
+	MachineCreationFailed = "MachineCreationFailed"
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -81,6 +87,10 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	instance, err := a.CreateMachine(cluster, machine)
 	if err != nil {
 		mLog.Errorf("error creating machine: %v", err)
+		updateConditionError := a.updateMachineProviderConditions(machine, mLog, providerconfigv1.MachineCreation, MachineCreationFailed, err.Error())
+		if updateConditionError != nil {
+			mLog.Errorf("error updating machine conditions: %v", updateConditionError)
+		}
 		return err
 	}
 
@@ -90,6 +100,56 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// If we don't yet have complete status (ie. the instance state is Pending, instead of Running),
 	// maybe we should return an error so the machine controller keeps retrying until we have complete status we can set.
 	return a.updateStatus(machine, instance, mLog)
+}
+
+func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, mLog log.FieldLogger, networkAddresses []corev1.NodeAddress) error {
+	awsStatusRaw, err := EncodeAWSMachineProviderStatus(awsStatus)
+	if err != nil {
+		mLog.Errorf("error encoding AWS provider status: %v", err)
+		return err
+	}
+
+	machineCopy := machine.DeepCopy()
+	machineCopy.Status.ProviderStatus = awsStatusRaw
+	if networkAddresses != nil {
+		machineCopy.Status.Addresses = networkAddresses
+	}
+
+	if !equality.Semantic.DeepEqual(machine.Status, machineCopy.Status) {
+		mLog.Info("machine status has changed, updating")
+		machineCopy.Status.LastUpdated = metav1.Now()
+
+		_, err := a.clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
+		if err != nil {
+			mLog.Errorf("error updating machine status: %v", err)
+			return err
+		}
+	} else {
+		mLog.Debug("status unchanged")
+	}
+
+	return nil
+}
+
+// updateMachineProviderConditions updates conditions set within machine provider status.
+func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, mLog log.FieldLogger, conditionType providerconfigv1.AWSMachineProviderConditionType, reason string, msg string) error {
+
+	mLog.Debug("updating machine conditions")
+
+	awsStatus, err := AWSMachineProviderStatusFromClusterAPIMachine(machine)
+	if err != nil {
+		mLog.Errorf("error decoding machine provider status: %v", err)
+		return err
+	}
+
+	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, conditionType, corev1.ConditionTrue, reason, msg, UpdateConditionIfReasonOrMessageChange)
+
+	err = a.updateMachineStatus(machine, awsStatus, mLog, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // removeStoppedMachine removes all instances of a specific machine that are in a stopped state.
@@ -568,6 +628,8 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	}
 	mLog.Debug("finished calculating AWS status")
 
+	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", UpdateConditionIfReasonOrMessageChange)
+
 	// TODO(jchaloup): do we really need to update tis?
 	// origInstanceID := awsStatus.InstanceID
 	// if !StringPtrsEqual(origInstanceID, awsStatus.InstanceID) {
@@ -575,27 +637,9 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	// 	awsStatus.LastELBSync = nil
 	// }
 
-	awsStatusRaw, err := EncodeAWSMachineProviderStatus(awsStatus)
+	err = a.updateMachineStatus(machine, awsStatus, mLog, networkAddresses)
 	if err != nil {
-		mLog.Errorf("error encoding AWS provider status: %v", err)
 		return err
-	}
-
-	machineCopy := machine.DeepCopy()
-	machineCopy.Status.ProviderStatus = awsStatusRaw
-	machineCopy.Status.Addresses = networkAddresses
-
-	if !equality.Semantic.DeepEqual(machine.Status, machineCopy.Status) {
-		mLog.Info("machine status has changed, updating")
-		machineCopy.Status.LastUpdated = metav1.Now()
-
-		_, err := a.clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
-		if err != nil {
-			mLog.Errorf("error updating machine status: %v", err)
-			return err
-		}
-	} else {
-		mLog.Debug("status unchanged")
 	}
 
 	// If machine state is still pending, we will return an error to keep the controllers
