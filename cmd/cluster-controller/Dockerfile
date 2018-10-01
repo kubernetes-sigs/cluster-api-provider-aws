@@ -20,7 +20,7 @@ WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-aws
 # e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api-aws>
 COPY . . 
 
-RUN CGO_ENABLED=0 GOOS=linux go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
+RUN CGO_ENABLED=0 GOOS=linux go install -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
 
 # Final container
 FROM openshift/origin-base
