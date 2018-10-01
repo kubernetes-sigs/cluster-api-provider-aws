@@ -5,7 +5,7 @@ The command allows to directly interact with the aws actuator.
 ## To build the `aws-actuator` binary:
 
 ```sh
-go build -o bin/aws-actuator -a sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
+go build -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
 ```
 
 ## Prerequisities
