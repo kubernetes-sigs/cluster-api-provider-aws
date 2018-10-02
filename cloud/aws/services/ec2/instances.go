@@ -24,31 +24,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-const (
-	// InstanceStateShuttingDown indicates the instance is shutting-down
-	InstanceStateShuttingDown = ec2.InstanceStateNameShuttingDown
-
-	// InstanceStateTerminated indicates the instance has been terminated
-	InstanceStateTerminated = ec2.InstanceStateNameTerminated
-
-	// InstanceStateRunning indicates the instance is running
-	InstanceStateRunning = ec2.InstanceStateNameRunning
-
-	// InstanceStatePending indicates the instance is pending
-	InstanceStatePending = ec2.InstanceStateNamePending
-)
-
-// Instance is an internal representation of an AWS instance.
-// This contains more data than the provider config struct tracked in the status.
-type Instance struct {
-	// State can be things like "running", "terminated", "stopped", etc.
-	State string
-	// ID is the AWS InstanceID.
-	ID string
-}
-
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
+func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
 	}
@@ -62,17 +39,15 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
-		return &Instance{
-			State: *out.Reservations[0].Instances[0].State.Name,
-			ID:    *out.Reservations[0].Instances[0].InstanceId,
-		}, nil
+		ec2instance := out.Reservations[0].Instances[0]
+		return fromSDKTypeToInstance(ec2instance), nil
 	}
 
 	return nil, nil
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*Instance, error) {
+func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	id := config.AMI.ID
 	if id == nil {
 		// TODO(chuckha) region is defined by the session which is bad for HA.
@@ -109,10 +84,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		return nil, errors.New("no instance was created after run was called")
 	}
 
-	return &Instance{
-		State: *reservation.Instances[0].State.Name,
-		ID:    *reservation.Instances[0].InstanceId,
-	}, nil
+	return fromSDKTypeToInstance(reservation.Instances[0]), nil
 }
 
 // TerminateInstance terminates an EC2 instance.
@@ -133,7 +105,7 @@ func (s *Service) TerminateInstance(instanceID *string) error {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
 		instance, err := s.InstanceIfExists(status.InstanceID)
@@ -151,4 +123,25 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 	// otherwise let's create it
 	return s.CreateInstance(machine, config, clusterStatus)
+}
+
+func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
+	i := &v1alpha1.Instance{
+		ID:           *v.InstanceId,
+		State:        v1alpha1.InstanceState(*v.State.Name),
+		Type:         *v.InstanceType,
+		SubnetID:     *v.SubnetId,
+		ImageID:      *v.ImageId,
+		KeyName:      v.KeyName,
+		PrivateIP:    v.PrivateIpAddress,
+		PublicIP:     v.PublicIpAddress,
+		ENASupport:   v.EnaSupport,
+		EBSOptimized: v.EbsOptimized,
+	}
+
+	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Id != nil {
+		i.IamProfileID = v.IamInstanceProfile.Id
+	}
+
+	return i
 }

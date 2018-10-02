@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,10 +30,10 @@ import (
 // ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
 // This should never need to import the ec2 sdk.
 type ec2Svc interface {
-	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*ec2svc.Instance, error)
-	InstanceIfExists(*string) (*ec2svc.Instance, error)
+	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
+	InstanceIfExists(*string) (*v1alpha1.Instance, error)
 	TerminateInstance(*string) error
-	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*ec2svc.Instance, error)
+	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
 }
 
 // codec are the functions off the generated codec that this actuator uses.
@@ -95,7 +95,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	status.InstanceID = &i.ID
-	status.InstanceState = &i.State
+	status.InstanceState = aws.String(string(i.State))
 	// TODO: Set the machine.Status.NodeRef after the node has initialized
 	return a.updateStatus(machine, status)
 }
@@ -124,7 +124,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// This decision is based on the ec2-instance-lifecycle graph at
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
-	case ec2svc.InstanceStateShuttingDown, ec2svc.InstanceStateTerminated:
+	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
 		return nil
 	default:
 		err = a.ec2.TerminateInstance(status.InstanceID)
@@ -176,7 +176,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 	// TODO update status here
 	switch instance.State {
-	case ec2svc.InstanceStateRunning, ec2svc.InstanceStatePending:
+	case v1alpha1.InstanceStateRunning, v1alpha1.InstanceStatePending:
 		return true, nil
 	default:
 		return false, nil

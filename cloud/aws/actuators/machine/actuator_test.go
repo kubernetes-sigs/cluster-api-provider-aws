@@ -82,7 +82,10 @@ func TestCreate(t *testing.T) {
 					State: &ec2.InstanceState{
 						Name: aws.String(ec2.InstanceStateNameRunning),
 					},
-					InstanceId: aws.String("1234"),
+					InstanceId:   aws.String("1234"),
+					InstanceType: aws.String("m5.large"),
+					SubnetId:     aws.String("subnet-1"),
+					ImageId:      aws.String("ami-1"),
 				},
 			},
 		}, nil)
@@ -146,7 +149,10 @@ func TestDelete(t *testing.T) {
 								State: &ec2.InstanceState{
 									Name: aws.String(ec2.InstanceStateNameRunning),
 								},
-								InstanceId: aws.String("2345"),
+								InstanceId:   aws.String("2345"),
+								InstanceType: aws.String("m5.large"),
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
 							},
 						},
 					},
