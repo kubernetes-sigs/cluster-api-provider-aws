@@ -90,11 +90,10 @@ func TestReconcileSubnets(t *testing.T) {
 					})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
-							VpcId:               aws.String(subnetsVPCID),
-							SubnetId:            aws.String("subnet-2"),
-							CidrBlock:           aws.String("10.1.0.0/16"),
-							AvailabilityZone:    aws.String("us-east-1a"),
-							MapPublicIpOnLaunch: aws.Bool(true),
+							VpcId:            aws.String(subnetsVPCID),
+							SubnetId:         aws.String("subnet-2"),
+							CidrBlock:        aws.String("10.1.0.0/16"),
+							AvailabilityZone: aws.String("us-east-1a"),
 						},
 					}, nil)
 
