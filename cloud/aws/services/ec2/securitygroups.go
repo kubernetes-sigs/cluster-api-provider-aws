@@ -36,7 +36,11 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 	}
 
 	// Declare all security group roles that the reconcile loop takes care of.
-	roles := []v1alpha1.SecurityGroupRole{v1alpha1.SecurityGroupControlPlane, v1alpha1.SecurityGroupNode}
+	roles := []v1alpha1.SecurityGroupRole{
+		v1alpha1.SecurityGroupBastion,
+		v1alpha1.SecurityGroupControlPlane,
+		v1alpha1.SecurityGroupNode,
+	}
 
 	// First iteration makes sure that the security group are valid and fully created.
 	for _, role := range roles {
@@ -174,6 +178,16 @@ func (s *Service) revokeSecurityGroupIngressRules(groupID string, rules v1alpha1
 
 func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, network *v1alpha1.Network) (v1alpha1.IngressRules, error) {
 	switch role {
+	case v1alpha1.SecurityGroupBastion:
+		return v1alpha1.IngressRules{
+			{
+				Description: "SSH",
+				Protocol:    "tcp",
+				FromPort:    22,
+				ToPort:      22,
+				CidrBlocks:  []string{"0.0.0.0/0"},
+			},
+		}, nil
 	case v1alpha1.SecurityGroupControlPlane:
 		return v1alpha1.IngressRules{
 			{

@@ -247,6 +247,7 @@ type RouteTable struct {
 type SecurityGroupRole string
 
 var (
+	SecurityGroupBastion      = SecurityGroupRole("bastion")
 	SecurityGroupNode         = SecurityGroupRole("node")
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 )
