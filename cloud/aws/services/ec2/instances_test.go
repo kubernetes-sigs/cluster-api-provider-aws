@@ -36,7 +36,7 @@ func TestInstanceIfExists(t *testing.T) {
 		name       string
 		instanceID string
 		expect     func(m *mock_ec2iface.MockEC2API)
-		check      func(instance *ec2svc.Instance, err error)
+		check      func(instance *v1alpha1.Instance, err error)
 	}{
 		{
 			name:       "does not exist",
@@ -48,7 +48,7 @@ func TestInstanceIfExists(t *testing.T) {
 					})).
 					Return(nil, ec2svc.NewNotFound(errors.New("not found")))
 			},
-			check: func(instance *ec2svc.Instance, err error) {
+			check: func(instance *v1alpha1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -70,19 +70,22 @@ func TestInstanceIfExists(t *testing.T) {
 						Reservations: []*ec2.Reservation{
 							{
 								Instances: []*ec2.Instance{
-									{
+									&ec2.Instance{
+										InstanceId:   aws.String("id-1"),
+										InstanceType: aws.String("m5.large"),
+										SubnetId:     aws.String("subnet-1"),
+										ImageId:      aws.String("ami-1"),
 										State: &ec2.InstanceState{
 											Code: aws.Int64(16),
 											Name: aws.String(ec2.StateAvailable),
 										},
-										InstanceId: aws.String("id-1"),
 									},
 								},
 							},
 						},
 					}, nil)
 			},
-			check: func(instance *ec2svc.Instance, err error) {
+			check: func(instance *v1alpha1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -104,7 +107,7 @@ func TestInstanceIfExists(t *testing.T) {
 					DescribeInstances(&ec2.DescribeInstancesInput{InstanceIds: []*string{aws.String("one")}}).
 					Return(nil, errors.New("some unknown error"))
 			},
-			check: func(i *ec2svc.Instance, err error) {
+			check: func(i *v1alpha1.Instance, err error) {
 				if err == nil {
 					t.Fatalf("expected an error but got none.")
 				}
@@ -188,7 +191,7 @@ func TestCreateInstance(t *testing.T) {
 		name    string
 		machine clusterv1.Machine
 		expect  func(m *mock_ec2iface.MockEC2API)
-		check   func(instance *ec2svc.Instance, err error)
+		check   func(instance *v1alpha1.Instance, err error)
 	}{
 		{
 			name: "simple",
@@ -225,12 +228,15 @@ spec:
 								State: &ec2.InstanceState{
 									Name: aws.String(ec2.InstanceStateNamePending),
 								},
-								InstanceId: aws.String("two"),
+								InstanceId:   aws.String("two"),
+								InstanceType: aws.String("m5.large"),
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
 							},
 						},
 					}, nil)
 			},
-			check: func(instance *ec2svc.Instance, err error) {
+			check: func(instance *v1alpha1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}

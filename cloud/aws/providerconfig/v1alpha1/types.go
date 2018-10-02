@@ -305,3 +305,50 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 
 	return
 }
+
+// InstanceState describes the state of an AWS instance.
+type InstanceState string
+
+var (
+	InstanceStatePending      = InstanceState("pending")
+	InstanceStateRunning      = InstanceState("running")
+	InstanceStateShuttingDown = InstanceState("shutting-down")
+	InstanceStateTerminated   = InstanceState("terminated")
+	InstanceStateStopping     = InstanceState("stopping")
+	InstanceStateStopped      = InstanceState("stopped")
+)
+
+// Instance describes an AWS instance.
+type Instance struct {
+	ID string `json:"id"`
+
+	// The current state of the instance.
+	State InstanceState `json:"instanceState"`
+
+	// The instance type.
+	Type string `json:"type"`
+
+	// The ID of the subnet of the instance.
+	SubnetID string `json:"subnetId"`
+
+	// The ID of the AMI used to launch the instance.
+	ImageID string `json:"imageId"`
+
+	// The name of the SSH key pair.
+	KeyName *string `json:"keyName"`
+
+	// The IAM instance profile associated with the instance, if applicable.
+	IamProfileID *string `json:"iamProfileId"`
+
+	// The private IPv4 address assigned to the instance.
+	PrivateIP *string `json:"privateIp"`
+
+	// The public IPv4 address assigned to the instance, if applicable.
+	PublicIP *string `json:"publicIp"`
+
+	// Specifies whether enhanced networking with ENA is enabled.
+	ENASupport *bool `json:"enaSupport"`
+
+	// Indicates whether the instance is optimized for Amazon EBS I/O.
+	EBSOptimized *bool `json:"ebsOptimized"`
+}
