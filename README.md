@@ -21,27 +21,33 @@ For example, if you see `types "sigs.k8s.io/cluster-api/vendor/k8s.io/apimachine
 
 You can use Google Cloud or AWS ECR to host repositories.
 
+1. Install [jq](https://stedolan.github.io/jq/download/) (`brew install jq` on Mac).
+2. Install [gettext](https://www.gnu.org/software/gettext/) package (`brew install gettext && brew link --force gettext` on Mac).
+3. Install [minikube](https://kubernetes.io/docs/setup/minikube/) (`brew install minikube` on Mac).
+4. Configure `minikube`:
+	- Use Kubernetes v1.9.4 `minikube config set kubernetes-version v1.9.4`.
+	- Use kubeadm as bootstrapper `minikube config set bootstrapper kubeadm`.
+
 #### Pushing development images to Google Cloud
 
-1. [Install the gcloud cli](https://cloud.google.com/sdk/install)
-2. Set project: `gcloud config set project YOUR_PROJECT_NAME`
-3. Pushing dev images: `make dev_push`
+1. [Install the gcloud cli](https://cloud.google.com/sdk/install).
+2. Set project: `gcloud config set project YOUR_PROJECT_NAME`.
+3. Pushing dev images: `make dev_push`.
 
 #### Pushing development images to AWS Elastic Container Registry
-1. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
-2. Install [jq](https://stedolan.github.io/jq/download/)
-3. Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_DEFAULT_REGION` variables
+1. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
+2. Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_DEFAULT_REGION` variables
    * you may want to use [`aws-vault exec <profile> bash`](https://github.com/99designs/aws-vault)
      to store credentials or assume role in MFA scenarios.
-4. Create two ECR repositories
+3. Create two ECR repositories.
 
   ``` shell
   aws ecr create-repository --repository-name aws-machine-controller
   aws ecr create-repository --repository-name aws-cluster-controller
   ```
 
-5. Run `eval $(aws ecr get-login --no-include-email)` or use the [ECR Credential Helper](https://github.com/awslabs/amazon-ecr-credential-helper) to set up Docker
-6. Push dev images with `DEV_REPO_TYPE=ECR make dev_push`
+4. Run `eval $(aws ecr get-login --no-include-email)` or use the [ECR Credential Helper](https://github.com/awslabs/amazon-ecr-credential-helper) to set up Docker
+5. Push dev images with `DEV_REPO_TYPE=ECR make dev_push`
 
 ### clusterctl
 
@@ -92,6 +98,14 @@ I0926 14:05:56.168752   15312 clusterdeployer.go:119] Creating cluster object te
 I0926 14:05:56.173557   15312 clusterdeployer.go:124] Creating master  in namespace "default"
 I0926 14:05:56.183134   15312 clusterclient.go:563] Waiting for Machine aws-controlplane-65vtk to become ready...
 ```
+
+#### Actuator logs
+After running clusterctl, a minikube instance is going to be running locally, which spins up an AWS cluster. The actuators run inside the minikube cluster and you can tail logs using minikube/kubectl. The actuators run inside the respective controllers, which are run in a single pod with prefix `clusterapi-controllers-....`.
+
+> Make sure minikube context is properly set `minikube update-context`.
+
+- To tail cluster actuator logs, `kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-machine-controller -f`.
+- To tail machine actuator logs, `kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-cluster-controller -f`.
 
 #### Pre-built Kubernetes AMIs for testing
 
