@@ -69,7 +69,7 @@ examples = clusterctl/examples/aws/out/cluster.yaml clusterctl/examples/aws/out/
 templates = clusterctl/examples/aws/cluster.yaml.template clusterctl/examples/aws/machines.yaml.template clusterctl/examples/aws/provider-components.yaml.template
 example: $(examples)
 $(examples) : envfile $(templates)
-	source envfile && cd ./clusterctl/examples/aws && ./generate-yaml.sh
+	source ./envfile && cd ./clusterctl/examples/aws && ./generate-yaml.sh
 
 envfile: envfile.example
 	# create the envfile and exit if the envfile doesn't already exist
