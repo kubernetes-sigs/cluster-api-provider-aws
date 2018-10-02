@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -50,6 +51,10 @@ func TestCreate(t *testing.T) {
 	// clusterapi calls
 	mg.mi.EXPECT().
 		UpdateStatus(&clusterv1.Machine{
+			ObjectMeta: v1.ObjectMeta{
+				Labels:      map[string]string{"set": "node"},
+				Annotations: map[string]string{"cluster-api-provider-aws": "true"},
+			},
 			Status: clusterv1.MachineStatus{
 				ProviderStatus: &runtime.RawExtension{
 					Raw: []byte(`{"kind":"AWSMachineProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","instanceID":"1234","instanceState":"running"}
@@ -70,11 +75,12 @@ func TestCreate(t *testing.T) {
 	// ec2 calls
 	me.EXPECT().
 		RunInstances(&ec2.RunInstancesInput{
-			ImageId:      aws.String("aws-instance-id"),
-			InstanceType: aws.String(""),
-			MaxCount:     aws.Int64(1),
-			MinCount:     aws.Int64(1),
-			SubnetId:     aws.String("subnet-1"),
+			ImageId:          aws.String("aws-instance-id"),
+			InstanceType:     aws.String(""),
+			MaxCount:         aws.Int64(1),
+			MinCount:         aws.Int64(1),
+			SubnetId:         aws.String("subnet-1"),
+			SecurityGroupIds: aws.StringSlice([]string{"2"}),
 		}).
 		Return(&ec2.Reservation{
 			Instances: []*ec2.Instance{
@@ -109,11 +115,16 @@ func TestCreate(t *testing.T) {
 	if err := actuator.Create(&clusterv1.Cluster{
 		Status: clusterv1.ClusterStatus{
 			ProviderStatus: &runtime.RawExtension{
-				Raw: []byte(`{"kind":"AWSClusterProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","network":{"subnets":[{"id": "subnet-1", "public": false}]}}
+				Raw: []byte(`{"kind":"AWSClusterProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","network":{"subnets":[{"id": "subnet-1", "public": false}],"securityGroups":{"node":{"id":"2"}}}}
 `),
 			},
 		},
 	}, &clusterv1.Machine{
+		ObjectMeta: v1.ObjectMeta{
+			Labels: map[string]string{
+				"set": "node",
+			},
+		},
 		Spec: clusterv1.MachineSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
 				Value: &runtime.RawExtension{

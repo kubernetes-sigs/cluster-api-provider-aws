@@ -96,7 +96,12 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	status.InstanceID = &i.ID
 	status.InstanceState = aws.String(string(i.State))
-	// TODO: Set the machine.Status.NodeRef after the node has initialized
+
+	if machine.Annotations == nil {
+		machine.Annotations = map[string]string{}
+	}
+	machine.Annotations["cluster-api-provider-aws"] = "true"
+
 	return a.updateStatus(machine, status)
 }
 
@@ -151,12 +156,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine status")
 	}
 
-	err = a.updateStatus(machine, status)
-	if err != nil {
-		return errors.Wrap(err, "failed to update machine status")
-	}
-
-	return nil
+	return a.updateStatus(machine, status)
 }
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller

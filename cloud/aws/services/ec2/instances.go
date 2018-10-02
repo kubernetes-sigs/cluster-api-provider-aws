@@ -14,6 +14,7 @@
 package ec2
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -49,7 +50,8 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 
 	input := &v1alpha1.Instance{
-		Type: config.InstanceType,
+		Type:             config.InstanceType,
+		SecurityGroupIDs: []*string{},
 	}
 
 	// Pick image from the machine configuration, or use a default one.
@@ -68,6 +70,18 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 			return nil, errors.New("failed to run instance, no subnets available")
 		}
 		input.SubnetID = sns[0].ID
+	}
+
+	fmt.Println(machine.ObjectMeta)
+
+	// apply values based on the role of the machine
+	if machine.ObjectMeta.Labels["set"] == "controlplane" {
+		input.UserData = aws.String(initControlPlaneScript())
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, aws.String(clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID))
+	}
+
+	if machine.ObjectMeta.Labels["set"] == "node" {
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, aws.String(clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupNode].ID))
 	}
 
 	// Pick SSH key, if any.
@@ -123,13 +137,15 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
 	input := &ec2.RunInstancesInput{
-		InstanceType: aws.String(i.Type),
-		SubnetId:     aws.String(i.SubnetID),
-		ImageId:      aws.String(i.ImageID),
-		KeyName:      i.KeyName,
-		EbsOptimized: i.EBSOptimized,
-		MaxCount:     aws.Int64(1),
-		MinCount:     aws.Int64(1),
+		InstanceType:     aws.String(i.Type),
+		SubnetId:         aws.String(i.SubnetID),
+		ImageId:          aws.String(i.ImageID),
+		KeyName:          i.KeyName,
+		EbsOptimized:     i.EBSOptimized,
+		MaxCount:         aws.Int64(1),
+		MinCount:         aws.Int64(1),
+		UserData:         i.UserData,
+		SecurityGroupIds: i.SecurityGroupIDs,
 	}
 
 	if i.IAMProfile != nil {
@@ -151,6 +167,10 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 }
 
 func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
+	securityGroupIDs := make([]*string, len(v.SecurityGroups))
+	for i, sg := range v.SecurityGroups {
+		securityGroupIDs[i] = sg.GroupId
+	}
 	i := &v1alpha1.Instance{
 		ID:           *v.InstanceId,
 		State:        v1alpha1.InstanceState(*v.State.Name),
@@ -162,6 +182,8 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 		PublicIP:     v.PublicIpAddress,
 		ENASupport:   v.EnaSupport,
 		EBSOptimized: v.EbsOptimized,
+		// UserData is not defined on an instance
+		SecurityGroupIDs: securityGroupIDs,
 	}
 
 	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Arn != nil {
@@ -171,4 +193,25 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	}
 
 	return i
+}
+
+// initControlPlaneScrip returns the b64 encoded script to run on start up.
+func initControlPlaneScript() string {
+	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
+	script := []byte(`#!/usr/bin/env bash
+
+cat >/tmp/kubeadm.yaml <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/containerd/containerd.sock
+EOF
+
+kubeadm init --config /tmp/kubeadm.yaml
+
+# Installation from https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+`)
+	return base64.StdEncoding.EncodeToString(script)
 }
