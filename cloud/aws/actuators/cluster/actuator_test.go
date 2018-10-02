@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	providerconfig "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -54,7 +55,7 @@ func TestReconcile(t *testing.T) {
 			DescribeVpcs(&ec2.DescribeVpcsInput{
 				Filters: []*ec2.Filter{&ec2.Filter{
 					Name:   aws.String("tag-key"),
-					Values: aws.StringSlice([]string{"kubernetes.io/cluster/"}),
+					Values: aws.StringSlice([]string{"kubernetes.io/cluster/test"}),
 				}},
 			}).
 			Return(&ec2.DescribeVpcsOutput{
@@ -79,7 +80,7 @@ func TestReconcile(t *testing.T) {
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"1234"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
-					Key:   aws.String("kubernetes.io/cluster/"),
+					Key:   aws.String("kubernetes.io/cluster/test"),
 					Value: aws.String("owned"),
 				}},
 			}).
@@ -166,7 +167,7 @@ func TestReconcile(t *testing.T) {
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"nat-ice1"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
-					Key:   aws.String("kubernetes.io/cluster/"),
+					Key:   aws.String("kubernetes.io/cluster/test"),
 					Value: aws.String("owned"),
 				}},
 			}).
@@ -189,7 +190,7 @@ func TestReconcile(t *testing.T) {
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"rt-1"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
-					Key:   aws.String("kubernetes.io/cluster/"),
+					Key:   aws.String("kubernetes.io/cluster/test"),
 					Value: aws.String("owned"),
 				}},
 			}).
@@ -211,7 +212,7 @@ func TestReconcile(t *testing.T) {
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"rt-2"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
-					Key:   aws.String("kubernetes.io/cluster/"),
+					Key:   aws.String("kubernetes.io/cluster/test"),
 					Value: aws.String("owned"),
 				}},
 			}).
@@ -226,6 +227,112 @@ func TestReconcile(t *testing.T) {
 		me.EXPECT().
 			AssociateRouteTable(&ec2.AssociateRouteTableInput{RouteTableId: aws.String("rt-2"), SubnetId: aws.String("ice")}).
 			Return(&ec2.AssociateRouteTableOutput{}, nil),
+		me.EXPECT().
+			DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
+				Filters: []*ec2.Filter{
+					{
+						Name:   aws.String("vpc-id"),
+						Values: []*string{aws.String("1234")},
+					},
+					{
+						Name:   aws.String("tag-key"),
+						Values: []*string{aws.String("kubernetes.io/cluster/test")},
+					},
+				},
+			}).
+			Return(&ec2.DescribeSecurityGroupsOutput{
+				SecurityGroups: []*ec2.SecurityGroup{
+					&ec2.SecurityGroup{
+						GroupId:   aws.String("sg-cp1"),
+						GroupName: aws.String("test-controlplane"),
+						IpPermissions: []*ec2.IpPermission{
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(22),
+								ToPort:     aws.Int64(22),
+								IpProtocol: aws.String("tcp"),
+								IpRanges: []*ec2.IpRange{
+									&ec2.IpRange{
+										CidrIp:      aws.String("0.0.0.0/0"),
+										Description: aws.String("SSH"),
+									},
+								},
+							},
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(6443),
+								ToPort:     aws.Int64(6443),
+								IpProtocol: aws.String("tcp"),
+								IpRanges: []*ec2.IpRange{
+									&ec2.IpRange{
+										CidrIp:      aws.String("0.0.0.0/0"),
+										Description: aws.String("Kubernetes API"),
+									},
+								},
+							},
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(2379),
+								ToPort:     aws.Int64(2379),
+								IpProtocol: aws.String("tcp"),
+								UserIdGroupPairs: []*ec2.UserIdGroupPair{
+									&ec2.UserIdGroupPair{
+										GroupId:     aws.String("sg-cp1"),
+										Description: aws.String("etcd"),
+									},
+								},
+							},
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(2380),
+								ToPort:     aws.Int64(2380),
+								IpProtocol: aws.String("tcp"),
+								UserIdGroupPairs: []*ec2.UserIdGroupPair{
+									&ec2.UserIdGroupPair{
+										GroupId:     aws.String("sg-cp1"),
+										Description: aws.String("etcd peer"),
+									},
+								},
+							},
+						},
+					},
+					&ec2.SecurityGroup{
+						GroupId:   aws.String("sg-nd1"),
+						GroupName: aws.String("test-node"),
+						IpPermissions: []*ec2.IpPermission{
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(22),
+								ToPort:     aws.Int64(22),
+								IpProtocol: aws.String("tcp"),
+								IpRanges: []*ec2.IpRange{
+									&ec2.IpRange{
+										CidrIp:      aws.String("0.0.0.0/0"),
+										Description: aws.String("SSH"),
+									},
+								},
+							},
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(30000),
+								ToPort:     aws.Int64(32767),
+								IpProtocol: aws.String("tcp"),
+								IpRanges: []*ec2.IpRange{
+									&ec2.IpRange{
+										CidrIp:      aws.String("0.0.0.0/0"),
+										Description: aws.String("Node Port Services"),
+									},
+								},
+							},
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(10250),
+								ToPort:     aws.Int64(10250),
+								IpProtocol: aws.String("tcp"),
+								UserIdGroupPairs: []*ec2.UserIdGroupPair{
+									&ec2.UserIdGroupPair{
+										GroupId:     aws.String("sg-cp1"),
+										Description: aws.String("Kubelet API"),
+									},
+								},
+							},
+						},
+					},
+				},
+			}, nil),
 	)
 
 	c, err := providerconfig.NewCodec()
@@ -245,7 +352,7 @@ func TestReconcile(t *testing.T) {
 		t.Fatalf("could not create an actuator: %v", err)
 	}
 
-	if err := a.Reconcile(&clusterv1.Cluster{}); err != nil {
+	if err := a.Reconcile(&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"}}); err != nil {
 		t.Fatalf("failed to reconcile cluster: %v", err)
 	}
 }

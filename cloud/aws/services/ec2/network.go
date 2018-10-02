@@ -46,6 +46,11 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 		return err
 	}
 
+	// Security groups.
+	if err := s.reconcileSecurityGroups(clusterName, network); err != nil {
+		return err
+	}
+
 	glog.V(2).Info("Renconcile network completed successfully")
 	return nil
 }
