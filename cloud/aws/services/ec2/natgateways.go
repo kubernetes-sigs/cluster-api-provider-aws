@@ -27,6 +27,9 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 	if len(subnets.FilterPrivate()) == 0 {
 		glog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
+	} else if len(subnets.FilterPublic()) == 0 {
+		glog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		return nil
 	}
 
 	existing, err := s.describeNatGatewaysBySubnet(vpc.ID)
@@ -47,6 +50,8 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 		if err != nil {
 			return err
 		}
+
+		glog.V(2).Infof("Created new NAT gateway in subnet %q: %s", sn.ID, *ng.NatGatewayId)
 
 		sn.NatGatewayID = ng.NatGatewayId
 	}
@@ -110,7 +115,7 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 
 func (s *Service) getNatGatewayForSubnet(subnets v1alpha1.Subnets, sn *v1alpha1.Subnet) (string, error) {
 	if sn.IsPublic {
-		return "", errors.Errorf("cannot get NAT gateway for public subnet %q", sn.ID)
+		return "", errors.Errorf("cannot get NAT gateway for a public subnet, got id %q", sn.ID)
 	}
 
 	azGateways := make(map[string][]string)

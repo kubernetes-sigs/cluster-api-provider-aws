@@ -50,20 +50,6 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
-
-				m.EXPECT().
-					DescribeNatGatewaysPages(
-						gomock.Eq(&ec2.DescribeNatGatewaysInput{
-							Filter: []*ec2.Filter{
-								{
-									Name:   aws.String("vpc-id"),
-									Values: []*string{aws.String(subnetsVPCID)},
-								},
-							},
-						}),
-						gomock.Any()).
-					Return(nil)
-
 				m.EXPECT().CreateNatGateway(gomock.Any()).Times(0)
 			},
 		},
@@ -290,13 +276,10 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
-
 				m.EXPECT().
-					DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).Times(1)
-
-				m.EXPECT().AllocateAddress(gomock.Any()).Times(0)
-
-				m.EXPECT().CreateNatGateway(gomock.Any()).Times(0)
+					DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).
+					Return(nil).
+					Times(1)
 			},
 		},
 	}
