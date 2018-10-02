@@ -9,6 +9,11 @@ items:
     versions:
       kubelet: v1.11.2
       controlPlane: v1.11.2
+    providerConfig:
+      value:
+        apiVersion: awsproviderconfig/v1alpha1
+        kind: AWSMachineProviderConfig
+        instanceType: m5.large
 - apiVersion: "cluster.k8s.io/v1alpha1"
   kind: Machine
   metadata:
@@ -18,3 +23,8 @@ items:
   spec:
     versions:
       kubelet: v1.11.3
+    providerConfig:
+      value:
+        apiVersion: awsproviderconfig/v1alpha1
+        kind: AWSMachineProviderConfig
+        instanceType: m5.large

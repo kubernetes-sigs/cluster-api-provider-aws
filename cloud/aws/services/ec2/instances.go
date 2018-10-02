@@ -16,9 +16,12 @@ package ec2
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
 const (
@@ -69,8 +72,33 @@ func (s *Service) InstanceIfExists(instanceID *string) (*Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine) (*Instance, error) {
-	input := &ec2.RunInstancesInput{}
+func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*Instance, error) {
+	id := config.AMI.ID
+	if id == nil {
+		// TODO(chuckha) region is defined by the session which is bad for HA.
+		if ec2Client, ok := s.EC2.(*ec2.EC2); ok {
+			// lookup the region if we can
+			id = aws.String(s.defaultAMILookup(ec2Client.SigningRegion))
+		} else {
+			// default to some other region if we don't have that information
+			id = aws.String(s.defaultAMILookup("us-west-2"))
+		}
+	}
+	subnets := clusterStatus.Network.Subnets.FilterPublic()
+	if len(subnets) == 0 {
+		return nil, errors.New("need at least one subnet but didn't find any")
+	}
+	input := &ec2.RunInstancesInput{
+		ImageId:      id,
+		InstanceType: aws.String(config.InstanceType),
+		MaxCount:     aws.Int64(1),
+		MinCount:     aws.Int64(1),
+		SubnetId:     aws.String(subnets[0].ID),
+	}
+
+	if config.KeyName != "" {
+		input.KeyName = aws.String(config.KeyName)
+	}
 
 	reservation, err := s.EC2.RunInstances(input)
 	if err != nil {
@@ -102,4 +130,25 @@ func (s *Service) TerminateInstance(instanceID *string) error {
 	}
 
 	return nil
+}
+
+// CreateOrGetMachine will either return an existing instance or create and return an instance.
+func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*Instance, error) {
+	// instance id exists, try to get it
+	if status.InstanceID != nil {
+		instance, err := s.InstanceIfExists(status.InstanceID)
+
+		// if there was no error, return the found instance
+		if err == nil {
+			return instance, err
+		}
+
+		// if there was an error but it's not IsNotFound then it's a real error
+		if !IsNotFound(err) {
+			return instance, err
+		}
+	}
+
+	// otherwise let's create it
+	return s.CreateInstance(machine, config, clusterStatus)
 }

@@ -37,17 +37,27 @@ genmocks: depend
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 MachineInterface" "cloud/aws/actuators/machine/mock_machineiface/mock.go"
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 ClusterInterface" "cloud/aws/actuators/cluster/mock_clusteriface/mock.go"
 
-build: depend
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
-	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
+build: depend clusterctl-bin cluster-controller machine-controller
+
+clusterctl-bin:
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/clusterctl
 
 images: depend
 	$(MAKE) -C cmd/cluster-controller image
 	$(MAKE) -C cmd/machine-controller image
 
-dev_push: depend
+dev_push: depend cluster-controller-dev-push machine-controller-dev-push
+
+cluster-controller:
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
+
+cluster-controller-dev-push: cluster-controller
 	$(MAKE) -C cmd/cluster-controller dev_push
+
+machine-controller:
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
+
+machine-controller-dev-push: machine-controller
 	$(MAKE) -C cmd/machine-controller dev_push
 
 push: depend

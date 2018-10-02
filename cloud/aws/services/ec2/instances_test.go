@@ -21,10 +21,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -211,7 +212,13 @@ spec:
 			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
-					RunInstances(&ec2.RunInstancesInput{}).
+					RunInstances(&ec2.RunInstancesInput{
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("something"),
+						MaxCount:     aws.Int64(1),
+						MinCount:     aws.Int64(1),
+						SubnetId:     aws.String(""),
+					}).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							&ec2.Instance{
@@ -236,7 +243,20 @@ spec:
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine)
+			instance, err := s.CreateInstance(&tc.machine, &v1alpha1.AWSMachineProviderConfig{
+				AMI: v1alpha1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "something",
+			}, &v1alpha1.AWSClusterProviderStatus{
+				Network: v1alpha1.Network{
+					Subnets: v1alpha1.Subnets{
+						&v1alpha1.Subnet{
+							IsPublic: true,
+						},
+					},
+				},
+			})
 			tc.check(instance, err)
 		})
 	}
