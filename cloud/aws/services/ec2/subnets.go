@@ -98,6 +98,9 @@ LoopExisting:
 			return err
 		}
 
+		glog.V(2).Infof("Created new subnet %q in VPC %q with cidr %q and availability zone %q",
+			nsn.ID, nsn.VpcID, nsn.CidrBlock, nsn.AvailabilityZone)
+
 		nsn.DeepCopyInto(subnet)
 	}
 
@@ -166,15 +169,12 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 		}
 	}
 
-	glog.V(2).Infof("Created new subnet %q in VPC %q with cidr %q and availability zone %q",
-		*out.Subnet.SubnetId, *out.Subnet.VpcId, *out.Subnet.CidrBlock, *out.Subnet.AvailabilityZone)
-
 	return &v1alpha1.Subnet{
 		ID:               *out.Subnet.SubnetId,
 		VpcID:            *out.Subnet.VpcId,
 		AvailabilityZone: *out.Subnet.AvailabilityZone,
 		CidrBlock:        *out.Subnet.CidrBlock,
-		IsPublic:         *out.Subnet.MapPublicIpOnLaunch,
+		IsPublic:         sn.IsPublic,
 	}, nil
 }
 
