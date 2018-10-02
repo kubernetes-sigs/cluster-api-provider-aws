@@ -244,6 +244,23 @@ func TestReconcile(t *testing.T) {
 				SecurityGroups: []*ec2.SecurityGroup{
 					&ec2.SecurityGroup{
 						GroupId:   aws.String("sg-cp1"),
+						GroupName: aws.String("test-bastion"),
+						IpPermissions: []*ec2.IpPermission{
+							&ec2.IpPermission{
+								FromPort:   aws.Int64(22),
+								ToPort:     aws.Int64(22),
+								IpProtocol: aws.String("tcp"),
+								IpRanges: []*ec2.IpRange{
+									&ec2.IpRange{
+										CidrIp:      aws.String("0.0.0.0/0"),
+										Description: aws.String("SSH"),
+									},
+								},
+							},
+						},
+					},
+					&ec2.SecurityGroup{
+						GroupId:   aws.String("sg-cp1"),
 						GroupName: aws.String("test-controlplane"),
 						IpPermissions: []*ec2.IpPermission{
 							&ec2.IpPermission{
