@@ -15,6 +15,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -169,6 +170,9 @@ type Network struct {
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
 	InternetGatewayID *string `json:"internetGatewayId"`
 
+	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
+	SecurityGroups map[SecurityGroupRole]*SecurityGroup `json:"securityGroups"`
+
 	// Subnets includes all the subnets defined inside the VPC.
 	Subnets Subnets `json:"subnets"`
 }
@@ -199,7 +203,7 @@ type Subnet struct {
 
 // String returns a string representation of the subnet.
 func (s *Subnet) String() string {
-	return fmt.Sprintf("id=%s/az=%s", s.ID, s.AvailabilityZone)
+	return fmt.Sprintf("id=%s/az=%s/public=%v", s.ID, s.AvailabilityZone, s.IsPublic)
 }
 
 // Subnets is a slice of Subnet.
@@ -237,4 +241,66 @@ func (s Subnets) FilterPublic() (res Subnets) {
 // RouteTable defines an AWS routing table.
 type RouteTable struct {
 	ID string `json:"id"`
+}
+
+// SecurityGroupRole defines the unique role of a security group.
+type SecurityGroupRole string
+
+var (
+	SecurityGroupNode         = SecurityGroupRole("node")
+	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
+)
+
+// SecurityGroup defines an AWS security group.
+type SecurityGroup struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+
+	IngressRules IngressRules `json:"ingressRule"`
+}
+
+// String returns a string representation of the security group.
+func (s *SecurityGroup) String() string {
+	return fmt.Sprintf("id=%s/name=%s", s.ID, s.Name)
+}
+
+// IngressRule defines an AWS ingress rule for security groups.
+type IngressRule struct {
+	Description string `json:"description"`
+	Protocol    string `json:"protocol"`
+	FromPort    int64  `json:"fromPort"`
+	ToPort      int64  `json:"toPort"`
+
+	// List of CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.
+	CidrBlocks []string `json:"cidrBlocks"`
+
+	// The security group id to allow access from. Cannot be specified with CidrBlocks.
+	SourceSecurityGroupID *string `json:"sourceSecurityGroupId"`
+}
+
+// String returns a string representation of the ingress rule.
+func (i *IngressRule) String() string {
+	return fmt.Sprintf("protocol=%s/range=[%d-%d]/description=%s", i.Protocol, i.FromPort, i.ToPort, i.Description)
+}
+
+// IngressRules is a slice of AWS ingress rules for security groups.
+type IngressRules []*IngressRule
+
+// Returns the difference between this slice and the other slice.
+func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
+	for _, x := range i {
+		found := false
+		for _, y := range o {
+			if reflect.DeepEqual(x, y) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			out = append(out, x)
+		}
+	}
+
+	return
 }

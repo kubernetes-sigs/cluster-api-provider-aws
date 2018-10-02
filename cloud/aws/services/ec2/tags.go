@@ -19,11 +19,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TagNameKubernetesClusterPrefix is the tag name we use to differentiate multiple
-// logically independent clusters running in the same AZ.
-// The tag key = TagNameKubernetesClusterPrefix + clusterID
-// The tag value is an ownership value
-const TagNameKubernetesClusterPrefix = "kubernetes.io/cluster/"
+const (
+	// TagNameKubernetesClusterPrefix is the tag name we use to differentiate multiple
+	// logically independent clusters running in the same AZ.
+	// The tag key = TagNameKubernetesClusterPrefix + clusterID
+	// The tag value is an ownership value
+	TagNameKubernetesClusterPrefix = "kubernetes.io/cluster/"
+)
 
 // ResourceLifecycle configures the lifecycle of a resource
 type ResourceLifecycle string
@@ -32,11 +34,12 @@ const (
 	// ResourceLifecycleOwned is the value we use when tagging resources to indicate
 	// that the resource is considered owned and managed by the cluster,
 	// and in particular that the lifecycle is tied to the lifecycle of the cluster.
-	ResourceLifecycleOwned = "owned"
+	ResourceLifecycleOwned = ResourceLifecycle("owned")
+
 	// ResourceLifecycleShared is the value we use when tagging resources to indicate
 	// that the resource is shared between multiple clusters, and should not be destroyed
 	// if the cluster is destroyed.
-	ResourceLifecycleShared = "shared"
+	ResourceLifecycleShared = ResourceLifecycle("shared")
 )
 
 func (s *Service) clusterTagKey(clusterName string) string {
