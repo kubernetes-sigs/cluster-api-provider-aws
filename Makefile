@@ -49,17 +49,25 @@ images: depend
 
 dev_push: depend cluster-controller-dev-push machine-controller-dev-push
 
+minikube_build: depend cluster-controller-minikube-build machine-controller-minikube-build
+
 cluster-controller:
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
 
 cluster-controller-dev-push: cluster-controller
 	$(MAKE) -C cmd/cluster-controller dev_push
 
+cluster-controller-minikube-build: cluster-controller
+	$(MAKE) -C cmd/cluster-controller minikube_build
+
 machine-controller:
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
 
 machine-controller-dev-push: machine-controller
 	$(MAKE) -C cmd/machine-controller dev_push
+
+machine-controller-minikube-build: machine-controller
+	$(MAKE) -C cmd/machine-controller minikube_build
 
 push: depend
 	$(MAKE) -C cmd/cluster-controller push
