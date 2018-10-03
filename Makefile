@@ -96,5 +96,37 @@ envfile: envfile.example
 	echo "\033[0;31mPlease fill out your envfile!\033[0m"
 	exit 1
 
+.PHONY: test_cluster
+test_cluster:
+	clusterctl create cluster -v 2 -c clusterctl/examples/aws/out/cluster.yaml -m clusterctl/examples/aws/out/machines.yaml -p clusterctl/examples/aws/out/provider-components.yaml --provider aws
+
+.PHONY: destroy_test_cluster
+destroy_test_cluster:
+	-kubectl patch cluster test1 -p '{"metadata":{"finalizers":null}}'
+	-kubectl get machine -o name | xargs kubectl patch -p '{"metadata":{"finalizers":null}}'
+	-kubectl delete clusters --force=true --grace-period 0 --all --wait=true
+	-kubectl delete machines --force=true --grace-period 0 --all --wait=true
+	-kubectl delete deployment clusterapi-apiserver --force=true --grace-period 0 --wait=true
+	-kubectl delete deployment clusterapi-controllers --force=true --grace-period 0 --wait=true
+	-kubectl delete statefulsets etcd-clusterapi --force=true --grace-period 0 --wait=true
+
+.PHONY: test_cluster_deletion
+test_cluster_deletion:
+	kubectl delete clusters --all --wait=true
+
+.PHONY: tail_cluster_actuator_logs
+tail_cluster_actuator_logs:
+	kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-cluster-controller -f
+
+.PHONY: tail_machine_actuator_logs
+tail_machine_actuator_logs:
+	kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-machine-controller -f
+
+minikube_set:
+	minikube config set kubernetes-version v1.9.4
+
+minikube_unset:
+	minikube config unset kubernetes-version
+
 clean:
 	rm -rf clusterctl/examples/aws/out
