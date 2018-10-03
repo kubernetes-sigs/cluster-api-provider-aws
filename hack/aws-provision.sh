@@ -23,6 +23,14 @@ case ${1} in
    fi
    ;;
  "destroy")
+   # Terminate all running instances in the vpc first
+   VPC_ID=$(terraform output vpc_id || echo "")
+   if [[ "${VPC_ID}" != "" ]]; then
+     instances=$(aws ec2 describe-instances --filters Name=vpc-id,Values=${VPC_ID} | jq '.Reservations[].Instances[].InstanceId' --raw-output || echo "")
+     if [[ "${instances}" != "" ]]; then
+       aws ec2 terminate-instances --instance-ids ${instances} || true
+     fi
+   fi
    terraform destroy -input=false -auto-approve
    ;;
  *)
