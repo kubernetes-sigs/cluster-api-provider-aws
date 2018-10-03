@@ -66,6 +66,8 @@
     "private/protocol/xml/xmlutil",
     "service/ec2",
     "service/ec2/ec2iface",
+    "service/elb",
+    "service/elb/elbiface",
     "service/sts",
   ]
   pruneopts = ""
@@ -1049,6 +1051,7 @@
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ec2/ec2iface",
+    "github.com/aws/aws-sdk-go/service/elb/elbiface",
     "github.com/golang/glog",
     "github.com/golang/mock/gomock",
     "github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
