@@ -19,8 +19,6 @@ package cluster
 import (
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	corev1 "k8s.io/api/core/v1"
@@ -42,7 +40,6 @@ import (
 	clusteractuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster/options"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 )
 
 const (
@@ -64,17 +61,9 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		glog.Fatalf("Could not create codec: %v", err)
 	}
 
-	// Requires setting environment variables:
-	// AWS_REGION=us-west-2,
-	// AWS_ACCESS_KEY_ID=
-	// AWS_SECRET_ACCESS_KEY=
-	sess := session.Must(session.NewSession())
-	ec2client := ec2.New(sess)
-
 	params := clusteractuator.ActuatorParams{
 		Codec:          codec,
 		ClustersGetter: clients.ClusterV1alpha1(),
-		EC2Service:     ec2svc.NewService(ec2client),
 	}
 
 	actuator, err := clusteractuator.NewActuator(params)

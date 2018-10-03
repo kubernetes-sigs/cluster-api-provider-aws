@@ -13,4 +13,5 @@ spec:
     value:
       apiVersion: "awsproviderconfig/v1alpha1"
       kind: "AWSClusterProviderConfig"
+      region: "${AWS_REGION}"
 
