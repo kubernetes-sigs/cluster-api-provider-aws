@@ -161,6 +161,7 @@ type AWSMachineProviderCondition struct {
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
+	Region  string  `json:"region"`
 	Network Network `json:"network"`
 }
 

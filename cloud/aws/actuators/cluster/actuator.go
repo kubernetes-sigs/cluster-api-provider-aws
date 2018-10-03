@@ -77,6 +77,9 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		return errors.Errorf("failed to load cluster provider status: %v", err)
 	}
 
+	// Store some config parameters in the status.
+	status.Region = config.Region
+
 	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
 	// the cluster state might have partial changes that should be stored.
 	defer func() {

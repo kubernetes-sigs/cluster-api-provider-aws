@@ -50,19 +50,14 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	id := config.AMI.ID
 	if id == nil {
-		// TODO(chuckha) region is defined by the session which is bad for HA.
-		if ec2Client, ok := s.EC2.(*ec2.EC2); ok {
-			// lookup the region if we can
-			id = aws.String(s.defaultAMILookup(ec2Client.SigningRegion))
-		} else {
-			// default to some other region if we don't have that information
-			id = aws.String(s.defaultAMILookup("us-west-2"))
-		}
+		id = aws.String(s.defaultAMILookup(clusterStatus.Region))
 	}
+
 	subnets := clusterStatus.Network.Subnets.FilterPublic()
 	if len(subnets) == 0 {
 		return nil, errors.New("need at least one subnet but didn't find any")
 	}
+
 	input := &ec2.RunInstancesInput{
 		ImageId:      id,
 		InstanceType: aws.String(config.InstanceType),
