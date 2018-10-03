@@ -18,6 +18,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	providerconfig "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
@@ -26,7 +27,6 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster/mock_clusteriface"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
 )
 
@@ -36,6 +36,14 @@ type clusterGetter struct {
 
 func (c *clusterGetter) Clusters(ns string) clientv1.ClusterInterface {
 	return c.ci
+}
+
+type ec2Getter struct {
+	ec2 *mock_ec2iface.MockEC2API
+}
+
+func (d *ec2Getter) EC2(clusterConfig *providerconfig.AWSClusterProviderConfig) ec2iface.EC2API {
+	return d.ec2
 }
 
 func TestReconcile(t *testing.T) {
@@ -357,11 +365,9 @@ func TestReconcile(t *testing.T) {
 		t.Fatalf("failed to create codec: %v", err)
 	}
 	ap := cluster.ActuatorParams{
-		Codec: c,
-		EC2Service: &ec2svc.Service{
-			EC2: me,
-		},
+		Codec:          c,
 		ClustersGetter: cg,
+		EC2Getter:      &ec2Getter{ec2: me},
 	}
 
 	a, err := cluster.NewActuator(ap)
@@ -369,7 +375,11 @@ func TestReconcile(t *testing.T) {
 		t.Fatalf("could not create an actuator: %v", err)
 	}
 
-	if err := a.Reconcile(&clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"}}); err != nil {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
+	}
+
+	if err := a.Reconcile(cluster); err != nil {
 		t.Fatalf("failed to reconcile cluster: %v", err)
 	}
 }

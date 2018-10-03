@@ -102,6 +102,9 @@ type Filter struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// The AWS Region the cluster lives in.
+	Region string `json:"region"`
 }
 
 // AWSMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
@@ -158,6 +161,7 @@ type AWSMachineProviderCondition struct {
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
+	Region  string  `json:"region"`
 	Network Network `json:"network"`
 }
 

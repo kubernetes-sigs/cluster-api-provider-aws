@@ -17,45 +17,45 @@ import (
 	"fmt"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
-
-type ec2Svc interface {
-	ReconcileNetwork(string, *providerconfigv1.Network) error
-}
-
-type codec interface {
-	DecodeFromProviderConfig(clusterv1.ProviderConfig, runtime.Object) error
-	DecodeProviderStatus(*runtime.RawExtension, runtime.Object) error
-	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
-}
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
 	codec          codec
 	clustersGetter client.ClustersGetter
-	ec2            ec2Svc
+	ec2Getter      EC2Getter
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
 	Codec          codec
 	ClustersGetter client.ClustersGetter
-	EC2Service     ec2Svc
+	EC2Getter      EC2Getter
 }
 
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) (*Actuator, error) {
-	return &Actuator{
+	res := &Actuator{
 		codec:          params.Codec,
 		clustersGetter: params.ClustersGetter,
-		ec2:            params.EC2Service,
-	}, nil
+		ec2Getter:      params.EC2Getter,
+	}
+
+	if res.ec2Getter == nil {
+		res.ec2Getter = new(defaultEC2Getter)
+	}
+
+	return res, nil
 }
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
@@ -65,11 +65,20 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	// Get a cluster api client for the namespace of the cluster.
 	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
 
+	// Load provider config.
+	config, err := a.loadProviderConfig(cluster)
+	if err != nil {
+		return errors.Errorf("failed to load cluster provider config: %v", err)
+	}
+
 	// Load provider status.
 	status, err := a.loadProviderStatus(cluster)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider status: %v", err)
 	}
+
+	// Store some config parameters in the status.
+	status.Region = config.Region
 
 	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
 	// the cluster state might have partial changes that should be stored.
@@ -80,7 +89,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		}
 	}()
 
-	if err := a.ec2.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
+	// Load ec2 client.
+	svc := ec2svc.NewService(a.ec2Getter.EC2(config))
+
+	if err := svc.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
@@ -117,4 +129,10 @@ func (a *Actuator) storeProviderStatus(clusterClient client.ClusterInterface, cl
 	}
 
 	return nil
+}
+
+type defaultEC2Getter struct{}
+
+func (d *defaultEC2Getter) EC2(clusterConfig *providerconfigv1.AWSClusterProviderConfig) ec2iface.EC2API {
+	return ec2.New(session.Must(session.NewSession()), aws.NewConfig().WithRegion(clusterConfig.Region))
 }

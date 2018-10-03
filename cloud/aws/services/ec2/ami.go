@@ -16,7 +16,7 @@ limitations under the License.
 
 package ec2
 
-// DefaultAMILookup returns the default AMI based on region
+// defaultAMILookup returns the default AMI based on region
 func (s *Service) defaultAMILookup(region string) string {
 	//TODO(chuckha) Replace this function with a method to filter public images.
 	switch region {
