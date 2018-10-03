@@ -23,6 +23,9 @@ storage.
 
 ### Using Google Cloud
 
+To create a new project suitable for use by Cluster API, there is a
+[Terraform module](../hack/terraform-gcr-init/README.md) you can use to bootstrap ECR.
+
 1. [Install the gcloud cli](https://cloud.google.com/sdk/install).
 1. Set project: `gcloud config set project YOUR_PROJECT_NAME`.
 . Pushing dev images: `make dev_push`.
