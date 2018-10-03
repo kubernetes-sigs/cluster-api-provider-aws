@@ -29,8 +29,8 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
 	}
-	out, err := s.EC2.DescribeInstances(input)
 
+	out, err := s.EC2.DescribeInstances(input)
 	switch {
 	case IsNotFound(err):
 		return nil, nil
@@ -39,8 +39,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
-		ec2instance := out.Reservations[0].Instances[0]
-		return fromSDKTypeToInstance(ec2instance), nil
+		return fromSDKTypeToInstance(out.Reservations[0].Instances[0]), nil
 	}
 
 	return nil, nil
@@ -48,38 +47,40 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 
 // CreateInstance runs an ec2 instance.
 func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
-	id := config.AMI.ID
-	if id == nil {
-		id = aws.String(s.defaultAMILookup(clusterStatus.Region))
+
+	input := &v1alpha1.Instance{
+		Type: config.InstanceType,
 	}
 
-	subnets := clusterStatus.Network.Subnets.FilterPublic()
-	if len(subnets) == 0 {
-		return nil, errors.New("need at least one subnet but didn't find any")
+	// Pick image from the machine configuration, or use a default one.
+	if config.AMI.ID != nil {
+		input.ImageID = *config.AMI.ID
+	} else {
+		input.ImageID = s.defaultAMILookup(clusterStatus.Region)
 	}
 
-	input := &ec2.RunInstancesInput{
-		ImageId:      id,
-		InstanceType: aws.String(config.InstanceType),
-		MaxCount:     aws.Int64(1),
-		MinCount:     aws.Int64(1),
-		SubnetId:     aws.String(subnets[0].ID),
+	// Pick subnet from the machine configuration, or default to the first private available.
+	if config.Subnet != nil && config.Subnet.ID != nil {
+		input.SubnetID = *config.Subnet.ID
+	} else {
+		sns := clusterStatus.Network.Subnets.FilterPrivate()
+		if len(sns) == 0 {
+			return nil, errors.New("failed to run instance, no subnets available")
+		}
+		input.SubnetID = sns[0].ID
 	}
 
+	// Pick SSH key, if any.
 	if config.KeyName != "" {
 		input.KeyName = aws.String(config.KeyName)
 	}
 
-	reservation, err := s.EC2.RunInstances(input)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to run instances")
+	// Pick instance profile, if any.
+	if config.IAMInstanceProfile != nil && config.IAMInstanceProfile.ARN != nil {
+		input.IAMProfile = config.IAMInstanceProfile
 	}
 
-	if len(reservation.Instances) <= 0 {
-		return nil, errors.New("no instance was created after run was called")
-	}
-
-	return fromSDKTypeToInstance(reservation.Instances[0]), nil
+	return s.runInstance(input)
 }
 
 // TerminateInstance terminates an EC2 instance.
@@ -120,6 +121,35 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 	return s.CreateInstance(machine, config, clusterStatus)
 }
 
+func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+	input := &ec2.RunInstancesInput{
+		InstanceType: aws.String(i.Type),
+		SubnetId:     aws.String(i.SubnetID),
+		ImageId:      aws.String(i.ImageID),
+		KeyName:      i.KeyName,
+		EbsOptimized: i.EBSOptimized,
+		MaxCount:     aws.Int64(1),
+		MinCount:     aws.Int64(1),
+	}
+
+	if i.IAMProfile != nil {
+		input.IamInstanceProfile = &ec2.IamInstanceProfileSpecification{
+			Arn: i.IAMProfile.ARN,
+		}
+	}
+
+	out, err := s.EC2.RunInstances(input)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to run instance: %v", i)
+	}
+
+	if len(out.Instances) == 0 {
+		return nil, errors.Errorf("no instance returned for reservation %q", *out.ReservationId)
+	}
+
+	return fromSDKTypeToInstance(out.Instances[0]), nil
+}
+
 func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	i := &v1alpha1.Instance{
 		ID:           *v.InstanceId,
@@ -134,8 +164,10 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 		EBSOptimized: v.EbsOptimized,
 	}
 
-	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Id != nil {
-		i.IamProfileID = v.IamInstanceProfile.Id
+	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Arn != nil {
+		i.IAMProfile = &v1alpha1.AWSResourceReference{
+			ARN: v.IamInstanceProfile.Arn,
+		}
 	}
 
 	return i

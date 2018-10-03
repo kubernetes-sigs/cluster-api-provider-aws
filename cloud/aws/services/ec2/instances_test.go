@@ -208,7 +208,12 @@ metadata:
 spec:
   versions:
     kubelet: v1.11.2
-    controlPlane: v1.11.2`),
+    controlPlane: v1.11.2
+  providerConfig:
+    value:
+      apiVersion: awsproviderconfig/v1alpha1
+      kind: AWSMachineProviderConfig
+      instanceType: m5.large`),
 						},
 					},
 				},
@@ -217,10 +222,10 @@ spec:
 				m.EXPECT().
 					RunInstances(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("something"),
+						InstanceType: aws.String("m5.large"),
 						MaxCount:     aws.Int64(1),
 						MinCount:     aws.Int64(1),
-						SubnetId:     aws.String(""),
+						SubnetId:     aws.String("subnet-1"),
 					}).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -253,12 +258,13 @@ spec:
 				AMI: v1alpha1.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType: "something",
+				InstanceType: "m5.large",
 			}, &v1alpha1.AWSClusterProviderStatus{
 				Network: v1alpha1.Network{
 					Subnets: v1alpha1.Subnets{
 						&v1alpha1.Subnet{
-							IsPublic: true,
+							ID:       "subnet-1",
+							IsPublic: false,
 						},
 					},
 				},
