@@ -161,8 +161,9 @@ type AWSMachineProviderCondition struct {
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
-	Region  string  `json:"region"`
-	Network Network `json:"network"`
+	Region  string   `json:"region"`
+	Network Network  `json:"network"`
+	Bastion Instance `json:"bastion"`
 }
 
 // Network encapsulates AWS networking resources.
@@ -341,6 +342,13 @@ type Instance struct {
 	// The name of the SSH key pair.
 	KeyName *string `json:"keyName"`
 
+	// SecurityGroupIDs are one or more security group IDs this instance belongs to.
+	SecurityGroupIDs []string `json:"securityGroupIds"`
+
+	// UserData is the raw data script passed to the instance which is run upon bootstrap.
+	// This field must not be base64 encoded and should only be used when running a new instance.
+	UserData *string `json:"userData"`
+
 	// The ARN of the IAM instance profile associated with the instance, if applicable.
 	IAMProfile *AWSResourceReference `json:"iamProfile"`
 
@@ -356,9 +364,6 @@ type Instance struct {
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
 	EBSOptimized *bool `json:"ebsOptimized"`
 
-	// UserData defines the Base64-encoded user data to make available to the instance.
-	UserData *string
-
-	// SecurityGroupIDs are one or more security group IDs this instance belongs to.
-	SecurityGroupIDs []*string
+	// The tags associated with the instance.
+	Tags map[string]string `json:"tag"`
 }

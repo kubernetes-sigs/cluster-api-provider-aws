@@ -96,6 +96,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
+	if err := svc.ReconcileBastion(cluster.Name, status); err != nil {
+		return errors.Errorf("unable to reconcile network: %v", err)
+	}
+
 	return nil
 }
 

@@ -27,6 +27,7 @@ type EC2Getter interface {
 
 type ec2SvcIface interface {
 	ReconcileNetwork(string, *providerconfigv1.Network) error
+	ReconcileBastion(string, *providerconfigv1.AWSClusterProviderStatus) error
 }
 
 type codec interface {
