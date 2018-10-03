@@ -55,7 +55,7 @@ aws-actuator:
 
 .PHONY: images
 images: ## Create images
-	$(MAKE) -C cmd/cluster-controller image
+	#$(MAKE) -C cmd/cluster-controller image
 	$(MAKE) -C cmd/machine-controller image
 
 .PHONY: push
@@ -76,7 +76,7 @@ integration: ## Run integration test
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e test
-	go test -v sigs.k8s.io/cluster-api-provider-aws/test/machines -kubeconfig $${KUBECONFIG:-~/.kube/config} -cluster-id $${ENVIRONMENT_ID:-""} -ginkgo.v
+	go test -timeout 20m -v sigs.k8s.io/cluster-api-provider-aws/test/machines -kubeconfig $${KUBECONFIG:-~/.kube/config} -ssh-key $${SSH_PK:-~/.ssh/id_rsa} -cluster-id $${ENVIRONMENT_ID:-""} -ginkgo.v
 
 .PHONY: lint
 lint: ## Go lint your code

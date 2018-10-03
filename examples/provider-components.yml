@@ -43,6 +43,24 @@ spec:
           limits:
             cpu: 100m
             memory: 30Mi
+      - name: nodelink-controller
+        image: openshift/origin-machine-api-operator:latest
+        volumeMounts:
+        - name: config
+          mountPath: /etc/kubernetes
+        - name: certs
+          mountPath: /etc/ssl/certs
+        command:
+        - "./nodelink-controller"
+        args:
+        - --kubeconfig=/etc/kubernetes/admin.conf
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
       - name: aws-machine-controller
         image: openshift/origin-aws-machine-controllers:v4.0.0
         volumeMounts:
