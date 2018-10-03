@@ -341,8 +341,8 @@ type Instance struct {
 	// The name of the SSH key pair.
 	KeyName *string `json:"keyName"`
 
-	// The IAM instance profile associated with the instance, if applicable.
-	IamProfileID *string `json:"iamProfileId"`
+	// The ARN of the IAM instance profile associated with the instance, if applicable.
+	IAMProfile *AWSResourceReference `json:"iamProfile"`
 
 	// The private IPv4 address assigned to the instance.
 	PrivateIP *string `json:"privateIp"`

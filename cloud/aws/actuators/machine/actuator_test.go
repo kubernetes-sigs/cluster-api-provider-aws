@@ -74,7 +74,7 @@ func TestCreate(t *testing.T) {
 			InstanceType: aws.String(""),
 			MaxCount:     aws.Int64(1),
 			MinCount:     aws.Int64(1),
-			SubnetId:     aws.String(""),
+			SubnetId:     aws.String("subnet-1"),
 		}).
 		Return(&ec2.Reservation{
 			Instances: []*ec2.Instance{
@@ -109,7 +109,7 @@ func TestCreate(t *testing.T) {
 	if err := actuator.Create(&clusterv1.Cluster{
 		Status: clusterv1.ClusterStatus{
 			ProviderStatus: &runtime.RawExtension{
-				Raw: []byte(`{"kind":"AWSClusterProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","network":{"subnets":[{"public": true}]}}
+				Raw: []byte(`{"kind":"AWSClusterProviderStatus","apiVersion":"awsproviderconfig/v1alpha1","network":{"subnets":[{"id": "subnet-1", "public": false}]}}
 `),
 			},
 		},
