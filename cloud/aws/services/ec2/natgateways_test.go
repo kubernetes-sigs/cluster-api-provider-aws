@@ -100,6 +100,10 @@ func TestReconcileNatGateways(t *testing.T) {
 									Name:   aws.String("vpc-id"),
 									Values: []*string{aws.String(subnetsVPCID)},
 								},
+								{
+									Name:   aws.String("state"),
+									Values: []*string{aws.String("available")},
+								},
 							},
 						}),
 						gomock.Any()).Return(nil)
@@ -124,6 +128,16 @@ func TestReconcileNatGateways(t *testing.T) {
 					WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
 						NatGatewayIds: []*string{aws.String("natgateway")},
 					}).Return(nil)
+
+				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{ElasticIPAllocationID}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
 
 				m.EXPECT().
 					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
@@ -172,6 +186,10 @@ func TestReconcileNatGateways(t *testing.T) {
 									Name:   aws.String("vpc-id"),
 									Values: []*string{aws.String(subnetsVPCID)},
 								},
+								{
+									Name:   aws.String("state"),
+									Values: []*string{aws.String("available")},
+								},
 							},
 						}),
 						gomock.Any()).Do(func(_, y interface{}) {
@@ -202,6 +220,16 @@ func TestReconcileNatGateways(t *testing.T) {
 					WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
 						NatGatewayIds: []*string{aws.String("natgateway")},
 					}).Return(nil)
+
+				m.EXPECT().
+					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
+						Resources: aws.StringSlice([]string{ElasticIPAllocationID}),
+						Tags: []*ec2.Tag{&ec2.Tag{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}},
+					})).
+					Return(nil, nil)
 
 				m.EXPECT().
 					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
@@ -241,6 +269,10 @@ func TestReconcileNatGateways(t *testing.T) {
 								{
 									Name:   aws.String("vpc-id"),
 									Values: []*string{aws.String(subnetsVPCID)},
+								},
+								{
+									Name:   aws.String("state"),
+									Values: []*string{aws.String("available")},
 								},
 							},
 						}),

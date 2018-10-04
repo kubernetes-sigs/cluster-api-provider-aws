@@ -14,8 +14,6 @@
 package cluster
 
 import (
-	"fmt"
-
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 
@@ -27,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 )
 
 // Actuator is responsible for performing cluster reconciliation
@@ -106,7 +105,45 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	glog.Infof("Deleting cluster %v.", cluster.Name)
-	return fmt.Errorf("TODO: Not yet implemented")
+
+	// Get a cluster api client for the namespace of the cluster.
+	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
+
+	// Load provider config.
+	config, err := a.loadProviderConfig(cluster)
+	if err != nil {
+		return errors.Errorf("failed to load cluster provider config: %v", err)
+	}
+
+	// Load provider status.
+	status, err := a.loadProviderStatus(cluster)
+	if err != nil {
+		return errors.Errorf("failed to load cluster provider status: %v", err)
+	}
+
+	// Store some config parameters in the status.
+	status.Region = config.Region
+
+	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
+	// the cluster state might have partial changes that should be stored.
+	defer func() {
+		// TODO(vincepri): remove this after moving to tag-discovery based approach.
+		if err := a.storeProviderStatus(clusterClient, cluster, status); err != nil {
+			glog.Errorf("failed to store provider status for cluster %q: %v", cluster.Name, err)
+		}
+	}()
+
+	// Load ec2 client.
+	svc := ec2svc.NewService(a.ec2Getter.EC2(config))
+
+	if err := svc.DeleteNetwork(cluster.Name, &status.Network); err != nil {
+		glog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
+		return &controllerError.RequeueAfterError{
+			RequeueAfter: 5 * 1000 * 1000 * 1000,
+		}
+	}
+
+	return nil
 }
 
 func (a *Actuator) loadProviderConfig(cluster *clusterv1.Cluster) (*providerconfigv1.AWSClusterProviderConfig, error) {

@@ -75,15 +75,6 @@ func (s *Service) createTags(clusterName string, resourceID string, lifecycle Re
 	return errors.Wrapf(err, "failed to tag resource %q in cluster %q", resourceID, clusterName)
 }
 
-// Add additional cluster tag filters, to match on our tags
-func (s *Service) addTagFilters(clusterName string, filters []*ec2.Filter) []*ec2.Filter {
-	filters = append(filters, &ec2.Filter{
-		Name:   aws.String("tag-key"),
-		Values: aws.StringSlice([]string{s.clusterTagKey(clusterName)}),
-	})
-	return filters
-}
-
 // buildTags builds tags including the cluster tag
 func (s *Service) buildTags(clusterName string, lifecycle ResourceLifecycle, additionalTags map[string]string) map[string]string {
 	tags := make(map[string]string)

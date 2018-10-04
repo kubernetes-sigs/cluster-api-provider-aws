@@ -103,6 +103,10 @@ func TestReconcile(t *testing.T) {
 							aws.String("1234"),
 						},
 					},
+					&ec2.Filter{
+						Name:   aws.String("tag-key"),
+						Values: []*string{aws.String("kubernetes.io/cluster/test")},
+					},
 				},
 			}).
 			Return(&ec2.DescribeSubnetsOutput{
@@ -144,6 +148,10 @@ func TestReconcile(t *testing.T) {
 						Name:   aws.String("attachment.vpc-id"),
 						Values: []*string{aws.String("1234")},
 					},
+					&ec2.Filter{
+						Name:   aws.String("tag-key"),
+						Values: []*string{aws.String("kubernetes.io/cluster/test")},
+					},
 				},
 			}).
 			Return(&ec2.DescribeInternetGatewaysOutput{
@@ -159,6 +167,15 @@ func TestReconcile(t *testing.T) {
 		me.EXPECT().
 			AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
 			Return(&ec2.AllocateAddressOutput{AllocationId: aws.String("scarf")}, nil),
+		me.EXPECT().
+			CreateTags(&ec2.CreateTagsInput{
+				Resources: aws.StringSlice([]string{"scarf"}),
+				Tags: []*ec2.Tag{&ec2.Tag{
+					Key:   aws.String("kubernetes.io/cluster/test"),
+					Value: aws.String("owned"),
+				}},
+			}).
+			Return(nil, nil),
 		me.EXPECT().
 			CreateNatGateway(&ec2.CreateNatGatewayInput{
 				AllocationId: aws.String("scarf"),
@@ -189,6 +206,10 @@ func TestReconcile(t *testing.T) {
 						Values: []*string{
 							aws.String("1234"),
 						},
+					},
+					&ec2.Filter{
+						Name:   aws.String("tag-key"),
+						Values: []*string{aws.String("kubernetes.io/cluster/test")},
 					},
 				},
 			}).Return(&ec2.DescribeRouteTablesOutput{}, nil),

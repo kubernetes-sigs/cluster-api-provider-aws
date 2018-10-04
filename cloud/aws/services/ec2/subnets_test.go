@@ -68,6 +68,10 @@ func TestReconcileSubnets(t *testing.T) {
 								Name:   aws.String("vpc-id"),
 								Values: []*string{aws.String(subnetsVPCID)},
 							},
+							{
+								Name:   aws.String("tag-key"),
+								Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
+							},
 						},
 					})).
 					Return(&ec2.DescribeSubnetsOutput{
@@ -146,6 +150,10 @@ func TestReconcileSubnets(t *testing.T) {
 							{
 								Name:   aws.String("vpc-id"),
 								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("tag-key"),
+								Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
 							},
 						},
 					})).

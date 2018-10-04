@@ -88,10 +88,9 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 				Name:   aws.String(fmt.Sprintf("tag:%s", TagNameAWSClusterAPIRole)),
 				Values: []*string{aws.String(TagValueBastionRole)},
 			},
+			s.filterCluster(clusterName),
 		},
 	}
-
-	input.Filters = s.addTagFilters(clusterName, input.Filters)
 
 	out, err := s.EC2.DescribeInstances(input)
 	if err != nil {

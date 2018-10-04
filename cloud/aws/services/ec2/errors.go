@@ -19,6 +19,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
+const (
+	errorAuthFailure        = "AuthFailure"
+	errorInUseIPAddress     = "InvalidIPAddress.InUse"
+	errorGroupNotFound      = "InvalidGroup.NotFound"
+	errorPermissionNotFound = "InvalidPermission.NotFound"
+)
+
 var _ error = &EC2Error{}
 
 // EC2Error is an error exposed to users of this library.

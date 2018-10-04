@@ -15,6 +15,7 @@ package ec2
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -84,7 +85,14 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 
 	_, err := s.EC2.DeleteVpc(input)
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
+		awserr, ok := err.(awserr.Error)
+		if !ok {
+			return err
+		}
+		// Ignore if it's already deleted
+		if awserr.Code() != "InvalidVpcID.NotFound" {
+			return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
+		}
 	}
 
 	glog.V(2).Infof("Deleted VPC %q", v.ID)
@@ -96,7 +104,7 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 
 	if id == "" {
 		// Try to find a previously created and tagged VPC
-		input.Filters = s.addTagFilters(clusterName, []*ec2.Filter{})
+		input.Filters = []*ec2.Filter{s.filterCluster(clusterName)}
 	} else {
 		input.VpcIds = []*string{aws.String(id)}
 	}
