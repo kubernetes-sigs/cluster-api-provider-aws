@@ -42,9 +42,10 @@ pip install --upgrade pip &> /dev/null
 
 ./$BASTION_BOOTSTRAP_FILE --banner https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}scripts/banner_message.txt --enable true
 `
+	defaultSSHKeyName = "default"
 )
 
-func (s *Service) ReconcileBastion(clusterName string, status *v1alpha1.AWSClusterProviderStatus) error {
+func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1.AWSClusterProviderStatus) error {
 	glog.V(2).Info("Reconciling bastion host")
 
 	subnets := status.Network.Subnets
@@ -55,7 +56,10 @@ func (s *Service) ReconcileBastion(clusterName string, status *v1alpha1.AWSClust
 		return errors.New("failed to reconcile bastion host, no public subnets are available")
 	}
 
-	spec := s.getDefaultBastion(clusterName, status.Region, status.Network)
+	if keyName == "" {
+		keyName = defaultSSHKeyName
+	}
+	spec := s.getDefaultBastion(clusterName, status.Region, status.Network, keyName)
 
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance(clusterName, status)
@@ -104,12 +108,12 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 	return fromSDKTypeToInstance(out.Reservations[0].Instances[0]), nil
 }
 
-func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network) *v1alpha1.Instance {
+func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
 	i := &v1alpha1.Instance{
 		Type:     "t2.micro",
 		SubnetID: network.Subnets.FilterPublic()[0].ID,
 		ImageID:  s.defaultBastionAMILookup(region),
-		KeyName:  aws.String("default"),
+		KeyName:  aws.String(keyName),
 		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(bastionUserData))),
 		SecurityGroupIDs: []string{
 			network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID,

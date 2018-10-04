@@ -34,11 +34,11 @@ func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
 		// Create a new vpc.
 		vpc, err = s.createVPC(clusterName, in)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to create new vpc")
 		}
 
 	} else if err != nil {
-		return err
+		return errors.Wrap(err, "failed to describe VPCs")
 	}
 
 	vpc.DeepCopyInto(in)
@@ -111,7 +111,7 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 
 	out, err := s.EC2.DescribeVpcs(input)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to query ec2 for VPCs")
 	}
 
 	if len(out.Vpcs) == 0 {
