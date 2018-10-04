@@ -19,6 +19,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 )
 
 func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
@@ -59,13 +60,41 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 	return nil
 }
 
+func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+	if len(subnets.FilterPrivate()) == 0 {
+		glog.V(2).Infof("No private subnets available, skipping NAT gateways")
+		return nil
+	} else if len(subnets.FilterPublic()) == 0 {
+		glog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		return nil
+	}
+
+	existing, err := s.describeNatGatewaysBySubnet(vpc.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, sn := range subnets.FilterPublic() {
+		if sn.ID == "" {
+			continue
+		}
+
+		if ngID, ok := existing[sn.ID]; ok {
+			err := s.deleteNatGateway(*ngID.NatGatewayId)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.NatGateway, error) {
 	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
 		Filter: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: []*string{aws.String(vpcID)},
-			},
+			s.filterVpc(vpcID),
+			s.filterAvailable(),
 		},
 	}
 
@@ -87,7 +116,7 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 }
 
 func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.allocateAddress()
+	ip, err := s.allocateAddress(clusterName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}
@@ -101,16 +130,56 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 
+	glog.Infof("created NAT gateway %q for subnet ID %q, waiting for it to become available...", *out.NatGateway.NatGatewayId, subnetID)
+
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
 	if err := s.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
 	}
+
+	glog.Infof("NAT gateway %q for subnet ID %q is now available", *out.NatGateway.NatGatewayId, subnetID)
 
 	if err := s.createTags(clusterName, *out.NatGateway.NatGatewayId, ResourceLifecycleOwned, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 
 	return out.NatGateway, nil
+}
+
+func (s *Service) deleteNatGateway(ngID string) error {
+	_, err := s.EC2.DeleteNatGateway(&ec2.DeleteNatGatewayInput{
+		NatGatewayId: aws.String(ngID),
+	})
+
+	check := func() (done bool, err error) {
+		out, err := s.EC2.DescribeNatGateways(&ec2.DescribeNatGatewaysInput{
+			NatGatewayIds: []*string{aws.String(ngID)},
+		})
+		if err != nil {
+			return false, err
+		}
+		ng := out.NatGateways[0]
+		switch state := ng.State; *state {
+		case stateAvailable, stateDeleting:
+			return false, nil
+		case stateDeleted:
+			return true, nil
+		case statePending:
+			return false, errors.Errorf("in pending state")
+		case stateFailed:
+			return false, errors.Errorf("in failed state: %q - %s", *ng.FailureCode, *ng.FailureMessage)
+		}
+		return false, errors.Errorf("in unknown state")
+	}
+
+	err = wait.WaitForWithRetryable(wait.NewBackoff(), check, []string{})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete NAT gateway %q", ngID)
+	}
+
+	glog.Infof("Deletion request sent for NAT gateway %q", ngID)
+	return nil
 }
 
 func (s *Service) getNatGatewayForSubnet(subnets v1alpha1.Subnets, sn *v1alpha1.Subnet) (string, error) {

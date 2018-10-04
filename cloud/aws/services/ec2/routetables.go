@@ -21,10 +21,14 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
+const (
+	defaultNetworkRoute = "0.0.0.0/0"
+)
+
 func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network) error {
 	glog.V(2).Infof("Reconciling routing tables")
 
-	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(in.VPC.ID)
+	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(clusterName, in.VPC.ID)
 	if err != nil {
 		return err
 	}
@@ -47,12 +51,12 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 
 			routes = s.getDefaultPublicRoutes(*in.InternetGatewayID)
 		} else {
-			natGatewayId, err := s.getNatGatewayForSubnet(in.Subnets, sn)
+			natGatewayID, err := s.getNatGatewayForSubnet(in.Subnets, sn)
 			if err != nil {
 				return err
 			}
 
-			routes = s.getDefaultPrivateRoutes(natGatewayId)
+			routes = s.getDefaultPrivateRoutes(natGatewayID)
 		}
 
 		rt, err := s.createRouteTableWithRoutes(clusterName, &in.VPC, routes)
@@ -71,8 +75,8 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 	return nil
 }
 
-func (s *Service) describeVpcRouteTablesBySubnet(vpcID string) (map[string]*ec2.RouteTable, error) {
-	rts, err := s.describeVpcRouteTables(vpcID)
+func (s *Service) describeVpcRouteTablesBySubnet(clusterName string, vpcID string) (map[string]*ec2.RouteTable, error) {
+	rts, err := s.describeVpcRouteTables(clusterName, vpcID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,13 +97,41 @@ func (s *Service) describeVpcRouteTablesBySubnet(vpcID string) (map[string]*ec2.
 	return res, nil
 }
 
-func (s *Service) describeVpcRouteTables(vpcID string) ([]*ec2.RouteTable, error) {
+func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) error {
+	rts, err := s.describeVpcRouteTables(clusterName, in.VPC.ID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to describe route tables in vpc %q", in.VPC.ID)
+	}
+
+	for _, rt := range rts {
+		for _, as := range rt.Associations {
+			if as.SubnetId == nil {
+				continue
+			}
+			_, err := s.EC2.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{
+				AssociationId: as.RouteTableAssociationId,
+			})
+			if err != nil {
+				return err
+			}
+			glog.Infof("Deleted association between route table %q and subnet %q", *rt.RouteTableId, *as.SubnetId)
+		}
+		_, err := s.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{
+			RouteTableId: rt.RouteTableId,
+		})
+		if err != nil {
+			return err
+		}
+		glog.Infof("Deleted route table %q", *rt.RouteTableId)
+	}
+	return nil
+}
+
+func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*ec2.RouteTable, error) {
 	out, err := s.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: []*string{aws.String(vpcID)},
-			},
+			s.filterVpc(vpcID),
+			s.filterCluster(clusterName),
 		},
 	})
 
@@ -160,20 +192,20 @@ func (s *Service) associateRouteTable(rt *v1alpha1.RouteTable, subnetID string) 
 	return nil
 }
 
-func (s *Service) getDefaultPrivateRoutes(natGatewayId string) []*ec2.Route {
+func (s *Service) getDefaultPrivateRoutes(natGatewayID string) []*ec2.Route {
 	return []*ec2.Route{
 		{
-			DestinationCidrBlock: aws.String("0.0.0.0/0"),
-			NatGatewayId:         aws.String(natGatewayId),
+			DestinationCidrBlock: aws.String(defaultNetworkRoute),
+			NatGatewayId:         aws.String(natGatewayID),
 		},
 	}
 }
 
-func (s *Service) getDefaultPublicRoutes(internetGatewayId string) []*ec2.Route {
+func (s *Service) getDefaultPublicRoutes(internetGatewayID string) []*ec2.Route {
 	return []*ec2.Route{
 		{
-			DestinationCidrBlock: aws.String("0.0.0.0/0"),
-			GatewayId:            aws.String(internetGatewayId),
+			DestinationCidrBlock: aws.String(defaultNetworkRoute),
+			GatewayId:            aws.String(internetGatewayID),
 		},
 	}
 }

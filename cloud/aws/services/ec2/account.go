@@ -14,7 +14,6 @@
 package ec2
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 )
@@ -34,12 +33,7 @@ func (s *Service) getRegion() string {
 
 func (s *Service) getAvailableZones() ([]string, error) {
 	out, err := s.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("state"),
-				Values: []*string{aws.String("available")},
-			},
-		},
+		Filters: []*ec2.Filter{s.filterAvailable()},
 	})
 
 	if err != nil {

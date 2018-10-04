@@ -24,7 +24,7 @@ import (
 func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Network) error {
 	glog.V(2).Infof("Reconciling internet gateways")
 
-	igs, err := s.describeVpcInternetGateways(&in.VPC)
+	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
 	if IsNotFound(err) {
 		ig, err := s.createInternetGateway(clusterName, &in.VPC)
 		if err != nil {
@@ -39,6 +39,34 @@ func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Net
 	return nil
 }
 
+func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Network) error {
+	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
+	if IsNotFound(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	for _, ig := range igs {
+		_, err := s.EC2.DetachInternetGateway(&ec2.DetachInternetGatewayInput{
+			InternetGatewayId: ig.InternetGatewayId,
+			VpcId:             aws.String(in.VPC.ID),
+		})
+		if err != nil {
+			return err
+		}
+		glog.Infof("detached internet gateway %q from VPC %q", *ig.InternetGatewayId, in.VPC.ID)
+		_, err = s.EC2.DeleteInternetGateway(&ec2.DeleteInternetGatewayInput{
+			InternetGatewayId: ig.InternetGatewayId,
+		})
+		if err != nil {
+			return err
+		}
+		glog.Infof("deleted internet gateway %q", in.VPC.ID)
+	}
+	return nil
+}
+
 func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
 	ig, err := s.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
@@ -49,6 +77,8 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 
+	glog.Infof("created internet gateway %q", vpc.ID)
+
 	_, err = s.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
 		VpcId:             aws.String(vpc.ID),
@@ -58,16 +88,16 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
 	}
 
+	glog.Infof("attached internet gateway %q to VPC %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
+
 	return ig.InternetGateway, nil
 }
 
-func (s *Service) describeVpcInternetGateways(vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
+func (s *Service) describeVpcInternetGateways(clusterName string, vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
 	out, err := s.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("attachment.vpc-id"),
-				Values: []*string{aws.String(vpc.ID)},
-			},
+			s.filterVpcAttachment(vpc.ID),
+			s.filterCluster(clusterName),
 		},
 	})
 

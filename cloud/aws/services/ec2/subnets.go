@@ -37,7 +37,7 @@ func (s *Service) reconcileSubnets(clusterName string, network *v1alpha1.Network
 	}
 
 	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets(network.VPC.ID)
+	existing, err := s.describeVpcSubnets(clusterName, network.VPC.ID)
 	if err != nil {
 		return err
 	}
@@ -105,13 +105,32 @@ LoopExisting:
 	return nil
 }
 
-func (s *Service) describeVpcSubnets(vpcID string) (v1alpha1.Subnets, error) {
+func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) error {
+	// Describe subnets in the vpc.
+	existing, err := s.describeVpcSubnets(clusterName, network.VPC.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, sn := range existing {
+		_, err := s.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
+			SubnetId: aws.String(sn.ID),
+		})
+
+		if err != nil {
+			return err
+		}
+
+		glog.Infof("deleted subnet %q in VPC %q", sn.ID, network.VPC.ID)
+	}
+	return nil
+}
+
+func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1.Subnets, error) {
 	out, err := s.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: []*string{aws.String(vpcID)},
-			},
+			s.filterVpc(vpcID),
+			s.filterCluster(clusterName),
 		},
 	})
 

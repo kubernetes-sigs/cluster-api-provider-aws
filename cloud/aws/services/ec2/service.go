@@ -17,6 +17,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
 
+const (
+	stateAvailable = "available"
+	stateDeleting  = "deleting"
+	stateDeleted   = "deleted"
+	statePending   = "pending"
+	stateFailed    = "failed"
+)
+
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.

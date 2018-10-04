@@ -51,6 +51,45 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 		return err
 	}
 
-	glog.V(2).Info("Renconcile network completed successfully")
+	glog.V(2).Info("Reconciled network completed successfully")
+	return nil
+}
+
+func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (err error) {
+	glog.V(2).Info("Deleting network")
+
+	// Security groups.
+	if err := s.deleteSecurityGroups(clusterName, network); err != nil {
+		return err
+	}
+
+	// Routing tables.
+	if err := s.deleteRouteTables(clusterName, network); err != nil {
+		return err
+	}
+
+	if err := s.deleteNatGateways(clusterName, network.Subnets, &network.VPC); err != nil {
+		return err
+	}
+
+	if err := s.releaseAddresses(clusterName); err != nil {
+		return err
+	}
+
+	if err := s.deleteInternetGateways(clusterName, network); err != nil {
+		return err
+	}
+
+	// Subnets.
+	if err := s.deleteSubnets(clusterName, network); err != nil {
+		return err
+	}
+
+	// VPC.
+	if err := s.deleteVPC(&network.VPC); err != nil {
+		return err
+	}
+
+	glog.V(2).Info("Deleted network completed successfully")
 	return nil
 }
