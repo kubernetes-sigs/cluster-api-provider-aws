@@ -191,11 +191,11 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 	case v1alpha1.SecurityGroupControlPlane:
 		return v1alpha1.IngressRules{
 			{
-				Description: "SSH",
-				Protocol:    "tcp",
-				FromPort:    22,
-				ToPort:      22,
-				CidrBlocks:  []string{"0.0.0.0/0"},
+				Description:           "SSH",
+				Protocol:              "tcp",
+				FromPort:              22,
+				ToPort:                22,
+				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID),
 			},
 			{
 				Description: "Kubernetes API",
@@ -223,11 +223,11 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 	case v1alpha1.SecurityGroupNode:
 		return v1alpha1.IngressRules{
 			{
-				Description: "SSH",
-				Protocol:    "tcp",
-				FromPort:    22,
-				ToPort:      22,
-				CidrBlocks:  []string{"0.0.0.0/0"},
+				Description:           "SSH",
+				Protocol:              "tcp",
+				FromPort:              22,
+				ToPort:                22,
+				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID),
 			},
 			{
 				Description: "Node Port Services",

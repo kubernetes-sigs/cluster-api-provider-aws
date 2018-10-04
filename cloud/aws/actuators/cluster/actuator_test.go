@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	providerconfig "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -251,7 +252,7 @@ func TestReconcile(t *testing.T) {
 			Return(&ec2.DescribeSecurityGroupsOutput{
 				SecurityGroups: []*ec2.SecurityGroup{
 					&ec2.SecurityGroup{
-						GroupId:   aws.String("sg-cp1"),
+						GroupId:   aws.String("sg-bastion1"),
 						GroupName: aws.String("test-bastion"),
 						IpPermissions: []*ec2.IpPermission{
 							&ec2.IpPermission{
@@ -275,9 +276,9 @@ func TestReconcile(t *testing.T) {
 								FromPort:   aws.Int64(22),
 								ToPort:     aws.Int64(22),
 								IpProtocol: aws.String("tcp"),
-								IpRanges: []*ec2.IpRange{
-									&ec2.IpRange{
-										CidrIp:      aws.String("0.0.0.0/0"),
+								UserIdGroupPairs: []*ec2.UserIdGroupPair{
+									&ec2.UserIdGroupPair{
+										GroupId:     aws.String("sg-bastion1"),
 										Description: aws.String("SSH"),
 									},
 								},
@@ -325,9 +326,9 @@ func TestReconcile(t *testing.T) {
 								FromPort:   aws.Int64(22),
 								ToPort:     aws.Int64(22),
 								IpProtocol: aws.String("tcp"),
-								IpRanges: []*ec2.IpRange{
-									&ec2.IpRange{
-										CidrIp:      aws.String("0.0.0.0/0"),
+								UserIdGroupPairs: []*ec2.UserIdGroupPair{
+									&ec2.UserIdGroupPair{
+										GroupId:     aws.String("sg-bastion1"),
 										Description: aws.String("SSH"),
 									},
 								},
@@ -358,6 +359,63 @@ func TestReconcile(t *testing.T) {
 					},
 				},
 			}, nil),
+
+		// Reconcile bastion.
+		me.EXPECT().
+			DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+				Filters: []*ec2.Filter{
+					&ec2.Filter{
+						Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
+						Values: []*string{aws.String("bastion")},
+					},
+					&ec2.Filter{
+						Name:   aws.String("tag-key"),
+						Values: []*string{aws.String("kubernetes.io/cluster/test")},
+					},
+				},
+			})).
+			Return(&ec2.DescribeInstancesOutput{}, nil),
+		me.EXPECT().
+			RunInstances(gomock.AssignableToTypeOf(&ec2.RunInstancesInput{})).
+			DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+				if len(input.TagSpecifications) == 0 {
+					t.Fatalf("expected tags to be applied on bootstrap, got none")
+				}
+
+				if input.TagSpecifications[0].ResourceType == nil || *input.TagSpecifications[0].ResourceType != ec2.ResourceTypeInstance {
+					t.Fatalf("expected tag specification to be instance, got %v", input.TagSpecifications[0].ResourceType)
+				}
+
+				if len(input.TagSpecifications[0].Tags) < 2 {
+					t.Fatalf("was expecting at least 2 tags for bastion host got: %v", input.TagSpecifications[0].Tags)
+				}
+
+				for _, key := range []string{"sigs.k8s.io/cluster-api-provider-aws/role", "kubernetes.io/cluster/test"} {
+					found := false
+					for _, x := range input.TagSpecifications[0].Tags {
+						if *x.Key == key {
+							found = true
+							break
+						}
+					}
+
+					if !found {
+						t.Fatalf("couldn't find tag for bastion host: %s", key)
+					}
+				}
+
+				return &ec2.Reservation{
+					Instances: []*ec2.Instance{
+						&ec2.Instance{
+							State:        &ec2.InstanceState{Code: aws.Int64(0), Name: aws.String("pending")},
+							InstanceId:   aws.String("bastion-1"),
+							InstanceType: input.InstanceType,
+							ImageId:      input.ImageId,
+							SubnetId:     input.SubnetId,
+						},
+					},
+				}, nil
+			}),
 	)
 
 	c, err := providerconfig.NewCodec()
@@ -377,6 +435,13 @@ func TestReconcile(t *testing.T) {
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
+		Spec: clusterv1.ClusterSpec{
+			ProviderConfig: clusterv1.ProviderConfig{
+				Value: &runtime.RawExtension{
+					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig/v1alpha1","region":"us-east-1"}`),
+				},
+			},
+		},
 	}
 
 	if err := a.Reconcile(cluster); err != nil {

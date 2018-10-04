@@ -14,6 +14,8 @@ limitations under the License.
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -25,6 +27,10 @@ const (
 	// The tag key = TagNameKubernetesClusterPrefix + clusterID
 	// The tag value is an ownership value
 	TagNameKubernetesClusterPrefix = "kubernetes.io/cluster/"
+
+	// TagNameAWSClusterAPIRole is the tag name we use to mark roles for resources
+	// dedicated to this cluster api provider implementation.
+	TagNameAWSClusterAPIRole = "sigs.k8s.io/cluster-api-provider-aws/role"
 )
 
 // ResourceLifecycle configures the lifecycle of a resource
@@ -43,7 +49,7 @@ const (
 )
 
 func (s *Service) clusterTagKey(clusterName string) string {
-	return TagNameKubernetesClusterPrefix + clusterName
+	return fmt.Sprintf("%s%s", TagNameKubernetesClusterPrefix, clusterName)
 }
 
 // createTags tags a resource with tags including the cluster tag

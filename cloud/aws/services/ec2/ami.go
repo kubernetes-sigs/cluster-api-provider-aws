@@ -54,3 +54,40 @@ func (s *Service) defaultAMILookup(region string) string {
 		return "unknown region"
 	}
 }
+
+func (s *Service) defaultBastionAMILookup(region string) string {
+	switch region {
+	case "ap-northeast-1":
+		return "ami-d39a02b5"
+	case "ap-northeast-2":
+		return "ami-67973709"
+	case "ap-south-1":
+		return "ami-5d055232"
+	case "ap-southeast-1":
+		return "ami-325d2e4e"
+	case "ap-southeast-2":
+		return "ami-37df2255"
+	case "ca-central-1":
+		return "ami-f0870294"
+	case "eu-central-1":
+		return "ami-af79ebc0"
+	case "eu-west-1":
+		return "ami-4d46d534"
+	case "eu-west-2":
+		return "ami-d7aab2b3"
+	case "eu-west-3":
+		return "ami-5e0eb923"
+	case "sa-east-1":
+		return "ami-1157157d"
+	case "us-east-1":
+		return "ami-41e0b93b"
+	case "us-east-2":
+		return "ami-2581aa40"
+	case "us-west-1":
+		return "ami-79aeae19"
+	case "us-west-2":
+		return "ami-1ee65166"
+	default:
+		return "unknown region"
+	}
+}
