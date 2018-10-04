@@ -13,6 +13,13 @@
 
 package elb
 
+import (
+	"fmt"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/elb"
+)
+
 const (
 	// TagNameKubernetesClusterPrefix is the tag name we use to differentiate multiple
 	// logically independent clusters running in the same AZ.
@@ -20,9 +27,17 @@ const (
 	// The tag value is an ownership value
 	TagNameKubernetesClusterPrefix = "kubernetes.io/cluster/"
 
+	// TagNameAWSProviderManaged is the tag name we use to differentiate
+	// cluster-api-provider-aws owned components from other tooling that
+	// uses TagNameKubernetesClusterPrefix
+	TagNameAWSProviderManaged = "sigs.k8s.io/cluster-api-provider-aws/managed"
+
 	// TagNameAWSClusterAPIRole is the tag name we use to mark roles for resources
 	// dedicated to this cluster api provider implementation.
 	TagNameAWSClusterAPIRole = "sigs.k8s.io/cluster-api-provider-aws/role"
+
+	TagValueCommonRole    = "common"
+	TagValueAPIServerRole = "apiserver"
 )
 
 // ResourceLifecycle configures the lifecycle of a resource
@@ -39,3 +54,61 @@ const (
 	// if the cluster is destroyed.
 	ResourceLifecycleShared = ResourceLifecycle("shared")
 )
+
+func (s *Service) clusterTagKey(clusterName string) string {
+	return fmt.Sprintf("%s%s", TagNameKubernetesClusterPrefix, clusterName)
+}
+
+// buildTags builds tags including the cluster tag
+func (s *Service) buildTags(clusterName string, lifecycle ResourceLifecycle, name string, role string, additionalTags map[string]string) map[string]string {
+	tags := make(map[string]string)
+	for k, v := range additionalTags {
+		tags[k] = v
+	}
+
+	tags[s.clusterTagKey(clusterName)] = string(lifecycle)
+	if lifecycle == ResourceLifecycleOwned {
+		tags[TagNameAWSProviderManaged] = "true"
+	}
+
+	if role != "" {
+		tags[TagNameAWSClusterAPIRole] = role
+	}
+
+	if name != "" {
+		tags["Name"] = name
+	}
+
+	return tags
+}
+
+// tagsToMap converts a []*elb.Tag into a map[string]string.
+func tagsToMap(src []*elb.Tag) map[string]string {
+	// Create an array of exactly the length we require to hopefully avoid some
+	// allocations while looping.
+	tags := make(map[string]string)
+
+	for _, t := range src {
+		tags[*t.Key] = *t.Value
+	}
+
+	return tags
+}
+
+// mapToTags converts a map[string]string to a []*elb.Tag
+func mapToTags(src map[string]string) []*elb.Tag {
+	// Create an array of exactly the length we require to hopefully avoid some
+	// allocations while looping.
+	tags := make([]*elb.Tag, 0, len(src))
+
+	for k, v := range src {
+		tag := &elb.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags
+}

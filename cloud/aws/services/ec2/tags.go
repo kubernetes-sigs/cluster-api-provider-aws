@@ -28,9 +28,23 @@ const (
 	// The tag value is an ownership value
 	TagNameKubernetesClusterPrefix = "kubernetes.io/cluster/"
 
+	// TagNameAWSProviderManaged is the tag name we use to differentiate
+	// cluster-api-provider-aws owned components from other tooling that
+	// uses TagNameKubernetesClusterPrefix
+	TagNameAWSProviderManaged = "sigs.k8s.io/cluster-api-provider-aws/managed"
+
 	// TagNameAWSClusterAPIRole is the tag name we use to mark roles for resources
 	// dedicated to this cluster api provider implementation.
 	TagNameAWSClusterAPIRole = "sigs.k8s.io/cluster-api-provider-aws/role"
+
+	// TagValueAPIServerRole describes the value for the apiserver role
+	TagValueAPIServerRole = "apiserver"
+
+	// TagValueBastionRole describes the value for the bastion role
+	TagValueBastionRole = "bastion"
+
+	// TagValueCommonRole describes the value for the common role
+	TagValueCommonRole = "common"
 )
 
 // ResourceLifecycle configures the lifecycle of a resource
@@ -53,8 +67,8 @@ func (s *Service) clusterTagKey(clusterName string) string {
 }
 
 // createTags tags a resource with tags including the cluster tag
-func (s *Service) createTags(clusterName string, resourceID string, lifecycle ResourceLifecycle, additionalTags map[string]string) error {
-	tags := s.buildTags(clusterName, lifecycle, additionalTags)
+func (s *Service) createTags(clusterName, resourceID string, lifecycle ResourceLifecycle, name, role string, additionalTags map[string]string) error {
+	tags := s.buildTags(clusterName, lifecycle, name, role, additionalTags)
 
 	awsTags := make([]*ec2.Tag, 0, len(tags))
 	for k, v := range tags {
@@ -76,13 +90,24 @@ func (s *Service) createTags(clusterName string, resourceID string, lifecycle Re
 }
 
 // buildTags builds tags including the cluster tag
-func (s *Service) buildTags(clusterName string, lifecycle ResourceLifecycle, additionalTags map[string]string) map[string]string {
+func (s *Service) buildTags(clusterName string, lifecycle ResourceLifecycle, name, role string, additionalTags map[string]string) map[string]string {
 	tags := make(map[string]string)
 	for k, v := range additionalTags {
 		tags[k] = v
 	}
 
 	tags[s.clusterTagKey(clusterName)] = string(lifecycle)
+	if lifecycle == ResourceLifecycleOwned {
+		tags[TagNameAWSProviderManaged] = "true"
+	}
+
+	if role != "" {
+		tags[TagNameAWSClusterAPIRole] = role
+	}
+
+	if name != "" {
+		tags["Name"] = name
+	}
 
 	return tags
 }

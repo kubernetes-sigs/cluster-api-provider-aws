@@ -14,6 +14,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -65,7 +67,8 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
-	if err := s.createTags(clusterName, *out.Vpc.VpcId, ResourceLifecycleOwned, nil); err != nil {
+	name := fmt.Sprintf("%s-vpc", clusterName)
+	if err := s.createTags(clusterName, *out.Vpc.VpcId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag vpc %q", *out.Vpc.VpcId)
 	}
 
@@ -111,6 +114,9 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 
 	out, err := s.EC2.DescribeVpcs(input)
 	if err != nil {
+		if IsNotFound(err) {
+			return nil, err
+		}
 		return nil, errors.Wrap(err, "failed to query ec2 for VPCs")
 	}
 

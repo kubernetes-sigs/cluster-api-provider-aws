@@ -25,9 +25,6 @@ import (
 )
 
 const (
-	// TagValueBastionRole describes the value associated with the role tag.
-	TagValueBastionRole = "bastion"
-
 	bastionUserData = `#!/bin/bash
 
 BASTION_BOOTSTRAP_FILE=bastion_bootstrap.sh
@@ -103,14 +100,23 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 		return nil, errors.Wrap(err, "failed to describe bastion host")
 	}
 
-	if len(out.Reservations) == 0 || len(out.Reservations[0].Instances) == 0 {
-		return nil, NewNotFound(errors.New("bastion host not found"))
+	// TODO: properly handle multiple bastions found rather than just returning
+	// the first non-terminated.
+	for _, res := range out.Reservations {
+		for _, instance := range res.Instances {
+			if aws.StringValue(instance.State.Name) != ec2.InstanceStateNameTerminated {
+				return fromSDKTypeToInstance(instance), nil
+			}
+		}
 	}
 
-	return fromSDKTypeToInstance(out.Reservations[0].Instances[0]), nil
+	return nil, NewNotFound(errors.New("bastion host not found"))
 }
 
 func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
+	name := fmt.Sprintf("%s-bastion", clusterName)
+	tags := s.buildTags(clusterName, ResourceLifecycleOwned, name, TagValueBastionRole, nil)
+
 	i := &v1alpha1.Instance{
 		Type:     "t2.micro",
 		SubnetID: network.Subnets.FilterPublic()[0].ID,
@@ -120,10 +126,7 @@ func (s *Service) getDefaultBastion(clusterName string, region string, network v
 		SecurityGroupIDs: []string{
 			network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID,
 		},
-		Tags: map[string]string{
-			s.clusterTagKey(clusterName): string(ResourceLifecycleOwned),
-			TagNameAWSClusterAPIRole:     TagValueBastionRole,
-		},
+		Tags: tags,
 	}
 
 	return i

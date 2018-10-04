@@ -109,6 +109,10 @@ func TestReconcileNatGateways(t *testing.T) {
 						gomock.Any()).Return(nil)
 
 				m.EXPECT().
+					DescribeAddresses(gomock.Any()).
+					Return(&ec2.DescribeAddressesOutput{}, nil)
+
+				m.EXPECT().
 					AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
 					Return(&ec2.AllocateAddressOutput{
 						AllocationId: aws.String(ElasticIPAllocationID),
@@ -130,25 +134,12 @@ func TestReconcileNatGateways(t *testing.T) {
 					}).Return(nil)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{ElasticIPAllocationID}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"natgateway"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
-
 			},
 		},
 		{
@@ -201,6 +192,10 @@ func TestReconcileNatGateways(t *testing.T) {
 				}).Return(nil)
 
 				m.EXPECT().
+					DescribeAddresses(gomock.Any()).
+					Return(&ec2.DescribeAddressesOutput{}, nil)
+
+				m.EXPECT().
 					AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
 					Return(&ec2.AllocateAddressOutput{
 						AllocationId: aws.String(ElasticIPAllocationID),
@@ -222,23 +217,11 @@ func TestReconcileNatGateways(t *testing.T) {
 					}).Return(nil)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{ElasticIPAllocationID}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"natgateway"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 			},
 		},
@@ -283,6 +266,8 @@ func TestReconcileNatGateways(t *testing.T) {
 						SubnetId:     aws.String("subnet-1"),
 					}}}, true)
 				}).Return(nil)
+
+				m.EXPECT().DescribeAddresses(gomock.Any()).Times(0)
 
 				m.EXPECT().AllocateAddress(gomock.Any()).Times(0)
 

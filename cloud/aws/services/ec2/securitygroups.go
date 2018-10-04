@@ -279,19 +279,13 @@ func (s *Service) getSecurityGroupName(clusterName string, role v1alpha1.Securit
 func (s *Service) getDefaultSecurityGroup(clusterName string, vpcID string, role v1alpha1.SecurityGroupRole) *ec2.SecurityGroup {
 	name := s.getSecurityGroupName(clusterName, role)
 
+	// TODO: reconcile v1alpha1.SecurityGroupRoles with tag roles
+	tags := s.buildTags(clusterName, ResourceLifecycleOwned, name, string(role), nil)
+
 	return &ec2.SecurityGroup{
 		GroupName: aws.String(name),
 		VpcId:     aws.String(vpcID),
-		Tags: []*ec2.Tag{
-			&ec2.Tag{
-				Key:   aws.String("Name"),
-				Value: aws.String(name),
-			},
-			&ec2.Tag{
-				Key:   aws.String(s.clusterTagKey(clusterName)),
-				Value: aws.String(string(ResourceLifecycleOwned)),
-			},
-		},
+		Tags:      mapToTags(tags),
 	}
 }
 

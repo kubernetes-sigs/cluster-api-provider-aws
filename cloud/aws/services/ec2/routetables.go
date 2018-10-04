@@ -14,6 +14,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
@@ -59,7 +61,7 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 			routes = s.getDefaultPrivateRoutes(natGatewayID)
 		}
 
-		rt, err := s.createRouteTableWithRoutes(clusterName, &in.VPC, routes)
+		rt, err := s.createRouteTableWithRoutes(clusterName, &in.VPC, routes, sn.IsPublic)
 		if err != nil {
 			return err
 		}
@@ -142,12 +144,20 @@ func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*e
 	return out.RouteTables, nil
 }
 
-func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.VPC, routes []*ec2.Route) (*v1alpha1.RouteTable, error) {
+// TODO: dedup some of the public/private logic shared with createSubnet
+func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.VPC, routes []*ec2.Route, isPublic bool) (*v1alpha1.RouteTable, error) {
 	out, err := s.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(vpc.ID),
 	})
 
-	if err := s.createTags(clusterName, *out.RouteTable.RouteTableId, ResourceLifecycleOwned, nil); err != nil {
+	suffix := "private"
+	role := TagValueCommonRole
+	if isPublic {
+		suffix = "public"
+		role = TagValueBastionRole
+	}
+	name := fmt.Sprintf("%s-rt-%s", clusterName, suffix)
+	if err := s.createTags(clusterName, *out.RouteTable.RouteTableId, ResourceLifecycleOwned, name, role, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag route table %q", *out.RouteTable.RouteTableId)
 	}
 

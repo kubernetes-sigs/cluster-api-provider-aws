@@ -72,10 +72,7 @@ func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alph
 			UnhealthyThreshold: 3,
 		},
 		SecurityGroupIDs: []string{network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID},
-		Tags: map[string]string{
-			fmt.Sprintf("%s%s", TagNameKubernetesClusterPrefix, clusterName): string(ResourceLifecycleOwned),
-			TagNameAWSClusterAPIRole: "apiserver",
-		},
+		Tags:             s.buildTags(clusterName, ResourceLifecycleOwned, "", TagValueAPIServerRole, nil),
 	}
 
 	for _, sn := range network.Subnets.FilterPrivate() {
@@ -91,10 +88,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 		Subnets:          aws.StringSlice(spec.SubnetIDs),
 		SecurityGroups:   aws.StringSlice(spec.SecurityGroupIDs),
 		Scheme:           aws.String(string(spec.Scheme)),
-	}
-
-	for key, value := range spec.Tags {
-		input.Tags = append(input.Tags, &elb.Tag{Key: aws.String(key), Value: aws.String(value)})
+		Tags:             mapToTags(spec.Tags),
 	}
 
 	for _, ln := range spec.Listeners {
