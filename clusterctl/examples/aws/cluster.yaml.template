@@ -14,4 +14,5 @@ spec:
       apiVersion: "awsproviderconfig/v1alpha1"
       kind: "AWSClusterProviderConfig"
       region: "${AWS_REGION}"
+      sshKeyName: "${SSH_KEY_NAME}"
 

@@ -105,6 +105,9 @@ type AWSClusterProviderConfig struct {
 
 	// The AWS Region the cluster lives in.
 	Region string `json:"region"`
+
+	// SSHKeyName is the name of the ssh key to attach to the bastion host.
+	SSHKeyName string `json:"sshKeyName,omitempty"`
 }
 
 // AWSMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.

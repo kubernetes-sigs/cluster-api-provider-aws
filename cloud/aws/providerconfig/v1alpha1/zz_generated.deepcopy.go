@@ -301,6 +301,16 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.SecurityGroupIDs != nil {
+		in, out := &in.SecurityGroupIDs, &out.SecurityGroupIDs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.UserData != nil {
+		in, out := &in.UserData, &out.UserData
+		*out = new(string)
+		**out = **in
+	}
 	if in.IAMProfile != nil {
 		in, out := &in.IAMProfile, &out.IAMProfile
 		*out = new(AWSResourceReference)
@@ -325,6 +335,13 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		in, out := &in.EBSOptimized, &out.EBSOptimized
 		*out = new(bool)
 		**out = **in
+	}
+	if in.Tags != nil {
+		in, out := &in.Tags, &out.Tags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	return
 }
