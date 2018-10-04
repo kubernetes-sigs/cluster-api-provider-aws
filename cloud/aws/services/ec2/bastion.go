@@ -78,6 +78,8 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
 	instance.DeepCopyInto(&status.Bastion)
+
+	glog.V(2).Info("Reconcile bastion completed successfully")
 	return nil
 }
 

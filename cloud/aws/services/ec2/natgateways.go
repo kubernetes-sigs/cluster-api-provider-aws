@@ -52,8 +52,6 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 			return err
 		}
 
-		glog.V(2).Infof("Created new NAT gateway in subnet %q: %s", sn.ID, *ng.NatGatewayId)
-
 		sn.NatGatewayID = ng.NatGatewayId
 	}
 
@@ -130,7 +128,7 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 
-	glog.Infof("created NAT gateway %q for subnet ID %q, waiting for it to become available...", *out.NatGateway.NatGatewayId, subnetID)
+	glog.Infof("Created NAT gateway %q for subnet ID %q, waiting for it to become available...", *out.NatGateway.NatGatewayId, subnetID)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
 	if err := s.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
