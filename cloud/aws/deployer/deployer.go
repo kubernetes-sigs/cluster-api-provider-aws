@@ -17,10 +17,15 @@ limitations under the License.
 package deployer
 
 import (
-	"errors"
+	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
+	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
 // ProviderName is the name of the cloud provider
@@ -35,7 +40,34 @@ type AWSDeployer struct{}
 
 // GetIP returns the IP of a machine, but this is going away.
 func (*AWSDeployer) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	return "", errors.New("Not implemented")
+	codec, err := v1alpha1.NewCodec()
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to create codec in deployer")
+	}
+
+	status := &v1alpha1.AWSMachineProviderStatus{}
+	if err := codec.DecodeProviderStatus(machine.Status.ProviderStatus, status); err != nil {
+		return "", errors.Wrap(err, "failed to decode machine provider status in deployer")
+	}
+
+	// will have credentials in environment
+	sess := session.Must(session.NewSession())
+	ec2client := ec2.New(sess)
+
+	dio, err := ec2client.DescribeInstances(&ec2.DescribeInstancesInput{
+		InstanceIds: []*string{status.InstanceID},
+	})
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get instance description in deployer")
+	}
+
+	if len(dio.Reservations) == 0 {
+		return "", errors.New(fmt.Sprintf("no reservartions found for instance id %v", *status.InstanceID))
+	}
+	if len(dio.Reservations[0].Instances) == 0 {
+		return "", errors.New(fmt.Sprintf("instance was not found in a reserver for instance id %v", *status.InstanceID))
+	}
+	return *dio.Reservations[0].Instances[0].PublicIpAddress, nil
 }
 
 // GetKubeConfig returns the kubeconfig after the bootstrap process is complete.

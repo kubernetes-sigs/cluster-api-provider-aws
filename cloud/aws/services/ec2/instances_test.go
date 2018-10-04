@@ -20,7 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
@@ -184,36 +184,44 @@ func TestTerminateInstance(t *testing.T) {
 }
 
 func TestCreateInstance(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	testcases := []struct {
-		name    string
-		machine clusterv1.Machine
-		expect  func(m *mock_ec2iface.MockEC2API)
-		check   func(instance *v1alpha1.Instance, err error)
+		name          string
+		machine       clusterv1.Machine
+		machineConfig *v1alpha1.AWSMachineProviderConfig
+		clusterStatus *v1alpha1.AWSClusterProviderStatus
+		expect        func(m *mock_ec2iface.MockEC2API)
+		check         func(instance *v1alpha1.Instance, err error)
 	}{
 		{
 			name: "simple",
 			machine: clusterv1.Machine{
-				Spec: clusterv1.MachineSpec{
-					ProviderConfig: clusterv1.ProviderConfig{
-						Value: &runtime.RawExtension{
-							Raw: []byte(`apiVersion: "cluster.k8s.io/v1alpha1"
-kind: Machine
-metadata:
-  generateName: aws-controlplane-
-  labels:
-    set: controlplane
-spec:
-  versions:
-    kubelet: v1.11.2
-    controlPlane: v1.11.2
-  providerConfig:
-    value:
-      apiVersion: awsproviderconfig/v1alpha1
-      kind: AWSMachineProviderConfig
-      instanceType: m5.large`),
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+			},
+			machineConfig: &v1alpha1.AWSMachineProviderConfig{
+				AMI: v1alpha1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+			},
+			clusterStatus: &v1alpha1.AWSClusterProviderStatus{
+				Network: v1alpha1.Network{
+					Subnets: v1alpha1.Subnets{
+						&v1alpha1.Subnet{
+							ID:       "subnet-1",
+							IsPublic: false,
+						},
+						&v1alpha1.Subnet{
+							IsPublic: false,
+						},
+					},
+					SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
+						v1alpha1.SecurityGroupControlPlane: &v1alpha1.SecurityGroup{
+							ID: "1",
+						},
+						v1alpha1.SecurityGroupNode: &v1alpha1.SecurityGroup{
+							ID: "2",
 						},
 					},
 				},
@@ -221,11 +229,12 @@ spec:
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
 					RunInstances(&ec2.RunInstancesInput{
-						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("m5.large"),
-						MaxCount:     aws.Int64(1),
-						MinCount:     aws.Int64(1),
-						SubnetId:     aws.String("subnet-1"),
+						ImageId:          aws.String("abc"),
+						InstanceType:     aws.String("m5.large"),
+						MaxCount:         aws.Int64(1),
+						MinCount:         aws.Int64(1),
+						SubnetId:         aws.String("subnet-1"),
+						SecurityGroupIds: aws.StringSlice([]string{"2"}),
 					}).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -251,24 +260,12 @@ spec:
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine, &v1alpha1.AWSMachineProviderConfig{
-				AMI: v1alpha1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
-				InstanceType: "m5.large",
-			}, &v1alpha1.AWSClusterProviderStatus{
-				Network: v1alpha1.Network{
-					Subnets: v1alpha1.Subnets{
-						&v1alpha1.Subnet{
-							ID:       "subnet-1",
-							IsPublic: false,
-						},
-					},
-				},
-			})
+			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus)
 			tc.check(instance, err)
 		})
 	}

@@ -355,4 +355,10 @@ type Instance struct {
 
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
 	EBSOptimized *bool `json:"ebsOptimized"`
+
+	// UserData defines the Base64-encoded user data to make available to the instance.
+	UserData *string
+
+	// SecurityGroupIDs are one or more security group IDs this instance belongs to.
+	SecurityGroupIDs []*string
 }
