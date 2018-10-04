@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	defaultNetworkRoute = "0.0.0.0/0"
+	anyIPv4CidrBlock = "0.0.0.0/0"
 )
 
 func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network) error {
@@ -195,7 +195,7 @@ func (s *Service) associateRouteTable(rt *v1alpha1.RouteTable, subnetID string) 
 func (s *Service) getDefaultPrivateRoutes(natGatewayID string) []*ec2.Route {
 	return []*ec2.Route{
 		{
-			DestinationCidrBlock: aws.String(defaultNetworkRoute),
+			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
 			NatGatewayId:         aws.String(natGatewayID),
 		},
 	}
@@ -204,7 +204,7 @@ func (s *Service) getDefaultPrivateRoutes(natGatewayID string) []*ec2.Route {
 func (s *Service) getDefaultPublicRoutes(internetGatewayID string) []*ec2.Route {
 	return []*ec2.Route{
 		{
-			DestinationCidrBlock: aws.String(defaultNetworkRoute),
+			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
 			GatewayId:            aws.String(internetGatewayID),
 		},
 	}

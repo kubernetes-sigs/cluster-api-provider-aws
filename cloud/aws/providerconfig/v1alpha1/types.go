@@ -273,12 +273,22 @@ func (s *SecurityGroup) String() string {
 	return fmt.Sprintf("id=%s/name=%s", s.ID, s.Name)
 }
 
+// SecurityGroupProtocol defines the protocol type for a security group rule.
+type SecurityGroupProtocol string
+
+var (
+	SecurityGroupProtocolAll  = SecurityGroupProtocol("-1")
+	SecurityGroupProtocolTCP  = SecurityGroupProtocol("tcp")
+	SecurityGroupProtocolUDP  = SecurityGroupProtocol("udp")
+	SecurityGroupProtocolICMP = SecurityGroupProtocol("icmp")
+)
+
 // IngressRule defines an AWS ingress rule for security groups.
 type IngressRule struct {
-	Description string `json:"description"`
-	Protocol    string `json:"protocol"`
-	FromPort    int64  `json:"fromPort"`
-	ToPort      int64  `json:"toPort"`
+	Description string                `json:"description"`
+	Protocol    SecurityGroupProtocol `json:"protocol"`
+	FromPort    int64                 `json:"fromPort"`
+	ToPort      int64                 `json:"toPort"`
 
 	// List of CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.
 	CidrBlocks []string `json:"cidrBlocks"`

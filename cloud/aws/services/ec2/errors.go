@@ -80,3 +80,15 @@ func ReasonForError(err error) int {
 	}
 	return -1
 }
+
+func isIgnorableSecurityGroupError(err error) error {
+	if awserr, ok := err.(awserr.Error); ok {
+		switch code := awserr.Code(); code {
+		case errorGroupNotFound, errorPermissionNotFound:
+			return nil
+		default:
+			return err
+		}
+	}
+	return nil
+}

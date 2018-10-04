@@ -15,7 +15,6 @@ package ec2
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -54,7 +53,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 	case IsNotFound(err):
 		return nil, nil
 	case err != nil:
-		return nil, fmt.Errorf("failed to describe instances: %v", err)
+		return nil, errors.Errorf("failed to describe instances: %v", err)
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
@@ -88,8 +87,6 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		}
 		input.SubnetID = sns[0].ID
 	}
-
-	fmt.Println(machine.ObjectMeta)
 
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
