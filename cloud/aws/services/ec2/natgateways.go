@@ -146,39 +146,49 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 	return out.NatGateway, nil
 }
 
-func (s *Service) deleteNatGateway(ngID string) error {
+func (s *Service) deleteNatGateway(id string) error {
 	_, err := s.EC2.DeleteNatGateway(&ec2.DeleteNatGatewayInput{
-		NatGatewayId: aws.String(ngID),
+		NatGatewayId: aws.String(id),
 	})
 
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete nat gateway %q", id)
+	}
+
+	describeInput := &ec2.DescribeNatGatewaysInput{
+		NatGatewayIds: []*string{aws.String(id)},
+	}
+
 	check := func() (done bool, err error) {
-		out, err := s.EC2.DescribeNatGateways(&ec2.DescribeNatGatewaysInput{
-			NatGatewayIds: []*string{aws.String(ngID)},
-		})
+		out, err := s.EC2.DescribeNatGateways(describeInput)
 		if err != nil {
 			return false, err
 		}
+
+		if len(out.NatGateways) == 0 {
+			return false, errors.Wrapf(err, "no NAT gateway returned for id %q", id)
+		}
+
 		ng := out.NatGateways[0]
 		switch state := ng.State; *state {
-		case stateAvailable, stateDeleting:
+		case ec2.NatGatewayStateAvailable, ec2.NatGatewayStateDeleting:
 			return false, nil
-		case stateDeleted:
+		case ec2.NatGatewayStateDeleted:
 			return true, nil
-		case statePending:
+		case ec2.NatGatewayStatePending:
 			return false, errors.Errorf("in pending state")
-		case stateFailed:
+		case ec2.NatGatewayStateFailed:
 			return false, errors.Errorf("in failed state: %q - %s", *ng.FailureCode, *ng.FailureMessage)
 		}
+
 		return false, errors.Errorf("in unknown state")
 	}
 
-	err = wait.WaitForWithRetryable(wait.NewBackoff(), check, []string{})
-
-	if err != nil {
-		return errors.Wrapf(err, "failed to delete NAT gateway %q", ngID)
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), check, []string{}); err != nil {
+		return errors.Wrapf(err, "failed to wait for NAT gateway deletion %q", id)
 	}
 
-	glog.Infof("Deletion request sent for NAT gateway %q", ngID)
+	glog.Infof("Deleted NAT gateway %q", id)
 	return nil
 }
 

@@ -17,32 +17,10 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-)
-
-const (
-	portSSH             = 22
-	descSSH             = "SSH"
-	protSSH             = "tcp"
-	portKubeAPI         = 6443
-	protKubeAPI         = "tcp"
-	descKubeAPI         = "Kubernetes API"
-	portKubelet         = 10250
-	descKubelet         = "Kubelet API"
-	protKubelet         = "tcp"
-	portEtcd            = 2379
-	descEtcd            = "etcd"
-	protEtcd            = "tcp"
-	portEtcdPeer        = 2380
-	descEtcdPeer        = "etcd peer"
-	descNodePortSvc     = "Node Port Services"
-	protNodePortSvc     = "tcp"
-	portFromNodePortSvc = 30000
-	portToNodePortSvc   = 32767
 )
 
 func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.Network) error {
@@ -116,26 +94,16 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 	return nil
 }
 
-func (s *Service) isIgnorableSecurityGroupError(err error) error {
-	if awserr, ok := err.(awserr.Error); ok {
-		switch code := awserr.Code(); code {
-		case errorGroupNotFound, errorPermissionNotFound:
-			return nil
-		default:
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Network) error {
 	for _, sg := range network.SecurityGroups {
 		current := sg.IngressRules
+
 		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); err != nil {
-			if err := s.isIgnorableSecurityGroupError(err); err != nil {
+			if err := isIgnorableSecurityGroupError(err); err != nil {
 				return err
 			}
 		}
+
 		glog.V(2).Infof("Revoked ingress rules %v from security group %q", current, sg.ID)
 	}
 
@@ -143,11 +111,13 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 		input := &ec2.DeleteSecurityGroupInput{
 			GroupId: aws.String(sg.ID),
 		}
+
 		if _, err := s.EC2.DeleteSecurityGroup(input); err != nil {
-			if err := s.isIgnorableSecurityGroupError(err); err != nil {
+			if err := isIgnorableSecurityGroupError(err); err != nil {
 				return err
 			}
 		}
+
 		glog.V(2).Infof("Deleted security group security group %q", sg.ID)
 	}
 	return nil
@@ -231,13 +201,13 @@ func (s *Service) revokeSecurityGroupIngressRules(groupID string, rules v1alpha1
 	return nil
 }
 
-func (s *Service) defaultSSHIngressRule(network *v1alpha1.Network) *v1alpha1.IngressRule {
+func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) *v1alpha1.IngressRule {
 	return &v1alpha1.IngressRule{
-		Description:           descSSH,
-		Protocol:              protSSH,
-		FromPort:              portSSH,
-		ToPort:                portSSH,
-		SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID),
+		Description:           "SSH",
+		Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+		FromPort:              22,
+		ToPort:                22,
+		SourceSecurityGroupID: aws.String(sourceSecurityGroupID),
 	}
 }
 
@@ -246,54 +216,54 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 	case v1alpha1.SecurityGroupBastion:
 		return v1alpha1.IngressRules{
 			{
-				Description: descSSH,
-				Protocol:    protSSH,
-				FromPort:    portSSH,
-				ToPort:      portSSH,
-				CidrBlocks:  []string{defaultNetworkRoute},
+				Description: "SSH",
+				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:    22,
+				ToPort:      22,
+				CidrBlocks:  []string{anyIPv4CidrBlock},
 			},
 		}, nil
 	case v1alpha1.SecurityGroupControlPlane:
 		return v1alpha1.IngressRules{
-			s.defaultSSHIngressRule(network),
+			s.defaultSSHIngressRule(network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID),
 			{
-				Description: descKubeAPI,
-				Protocol:    protKubeAPI,
-				FromPort:    portKubeAPI,
-				ToPort:      portKubeAPI,
-				CidrBlocks:  []string{defaultNetworkRoute},
+				Description: "Kubernetes API",
+				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:    6443,
+				ToPort:      6443,
+				CidrBlocks:  []string{anyIPv4CidrBlock},
 			},
 			{
-				Description:           descEtcd,
-				Protocol:              protEtcd,
-				FromPort:              portEtcd,
-				ToPort:                portEtcd,
+				Description:           "etcd",
+				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:              2379,
+				ToPort:                2379,
 				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 			{
-				Description:           descEtcdPeer,
-				Protocol:              protEtcd,
-				FromPort:              portEtcdPeer,
-				ToPort:                portEtcdPeer,
+				Description:           "etcd peer",
+				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:              2380,
+				ToPort:                2380,
 				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 		}, nil
 
 	case v1alpha1.SecurityGroupNode:
 		return v1alpha1.IngressRules{
-			s.defaultSSHIngressRule(network),
+			s.defaultSSHIngressRule(network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID),
 			{
-				Description: descNodePortSvc,
-				Protocol:    protNodePortSvc,
-				FromPort:    portFromNodePortSvc,
-				ToPort:      portToNodePortSvc,
-				CidrBlocks:  []string{defaultNetworkRoute},
+				Description: "Node Port Services",
+				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:    30000,
+				ToPort:      32767,
+				CidrBlocks:  []string{anyIPv4CidrBlock},
 			},
 			{
-				Description:           descKubelet,
-				Protocol:              protKubelet,
-				FromPort:              portKubelet,
-				ToPort:                portKubelet,
+				Description:           "Kubelet API",
+				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:              10250,
+				ToPort:                10250,
 				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 		}, nil
@@ -327,7 +297,7 @@ func (s *Service) getDefaultSecurityGroup(clusterName string, vpcID string, role
 
 func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
 	res := &ec2.IpPermission{
-		IpProtocol: aws.String(i.Protocol),
+		IpProtocol: aws.String(string(i.Protocol)),
 		FromPort:   aws.Int64(i.FromPort),
 		ToPort:     aws.Int64(i.ToPort),
 	}
@@ -351,7 +321,7 @@ func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
 
 func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
 	res := &v1alpha1.IngressRule{
-		Protocol: *v.IpProtocol,
+		Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
 		FromPort: *v.FromPort,
 		ToPort:   *v.ToPort,
 	}

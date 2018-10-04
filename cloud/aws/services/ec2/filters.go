@@ -40,7 +40,7 @@ func (s *Service) filterVpcAttachment(vpcID string) *ec2.Filter {
 func (s *Service) filterAvailable() *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameState),
-		Values: aws.StringSlice([]string{stateAvailable}),
+		Values: aws.StringSlice([]string{"available"}),
 	}
 }
 
