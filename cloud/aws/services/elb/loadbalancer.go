@@ -147,10 +147,11 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 
 func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription) *v1alpha1.ClassicELB {
 	return &v1alpha1.ClassicELB{
-		Name:             *v.LoadBalancerName,
+		Name:             aws.StringValue(v.LoadBalancerName),
 		Scheme:           v1alpha1.ClassicELBScheme(*v.Scheme),
 		SubnetIDs:        aws.StringValueSlice(v.Subnets),
 		SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
+		DNSName:          aws.StringValue(v.DNSName),
 	}
 }
 
