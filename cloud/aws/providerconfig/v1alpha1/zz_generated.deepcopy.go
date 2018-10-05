@@ -112,11 +112,6 @@ func (in *AWSMachineProviderConfig) DeepCopyInto(out *AWSMachineProviderConfig) 
 			(*out)[key] = val
 		}
 	}
-	if in.IAMInstanceProfile != nil {
-		in, out := &in.IAMInstanceProfile, &out.IAMInstanceProfile
-		*out = new(AWSResourceReference)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.PublicIP != nil {
 		in, out := &in.PublicIP, &out.PublicIP
 		*out = new(bool)
@@ -402,11 +397,6 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.IAMProfile != nil {
-		in, out := &in.IAMProfile, &out.IAMProfile
-		*out = new(AWSResourceReference)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.PrivateIP != nil {
 		in, out := &in.PrivateIP, &out.PrivateIP
 		*out = new(string)
@@ -429,6 +419,13 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.SecurityGroups != nil {
+		in, out := &in.SecurityGroups, &out.SecurityGroups
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
