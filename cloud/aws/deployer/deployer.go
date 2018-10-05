@@ -18,10 +18,12 @@ package deployer
 
 import (
 	"github.com/pkg/errors"
+	"k8s.io/client-go/tools/clientcmd"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 )
 
 // ProviderName is the name of the cloud provider
@@ -53,5 +55,31 @@ func (*AWSDeployer) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 // GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
 func (*AWSDeployer) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	return "", errors.New("Not implemented")
+	codec, err := v1alpha1.NewCodec()
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to create codec in deployer")
+	}
+
+	status := &v1alpha1.AWSClusterProviderStatus{}
+	if err := codec.DecodeProviderStatus(cluster.Status.ProviderStatus, status); err != nil {
+		return "", errors.Wrap(err, "failed to decode machine provider status in deployer")
+	}
+	cert, err := certificates.DecodeCertPEM(status.CACertificate)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode CA Cert")
+	}
+	key, err := certificates.DecodePrivateKeyPEM(status.CAPrivateKey)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode private key")
+	}
+
+	cfg, err := certificates.NewKubeconfig(status.Network.APIServerELB.DNSName, cert, key)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate a kubeconfig")
+	}
+	yaml, err := clientcmd.Write(*cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to serialize config to yaml")
+	}
+	return string(yaml), nil
 }

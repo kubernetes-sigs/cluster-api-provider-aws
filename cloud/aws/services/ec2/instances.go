@@ -15,6 +15,9 @@ package ec2
 
 import (
 	"encoding/base64"
+	"fmt"
+
+	"github.com/golang/glog"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -22,28 +25,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-)
-
-const (
-	controlPlaneUserData = `#!/usr/bin/env bash
-
-cat >/tmp/kubeadm.yaml <<EOF
-apiVersion: kubeadm.k8s.io/v1alpha3
-kind: InitConfiguration
-nodeRegistration:
-  criSocket: /var/run/containerd/containerd.sock
-EOF
-
-kubeadm init --config /tmp/kubeadm.yaml
-
-# Installation from https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
-`
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 )
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
+	glog.V(2).Infof("Looking for instance %q", instanceID)
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
 	}
@@ -90,7 +77,14 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
-		input.UserData = aws.String(controlPlaneUserData)
+		caCert, caKey, err := certificates.NewCertificateAuthority()
+		if err != nil {
+			return input, errors.Wrap(err, "Failed to generate a CA for the control plane")
+		}
+		clusterStatus.CACertificate = certificates.EncodeCertPEM(caCert)
+		clusterStatus.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
+
+		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate, clusterStatus.CAPrivateKey))
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
@@ -132,17 +126,19 @@ func (s *Service) TerminateInstance(instanceID *string) error {
 func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
+		glog.V(2).Infof("Looking up instance %q", status.InstanceID)
 		instance, err := s.InstanceIfExists(status.InstanceID)
 
 		// if there was no error, return the found instance
 		if err == nil {
-			return instance, err
+			return instance, nil
 		}
 
 		// if there was an error but it's not IsNotFound then it's a real error
 		if !IsNotFound(err) {
-			return instance, err
+			return instance, errors.Wrapf(err, "instance %q was not found", status.InstanceID)
 		}
+		return instance, errors.Wrapf(err, "failed to look up instance %q", status.InstanceID)
 	}
 
 	// otherwise let's create it
@@ -294,4 +290,30 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	}
 
 	return i
+}
+
+// initControlPlaneScript returns the b64 encoded script to run on start up.
+// The cert Must be CertPEM encoded and the key must be PrivateKeyPEM encoded
+func initControlPlaneScript(caCert, caKey []byte) string {
+	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
+	return fmt.Sprintf(`#!/usr/bin/env bash
+
+mkdir -p /etc/kubernetes/pki
+
+echo '%s' > /etc/kubernetes/pki/ca.crt
+echo '%s' > /etc/kubernetes/pki/ca.key
+
+cat >/tmp/kubeadm.yaml <<EOF
+apiVersion: kubeadm.k8s.io/v1alpha3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/containerd/containerd.sock
+EOF
+
+kubeadm init --config /tmp/kubeadm.yaml
+
+# Installation from https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+`, caCert, caKey)
 }

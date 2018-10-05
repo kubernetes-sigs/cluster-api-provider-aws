@@ -168,6 +168,12 @@ type AWSClusterProviderStatus struct {
 	Region  string   `json:"region"`
 	Network Network  `json:"network"`
 	Bastion Instance `json:"bastion"`
+
+	// CACertificate is a PEM encoded CA Certificate for the control plane nodes.
+	CACertificate []byte
+
+	// CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control plane nodes.
+	CAPrivateKey []byte
 }
 
 // Network encapsulates AWS networking resources.

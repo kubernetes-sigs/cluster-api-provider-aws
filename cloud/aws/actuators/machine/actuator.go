@@ -93,6 +93,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	glog.Infof("Creating machine %v for cluster", machine.Name, cluster.Name)
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine provider status")
@@ -226,10 +227,15 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	glog.Infof("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
+	glog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return false, err
+	}
+
+	// TODO worry about pointers. instance if exists returns *any* instance
+	if status.InstanceID == nil {
+		return false, nil
 	}
 
 	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
@@ -239,7 +245,9 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	if instance == nil {
 		return false, nil
 	}
-	// TODO update status here
+
+	glog.Infof("Found an instance: %#v", instance)
+
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning, v1alpha1.InstanceStatePending:
 		return true, nil
