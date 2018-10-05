@@ -44,9 +44,9 @@ type AWSMachineProviderConfig struct {
 	// +optional
 	AdditionalTags map[string]string `json:"additionalTags,omitempty"`
 
-	// IAMInstanceProfile is a reference to an IAM role to assign to the instance
+	// IAMInstanceProfile is a name of an IAM instance profile to assign to the instance
 	// +optional
-	IAMInstanceProfile *AWSResourceReference `json:"iamInstanceProfile,omitempty"`
+	IAMInstanceProfile string `json:"iamInstanceProfile,omitempty"`
 
 	// PublicIP specifies whether the instance should get a public IP.
 	// Precedence for this setting is as follows:
@@ -435,8 +435,8 @@ type Instance struct {
 	// This field must not be base64 encoded and should only be used when running a new instance.
 	UserData *string `json:"userData"`
 
-	// The ARN of the IAM instance profile associated with the instance, if applicable.
-	IAMProfile *AWSResourceReference `json:"iamProfile"`
+	// The name of the IAM instance profile associated with the instance, if applicable.
+	IAMProfile string `json:"iamProfile"`
 
 	// The private IPv4 address assigned to the instance.
 	PrivateIP *string `json:"privateIp"`

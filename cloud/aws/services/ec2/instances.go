@@ -54,7 +54,8 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 
 	input := &v1alpha1.Instance{
-		Type: config.InstanceType,
+		Type:       config.InstanceType,
+		IAMProfile: config.IAMInstanceProfile,
 	}
 
 	// Pick image from the machine configuration, or use a default one.
@@ -95,11 +96,6 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	// Pick SSH key, if any.
 	if config.KeyName != "" {
 		input.KeyName = aws.String(config.KeyName)
-	}
-
-	// Pick instance profile, if any.
-	if config.IAMInstanceProfile != nil && config.IAMInstanceProfile.ARN != nil {
-		input.IAMProfile = config.IAMInstanceProfile
 	}
 
 	return s.runInstance(input)
@@ -165,9 +161,9 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 		input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
 	}
 
-	if i.IAMProfile != nil {
+	if i.IAMProfile != "" {
 		input.IamInstanceProfile = &ec2.IamInstanceProfileSpecification{
-			Arn: i.IAMProfile.ARN,
+			Name: aws.String(i.IAMProfile),
 		}
 	}
 
@@ -275,11 +271,9 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 		i.SecurityGroupIDs = append(i.SecurityGroupIDs, *sg.GroupId)
 	}
 
-	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Arn != nil {
-		i.IAMProfile = &v1alpha1.AWSResourceReference{
-			ARN: v.IamInstanceProfile.Arn,
-		}
-	}
+	// TODO: Handle returned IAM instance profile, since we are currently
+	// using a string representing the name, but the InstanceProfile returned
+	// from the sdk only returns ARN and ID.
 
 	if len(v.Tags) > 0 {
 		i.Tags = tagsToMap(v.Tags)
