@@ -259,11 +259,11 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 // type. EC2 types are wrapped or converted to our own types here.
 func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	i := &v1alpha1.Instance{
-		ID:           *v.InstanceId,
+		ID:           aws.StringValue(v.InstanceId),
 		State:        v1alpha1.InstanceState(*v.State.Name),
-		Type:         *v.InstanceType,
-		SubnetID:     *v.SubnetId,
-		ImageID:      *v.ImageId,
+		Type:         aws.StringValue(v.InstanceType),
+		SubnetID:     aws.StringValue(v.SubnetId),
+		ImageID:      aws.StringValue(v.ImageId),
 		KeyName:      v.KeyName,
 		PrivateIP:    v.PrivateIpAddress,
 		PublicIP:     v.PublicIpAddress,
