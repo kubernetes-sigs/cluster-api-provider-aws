@@ -438,6 +438,13 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 			(*out)[key] = val
 		}
 	}
+	if in.SecurityGroups != nil {
+		in, out := &in.SecurityGroups, &out.SecurityGroups
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

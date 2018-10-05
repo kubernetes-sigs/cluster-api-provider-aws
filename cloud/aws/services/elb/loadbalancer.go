@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
+// ReconcileLoadbalancers reconciles the load balancers for the given cluster.
 func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.Network) error {
 	glog.V(2).Info("Reconciling load balancers")
 
@@ -145,35 +146,29 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 }
 
 func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription) *v1alpha1.ClassicELB {
-	lb := &v1alpha1.ClassicELB{
+	return &v1alpha1.ClassicELB{
 		Name:             *v.LoadBalancerName,
 		Scheme:           v1alpha1.ClassicELBScheme(*v.Scheme),
 		SubnetIDs:        aws.StringValueSlice(v.Subnets),
 		SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
 	}
-
-	return lb
 }
 
 func fromSDKTypeToClassicListener(v *elb.Listener) *v1alpha1.ClassicELBListener {
-	ln := &v1alpha1.ClassicELBListener{
+	return &v1alpha1.ClassicELBListener{
 		Protocol:         v1alpha1.ClassicELBProtocol(*v.Protocol),
 		Port:             *v.LoadBalancerPort,
 		InstanceProtocol: v1alpha1.ClassicELBProtocol(*v.InstanceProtocol),
 		InstancePort:     *v.InstancePort,
 	}
-
-	return ln
 }
 
 func fromSDKTypeToClassicHealthCheck(v *elb.HealthCheck) *v1alpha1.ClassicELBHealthCheck {
-	hc := &v1alpha1.ClassicELBHealthCheck{
+	return &v1alpha1.ClassicELBHealthCheck{
 		Target:             *v.Target,
 		Interval:           time.Duration(*v.Interval) * time.Second,
 		Timeout:            time.Duration(*v.Timeout) * time.Second,
 		HealthyThreshold:   *v.HealthyThreshold,
 		UnhealthyThreshold: *v.UnhealthyThreshold,
 	}
-
-	return hc
 }

@@ -15,15 +15,14 @@ package cluster
 
 import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -35,16 +34,14 @@ import (
 type Actuator struct {
 	codec          codec
 	clustersGetter client.ClustersGetter
-	ec2Getter      EC2Getter
-	elbGetter      ELBGetter
+	servicesGetter service.Getter
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
 	Codec          codec
 	ClustersGetter client.ClustersGetter
-	EC2Getter      EC2Getter
-	ELBGetter      ELBGetter
+	ServicesGetter service.Getter
 }
 
 // NewActuator creates a new Actuator
@@ -52,16 +49,11 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 	res := &Actuator{
 		codec:          params.Codec,
 		clustersGetter: params.ClustersGetter,
-		ec2Getter:      params.EC2Getter,
-		elbGetter:      params.ELBGetter,
+		servicesGetter: params.ServicesGetter,
 	}
 
-	if res.ec2Getter == nil {
-		res.ec2Getter = new(defaultEC2Getter)
-	}
-
-	if res.elbGetter == nil {
-		res.elbGetter = new(defaultELBGetter)
+	if res.servicesGetter == nil {
+		res.servicesGetter = new(defaultServicesGetter)
 	}
 
 	return res, nil
@@ -98,8 +90,11 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		}
 	}()
 
+	// Create new aws session.
+	sess := a.servicesGetter.Session(config)
+
 	// Load ec2 client.
-	ec2 := ec2svc.NewService(a.ec2Getter.EC2(config))
+	ec2 := a.servicesGetter.EC2(sess)
 
 	if err := ec2.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
@@ -110,7 +105,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	}
 
 	// Load elb client.
-	elb := elbsvc.NewService(a.elbGetter.ELB(config))
+	elb := a.servicesGetter.ELB(sess)
 
 	if err := elb.ReconcileLoadbalancers(cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile load balancers: %v", err)
@@ -150,10 +145,13 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 		}
 	}()
 
-	// Load ec2 client.
-	svc := ec2svc.NewService(a.ec2Getter.EC2(config))
+	// Create new aws session.
+	sess := a.servicesGetter.Session(config)
 
-	if err := svc.DeleteNetwork(cluster.Name, &status.Network); err != nil {
+	// Load ec2 client.
+	ec2 := a.servicesGetter.EC2(sess)
+
+	if err := ec2.DeleteNetwork(cluster.Name, &status.Network); err != nil {
 		glog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: 5 * 1000 * 1000 * 1000,
@@ -189,14 +187,16 @@ func (a *Actuator) storeProviderStatus(clusterClient client.ClusterInterface, cl
 	return nil
 }
 
-type defaultEC2Getter struct{}
+type defaultServicesGetter struct{}
 
-func (d *defaultEC2Getter) EC2(clusterConfig *providerconfigv1.AWSClusterProviderConfig) ec2iface.EC2API {
-	return ec2.New(session.Must(session.NewSession()), aws.NewConfig().WithRegion(clusterConfig.Region))
+func (d *defaultServicesGetter) Session(clusterConfig *providerconfigv1.AWSClusterProviderConfig) *session.Session {
+	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
 }
 
-type defaultELBGetter struct{}
+func (d *defaultServicesGetter) EC2(session *session.Session) service.EC2Interface {
+	return ec2svc.NewService(ec2.New(session))
+}
 
-func (d *defaultELBGetter) ELB(clusterConfig *providerconfigv1.AWSClusterProviderConfig) elbiface.ELBAPI {
-	return elb.New(session.Must(session.NewSession()), aws.NewConfig().WithRegion(clusterConfig.Region))
+func (d *defaultServicesGetter) ELB(session *session.Session) service.ELBInterface {
+	return elbsvc.NewService(elb.New(session))
 }

@@ -30,7 +30,7 @@ import (
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Looking for instance %q", instanceID)
+	glog.V(2).Infof("Looking for instance %q", *instanceID)
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
 	}
@@ -122,7 +122,7 @@ func (s *Service) TerminateInstance(instanceID *string) error {
 func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
-		glog.V(2).Infof("Looking up instance %q", status.InstanceID)
+		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
 		instance, err := s.InstanceIfExists(status.InstanceID)
 
 		// if there was no error, return the found instance
@@ -132,9 +132,10 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 		// if there was an error but it's not IsNotFound then it's a real error
 		if !IsNotFound(err) {
-			return instance, errors.Wrapf(err, "instance %q was not found", status.InstanceID)
+			return instance, errors.Wrapf(err, "instance %q was not found", *status.InstanceID)
 		}
-		return instance, errors.Wrapf(err, "failed to look up instance %q", status.InstanceID)
+
+		return instance, errors.Wrapf(err, "failed to look up instance %q", *status.InstanceID)
 	}
 
 	// otherwise let's create it
@@ -211,7 +212,7 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroup
 // This will be called if there is anything to create (update) or delete.
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
-func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, delete map[string]string) error {
+func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error {
 	// If we have anything to create or update
 	if len(create) > 0 {
 		// Convert our create map into an array of *ec2.Tag
@@ -230,15 +231,15 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 		}
 	}
 
-	// If we have anything to delete
-	if len(delete) > 0 {
-		// Convert our delete map into an array of *ec2.Tag
-		deleteTagsInput := mapToTags(delete)
+	// If we have anything to remove
+	if len(remove) > 0 {
+		// Convert our remove map into an array of *ec2.Tag
+		removeTagsInput := mapToTags(remove)
 
 		// Create the DeleteTags input
 		input := &ec2.DeleteTagsInput{
 			Resources: []*string{resourceID},
-			Tags:      deleteTagsInput,
+			Tags:      removeTagsInput,
 		}
 
 		// Delete tags in AWS.
