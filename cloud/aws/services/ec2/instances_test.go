@@ -70,7 +70,7 @@ func TestInstanceIfExists(t *testing.T) {
 						Reservations: []*ec2.Reservation{
 							{
 								Instances: []*ec2.Instance{
-									&ec2.Instance{
+									{
 										InstanceId:   aws.String("id-1"),
 										InstanceType: aws.String("m5.large"),
 										SubnetId:     aws.String("subnet-1"),
@@ -217,10 +217,10 @@ func TestCreateInstance(t *testing.T) {
 						},
 					},
 					SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
-						v1alpha1.SecurityGroupControlPlane: &v1alpha1.SecurityGroup{
+						v1alpha1.SecurityGroupControlPlane: {
 							ID: "1",
 						},
-						v1alpha1.SecurityGroupNode: &v1alpha1.SecurityGroup{
+						v1alpha1.SecurityGroupNode: {
 							ID: "2",
 						},
 					},
@@ -238,7 +238,7 @@ func TestCreateInstance(t *testing.T) {
 					}).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
-							&ec2.Instance{
+							{
 								State: &ec2.InstanceState{
 									Name: aws.String(ec2.InstanceStateNamePending),
 								},

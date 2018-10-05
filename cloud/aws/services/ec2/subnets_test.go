@@ -76,7 +76,7 @@ func TestReconcileSubnets(t *testing.T) {
 					})).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{
-							&ec2.Subnet{
+							{
 								VpcId:               aws.String(subnetsVPCID),
 								SubnetId:            aws.String("subnet-1"),
 								AvailabilityZone:    aws.String("us-east-1a"),

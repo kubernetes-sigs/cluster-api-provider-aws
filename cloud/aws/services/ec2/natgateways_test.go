@@ -185,7 +185,7 @@ func TestReconcileNatGateways(t *testing.T) {
 						}),
 						gomock.Any()).Do(func(_, y interface{}) {
 					funct := y.(func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool)
-					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{&ec2.NatGateway{
+					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
 						NatGatewayId: aws.String("gateway"),
 						SubnetId:     aws.String("subnet-1"),
 					}}}, true)
@@ -261,7 +261,7 @@ func TestReconcileNatGateways(t *testing.T) {
 						}),
 						gomock.Any()).Do(func(_, y interface{}) {
 					funct := y.(func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool)
-					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{&ec2.NatGateway{
+					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
 						NatGatewayId: aws.String("gateway"),
 						SubnetId:     aws.String("subnet-1"),
 					}}}, true)

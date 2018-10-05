@@ -240,7 +240,7 @@ var (
 type ClassicELB struct {
 	// The name of the load balancer. It must be unique within the set of load balancers
 	// defined in the region. It also serves as identifier.
-	Name string `json:"name`
+	Name string `json:"name"`
 
 	// DNSName is the dns name of the load balancer.
 	DNSName string `json:"dnsName"`
@@ -276,7 +276,7 @@ type ClassicELBListener struct {
 type ClassicELBHealthCheck struct {
 	Target             string        `json:"target"`
 	Interval           time.Duration `json:"interval"`
-	Timeout            time.Duration `json:"interval"`
+	Timeout            time.Duration `json:"timeout"`
 	HealthyThreshold   int64         `json:"healthyThreshold"`
 	UnhealthyThreshold int64         `json:"unhealthyThreshold"`
 }
