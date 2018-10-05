@@ -1,6 +1,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
@@ -17,6 +19,40 @@ func (s *Service) filterCluster(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
 		Values: aws.StringSlice([]string{s.clusterTagKey(clusterName)}),
+	}
+}
+
+// Returns an EC2 filter using the Cluster API per-cluster tag where
+// the resource is owned
+func (s *Service) filterClusterOwned(clusterName string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String(fmt.Sprintf("tag:%s", s.clusterTagKey(clusterName))),
+		Values: aws.StringSlice([]string{string(ResourceLifecycleOwned)}),
+	}
+}
+
+// Returns an EC2 filter using the Cluster API per-cluster tag where
+// the resource is shared
+func (s *Service) filterClusterShared(clusterName string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String(fmt.Sprintf("tag:%s", s.clusterTagKey(clusterName))),
+		Values: aws.StringSlice([]string{string(ResourceLifecycleShared)}),
+	}
+}
+
+// Returns an EC2 filter using cluster-api-provider-aws managed tag
+func (s *Service) filterAWSProviderManaged() *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String(filterNameTagKey),
+		Values: aws.StringSlice([]string{TagNameAWSProviderManaged}),
+	}
+}
+
+// Returns an EC2 filter using cluster-api-provider-aws role tag
+func (s *Service) filterAWSProviderRole(role string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String(fmt.Sprintf("tag:%s", TagNameAWSClusterAPIRole)),
+		Values: aws.StringSlice([]string{role}),
 	}
 }
 

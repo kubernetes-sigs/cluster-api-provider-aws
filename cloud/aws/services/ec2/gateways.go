@@ -14,6 +14,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
@@ -73,7 +75,8 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
 
-	if err := s.createTags(clusterName, *ig.InternetGateway.InternetGatewayId, ResourceLifecycleOwned, nil); err != nil {
+	name := fmt.Sprintf("%s-igw", clusterName)
+	if err := s.createTags(clusterName, *ig.InternetGateway.InternetGatewayId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 

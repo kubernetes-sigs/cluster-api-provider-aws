@@ -68,13 +68,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"rt-1"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
 				m.EXPECT().
@@ -106,13 +100,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					After(publicRouteTable)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"rt-2"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
 				m.EXPECT().

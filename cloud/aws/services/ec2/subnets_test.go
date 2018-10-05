@@ -106,13 +106,7 @@ func TestReconcileSubnets(t *testing.T) {
 					WaitUntilSubnetAvailable(gomock.Any())
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"subnet-2"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
 				m.EXPECT().
@@ -181,13 +175,7 @@ func TestReconcileSubnets(t *testing.T) {
 					After(firstSubnet)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"subnet-1"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
 				secondSubnet := m.EXPECT().
@@ -212,14 +200,7 @@ func TestReconcileSubnets(t *testing.T) {
 					After(secondSubnet)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"subnet-2"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
-					Return(nil, nil)
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
 
 				m.EXPECT().
 					ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{

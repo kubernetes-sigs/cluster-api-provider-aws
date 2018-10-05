@@ -58,7 +58,10 @@ func NewConflict(err error) error {
 
 // IsNotFound returns true if the error was created by NewNotFound.
 func IsNotFound(err error) bool {
-	return ReasonForError(err) == http.StatusNotFound
+	if ReasonForError(err) == http.StatusNotFound {
+		return true
+	}
+	return IsInvalidNotFoundError(err)
 }
 
 // IsConflict returns true if the error was created by NewConflict.
@@ -70,6 +73,17 @@ func IsConflict(err error) bool {
 func IsSDKError(err error) (ok bool) {
 	_, ok = err.(awserr.Error)
 	return
+}
+
+// IsInvalidNotFoundError tests for common aws not found errors
+func IsInvalidNotFoundError(err error) bool {
+	if awsErr, ok := err.(awserr.Error); ok {
+		switch code := awsErr.Code(); code {
+		case "InvalidVpcID.NotFound":
+			return true
+		}
+	}
+	return false
 }
 
 // ReasonForError returns the HTTP status for a particular error.

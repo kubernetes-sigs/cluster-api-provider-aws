@@ -14,6 +14,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
@@ -170,7 +172,14 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
-	if err := s.createTags(clusterName, *out.Subnet.SubnetId, ResourceLifecycleOwned, nil); err != nil {
+	suffix := "private"
+	role := TagValueCommonRole
+	if mapPublicIP {
+		suffix = "public"
+		role = TagValueBastionRole
+	}
+	name := fmt.Sprintf("%s-subnet-%s", clusterName, suffix)
+	if err := s.createTags(clusterName, *out.Subnet.SubnetId, ResourceLifecycleOwned, name, role, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
 	}
 

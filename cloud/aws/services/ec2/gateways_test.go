@@ -76,13 +76,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 					}, nil)
 
 				m.EXPECT().
-					CreateTags(gomock.Eq(&ec2.CreateTagsInput{
-						Resources: aws.StringSlice([]string{"igw-1"}),
-						Tags: []*ec2.Tag{&ec2.Tag{
-							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						}},
-					})).
+					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
 				m.EXPECT().

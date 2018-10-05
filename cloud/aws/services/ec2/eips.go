@@ -14,6 +14,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
@@ -21,20 +23,46 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 )
 
-func (s *Service) allocateAddress(clusterName string) (string, error) {
+func (s *Service) getOrAllocateAddress(clusterName string, role string) (string, error) {
+	out, err := s.describeAddresses(clusterName, role)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to query addresses")
+	}
+
+	// TODO: better handle multiple addresses returned
+	for _, address := range out.Addresses {
+		if address.AssociationId == nil {
+			return aws.StringValue(address.AllocationId), nil
+		}
+	}
+	return s.allocateAddress(clusterName, role)
+}
+
+func (s *Service) allocateAddress(clusterName string, role string) (string, error) {
 	out, err := s.EC2.AllocateAddress(&ec2.AllocateAddressInput{
 		Domain: aws.String("vpc"),
 	})
 
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to create Elastic IP address")
+		return "", errors.Wrap(err, "failed to create Elastic IP address")
 	}
 
-	if err := s.createTags(clusterName, *out.AllocationId, ResourceLifecycleOwned, nil); err != nil {
-		return "", errors.Wrapf(err, "failed to tag elastic IP %q", *out.AllocationId)
+	name := fmt.Sprintf("%s-eip-%s", clusterName, role)
+	if err := s.createTags(clusterName, *out.AllocationId, ResourceLifecycleOwned, name, role, nil); err != nil {
+		return "", errors.Wrapf(err, "failed to tag elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 
-	return *out.AllocationId, nil
+	return aws.StringValue(out.AllocationId), nil
+}
+
+func (s *Service) describeAddresses(clusterName string, role string) (*ec2.DescribeAddressesOutput, error) {
+	filters := []*ec2.Filter{s.filterCluster(clusterName)}
+	if role != "" {
+		filters = append(filters, s.filterAWSProviderRole(role))
+	}
+	return s.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
+		Filters: filters,
+	})
 }
 
 func (s *Service) releaseAddresses(clusterName string) error {
