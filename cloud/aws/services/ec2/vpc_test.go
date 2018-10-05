@@ -47,7 +47,7 @@ func TestReconcileVPC(t *testing.T) {
 					})).
 					Return(&ec2.DescribeVpcsOutput{
 						Vpcs: []*ec2.Vpc{
-							&ec2.Vpc{
+							{
 								VpcId:     aws.String("vpc-exists"),
 								CidrBlock: aws.String("10.0.0.0/8"),
 							},

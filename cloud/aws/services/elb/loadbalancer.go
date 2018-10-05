@@ -57,7 +57,7 @@ func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alph
 		Name:   fmt.Sprintf("%s-apiserver", clusterName),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
 		Listeners: []*v1alpha1.ClassicELBListener{
-			&v1alpha1.ClassicELBListener{
+			{
 				Protocol:         v1alpha1.ClassicELBProtocolTCP,
 				Port:             6443,
 				InstanceProtocol: v1alpha1.ClassicELBProtocolTCP,
