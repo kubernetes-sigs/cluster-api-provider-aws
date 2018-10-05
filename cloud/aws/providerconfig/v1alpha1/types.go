@@ -254,19 +254,19 @@ type ClassicELB struct {
 	// Scheme is the load balancer scheme, either internet-facing or private.
 	Scheme ClassicELBScheme `json:"scheme"`
 
-	// The ids of the subnets in the VPC to attach the load balancer to.
+	// SubnetIDs is an array of subnets in the VPC attached to the load balancer.
 	SubnetIDs []string `json:"subnetIds"`
 
-	// The IDs of the security groups assigned to the load balancer.
+	// SecurityGroupIDs is an array of security groups assigned to the load balancer.
 	SecurityGroupIDs []string `json:"securityGroupIds"`
 
-	// Listeners is the classic elb listeners associated with the load balancer. There must be at least one.
+	// Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
 	Listeners []*ClassicELBListener `json:"listeners"`
 
 	// HealthCheck is the classic elb health check associated with the load balancer.
 	HealthCheck *ClassicELBHealthCheck `json:"healthChecks"`
 
-	// Thetags associated with the load balancer.
+	// Tags is a map of tags associated with the load balancer.
 	Tags map[string]string `json:"tags"`
 }
 

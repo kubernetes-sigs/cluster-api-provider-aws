@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
+// ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network) (err error) {
 	glog.V(2).Info("Reconciling network")
 
@@ -55,6 +56,7 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 	return nil
 }
 
+// DeleteNetwork deletes the network of the given cluster.
 func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (err error) {
 	glog.V(2).Info("Deleting network")
 
