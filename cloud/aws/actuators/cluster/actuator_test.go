@@ -19,6 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster/mock_clusteriface"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb/mock_elbiface"
 )
 
 type clusterGetter struct {
@@ -47,12 +50,22 @@ func (d *ec2Getter) EC2(clusterConfig *providerconfig.AWSClusterProviderConfig) 
 	return d.ec2
 }
 
+type elbGetter struct {
+	elb *mock_elbiface.MockELBAPI
+}
+
+func (d *elbGetter) ELB(clusterConfig *providerconfig.AWSClusterProviderConfig) elbiface.ELBAPI {
+	return d.elb
+}
+
 func TestReconcile(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	cg := &clusterGetter{
 		ci: mock_clusteriface.NewMockClusterInterface(mockCtrl),
 	}
-	me := mock_ec2iface.NewMockEC2API(mockCtrl)
+
+	mEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
+	mELB := mock_elbiface.NewMockELBAPI(mockCtrl)
 	defer mockCtrl.Finish()
 
 	cg.ci.EXPECT().
@@ -60,7 +73,7 @@ func TestReconcile(t *testing.T) {
 		Return(&clusterv1.Cluster{}, nil)
 
 	gomock.InOrder(
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeVpcs(&ec2.DescribeVpcsInput{
 				Filters: []*ec2.Filter{&ec2.Filter{
 					Name:   aws.String("tag-key"),
@@ -70,7 +83,7 @@ func TestReconcile(t *testing.T) {
 			Return(&ec2.DescribeVpcsOutput{
 				Vpcs: []*ec2.Vpc{},
 			}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateVpc(&ec2.CreateVpcInput{
 				CidrBlock: aws.String("10.0.0.0/16"),
 			}).
@@ -80,12 +93,12 @@ func TestReconcile(t *testing.T) {
 					CidrBlock: aws.String("10.0.0.0/16"),
 				},
 			}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			WaitUntilVpcAvailable(&ec2.DescribeVpcsInput{
 				VpcIds: []*string{aws.String("1234")},
 			}).
 			Return(nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"1234"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
@@ -94,7 +107,7 @@ func TestReconcile(t *testing.T) {
 				}},
 			}).
 			Return(nil, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeSubnets(&ec2.DescribeSubnetsInput{
 				Filters: []*ec2.Filter{
 					&ec2.Filter{
@@ -127,7 +140,7 @@ func TestReconcile(t *testing.T) {
 					},
 				},
 			}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
 				Filters: []*ec2.Filter{
 					&ec2.Filter{
@@ -141,7 +154,7 @@ func TestReconcile(t *testing.T) {
 					&ec2.AvailabilityZone{ZoneName: aws.String("antarctica")},
 				},
 			}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 				Filters: []*ec2.Filter{
 					&ec2.Filter{
@@ -161,13 +174,13 @@ func TestReconcile(t *testing.T) {
 					},
 				},
 			}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).
 			Return(nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
 			Return(&ec2.AllocateAddressOutput{AllocationId: aws.String("scarf")}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"scarf"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
@@ -176,7 +189,7 @@ func TestReconcile(t *testing.T) {
 				}},
 			}).
 			Return(nil, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateNatGateway(&ec2.CreateNatGatewayInput{
 				AllocationId: aws.String("scarf"),
 				SubnetId:     aws.String("ice"),
@@ -186,10 +199,10 @@ func TestReconcile(t *testing.T) {
 					NatGatewayId: aws.String("nat-ice1"),
 				},
 			}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{aws.String("nat-ice1")}}).
 			Return(nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"nat-ice1"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
@@ -198,7 +211,7 @@ func TestReconcile(t *testing.T) {
 				}},
 			}).
 			Return(nil, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 				Filters: []*ec2.Filter{
 					&ec2.Filter{
@@ -213,10 +226,10 @@ func TestReconcile(t *testing.T) {
 					},
 				},
 			}).Return(&ec2.DescribeRouteTablesOutput{}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateRouteTable(&ec2.CreateRouteTableInput{VpcId: aws.String("1234")}).
 			Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"rt-1"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
@@ -225,20 +238,20 @@ func TestReconcile(t *testing.T) {
 				}},
 			}).
 			Return(nil, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateRoute(&ec2.CreateRouteInput{
 				RouteTableId:         aws.String("rt-1"),
 				DestinationCidrBlock: aws.String("0.0.0.0/0"),
 				NatGatewayId:         aws.String("nat-ice1"),
 			}).
 			Return(&ec2.CreateRouteOutput{}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			AssociateRouteTable(&ec2.AssociateRouteTableInput{RouteTableId: aws.String("rt-1"), SubnetId: aws.String("snow")}).
 			Return(&ec2.AssociateRouteTableOutput{}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateRouteTable(&ec2.CreateRouteTableInput{VpcId: aws.String("1234")}).
 			Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-2")}}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateTags(&ec2.CreateTagsInput{
 				Resources: aws.StringSlice([]string{"rt-2"}),
 				Tags: []*ec2.Tag{&ec2.Tag{
@@ -247,17 +260,17 @@ func TestReconcile(t *testing.T) {
 				}},
 			}).
 			Return(nil, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			CreateRoute(&ec2.CreateRouteInput{
 				RouteTableId:         aws.String("rt-2"),
 				DestinationCidrBlock: aws.String("0.0.0.0/0"),
 				GatewayId:            aws.String("carrot"),
 			}).
 			Return(&ec2.CreateRouteOutput{}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			AssociateRouteTable(&ec2.AssociateRouteTableInput{RouteTableId: aws.String("rt-2"), SubnetId: aws.String("ice")}).
 			Return(&ec2.AssociateRouteTableOutput{}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 				Filters: []*ec2.Filter{
 					{
@@ -382,7 +395,7 @@ func TestReconcile(t *testing.T) {
 			}, nil),
 
 		// Reconcile bastion.
-		me.EXPECT().
+		mEC2.EXPECT().
 			DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 				Filters: []*ec2.Filter{
 					&ec2.Filter{
@@ -396,7 +409,7 @@ func TestReconcile(t *testing.T) {
 				},
 			})).
 			Return(&ec2.DescribeInstancesOutput{}, nil),
-		me.EXPECT().
+		mEC2.EXPECT().
 			RunInstances(gomock.AssignableToTypeOf(&ec2.RunInstancesInput{})).
 			DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
 				if len(input.TagSpecifications) == 0 {
@@ -437,6 +450,39 @@ func TestReconcile(t *testing.T) {
 					},
 				}, nil
 			}),
+
+		// Reconcile load balancers.
+		mELB.EXPECT().
+			DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{LoadBalancerNames: []*string{aws.String("test-apiserver")}}).
+			Return(&elb.DescribeLoadBalancersOutput{}, nil),
+		mELB.EXPECT().
+			CreateLoadBalancer(gomock.Eq(&elb.CreateLoadBalancerInput{
+				LoadBalancerName: aws.String("test-apiserver"),
+				Scheme:           aws.String("Internet-facing"),
+				Subnets:          []*string{aws.String("snow")},
+				SecurityGroups:   []*string{aws.String("sg-cp1")},
+				Listeners: []*elb.Listener{
+					&elb.Listener{
+						LoadBalancerPort: aws.Int64(6443),
+						Protocol:         aws.String("TCP"),
+						InstancePort:     aws.Int64(6443),
+						InstanceProtocol: aws.String("TCP"),
+					},
+				},
+				Tags: []*elb.Tag{
+					&elb.Tag{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Value: aws.String("apiserver"),
+					},
+					&elb.Tag{
+						Key:   aws.String("kubernetes.io/cluster/test"),
+						Value: aws.String("owned"),
+					},
+				},
+			})).
+			Return(&elb.CreateLoadBalancerOutput{DNSName: aws.String("apiserver.loadbalancer.kubernetes.io")}, nil),
+		mELB.EXPECT().
+			ConfigureHealthCheck(gomock.Any()).Return(&elb.ConfigureHealthCheckOutput{}, nil),
 	)
 
 	c, err := providerconfig.NewCodec()
@@ -446,7 +492,8 @@ func TestReconcile(t *testing.T) {
 	ap := cluster.ActuatorParams{
 		Codec:          c,
 		ClustersGetter: cg,
-		EC2Getter:      &ec2Getter{ec2: me},
+		EC2Getter:      &ec2Getter{ec2: mEC2},
+		ELBGetter:      &elbGetter{elb: mELB},
 	}
 
 	a, err := cluster.NewActuator(ap)

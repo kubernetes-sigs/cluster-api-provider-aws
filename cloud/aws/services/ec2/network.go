@@ -51,7 +51,7 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 		return err
 	}
 
-	glog.V(2).Info("Reconciled network completed successfully")
+	glog.V(2).Info("Reconcile network completed successfully")
 	return nil
 }
 
@@ -90,6 +90,6 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 		return err
 	}
 
-	glog.V(2).Info("Deleted network completed successfully")
+	glog.V(2).Info("Delete network completed successfully")
 	return nil
 }

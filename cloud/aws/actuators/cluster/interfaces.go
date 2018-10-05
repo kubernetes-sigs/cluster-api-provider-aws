@@ -15,6 +15,7 @@ package cluster
 
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"k8s.io/apimachinery/pkg/runtime"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -25,9 +26,18 @@ type EC2Getter interface {
 	EC2(*providerconfigv1.AWSClusterProviderConfig) ec2iface.EC2API
 }
 
+// EC2Getter has a single method that returns an elb client.
+type ELBGetter interface {
+	ELB(*providerconfigv1.AWSClusterProviderConfig) elbiface.ELBAPI
+}
+
 type ec2SvcIface interface {
 	ReconcileNetwork(string, *providerconfigv1.Network) error
 	ReconcileBastion(string, *providerconfigv1.AWSClusterProviderStatus) error
+}
+
+type elbSvcIface interface {
+	ReconcileLoadBalancers(string, *providerconfigv1.Network) error
 }
 
 type codec interface {

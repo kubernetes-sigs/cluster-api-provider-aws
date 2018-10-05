@@ -11,15 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ec2
-
-import (
-	"fmt"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pkg/errors"
-)
+package elb
 
 const (
 	// TagNameKubernetesClusterPrefix is the tag name we use to differentiate multiple
@@ -47,42 +39,3 @@ const (
 	// if the cluster is destroyed.
 	ResourceLifecycleShared = ResourceLifecycle("shared")
 )
-
-func (s *Service) clusterTagKey(clusterName string) string {
-	return fmt.Sprintf("%s%s", TagNameKubernetesClusterPrefix, clusterName)
-}
-
-// createTags tags a resource with tags including the cluster tag
-func (s *Service) createTags(clusterName string, resourceID string, lifecycle ResourceLifecycle, additionalTags map[string]string) error {
-	tags := s.buildTags(clusterName, lifecycle, additionalTags)
-
-	awsTags := make([]*ec2.Tag, 0, len(tags))
-	for k, v := range tags {
-		tag := &ec2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		}
-		awsTags = append(awsTags, tag)
-	}
-
-	createTagsInput := &ec2.CreateTagsInput{
-		Resources: aws.StringSlice([]string{resourceID}),
-		Tags:      awsTags,
-	}
-
-	_, err := s.EC2.CreateTags(createTagsInput)
-
-	return errors.Wrapf(err, "failed to tag resource %q in cluster %q", resourceID, clusterName)
-}
-
-// buildTags builds tags including the cluster tag
-func (s *Service) buildTags(clusterName string, lifecycle ResourceLifecycle, additionalTags map[string]string) map[string]string {
-	tags := make(map[string]string)
-	for k, v := range additionalTags {
-		tags[k] = v
-	}
-
-	tags[s.clusterTagKey(clusterName)] = string(lifecycle)
-
-	return tags
-}

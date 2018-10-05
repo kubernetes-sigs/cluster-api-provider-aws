@@ -16,11 +16,14 @@ package cluster
 import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -33,6 +36,7 @@ type Actuator struct {
 	codec          codec
 	clustersGetter client.ClustersGetter
 	ec2Getter      EC2Getter
+	elbGetter      ELBGetter
 }
 
 // ActuatorParams holds parameter information for Actuator
@@ -40,6 +44,7 @@ type ActuatorParams struct {
 	Codec          codec
 	ClustersGetter client.ClustersGetter
 	EC2Getter      EC2Getter
+	ELBGetter      ELBGetter
 }
 
 // NewActuator creates a new Actuator
@@ -48,10 +53,15 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 		codec:          params.Codec,
 		clustersGetter: params.ClustersGetter,
 		ec2Getter:      params.EC2Getter,
+		elbGetter:      params.ELBGetter,
 	}
 
 	if res.ec2Getter == nil {
 		res.ec2Getter = new(defaultEC2Getter)
+	}
+
+	if res.elbGetter == nil {
+		res.elbGetter = new(defaultELBGetter)
 	}
 
 	return res, nil
@@ -89,14 +99,21 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	}()
 
 	// Load ec2 client.
-	svc := ec2svc.NewService(a.ec2Getter.EC2(config))
+	ec2 := ec2svc.NewService(a.ec2Getter.EC2(config))
 
-	if err := svc.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
+	if err := ec2.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
-	if err := svc.ReconcileBastion(cluster.Name, config.SSHKeyName, status); err != nil {
+	if err := ec2.ReconcileBastion(cluster.Name, config.SSHKeyName, status); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
+	}
+
+	// Load elb client.
+	elb := elbsvc.NewService(a.elbGetter.ELB(config))
+
+	if err := elb.ReconcileLoadbalancers(cluster.Name, &status.Network); err != nil {
+		return errors.Errorf("unable to reconcile load balancers: %v", err)
 	}
 
 	return nil
@@ -176,4 +193,10 @@ type defaultEC2Getter struct{}
 
 func (d *defaultEC2Getter) EC2(clusterConfig *providerconfigv1.AWSClusterProviderConfig) ec2iface.EC2API {
 	return ec2.New(session.Must(session.NewSession()), aws.NewConfig().WithRegion(clusterConfig.Region))
+}
+
+type defaultELBGetter struct{}
+
+func (d *defaultELBGetter) ELB(clusterConfig *providerconfigv1.AWSClusterProviderConfig) elbiface.ELBAPI {
+	return elb.New(session.Must(session.NewSession()), aws.NewConfig().WithRegion(clusterConfig.Region))
 }

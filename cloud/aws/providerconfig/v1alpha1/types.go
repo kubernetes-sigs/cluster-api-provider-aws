@@ -16,6 +16,7 @@ package v1alpha1
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -183,6 +184,9 @@ type Network struct {
 
 	// Subnets includes all the subnets defined inside the VPC.
 	Subnets Subnets `json:"subnets"`
+
+	// APIServerELB is the Kubernetes api server classic load balancer.
+	APIServerELB ClassicELB `json:"apiServerElb"`
 }
 
 // VPC defines an AWS vpc.
@@ -212,6 +216,69 @@ type Subnet struct {
 // String returns a string representation of the subnet.
 func (s *Subnet) String() string {
 	return fmt.Sprintf("id=%s/az=%s/public=%v", s.ID, s.AvailabilityZone, s.IsPublic)
+}
+
+// ClassicELBScheme defines the scheme of a classic load balancer.
+type ClassicELBScheme string
+
+var (
+	ClassicELBSchemeInternetFacing = ClassicELBScheme("Internet-facing")
+	ClassicELBSchemeInternal       = ClassicELBScheme("internal")
+)
+
+// ClassicELBProtocol defines listener protocols for a classic load balancer.
+type ClassicELBProtocol string
+
+var (
+	ClassicELBProtocolTCP   = ClassicELBProtocol("TCP")
+	ClassicELBProtocolSSL   = ClassicELBProtocol("SSL")
+	ClassicELBProtocolHTTP  = ClassicELBProtocol("HTTP")
+	ClassicELBProtocolHTTPS = ClassicELBProtocol("HTTPS")
+)
+
+// ClassicELB defines an AWS classic load balancer.
+type ClassicELB struct {
+	// The name of the load balancer. It must be unique within the set of load balancers
+	// defined in the region. It also serves as identifier.
+	Name string `json:"name`
+
+	// DNSName is the dns name of the load balancer.
+	DNSName string `json:"dnsName"`
+
+	// Scheme is the load balancer scheme, either internet-facing or private.
+	Scheme ClassicELBScheme `json:"scheme"`
+
+	// The ids of the subnets in the VPC to attach the load balancer to.
+	SubnetIDs []string `json:"subnetIds"`
+
+	// The IDs of the security groups assigned to the load balancer.
+	SecurityGroupIDs []string `json:"securityGroupIds"`
+
+	// Listeners is the classic elb listeners associated with the load balancer. There must be at least one.
+	Listeners []*ClassicELBListener `json:"listeners"`
+
+	// HealthCheck is the classic elb health check associated with the load balancer.
+	HealthCheck *ClassicELBHealthCheck `json:"healthChecks"`
+
+	// Thetags associated with the load balancer.
+	Tags map[string]string `json:"tags"`
+}
+
+// ClassicELBListener defines an AWS classic load balancer listener.
+type ClassicELBListener struct {
+	Protocol         ClassicELBProtocol `json:"protocol"`
+	Port             int64              `json:"port"`
+	InstanceProtocol ClassicELBProtocol `json:"instanceProtocol"`
+	InstancePort     int64              `json:"instancePort"`
+}
+
+// ClassicELBHealthCheck defines an AWS classic load balancer health check.
+type ClassicELBHealthCheck struct {
+	Target             string        `json:"target"`
+	Interval           time.Duration `json:"interval"`
+	Timeout            time.Duration `json:"interval"`
+	HealthyThreshold   int64         `json:"healthyThreshold"`
+	UnhealthyThreshold int64         `json:"unhealthyThreshold"`
 }
 
 // Subnets is a slice of Subnet.
