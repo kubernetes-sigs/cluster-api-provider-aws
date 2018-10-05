@@ -122,6 +122,8 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 		}
 	}
 
+	glog.V(2).Infof("Created load balancer with dns name: %q", *out.DNSName)
+
 	res := spec.DeepCopy()
 	res.DNSName = *out.DNSName
 	return res, nil
