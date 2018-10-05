@@ -1,172 +1,124 @@
-Kubernetes cluster-api-provider-aws Project
-===========================================
+# Kubernetes Cluster API Provider AWS
 
-This repository hosts an implementation of a provider for AWS for the [cluster-api project](https://sigs.k8s.io/cluster-api).
+[![Go Report Card](https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-aws)](https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-aws)
 
-Note: This repository is currently a skeleton implementation of a cluster-api provider, implementation will begin once there is agreement on the [Design Spec](https://docs.google.com/document/d/1G7DRQccoTY5YBrinQb6sz_fRLB9zFbCnI1O984XFk7Q).
+<img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png"  width="100"><a href="https://aws.amazon.com/opensource/"><img hspace="90px" src="https://d0.awsstatic.com/logos/powered-by-aws.png" alt="Powered by AWS Cloud Computing"></a>
 
-## Development
+------
 
-### Updating mocks
+Kubernetes-native declarative infrastructure for AWS.
 
-When you update the mocks, please make sure the imports are not from the dependencies vendor directory. Instead, make them an explicit dependency of this project.
+## What is the Cluster API Provider AWS
 
-For example, if you see `types "sigs.k8s.io/cluster-api/vendor/k8s.io/apimachinery/pkg/types"` in the import path, replace it with `types "k8s.io/apimachinery/pkg/types"`.
+The [Cluster API][cluster_api] brings
+declarative, Kubernetes-style APIs to cluster creation, configuration and
+management.
 
-### Requirements
+The API itself is shared across multiple cloud providers allowing for true AWS
+hybrid deployments of Kubernetes. It is built atop the lessons learned from
+previous cluster managers such as [kops][kops] and
+[kubicorn][kubicorn].
 
-* A Google Cloud project or 2 AWS Elastic Container Registry repositories
+## Launching a Kubernetes cluster on AWS
 
-### Set up
+Check out [our getting started guide](docs/getting-started.md) for launching a
+cluster on AWS.
 
-You can use Google Cloud or AWS ECR to host repositories.
+## Features
 
-1. Install [jq](https://stedolan.github.io/jq/download/) (`brew install jq` on Mac).
-2. Install [gettext](https://www.gnu.org/software/gettext/) package (`brew install gettext && brew link --force gettext` on Mac).
-3. Install [minikube](https://kubernetes.io/docs/setup/minikube/) (`brew install minikube` on Mac).
-4. Configure `minikube`:
-	- Use Kubernetes v1.9.4 `minikube config set kubernetes-version v1.9.4`.
-	- Use kubeadm as bootstrapper `minikube config set bootstrapper kubeadm`.
+- Native Kubernetes manifests and API
+- Manages the bootstrapping of VPCs, gateways, security groups and instances.
+- Choice of Linux distribution between Amazon Linux 2, CentOS 7 and Ubuntu 18.04,
+  using [pre-baked AMIs](docs/amis.md).
+- Deploys Kubernetes control planes into private subnets with a separate
+  bastion server.
+- Doesn't use SSH for bootstrapping nodes.
+- Installs only the minimal components to bootstrap a control plane and workers.
+- Currently supports control planes on EC2 instances.
 
-#### Pushing development images to Google Cloud
+------
 
-1. [Install the gcloud cli](https://cloud.google.com/sdk/install).
-2. Set project: `gcloud config set project YOUR_PROJECT_NAME`.
-3. Pushing dev images: `make dev_push`.
+## Documentation
 
-#### Pushing development images to AWS Elastic Container Registry
-1. Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html).
-2. Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_DEFAULT_REGION` variables
-   * you may want to use [`aws-vault exec <profile> bash`](https://github.com/99designs/aws-vault)
-     to store credentials or assume role in MFA scenarios.
-3. Create two ECR repositories.
+Documentation is in the `/docs` directory, and the [index is here](docs/README.md).
 
-  ``` shell
-  aws ecr create-repository --repository-name aws-machine-controller
-  aws ecr create-repository --repository-name aws-cluster-controller
-  ```
+## Getting involved and contributing
 
-4. Run `eval $(aws ecr get-login --no-include-email)` or use the [ECR Credential Helper](https://github.com/awslabs/amazon-ecr-credential-helper) to set up Docker
-5. Push dev images with `DEV_REPO_TYPE=ECR make dev_push`
+Are you interested in contributing to cluster-api-provider-aws? We, the
+maintainers and community, would love your suggestions, contributions, and help!
+Also, the maintainers can be contacted at any time to learn more about how to get
+involved.
 
-### clusterctl
+In the interest of getting more new people involved we to tag issues with
+[`good first issue`][good_first_issue].
+These are typically issues that have smaller scope but are good ways to start
+to get acquainted with the codebase.
 
-#### Using images on Google Cloud
-``` shell
-export CLUSTER_CONTROLLER_IMAGE=gcr.io/$(gcloud config get-value project)/aws-cluster-controller:0.0.1-dev
-export MACHINE_CONTROLLER_IMAGE=gcr.io/$(gcloud config get-value project)/aws-machine-controller:0.0.1-dev
-```
+We also encourage ALL active community participants to act as if they are
+maintainers, even if you don't have "official" write permissions. This is a
+community effort, we are here to serve the Kubernetes community. If you have an
+active interest and you want to get involved, you have real power! Don't assume
+that the only people who can get things done around here are the "maintainers".
 
-#### Using images on Elastic Container Registry
-``` shell
-export AWS_ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
-export CLUSTER_CONTROLLER_IMAGE=${AWS_ACCOUNT_ID}.dkr.ecr.${DEFAULT_AWS_REGION}.amazonaws.com/aws-cluster-controller:0.0.1-dev
-export MACHINE_CONTROLLER_IMAGE=${AWS_ACCOUNT_ID}.dkr.ecr.${DEFAULT_AWS_REGION}.amazonaws.com/aws-machine-controller:0.0.1-dev
-```
+We also would love to add more "official" maintainers, so show us what you can
+do!
 
-You will also need to configure minikube or your bootstrap cluster with credentials to access ECR, using [image pull secrets](https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod)
-or another mechanism.
+This repository uses the Kubernetes bots.  See a full list of the commands [here][prow].
 
-#### Running clusterctl
-3. Generate environment file with `make envfile` and fill out the desired variables.
-3. Generate the input files with `make example`.
-4. Instantiate the cluster with:
-``` shell
-clusterctl create cluster -v 2 -c clusterctl/examples/aws/out/cluster.yaml -m clusterctl/examples/aws/out/machines.yaml -p clusterctl/examples/aws/out/provider-components.yaml --provider aws
-```
+### Implementer office hours
 
-At this point clusterctl will spin up a local minikube and create a new cluster, the output should look like:
-```bash
-Starting VM...
-Getting VM IP address...
-Moving files into cluster...
-Setting up certs...
-Connecting to cluster...
-Setting up kubeconfig...
-Starting cluster components...
-Kubectl is now configured to use the cluster.
-Loading cached images from config file.
-I0926 14:05:25.555809   15312 clusterdeployer.go:112] Applying Cluster API stack to bootstrap cluster
-I0926 14:05:25.555827   15312 clusterdeployer.go:301] Applying Cluster API APIServer
-I0926 14:05:25.720092   15312 clusterclient.go:511] Waiting for kubectl apply...
-I0926 14:05:25.971457   15312 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
-I0926 14:05:55.978996   15312 clusterclient.go:552] Waiting for Cluster v1alpha resources to be listable...
-I0926 14:05:56.024979   15312 clusterdeployer.go:307] Applying Cluster API Provider Components
-I0926 14:05:56.025001   15312 clusterclient.go:511] Waiting for kubectl apply...
-I0926 14:05:56.168724   15312 clusterdeployer.go:117] Provisioning target cluster via bootstrap cluster
-I0926 14:05:56.168752   15312 clusterdeployer.go:119] Creating cluster object test1 on bootstrap cluster in namespace "default"
-I0926 14:05:56.173557   15312 clusterdeployer.go:124] Creating master  in namespace "default"
-I0926 14:05:56.183134   15312 clusterclient.go:563] Waiting for Machine aws-controlplane-65vtk to become ready...
-```
+Maintainers hold office hours every week, with sessions open to all developers
+working on this project.
 
-#### Actuator logs
-After running clusterctl, a minikube instance is going to be running locally, which spins up an AWS cluster. The actuators run inside the minikube cluster and you can tail logs using minikube/kubectl. The actuators run inside the respective controllers, which are run in a single pod with prefix `clusterapi-controllers-....`.
+Office hours are hosted on a zoom video chat on Mondays
+at 10:00 (Pacific) / 13:00 (Eastern) / 18:00 (Europe/London),
+and are published on the [Kubernetes community meetings calendar][gcal].
 
-> Make sure minikube context is properly set `minikube update-context`.
+### Other ways to communicate with the contributors
 
-- To tail cluster actuator logs, `kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-machine-controller -f`.
-- To tail machine actuator logs, `kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-cluster-controller -f`.
+Please check in with us in the [#cluster-api-aws][slack] channel on Slack.
 
-#### Pre-built Kubernetes AMIs for testing
+## Github issues
 
-| Kubernetes Version | OS | Region | AMI ID |
-|--------------------|----|--------|--------|
-| v1.12.0 | CentOS 7 | ap-northeast-1: ami-0d99fdd8448ccc341 |
-| | | ap-northeast-2: ami-0e54afe205a335cc1 |
-| | | ap-south-1: ami-05f18fed80df3ffea |
-| | | ap-southeast-1: ami-040ab1574387cf664 |
-| | | ap-southeast-2: ami-04b4aa021f4125c7b |
-| | | ca-central-1: ami-06f5aede29daa4ef1 |
-| | | eu-central-1: ami-03e8c6bff63cf0c56 |
-| | | eu-west-1: ami-0a3c2624667e4ca93 |
-| | | eu-west-2: ami-028ea3af39a4a7661 |
-| | | eu-west-3: ami-02ee45f96ce686f98 |
-| | | sa-east-1: ami-0b4b29cd52371486d |
-| | | us-east-1: ami-04ab2c6566a35dfe1 |
-| | | us-east-2: ami-02c853738d42d0cc9 |
-| | | us-west-1: ami-0b1994ea6e6f57f4b |
-| | | us-west-2: ami-018e347dfe0c44534 |
-| | Amazon Linux 2 | ap-northeast-1: ami-03e497af31dfd38c9 |
-| | | ap-northeast-2: ami-01eb44929bedf4708 |
-| | | ap-south-1: ami-06aea13984317ba0b |
-| | | ap-southeast-1: ami-09fd6b717ce611d23 |
-| | | ap-southeast-2: ami-0ad1751f1d49320e2 |
-| | | ca-central-1: ami-09a82ebea7b4c5194 |
-| | | eu-central-1: ami-0bbc9065e95f06ec0 |
-| | | eu-west-1: ami-0d929d41d1f580dd5 |
-| | | eu-west-2: ami-0cbb336c0ee02142b |
-| | | eu-west-3: ami-02daf41cab4e66639 |
-| | | sa-east-1: ami-08434c76fb33b7dea |
-| | | us-east-1: ami-06d15e7a5aa71bd81 |
-| | | us-east-2: ami-002c5b8ed125b204d |
-| | | us-west-1: ami-0f14c305334254b09 |
-| | | us-west-2: ami-0cbf198692b35cc70 |
-| | Ubuntu Bionic | ap-northeast-1: ami-01b9b95604fddade1 |
-| | | ap-northeast-2: ami-0429d18e76a0b3705 |
-| | | ap-south-1: ami-09930fca077b07e18 |
-| | | ap-southeast-1: ami-0b2e5665eda719758 |
-| | | ap-southeast-2: ami-01c2df5ce9bc2f573 |
-| | | ca-central-1: ami-0f5fbb71a0c65e000 |
-| | | eu-central-1: ami-0fad7824ed21125b1 |
-| | | eu-west-1: ami-0da760e590e7de0e8 |
-| | | eu-west-2: ami-04137690b33cb5a8e |
-| | | eu-west-3: ami-028272d8c8e9ff369 |
-| | | sa-east-1: ami-041a08e5511d25535 |
-| | | us-east-1: ami-0de61b6929e8f091c |
-| | | us-east-2: ami-0a2463ac1e1f46b95 |
-| | | us-west-1: ami-05dc1567db5bd869a |
-| | | us-west-2: ami-0f33a1d90f189e0a1 |
+### Bugs
 
-## Community, discussion, contribution, and support
+If you think you have found a bug please follow the instructions below.
 
-Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
+- Please spend a small amount of time giving due diligence to the issue tracker. Your issue might be a duplicate.
+- Get the logs from the cluster controllers. Please paste this into your issue.
+- Open a [new issue][new_issue].
+- Remember users might be searching for your issue in the future, so please give it a meaningful title to helps others.
+- Feel free to reach out to the cluster-api community on [kubernetes slack][slack_info].
 
-You can reach the maintainers of this project at:
+### Tracking new features
 
-- [#cluster-api on Kubernetes Slack](http://slack.k8s.io/messages/cluster-api)
-- [SIG-Cluster-Lifecycle Mailing List](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
+We also use the issue tracker to track features. If you have an idea for a feature, or think you can help kops become even more awesome follow the steps below.
 
-### Code of conduct
+- Open a [new issue][new_issue].
+- Remember users might be searching for your issue in the future, so please
+  give it a meaningful title to helps others.
+- Clearly define the use case, using concrete examples. EG: I type `this` and
+  cluster-api-provider-aws does `that`.
+- Some of our larger features will require some design. If you would like to
+  include a technical design for your feature please include it in the issue.
+- After the new feature is well understood, and the design agreed upon we can
+  start coding the feature. We would love for you to code it. So please open
+  up a **WIP** *(work in progress)* pull request, and happy coding.
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
 
+>“Amazon Web Services, AWS, and the “Powered by AWS” logo materials are
+trademarks of Amazon.com, Inc. or its affiliates in the United States
+and/or other countries."
+
+<!-- References -->
+
+[slack]: https://kubernetes.slack.com/messages/CD6U2V71N
+[good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
+[gcal]: https://calendar.google.com/calendar/embed?src=cgnt364vd8s86hr2phapfjc6uk%40group.calendar.google.com
+[prow]:
+https://github.com/kubernetes/test-infra/blob/master/commands.md
+[new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
+[slack_info]: https://github.com/kubernetes/community/blob/master/communication.md#social-media
+[cluster_api]: https://github.com/kubernetes-sigs/cluster-api
+[kops]: https://github.com/kubernetes/kops
+[kubicorn]: http://kubicorn.io/

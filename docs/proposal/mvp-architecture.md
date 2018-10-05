@@ -8,18 +8,18 @@ A table of contents is helpful for quickly jumping to sections of a KEP and for 
 [Tools for generating][] a table of contents from markdown are available.
 
 - [AWS Provider MVP](#aws-provider-mvp)
-    - [Table of Contents](#table-of-contents)
-    - [Summary](#summary)
-    - [Motivation](#motivation)
-        - [Goals](#goals)
-        - [Non-Goals](#non-goals)
-    - [Proposal](#proposal)
-        - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-            - [Features Implemented for Private Networking, Single AZ](#features-implemented-for-private-networking-single-az)
-            - [Filling in Gaps from Feature List](#filling-in-gaps-from-feature-list)
-    - [Alternatives](#alternatives)
-        - [Public Networking, Single AZ](#public-networking-single-az)
-            - [Features Implemented for Public Networking, Single AZ](#features-implemented-for-public-networking-single-az)
+  - [Table of Contents](#table-of-contents)
+  - [Summary](#summary)
+  - [Motivation](#motivation)
+    - [Goals](#goals)
+    - [Non-Goals](#non-goals)
+  - [Proposal](#proposal)
+    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+      - [Features Implemented for Private Networking, Single AZ](#features-implemented-for-private-networking-single-az)
+      - [Filling in Gaps from Feature List](#filling-in-gaps-from-feature-list)
+  - [Alternatives](#alternatives)
+    - [Public Networking, Single AZ](#public-networking-single-az)
+      - [Features Implemented for Public Networking, Single AZ](#features-implemented-for-public-networking-single-az)
 
 ## Summary
 
