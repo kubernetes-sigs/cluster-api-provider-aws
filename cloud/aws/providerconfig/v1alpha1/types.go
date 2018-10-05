@@ -445,5 +445,8 @@ type Instance struct {
 	EBSOptimized *bool `json:"ebsOptimized"`
 
 	// The tags associated with the instance.
-	Tags map[string]string `json:"tag"`
+	Tags map[string]string `json:"tags"`
+
+	// The security groups associated with the instance.
+	SecurityGroups map[string]string `json:"securityGroups"`
 }

@@ -199,6 +199,68 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 	return fromSDKTypeToInstance(out.Instances[0]), nil
 }
 
+// UpdateInstanceSecurityGroups modifies the security groups of the given
+// EC2 instance.
+func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroups []*string) error {
+	input := &ec2.ModifyInstanceAttributeInput{
+		InstanceId: instanceID,
+		Groups:     securityGroups,
+	}
+
+	_, err := s.EC2.ModifyInstanceAttribute(input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateResourceTags updates the tags for an instance.
+// This will be called if there is anything to create (update) or delete.
+// We may not always have to perform each action, so we check what we're
+// receiving to avoid calling AWS if we don't need to.
+func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, delete map[string]string) error {
+	// If we have anything to create or update
+	if len(create) > 0 {
+		// Convert our create map into an array of *ec2.Tag
+		createTagsInput := mapToTags(create)
+
+		// Create the CreateTags input.
+		input := &ec2.CreateTagsInput{
+			Resources: []*string{resourceID},
+			Tags:      createTagsInput,
+		}
+
+		// Create/Update tags in AWS.
+		_, err := s.EC2.CreateTags(input)
+		if err != nil {
+			return err
+		}
+	}
+
+	// If we have anything to delete
+	if len(delete) > 0 {
+		// Convert our delete map into an array of *ec2.Tag
+		deleteTagsInput := mapToTags(delete)
+
+		// Create the DeleteTags input
+		input := &ec2.DeleteTagsInput{
+			Resources: []*string{resourceID},
+			Tags:      deleteTagsInput,
+		}
+
+		// Delete tags in AWS.
+		_, err := s.EC2.DeleteTags(input)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// fromSDKTypeToInstance takes a ec2.Instance and returns our v1.alpha1.Instance
+// type. EC2 types are wrapped or converted to our own types here.
 func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	i := &v1alpha1.Instance{
 		ID:           *v.InstanceId,
@@ -224,10 +286,11 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	}
 
 	if len(v.Tags) > 0 {
-		i.Tags = make(map[string]string, len(v.Tags))
-		for _, tag := range v.Tags {
-			i.Tags[*tag.Key] = *tag.Value
-		}
+		i.Tags = tagsToMap(v.Tags)
+	}
+
+	if len(v.SecurityGroups) > 0 {
+		i.SecurityGroups = groupIdentifierToMap(v.SecurityGroups)
 	}
 
 	return i
