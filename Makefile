@@ -38,10 +38,13 @@ genmocks: depend
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 MachineInterface" "cloud/aws/actuators/machine/mock_machineiface/mock.go"
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 ClusterInterface" "cloud/aws/actuators/cluster/mock_clusteriface/mock.go"
 
-build: depend clusterctl-bin cluster-controller machine-controller
+build: depend clusterctl-bin clusterawsadm-bin cluster-controller machine-controller
 
 clusterctl-bin:
 	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/clusterctl
+
+clusterawsadm-bin:
+	CGO_ENABLED=0 go install -a -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
 
 images: depend
 	$(MAKE) -C cmd/cluster-controller image
