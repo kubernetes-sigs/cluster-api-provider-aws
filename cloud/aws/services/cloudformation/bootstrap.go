@@ -305,8 +305,9 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 	}
 }
 
-func (s *Service) ReconcileBootstrapStack() error {
-	stackName := "cluster-api-provider-aws-sigs-k8s-io"
+// ReconcileBootstrapStack creates or updates bootstrap CloudFormation
+func (s *Service) ReconcileBootstrapStack(stackName string) error {
+
 	template := BootstrapTemplate()
 	yaml, err := template.YAML()
 	if err != nil {
@@ -316,15 +317,12 @@ func (s *Service) ReconcileBootstrapStack() error {
 	if err := s.createStack(stackName, string(yaml)); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
 			glog.Infof("AWS Cloudformation stack %q already exists", stackName)
-			err := s.updateStack(stackName, string(yaml))
-			s.showStackResources(stackName)
-			if err != nil {
-				return err
+			updateErr := s.updateStack(stackName, string(yaml))
+			if updateErr != nil {
+				return updateErr
 			}
-		} else {
-			return err
 		}
+		return err
 	}
-	s.showStackResources(stackName)
 	return nil
 }

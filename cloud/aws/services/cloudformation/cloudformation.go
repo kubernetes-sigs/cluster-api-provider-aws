@@ -31,18 +31,18 @@ func (s *Service) createStack(stackName string, yaml string) error {
 		TemplateBody: aws.String(string(yaml)),
 		StackName:    aws.String(stackName),
 	}
-	glog.Infof("creating AWS CloudFormation stack %q", stackName)
+	glog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
 	if _, err := s.CFN.CreateStack(input); err != nil {
 		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
 	}
 
 	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
-	glog.Infof("waiting for stack %q to create", stackName)
+	glog.V(2).Infof("waiting for stack %q to create", stackName)
 	if err := s.CFN.WaitUntilStackCreateComplete(desInput); err != nil {
 		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
 	}
 
-	glog.Infof("stack %q created", stackName)
+	glog.V(2).Infof("stack %q created", stackName)
 	return nil
 }
 
@@ -53,22 +53,23 @@ func (s *Service) updateStack(stackName string, yaml string) error {
 		TemplateBody: aws.String(string(yaml)),
 		StackName:    aws.String(stackName),
 	}
-	glog.Infof("updating AWS CloudFormation stack %q", stackName)
+	glog.V(2).Infof("updating AWS CloudFormation stack %q", stackName)
 	if _, err := s.CFN.UpdateStack(input); err != nil {
 		return errors.Wrap(err, "failed to update AWS CloudFormation stack")
 	}
 	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
-	glog.Infof("waiting for stack %q to update", stackName)
+	glog.V(2).Infof("waiting for stack %q to update", stackName)
 	if err := s.CFN.WaitUntilStackUpdateComplete(desInput); err != nil {
 		return errors.Wrap(err, "failed to update AWS CloudFormation stack")
 	}
 
-	glog.Infof("stack %q updated", stackName)
-	s.showStackResources(stackName)
+	glog.V(2).Infof("stack %q updated", stackName)
 	return nil
 }
 
-func (s *Service) showStackResources(stackName string) error {
+// ShowStackResources prints out in tabular format the resources in the
+// stack
+func (s *Service) ShowStackResources(stackName string) error {
 	input := &cfn.DescribeStackResourcesInput{
 		StackName: aws.String(stackName),
 	}
