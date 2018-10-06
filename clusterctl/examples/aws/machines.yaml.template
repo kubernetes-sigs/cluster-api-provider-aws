@@ -13,7 +13,7 @@ items:
         value:
           apiVersion: awsproviderconfig/v1alpha1
           kind: AWSMachineProviderConfig
-          instanceType: m5.large
+          instanceType: t2.medium
           iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
           keyName: "${SSH_KEY_NAME}"
   - apiVersion: "cluster.k8s.io/v1alpha1"
@@ -29,6 +29,6 @@ items:
         value:
           apiVersion: awsproviderconfig/v1alpha1
           kind: AWSMachineProviderConfig
-          instanceType: m5.large
+          instanceType: t2.medium
           iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
           keyName: "${SSH_KEY_NAME}"
