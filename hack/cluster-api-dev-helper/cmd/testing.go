@@ -43,6 +43,7 @@ func defineTestingCmd(parent *cobra.Command) {
 	defineTestingDestroyMachinesCmd(newCmd)
 	defineTestingClusterLogs(newCmd)
 	defineTestingMachineLogs(newCmd)
+	defineTestingRestartControllerCmd(newCmd)
 
 	parent.AddCommand(newCmd)
 }
@@ -186,6 +187,18 @@ func defineTestingMachineLogs(parent *cobra.Command) {
 	parent.AddCommand(newCmd)
 }
 
+func defineTestingRestartControllerCmd(parent *cobra.Command) {
+	newCmd := &cobra.Command{
+		Use:   "restart-controllers",
+		Short: "Restart controllers",
+		Long:  `Restart controllers`,
+		Run: func(cmd *cobra.Command, args []string) {
+			restartControllers()
+		},
+	}
+	parent.AddCommand(newCmd)
+}
+
 func destroyMachines() {
 	runShellWithWait("kubectl get machine -o name | xargs kubectl patch -p '{\"metadata\":{\"finalizers\":null}}'")
 	runShellWithWait("kubectl delete machines --force=true --grace-period 0 --all --wait=true")
@@ -209,6 +222,10 @@ func clusterLogs(wg *sync.WaitGroup) {
 		b.Wait()
 		time.Sleep(5 * 1000 * 1000 * 1000)
 	}
+}
+
+func restartControllers() {
+	runShellWithWait("kubectl get po -o name | grep clusterapi-controllers | xargs kubectl delete pod")
 }
 
 func machineLogs(wg *sync.WaitGroup) {
