@@ -89,6 +89,10 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 		return nil
 	}
 
+	if err != nil {
+		return err
+	}
+
 	err = s.TerminateInstanceAndWait(instance.ID)
 
 	if err != nil {

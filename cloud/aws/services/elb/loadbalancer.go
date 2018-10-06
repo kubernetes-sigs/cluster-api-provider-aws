@@ -15,6 +15,8 @@ package elb
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 	"strings"
 	"time"
 
@@ -50,6 +52,30 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 	apiELB.DeepCopyInto(&network.APIServerELB)
 
 	glog.V(2).Info("Reconcile load balancers completed successfully")
+	return nil
+}
+
+// DeleteLoadbalancers deletes the load balancers for the given cluster.
+func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Network) error {
+	glog.V(2).Info("Delete load balancers")
+
+	// Get default api server spec.
+	spec := s.getAPIServerClassicELBSpec(clusterName, network)
+
+	// Describe or create.
+	apiELB, err := s.describeClassicELB(spec.Name)
+	if IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if err := s.deleteClassicELBAndWait(apiELB.Name); err != nil {
+		return err
+	}
+
+	glog.V(2).Info("Deleting load balancers completed successfully")
 	return nil
 }
 
@@ -130,9 +156,56 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 	return res, nil
 }
 
+func (s *Service) deleteClassicELB(name string) error {
+	input := &elb.DeleteLoadBalancerInput{
+		LoadBalancerName: aws.String(name),
+	}
+
+	if _, err := s.ELB.DeleteLoadBalancer(input); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) deleteClassicELBAndWait(name string) error {
+	if err := s.deleteClassicELB(name); err != nil {
+		return err
+	}
+
+	input := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: aws.StringSlice([]string{name}),
+	}
+
+	check := func() (done bool, err error) {
+		out, err := s.ELB.DescribeLoadBalancers(input)
+
+		// ELB already deleted.
+		if len(out.LoadBalancerDescriptions) == 0 {
+			return true, nil
+		}
+
+		if code, _ := awserrors.Code(err); code == "LoadBalancerNotFound" {
+			return true, nil
+		}
+
+		if err != nil {
+			return false, err
+		}
+
+		return false, nil
+
+	}
+
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), check, []string{}); err != nil {
+		return errors.Wrapf(err, "failed to wait for ELB deletion %q", name)
+	}
+
+	return nil
+}
+
 func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) {
 	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{aws.String(name)},
+		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
 
 	out, err := s.ELB.DescribeLoadBalancers(input)

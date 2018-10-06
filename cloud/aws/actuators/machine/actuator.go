@@ -24,8 +24,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"time"
 )
 
 const (
@@ -109,6 +112,15 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus)
 	if err != nil {
+
+		if ec2.IsFailedDependency(errors.Cause(err)) {
+			glog.Errorf("network not ready to launch instances yet: %s", err)
+			duration, _ := time.ParseDuration("60s")
+			return &controllerError.RequeueAfterError{
+				RequeueAfter: duration,
+			}
+		}
+
 		return errors.Wrap(err, "failed to create or get machine")
 	}
 

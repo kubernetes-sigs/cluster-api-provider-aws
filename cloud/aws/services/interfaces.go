@@ -70,4 +70,5 @@ type EC2MachineInterface interface {
 // ELBInterface encapsulates the methods exposed by the elb service.
 type ELBInterface interface {
 	ReconcileLoadbalancers(clusterName string, network *providerv1.Network) error
+	DeleteLoadbalancers(clusterName string, network *providerv1.Network) error
 }

@@ -110,6 +110,18 @@ func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceIfExists", reflect.TypeOf((*MockEC2Interface)(nil).InstanceIfExists), arg0)
 }
 
+// IsFailedDependency mocks base method
+func (m *MockEC2Interface) IsFailedDependency(arg0 error) bool {
+	ret := m.ctrl.Call(m, "IsFailedDependency", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsFailedDependency indicates an expected call of IsFailedDependency
+func (mr *MockEC2InterfaceMockRecorder) IsFailedDependency(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsFailedDependency", reflect.TypeOf((*MockEC2Interface)(nil).IsFailedDependency), arg0)
+}
+
 // ReconcileBastion mocks base method
 func (m *MockEC2Interface) ReconcileBastion(arg0, arg1 string, arg2 *v1alpha1.AWSClusterProviderStatus) error {
 	ret := m.ctrl.Call(m, "ReconcileBastion", arg0, arg1, arg2)
