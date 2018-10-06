@@ -12,6 +12,8 @@
     - [Using images on Google Cloud](#using-images-on-google-cloud)
   - [Using AWS Elastic Container Registry](#using-aws-elastic-container-registry)
     - [Using images on Elastic Container Registry](#using-images-on-elastic-container-registry)
+    - [Using Minikube only](#using-minikube-only)
+- [cluster-api-dev-helper](#cluster-api-dev-helper)
 
 <!-- /TOC -->
 
@@ -84,6 +86,27 @@ Then generate the [example configuration](getting-started.md#generating-cluster-
 
 You will also need to configure minikube or your bootstrap cluster with credentials to access ECR, using [image pull secrets][image_pull_secrets]
 or another mechanism.
+
+#### Using Minikube only
+
+You can also build and test using only the local storage on the minikube VM,
+using:
+
+``` bash
+make minikube_build FASTBUILD=true
+```
+
+## cluster-api-dev-helper
+
+Some command development tasks have been put into a cluster-api-dev-helper
+utility in the /hack directory.
+
+To install it, run:
+
+``` bash
+make cluster-api-dev-helper-bin FASTBUILD=true
+```
+
 
 <!-- References -->
 

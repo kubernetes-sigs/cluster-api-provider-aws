@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
-set -o nounset
-set -o pipefail
+# Final container
+FROM debian:stretch-slim
+RUN apt-get update && apt-get install -y ca-certificates openssh-server && rm -rf /var/lib/apt/lists/*
 
-REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
-cd "${REPO_ROOT}" && make vendor
-go build  "${REPO_ROOT}"/...
+# We don't care about reproducability whilst developing, so copy our local binary
+COPY machine-controller .
