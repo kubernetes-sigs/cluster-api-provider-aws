@@ -81,6 +81,22 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 	return nil
 }
 
+// DeleteBastion deletes the Bastion instance
+func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterProviderStatus) error {
+	instance, err := s.describeBastionInstance(clusterName, status)
+	if IsNotFound(err) {
+		glog.V(2).Info("bastion instance does not exist")
+		return nil
+	}
+
+	err = s.TerminateInstanceAndWait(instance.ID)
+
+	if err != nil {
+		return errors.Wrapf(err, "unable to delete bastion instance")
+	}
+	return nil
+}
+
 func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	if status.Bastion.ID != "" {
 		return s.InstanceIfExists(aws.String(status.Bastion.ID))
