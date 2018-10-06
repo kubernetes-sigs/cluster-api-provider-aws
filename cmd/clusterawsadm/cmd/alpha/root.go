@@ -27,6 +27,7 @@ var alphaCmd = &cobra.Command{
 	},
 }
 
+// Init sets up the alpha command set
 func Init(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(alphaCmd)
 	initBootstrap()

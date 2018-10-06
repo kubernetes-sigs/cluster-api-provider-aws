@@ -129,7 +129,7 @@ func NewSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 	return x509.ParseCertificate(certDERBytes)
 }
 
-// endpoint is the LB endpoint
+// NewKubeconfig creates a new Kubeconfig where endpoint is the ELB endpoint
 func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
 	// client cert config
 	cfg := &Config{
@@ -164,7 +164,7 @@ func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.Private
 			},
 		},
 		AuthInfos: map[string]*api.AuthInfo{
-			userName: &api.AuthInfo{
+			userName: {
 				ClientKeyData:         EncodePrivateKeyPEM(clientKey),
 				ClientCertificateData: EncodeCertPEM(clientCert),
 			},

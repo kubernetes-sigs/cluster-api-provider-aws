@@ -100,6 +100,8 @@ type Filter struct {
 	Values []string `json:"values"`
 }
 
+// AWSClusterProviderConfig is the providerConfig for AWS in the cluster
+// object
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
@@ -161,6 +163,8 @@ type AWSMachineProviderCondition struct {
 	Message string `json:"message"`
 }
 
+// AWSClusterProviderStatus contains the status fields
+// relevant to AWS in the cluster object.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
@@ -228,17 +232,29 @@ func (s *Subnet) String() string {
 type ClassicELBScheme string
 
 var (
+	// ClassicELBSchemeInternetFacing defines an internet-facing, publicly
+	// accessible AWS Classic ELB scheme
 	ClassicELBSchemeInternetFacing = ClassicELBScheme("Internet-facing")
-	ClassicELBSchemeInternal       = ClassicELBScheme("internal")
+
+	// ClassicELBSchemeInternal defines an internal-only facing
+	// load balancer internal to an ELB.
+	ClassicELBSchemeInternal = ClassicELBScheme("internal")
 )
 
 // ClassicELBProtocol defines listener protocols for a classic load balancer.
 type ClassicELBProtocol string
 
 var (
-	ClassicELBProtocolTCP   = ClassicELBProtocol("TCP")
-	ClassicELBProtocolSSL   = ClassicELBProtocol("SSL")
-	ClassicELBProtocolHTTP  = ClassicELBProtocol("HTTP")
+	// ClassicELBProtocolTCP defines the ELB API string representing the TCP protocol
+	ClassicELBProtocolTCP = ClassicELBProtocol("TCP")
+
+	// ClassicELBProtocolSSL defines the ELB API string representing the TLS protocol
+	ClassicELBProtocolSSL = ClassicELBProtocol("SSL")
+
+	// ClassicELBProtocolHTTP defines the ELB API string representing the HTTP protocol at L7
+	ClassicELBProtocolHTTP = ClassicELBProtocol("HTTP")
+
+	// ClassicELBProtocolHTTPS defines the ELB API string representing the HTTP protocol at L7
 	ClassicELBProtocolHTTPS = ClassicELBProtocol("HTTPS")
 )
 
@@ -328,8 +344,14 @@ type RouteTable struct {
 type SecurityGroupRole string
 
 var (
-	SecurityGroupBastion      = SecurityGroupRole("bastion")
-	SecurityGroupNode         = SecurityGroupRole("node")
+
+	// SecurityGroupBastion defines an SSH bastion role
+	SecurityGroupBastion = SecurityGroupRole("bastion")
+
+	// SecurityGroupNode defines a Kubenetes workload node role
+	SecurityGroupNode = SecurityGroupRole("node")
+
+	// SecurityGroupControlPlane defines a Kubenetes control plane node role
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 )
 
@@ -350,9 +372,16 @@ func (s *SecurityGroup) String() string {
 type SecurityGroupProtocol string
 
 var (
-	SecurityGroupProtocolAll  = SecurityGroupProtocol("-1")
-	SecurityGroupProtocolTCP  = SecurityGroupProtocol("tcp")
-	SecurityGroupProtocolUDP  = SecurityGroupProtocol("udp")
+	// SecurityGroupProtocolAll is a wildcard for all IP protocols
+	SecurityGroupProtocolAll = SecurityGroupProtocol("-1")
+
+	// SecurityGroupProtocolTCP represents the TCP protocol in ingress rules
+	SecurityGroupProtocolTCP = SecurityGroupProtocol("tcp")
+
+	// SecurityGroupProtocolUDP represents the UDP protocol in ingress rules
+	SecurityGroupProtocolUDP = SecurityGroupProtocol("udp")
+
+	// SecurityGroupProtocolICMP represents the ICMP protocol in ingress rules
 	SecurityGroupProtocolICMP = SecurityGroupProtocol("icmp")
 )
 
@@ -378,7 +407,7 @@ func (i *IngressRule) String() string {
 // IngressRules is a slice of AWS ingress rules for security groups.
 type IngressRules []*IngressRule
 
-// Returns the difference between this slice and the other slice.
+// Difference returns the difference between this slice and the other slice.
 func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 	for _, x := range i {
 		found := false
@@ -401,12 +430,25 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 type InstanceState string
 
 var (
-	InstanceStatePending      = InstanceState("pending")
-	InstanceStateRunning      = InstanceState("running")
+	// InstanceStatePending is the string representing an instance in a pending state
+	InstanceStatePending = InstanceState("pending")
+
+	// InstanceStateRunning is the string representing an instance in a pending state
+	InstanceStateRunning = InstanceState("running")
+
+	// InstanceStateShuttingDown is the string representing an instance shutting down
 	InstanceStateShuttingDown = InstanceState("shutting-down")
-	InstanceStateTerminated   = InstanceState("terminated")
-	InstanceStateStopping     = InstanceState("stopping")
-	InstanceStateStopped      = InstanceState("stopped")
+
+	// InstanceStateTerminated is the string representing an instance that has been terminated
+	InstanceStateTerminated = InstanceState("terminated")
+
+	// InstanceStateStopping is the string representing an instance
+	// that is in the process of being stopped and can be restarted
+	InstanceStateStopping = InstanceState("stopping")
+
+	// InstanceStateStopped is the string representing an instance
+	// that has been stopped and can be restarted
+	InstanceStateStopped = InstanceState("stopped")
 )
 
 // Instance describes an AWS instance.

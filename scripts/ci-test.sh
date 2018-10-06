@@ -19,5 +19,5 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
-cd "${REPO_ROOT}" && make depend
+cd "${REPO_ROOT}" && make check
 go test -v -tags=integration "${REPO_ROOT}"/...

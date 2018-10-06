@@ -82,6 +82,10 @@ fmt:
 vet:
 	go vet ./...
 
+lint:
+	golint || go get -u golang.org/x/lint/golint
+	golint -set_exit_status ./cmd/... ./cloud/... ./clusterctl/...
+
 examples = clusterctl/examples/aws/out/cluster.yaml clusterctl/examples/aws/out/machines.yaml clusterctl/examples/aws/out/provider-components.yaml
 templates = clusterctl/examples/aws/cluster.yaml.template clusterctl/examples/aws/machines.yaml.template clusterctl/examples/aws/provider-components.yaml.template
 example: $(examples)

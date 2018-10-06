@@ -96,6 +96,8 @@ type Filter struct {
 	Values []string
 }
 
+// AWSClusterProviderConfig is the base structure of a the
+// AWS cluster provider configuration
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderConfig struct {
 	metav1.TypeMeta
@@ -151,6 +153,8 @@ type AWSMachineProviderCondition struct {
 	Message string
 }
 
+// AWSClusterProviderStatus is the type that will be embedded in a Cluster.Status.ProviderStatus field.
+// It containsk AWS-specific status information.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSClusterProviderStatus struct {
 	metav1.TypeMeta

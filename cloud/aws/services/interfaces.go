@@ -47,12 +47,16 @@ type EC2Interface interface {
 	EC2MachineInterface
 }
 
+// EC2ClusterInterface encapsulates the methods exposed to the cluster
+// actuator
 type EC2ClusterInterface interface {
 	ReconcileNetwork(clusterName string, network *providerv1.Network) error
 	ReconcileBastion(clusterName, keyName string, status *providerv1.AWSClusterProviderStatus) error
 	DeleteNetwork(clusterName string, network *providerv1.Network) error
 }
 
+// EC2MachineInterface encapsulates the methods exposed to the machine
+// actuator
 type EC2MachineInterface interface {
 	InstanceIfExists(instanceID *string) (*providerv1.Instance, error)
 	CreateInstance(machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)

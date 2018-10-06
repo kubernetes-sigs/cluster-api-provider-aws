@@ -20,10 +20,12 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
 )
 
+// Server is the server configuration
 type Server struct {
 	CommonConfig *config.Configuration
 }
 
+// NewServer creates a new server with default controller configuration
 func NewServer() *Server {
 	s := Server{
 		CommonConfig: &config.ControllerConfig,

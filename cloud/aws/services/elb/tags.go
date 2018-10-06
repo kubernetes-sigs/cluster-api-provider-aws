@@ -36,7 +36,10 @@ const (
 	// dedicated to this cluster api provider implementation.
 	TagNameAWSClusterAPIRole = "sigs.k8s.io/cluster-api-provider-aws/role"
 
-	TagValueCommonRole    = "common"
+	// TagValueCommonRole is the tag name we use to mark common node roles
+	TagValueCommonRole = "common"
+
+	// TagValueAPIServerRole is the tag name we use to mark the API server
 	TagValueAPIServerRole = "apiserver"
 )
 

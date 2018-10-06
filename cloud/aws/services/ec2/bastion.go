@@ -42,6 +42,7 @@ pip install --upgrade pip &> /dev/null
 	defaultSSHKeyName = "default"
 )
 
+// ReconcileBastion ensures a bastion is created for the cluster
 func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1.AWSClusterProviderStatus) error {
 	glog.V(2).Info("Reconciling bastion host")
 

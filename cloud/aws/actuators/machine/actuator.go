@@ -93,7 +93,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Creating machine %v for cluster", machine.Name, cluster.Name)
+	glog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine provider status")
