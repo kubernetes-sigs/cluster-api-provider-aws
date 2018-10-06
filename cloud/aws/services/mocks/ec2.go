@@ -73,6 +73,18 @@ func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3)
 }
 
+// DeleteBastion mocks base method
+func (m *MockEC2Interface) DeleteBastion(arg0 string, arg1 *v1alpha1.AWSClusterProviderStatus) error {
+	ret := m.ctrl.Call(m, "DeleteBastion", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteBastion indicates an expected call of DeleteBastion
+func (mr *MockEC2InterfaceMockRecorder) DeleteBastion(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBastion", reflect.TypeOf((*MockEC2Interface)(nil).DeleteBastion), arg0, arg1)
+}
+
 // DeleteNetwork mocks base method
 func (m *MockEC2Interface) DeleteNetwork(arg0 string, arg1 *v1alpha1.Network) error {
 	ret := m.ctrl.Call(m, "DeleteNetwork", arg0, arg1)
@@ -86,7 +98,7 @@ func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork(arg0, arg1 interface{}) *g
 }
 
 // InstanceIfExists mocks base method
-func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1alpha1.Instance, error) {
+func (m *MockEC2Interface) InstanceIfExists(arg0 string) (*v1alpha1.Instance, error) {
 	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
@@ -123,7 +135,7 @@ func (mr *MockEC2InterfaceMockRecorder) ReconcileNetwork(arg0, arg1 interface{})
 }
 
 // TerminateInstance mocks base method
-func (m *MockEC2Interface) TerminateInstance(arg0 *string) error {
+func (m *MockEC2Interface) TerminateInstance(arg0 string) error {
 	ret := m.ctrl.Call(m, "TerminateInstance", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -135,7 +147,7 @@ func (mr *MockEC2InterfaceMockRecorder) TerminateInstance(arg0 interface{}) *gom
 }
 
 // UpdateInstanceSecurityGroups mocks base method
-func (m *MockEC2Interface) UpdateInstanceSecurityGroups(arg0 *string, arg1 []*string) error {
+func (m *MockEC2Interface) UpdateInstanceSecurityGroups(arg0 string, arg1 []string) error {
 	ret := m.ctrl.Call(m, "UpdateInstanceSecurityGroups", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -147,7 +159,7 @@ func (mr *MockEC2InterfaceMockRecorder) UpdateInstanceSecurityGroups(arg0, arg1 
 }
 
 // UpdateResourceTags mocks base method
-func (m *MockEC2Interface) UpdateResourceTags(arg0 *string, arg1, arg2 map[string]string) error {
+func (m *MockEC2Interface) UpdateResourceTags(arg0 string, arg1, arg2 map[string]string) error {
 	ret := m.ctrl.Call(m, "UpdateResourceTags", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0

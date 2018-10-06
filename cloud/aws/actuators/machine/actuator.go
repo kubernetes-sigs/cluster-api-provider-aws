@@ -46,11 +46,11 @@ const (
 // This should never need to import the ec2 sdk.
 type ec2Svc interface {
 	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
-	InstanceIfExists(*string) (*v1alpha1.Instance, error)
+	InstanceIfExists(string) (*v1alpha1.Instance, error)
 	TerminateInstance(string) error
 	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
-	UpdateInstanceSecurityGroups(*string, []*string) error
-	UpdateResourceTags(*string, map[string]string, map[string]string) error
+	UpdateInstanceSecurityGroups(string, []string) error
+	UpdateResourceTags(string, map[string]string, map[string]string) error
 }
 
 // codec are the functions off the generated codec that this actuator uses.
@@ -132,7 +132,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine provider status")
 	}
 
-	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instance, err := a.ec2.InstanceIfExists(*status.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -181,7 +181,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instanceDescription, err := a.ec2.InstanceIfExists(*status.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -238,7 +238,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return false, nil
 	}
 
-	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instance, err := a.ec2.InstanceIfExists(*status.InstanceID)
 	if err != nil {
 		return false, err
 	}
@@ -276,7 +276,7 @@ func (a *Actuator) ensureSecurityGroups(machine *clusterv1.Machine, instanceID *
 	)
 	if changed {
 		// Finally, update the instance with our new security groups.
-		err := a.ec2.UpdateInstanceSecurityGroups(instanceID, groupIDs)
+		err := a.ec2.UpdateInstanceSecurityGroups(*instanceID, groupIDs)
 		if err != nil {
 			return false, err
 		}
@@ -307,7 +307,7 @@ func (a *Actuator) ensureTags(machine *clusterv1.Machine, instanceID *string, ad
 	// upated.
 	changed, created, deleted, newAnnotation := a.tagsChanged(annotation, additionalTags)
 	if changed {
-		err = a.ec2.UpdateResourceTags(instanceID, created, deleted)
+		err = a.ec2.UpdateResourceTags(*instanceID, created, deleted)
 		if err != nil {
 			return false, err
 		}
@@ -324,7 +324,7 @@ func (a *Actuator) ensureTags(machine *clusterv1.Machine, instanceID *string, ad
 
 // securityGroupsChanged determines which security groups to delete and which to
 // add.
-func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, src []v1alpha1.AWSResourceReference, dst map[string]string) (bool, []*string, map[string]interface{}) {
+func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, src []v1alpha1.AWSResourceReference, dst map[string]string) (bool, []string, map[string]interface{}) {
 	// State tracking for decisions later in the method.
 	// The bool here indicates if a listed groupID was deleted or not, which is
 	// used while generating our final array later.
@@ -425,9 +425,9 @@ func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, src 
 	}
 
 	// Generate a groups array to send back to the calling function.
-	groupsArray := []*string{}
+	groupsArray := []string{}
 	for groupID := range groupsMap {
-		groupsArray = append(groupsArray, &groupID)
+		groupsArray = append(groupsArray, groupID)
 	}
 
 	// Finally, we're done.

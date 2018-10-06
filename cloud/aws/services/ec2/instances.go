@@ -29,10 +29,10 @@ import (
 )
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Looking for instance %q", *instanceID)
+func (s *Service) InstanceIfExists(instanceID string) (*v1alpha1.Instance, error) {
+	glog.V(2).Infof("Looking for instance %q", instanceID)
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: aws.StringSlice([]string{*instanceID}),
+		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
 	out, err := s.EC2.DescribeInstances(input)
@@ -145,7 +145,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
 		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
-		instance, err := s.InstanceIfExists(status.InstanceID)
+		instance, err := s.InstanceIfExists(*status.InstanceID)
 
 		// if there was no error, return the found instance
 		if err == nil {
@@ -216,10 +216,10 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
-func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroups []*string) error {
+func (s *Service) UpdateInstanceSecurityGroups(instanceID string, securityGroups []string) error {
 	input := &ec2.ModifyInstanceAttributeInput{
-		InstanceId: instanceID,
-		Groups:     securityGroups,
+		InstanceId: aws.String(instanceID),
+		Groups:     aws.StringSlice(securityGroups),
 	}
 
 	_, err := s.EC2.ModifyInstanceAttribute(input)
@@ -234,7 +234,7 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroup
 // This will be called if there is anything to create (update) or delete.
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
-func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error {
+func (s *Service) UpdateResourceTags(resourceID string, create map[string]string, remove map[string]string) error {
 	// If we have anything to create or update
 	if len(create) > 0 {
 		// Convert our create map into an array of *ec2.Tag
@@ -242,7 +242,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 
 		// Create the CreateTags input.
 		input := &ec2.CreateTagsInput{
-			Resources: []*string{resourceID},
+			Resources: aws.StringSlice([]string{resourceID}),
 			Tags:      createTagsInput,
 		}
 
@@ -260,7 +260,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 
 		// Create the DeleteTags input
 		input := &ec2.DeleteTagsInput{
-			Resources: []*string{resourceID},
+			Resources: aws.StringSlice([]string{resourceID}),
 			Tags:      removeTagsInput,
 		}
 
