@@ -225,7 +225,7 @@ func clusterLogs(wg *sync.WaitGroup) {
 }
 
 func restartControllers() {
-	runShellWithWait("kubectl get po -o name | grep clusterapi-controllers | xargs kubectl delete pod")
+	runShellWithWait("kubectl get po -o name | grep clusterapi-controllers | xargs kubectl delete")
 }
 
 func machineLogs(wg *sync.WaitGroup) {
