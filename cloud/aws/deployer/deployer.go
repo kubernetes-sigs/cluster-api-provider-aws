@@ -68,9 +68,15 @@ func (*AWSDeployer) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode CA Cert")
 	}
+	if cert == nil {
+		return "", errors.New("certificate not found in status")
+	}
 	key, err := certificates.DecodePrivateKeyPEM(status.CAPrivateKey)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode private key")
+	}
+	if key == nil {
+		return "", errors.New("key not found in status")
 	}
 
 	cfg, err := certificates.NewKubeconfig(status.Network.APIServerELB.DNSName, cert, key)

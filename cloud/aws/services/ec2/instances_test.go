@@ -231,6 +231,7 @@ func TestCreateInstance(t *testing.T) {
 					RunInstances(&ec2.RunInstancesInput{
 						ImageId:          aws.String("abc"),
 						InstanceType:     aws.String("m5.large"),
+						KeyName:          aws.String("default"),
 						MaxCount:         aws.Int64(1),
 						MinCount:         aws.Int64(1),
 						SubnetId:         aws.String("subnet-1"),
