@@ -19,8 +19,8 @@ package wait
 import (
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	aMW "k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
 
 /*
@@ -74,13 +74,13 @@ func WaitForWithRetryable(backoff aMW.Backoff, condition aMW.ConditionFunc, retr
 			return nil
 		}
 		if err != nil {
-			awserr, ok := err.(awserr.Error)
+			code, ok := awserrors.Code(err)
 			if !ok {
 				return err
 			}
 			isRetryable := false
 			for _, r := range retryableErrors {
-				if awserr.Code() == r {
+				if code == r {
 					isRetryable = true
 				}
 			}
