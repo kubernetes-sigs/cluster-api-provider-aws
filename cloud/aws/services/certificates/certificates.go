@@ -164,7 +164,7 @@ func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.Private
 			},
 		},
 		AuthInfos: map[string]*api.AuthInfo{
-			userName: &api.AuthInfo{
+			userName: {
 				ClientKeyData:         EncodePrivateKeyPEM(clientKey),
 				ClientCertificateData: EncodeCertPEM(clientCert),
 			},
