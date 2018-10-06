@@ -96,6 +96,8 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	// Pick SSH key, if any.
 	if config.KeyName != "" {
 		input.KeyName = aws.String(config.KeyName)
+	} else {
+		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
 	return s.runInstance(input)
