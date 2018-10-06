@@ -56,6 +56,7 @@ var bootstrapCreateStack = &cobra.Command{
 	Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
 	Run: func(cmd *cobra.Command, args []string) {
 
+		stackName := "cluster-api-provider-aws-sigs-k8s-io"
 		sess, err := session.NewSession()
 		if err != nil {
 			glog.Error(err)
@@ -64,7 +65,14 @@ var bootstrapCreateStack = &cobra.Command{
 
 		svc := cloudformation.NewService(cfn.New(sess))
 
-		err = svc.ReconcileBootstrapStack()
+		err = svc.ReconcileBootstrapStack(stackName)
+
+		showErr := svc.ShowStackResources(stackName)
+
+		if showErr != nil {
+			glog.Error(showErr)
+			os.Exit(1)
+		}
 
 		if err != nil {
 			glog.Error(err)
