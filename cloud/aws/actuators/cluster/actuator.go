@@ -151,6 +151,10 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	// Load ec2 client.
 	ec2 := a.servicesGetter.EC2(sess)
 
+	if err := ec2.DeleteBastion(cluster.Name, status); err != nil {
+		return errors.Errorf("unable to delete bastion: %v", err)
+	}
+
 	if err := ec2.DeleteNetwork(cluster.Name, &status.Network); err != nil {
 		glog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
