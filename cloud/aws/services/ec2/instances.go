@@ -315,6 +315,8 @@ func initControlPlaneScript(caCert, caKey []byte) string {
 	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
 	return fmt.Sprintf(`#!/usr/bin/env bash
 
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
 mkdir -p /etc/kubernetes/pki
 
 echo '%s' > /etc/kubernetes/pki/ca.crt
