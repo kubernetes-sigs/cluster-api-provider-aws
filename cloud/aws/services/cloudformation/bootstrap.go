@@ -20,6 +20,7 @@ import (
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/iam"
 )
 
@@ -307,9 +308,7 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 	}
 }
 
-// CreateBootstrapStack creates a AWS CloudFormation stack to initialise
-// IAM policy
-func CreateBootstrapStack() error {
+func ReconcileBootstrapStack() error {
 	stackName := "cluster-api-provider-aws-sigs-k8s-io"
 	sess := session.New()
 	svc := cfn.New(sess)
@@ -319,6 +318,23 @@ func CreateBootstrapStack() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
 	}
+
+	if err := CreateBootstrapStack(svc, stackName, string(yaml)); err != nil {
+		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
+			err := UpdateBootstrapStack(svc, stackName, string(yaml))
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
+}
+
+// CreateBootstrapStack creates a AWS CloudFormation stack to initialise
+// IAM policy
+func CreateBootstrapStack(svc *cfn.CloudFormation, stackName string, yaml string) error {
 
 	input := &cfn.CreateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
@@ -334,6 +350,31 @@ func CreateBootstrapStack() error {
 	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
 	glog.V(2).Infof("waiting for stack %q to create", stackName)
 	if err := svc.WaitUntilStackCreateComplete(desInput); err != nil {
+		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
+	}
+
+	glog.V(2).Infof("stack %q created", stackName)
+	return nil
+}
+
+// UpdateBootstrapStack creates a AWS CloudFormation stack to initialise
+// IAM policy
+func UpdateBootstrapStack(svc *cfn.CloudFormation, stackName string, yaml string) error {
+
+	input := &cfn.UpdateStackInput{
+		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
+		TemplateBody: aws.String(string(yaml)),
+		StackName:    aws.String(stackName),
+	}
+
+	if _, err := svc.UpdateStack(input); err != nil {
+		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
+	}
+
+	glog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
+	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
+	glog.V(2).Infof("waiting for stack %q to create", stackName)
+	if err := svc.WaitUntilStackUpdateComplete(desInput); err != nil {
 		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
 	}
 

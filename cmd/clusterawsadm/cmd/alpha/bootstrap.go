@@ -53,7 +53,7 @@ var bootstrapCreateStack = &cobra.Command{
 	Short: "Create a new AWS CloudFormation stack using the bootstrap template",
 	Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cloudformation.CreateBootstrapStack()
+		err := cloudformation.ReconcileBootstrapStack()
 		if err != nil {
 			glog.Error(err)
 			os.Exit(1)
