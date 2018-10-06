@@ -19,6 +19,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/cloudformation"
 )
@@ -53,7 +55,17 @@ var bootstrapCreateStack = &cobra.Command{
 	Short: "Create a new AWS CloudFormation stack using the bootstrap template",
 	Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cloudformation.ReconcileBootstrapStack()
+
+		sess, err := session.NewSession()
+		if err != nil {
+			glog.Error(err)
+			os.Exit(403)
+		}
+
+		svc := cloudformation.NewService(cfn.New(sess))
+
+		err = svc.ReconcileBootstrapStack()
+
 		if err != nil {
 			glog.Error(err)
 			os.Exit(1)
