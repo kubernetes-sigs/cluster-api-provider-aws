@@ -11,11 +11,11 @@
 - [Prerequisites](#prerequisites)
   - [Bootstrapping AWS Identity and Access Management with CloudFormation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)
   - [Installing clusterawsadm](#installing-clusterawsadm)
-  - [SSH key pair](#ssh-key-pair)
-    - [Create a fresh key pair](#create-a-fresh-key-pair)
+  - [SSH Key pair](#ssh-key-pair)
+    - [Create a new key pair](#create-a-new-key-pair)
     - [Using an existing key](#using-an-existing-key)
   - [Setting up Minikube](#setting-up-minikube)
-    - [Customising for Cluster API](#customising-for-cluster-api)
+    - [Customizing for Cluster API](#customizing-for-cluster-api)
   - [Setting up the environment](#setting-up-the-environment)
 - [Deploying a cluster](#deploying-a-cluster)
   - [Generating cluster manifests](#generating-cluster-manifests)
@@ -54,7 +54,7 @@ The [example](../clusterctl/examples/aws/bootstrap-cloudformation.yaml)) CloudFo
 
 ### Installing clusterawsadm
 
-`clusterawsadm`, can be used to create IAM 
+`clusterawsadm`, can be used to create IAM
 
 > NOTE: This command requires to have a working AWS environment.
 
@@ -150,14 +150,14 @@ minikube config set bootstrapper kubeadm
 
 ### Setting up the environment
 
-The current iteration of the Cluster API Provider AWS relies on credentials being present in your environment. 
+The current iteration of the Cluster API Provider AWS relies on credentials being present in your environment.
 These then get written into the cluster manifests for use by the controllers.
 
 *Bash:*
 
 ```bash
 # Region used to deploy the cluster in.
-export AWS_REGION=us-east-1 
+export AWS_REGION=us-east-1
 
 # User access credentials.
 export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
@@ -212,7 +212,7 @@ sh -c "cd ./clusterctl/examples/aws && ./generate-yaml.sh"
 ```
 
 **NOTE**:
-> The generated manifests contain a copy of the AWS credentials. 
+> The generated manifests contain a copy of the AWS credentials.
 > Secure credentials storage is slated for a future release.
 
 ### Starting Cluster API
