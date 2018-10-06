@@ -132,6 +132,11 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine provider status")
 	}
 
+	if status.InstanceID == nil {
+		// Instance was never created
+		return nil
+	}
+
 	instance, err := a.ec2.InstanceIfExists(*status.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
@@ -150,7 +155,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
 		return nil
 	default:
-		err = a.ec2.TerminateInstance(aws.StringValue(status.InstanceID))
+		err = a.ec2.TerminateInstance(*status.InstanceID)
 		if err != nil {
 			return errors.Wrap(err, "failed to terminate instance")
 		}
