@@ -57,3 +57,6 @@ dev_image:
 
 dev_push: dev_image
 	docker push "$(DEV_PREFIX)/$(NAME):$(DEV_TAG)"
+
+minikube_build:
+	eval $$(minikube docker-env) && docker build -t "$(DEV_PREFIX)/$(NAME):$(DEV_TAG)" -f ./Dockerfile.minikube .

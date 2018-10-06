@@ -22,5 +22,10 @@ vendor
 *.swp
 
 # envfile
+.env
 envfile
 minikube.kubeconfig
+
+# binaries
+cmd/cluster-controller/cluster-controller
+cmd/machine-controller/machine-controller
