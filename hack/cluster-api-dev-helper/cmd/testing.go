@@ -44,6 +44,7 @@ func defineTestingCmd(parent *cobra.Command) {
 	defineTestingClusterLogs(newCmd)
 	defineTestingMachineLogs(newCmd)
 	defineTestingRestartControllerCmd(newCmd)
+	defineTestingApplyControllerManifestsCmd(newCmd)
 
 	parent.AddCommand(newCmd)
 }
@@ -194,6 +195,18 @@ func defineTestingRestartControllerCmd(parent *cobra.Command) {
 		Long:  `Restart controllers`,
 		Run: func(cmd *cobra.Command, args []string) {
 			restartControllers()
+		},
+	}
+	parent.AddCommand(newCmd)
+}
+
+func defineTestingApplyControllerManifestsCmd(parent *cobra.Command) {
+	newCmd := &cobra.Command{
+		Use:   "apply-controller-manifests",
+		Short: "Apply controller manifests",
+		Long:  "Apply controller manifests",
+		Run: func(cmd *cobra.Command, args []string) {
+			runShellWithWait("kubectl apply -f clusterctl/examples/aws/out/provider-components.yaml")
 		},
 	}
 	parent.AddCommand(newCmd)
