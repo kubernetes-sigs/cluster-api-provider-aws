@@ -32,7 +32,7 @@ import (
 func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
 	glog.V(2).Infof("Looking for instance %q", *instanceID)
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{instanceID},
+		InstanceIds: aws.StringSlice([]string{*instanceID}),
 	}
 
 	out, err := s.EC2.DescribeInstances(input)
