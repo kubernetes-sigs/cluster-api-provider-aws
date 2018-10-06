@@ -25,20 +25,26 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig"
 )
 
+// AWSProviderConfigCodec is a runtime codec for the provider configuration
 // +k8s:deepcopy-gen=false
 type AWSProviderConfigCodec struct {
 	encoder runtime.Encoder
 	decoder runtime.Decoder
 }
 
+// GroupName is the provider group name
 const GroupName = "awsproviderconfig"
 
+// SchemeGroupVersion represents the API group and version
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
 
 var (
+	// SchemeBuilder collects functions that add things to a scheme.
 	SchemeBuilder      runtime.SchemeBuilder
 	localSchemeBuilder = &SchemeBuilder
-	AddToScheme        = localSchemeBuilder.AddToScheme
+
+	// AddToScheme applies all the stored functions to the scheme.
+	AddToScheme = localSchemeBuilder.AddToScheme
 )
 
 func init() {
@@ -61,6 +67,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	return nil
 }
 
+// NewScheme creates a new Scheme
 func NewScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 	if err := AddToScheme(scheme); err != nil {
@@ -72,6 +79,7 @@ func NewScheme() (*runtime.Scheme, error) {
 	return scheme, nil
 }
 
+// NewCodec creates a serializer/deserializer for the provider configuration
 func NewCodec() (*AWSProviderConfigCodec, error) {
 	scheme, err := NewScheme()
 	if err != nil {
@@ -89,6 +97,7 @@ func NewCodec() (*AWSProviderConfigCodec, error) {
 	return &codec, nil
 }
 
+// DecodeFromProviderConfig deserialises an object from the provider config
 func (codec *AWSProviderConfigCodec) DecodeFromProviderConfig(providerConfig clusterv1.ProviderConfig, out runtime.Object) error {
 	if providerConfig.Value != nil {
 		_, _, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, out)
@@ -99,6 +108,7 @@ func (codec *AWSProviderConfigCodec) DecodeFromProviderConfig(providerConfig clu
 	return nil
 }
 
+// EncodeToProviderConfig serialises an object to the provider config
 func (codec *AWSProviderConfigCodec) EncodeToProviderConfig(in runtime.Object) (*clusterv1.ProviderConfig, error) {
 	var buf bytes.Buffer
 	if err := codec.encoder.Encode(in, &buf); err != nil {
@@ -109,6 +119,7 @@ func (codec *AWSProviderConfigCodec) EncodeToProviderConfig(in runtime.Object) (
 	}, nil
 }
 
+// EncodeProviderStatus serialises the provider status
 func (codec *AWSProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*runtime.RawExtension, error) {
 	var buf bytes.Buffer
 	if err := codec.encoder.Encode(in, &buf); err != nil {
@@ -118,6 +129,7 @@ func (codec *AWSProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*r
 	return &runtime.RawExtension{Raw: buf.Bytes()}, nil
 }
 
+// DecodeProviderStatus serialises the provider status
 func (codec *AWSProviderConfigCodec) DecodeProviderStatus(providerStatus *runtime.RawExtension, out runtime.Object) error {
 	if providerStatus != nil {
 		_, _, err := codec.decoder.Decode(providerStatus.Raw, nil, out)

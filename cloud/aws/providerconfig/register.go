@@ -19,7 +19,9 @@ import (
 )
 
 var (
-	SchemeBuilder      runtime.SchemeBuilder
+	// SchemeBuilder collects functions that add things to a scheme.
+	SchemeBuilder runtime.SchemeBuilder
+	// AddToScheme applies all the stored functions to the scheme.
 	AddToScheme        = SchemeBuilder.AddToScheme
 	localSchemeBuilder = &SchemeBuilder
 )
@@ -28,14 +30,18 @@ func init() {
 	localSchemeBuilder.Register(addKnownTypes)
 }
 
+// GroupName is the provider group name
 const GroupName = "awsproviderconfig"
 
+// SchemeGroupVersion defines a Kubernetes API group & version for this provider
 var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
+// Kind returns a Kubernetes API kind for a given string
 func Kind(kind string) schema.GroupKind {
 	return SchemeGroupVersion.WithKind(kind).GroupKind()
 }
 
+// Resource returns a Kubernetes resource for a given string
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }

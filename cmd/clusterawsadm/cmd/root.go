@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha"
 )
 
+// RootCmd is the root command for this CLI
 var RootCmd = &cobra.Command{
 	Use:   "clusterawsadm",
 	Short: "cluster api aws management",
@@ -33,6 +34,7 @@ var RootCmd = &cobra.Command{
 	},
 }
 
+// Execute starts the process
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

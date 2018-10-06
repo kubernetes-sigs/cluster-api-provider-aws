@@ -30,8 +30,9 @@ import (
  implement waits manually here.
 */
 
-// Values based loosely on https://github.com/Netflix/edda/blob/master/src/main/scala/com/netflix/edda/Crawler.scala#L159
-
+// NewBackoff creates a new API Machinery backoff parameter set suitable
+// for use with AWS services, with values based loosely on
+// https://github.com/Netflix/edda/blob/master/src/main/scala/com/netflix/edda/Crawler.scala#L159
 func NewBackoff() aMW.Backoff {
 
 	duration, _ := time.ParseDuration("2s")
