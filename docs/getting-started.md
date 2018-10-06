@@ -26,86 +26,73 @@
 
 ## Requirements
 
-- A set of AWS credentials sufficient to bootstrap the cluster (see [#aws-cloudformation-setup](#aws-cloudformation-setup)).
-- A AWS IAM role to give to the Cluster API control plane.
+- Linux or MacOS (Windows isn't supported at the moment)
+- A set of AWS credentials sufficient to bootstrap the cluster (see [bootstrapping-aws-identity-and-access-management-with-cloudformation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)).
+- An AWS IAM role to give to the Cluster API control plane.
 - [Minikube][minikube]
 - [kubectl][kubectl]
-- Linux or OS X (WSL isn't supported at present)
 
 ### Optional
 
-- The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) [[Homebrew][aws_brew]] + [jq][jq] or [AWS Tools for PowerShell][aws_powershell]
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
+- [Homebrew][brew] (MacOS)
+- [jq][jq]
+- [PowerShell AWS Tools][aws_powershell]
+- [Go](https://golang.org/dl/)
 
 ## Prerequisites
 
-Get the [latest version](../releases) of the Cluster API Provider AWS release of `clusterctl` and place it in your path.
+Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can build it with `go get sigs.k8s.io/cluster-api/provider-aws/...`.
 
 ### Bootstrapping AWS Identity and Access Management with CloudFormation
 
 **NOTE**:
-> Your credentials must let you make changes in AWS Identity and Access Management,
+> Your credentials must let you make changes in AWS Identity and Access Management (IAM),
 > and use CloudFormation.
 
-An [AWS CloudFormation template is provided](../clusterctl/examples/aws/bootstrap-cloudformation.yaml)
-to be able to create an AWS IAM User with sufficient authorisations to use
-set up a cluster, as well as AWS IAM roles and instance profiles for use within
-the cluster.
+The [example](../clusterctl/examples/aws/bootstrap-cloudformation.yaml)) CloudFormation can be used to create IAM roles, users and instance profiles required to bootstrap the cluster.
 
 ### Installing clusterawsadm
 
-We provide an additional utility, `clusterawsadm` that provides AWS specific
-tooling that is not directly part of Cluster API, e.g. applying IAM policies
-via CloudFormation.
+`clusterawsadm`, can be used to create IAM 
 
-Using a set of AWS credentials already present, via either environment variables,
-a default AWS CLI profile or via another method, apply the default template using
-the following command:
+> NOTE: This command requires to have a working AWS environment.
 
-``` bash
+```bash
 clusterawsadm alpha bootstrap create-stack
 ```
 
-### SSH key pair
+### SSH Key pair
 
-You will need to specify the name of an SSH key pair that is stored on EC2
-within the region you want to deploy into. If you don't have one set up,
-you can do the following.
+You will need to specify the name of an existing SSH key pair within the region you plan on using. If you don't have one yet, a new one needs to be created.
 
-#### Create a fresh key pair
+#### Create a new key pair
 
-*Bourne shell:*
+*Bash:*
 
-``` bash
+```bash
 # Save the output to a secure location
 aws ec2 create-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io | jq .KeyMaterial -r
 -----BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEApyAOuq47vLNRph47VeL5IUrla6rL2V3mATitbk8rq9MmGVKo5iilJOzJMJ/R
-7c+CYhPDT3GGdWYsJnxhSxSLi5rFXc4UyinRfRVcfKlqdzriUQ1k6qgYMdRm3hS9crCKLIYGzzri
-...
-XJi9MQ2vgTuUKRRczWbsOqFqd5Sl6ZPrrf/SWp65sP35h+BM2oSQmDHJcAT8Bqy0NMDRI2VZHLZF
-1S+Ll6Dv539G8s88vlE35SU+DJOioeJEE979b92MYNjownDAQUZENJKddHepYtNvwPAK
+[... contents omitted ...]
 -----END RSA PRIVATE KEY-----
 ```
 
 *PowerShell:*
 
-``` powershell
+```powershell
 (New-EC2KeyPair -KeyName cluster-api-provider-aws.sigs.k8s.io).KeyMaterial
 -----BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEApyAOuq47vLNRph47VeL5IUrla6rL2V3mATitbk8rq9MmGVKo5iilJOzJMJ/R
-7c+CYhPDT3GGdWYsJnxhSxSLi5rFXc4UyinRfRVcfKlqdzriUQ1k6qgYMdRm3hS9crCKLIYGzzri
-...
-XJi9MQ2vgTuUKRRczWbsOqFqd5Sl6ZPrrf/SWp65sP35h+BM2oSQmDHJcAT8Bqy0NMDRI2VZHLZF
-1S+Ll6Dv539G8s88vlE35SU+DJOioeJEE979b92MYNjownDAQUZENJKddHepYtNvwPAK
+[... contents omitted ...]
 -----END RSA PRIVATE KEY-----
 ```
 
 If you want to save the private key directly into AWS Systems Manager Parameter
 Store with KMS encryption for security, you can use the following command:
 
-*Bourne shell:*
+*Bash:*
 
-``` bash
+```bash
 aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key \
   --type SecureString \
   --value "$(aws ec2 create-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io | jq .KeyMaterial -r)"
@@ -116,7 +103,7 @@ aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key \
 
 *PowerShell:*
 
-``` powershell
+```powershell
 Write-SSMParameter -Name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" `
   -Type SecureString `
   -Value (New-EC2KeyPair -KeyName cluster-api-provider-aws.sigs.k8s.io).KeyMaterial
@@ -125,9 +112,9 @@ Write-SSMParameter -Name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" `
 
 #### Using an existing key
 
-*Bourne shell:*
+*Bash:*
 
-``` bash
+```bash
 # Replace with your own public key
 aws ec2 import-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io \
   --public-key-material $(cat ~/.ssh/id_rsa.pub)
@@ -135,7 +122,7 @@ aws ec2 import-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io \
 
 *PowerShell:*
 
-``` powershell
+```powershell
 $publicKey = [System.Convert]::ToBase64String( `
   [System.Text.Encoding]::UTF8.GetBytes(((get-content ~/.ssh/id_rsa.pub))))
 Import-EC2KeyPair -KeyName cluster-api-provider-aws.sigs.k8s.io -PublicKeyMaterial $publicKey
@@ -146,64 +133,54 @@ Import-EC2KeyPair -KeyName cluster-api-provider-aws.sigs.k8s.io -PublicKeyMateri
 
 ### Setting up Minikube
 
-Minikube needs to be installed on your local machine, as this is what will
-be used by the Cluster API to bootstrap your cluster in AWS.
+Minikube needs to be installed on your local machine, as this is what will be used by the Cluster API to bootstrap your cluster in AWS.
 
-[Instructions for setting up minikube][minikube] are on the Kubernetes website.
+[Instructions for setting up minikube][minikube] are available on the Kubernetes website.
 
-#### Customising for Cluster API
+#### Customizing for Cluster API
 
 At present, the Cluster API provider runs minikube to create a new instance,
 but requires Kubernetes 1.9 and the kubeadm bootstrap method to work properly,
 so we configure Minikube as follows:
 
-``` bash
+```bash
 minikube config set kubernetes-version v1.9.4
 minikube config set bootstrapper kubeadm
 ```
 
-You should also select the hypervisor that works best for your environment.
-
-People have had the success with the following:
-
-- OS X: `minikube config set vm-driver hyperkit`
-- Linux: `minikube config set vm-driver kvm2`
-
 ### Setting up the environment
 
-The current iteration of the Cluster API Provider AWS relies on credentials
-being present in your environment. These then get written into the cluster
-manifests for use by the controllers.
+The current iteration of the Cluster API Provider AWS relies on credentials being present in your environment. 
+These then get written into the cluster manifests for use by the controllers.
 
-You therefore need to set the following environment variables:
+*Bash:*
 
-*Bourne shell:*
+```bash
+# Region used to deploy the cluster in.
+export AWS_REGION=us-east-1 
 
-``` bash
-# The region you will be running the cluster components in
-export AWS_REGION=us-east-1
-# The AWS credentials for bootstrap
+# User access credentials.
 export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
 export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-# The name of the SSH key stored in the EC2 API
+
+# SSH Key to be used to run instances.
 export SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
 ```
 
 *PowerShell:*
 
-``` powershell
+```powershell
 $ENV:AWS_REGION = "us-east-1"
 $ENV:AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
 $ENV:AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 $ENV:SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
 ```
 
-If you applied the bootstrap AWS CloudFormation, then you can use the IAM user
-that it created to scope down the permissions:
+If you applied the CloudFormation template above, use the IAM user that it created:
 
-*Bourne shell:*
+*Bash:*
 
-``` shell
+```bash
 export AWS_CREDENTIALS=$(aws iam create-access-key \
   --user-name bootstrapper.cluster-api-provider-aws.sigs.k8s.io)
 export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq .AccessKey.AccessKeyId -r)
@@ -212,47 +189,44 @@ export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq .AccessKey.SecretAcces
 
 *PowerShell:*
 
-``` powershell
+```powershell
 $awsCredentials = New-IAMAccessKey -UserName bootstrapper.cluster-api-provider-aws.sigs.k8s.io
 $ENV:AWS_ACCESS_KEY_ID=$awsCredentials.AccessKeyId
 $ENV:AWS_SECRET_ACCESS_KEY=$awsCredentials.SecretAccessKey
 ```
 
 **NOTE**:
-> If you want to save these credentials securely, use a tool like [aws-vault][aws-vault]
-> to store them in your operating system key store, which has commands to set
-> environment variables for you.
+> To save credentials securely in your environment, [aws-vault][aws-vault] uses the OS keystore as permanent storage,
+> and offers shell features to securely expose and setup local AWS environments.
 
 ## Deploying a cluster
 
 ### Generating cluster manifests
 
-Now that the environment is set up, you can generate the cluster manifests.
+Use the shell script `generate-yaml.sh` in [clusterctl/examples](clusterctl/examples) to generate the manifests.
 
-Use the `generate-yaml.sh` shell script in [clusterctl/examples](clusterctl/examples)
-to use this:
+> The following command is valid in both Bash and PowerShell.
 
-``` bash
-# This works in PowerShell too
+```bash
 sh -c "cd ./clusterctl/examples/aws && ./generate-yaml.sh"
 ```
 
 **NOTE**:
-> The manifests will contain a copy of the AWS credentials. Secure storage of
-> these is slated for a future release, but please ensure you do not check in
-> these files into public repositories.
+> The generated manifests contain a copy of the AWS credentials. 
+> Secure credentials storage is slated for a future release.
 
 ### Starting Cluster API
 
 You can now start the Cluster API controllers and deploy a new cluster in AWS:
 
-*Bourne shell:*
+*Bash:*
 
-``` bash
+```bash
 clusterctl create cluster -v2 --provider aws \
   -m ./clusterctl/examples/aws/out/machines.yaml \
   -c ./clusterctl/examples/aws/out/cluster.yaml \
   -p ./clusterctl/examples/aws/out/provider-components.yaml
+
 I1005 16:18:54.768403   22094 clusterdeployer.go:95] Creating bootstrap cluster
 I1005 16:20:23.611501   22094 minikube.go:50] Ran: minikube [start --bootstrapper=kubeadm] Output: Starting local Kubernetes v1.9.4 cluster...
 Starting VM...
@@ -268,9 +242,6 @@ I1005 16:20:23.636837   22094 clusterdeployer.go:112] Applying Cluster API stack
 I1005 16:20:23.636871   22094 clusterdeployer.go:301] Applying Cluster API APIServer
 I1005 16:20:24.048512   22094 clusterclient.go:511] Waiting for kubectl apply...
 I1005 16:20:24.776374   22094 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
-I1005 16:20:34.777530   22094 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
-I1005 16:20:44.777572   22094 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
-I1005 16:20:54.777565   22094 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
 I1005 16:21:04.777556   22094 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
 I1005 16:21:04.786146   22094 clusterclient.go:552] Waiting for Cluster v1alpha resources to be listable...
 I1005 16:21:15.668990   22094 clusterdeployer.go:307] Applying Cluster API Provider Components
@@ -283,11 +254,12 @@ I1005 16:21:15.926980   22094 clusterclient.go:563] Waiting for Machine aws-cont
 
 *PowerShell:*
 
-``` powershell
+```powershell
 clusterctl create cluster -v2 --provider aws `
   -m ./clusterctl/examples/aws/out/machines.yaml `
   -c ./clusterctl/examples/aws/out/cluster.yaml `
   -p ./clusterctl/examples/aws/out/provider-components.yaml
+
 I1005 16:18:54.768403   22094 clusterdeployer.go:95] Creating bootstrap cluster
 I1005 16:20:23.611501   22094 minikube.go:50] Ran: minikube [start --bootstrapper=kubeadm] Output: Starting local Kubernetes v1.9.4 cluster...
 ...
@@ -295,25 +267,24 @@ I1005 16:20:23.611501   22094 minikube.go:50] Ran: minikube [start --bootstrappe
 
 ## Troubleshooting
 
-You can get more detailed logs of what is happening in the cluster using [`kubectl`][kubectl]:
+Controller logs can be tailed using [`kubectl`][kubectl]:
 
-*Bourne shell:*
+*Bash:*
 
-``` bash
-kubectl get po -o name | grep clusterapi-controllers \
-  | xargs kubectl logs -c aws-cluster-controller -f
+```bash
+kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-cluster-controller -f
 ```
 
 *PowerShell:*
 
-``` powershell
+```powershell
 kubectl logs -c aws-cluster-controller -f `
   $(kubectl get po -o name | Select-String -Pattern "clusterapi-controllers")
 ```
 
 <!-- References -->
 
-[aws_brew]: https://stedolan.github.io/jq/download/
+[brew]: https://brew.sh/
 [jq]: https://stedolan.github.io/jq/download/
 [minikube]: https://kubernetes.io/docs/tasks/tools/install-minikube/
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
