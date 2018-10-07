@@ -119,6 +119,9 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine config")
 	}
 
+	// Get a cluster api client for the namespace of the cluster.
+	clusterClient := a.machinesGetter.Machines(machine.Namespace)
+
 	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus)
 	if err != nil {
 
@@ -141,9 +144,11 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
-	if err := a.updateStatus(machine, status); err != nil {
-		return errors.Wrap(err, "failed to update machine status")
-	}
+	defer func() {
+		if err := a.storeProviderStatus(clusterClient, machine, status); err != nil {
+			glog.Errorf("failed to store provider status for machine %q: %v", machine.Name, err)
+		}
+	}()
 
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
 		if err := a.elb.RegisterInstanceWithClassicELB(i.ID, elb.TagValueAPIServerRole); err != nil {
@@ -220,6 +225,9 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine status")
 	}
 
+	// Get a cluster api client for the namespace of the cluster.
+	clusterClient := a.machinesGetter.Machines(machine.Namespace)
+
 	// Get the current instance description from AWS.
 	instanceDescription, err := a.ec2.InstanceIfExists(*status.InstanceID)
 	if err != nil {
@@ -257,7 +265,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	// Finally update the machine status.
-	err = a.updateStatus(machine, status)
+	err = a.storeProviderStatus(clusterClient, machine, status)
 	if err != nil {
 		return errors.Wrap(err, "failed to update machine status")
 	}
@@ -611,18 +619,17 @@ func (a *Actuator) clusterProviderStatus(cluster *clusterv1.Cluster) (*v1alpha1.
 	return providerStatus, err
 }
 
-func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
-	machinesClient := a.machinesGetter.Machines(machine.Namespace)
-	encodedProviderStatus, err := a.codec.EncodeProviderStatus(status)
+func (a *Actuator) storeProviderStatus(clusterClient client.MachineInterface, machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
+	raw, err := a.codec.EncodeProviderStatus(status)
 	if err != nil {
-		return fmt.Errorf("failed to encode machine status: %v", err)
+		return errors.Errorf("failed to encode provider status: %v", err)
 	}
-	if encodedProviderStatus != nil {
-		machine.Status.ProviderStatus = encodedProviderStatus
-		if _, err := machinesClient.UpdateStatus(machine); err != nil {
-			return fmt.Errorf("failed to update machine status: %v", err)
-		}
+
+	machine.Status.ProviderStatus = raw
+	if _, err := clusterClient.UpdateStatus(machine); err != nil {
+		return err
 	}
+
 	return nil
 }
 
