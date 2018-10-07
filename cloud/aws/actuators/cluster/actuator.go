@@ -64,7 +64,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
-	glog.Infof("Reconciling cluster %v.", cluster.Name)
+	glog.V(2).Infof("Reconciling cluster %v.", cluster.Name)
 
 	// Get a cluster api client for the namespace of the cluster.
 	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
@@ -108,7 +108,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		return errors.Wrap(err, "Failed to generate a CA for the control plane")
 	}
 
-	err = ssm.PutParameter(cluster.Name,
+	err = ssm.ReconcileParameter(cluster.Name,
 		certificates.SSMCACertificatePath,
 		string(certificates.EncodeCertPEM(caCert)))
 
@@ -116,7 +116,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		return errors.Wrap(err, "failed to put CA certificate in SSM Parameter store")
 	}
 
-	err = ssm.PutParameter(cluster.Name,
+	err = ssm.ReconcileParameter(cluster.Name,
 		certificates.SSMCAPrivateKeyPath,
 		string(certificates.EncodePrivateKeyPEM(caKey)))
 
@@ -181,6 +181,22 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 
 	// Load elb client.
 	elb := a.servicesGetter.ELB(sess)
+
+	ssm := a.servicesGetter.SSM(sess)
+
+	err = ssm.DeleteParameter(cluster.Name,
+		certificates.SSMCACertificatePath)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to delete CA certificate from SSM Parameter store")
+	}
+
+	err = ssm.DeleteParameter(cluster.Name,
+		certificates.SSMCAPrivateKeyPath)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to delete CA private key from SSM Parameter store")
+	}
 
 	if err := elb.DeleteLoadbalancers(cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to delete load balancers: %v", err)

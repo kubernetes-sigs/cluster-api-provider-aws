@@ -18,12 +18,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/log"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -49,10 +48,9 @@ const (
 // ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
 // This should never need to import the ec2 sdk.
 type ec2Svc interface {
-	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
 	InstanceIfExists(string) (*v1alpha1.Instance, error)
 	TerminateInstance(string) error
-	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
+	ReconcileInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
 	UpdateInstanceSecurityGroups(string, []string) error
 	UpdateResourceTags(string, map[string]string, map[string]string) error
 }
@@ -105,61 +103,66 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
+
+	glog.V(2).Info(a.logEntry("entering actuator creation", cluster, machine, log.Pending))
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine provider status")
+		glog.Error(a.logEntry("retrieving machine provider status", cluster, machine, log.Failed))
+		return err
 	}
 	clusterStatus, err := a.clusterProviderStatus(cluster)
 	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider status")
+		glog.Error(a.logEntry("could not get cluster provider status", cluster, machine, log.Failed))
+		return err
 	}
 	config, err := a.machineProviderConfig(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine config")
+		glog.Error(a.logEntry("could not get machine configuration", cluster, machine, log.Failed))
+		return err
 	}
 
 	// Get a cluster api client for the namespace of the cluster.
 	clusterClient := a.machinesGetter.Machines(machine.Namespace)
 
-	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus)
+	defer func() {
+		if err := a.storeProviderStatus(clusterClient, machine, status); err != nil {
+			glog.Error(a.logEntry("could not get update provider status", cluster, machine, log.Failed))
+		}
+	}()
+
+	i, err := a.ec2.ReconcileInstance(machine, status, config, clusterStatus)
+
+	if i != nil && i.ID != "" && i.State != "" {
+		state := string(i.State)
+		status.InstanceID = &i.ID
+		status.InstanceState = &state
+	}
+
 	if err != nil {
 
 		if ec2.IsFailedDependency(errors.Cause(err)) {
-			glog.Errorf("network not ready to launch instances yet: %s", err)
+			glog.V(2).Info(a.logEntry("dependencies not available yet", cluster, machine, log.Pending))
 			duration, _ := time.ParseDuration("60s")
 			return &controllerError.RequeueAfterError{
 				RequeueAfter: duration,
 			}
 		}
-
-		return errors.Wrap(err, "failed to create or get machine")
+		glog.Error(a.logEntry("could not create or find", cluster, machine, log.Failed))
+		return err
 	}
-
-	status.InstanceID = &i.ID
-	status.InstanceState = aws.String(string(i.State))
 
 	if machine.Annotations == nil {
 		machine.Annotations = map[string]string{}
 	}
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
-	defer func() {
-		if err := a.storeProviderStatus(clusterClient, machine, status); err != nil {
-			glog.Errorf("failed to store provider status for machine %q: %v", machine.Name, err)
-		}
-	}()
-
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
 		if err := a.elb.RegisterInstanceWithClassicELB(i.ID, elb.TagValueAPIServerRole); err != nil {
-			return errors.Wrapf(err,
-				"could not register control plane instance %q with load balancer %q",
-				i.ID,
-				elb.TagValueAPIServerRole,
-			)
+			glog.Error(a.logEntry("not registered with load balancer", cluster, machine, log.Failed))
+			return err
 		}
 	}
-
+	glog.V(2).Info(a.logEntry("creation complete", cluster, machine, log.Created))
 	return nil
 }
 

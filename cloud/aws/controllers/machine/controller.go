@@ -68,10 +68,9 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		glog.Fatalf("Could not create codec: %v", err)
 	}
 
-	// Requires setting environment variables:
-	// AWS_REGION=us-west-2,
-	// AWS_ACCESS_KEY_ID=
-	// AWS_SECRET_ACCESS_KEY=
+	// Relies on the default AWS SDK credential chain
+	// See https://docs.aws.amazon.com/sdk-for-go/api/
+	// for more
 	sess := session.Must(session.NewSession())
 	ec2client := ec2.New(sess)
 	elbclient := elb.New(sess)
@@ -81,7 +80,6 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 		EC2Service:     ec2svc.NewService(ec2client),
 		ELBService:     elbsvc.NewService(elbclient),
 		Codec:          codec,
-		//		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
 	}
 
 	actuator, err := machineactuator.NewActuator(params)

@@ -68,7 +68,7 @@ type EC2MachineInterface interface {
 	CreateInstance(machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
 	TerminateInstance(instanceID string) error
 	DeleteBastion(instanceID string, status *providerv1.AWSClusterProviderStatus) error
-	CreateOrGetMachine(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
+	ReconcileInstance(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
 	UpdateInstanceSecurityGroups(instanceID string, securityGroups []string) error
 	UpdateResourceTags(resourceID string, create map[string]string, remove map[string]string) error
 }
@@ -81,6 +81,7 @@ type ELBInterface interface {
 
 // SSMInterface encapsulates the methods exposed by the ssm service.
 type SSMInterface interface {
-	PutParameter(cluster string, path string, value string) error
+	ReconcileParameter(cluster string, path string, value string) error
 	GetParameter(cluster string, path string) (string, error)
+	DeleteParameter(cluster string, path string) error
 }

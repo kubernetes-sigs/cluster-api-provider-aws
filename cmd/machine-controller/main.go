@@ -21,11 +21,14 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"go.opencensus.io/exporter/prometheus"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/zpages"
 	"k8s.io/apiserver/pkg/util/logs"
-	"sigs.k8s.io/cluster-api/pkg/controller/config"
-
+	"net/http"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine/options"
+	"sigs.k8s.io/cluster-api/pkg/controller/config"
 )
 
 func init() {
@@ -41,8 +44,30 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
+	initInstrumentation()
+
 	machineServer := options.NewServer()
 	if err := machine.Run(machineServer); err != nil {
 		glog.Errorf("Failed to start the machine controller. Err: %v", err)
 	}
+}
+
+func initInstrumentation() {
+	exporter, err := prometheus.NewExporter(prometheus.Options{})
+	if err != nil {
+		glog.Fatal(err)
+	}
+	view.RegisterExporter(exporter)
+
+	// Serve the scrape endpoint on port 9002.
+	http.Handle("/metrics", exporter)
+	glog.Fatal(http.ListenAndServe(":9002", nil))
+
+	// Start z-Pages server on 9003
+	go func() {
+		mux := http.NewServeMux()
+		zpages.Handle(mux, "/debug")
+		glog.Fatal(http.ListenAndServe("127.0.0.1:9003", mux))
+	}()
+
 }

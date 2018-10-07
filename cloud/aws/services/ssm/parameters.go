@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
 
 const (
@@ -24,12 +25,24 @@ const (
 	Prefix = "/sigs.k8s.io/cluster-api-provider-aws"
 )
 
-func (s *Service) PutParameter(cluster string, path string, value string) error {
+func (s *Service) ReconcileParameter(cluster string, path string, value string) error {
+
+	err := s.putParameter(cluster, path, value, false)
+
+	if code, ok := awserrors.Code(err); ok && code == "ParameterAlreadyExists" {
+		return nil
+	}
+
+	return err
+}
+
+func (s *Service) putParameter(cluster string, path string, value string, overwrite bool) error {
 
 	input := &ssm.PutParameterInput{
 		Name:      aws.String(ResolvePath(cluster, path)),
 		Value:     aws.String(value),
-		Overwrite: aws.Bool(true),
+		Type:      aws.String(ssm.ParameterTypeSecureString),
+		Overwrite: aws.Bool(overwrite),
 	}
 
 	_, err := s.SSM.PutParameter(input)
@@ -54,6 +67,25 @@ func (s *Service) GetParameter(cluster string, path string) (string, error) {
 	}
 
 	return aws.StringValue(out.Parameter.Value), nil
+}
+
+func (s *Service) DeleteParameter(cluster string, path string) error {
+
+	input := &ssm.DeleteParameterInput{
+		Name: aws.String(ResolvePath(cluster, path)),
+	}
+
+	_, err := s.SSM.DeleteParameter(input)
+
+	if code, _ := awserrors.Code(err); code == "ParameterNotFound" {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ResolvePath provides a qualified SSM path

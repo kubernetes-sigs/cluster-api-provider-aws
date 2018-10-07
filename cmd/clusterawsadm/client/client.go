@@ -19,6 +19,7 @@ package client
 
 import (
 	"flag"
+	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
@@ -77,6 +78,10 @@ func MachineInstanceID(name string) (string, error) {
 	status, err := MachineProviderStatus(m)
 	if err != nil {
 		return "", err
+	}
+
+	if status.InstanceID == nil {
+		return "", errors.New("No instance ID for machine")
 	}
 	return *status.InstanceID, nil
 }

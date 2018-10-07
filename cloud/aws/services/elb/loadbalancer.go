@@ -32,7 +32,11 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 	glog.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
-	spec := s.getAPIServerClassicELBSpec(clusterName, network)
+	spec, err := s.getAPIServerClassicELBSpec(clusterName, network)
+
+	if err != nil {
+		return err
+	}
 
 	// Describe or create.
 	apiELB, err := s.describeClassicELB(spec.Name)
@@ -60,7 +64,12 @@ func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Netw
 	glog.V(2).Info("Delete load balancers")
 
 	// Get default api server spec.
-	spec := s.getAPIServerClassicELBSpec(clusterName, network)
+	spec, err := s.getAPIServerClassicELBSpec(clusterName, network)
+
+	if err != nil {
+		// The ELB never existed
+		return nil
+	}
 
 	if spec.Name == "" {
 		// The ELB never existed
@@ -113,7 +122,11 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 	return nil
 }
 
-func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alpha1.Network) *v1alpha1.ClassicELB {
+func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alpha1.Network) (*v1alpha1.ClassicELB, error) {
+	if network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
+		return nil, NewFailedDependency(errors.New("security groups not ready"))
+	}
+
 	res := &v1alpha1.ClassicELB{
 		Name:   fmt.Sprintf("%s-apiserver", clusterName),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
@@ -140,7 +153,7 @@ func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alph
 		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
 	}
 
-	return res
+	return res, nil
 }
 
 func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.ClassicELB, error) {

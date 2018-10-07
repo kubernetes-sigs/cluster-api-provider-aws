@@ -26,13 +26,13 @@ import (
 
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS
-func BootstrapTemplate() *cloudformation.Template {
+func BootstrapTemplate(accountID string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
 	template.Resources["AWSIAMManagedPolicyClusterController"] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("cluster-controller"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Cluster Controller`,
-		PolicyDocument:    clusterControllerPolicy(),
+		PolicyDocument:    clusterControllerPolicy(accountID),
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
@@ -58,7 +58,7 @@ func BootstrapTemplate() *cloudformation.Template {
 	template.Resources["AWSIAMManagedPolicyNodes"] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("nodes"),
 		Description:       `For the Kubernetes Cluster API Provider AWS nodes`,
-		PolicyDocument:    nodePolicy(),
+		PolicyDocument:    nodePolicy(accountID),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleNodes"),
 		},
@@ -158,7 +158,7 @@ func ec2AssumeRolePolicy() *iam.PolicyDocument {
 	}
 }
 
-func clusterControllerPolicy() *iam.PolicyDocument {
+func clusterControllerPolicy(accountID string) *iam.PolicyDocument {
 	return &iam.PolicyDocument{
 		Version: iam.CurrentVersion,
 		Statement: []iam.StatementEntry{
@@ -206,7 +206,6 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 			{
 				Effect: iam.EffectAllow,
 				Action: iam.Actions{
-					"ssm:DescribeParameters",
 					"ssm:GetParameter",
 					"ssm:GetParameters",
 					"ssm:GetParametersByPath",
@@ -215,19 +214,19 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 					"ssm:PutParameter",
 				},
 				Resource: iam.Resources{
-					ssmPath(certificates.SSMCACertificatePath),
-					ssmPath(certificates.SSMCAPrivateKeyPath),
+					ssmPath(accountID, certificates.SSMCACertificatePath),
+					ssmPath(accountID, certificates.SSMCAPrivateKeyPath),
 				},
 			},
 		},
 	}
 }
 
-func ssmPath(path string) string {
-	return fmt.Sprintf("arn:aws:ssm:::parameter/%s/%s", ssm.Prefix, path)
+func ssmPath(accountID string, path string) string {
+	return fmt.Sprintf("arn:aws:ssm:*:%s:parameter%s/%s/*", accountID, ssm.Prefix, path)
 }
 
-func nodePolicy() *iam.PolicyDocument {
+func nodePolicy(accountID string) *iam.PolicyDocument {
 	return &iam.PolicyDocument{
 		Version: iam.CurrentVersion,
 		Statement: []iam.StatementEntry{
@@ -240,8 +239,8 @@ func nodePolicy() *iam.PolicyDocument {
 					"ssm:GetParametersByPath",
 				},
 				Resource: iam.Resources{
-					ssmPath("nodes"),
-					ssmPath(certificates.SSMCACertificatePath),
+					ssmPath(accountID, "nodes"),
+					ssmPath(accountID, certificates.SSMCACertificatePath),
 				},
 			},
 		},
@@ -361,9 +360,9 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation
-func (s *Service) ReconcileBootstrapStack(stackName string) error {
+func (s *Service) ReconcileBootstrapStack(stackName string, accountID string) error {
 
-	template := BootstrapTemplate()
+	template := BootstrapTemplate(accountID)
 	yaml, err := template.YAML()
 	if err != nil {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")

@@ -82,6 +82,12 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 
 func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 	// TODO(johanneswuerbach): ensure that the VPC is owned by this cluster before deleting
+
+	if v == nil || v.ID == "" {
+		// VPC never set up and can go
+		return nil
+	}
+
 	input := &ec2.DeleteVpcInput{
 		VpcId: aws.String(v.ID),
 	}

@@ -17,20 +17,30 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/golang/glog"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/log"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ssm"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+func (s *Service) logInstanceEntry(msg string, instanceID string, status string) []zapcore.Field {
+	return []zapcore.Field{
+		zap.String("msg", msg),
+		zap.String("instance", instanceID),
+		zap.String("status", status),
+	}
+}
+
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceIfExists(instanceID string) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Looking for instance %q", instanceID)
+	glog.V(2).Info(s.logInstanceEntry("looking for instance", instanceID, log.Pending))
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
@@ -38,6 +48,7 @@ func (s *Service) InstanceIfExists(instanceID string) (*v1alpha1.Instance, error
 	out, err := s.EC2.DescribeInstances(input)
 	switch {
 	case IsNotFound(err):
+		glog.V(2).Info(s.logInstanceEntry("not found", instanceID, log.Failed))
 		return nil, nil
 	case err != nil:
 		return nil, errors.Errorf("failed to describe instances: %v", err)
@@ -65,6 +76,8 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		input.ImageID = s.defaultAMILookup(clusterStatus.Region)
 	}
 
+	glog.V(2).Infof("Machine: ")
+
 	// Pick subnet from the machine configuration, or default to the first private available.
 	if config.Subnet != nil && config.Subnet.ID != nil {
 		input.SubnetID = *config.Subnet.ID
@@ -78,14 +91,23 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		input.SubnetID = sns[0].ID
 	}
 
+	role := TagValueCommonRole
+
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
-		input.UserData = aws.String(initControlPlaneScript(machine.ClusterName))
+		input.UserData = aws.String(initControlPlaneScript(machine.ClusterName, clusterStatus.Region))
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
+		role = TagValueAPIServerRole
 	}
 
 	if machine.ObjectMeta.Labels["set"] == "node" {
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupNode].ID)
+	}
+
+	if config.IAMInstanceProfile != "" {
+		glog.V(2).Info("Found instance profile")
+		glog.V(2).Info(config.IAMInstanceProfile)
+		input.IAMProfile = config.IAMInstanceProfile
 	}
 
 	// Pick SSH key, if any.
@@ -94,6 +116,8 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	} else {
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
+
+	input.Tags = s.buildTags(machine.ClusterName, ResourceLifecycleOwned, machine.Name, role, nil)
 
 	return s.runInstance(input)
 }
@@ -135,15 +159,15 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 	return nil
 }
 
-// CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+// ReconcileInstance will either return an existing instance or create and return an instance.
+func (s *Service) ReconcileInstance(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
 		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
 		instance, err := s.InstanceIfExists(*status.InstanceID)
-
 		// if there was no error, return the found instance
 		if err == nil {
+			glog.V(2).Infof("Instance %q found", instance.ID)
 			return instance, nil
 		}
 
@@ -286,7 +310,7 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	}
 
 	for _, sg := range v.SecurityGroups {
-		i.SecurityGroupIDs = append(i.SecurityGroupIDs, *sg.GroupId)
+		i.SecurityGroupIDs = append(i.SecurityGroupIDs, aws.StringValue(sg.GroupId))
 	}
 
 	// TODO: Handle returned IAM instance profile, since we are currently
@@ -306,7 +330,7 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 
 // initControlPlaneScript returns the b64 encoded script to run on start up.
 // The cert Must be CertPEM encoded and the key must be PrivateKeyPEM encoded
-func initControlPlaneScript(cluster string) string {
+func initControlPlaneScript(cluster string, region string) string {
 	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
 
 	caPath := ssm.ResolvePath(cluster, certificates.SSMCACertificatePath)
@@ -319,12 +343,14 @@ exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 mkdir -p /etc/kubernetes/pki
 
 aws ssm get-parameter \
+	--region %s \
 	--name %s \
 	--query Parameter.Value \
 	--with-decryption \
 	--output text > /etc/kubernetes/pki/ca.crt
 
 aws ssm get-parameter \
+	--region %s \
 	--name %s \
 	--query Parameter.Value \
 	--with-decryption \
@@ -342,5 +368,5 @@ kubeadm init --config /tmp/kubeadm.yaml
 # Installation from https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico
 #kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
 #kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
-`, caPath, keyPath)
+`, region, caPath, region, keyPath)
 }
