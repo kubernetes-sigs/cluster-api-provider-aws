@@ -21,8 +21,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/cloudformation"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/sts"
 )
 
 func RootCmd() *cobra.Command {
@@ -44,8 +46,9 @@ func generateCmd() *cobra.Command {
 		Use:   "generate-cloudformation",
 		Short: "Generate bootstrap AWS CloudFormation template",
 		Long:  "Generate bootstrap AWS CloudFormation template with initial IAM policies",
+		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			template := cloudformation.BootstrapTemplate()
+			template := cloudformation.BootstrapTemplate(args[0])
 			j, err := template.YAML()
 			if err != nil {
 				glog.Error(err)
@@ -71,11 +74,20 @@ func createStackCmd() *cobra.Command {
 				os.Exit(403)
 			}
 
-			svc := cloudformation.NewService(cfn.New(sess))
+			stsSvc := sts.NewService(awssts.New(sess))
 
-			err = svc.ReconcileBootstrapStack(stackName)
+			accountID, stsErr := stsSvc.AccountID()
 
-			showErr := svc.ShowStackResources(stackName)
+			if stsErr != nil {
+				glog.Error(stsErr)
+				os.Exit(1)
+			}
+
+			cfnSvc := cloudformation.NewService(cfn.New(sess))
+
+			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID)
+
+			showErr := cfnSvc.ShowStackResources(stackName)
 
 			if showErr != nil {
 				glog.Error(showErr)

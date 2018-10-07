@@ -40,6 +40,7 @@ func (c *clusterGetter) Clusters(ns string) clientv1.ClusterInterface {
 type testServicesGetter struct {
 	ec2 *mocks.MockEC2Interface
 	elb *mocks.MockELBInterface
+	ssm *mocks.MockSSMInterface
 }
 
 func (d *testServicesGetter) Session(clusterConfig *providerconfigv1.AWSClusterProviderConfig) *session.Session {
@@ -52,6 +53,10 @@ func (d *testServicesGetter) EC2(session *session.Session) service.EC2Interface 
 
 func (d *testServicesGetter) ELB(session *session.Session) service.ELBInterface {
 	return d.elb
+}
+
+func (d *testServicesGetter) SSM(session *session.Session) service.SSMInterface {
+	return d.ssm
 }
 
 func TestReconcile(t *testing.T) {
@@ -70,6 +75,7 @@ func TestReconcile(t *testing.T) {
 	services := &testServicesGetter{
 		ec2: mocks.NewMockEC2Interface(mockCtrl),
 		elb: mocks.NewMockELBInterface(mockCtrl),
+		ssm: mocks.NewMockSSMInterface(mockCtrl),
 	}
 
 	ap := cluster.ActuatorParams{
@@ -108,6 +114,14 @@ func TestReconcile(t *testing.T) {
 
 	services.elb.EXPECT().
 		ReconcileLoadbalancers("test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
+		Return(nil)
+
+	services.ssm.EXPECT().
+		ReconcileParameter("test", "certificate-authority/certificate", gomock.Any()).
+		Return(nil)
+
+	services.ssm.EXPECT().
+		ReconcileParameter("test", "certificate-authority/private-key", gomock.Any()).
 		Return(nil)
 
 	if err := actuator.Reconcile(cluster); err != nil {

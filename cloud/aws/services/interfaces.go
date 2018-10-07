@@ -24,6 +24,7 @@ type Getter interface {
 	SDKSessionGetter
 	EC2Getter
 	ELBGetter
+	SSMGetter
 }
 
 // SDKSessionGetter has a single method that returns an AWS session.
@@ -39,6 +40,11 @@ type EC2Getter interface {
 // ELBGetter has a single method that returns an ELB service interface.
 type ELBGetter interface {
 	ELB(*session.Session) ELBInterface
+}
+
+// SSMGetter has a single method that returns an SSM service interface.
+type SSMGetter interface {
+	SSM(*session.Session) SSMInterface
 }
 
 // EC2Interface encapsulates the methods exposed by the ec2 service.
@@ -69,4 +75,11 @@ type EC2MachineInterface interface {
 // ELBInterface encapsulates the methods exposed by the elb service.
 type ELBInterface interface {
 	ReconcileLoadbalancers(clusterName string, network *providerv1.Network) error
+}
+
+// SSMInterface encapsulates the methods exposed by the ssm service.
+type SSMInterface interface {
+	ReconcileParameter(cluster string, path string, value string) error
+	GetParameter(cluster string, path string) (string, error)
+	DeleteParameter(cluster string, path string) error
 }
