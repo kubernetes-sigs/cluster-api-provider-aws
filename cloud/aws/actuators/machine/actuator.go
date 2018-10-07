@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -56,6 +57,10 @@ type ec2Svc interface {
 	UpdateResourceTags(string, map[string]string, map[string]string) error
 }
 
+type elbSvc interface {
+	RegisterInstanceWithClassicELB(string, string) error
+}
+
 // codec are the functions off the generated codec that this actuator uses.
 type codec interface {
 	DecodeFromProviderConfig(clusterv1.ProviderConfig, runtime.Object) error
@@ -69,6 +74,7 @@ type Actuator struct {
 
 	// Services
 	ec2            ec2Svc
+	elb            elbSvc
 	machinesGetter client.MachinesGetter
 }
 
@@ -83,6 +89,8 @@ type ActuatorParams struct {
 	MachinesGetter client.MachinesGetter
 	// EC2Service is the interface to ec2.
 	EC2Service ec2Svc
+	// ELBService is the interface to load balancing
+	ELBService elbSvc
 }
 
 // NewActuator returns an actuator.
@@ -90,6 +98,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 	return &Actuator{
 		codec:          params.Codec,
 		ec2:            params.EC2Service,
+		elb:            params.ELBService,
 		machinesGetter: params.MachinesGetter,
 	}, nil
 }
@@ -132,7 +141,21 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
-	return a.updateStatus(machine, status)
+	if err := a.updateStatus(machine, status); err != nil {
+		return errors.Wrap(err, "failed to update machine status")
+	}
+
+	if machine.ObjectMeta.Labels["set"] == "controlplane" {
+		if err := a.elb.RegisterInstanceWithClassicELB(i.ID, elb.TagValueAPIServerRole); err != nil {
+			return errors.Wrapf(err,
+				"could not register control plane instance %q with load balancer %q",
+				i.ID,
+				elb.TagValueAPIServerRole,
+			)
+		}
+	}
+
+	return nil
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller

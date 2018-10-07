@@ -79,6 +79,22 @@ func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Netw
 	return nil
 }
 
+// RegisterInstanceWithClassicELB registers an instance with a classic ELB
+func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer string) error {
+	input := &elb.RegisterInstancesWithLoadBalancerInput{
+		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
+		LoadBalancerName: aws.String(loadBalancer),
+	}
+
+	_, err := s.ELB.RegisterInstancesWithLoadBalancer(input)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alpha1.Network) *v1alpha1.ClassicELB {
 	res := &v1alpha1.ClassicELB{
 		Name:   fmt.Sprintf("%s-apiserver", clusterName),

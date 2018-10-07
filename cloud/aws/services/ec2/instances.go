@@ -71,7 +71,9 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	} else {
 		sns := clusterStatus.Network.Subnets.FilterPrivate()
 		if len(sns) == 0 {
-			return nil, errors.New("failed to run instance, no subnets available")
+			return nil, NewFailedDependency(
+				errors.New("failed to run instance, no subnets available"),
+			)
 		}
 		input.SubnetID = sns[0].ID
 	}
