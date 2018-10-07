@@ -32,6 +32,12 @@ import (
 const (
 	rsaKeySize   = 2048
 	duration365d = time.Hour * 24 * 365
+	// SSMCAPrefix is the path to the CA prefix on AWS SSM
+	SSMCAPrefix = "certificate-authority"
+	// SSMCACertificatePath is the path to the CA certificate on AWS SSM
+	SSMCACertificatePath = "certificate-authority/certificate"
+	// SSMCAPrivateKeyPath is the path to the CA private key on AWS SSM
+	SSMCAPrivateKeyPath = "certificate-authority/private-key"
 )
 
 // NewPrivateKey creates an RSA private key

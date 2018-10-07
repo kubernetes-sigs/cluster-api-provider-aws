@@ -62,6 +62,11 @@ func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Netw
 	// Get default api server spec.
 	spec := s.getAPIServerClassicELBSpec(clusterName, network)
 
+	if spec.Name == "" {
+		// The ELB never existed
+		return nil
+	}
+
 	// Describe or create.
 	apiELB, err := s.describeClassicELB(spec.Name)
 	if IsNotFound(err) {
@@ -86,10 +91,23 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 		LoadBalancerName: aws.String(loadBalancer),
 	}
 
-	_, err := s.ELB.RegisterInstancesWithLoadBalancer(input)
+	check := func() (done bool, err error) {
+		_, err = s.ELB.RegisterInstancesWithLoadBalancer(input)
 
-	if err != nil {
-		return err
+		if code, _ := awserrors.Code(err); code == "LoadBalancerNotFound" {
+			return false, nil
+		}
+
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+
+	}
+
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), check, []string{}); err != nil {
+		return errors.Wrapf(err, "failed to wait register instance %q with classic ELB %q", instanceID, loadBalancer)
 	}
 
 	return nil

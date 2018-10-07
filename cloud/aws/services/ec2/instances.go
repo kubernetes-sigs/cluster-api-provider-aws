@@ -22,10 +22,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ssm"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
@@ -80,14 +80,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
-		caCert, caKey, err := certificates.NewCertificateAuthority()
-		if err != nil {
-			return input, errors.Wrap(err, "Failed to generate a CA for the control plane")
-		}
-		clusterStatus.CACertificate = certificates.EncodeCertPEM(caCert)
-		clusterStatus.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
-
-		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate, clusterStatus.CAPrivateKey))
+		input.UserData = aws.String(initControlPlaneScript(machine.ClusterName))
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
@@ -313,16 +306,29 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 
 // initControlPlaneScript returns the b64 encoded script to run on start up.
 // The cert Must be CertPEM encoded and the key must be PrivateKeyPEM encoded
-func initControlPlaneScript(caCert, caKey []byte) string {
+func initControlPlaneScript(cluster string) string {
 	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
+
+	caPath := ssm.ResolvePath(cluster, certificates.SSMCACertificatePath)
+	keyPath := ssm.ResolvePath(cluster, certificates.SSMCAPrivateKeyPath)
+
 	return fmt.Sprintf(`#!/usr/bin/env bash
 
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 mkdir -p /etc/kubernetes/pki
 
-echo '%s' > /etc/kubernetes/pki/ca.crt
-echo '%s' > /etc/kubernetes/pki/ca.key
+aws ssm get-parameter \
+	--name %s \
+	--query Parameter.Value \
+	--with-decryption \
+	--output text > /etc/kubernetes/pki/ca.crt
+
+aws ssm get-parameter \
+	--name %s \
+	--query Parameter.Value \
+	--with-decryption \
+	--output text > /etc/kubernetes/pki/ca.key
 
 cat >/tmp/kubeadm.yaml <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha3
@@ -334,7 +340,7 @@ EOF
 kubeadm init --config /tmp/kubeadm.yaml
 
 # Installation from https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
-`, caCert, caKey)
+#kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+#kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+`, caPath, keyPath)
 }

@@ -14,11 +14,14 @@
 package cloudformation
 
 import (
+	"fmt"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/iam"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ssm"
 )
 
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
@@ -49,6 +52,15 @@ func BootstrapTemplate() *cloudformation.Template {
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleMachineController"),
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
+		},
+	}
+
+	template.Resources["AWSIAMManagedPolicyNodes"] = cloudformation.AWSIAMManagedPolicy{
+		ManagedPolicyName: iam.NewManagedName("nodes"),
+		Description:       `For the Kubernetes Cluster API Provider AWS nodes`,
+		PolicyDocument:    nodePolicy(),
+		Roles: []string{
+			cloudformation.Ref("AWSIAMRoleNodes"),
 		},
 	}
 
@@ -189,6 +201,47 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 					"elasticloadbalancing:ConfigureHealthCheck",
 					"elasticloadbalancing:DeleteLoadBalancer",
 					"elasticloadbalancing:DescribeLoadBalancers",
+				},
+			},
+			{
+				Effect: iam.EffectAllow,
+				Action: iam.Actions{
+					"ssm:DescribeParameters",
+					"ssm:GetParameter",
+					"ssm:GetParameters",
+					"ssm:GetParametersByPath",
+					"ssm:DeleteParameter",
+					"ssm:DeleteParameters",
+					"ssm:PutParameter",
+				},
+				Resource: iam.Resources{
+					ssmPath(certificates.SSMCACertificatePath),
+					ssmPath(certificates.SSMCAPrivateKeyPath),
+				},
+			},
+		},
+	}
+}
+
+func ssmPath(path string) string {
+	return fmt.Sprintf("arn:aws:ssm:::parameter/%s/%s", ssm.Prefix, path)
+}
+
+func nodePolicy() *iam.PolicyDocument {
+	return &iam.PolicyDocument{
+		Version: iam.CurrentVersion,
+		Statement: []iam.StatementEntry{
+			{
+				Effect: iam.EffectAllow,
+				Action: iam.Actions{
+					"ssm:DescribeParameters",
+					"ssm:GetParameter",
+					"ssm:GetParameters",
+					"ssm:GetParametersByPath",
+				},
+				Resource: iam.Resources{
+					ssmPath("nodes"),
+					ssmPath(certificates.SSMCACertificatePath),
 				},
 			},
 		},
