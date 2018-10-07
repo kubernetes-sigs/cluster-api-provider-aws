@@ -15,20 +15,20 @@ package alpha
 
 import (
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/ec2"
 )
 
-var alphaCmd = &cobra.Command{
-	Use:   "alpha",
-	Short: "alpha commands",
-	Long:  `Alpha commands may not be supported in future releases`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
-		cmd.Help()
-	},
-}
-
-// Init sets up the alpha command set
-func Init(rootCmd *cobra.Command) {
-	rootCmd.AddCommand(alphaCmd)
-	initBootstrap()
+func AlphaCmd() *cobra.Command {
+	newCmd := &cobra.Command{
+		Use:   "alpha",
+		Short: "alpha commands",
+		Long:  `Alpha commands may not be supported in future releases`,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
+	newCmd.AddCommand(bootstrap.RootCmd())
+	newCmd.AddCommand(ec2.RootCmd())
+	return newCmd
 }

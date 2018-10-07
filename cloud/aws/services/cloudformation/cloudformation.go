@@ -76,7 +76,7 @@ func (s *Service) ShowStackResources(stackName string) error {
 	out, err := s.CFN.DescribeStackResources(input)
 
 	if err != nil {
-		return errors.Wrap(err, "unable to describe stack resrouces")
+		return errors.Wrap(err, "unable to describe stack resources")
 	}
 
 	fmt.Print("\nFollowing resources are in the stack: \n\n")
