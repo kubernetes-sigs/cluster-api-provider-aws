@@ -60,7 +60,8 @@ type EC2ClusterInterface interface {
 type EC2MachineInterface interface {
 	InstanceIfExists(instanceID *string) (*providerv1.Instance, error)
 	CreateInstance(machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
-	TerminateInstance(instanceID *string) error
+	TerminateInstance(instanceID string) error
+	DeleteBastion(instanceID string, status *providerv1.AWSClusterProviderStatus) error
 	CreateOrGetMachine(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
 	UpdateInstanceSecurityGroups(instanceID *string, securityGroups []*string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error

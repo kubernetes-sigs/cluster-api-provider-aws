@@ -47,7 +47,7 @@ const (
 type ec2Svc interface {
 	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
 	InstanceIfExists(*string) (*v1alpha1.Instance, error)
-	TerminateInstance(*string) error
+	TerminateInstance(string) error
 	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
 	UpdateInstanceSecurityGroups(*string, []*string) error
 	UpdateResourceTags(*string, map[string]string, map[string]string) error
@@ -150,7 +150,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
 		return nil
 	default:
-		err = a.ec2.TerminateInstance(status.InstanceID)
+		err = a.ec2.TerminateInstance(aws.StringValue(status.InstanceID))
 		if err != nil {
 			return errors.Wrap(err, "failed to terminate instance")
 		}

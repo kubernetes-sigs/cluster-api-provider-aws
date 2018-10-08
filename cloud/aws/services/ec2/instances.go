@@ -107,16 +107,36 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
-func (s *Service) TerminateInstance(instanceID *string) error {
-	glog.V(2).Infof("Attempting to terminate instance %q", *instanceID)
+func (s *Service) TerminateInstance(instanceID string) error {
+	glog.V(2).Infof("Attempting to terminate instance %q", instanceID)
 
 	input := &ec2.TerminateInstancesInput{
-		InstanceIds: []*string{
-			instanceID,
-		},
+		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
 	_, err := s.EC2.TerminateInstances(input)
+	if err != nil {
+		return err
+	}
+
+	glog.V(2).Infof("termination request sent for EC2 instance %q", instanceID)
+
+	return nil
+}
+
+// TerminateInstanceAndWait terminates and waits
+// for an EC2 instance to terminate.
+func (s *Service) TerminateInstanceAndWait(instanceID string) error {
+	s.TerminateInstance(instanceID)
+
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: aws.StringSlice([]string{instanceID}),
+	}
+
+	glog.V(2).Infof("waiting for EC2 instance %q to terminate", instanceID)
+
+	err := s.EC2.WaitUntilInstanceTerminated(input)
+
 	if err != nil {
 		return err
 	}
