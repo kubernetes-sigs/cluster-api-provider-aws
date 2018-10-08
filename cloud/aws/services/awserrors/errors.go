@@ -24,3 +24,11 @@ func Code(err error) (string, bool) {
 	}
 	return "", false
 }
+
+// Message returns the AWS error message as a string
+func Message(err error) string {
+	if awserr, ok := err.(awserr.Error); ok {
+		return awserr.Message()
+	}
+	return ""
+}
