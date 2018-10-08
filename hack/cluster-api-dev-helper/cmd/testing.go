@@ -43,6 +43,8 @@ func defineTestingCmd(parent *cobra.Command) {
 	defineTestingDestroyMachinesCmd(newCmd)
 	defineTestingClusterLogs(newCmd)
 	defineTestingMachineLogs(newCmd)
+	defineTestingRestartControllerCmd(newCmd)
+	defineTestingApplyControllerManifestsCmd(newCmd)
 
 	parent.AddCommand(newCmd)
 }
@@ -186,6 +188,30 @@ func defineTestingMachineLogs(parent *cobra.Command) {
 	parent.AddCommand(newCmd)
 }
 
+func defineTestingRestartControllerCmd(parent *cobra.Command) {
+	newCmd := &cobra.Command{
+		Use:   "restart-controllers",
+		Short: "Restart controllers",
+		Long:  `Restart controllers`,
+		Run: func(cmd *cobra.Command, args []string) {
+			restartControllers()
+		},
+	}
+	parent.AddCommand(newCmd)
+}
+
+func defineTestingApplyControllerManifestsCmd(parent *cobra.Command) {
+	newCmd := &cobra.Command{
+		Use:   "apply-controller-manifests",
+		Short: "Apply controller manifests",
+		Long:  "Apply controller manifests",
+		Run: func(cmd *cobra.Command, args []string) {
+			runShellWithWait("kubectl apply -f clusterctl/examples/aws/out/provider-components.yaml")
+		},
+	}
+	parent.AddCommand(newCmd)
+}
+
 func destroyMachines() {
 	runShellWithWait("kubectl get machine -o name | xargs kubectl patch -p '{\"metadata\":{\"finalizers\":null}}'")
 	runShellWithWait("kubectl delete machines --force=true --grace-period 0 --all --wait=true")
@@ -209,6 +235,10 @@ func clusterLogs(wg *sync.WaitGroup) {
 		b.Wait()
 		time.Sleep(5 * 1000 * 1000 * 1000)
 	}
+}
+
+func restartControllers() {
+	runShellWithWait("kubectl get po -o name | grep clusterapi-controllers | xargs kubectl delete")
 }
 
 func machineLogs(wg *sync.WaitGroup) {
