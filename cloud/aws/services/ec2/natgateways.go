@@ -14,17 +14,23 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 )
 
-func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+func (s *Service) reconcileNatGateways(ctx context.Context, clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "reconcileNatGateways"),
+	)
+	defer span.End()
 	glog.V(2).Infof("Reconciling NAT gateways")
 
 	if len(subnets.FilterPrivate()) == 0 {
@@ -35,7 +41,7 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 		return nil
 	}
 
-	existing, err := s.describeNatGatewaysBySubnet(vpc.ID)
+	existing, err := s.describeNatGatewaysBySubnet(ctx, vpc.ID)
 	if err != nil {
 		return err
 	}
@@ -49,7 +55,7 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 			continue
 		}
 
-		ng, err := s.createNatGateway(clusterName, sn.ID)
+		ng, err := s.createNatGateway(ctx, clusterName, sn.ID)
 		if err != nil {
 			return err
 		}
@@ -60,7 +66,11 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 	return nil
 }
 
-func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+func (s *Service) deleteNatGateways(ctx context.Context, clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "deleteNatGateways"),
+	)
+	defer span.End()
 	if len(subnets.FilterPrivate()) == 0 {
 		glog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
@@ -69,7 +79,7 @@ func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets
 		return nil
 	}
 
-	existing, err := s.describeNatGatewaysBySubnet(vpc.ID)
+	existing, err := s.describeNatGatewaysBySubnet(ctx, vpc.ID)
 	if err != nil {
 		return err
 	}
@@ -80,7 +90,7 @@ func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets
 		}
 
 		if ngID, ok := existing[sn.ID]; ok {
-			err := s.deleteNatGateway(*ngID.NatGatewayId)
+			err := s.deleteNatGateway(ctx, *ngID.NatGatewayId)
 			if err != nil {
 				return err
 			}
@@ -90,7 +100,11 @@ func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets
 	return nil
 }
 
-func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.NatGateway, error) {
+func (s *Service) describeNatGatewaysBySubnet(ctx context.Context, vpcID string) (map[string]*ec2.NatGateway, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeNatGatewaysBySubnet"),
+	)
+	defer span.End()
 	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
 		Filter: []*ec2.Filter{
 			s.filterVpc(vpcID),
@@ -115,8 +129,12 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 	return gateways, nil
 }
 
-func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.getOrAllocateAddress(clusterName, TagValueAPIServerRole)
+func (s *Service) createNatGateway(ctx context.Context, clusterName string, subnetID string) (*ec2.NatGateway, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "createNatGateway"),
+	)
+	defer span.End()
+	ip, err := s.getOrAllocateAddress(ctx, clusterName, TagValueAPIServerRole)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}
@@ -131,7 +149,7 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 	}
 
 	name := fmt.Sprintf("%s-nat", clusterName)
-	if err := s.createTags(clusterName, *out.NatGateway.NatGatewayId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
+	if err := s.createTags(ctx, clusterName, *out.NatGateway.NatGatewayId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 
@@ -147,7 +165,11 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 	return out.NatGateway, nil
 }
 
-func (s *Service) deleteNatGateway(id string) error {
+func (s *Service) deleteNatGateway(ctx context.Context, id string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "deleteNatGateway"),
+	)
+	defer span.End()
 	_, err := s.EC2.DeleteNatGateway(&ec2.DeleteNatGatewayInput{
 		NatGatewayId: aws.String(id),
 	})
@@ -185,7 +207,7 @@ func (s *Service) deleteNatGateway(id string) error {
 		return false, errors.Errorf("in unknown state")
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), check, []string{}); err != nil {
+	if err := wait.WaitForWithRetryable(ctx, wait.NewBackoff(), check, []string{}); err != nil {
 		return errors.Wrapf(err, "failed to wait for NAT gateway deletion %q", id)
 	}
 
@@ -193,7 +215,12 @@ func (s *Service) deleteNatGateway(id string) error {
 	return nil
 }
 
-func (s *Service) getNatGatewayForSubnet(subnets v1alpha1.Subnets, sn *v1alpha1.Subnet) (string, error) {
+func (s *Service) getNatGatewayForSubnet(ctx context.Context, subnets v1alpha1.Subnets, sn *v1alpha1.Subnet) (string, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "getNatGatewayForSubnet"),
+	)
+	defer span.End()
+
 	if sn.IsPublic {
 		return "", errors.Errorf("cannot get NAT gateway for a public subnet, got id %q", sn.ID)
 	}

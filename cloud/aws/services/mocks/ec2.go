@@ -18,6 +18,7 @@
 package mocks
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
@@ -48,124 +49,124 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateInstance mocks base method
-func (m *MockEC2Interface) CreateInstance(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderConfig, arg2 *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
-	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2)
+func (m *MockEC2Interface) CreateInstance(arg0 context.Context, arg1 *v1alpha10.Machine, arg2 *v1alpha1.AWSMachineProviderConfig, arg3 *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateInstance indicates an expected call of CreateInstance
-func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1, arg2)
+func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1, arg2, arg3)
 }
 
 // CreateOrGetMachine mocks base method
-func (m *MockEC2Interface) CreateOrGetMachine(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderStatus, arg2 *v1alpha1.AWSMachineProviderConfig, arg3 *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
-	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1, arg2, arg3)
+func (m *MockEC2Interface) CreateOrGetMachine(arg0 context.Context, arg1 *v1alpha10.Machine, arg2 *v1alpha1.AWSMachineProviderStatus, arg3 *v1alpha1.AWSMachineProviderConfig, arg4 *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateOrGetMachine indicates an expected call of CreateOrGetMachine
-func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3)
+func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3, arg4)
 }
 
 // DeleteBastion mocks base method
-func (m *MockEC2Interface) DeleteBastion(arg0 string, arg1 *v1alpha1.AWSClusterProviderStatus) error {
-	ret := m.ctrl.Call(m, "DeleteBastion", arg0, arg1)
+func (m *MockEC2Interface) DeleteBastion(arg0 context.Context, arg1 string, arg2 *v1alpha1.AWSClusterProviderStatus) error {
+	ret := m.ctrl.Call(m, "DeleteBastion", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteBastion indicates an expected call of DeleteBastion
-func (mr *MockEC2InterfaceMockRecorder) DeleteBastion(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBastion", reflect.TypeOf((*MockEC2Interface)(nil).DeleteBastion), arg0, arg1)
+func (mr *MockEC2InterfaceMockRecorder) DeleteBastion(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBastion", reflect.TypeOf((*MockEC2Interface)(nil).DeleteBastion), arg0, arg1, arg2)
 }
 
 // DeleteNetwork mocks base method
-func (m *MockEC2Interface) DeleteNetwork(arg0 string, arg1 *v1alpha1.Network) error {
-	ret := m.ctrl.Call(m, "DeleteNetwork", arg0, arg1)
+func (m *MockEC2Interface) DeleteNetwork(arg0 context.Context, arg1 string, arg2 *v1alpha1.Network) error {
+	ret := m.ctrl.Call(m, "DeleteNetwork", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteNetwork indicates an expected call of DeleteNetwork
-func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockEC2Interface)(nil).DeleteNetwork), arg0, arg1)
+func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockEC2Interface)(nil).DeleteNetwork), arg0, arg1, arg2)
 }
 
 // InstanceIfExists mocks base method
-func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1alpha1.Instance, error) {
-	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
+func (m *MockEC2Interface) InstanceIfExists(arg0 context.Context, arg1 *string) (*v1alpha1.Instance, error) {
+	ret := m.ctrl.Call(m, "InstanceIfExists", arg0, arg1)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // InstanceIfExists indicates an expected call of InstanceIfExists
-func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceIfExists", reflect.TypeOf((*MockEC2Interface)(nil).InstanceIfExists), arg0)
+func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceIfExists", reflect.TypeOf((*MockEC2Interface)(nil).InstanceIfExists), arg0, arg1)
 }
 
 // ReconcileBastion mocks base method
-func (m *MockEC2Interface) ReconcileBastion(arg0, arg1 string, arg2 *v1alpha1.AWSClusterProviderStatus) error {
-	ret := m.ctrl.Call(m, "ReconcileBastion", arg0, arg1, arg2)
+func (m *MockEC2Interface) ReconcileBastion(arg0 context.Context, arg1, arg2 string, arg3 *v1alpha1.AWSClusterProviderStatus) error {
+	ret := m.ctrl.Call(m, "ReconcileBastion", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ReconcileBastion indicates an expected call of ReconcileBastion
-func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileBastion", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileBastion), arg0, arg1, arg2)
+func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileBastion", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileBastion), arg0, arg1, arg2, arg3)
 }
 
 // ReconcileNetwork mocks base method
-func (m *MockEC2Interface) ReconcileNetwork(arg0 string, arg1 *v1alpha1.Network) error {
-	ret := m.ctrl.Call(m, "ReconcileNetwork", arg0, arg1)
+func (m *MockEC2Interface) ReconcileNetwork(arg0 context.Context, arg1 string, arg2 *v1alpha1.Network) error {
+	ret := m.ctrl.Call(m, "ReconcileNetwork", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ReconcileNetwork indicates an expected call of ReconcileNetwork
-func (mr *MockEC2InterfaceMockRecorder) ReconcileNetwork(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileNetwork", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileNetwork), arg0, arg1)
+func (mr *MockEC2InterfaceMockRecorder) ReconcileNetwork(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileNetwork", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileNetwork), arg0, arg1, arg2)
 }
 
 // TerminateInstance mocks base method
-func (m *MockEC2Interface) TerminateInstance(arg0 string) error {
-	ret := m.ctrl.Call(m, "TerminateInstance", arg0)
+func (m *MockEC2Interface) TerminateInstance(arg0 context.Context, arg1 string) error {
+	ret := m.ctrl.Call(m, "TerminateInstance", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // TerminateInstance indicates an expected call of TerminateInstance
-func (mr *MockEC2InterfaceMockRecorder) TerminateInstance(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateInstance", reflect.TypeOf((*MockEC2Interface)(nil).TerminateInstance), arg0)
+func (mr *MockEC2InterfaceMockRecorder) TerminateInstance(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateInstance", reflect.TypeOf((*MockEC2Interface)(nil).TerminateInstance), arg0, arg1)
 }
 
 // UpdateInstanceSecurityGroups mocks base method
-func (m *MockEC2Interface) UpdateInstanceSecurityGroups(arg0 *string, arg1 []*string) error {
-	ret := m.ctrl.Call(m, "UpdateInstanceSecurityGroups", arg0, arg1)
+func (m *MockEC2Interface) UpdateInstanceSecurityGroups(arg0 context.Context, arg1 *string, arg2 []*string) error {
+	ret := m.ctrl.Call(m, "UpdateInstanceSecurityGroups", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateInstanceSecurityGroups indicates an expected call of UpdateInstanceSecurityGroups
-func (mr *MockEC2InterfaceMockRecorder) UpdateInstanceSecurityGroups(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstanceSecurityGroups", reflect.TypeOf((*MockEC2Interface)(nil).UpdateInstanceSecurityGroups), arg0, arg1)
+func (mr *MockEC2InterfaceMockRecorder) UpdateInstanceSecurityGroups(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstanceSecurityGroups", reflect.TypeOf((*MockEC2Interface)(nil).UpdateInstanceSecurityGroups), arg0, arg1, arg2)
 }
 
 // UpdateResourceTags mocks base method
-func (m *MockEC2Interface) UpdateResourceTags(arg0 *string, arg1, arg2 map[string]string) error {
-	ret := m.ctrl.Call(m, "UpdateResourceTags", arg0, arg1, arg2)
+func (m *MockEC2Interface) UpdateResourceTags(arg0 context.Context, arg1 *string, arg2, arg3 map[string]string) error {
+	ret := m.ctrl.Call(m, "UpdateResourceTags", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateResourceTags indicates an expected call of UpdateResourceTags
-func (mr *MockEC2InterfaceMockRecorder) UpdateResourceTags(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResourceTags", reflect.TypeOf((*MockEC2Interface)(nil).UpdateResourceTags), arg0, arg1, arg2)
+func (mr *MockEC2InterfaceMockRecorder) UpdateResourceTags(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResourceTags", reflect.TypeOf((*MockEC2Interface)(nil).UpdateResourceTags), arg0, arg1, arg2, arg3)
 }

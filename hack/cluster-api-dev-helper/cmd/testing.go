@@ -18,10 +18,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/spf13/cobra"
 	"sync"
 	"time"
-
-	"github.com/spf13/cobra"
 )
 
 func defineTestingCmd(parent *cobra.Command) {
@@ -45,6 +44,7 @@ func defineTestingCmd(parent *cobra.Command) {
 	defineTestingMachineLogs(newCmd)
 	defineTestingRestartControllerCmd(newCmd)
 	defineTestingApplyControllerManifestsCmd(newCmd)
+	defineTestingInstrumentationCmd(newCmd)
 
 	parent.AddCommand(newCmd)
 }
@@ -207,6 +207,18 @@ func defineTestingApplyControllerManifestsCmd(parent *cobra.Command) {
 		Long:  "Apply controller manifests",
 		Run: func(cmd *cobra.Command, args []string) {
 			runShellWithWait("kubectl apply -f clusterctl/examples/aws/out/provider-components.yaml")
+		},
+	}
+	parent.AddCommand(newCmd)
+}
+
+func defineTestingInstrumentationCmd(parent *cobra.Command) {
+	newCmd := &cobra.Command{
+		Use:   "instrumentation",
+		Short: "Access z-pages and OpenMetrics",
+		Long:  "Access z-pages and OpenMetrics",
+		Run: func(cmd *cobra.Command, args []string) {
+			runShellWithWait("kubectl port-forward deployment/clusterapi-controllers 33000:9000 33001:9001 34000:9002 34001:9003")
 		},
 	}
 	parent.AddCommand(newCmd)

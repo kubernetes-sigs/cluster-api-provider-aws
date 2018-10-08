@@ -14,9 +14,12 @@
 package cloudformation
 
 import (
+	"context"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/iam"
 )
@@ -308,18 +311,21 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation
-func (s *Service) ReconcileBootstrapStack(stackName string) error {
-
+func (s *Service) ReconcileBootstrapStack(ctx context.Context, stackName string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "cloudfomration", "ReconcileBootstrapStack"),
+	)
+	defer span.End()
 	template := BootstrapTemplate()
 	yaml, err := template.YAML()
 	if err != nil {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
 	}
 
-	if err := s.createStack(stackName, string(yaml)); err != nil {
+	if err := s.createStack(ctx, stackName, string(yaml)); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
 			glog.Infof("AWS Cloudformation stack %q already exists", stackName)
-			updateErr := s.updateStack(stackName, string(yaml))
+			updateErr := s.updateStack(ctx, stackName, string(yaml))
 			if updateErr != nil {
 				return updateErr
 			}

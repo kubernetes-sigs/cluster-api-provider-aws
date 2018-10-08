@@ -15,15 +15,18 @@ package machine
 
 // should not need to import the ec2 sdk here
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/pkg/errors"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/trace"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/events"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/golang/glog"
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
@@ -45,12 +48,15 @@ const (
 // ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
 // This should never need to import the ec2 sdk.
 type ec2Svc interface {
-	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
-	InstanceIfExists(*string) (*v1alpha1.Instance, error)
-	TerminateInstance(string) error
-	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
-	UpdateInstanceSecurityGroups(*string, []*string) error
-	UpdateResourceTags(*string, map[string]string, map[string]string) error
+	InstanceIfExists(context.Context, *string) (*v1alpha1.Instance, error)
+	TerminateInstance(context.Context, string) error
+	CreateOrGetMachine(context.Context, *clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
+	UpdateInstanceSecurityGroups(context.Context, *string, []*string) error
+	UpdateResourceTags(context.Context, *string, map[string]string, map[string]string) error
+}
+
+type elbSvc interface {
+	RegisterInstanceWithClassicELB(context.Context, string, string) error
 }
 
 // codec are the functions off the generated codec that this actuator uses.
@@ -67,6 +73,14 @@ type Actuator struct {
 	// Services
 	ec2            ec2Svc
 	machinesGetter client.MachinesGetter
+	i              instruments
+}
+
+type instruments struct {
+	createCount *stats.Int64Measure
+	deleteCount *stats.Int64Measure
+	updateCount *stats.Int64Measure
+	existsCount *stats.Int64Measure
 }
 
 // ActuatorParams holds parameter information for Actuator
@@ -84,30 +98,71 @@ type ActuatorParams struct {
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) (*Actuator, error) {
+
+	counters := instruments{
+		createCount: instrumentation.NewCounter("number of create operations", "actuators", "machine", "Create"),
+		deleteCount: instrumentation.NewCounter("number of delete operations", "actuators", "machine", "Delete"),
+		updateCount: instrumentation.NewCounter("number of update operations", "actuators", "machine", "Update"),
+		existsCount: instrumentation.NewCounter("number of update operations", "actuators", "machine", "Exists"),
+	}
+
 	return &Actuator{
 		codec:          params.Codec,
 		ec2:            params.EC2Service,
 		machinesGetter: params.MachinesGetter,
+		i:              counters,
 	}, nil
 }
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
+	ctx := context.Background()
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("actuators", "machine", "Create"),
+	)
+	defer span.End()
+
+	stats.Record(ctx, a.i.createCount.M(1))
+
+	rec, _ := events.NewStdObjRecorder(machine)
+
+	rec.Event(events.Warning, "starting machine reconciliation", "object created")
+
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine provider status")
+		rec.Event(events.Warning, "retreiving machine provider status", "no provider status")
+		return err
 	}
 	clusterStatus, err := a.clusterProviderStatus(cluster)
 	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider status")
+		rec.Event(events.Warning, "retreiving cluster provider status", "no provider status")
+		return err
 	}
 	config, err := a.machineProviderConfig(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine config")
+		rec.Event(events.Warning, "retreiving machine provider configuration", "no machine configuration")
+		return err
 	}
 
-	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus)
+	storeUpdate := func() {
+		if err := a.updateStatus(machine, status); err != nil {
+			rec.Event(events.Warning, "updating provider status", "update failed")
+		}
+		rec.Info(events.Normal, "updating provider status", "update succeeded")
+	}
+
+	defer storeUpdate()
+
+	i, err := a.ec2.CreateOrGetMachine(ctx, machine, status, config, clusterStatus)
+
+	if i != nil && i.ID != "" && i.State != "" {
+		rec.Infof(events.Normal, "instance IDs received: %q", i.ID)
+		state := string(i.State)
+		status.InstanceID = &i.ID
+		status.InstanceState = &state
+		storeUpdate()
+	}
+
 	if err != nil {
 		return errors.Wrap(err, "failed to create or get machine")
 	}
@@ -125,16 +180,27 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
+	ctx := context.Background()
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("actuators", "machine", "Delete"),
+	)
+	defer span.End()
+
+	stats.Record(ctx, a.i.deleteCount.M(1))
+
+	rec, _ := events.NewStdObjRecorder(machine)
+	rec.Event(events.Warning, "object deleted", "starting machine deletion")
 
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine provider status")
+		rec.Event(events.Warning, "retreiving machine provider status", "no provider status")
+		return err
 	}
 
-	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instance, err := a.ec2.InstanceIfExists(ctx, status.InstanceID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get instance")
+		rec.Event(events.Warning, "retreiving EC2 instance for deletion", "failed to get instance")
+		return err
 	}
 
 	// The machine hasn't been created yet
@@ -148,11 +214,13 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
+		rec.Event(events.Normal, "EC2 instance terminated", "object deleted")
 		return nil
 	default:
-		err = a.ec2.TerminateInstance(aws.StringValue(status.InstanceID))
+		err = a.ec2.TerminateInstance(ctx, *status.InstanceID)
 		if err != nil {
-			return errors.Wrap(err, "failed to terminate instance")
+			rec.Event(events.Warning, "instance termination request", "failed to terminate instance")
+			return err
 		}
 	}
 
@@ -163,13 +231,24 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 // If the Update attempts to mutate any immutable state, the method will error
 // and no updates will be performed.
 func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
+	ctx := context.Background()
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("actuators", "machine", "Update"),
+	)
+	defer span.End()
+
+	stats.Record(ctx, a.i.updateCount.M(1))
+
+	rec, _ := events.NewStdObjRecorder(machine)
+
+	rec.Event(events.Warning, "starting machine update", "object updated")
 
 	// Get the updated config. We're going to compare parts of this to the
 	// current Tags and Security Groups that AWS is aware of.
 	config, err := a.machineProviderConfig(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine config")
+		rec.Event(events.Warning, "retreiving machine provider config", "no provider config")
+		return err
 	}
 
 	// Get the new status from the provided machine object.
@@ -177,13 +256,15 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// instanceID for various AWS queries.
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine status")
+		rec.Event(events.Warning, "retreiving machine provider status", "no provider status")
+		return err
 	}
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instanceDescription, err := a.ec2.InstanceIfExists(ctx, status.InstanceID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get instance")
+		rec.Event(events.Warning, "instance reconciliation", "could not create or find instance")
+		return err
 	}
 
 	// We can now compare the various AWS state to the state we were passed.
@@ -193,26 +274,30 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	// Ensure that the security groups are correct.
 	securityGroupsChanged, err := a.ensureSecurityGroups(
+		ctx,
 		machine,
 		status.InstanceID,
 		config.AdditionalSecurityGroups,
 		instanceDescription.SecurityGroups,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to ensure security groups")
+		rec.Event(events.Warning, "security group reconciliation", "failed to ensure security groups")
+		return err
 	}
 
 	// Ensure that the tags are correct.
-	tagsChanged, err := a.ensureTags(machine, status.InstanceID, config.AdditionalTags)
+	tagsChanged, err := a.ensureTags(ctx, machine, status.InstanceID, config.AdditionalTags)
 	if err != nil {
-		return errors.Wrap(err, "failed to ensure tags")
+		rec.Event(events.Warning, "tag reconciliation", "failed to ensure tags")
+		return err
 	}
 
 	// We need to update the machine since annotations may have changed.
 	if securityGroupsChanged || tagsChanged {
-		err = a.updateMachine(machine)
+		err = a.updateMachine(ctx, machine)
 		if err != nil {
-			return errors.Wrap(err, "failed to update machine")
+			rec.Event(events.Warning, "updating machine object", "failed to update machine tags")
+			return err
 		}
 	}
 
@@ -227,7 +312,17 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	glog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
+	ctx := context.Background()
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("actuators", "machine", "Exists"),
+	)
+	defer span.End()
+
+	stats.Record(ctx, a.i.existsCount.M(1))
+
+	rec, _ := events.NewStdObjRecorder(machine)
+	rec.Info(events.Normal, "machine existence check", "Checking if machine exists")
+
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return false, err
@@ -235,18 +330,21 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	// TODO worry about pointers. instance if exists returns *any* instance
 	if status.InstanceID == nil {
+		rec.Event(events.Warning, "checking for matching EC2 instance", "machine status Instance ID is nil")
 		return false, nil
 	}
 
-	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instance, err := a.ec2.InstanceIfExists(ctx, status.InstanceID)
 	if err != nil {
+		rec.Event(events.Warning, "checking for matching EC2 instance", err.Error())
 		return false, err
 	}
 	if instance == nil {
+		rec.Event(events.Warning, "checking for matching EC2 instance", "no instance found")
 		return false, nil
 	}
 
-	glog.Infof("Found an instance: %#v", instance)
+	rec.Infof(events.Normal, "checking for matching EC2 instance", "found an instance: %#v", instance)
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning, v1alpha1.InstanceStatePending:
@@ -260,7 +358,10 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (a *Actuator) ensureSecurityGroups(machine *clusterv1.Machine, instanceID *string, additionalSecurityGroups []v1alpha1.AWSResourceReference, instanceSecurityGroups map[string]string) (bool, error) {
+func (a *Actuator) ensureSecurityGroups(ctx context.Context, machine *clusterv1.Machine, instanceID *string, additionalSecurityGroups []v1alpha1.AWSResourceReference, instanceSecurityGroups map[string]string) (bool, error) {
+	ctx, span := trace.StartSpan(ctx, "actuator.ensureSecurityGroups")
+	defer span.End()
+
 	// Get the SecurityGroup annotations
 	annotation, err := a.machineAnnotationJSON(machine, SecurityGroupsLastAppliedAnnotation)
 	if err != nil {
@@ -276,7 +377,7 @@ func (a *Actuator) ensureSecurityGroups(machine *clusterv1.Machine, instanceID *
 	)
 	if changed {
 		// Finally, update the instance with our new security groups.
-		err := a.ec2.UpdateInstanceSecurityGroups(instanceID, groupIDs)
+		err := a.ec2.UpdateInstanceSecurityGroups(ctx, instanceID, groupIDs)
 		if err != nil {
 			return false, err
 		}
@@ -295,7 +396,9 @@ func (a *Actuator) ensureSecurityGroups(machine *clusterv1.Machine, instanceID *
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (a *Actuator) ensureTags(machine *clusterv1.Machine, instanceID *string, additionalTags map[string]string) (bool, error) {
+func (a *Actuator) ensureTags(ctx context.Context, machine *clusterv1.Machine, instanceID *string, additionalTags map[string]string) (bool, error) {
+	ctx, span := trace.StartSpan(ctx, "actuator.ensureSecurityGroups")
+	defer span.End()
 	annotation, err := a.machineAnnotationJSON(machine, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -307,7 +410,7 @@ func (a *Actuator) ensureTags(machine *clusterv1.Machine, instanceID *string, ad
 	// upated.
 	changed, created, deleted, newAnnotation := a.tagsChanged(annotation, additionalTags)
 	if changed {
-		err = a.ec2.UpdateResourceTags(instanceID, created, deleted)
+		err = a.ec2.UpdateResourceTags(ctx, instanceID, created, deleted)
 		if err != nil {
 			return false, err
 		}
@@ -586,12 +689,17 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWS
 	return nil
 }
 
-func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
+func (a *Actuator) updateMachine(ctx context.Context, machine *clusterv1.Machine) error {
+	ctx, span := trace.StartSpan(ctx, "actuator.UpdateMachine")
+	defer span.End()
+	rec, _ := events.NewStdObjRecorder(machine)
+
 	machinesClient := a.machinesGetter.Machines(machine.Namespace)
 
 	_, err := machinesClient.Update(machine)
 	if err != nil {
-		return fmt.Errorf("failed to update machine: %v", err)
+		rec.Error(events.Failure, "updating machine object", err.Error())
+		return err
 	}
 
 	return nil

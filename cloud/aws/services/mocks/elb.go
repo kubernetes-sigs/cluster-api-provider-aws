@@ -18,6 +18,7 @@
 package mocks
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
@@ -47,13 +48,13 @@ func (m *MockELBInterface) EXPECT() *MockELBInterfaceMockRecorder {
 }
 
 // ReconcileLoadbalancers mocks base method
-func (m *MockELBInterface) ReconcileLoadbalancers(arg0 string, arg1 *v1alpha1.Network) error {
-	ret := m.ctrl.Call(m, "ReconcileLoadbalancers", arg0, arg1)
+func (m *MockELBInterface) ReconcileLoadbalancers(arg0 context.Context, arg1 string, arg2 *v1alpha1.Network) error {
+	ret := m.ctrl.Call(m, "ReconcileLoadbalancers", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ReconcileLoadbalancers indicates an expected call of ReconcileLoadbalancers
-func (mr *MockELBInterfaceMockRecorder) ReconcileLoadbalancers(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).ReconcileLoadbalancers), arg0, arg1)
+func (mr *MockELBInterfaceMockRecorder) ReconcileLoadbalancers(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).ReconcileLoadbalancers), arg0, arg1, arg2)
 }

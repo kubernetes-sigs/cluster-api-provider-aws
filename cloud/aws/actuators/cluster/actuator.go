@@ -14,17 +14,19 @@
 package cluster
 
 import (
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
-	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
-
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -61,7 +63,14 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
-	glog.Infof("Reconciling cluster %v.", cluster.Name)
+	ctx := context.Background()
+
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("actuators", "cluster", "Reconcile"),
+	)
+	defer span.End()
+
+	glog.V(2).Infof("Reconciling cluster %v.", cluster.Name)
 
 	// Get a cluster api client for the namespace of the cluster.
 	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
@@ -94,20 +103,20 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	sess := a.servicesGetter.Session(config)
 
 	// Load ec2 client.
-	ec2 := a.servicesGetter.EC2(sess)
+	ec2 := a.servicesGetter.EC2(sess, instrumentation.AWSInstrumentedConfig())
 
-	if err := ec2.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
+	if err := ec2.ReconcileNetwork(ctx, cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
-	if err := ec2.ReconcileBastion(cluster.Name, config.SSHKeyName, status); err != nil {
+	if err := ec2.ReconcileBastion(ctx, cluster.Name, config.SSHKeyName, status); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
 	// Load elb client.
-	elb := a.servicesGetter.ELB(sess)
+	elb := a.servicesGetter.ELB(sess, instrumentation.AWSInstrumentedConfig())
 
-	if err := elb.ReconcileLoadbalancers(cluster.Name, &status.Network); err != nil {
+	if err := elb.ReconcileLoadbalancers(ctx, cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile load balancers: %v", err)
 	}
 
@@ -116,6 +125,12 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
+	ctx := context.Background()
+
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("actuators", "cluster", "Delete"),
+	)
+	defer span.End()
 	glog.Infof("Deleting cluster %v.", cluster.Name)
 
 	// Get a cluster api client for the namespace of the cluster.
@@ -149,13 +164,13 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	sess := a.servicesGetter.Session(config)
 
 	// Load ec2 client.
-	ec2 := a.servicesGetter.EC2(sess)
+	ec2 := a.servicesGetter.EC2(sess, instrumentation.AWSInstrumentedConfig())
 
-	if err := ec2.DeleteBastion(cluster.Name, status); err != nil {
+	if err := ec2.DeleteBastion(ctx, cluster.Name, status); err != nil {
 		return errors.Errorf("unable to delete bastion: %v", err)
 	}
 
-	if err := ec2.DeleteNetwork(cluster.Name, &status.Network); err != nil {
+	if err := ec2.DeleteNetwork(ctx, cluster.Name, &status.Network); err != nil {
 		glog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: 5 * 1000 * 1000 * 1000,
@@ -194,13 +209,13 @@ func (a *Actuator) storeProviderStatus(clusterClient client.ClusterInterface, cl
 type defaultServicesGetter struct{}
 
 func (d *defaultServicesGetter) Session(clusterConfig *providerconfigv1.AWSClusterProviderConfig) *session.Session {
-	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
+	return session.Must(session.NewSession(instrumentation.AWSInstrumentedConfig().WithRegion(clusterConfig.Region)))
 }
 
-func (d *defaultServicesGetter) EC2(session *session.Session) service.EC2Interface {
-	return ec2svc.NewService(ec2.New(session))
+func (d *defaultServicesGetter) EC2(session *session.Session, c *aws.Config) service.EC2Interface {
+	return ec2svc.NewService(ec2.New(session, instrumentation.AWSInstrumentedConfig()))
 }
 
-func (d *defaultServicesGetter) ELB(session *session.Session) service.ELBInterface {
-	return elbsvc.NewService(elb.New(session))
+func (d *defaultServicesGetter) ELB(session *session.Session, c *aws.Config) service.ELBInterface {
+	return elbsvc.NewService(elb.New(session, instrumentation.AWSInstrumentedConfig()))
 }

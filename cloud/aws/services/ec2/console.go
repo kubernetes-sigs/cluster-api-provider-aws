@@ -14,13 +14,21 @@
 package ec2
 
 import (
+	"context"
 	"encoding/base64"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 )
 
 // GetConsole returns the latest console output of an instance
-func (s *Service) GetConsole(instanceID string) (string, error) {
+func (s *Service) GetConsole(ctx context.Context, instanceID string) (string, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "GetConsole"),
+	)
+	defer span.End()
+
 	input := &ec2.GetConsoleOutputInput{
 		InstanceId: aws.String(instanceID),
 		Latest:     aws.Bool(true),

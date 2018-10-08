@@ -14,6 +14,7 @@
 package ec2
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -30,6 +31,8 @@ const (
 func TestReconcileSubnets(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+
+	ctx := context.TODO()
 
 	testCases := []struct {
 		name   string
@@ -222,7 +225,7 @@ func TestReconcileSubnets(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileSubnets("test-cluster", tc.input); err != nil {
+			if err := s.reconcileSubnets(ctx, "test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})
