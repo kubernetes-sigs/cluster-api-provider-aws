@@ -16,13 +16,13 @@
 package ec2
 
 import (
-	"testing"
-
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2/mock_ec2iface"
+	"testing"
 )
 
 const (
@@ -32,6 +32,7 @@ const (
 func TestReconcileNatGateways(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+	ctx := context.TODO()
 
 	testCases := []struct {
 		name   string
@@ -307,7 +308,7 @@ func TestReconcileNatGateways(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileNatGateways("test-cluster", tc.input, &v1alpha1.VPC{ID: subnetsVPCID}); err != nil {
+			if err := s.reconcileNatGateways(ctx, "test-cluster", tc.input, &v1alpha1.VPC{ID: subnetsVPCID}); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})

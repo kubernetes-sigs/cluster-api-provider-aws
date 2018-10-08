@@ -14,28 +14,34 @@
 package elb
 
 import (
+	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	"strings"
+	"time"
 )
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
-func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.Network) error {
+func (s *Service) ReconcileLoadbalancers(ctx context.Context, clusterName string, network *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "ReconcileLoadbalancers"),
+	)
+	defer span.End()
 	glog.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
 	spec := s.getAPIServerClassicELBSpec(clusterName, network)
 
 	// Describe or create.
-	apiELB, err := s.describeClassicELB(spec.Name)
+	apiELB, err := s.describeClassicELB(ctx, spec.Name)
 	if IsNotFound(err) {
-		apiELB, err = s.createClassicELB(spec)
+		apiELB, err = s.createClassicELB(ctx, spec)
 		if err != nil {
 			return err
 		}
@@ -83,7 +89,12 @@ func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alph
 	return res
 }
 
-func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.ClassicELB, error) {
+func (s *Service) createClassicELB(ctx context.Context, spec *v1alpha1.ClassicELB) (*v1alpha1.ClassicELB, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "elb", "createClassicELB"),
+	)
+	defer span.End()
+
 	input := &elb.CreateLoadBalancerInput{
 		LoadBalancerName: aws.String(spec.Name),
 		Subnets:          aws.StringSlice(spec.SubnetIDs),
@@ -130,7 +141,12 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 	return res, nil
 }
 
-func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) {
+func (s *Service) describeClassicELB(ctx context.Context, name string) (*v1alpha1.ClassicELB, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "elb", "describeClassicELB"),
+	)
+	defer span.End()
+
 	input := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: []*string{aws.String(name)},
 	}

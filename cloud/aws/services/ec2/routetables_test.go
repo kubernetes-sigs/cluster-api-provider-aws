@@ -14,6 +14,7 @@
 package ec2
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -28,6 +29,7 @@ import (
 func TestReconcileRouteTables(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+	ctx := context.TODO()
 
 	testCases := []struct {
 		name   string
@@ -150,7 +152,7 @@ func TestReconcileRouteTables(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileRouteTables("test-cluster", tc.input); err != nil && tc.err != nil {
+			if err := s.reconcileRouteTables(ctx, "test-cluster", tc.input); err != nil && tc.err != nil {
 				if !strings.Contains(err.Error(), tc.err.Error()) {
 					t.Fatalf("was expecting error to look like '%v', but got '%v'", tc.err, err)
 				}

@@ -21,11 +21,16 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"go.opencensus.io/exporter/prometheus"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/trace"
+	"go.opencensus.io/zpages"
 	"k8s.io/apiserver/pkg/util/logs"
-	"sigs.k8s.io/cluster-api/pkg/controller/config"
-
+	"net/http"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster/options"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
+	"sigs.k8s.io/cluster-api/pkg/controller/config"
 )
 
 func init() {
@@ -40,6 +45,28 @@ func main() {
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
+
+	exporter, err := prometheus.NewExporter(prometheus.Options{})
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	instrumentation.RegisterHTTPViews()
+	view.RegisterExporter(exporter)
+	trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
+
+	go func() {
+		// Serve the scrape endpoint on port 9000.
+		http.Handle("/", exporter)
+		glog.Fatal(http.ListenAndServe(":9000", nil))
+	}()
+
+	// Start z-Pages server on 9001
+	go func() {
+		mux := http.NewServeMux()
+		zpages.Handle(mux, "/")
+		glog.Fatal(http.ListenAndServe(":9001", mux))
+	}()
 
 	clusterServer := options.NewServer()
 	if err := cluster.Run(clusterServer); err != nil {

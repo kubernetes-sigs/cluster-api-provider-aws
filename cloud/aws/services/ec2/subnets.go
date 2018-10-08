@@ -14,12 +14,14 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
@@ -28,7 +30,11 @@ const (
 	defaultPublicSubnetCidr  = "10.0.1.0/24"
 )
 
-func (s *Service) reconcileSubnets(clusterName string, network *v1alpha1.Network) error {
+func (s *Service) reconcileSubnets(ctx context.Context, clusterName string, network *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "reconcileSubnets"),
+	)
+	defer span.End()
 	glog.V(2).Infof("Reconciling subnets")
 
 	// Make sure all subnets have a vpc id.
@@ -39,7 +45,7 @@ func (s *Service) reconcileSubnets(clusterName string, network *v1alpha1.Network
 	}
 
 	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets(clusterName, network.VPC.ID)
+	existing, err := s.describeVpcSubnets(ctx, clusterName, network.VPC.ID)
 	if err != nil {
 		return err
 	}
@@ -47,7 +53,7 @@ func (s *Service) reconcileSubnets(clusterName string, network *v1alpha1.Network
 	// If the subnets are empty, populate the slice with the default configuration.
 	// Adds a single private and public subnet in the first available zone.
 	if len(network.Subnets) < 2 {
-		zones, err := s.getAvailableZones()
+		zones, err := s.getAvailableZones(ctx)
 		if err != nil {
 			return err
 		}
@@ -95,7 +101,7 @@ LoopExisting:
 			continue
 		}
 
-		nsn, err := s.createSubnet(clusterName, subnet)
+		nsn, err := s.createSubnet(ctx, clusterName, subnet)
 		if err != nil {
 			return err
 		}
@@ -107,9 +113,12 @@ LoopExisting:
 	return nil
 }
 
-func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) error {
-	// Describe subnets in the vpc.
-	existing, err := s.describeVpcSubnets(clusterName, network.VPC.ID)
+func (s *Service) deleteSubnets(ctx context.Context, clusterName string, network *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "reconcileSubnets"),
+	)
+	defer span.End()
+	existing, err := s.describeVpcSubnets(ctx, clusterName, network.VPC.ID)
 	if err != nil {
 		return err
 	}
@@ -128,7 +137,11 @@ func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) e
 	return nil
 }
 
-func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1.Subnets, error) {
+func (s *Service) describeVpcSubnets(ctx context.Context, clusterName string, vpcID string) (v1alpha1.Subnets, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeVpcSubnets"),
+	)
+	defer span.End()
 	out, err := s.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			s.filterVpc(vpcID),
@@ -154,7 +167,12 @@ func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1
 	return subnets, nil
 }
 
-func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
+func (s *Service) createSubnet(ctx context.Context, clusterName string, sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "createSubnet"),
+	)
+	defer span.End()
+
 	mapPublicIP := sn.IsPublic
 
 	out, err := s.EC2.CreateSubnet(&ec2.CreateSubnetInput{
@@ -179,7 +197,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 		role = TagValueBastionRole
 	}
 	name := fmt.Sprintf("%s-subnet-%s", clusterName, suffix)
-	if err := s.createTags(clusterName, *out.Subnet.SubnetId, ResourceLifecycleOwned, name, role, nil); err != nil {
+	if err := s.createTags(ctx, clusterName, *out.Subnet.SubnetId, ResourceLifecycleOwned, name, role, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
 	}
 
@@ -208,7 +226,12 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 	}, nil
 }
 
-func (s *Service) deleteSubnet(sn *v1alpha1.Subnet) error {
+func (s *Service) deleteSubnet(ctx context.Context, sn *v1alpha1.Subnet) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "deleteSubnet"),
+	)
+	defer span.End()
+
 	_, err := s.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
 		SubnetId: aws.String(sn.ID),
 	})

@@ -14,14 +14,14 @@
 package ec2_test
 
 import (
-	"testing"
-
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"testing"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
@@ -29,6 +29,7 @@ import (
 )
 
 func TestInstanceIfExists(t *testing.T) {
+	ctx := context.TODO()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -120,13 +121,14 @@ func TestInstanceIfExists(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.InstanceIfExists(&tc.instanceID)
+			instance, err := s.InstanceIfExists(ctx, &tc.instanceID)
 			tc.check(instance, err)
 		})
 	}
 }
 
 func TestTerminateInstance(t *testing.T) {
+	ctx := context.TODO()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -177,13 +179,14 @@ func TestTerminateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			err := s.TerminateInstance(tc.instanceID)
+			err := s.TerminateInstance(ctx, tc.instanceID)
 			tc.check(err)
 		})
 	}
 }
 
 func TestCreateInstance(t *testing.T) {
+	ctx := context.TODO()
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
@@ -266,7 +269,7 @@ func TestCreateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus)
+			instance, err := s.CreateInstance(ctx, &tc.machine, tc.machineConfig, tc.clusterStatus)
 			tc.check(instance, err)
 		})
 	}

@@ -14,14 +14,15 @@
 package bootstrap
 
 import (
+	"context"
 	"fmt"
-	"os"
-
-	"github.com/golang/glog"
-
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"go.opencensus.io/trace"
+	"os"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/cloudformation"
 )
 
@@ -63,6 +64,11 @@ func createStackCmd() *cobra.Command {
 		Short: "Create a new AWS CloudFormation stack using the bootstrap template",
 		Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
 		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			ctx, span := trace.StartSpan(
+				ctx, instrumentation.MethodName("cmd", "clusterawsadm", "cmd", "alpha", "bootstrap"),
+			)
+			defer span.End()
 
 			stackName := "cluster-api-provider-aws-sigs-k8s-io"
 			sess, err := session.NewSession()
@@ -73,9 +79,9 @@ func createStackCmd() *cobra.Command {
 
 			svc := cloudformation.NewService(cfn.New(sess))
 
-			err = svc.ReconcileBootstrapStack(stackName)
+			err = svc.ReconcileBootstrapStack(ctx, stackName)
 
-			showErr := svc.ShowStackResources(stackName)
+			showErr := svc.ShowStackResources(ctx, stackName)
 
 			if showErr != nil {
 				glog.Error(showErr)

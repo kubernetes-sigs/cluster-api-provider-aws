@@ -39,6 +39,7 @@ import (
 
 	clusteractuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster/options"
+	events "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/events"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
@@ -100,6 +101,8 @@ func Run(server *options.Server) error {
 		glog.Errorf("Could not create event recorder : %v", err)
 		return err
 	}
+
+	events.SetStdEventRecorder(&recorder)
 
 	// run function will block and never return.
 	run := func(stop <-chan struct{}) {

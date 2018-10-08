@@ -14,12 +14,14 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
@@ -27,10 +29,13 @@ const (
 	anyIPv4CidrBlock = "0.0.0.0/0"
 )
 
-func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network) error {
-	glog.V(2).Infof("Reconciling routing tables")
+func (s *Service) reconcileRouteTables(ctx context.Context, clusterName string, in *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "reconcileRouteTables"),
+	)
+	defer span.End()
 
-	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(clusterName, in.VPC.ID)
+	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(ctx, clusterName, in.VPC.ID)
 	if err != nil {
 		return err
 	}
@@ -53,7 +58,7 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 
 			routes = s.getDefaultPublicRoutes(*in.InternetGatewayID)
 		} else {
-			natGatewayID, err := s.getNatGatewayForSubnet(in.Subnets, sn)
+			natGatewayID, err := s.getNatGatewayForSubnet(ctx, in.Subnets, sn)
 			if err != nil {
 				return err
 			}
@@ -61,12 +66,12 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 			routes = s.getDefaultPrivateRoutes(natGatewayID)
 		}
 
-		rt, err := s.createRouteTableWithRoutes(clusterName, &in.VPC, routes, sn.IsPublic)
+		rt, err := s.createRouteTableWithRoutes(ctx, clusterName, &in.VPC, routes, sn.IsPublic)
 		if err != nil {
 			return err
 		}
 
-		if err := s.associateRouteTable(rt, sn.ID); err != nil {
+		if err := s.associateRouteTable(ctx, rt, sn.ID); err != nil {
 			return err
 		}
 
@@ -77,8 +82,12 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 	return nil
 }
 
-func (s *Service) describeVpcRouteTablesBySubnet(clusterName string, vpcID string) (map[string]*ec2.RouteTable, error) {
-	rts, err := s.describeVpcRouteTables(clusterName, vpcID)
+func (s *Service) describeVpcRouteTablesBySubnet(ctx context.Context, clusterName string, vpcID string) (map[string]*ec2.RouteTable, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeVpcRouteTablesBySubnet"),
+	)
+	defer span.End()
+	rts, err := s.describeVpcRouteTables(ctx, clusterName, vpcID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +108,12 @@ func (s *Service) describeVpcRouteTablesBySubnet(clusterName string, vpcID strin
 	return res, nil
 }
 
-func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) error {
-	rts, err := s.describeVpcRouteTables(clusterName, in.VPC.ID)
+func (s *Service) deleteRouteTables(ctx context.Context, clusterName string, in *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "deleteRouteTables"),
+	)
+	defer span.End()
+	rts, err := s.describeVpcRouteTables(ctx, clusterName, in.VPC.ID)
 	if err != nil {
 		return errors.Wrapf(err, "failed to describe route tables in vpc %q", in.VPC.ID)
 	}
@@ -129,7 +142,11 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 	return nil
 }
 
-func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*ec2.RouteTable, error) {
+func (s *Service) describeVpcRouteTables(ctx context.Context, clusterName string, vpcID string) ([]*ec2.RouteTable, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeVpcRouteTables"),
+	)
+	defer span.End()
 	out, err := s.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			s.filterVpc(vpcID),
@@ -145,7 +162,11 @@ func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*e
 }
 
 // TODO: dedup some of the public/private logic shared with createSubnet
-func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.VPC, routes []*ec2.Route, isPublic bool) (*v1alpha1.RouteTable, error) {
+func (s *Service) createRouteTableWithRoutes(ctx context.Context, clusterName string, vpc *v1alpha1.VPC, routes []*ec2.Route, isPublic bool) (*v1alpha1.RouteTable, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "createRouteTableWithRoutes"),
+	)
+	defer span.End()
 	out, err := s.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(vpc.ID),
 	})
@@ -157,7 +178,7 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 		role = TagValueBastionRole
 	}
 	name := fmt.Sprintf("%s-rt-%s", clusterName, suffix)
-	if err := s.createTags(clusterName, *out.RouteTable.RouteTableId, ResourceLifecycleOwned, name, role, nil); err != nil {
+	if err := s.createTags(ctx, clusterName, *out.RouteTable.RouteTableId, ResourceLifecycleOwned, name, role, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag route table %q", *out.RouteTable.RouteTableId)
 	}
 
@@ -189,7 +210,11 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 	}, nil
 }
 
-func (s *Service) associateRouteTable(rt *v1alpha1.RouteTable, subnetID string) error {
+func (s *Service) associateRouteTable(ctx context.Context, rt *v1alpha1.RouteTable, subnetID string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "associateRouteTable"),
+	)
+	defer span.End()
 	_, err := s.EC2.AssociateRouteTable(&ec2.AssociateRouteTableInput{
 		RouteTableId: aws.String(rt.ID),
 		SubnetId:     aws.String(subnetID),

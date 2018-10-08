@@ -14,8 +14,11 @@
 package ec2
 
 import (
+	"context"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 )
 
 const (
@@ -31,7 +34,11 @@ func (s *Service) getRegion() string {
 	}
 }
 
-func (s *Service) getAvailableZones() ([]string, error) {
+func (s *Service) getAvailableZones(ctx context.Context) ([]string, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "getAvailableZones"),
+	)
+	defer span.End()
 	out, err := s.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{s.filterAvailable()},
 	})

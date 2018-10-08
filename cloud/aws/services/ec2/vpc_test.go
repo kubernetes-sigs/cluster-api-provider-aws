@@ -14,6 +14,7 @@
 package ec2
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -27,6 +28,7 @@ import (
 func TestReconcileVPC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
+	ctx := context.TODO()
 
 	testCases := []struct {
 		name   string
@@ -69,7 +71,7 @@ func TestReconcileVPC(t *testing.T) {
 					Return(&ec2.DescribeVpcsOutput{}, nil)
 
 				m.EXPECT().
-					CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
+					CreateVpcWithContext(gomock.Any(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
 					Return(&ec2.CreateVpcOutput{
 						Vpc: &ec2.Vpc{
 							VpcId:     aws.String("vpc-new"),
@@ -96,7 +98,7 @@ func TestReconcileVPC(t *testing.T) {
 			tc.expect(ec2Mock)
 
 			s := NewService(ec2Mock)
-			if err := s.reconcileVPC("test-cluster", tc.input); err != nil {
+			if err := s.reconcileVPC(ctx, "test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 

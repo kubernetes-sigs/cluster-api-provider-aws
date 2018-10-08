@@ -14,13 +14,15 @@
 package ec2
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
@@ -43,7 +45,12 @@ pip install --upgrade pip &> /dev/null
 )
 
 // ReconcileBastion ensures a bastion is created for the cluster
-func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1.AWSClusterProviderStatus) error {
+func (s *Service) ReconcileBastion(ctx context.Context, clusterName, keyName string, status *v1alpha1.AWSClusterProviderStatus) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "ReconcileBastion"),
+	)
+	defer span.End()
+
 	glog.V(2).Info("Reconciling bastion host")
 
 	subnets := status.Network.Subnets
@@ -57,12 +64,12 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 	if keyName == "" {
 		keyName = defaultSSHKeyName
 	}
-	spec := s.getDefaultBastion(clusterName, status.Region, status.Network, keyName)
+	spec := s.getDefaultBastion(ctx, clusterName, status.Region, status.Network, keyName)
 
 	// Describe bastion instance, if any.
-	instance, err := s.describeBastionInstance(clusterName, status)
+	instance, err := s.describeBastionInstance(ctx, clusterName, status)
 	if IsNotFound(err) {
-		instance, err = s.runInstance(spec)
+		instance, err = s.runInstance(ctx, spec)
 		if err != nil {
 			return err
 		}
@@ -82,14 +89,23 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 }
 
 // DeleteBastion deletes the Bastion instance
-func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterProviderStatus) error {
-	instance, err := s.describeBastionInstance(clusterName, status)
+func (s *Service) DeleteBastion(ctx context.Context, clusterName string, status *v1alpha1.AWSClusterProviderStatus) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "DeleteBastion"),
+	)
+	defer span.End()
+
+	instance, err := s.describeBastionInstance(ctx, clusterName, status)
 	if IsNotFound(err) {
 		glog.V(2).Info("bastion instance does not exist")
 		return nil
 	}
 
-	err = s.TerminateInstanceAndWait(instance.ID)
+	if err != nil {
+		return err
+	}
+
+	err = s.TerminateInstanceAndWait(ctx, instance.ID)
 
 	if err != nil {
 		return errors.Wrapf(err, "unable to delete bastion instance")
@@ -97,9 +113,14 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 	return nil
 }
 
-func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) describeBastionInstance(ctx context.Context, clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeBastionInstance"),
+	)
+	defer span.End()
+
 	if status.Bastion.ID != "" {
-		return s.InstanceIfExists(aws.String(status.Bastion.ID))
+		return s.InstanceIfExists(ctx, &status.Bastion.ID)
 	}
 
 	input := &ec2.DescribeInstancesInput{
@@ -130,7 +151,12 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 	return nil, NewNotFound(errors.New("bastion host not found"))
 }
 
-func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
+func (s *Service) getDefaultBastion(ctx context.Context, clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "getDefaultBastion"),
+	)
+	defer span.End()
+
 	name := fmt.Sprintf("%s-bastion", clusterName)
 	tags := s.buildTags(clusterName, ResourceLifecycleOwned, name, TagValueBastionRole, nil)
 

@@ -14,8 +14,7 @@
 package cluster_test
 
 import (
-	"testing"
-
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"testing"
 )
 
 type clusterGetter struct {
@@ -46,15 +46,16 @@ func (d *testServicesGetter) Session(clusterConfig *providerconfigv1.AWSClusterP
 	return nil
 }
 
-func (d *testServicesGetter) EC2(session *session.Session) service.EC2Interface {
+func (d *testServicesGetter) EC2(session *session.Session, cfg *aws.Config) service.EC2Interface {
 	return d.ec2
 }
 
-func (d *testServicesGetter) ELB(session *session.Session) service.ELBInterface {
+func (d *testServicesGetter) ELB(session *session.Session, cfg *aws.Config) service.ELBInterface {
 	return d.elb
 }
 
 func TestReconcile(t *testing.T) {
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -99,15 +100,15 @@ func TestReconcile(t *testing.T) {
 		Return(&clusterv1.Cluster{}, nil)
 
 	services.ec2.EXPECT().
-		ReconcileNetwork("test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
+		ReconcileNetwork(gomock.Any(), "test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
 		Return(nil)
 
 	services.ec2.EXPECT().
-		ReconcileBastion("test", "", gomock.AssignableToTypeOf(&providerconfigv1.AWSClusterProviderStatus{})).
+		ReconcileBastion(gomock.Any(), "test", "", gomock.AssignableToTypeOf(&providerconfigv1.AWSClusterProviderStatus{})).
 		Return(nil)
 
 	services.elb.EXPECT().
-		ReconcileLoadbalancers("test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
+		ReconcileLoadbalancers(gomock.Any(), "test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
 		Return(nil)
 
 	if err := actuator.Reconcile(cluster); err != nil {

@@ -14,13 +14,15 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
-	"github.com/golang/glog"
-	"os"
-
 	"github.com/aws/aws-sdk-go/aws/session"
 	awsec2 "github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"go.opencensus.io/trace"
+	"os"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/client"
 )
@@ -45,6 +47,11 @@ func consoleOutputCmd() *cobra.Command {
 		Long:  "Get console output for host",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			ctx, span := trace.StartSpan(
+				ctx, instrumentation.MethodName("cmd", "clusterawsadm", "cmd", "alpha", "bootstrap"),
+			)
+			defer span.End()
 			sess, err := session.NewSession()
 			if err != nil {
 				glog.Error(err)
@@ -60,7 +67,7 @@ func consoleOutputCmd() *cobra.Command {
 
 			svc := ec2.NewService(awsec2.New(sess))
 
-			out, err := svc.GetConsole(instanceID)
+			out, err := svc.GetConsole(ctx, instanceID)
 
 			if err != nil {
 				glog.Error(err)
