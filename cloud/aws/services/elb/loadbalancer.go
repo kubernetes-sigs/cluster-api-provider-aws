@@ -15,6 +15,8 @@ package elb
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 	"strings"
 	"time"
 
@@ -53,9 +55,70 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 	return nil
 }
 
+// DeleteLoadbalancers deletes the load balancers for the given cluster.
+func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Network) error {
+	glog.V(2).Info("Delete load balancers")
+
+	// Get default api server spec.
+	spec := s.getAPIServerClassicELBSpec(clusterName, network)
+
+	// Describe or create.
+	apiELB, err := s.describeClassicELB(spec.Name)
+	if IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if err := s.deleteClassicELBAndWait(apiELB.Name); err != nil {
+		return err
+	}
+
+	glog.V(2).Info("Deleting load balancers completed successfully")
+	return nil
+}
+
+// RegisterInstanceWithClassicELB registers an instance with a classic ELB
+func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer string) error {
+	input := &elb.RegisterInstancesWithLoadBalancerInput{
+		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
+		LoadBalancerName: aws.String(loadBalancer),
+	}
+
+	_, err := s.ELB.RegisterInstancesWithLoadBalancer(input)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RegisterInstanceWithAPIServerELB registers an instance with a classic ELB
+func (s *Service) RegisterInstanceWithAPIServerELB(clusterName string, instanceID string) error {
+	input := &elb.RegisterInstancesWithLoadBalancerInput{
+		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
+		LoadBalancerName: aws.String(GenerateELBName(clusterName, TagValueAPIServerRole)),
+	}
+
+	_, err := s.ELB.RegisterInstancesWithLoadBalancer(input)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GenerateELBName generates a formatted ELB name
+func GenerateELBName(clusterName string, elbName string) string {
+	return fmt.Sprintf("%s-%s", clusterName, elbName)
+}
+
 func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alpha1.Network) *v1alpha1.ClassicELB {
 	res := &v1alpha1.ClassicELB{
-		Name:   fmt.Sprintf("%s-apiserver", clusterName),
+		Name:   GenerateELBName(clusterName, TagValueAPIServerRole),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
 		Listeners: []*v1alpha1.ClassicELBListener{
 			{
@@ -76,7 +139,7 @@ func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alph
 		Tags:             s.buildTags(clusterName, ResourceLifecycleOwned, "", TagValueAPIServerRole, nil),
 	}
 
-	for _, sn := range network.Subnets.FilterPrivate() {
+	for _, sn := range network.Subnets.FilterPublic() {
 		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
 	}
 
@@ -130,9 +193,56 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 	return res, nil
 }
 
+func (s *Service) deleteClassicELB(name string) error {
+	input := &elb.DeleteLoadBalancerInput{
+		LoadBalancerName: aws.String(name),
+	}
+
+	if _, err := s.ELB.DeleteLoadBalancer(input); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) deleteClassicELBAndWait(name string) error {
+	if err := s.deleteClassicELB(name); err != nil {
+		return err
+	}
+
+	input := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: aws.StringSlice([]string{name}),
+	}
+
+	checkForELBDeletion := func() (done bool, err error) {
+		out, err := s.ELB.DescribeLoadBalancers(input)
+
+		// ELB already deleted.
+		if len(out.LoadBalancerDescriptions) == 0 {
+			return true, nil
+		}
+
+		if code, _ := awserrors.Code(err); code == "LoadBalancerNotFound" {
+			return true, nil
+		}
+
+		if err != nil {
+			return false, err
+		}
+
+		return false, nil
+
+	}
+
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), checkForELBDeletion, []string{}); err != nil {
+		return errors.Wrapf(err, "failed to wait for ELB deletion %q", name)
+	}
+
+	return nil
+}
+
 func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) {
 	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{aws.String(name)},
+		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
 
 	out, err := s.ELB.DescribeLoadBalancers(input)
