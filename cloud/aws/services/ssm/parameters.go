@@ -14,9 +14,12 @@
 package ssm
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
 
@@ -25,9 +28,13 @@ const (
 	Prefix = "/sigs.k8s.io/cluster-api-provider-aws"
 )
 
-func (s *Service) ReconcileParameter(cluster string, path string, value string) error {
+func (s *Service) ReconcileParameter(ctx context.Context, cluster string, path string, value string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ssm", "ReconcileParameter"),
+	)
+	defer span.End()
 
-	err := s.putParameter(cluster, path, value, false)
+	err := s.putParameter(ctx, cluster, path, value, false)
 
 	if code, ok := awserrors.Code(err); ok && code == "ParameterAlreadyExists" {
 		return nil
@@ -36,8 +43,11 @@ func (s *Service) ReconcileParameter(cluster string, path string, value string) 
 	return err
 }
 
-func (s *Service) putParameter(cluster string, path string, value string, overwrite bool) error {
-
+func (s *Service) putParameter(ctx context.Context, cluster string, path string, value string, overwrite bool) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ssm", "putParameter"),
+	)
+	defer span.End()
 	input := &ssm.PutParameterInput{
 		Name:      aws.String(ResolvePath(cluster, path)),
 		Value:     aws.String(value),
@@ -54,8 +64,11 @@ func (s *Service) putParameter(cluster string, path string, value string, overwr
 	return nil
 }
 
-func (s *Service) GetParameter(cluster string, path string) (string, error) {
-
+func (s *Service) GetParameter(ctx context.Context, cluster string, path string) (string, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ssm", "GetParameter"),
+	)
+	defer span.End()
 	input := &ssm.GetParameterInput{
 		Name: aws.String(ResolvePath(cluster, path)),
 	}
@@ -69,8 +82,11 @@ func (s *Service) GetParameter(cluster string, path string) (string, error) {
 	return aws.StringValue(out.Parameter.Value), nil
 }
 
-func (s *Service) DeleteParameter(cluster string, path string) error {
-
+func (s *Service) DeleteParameter(ctx context.Context, cluster string, path string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ssm", "DeleteParameter"),
+	)
+	defer span.End()
 	input := &ssm.DeleteParameterInput{
 		Name: aws.String(ResolvePath(cluster, path)),
 	}

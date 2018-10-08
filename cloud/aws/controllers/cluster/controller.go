@@ -39,6 +39,7 @@ import (
 
 	clusteractuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster/options"
+	events "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/events"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
@@ -48,6 +49,7 @@ const (
 
 // Start starts up this controller
 func Start(server *options.Server, shutdown <-chan struct{}) {
+
 	config, err := controller.GetConfig(server.CommonConfig.Kubeconfig)
 	if err != nil {
 		glog.Fatalf("Could not create Config for talking to the apiserver: %v", err)
@@ -100,6 +102,8 @@ func Run(server *options.Server) error {
 		glog.Errorf("Could not create event recorder : %v", err)
 		return err
 	}
+
+	events.SetStdEventRecorder(&recorder)
 
 	// run function will block and never return.
 	run := func(stop <-chan struct{}) {

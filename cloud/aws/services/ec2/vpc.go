@@ -14,12 +14,15 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
+	"go.opencensus.io/trace"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
@@ -28,13 +31,17 @@ const (
 	defaultVpcCidr = "10.0.0.0/16"
 )
 
-func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
+func (s *Service) reconcileVPC(ctx context.Context, clusterName string, in *v1alpha1.VPC) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "reconcileVPC"),
+	)
+	defer span.End()
 	glog.V(2).Infof("Reconciling VPC")
 
-	vpc, err := s.describeVPC(clusterName, in.ID)
+	vpc, err := s.describeVPC(ctx, clusterName, in.ID)
 	if IsNotFound(err) {
 		// Create a new vpc.
-		vpc, err = s.createVPC(clusterName, in)
+		vpc, err = s.createVPC(ctx, clusterName, in)
 		if err != nil {
 			return errors.Wrap(err, "failed to create new vpc")
 		}
@@ -48,7 +55,11 @@ func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
 	return nil
 }
 
-func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
+func (s *Service) createVPC(ctx context.Context, clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "createVPC"),
+	)
+	defer span.End()
 	if v.CidrBlock == "" {
 		v.CidrBlock = defaultVpcCidr
 	}
@@ -57,7 +68,7 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 		CidrBlock: aws.String(v.CidrBlock),
 	}
 
-	out, err := s.EC2.CreateVpc(input)
+	out, err := s.EC2.CreateVpcWithContext(ctx, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create vpc")
 	}
@@ -68,7 +79,7 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 	}
 
 	name := fmt.Sprintf("%s-vpc", clusterName)
-	if err := s.createTags(clusterName, *out.Vpc.VpcId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
+	if err := s.createTags(ctx, clusterName, *out.Vpc.VpcId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag vpc %q", *out.Vpc.VpcId)
 	}
 
@@ -80,7 +91,12 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 	}, nil
 }
 
-func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
+func (s *Service) deleteVPC(ctx context.Context, v *v1alpha1.VPC) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "deleteVPC"),
+	)
+	defer span.End()
+
 	// TODO(johanneswuerbach): ensure that the VPC is owned by this cluster before deleting
 
 	if v == nil || v.ID == "" {
@@ -106,7 +122,11 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 	return nil
 }
 
-func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, error) {
+func (s *Service) describeVPC(ctx context.Context, clusterName string, id string) (*v1alpha1.VPC, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeVPC"),
+	)
+	defer span.End()
 	input := &ec2.DescribeVpcsInput{}
 
 	if id == "" {

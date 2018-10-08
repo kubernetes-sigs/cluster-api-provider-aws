@@ -14,18 +14,23 @@
 package cloudformation
 
 import (
+	"context"
 	"fmt"
-	"os"
-	"text/tabwriter"
-
 	"github.com/aws/aws-sdk-go/aws"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"os"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
+	"text/tabwriter"
 )
 
-func (s *Service) createStack(stackName string, yaml string) error {
-
+func (s *Service) createStack(ctx context.Context, stackName string, yaml string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "cloudformation", "createStack"),
+	)
+	defer span.End()
 	input := &cfn.CreateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
 		TemplateBody: aws.String(string(yaml)),
@@ -46,8 +51,11 @@ func (s *Service) createStack(stackName string, yaml string) error {
 	return nil
 }
 
-func (s *Service) updateStack(stackName string, yaml string) error {
-
+func (s *Service) updateStack(ctx context.Context, stackName string, yaml string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "cloudformation", "updateStack"),
+	)
+	defer span.End()
 	input := &cfn.UpdateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
 		TemplateBody: aws.String(string(yaml)),
@@ -69,7 +77,11 @@ func (s *Service) updateStack(stackName string, yaml string) error {
 
 // ShowStackResources prints out in tabular format the resources in the
 // stack
-func (s *Service) ShowStackResources(stackName string) error {
+func (s *Service) ShowStackResources(ctx context.Context, stackName string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "cloudformation", "updateStack"),
+	)
+	defer span.End()
 	input := &cfn.DescribeStackResourcesInput{
 		StackName: aws.String(stackName),
 	}

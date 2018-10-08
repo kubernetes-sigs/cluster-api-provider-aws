@@ -16,15 +16,22 @@ package ec2
 import (
 	"fmt"
 
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 )
 
-func (s *Service) getOrAllocateAddress(clusterName string, role string) (string, error) {
-	out, err := s.describeAddresses(clusterName, role)
+func (s *Service) getOrAllocateAddress(ctx context.Context, clusterName string, role string) (string, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "getOrAllocateAddress"),
+	)
+	defer span.End()
+	out, err := s.describeAddresses(ctx, clusterName, role)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to query addresses")
 	}
@@ -35,10 +42,14 @@ func (s *Service) getOrAllocateAddress(clusterName string, role string) (string,
 			return aws.StringValue(address.AllocationId), nil
 		}
 	}
-	return s.allocateAddress(clusterName, role)
+	return s.allocateAddress(ctx, clusterName, role)
 }
 
-func (s *Service) allocateAddress(clusterName string, role string) (string, error) {
+func (s *Service) allocateAddress(ctx context.Context, clusterName string, role string) (string, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "allocateAddress"),
+	)
+	defer span.End()
 	out, err := s.EC2.AllocateAddress(&ec2.AllocateAddressInput{
 		Domain: aws.String("vpc"),
 	})
@@ -48,14 +59,19 @@ func (s *Service) allocateAddress(clusterName string, role string) (string, erro
 	}
 
 	name := fmt.Sprintf("%s-eip-%s", clusterName, role)
-	if err := s.createTags(clusterName, *out.AllocationId, ResourceLifecycleOwned, name, role, nil); err != nil {
+	if err := s.createTags(ctx, clusterName, *out.AllocationId, ResourceLifecycleOwned, name, role, nil); err != nil {
 		return "", errors.Wrapf(err, "failed to tag elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 
 	return aws.StringValue(out.AllocationId), nil
 }
 
-func (s *Service) describeAddresses(clusterName string, role string) (*ec2.DescribeAddressesOutput, error) {
+func (s *Service) describeAddresses(ctx context.Context, clusterName string, role string) (*ec2.DescribeAddressesOutput, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeAddresses"),
+	)
+	defer span.End()
+
 	filters := []*ec2.Filter{s.filterCluster(clusterName)}
 	if role != "" {
 		filters = append(filters, s.filterAWSProviderRole(role))
@@ -65,7 +81,11 @@ func (s *Service) describeAddresses(clusterName string, role string) (*ec2.Descr
 	})
 }
 
-func (s *Service) releaseAddresses(clusterName string) error {
+func (s *Service) releaseAddresses(ctx context.Context, clusterName string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "releaseAddresses"),
+	)
+	defer span.End()
 	out, err := s.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{s.filterCluster(clusterName)},
 	})
@@ -94,7 +114,7 @@ func (s *Service) releaseAddresses(clusterName string) error {
 			errorInUseIPAddress,
 		}
 
-		err := wait.WaitForWithRetryable(wait.NewBackoff(), delete, retryableErrors)
+		err := wait.WaitForWithRetryable(ctx, wait.NewBackoff(), delete, retryableErrors)
 
 		if err != nil {
 			return errors.Wrapf(err, "failed to release elastic IP %q: %q", *ip.AllocationId, err)

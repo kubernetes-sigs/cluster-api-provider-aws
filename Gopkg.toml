@@ -46,4 +46,4 @@ required = [
 
 [[constraint]]
   name = "go.opencensus.io"
-  version = "v0.17.0"
+  revision = "fb92c347f423413c4522dc97dcd0d464ab30e469"

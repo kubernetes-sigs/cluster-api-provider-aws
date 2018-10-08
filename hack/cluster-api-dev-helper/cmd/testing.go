@@ -18,10 +18,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/spf13/cobra"
 	"sync"
 	"time"
-
-	"github.com/spf13/cobra"
 )
 
 func defineTestingCmd(parent *cobra.Command) {
@@ -45,6 +44,7 @@ func defineTestingCmd(parent *cobra.Command) {
 	defineTestingMachineLogs(newCmd)
 	defineTestingRestartControllerCmd(newCmd)
 	defineTestingApplyControllerManifestsCmd(newCmd)
+	defineTestingInstrumentationCmd(newCmd)
 
 	parent.AddCommand(newCmd)
 }
@@ -212,6 +212,18 @@ func defineTestingApplyControllerManifestsCmd(parent *cobra.Command) {
 	parent.AddCommand(newCmd)
 }
 
+func defineTestingInstrumentationCmd(parent *cobra.Command) {
+	newCmd := &cobra.Command{
+		Use:   "instrumentation",
+		Short: "Access z-pages and OpenMetrics",
+		Long:  "Access z-pages and OpenMetrics",
+		Run: func(cmd *cobra.Command, args []string) {
+			runShellWithWait("kubectl port-forward deployment/clusterapi-controllers 33000:9000 33001:9001 34000:9002 34001:9003")
+		},
+	}
+	parent.AddCommand(newCmd)
+}
+
 func destroyMachines() {
 	runShellWithWait("kubectl get machine -o name | xargs kubectl patch -p '{\"metadata\":{\"finalizers\":null}}'")
 	runShellWithWait("kubectl delete machines --force=true --grace-period 0 --all --wait=true")
@@ -238,7 +250,8 @@ func clusterLogs(wg *sync.WaitGroup) {
 }
 
 func restartControllers() {
-	runShellWithWait("kubectl get po -o name | grep clusterapi-controllers | xargs kubectl delete")
+	runShellWithWait("kubectl scale deploy clusterapi-controllers --timeout=1m --replicas=0")
+	runShellWithWait("kubectl scale deploy clusterapi-controllers --timeout=1m --replicas=1")
 }
 
 func machineLogs(wg *sync.WaitGroup) {

@@ -17,10 +17,12 @@ limitations under the License.
 package wait
 
 import (
-	"time"
-
+	"context"
+	"go.opencensus.io/trace"
 	aMW "k8s.io/apimachinery/pkg/util/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
+	"time"
 )
 
 /*
@@ -58,7 +60,11 @@ func NewBackoff() aMW.Backoff {
 //
 // If the condition never returns true, ErrWaitTimeout is returned. All other
 // errors terminate immediately.
-func WaitForWithRetryable(backoff aMW.Backoff, condition aMW.ConditionFunc, retryableErrors []string) error {
+func WaitForWithRetryable(ctx context.Context, backoff aMW.Backoff, condition aMW.ConditionFunc, retryableErrors []string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "wait", "WaitForWithRetryable"),
+	)
+	defer span.End()
 	duration := backoff.Duration
 	for i := 0; i < backoff.Steps; i++ {
 		if i != 0 {

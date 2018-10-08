@@ -17,8 +17,6 @@ limitations under the License.
 package machine
 
 import (
-	"os"
-
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -34,6 +32,8 @@ import (
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
+	"os"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clusterapiclientsetscheme "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
@@ -42,6 +42,7 @@ import (
 
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine/options"
+	events "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/events"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
@@ -72,8 +73,9 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	// See https://docs.aws.amazon.com/sdk-for-go/api/
 	// for more
 	sess := session.Must(session.NewSession())
-	ec2client := ec2.New(sess)
-	elbclient := elb.New(sess)
+
+	ec2client := ec2.New(sess, instrumentation.AWSInstrumentedConfig())
+	elbclient := elb.New(sess, instrumentation.AWSInstrumentedConfig())
 
 	params := machineactuator.ActuatorParams{
 		MachinesGetter: client.ClusterV1alpha1(),
@@ -115,6 +117,8 @@ func Run(server *options.Server) error {
 		glog.Errorf("Could not create event recorder : %v", err)
 		return err
 	}
+
+	events.SetStdEventRecorder(&recorder)
 
 	// run function will block and never return.
 	run := func(stop <-chan struct{}) {

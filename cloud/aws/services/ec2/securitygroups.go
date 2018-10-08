@@ -14,23 +14,29 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.Network) error {
+func (s *Service) reconcileSecurityGroups(ctx context.Context, clusterName string, network *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "reconcileSecurityGroups"),
+	)
+	defer span.End()
 	glog.V(2).Infof("Reconciling security groups")
 
 	if network.SecurityGroups == nil {
 		network.SecurityGroups = make(map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup)
 	}
 
-	sgs, err := s.describeSecurityGroupsByName(clusterName, network.VPC.ID)
+	sgs, err := s.describeSecurityGroupsByName(ctx, clusterName, network.VPC.ID)
 	if err != nil {
 		return err
 	}
@@ -47,7 +53,7 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 		sg := s.getDefaultSecurityGroup(clusterName, network.VPC.ID, role)
 
 		if existing, ok := sgs[*sg.GroupName]; !ok {
-			if err := s.createSecurityGroup(clusterName, role, sg); err != nil {
+			if err := s.createSecurityGroup(ctx, clusterName, role, sg); err != nil {
 				return err
 			}
 
@@ -74,7 +80,7 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 
 		toAuthorize := want.Difference(current)
 		if len(toAuthorize) > 0 {
-			if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
+			if err := s.authorizeSecurityGroupIngressRules(ctx, sg.ID, toAuthorize); err != nil {
 				return err
 			}
 
@@ -83,7 +89,7 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 
 		toRevoke := current.Difference(want)
 		if len(toRevoke) > 0 {
-			if err := s.revokeSecurityGroupIngressRules(sg.ID, toRevoke); err != nil {
+			if err := s.revokeSecurityGroupIngressRules(ctx, sg.ID, toRevoke); err != nil {
 				return errors.Wrapf(err, "failed to revoke security group ingress rules for %q", sg.ID)
 			}
 
@@ -94,11 +100,15 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 	return nil
 }
 
-func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Network) error {
+func (s *Service) deleteSecurityGroups(ctx context.Context, clusterName string, network *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "deleteSecurityGroups"),
+	)
+	defer span.End()
 	for _, sg := range network.SecurityGroups {
 		current := sg.IngressRules
 
-		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); err != nil {
+		if err := s.revokeSecurityGroupIngressRules(ctx, sg.ID, current); err != nil {
 			if err := isIgnorableSecurityGroupError(err); err != nil {
 				return err
 			}
@@ -123,7 +133,11 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 	return nil
 }
 
-func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string) (map[string]*v1alpha1.SecurityGroup, error) {
+func (s *Service) describeSecurityGroupsByName(ctx context.Context, clusterName string, vpcID string) (map[string]*v1alpha1.SecurityGroup, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeSecurityGroupsByName"),
+	)
+	defer span.End()
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
 			s.filterVpc(vpcID),
@@ -153,7 +167,12 @@ func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string)
 	return res, nil
 }
 
-func (s *Service) createSecurityGroup(clusterName string, role v1alpha1.SecurityGroupRole, input *ec2.SecurityGroup) error {
+func (s *Service) createSecurityGroup(ctx context.Context, clusterName string, role v1alpha1.SecurityGroupRole, input *ec2.SecurityGroup) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "createSecurityGroup"),
+	)
+	defer span.End()
+
 	out, err := s.EC2.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 		VpcId:       input.VpcId,
 		GroupName:   input.GroupName,
@@ -175,7 +194,12 @@ func (s *Service) createSecurityGroup(clusterName string, role v1alpha1.Security
 	return nil
 }
 
-func (s *Service) authorizeSecurityGroupIngressRules(groupID string, rules v1alpha1.IngressRules) error {
+func (s *Service) authorizeSecurityGroupIngressRules(ctx context.Context, groupID string, rules v1alpha1.IngressRules) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "authorizeSecurityGroupIngressRules"),
+	)
+	defer span.End()
+
 	input := &ec2.AuthorizeSecurityGroupIngressInput{GroupId: aws.String(groupID)}
 	for _, rule := range rules {
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))
@@ -188,7 +212,11 @@ func (s *Service) authorizeSecurityGroupIngressRules(groupID string, rules v1alp
 	return nil
 }
 
-func (s *Service) revokeSecurityGroupIngressRules(groupID string, rules v1alpha1.IngressRules) error {
+func (s *Service) revokeSecurityGroupIngressRules(ctx context.Context, groupID string, rules v1alpha1.IngressRules) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "revokeSecurityGroupIngressRules"),
+	)
+	defer span.End()
 	input := &ec2.RevokeSecurityGroupIngressInput{GroupId: aws.String(groupID)}
 	for _, rule := range rules {
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))

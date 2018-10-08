@@ -14,6 +14,7 @@
 package ec2
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 
@@ -21,37 +22,37 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/log"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/events"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ssm"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func (s *Service) logInstanceEntry(msg string, instanceID string, status string) []zapcore.Field {
-	return []zapcore.Field{
-		zap.String("msg", msg),
-		zap.String("instance", instanceID),
-		zap.String("status", status),
-	}
-}
-
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(instanceID string) (*v1alpha1.Instance, error) {
-	glog.V(2).Info(s.logInstanceEntry("looking for instance", instanceID, log.Pending))
+func (s *Service) InstanceIfExists(ctx context.Context, instanceID string) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "InstanceIfExists"),
+	)
+	defer span.End()
+
+	rec, _ := events.NewStdObjRecorder(nil)
+
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
+	rec.Info(events.Normal, "InstanceIfExists", "calling DescribeInstances")
 	out, err := s.EC2.DescribeInstances(input)
 	switch {
 	case IsNotFound(err):
-		glog.V(2).Info(s.logInstanceEntry("not found", instanceID, log.Failed))
+		rec.Info(events.Warning, "InstanceIfExists", "instance not found")
 		return nil, nil
 	case err != nil:
-		return nil, errors.Errorf("failed to describe instances: %v", err)
+		rec.Error(events.Warning, "DescribeInstances", err.Error())
+		return nil, err
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
@@ -62,7 +63,11 @@ func (s *Service) InstanceIfExists(instanceID string) (*v1alpha1.Instance, error
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) CreateInstance(ctx context.Context, machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "CreateInstance"),
+	)
+	defer span.End()
 
 	input := &v1alpha1.Instance{
 		Type:       config.InstanceType,
@@ -76,7 +81,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		input.ImageID = s.defaultAMILookup(clusterStatus.Region)
 	}
 
-	glog.V(2).Infof("Machine: ")
+	//glog.V(2).Infof("Machine: ")
 
 	// Pick subnet from the machine configuration, or default to the first private available.
 	if config.Subnet != nil && config.Subnet.ID != nil {
@@ -119,12 +124,17 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 
 	input.Tags = s.buildTags(machine.ClusterName, ResourceLifecycleOwned, machine.Name, role, nil)
 
-	return s.runInstance(input)
+	return s.runInstance(ctx, input)
 }
 
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
-func (s *Service) TerminateInstance(instanceID string) error {
+func (s *Service) TerminateInstance(ctx context.Context, instanceID string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "TerminateInstance"),
+	)
+	defer span.End()
+
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
@@ -141,8 +151,12 @@ func (s *Service) TerminateInstance(instanceID string) error {
 
 // TerminateInstanceAndWait terminates and waits
 // for an EC2 instance to terminate.
-func (s *Service) TerminateInstanceAndWait(instanceID string) error {
-	s.TerminateInstance(instanceID)
+func (s *Service) TerminateInstanceAndWait(ctx context.Context, instanceID string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "TerminateInstanceAndWait"),
+	)
+	defer span.End()
+	s.TerminateInstance(ctx, instanceID)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -160,14 +174,21 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // ReconcileInstance will either return an existing instance or create and return an instance.
-func (s *Service) ReconcileInstance(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) ReconcileInstance(ctx context.Context, machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "ReconcileInstance"),
+	)
+	defer span.End()
+
+	rec, _ := events.NewStdObjRecorder(nil)
+
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
-		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
-		instance, err := s.InstanceIfExists(*status.InstanceID)
+		rec.Info(events.Normal, "checking status of machine", *status.InstanceID)
+		instance, err := s.InstanceIfExists(ctx, *status.InstanceID)
 		// if there was no error, return the found instance
 		if err == nil {
-			glog.V(2).Infof("Instance %q found", instance.ID)
+			rec.Infof(events.Normal, "checking status of instance", "instance %q found", instance.ID)
 			return instance, nil
 		}
 
@@ -180,10 +201,15 @@ func (s *Service) ReconcileInstance(machine *clusterv1.Machine, status *v1alpha1
 	}
 
 	// otherwise let's create it
-	return s.CreateInstance(machine, config, clusterStatus)
+	return s.CreateInstance(ctx, machine, config, clusterStatus)
 }
 
-func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+func (s *Service) runInstance(ctx context.Context, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "runInstance"),
+	)
+	defer span.End()
+
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
@@ -235,7 +261,11 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
-func (s *Service) UpdateInstanceSecurityGroups(instanceID string, securityGroups []string) error {
+func (s *Service) UpdateInstanceSecurityGroups(ctx context.Context, instanceID string, securityGroups []string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "UpdateInstanceSecurityGroups"),
+	)
+	defer span.End()
 	input := &ec2.ModifyInstanceAttributeInput{
 		InstanceId: aws.String(instanceID),
 		Groups:     aws.StringSlice(securityGroups),
@@ -253,7 +283,11 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID string, securityGroups
 // This will be called if there is anything to create (update) or delete.
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
-func (s *Service) UpdateResourceTags(resourceID string, create map[string]string, remove map[string]string) error {
+func (s *Service) UpdateResourceTags(ctx context.Context, resourceID string, create map[string]string, remove map[string]string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "UpdateResourceTags"),
+	)
+	defer span.End()
 	// If we have anything to create or update
 	if len(create) > 0 {
 		// Convert our create map into an array of *ec2.Tag

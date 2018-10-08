@@ -14,12 +14,19 @@
 package sts
 
 import (
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 )
 
-func (s *Service) AccountID() (string, error) {
+func (s *Service) AccountID(ctx context.Context) (string, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "sts", "AccountID"),
+	)
+	defer span.End()
 	input := &sts.GetCallerIdentityInput{}
 
 	out, err := s.STS.GetCallerIdentity(input)

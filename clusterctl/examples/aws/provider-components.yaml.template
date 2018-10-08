@@ -58,7 +58,7 @@ spec:
             - name: certs
               mountPath: /etc/ssl/certs
           ports:
-            - containerPort: 8081
+            - containerPort: 9000
           env:
             - name: AWS_REGION
               value: ${AWS_REGION}
@@ -91,7 +91,7 @@ spec:
             - name: certs
               mountPath: /etc/ssl/certs
           ports:
-            - containerPort: 8082
+            - containerPort: 9002
           env:
             - name: NODE_NAME
               valueFrom:

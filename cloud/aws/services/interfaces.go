@@ -14,6 +14,8 @@
 package service
 
 import (
+	"context"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -34,17 +36,17 @@ type SDKSessionGetter interface {
 
 // EC2Getter has a single method that returns an EC2 service interface.
 type EC2Getter interface {
-	EC2(*session.Session) EC2Interface
+	EC2(*session.Session, *aws.Config) EC2Interface
 }
 
 // ELBGetter has a single method that returns an ELB service interface.
 type ELBGetter interface {
-	ELB(*session.Session) ELBInterface
+	ELB(*session.Session, *aws.Config) ELBInterface
 }
 
 // SSMGetter has a single method that returns an SSM service interface.
 type SSMGetter interface {
-	SSM(*session.Session) SSMInterface
+	SSM(*session.Session, *aws.Config) SSMInterface
 }
 
 // EC2Interface encapsulates the methods exposed by the ec2 service.
@@ -56,32 +58,32 @@ type EC2Interface interface {
 // EC2ClusterInterface encapsulates the methods exposed to the cluster
 // actuator
 type EC2ClusterInterface interface {
-	ReconcileNetwork(clusterName string, network *providerv1.Network) error
-	ReconcileBastion(clusterName, keyName string, status *providerv1.AWSClusterProviderStatus) error
-	DeleteNetwork(clusterName string, network *providerv1.Network) error
+	ReconcileNetwork(ctx context.Context, clusterName string, network *providerv1.Network) error
+	ReconcileBastion(ctx context.Context, clusterName, keyName string, status *providerv1.AWSClusterProviderStatus) error
+	DeleteNetwork(ctx context.Context, clusterName string, network *providerv1.Network) error
 }
 
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
 type EC2MachineInterface interface {
-	InstanceIfExists(instanceID string) (*providerv1.Instance, error)
-	CreateInstance(machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
-	TerminateInstance(instanceID string) error
-	DeleteBastion(instanceID string, status *providerv1.AWSClusterProviderStatus) error
-	ReconcileInstance(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
-	UpdateInstanceSecurityGroups(instanceID string, securityGroups []string) error
-	UpdateResourceTags(resourceID string, create map[string]string, remove map[string]string) error
+	InstanceIfExists(ctx context.Context, instanceID string) (*providerv1.Instance, error)
+	CreateInstance(ctx context.Context, machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
+	TerminateInstance(ctx context.Context, instanceID string) error
+	DeleteBastion(ctx context.Context, instanceID string, status *providerv1.AWSClusterProviderStatus) error
+	ReconcileInstance(ctx context.Context, machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus) (*providerv1.Instance, error)
+	UpdateInstanceSecurityGroups(ctx context.Context, instanceID string, securityGroups []string) error
+	UpdateResourceTags(ctx context.Context, resourceID string, create map[string]string, remove map[string]string) error
 }
 
 // ELBInterface encapsulates the methods exposed by the elb service.
 type ELBInterface interface {
-	ReconcileLoadbalancers(clusterName string, network *providerv1.Network) error
-	DeleteLoadbalancers(clusterName string, network *providerv1.Network) error
+	ReconcileLoadbalancers(ctx context.Context, clusterName string, network *providerv1.Network) error
+	DeleteLoadbalancers(ctx context.Context, clusterName string, network *providerv1.Network) error
 }
 
 // SSMInterface encapsulates the methods exposed by the ssm service.
 type SSMInterface interface {
-	ReconcileParameter(cluster string, path string, value string) error
-	GetParameter(cluster string, path string) (string, error)
-	DeleteParameter(cluster string, path string) error
+	ReconcileParameter(ctx context.Context, cluster string, path string, value string) error
+	GetParameter(ctx context.Context, cluster string, path string) (string, error)
+	DeleteParameter(ctx context.Context, cluster string, path string) error
 }
