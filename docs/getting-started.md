@@ -42,7 +42,7 @@
 
 ## Prerequisites
 
-Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can build it with `go get sigs.k8s.io/cluster-api/provider-aws/...`.
+Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can use `go get sigs.k8s.io/cluster-api/provider-aws/...`.
 
 ### Bootstrapping AWS Identity and Access Management with CloudFormation
 
@@ -50,11 +50,11 @@ Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-a
 > Your credentials must let you make changes in AWS Identity and Access Management (IAM),
 > and use CloudFormation.
 
-The [example](../clusterctl/examples/aws/bootstrap-cloudformation.yaml)) CloudFormation can be used to create IAM roles, users and instance profiles required to bootstrap the cluster.
+The [example](../clusterctl/examples/aws/bootstrap-cloudformation.yaml) CloudFormation template can be used to create IAM roles, users and instance profiles required to bootstrap the cluster.
 
 ### Installing clusterawsadm
 
-`clusterawsadm`, can be used to create IAM
+`clusterawsadm`, is a helper utlity that users might choose to use to quickly setup prerequisites.
 
 > NOTE: This command requires to have a working AWS environment.
 
@@ -176,7 +176,7 @@ $ENV:AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 $ENV:SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
 ```
 
-If you applied the CloudFormation template above, use the IAM user that it created:
+If you applied the CloudFormation template above, an IAM user was created for you:
 
 *Bash:*
 
@@ -203,7 +203,7 @@ $ENV:AWS_SECRET_ACCESS_KEY=$awsCredentials.SecretAccessKey
 
 ### Generating cluster manifests
 
-Use the shell script `generate-yaml.sh` in [clusterctl/examples](clusterctl/examples) to generate the manifests.
+The shell script `generate-yaml.sh` in [clusterctl/examples](clusterctl/examples) can be used to generate the cluster manifests.
 
 > The following command is valid in both Bash and PowerShell.
 
