@@ -16,6 +16,7 @@ package cluster
 import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 
@@ -80,6 +81,15 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 
 	// Store some config parameters in the status.
 	status.Region = config.Region
+
+	if len(status.CACertificate) == 0 {
+		caCert, caKey, err := certificates.NewCertificateAuthority()
+		if err != nil {
+			return errors.Wrap(err, "Failed to generate a CA for the control plane")
+		}
+		status.CACertificate = certificates.EncodeCertPEM(caCert)
+		status.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
+	}
 
 	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
 	// the cluster state might have partial changes that should be stored.

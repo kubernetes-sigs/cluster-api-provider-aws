@@ -25,7 +25,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 )
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
@@ -80,13 +79,12 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
-		caCert, caKey, err := certificates.NewCertificateAuthority()
-		if err != nil {
-			return input, errors.Wrap(err, "Failed to generate a CA for the control plane")
+		if len(clusterStatus.CACertificate) == 0 {
+			return input, errors.New("Cluster Provider Status is missing CACertificate")
 		}
-		clusterStatus.CACertificate = certificates.EncodeCertPEM(caCert)
-		clusterStatus.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
-
+		if len(clusterStatus.CAPrivateKey) == 0 {
+			return input, errors.New("Cluster Provider Status is missing CAPrivateKey")
+		}
 		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate, clusterStatus.CAPrivateKey))
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
