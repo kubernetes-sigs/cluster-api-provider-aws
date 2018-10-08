@@ -14,12 +14,10 @@
 package cloudformation
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/iam"
 )
 
@@ -189,6 +187,7 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 					"ec2:RevokeSecurityGroupIngress",
 					"elasticloadbalancing:CreateLoadBalancer",
 					"elasticloadbalancing:ConfigureHealthCheck",
+					"elasticloadbalancing:DeleteLoadBalancer",
 					"elasticloadbalancing:DescribeLoadBalancers",
 				},
 			},
@@ -208,6 +207,7 @@ func machineControllerPolicy() *iam.PolicyDocument {
 					"ec2:DescribeInstances",
 					"ec2:RunInstances",
 					"ec2:TerminateInstances",
+					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				},
 			},
 		},
@@ -307,12 +307,8 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 	}
 }
 
-// CreateBootstrapStack creates a AWS CloudFormation stack to initialise
-// IAM policy
-func CreateBootstrapStack() error {
-	stackName := "cluster-api-provider-aws-sigs-k8s-io"
-	sess := session.New()
-	svc := cfn.New(sess)
+// ReconcileBootstrapStack creates or updates bootstrap CloudFormation
+func (s *Service) ReconcileBootstrapStack(stackName string) error {
 
 	template := BootstrapTemplate()
 	yaml, err := template.YAML()
@@ -320,23 +316,15 @@ func CreateBootstrapStack() error {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
 	}
 
-	input := &cfn.CreateStackInput{
-		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
-		TemplateBody: aws.String(string(yaml)),
-		StackName:    aws.String(stackName),
+	if err := s.createStack(stackName, string(yaml)); err != nil {
+		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
+			glog.Infof("AWS Cloudformation stack %q already exists", stackName)
+			updateErr := s.updateStack(stackName, string(yaml))
+			if updateErr != nil {
+				return updateErr
+			}
+		}
+		return err
 	}
-
-	if _, err := svc.CreateStack(input); err != nil {
-		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
-	}
-
-	glog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
-	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
-	glog.V(2).Infof("waiting for stack %q to create", stackName)
-	if err := svc.WaitUntilStackCreateComplete(desInput); err != nil {
-		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
-	}
-
-	glog.V(2).Infof("stack %q created", stackName)
 	return nil
 }

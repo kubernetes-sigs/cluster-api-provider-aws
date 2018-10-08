@@ -23,37 +23,29 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha"
 )
 
-// RootCmd is the root command for this CLI
-var RootCmd = &cobra.Command{
-	Use:   "clusterawsadm",
-	Short: "cluster api aws management",
-	Long:  `Cluster API Provider AWS commands`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
-		cmd.Help()
-	},
+func RootCmd() *cobra.Command {
+	newCmd := &cobra.Command{
+		Use:   "clusterawsadm",
+		Short: "cluster api aws management",
+		Long:  `Cluster API Provider AWS commands`,
+		Run: func(cmd *cobra.Command, args []string) {
+			// Do Stuff Here
+			cmd.Help()
+		},
+	}
+	newCmd.AddCommand(alpha.AlphaCmd())
+	return newCmd
 }
 
 // Execute starts the process
 func Execute() {
-	if err := RootCmd.Execute(); err != nil {
+	if err := RootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-func exitWithHelp(cmd *cobra.Command, err string) {
-	fmt.Fprintln(os.Stderr, err)
-	cmd.Help()
-	os.Exit(1)
-}
-
-func init() {
-	alpha.Init(RootCmd)
 	flag.CommandLine.Parse([]string{})
+	flag.Set("v", "2")
 
 	// Honor glog flags for verbosity control
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-
-	InitLogs()
 }

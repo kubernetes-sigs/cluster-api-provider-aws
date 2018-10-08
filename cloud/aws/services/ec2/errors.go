@@ -17,6 +17,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
 
 const (
@@ -77,8 +78,8 @@ func IsSDKError(err error) (ok bool) {
 
 // IsInvalidNotFoundError tests for common aws not found errors
 func IsInvalidNotFoundError(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		switch code := awsErr.Code(); code {
+	if code, ok := awserrors.Code(err); ok {
+		switch code {
 		case "InvalidVpcID.NotFound":
 			return true
 		}
@@ -96,8 +97,8 @@ func ReasonForError(err error) int {
 }
 
 func isIgnorableSecurityGroupError(err error) error {
-	if awserr, ok := err.(awserr.Error); ok {
-		switch code := awserr.Code(); code {
+	if code, ok := awserrors.Code(err); ok {
+		switch code {
 		case errorGroupNotFound, errorPermissionNotFound:
 			return nil
 		default:

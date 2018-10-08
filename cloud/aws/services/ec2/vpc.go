@@ -17,11 +17,11 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
 
 const (
@@ -88,13 +88,11 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 
 	_, err := s.EC2.DeleteVpc(input)
 	if err != nil {
-		awserr, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
 		// Ignore if it's already deleted
-		if awserr.Code() != "InvalidVpcID.NotFound" {
+		if code, ok := awserrors.Code(err); code != "InvalidVpcID.NotFound" && ok {
 			return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
+		} else {
+			return err
 		}
 	}
 
