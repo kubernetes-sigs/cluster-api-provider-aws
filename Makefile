@@ -106,7 +106,7 @@ example: $(examples)
 $(examples) : envfile $(templates)
 	source ./envfile && cd ./clusterctl/examples/aws && ./generate-yaml.sh
 
-envfile: envfile.example
+envfile:
 	# create the envfile and exit if the envfile doesn't already exist
 	cp -n envfile.example envfile
 	echo "\033[0;31mPlease fill out your envfile!\033[0m"
