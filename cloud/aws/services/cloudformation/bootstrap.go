@@ -318,11 +318,16 @@ func (s *Service) ReconcileBootstrapStack(stackName string) error {
 
 	if err := s.createStack(stackName, string(yaml)); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
-			glog.Infof("AWS Cloudformation stack %q already exists", stackName)
+			glog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
 			updateErr := s.updateStack(stackName, string(yaml))
 			if updateErr != nil {
-				return updateErr
+				code, ok := awserrors.Code(errors.Cause(updateErr))
+				message := awserrors.Message(errors.Cause(updateErr))
+				if !ok || code != "ValidationError" || message != "No updates are to be performed." {
+					return updateErr
+				}
 			}
+			return nil
 		}
 		return err
 	}
