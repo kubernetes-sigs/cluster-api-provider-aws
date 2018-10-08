@@ -17,6 +17,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
 
 const (
@@ -56,6 +57,22 @@ func NewConflict(err error) error {
 	}
 }
 
+// NewFailedDependency returns a new error which indicates that a dependency failure status
+func NewFailedDependency(err error) error {
+	return &EC2Error{
+		err:  err,
+		Code: http.StatusFailedDependency,
+	}
+}
+
+// IsFailedDependency checks if the error is pf http.StatusFailedDependency
+func IsFailedDependency(err error) bool {
+	if ReasonForError(err) == http.StatusFailedDependency {
+		return true
+	}
+	return false
+}
+
 // IsNotFound returns true if the error was created by NewNotFound.
 func IsNotFound(err error) bool {
 	if ReasonForError(err) == http.StatusNotFound {
@@ -77,8 +94,8 @@ func IsSDKError(err error) (ok bool) {
 
 // IsInvalidNotFoundError tests for common aws not found errors
 func IsInvalidNotFoundError(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		switch code := awsErr.Code(); code {
+	if code, ok := awserrors.Code(err); ok {
+		switch code {
 		case "InvalidVpcID.NotFound":
 			return true
 		}
@@ -96,8 +113,8 @@ func ReasonForError(err error) int {
 }
 
 func isIgnorableSecurityGroupError(err error) error {
-	if awserr, ok := err.(awserr.Error); ok {
-		switch code := awserr.Code(); code {
+	if code, ok := awserrors.Code(err); ok {
+		switch code {
 		case errorGroupNotFound, errorPermissionNotFound:
 			return nil
 		default:

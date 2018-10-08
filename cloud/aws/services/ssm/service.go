@@ -11,24 +11,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package alpha
+package ssm
 
 import (
-	"github.com/spf13/cobra"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 )
 
-var alphaCmd = &cobra.Command{
-	Use:   "alpha",
-	Short: "alpha commands",
-	Long:  `Alpha commands may not be supported in future releases`,
-	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
-		cmd.Help()
-	},
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
+// One alternative is to have a large list of functions from the ec2 client.
+type Service struct {
+	SSM ssmiface.SSMAPI
 }
 
-// Init sets up the alpha command set
-func Init(rootCmd *cobra.Command) {
-	rootCmd.AddCommand(alphaCmd)
-	initBootstrap()
+// NewService returns a new service given the api clients.
+func NewService(ssm ssmiface.SSMAPI) *Service {
+	return &Service{
+		SSM: ssm,
+	}
 }

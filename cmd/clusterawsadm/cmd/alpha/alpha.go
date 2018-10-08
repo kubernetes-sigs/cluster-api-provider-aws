@@ -11,41 +11,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package alpha
 
 import (
-	"flag"
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/bootstrap"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/ec2"
 )
 
-func RootCmd() *cobra.Command {
+func AlphaCmd() *cobra.Command {
 	newCmd := &cobra.Command{
-		Use:   "clusterawsadm",
-		Short: "cluster api aws management",
-		Long:  `Cluster API Provider AWS commands`,
+		Use:   "alpha",
+		Short: "alpha commands",
+		Long:  `Alpha commands may not be supported in future releases`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Do Stuff Here
 			cmd.Help()
 		},
 	}
-	newCmd.AddCommand(alpha.AlphaCmd())
+	newCmd.AddCommand(bootstrap.RootCmd())
+	newCmd.AddCommand(ec2.RootCmd())
 	return newCmd
-}
-
-// Execute starts the process
-func Execute() {
-	if err := RootCmd().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	flag.CommandLine.Parse([]string{})
-	flag.Set("v", "2")
-
-	// Honor glog flags for verbosity control
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }

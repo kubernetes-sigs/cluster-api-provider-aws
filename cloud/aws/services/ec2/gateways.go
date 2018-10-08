@@ -16,19 +16,26 @@ package ec2
 import (
 	"fmt"
 
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
-func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Network) error {
+func (s *Service) reconcileInternetGateways(ctx context.Context, clusterName string, in *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "reconcileInternetGateways"),
+	)
+	defer span.End()
 	glog.V(2).Infof("Reconciling internet gateways")
 
-	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
+	igs, err := s.describeVpcInternetGateways(ctx, clusterName, &in.VPC)
 	if IsNotFound(err) {
-		ig, err := s.createInternetGateway(clusterName, &in.VPC)
+		ig, err := s.createInternetGateway(ctx, clusterName, &in.VPC)
 		if err != nil {
 			return nil
 		}
@@ -41,8 +48,13 @@ func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Net
 	return nil
 }
 
-func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Network) error {
-	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
+func (s *Service) deleteInternetGateways(ctx context.Context, clusterName string, in *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "deleteInternetGateways"),
+	)
+	defer span.End()
+
+	igs, err := s.describeVpcInternetGateways(ctx, clusterName, &in.VPC)
 	if IsNotFound(err) {
 		return nil
 	} else if err != nil {
@@ -69,14 +81,19 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 	return nil
 }
 
-func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
+func (s *Service) createInternetGateway(ctx context.Context, clusterName string, vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "createInternetGateway"),
+	)
+	defer span.End()
+
 	ig, err := s.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
 
 	name := fmt.Sprintf("%s-igw", clusterName)
-	if err := s.createTags(clusterName, *ig.InternetGateway.InternetGatewayId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
+	if err := s.createTags(ctx, clusterName, *ig.InternetGateway.InternetGatewayId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 
@@ -96,7 +113,12 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 	return ig.InternetGateway, nil
 }
 
-func (s *Service) describeVpcInternetGateways(clusterName string, vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
+func (s *Service) describeVpcInternetGateways(ctx context.Context, clusterName string, vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "describeVpcInternetGateways"),
+	)
+	defer span.End()
+
 	out, err := s.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			s.filterVpcAttachment(vpc.ID),

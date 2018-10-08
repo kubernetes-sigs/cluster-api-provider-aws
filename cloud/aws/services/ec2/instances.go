@@ -14,33 +14,45 @@
 package ec2
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 
-	"github.com/golang/glog"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/events"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ssm"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Looking for instance %q", *instanceID)
+func (s *Service) InstanceIfExists(ctx context.Context, instanceID string) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "InstanceIfExists"),
+	)
+	defer span.End()
+
+	rec, _ := events.NewStdObjRecorder(nil)
+
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{instanceID},
+		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
+	rec.Info(events.Normal, "InstanceIfExists", "calling DescribeInstances")
 	out, err := s.EC2.DescribeInstances(input)
 	switch {
 	case IsNotFound(err):
+		rec.Info(events.Warning, "InstanceIfExists", "instance not found")
 		return nil, nil
 	case err != nil:
-		return nil, errors.Errorf("failed to describe instances: %v", err)
+		rec.Error(events.Warning, "DescribeInstances", err.Error())
+		return nil, err
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
@@ -51,7 +63,11 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) CreateInstance(ctx context.Context, machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "CreateInstance"),
+	)
+	defer span.End()
 
 	input := &v1alpha1.Instance{
 		Type:       config.InstanceType,
@@ -65,32 +81,38 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		input.ImageID = s.defaultAMILookup(clusterStatus.Region)
 	}
 
+	//glog.V(2).Infof("Machine: ")
+
 	// Pick subnet from the machine configuration, or default to the first private available.
 	if config.Subnet != nil && config.Subnet.ID != nil {
 		input.SubnetID = *config.Subnet.ID
 	} else {
 		sns := clusterStatus.Network.Subnets.FilterPrivate()
 		if len(sns) == 0 {
-			return nil, errors.New("failed to run instance, no subnets available")
+			return nil, NewFailedDependency(
+				errors.New("failed to run instance, no subnets available"),
+			)
 		}
 		input.SubnetID = sns[0].ID
 	}
 
+	role := TagValueCommonRole
+
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
-		caCert, caKey, err := certificates.NewCertificateAuthority()
-		if err != nil {
-			return input, errors.Wrap(err, "Failed to generate a CA for the control plane")
-		}
-		clusterStatus.CACertificate = certificates.EncodeCertPEM(caCert)
-		clusterStatus.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
-
-		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate, clusterStatus.CAPrivateKey))
+		input.UserData = aws.String(initControlPlaneScript(machine.ClusterName, clusterStatus.Region))
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
+		role = TagValueAPIServerRole
 	}
 
 	if machine.ObjectMeta.Labels["set"] == "node" {
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupNode].ID)
+	}
+
+	if config.IAMInstanceProfile != "" {
+		glog.V(2).Info("Found instance profile")
+		glog.V(2).Info(config.IAMInstanceProfile)
+		input.IAMProfile = config.IAMInstanceProfile
 	}
 
 	// Pick SSH key, if any.
@@ -100,16 +122,21 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
-	return s.runInstance(input)
+	input.Tags = s.buildTags(machine.ClusterName, ResourceLifecycleOwned, machine.Name, role, nil)
+
+	return s.runInstance(ctx, input)
 }
 
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
-func (s *Service) TerminateInstance(instanceID *string) error {
+func (s *Service) TerminateInstance(ctx context.Context, instanceID string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "TerminateInstance"),
+	)
+	defer span.End()
+
 	input := &ec2.TerminateInstancesInput{
-		InstanceIds: []*string{
-			instanceID,
-		},
+		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
 	_, err := s.EC2.TerminateInstances(input)
@@ -117,18 +144,51 @@ func (s *Service) TerminateInstance(instanceID *string) error {
 		return err
 	}
 
+	glog.V(2).Infof("termination request sent for EC2 instance %q", instanceID)
+
 	return nil
 }
 
-// CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+// TerminateInstanceAndWait terminates and waits
+// for an EC2 instance to terminate.
+func (s *Service) TerminateInstanceAndWait(ctx context.Context, instanceID string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "TerminateInstanceAndWait"),
+	)
+	defer span.End()
+	s.TerminateInstance(ctx, instanceID)
+
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: aws.StringSlice([]string{instanceID}),
+	}
+
+	glog.V(2).Infof("waiting for EC2 instance %q to terminate", instanceID)
+
+	err := s.EC2.WaitUntilInstanceTerminated(input)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ReconcileInstance will either return an existing instance or create and return an instance.
+func (s *Service) ReconcileInstance(ctx context.Context, machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "ReconcileInstance"),
+	)
+	defer span.End()
+
+	rec, _ := events.NewStdObjRecorder(nil)
+
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
-		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
-		instance, err := s.InstanceIfExists(status.InstanceID)
-
+		rec.Info(events.Normal, "checking status of machine", *status.InstanceID)
+		instance, err := s.InstanceIfExists(ctx, *status.InstanceID)
 		// if there was no error, return the found instance
 		if err == nil {
+			rec.Infof(events.Normal, "checking status of instance", "instance %q found", instance.ID)
 			return instance, nil
 		}
 
@@ -141,10 +201,15 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 	}
 
 	// otherwise let's create it
-	return s.CreateInstance(machine, config, clusterStatus)
+	return s.CreateInstance(ctx, machine, config, clusterStatus)
 }
 
-func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+func (s *Service) runInstance(ctx context.Context, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "runInstance"),
+	)
+	defer span.End()
+
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
@@ -196,10 +261,14 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
-func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroups []*string) error {
+func (s *Service) UpdateInstanceSecurityGroups(ctx context.Context, instanceID string, securityGroups []string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "UpdateInstanceSecurityGroups"),
+	)
+	defer span.End()
 	input := &ec2.ModifyInstanceAttributeInput{
-		InstanceId: instanceID,
-		Groups:     securityGroups,
+		InstanceId: aws.String(instanceID),
+		Groups:     aws.StringSlice(securityGroups),
 	}
 
 	_, err := s.EC2.ModifyInstanceAttribute(input)
@@ -214,7 +283,11 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroup
 // This will be called if there is anything to create (update) or delete.
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
-func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error {
+func (s *Service) UpdateResourceTags(ctx context.Context, resourceID string, create map[string]string, remove map[string]string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "UpdateResourceTags"),
+	)
+	defer span.End()
 	// If we have anything to create or update
 	if len(create) > 0 {
 		// Convert our create map into an array of *ec2.Tag
@@ -222,7 +295,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 
 		// Create the CreateTags input.
 		input := &ec2.CreateTagsInput{
-			Resources: []*string{resourceID},
+			Resources: aws.StringSlice([]string{resourceID}),
 			Tags:      createTagsInput,
 		}
 
@@ -240,7 +313,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 
 		// Create the DeleteTags input
 		input := &ec2.DeleteTagsInput{
-			Resources: []*string{resourceID},
+			Resources: aws.StringSlice([]string{resourceID}),
 			Tags:      removeTagsInput,
 		}
 
@@ -271,7 +344,7 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	}
 
 	for _, sg := range v.SecurityGroups {
-		i.SecurityGroupIDs = append(i.SecurityGroupIDs, *sg.GroupId)
+		i.SecurityGroupIDs = append(i.SecurityGroupIDs, aws.StringValue(sg.GroupId))
 	}
 
 	// TODO: Handle returned IAM instance profile, since we are currently
@@ -291,14 +364,31 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 
 // initControlPlaneScript returns the b64 encoded script to run on start up.
 // The cert Must be CertPEM encoded and the key must be PrivateKeyPEM encoded
-func initControlPlaneScript(caCert, caKey []byte) string {
+func initControlPlaneScript(cluster string, region string) string {
 	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
+
+	caPath := ssm.ResolvePath(cluster, certificates.SSMCACertificatePath)
+	keyPath := ssm.ResolvePath(cluster, certificates.SSMCAPrivateKeyPath)
+
 	return fmt.Sprintf(`#!/usr/bin/env bash
+
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 mkdir -p /etc/kubernetes/pki
 
-echo '%s' > /etc/kubernetes/pki/ca.crt
-echo '%s' > /etc/kubernetes/pki/ca.key
+aws ssm get-parameter \
+	--region %s \
+	--name %s \
+	--query Parameter.Value \
+	--with-decryption \
+	--output text > /etc/kubernetes/pki/ca.crt
+
+aws ssm get-parameter \
+	--region %s \
+	--name %s \
+	--query Parameter.Value \
+	--with-decryption \
+	--output text > /etc/kubernetes/pki/ca.key
 
 cat >/tmp/kubeadm.yaml <<EOF
 apiVersion: kubeadm.k8s.io/v1alpha3
@@ -310,7 +400,7 @@ EOF
 kubeadm init --config /tmp/kubeadm.yaml
 
 # Installation from https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
-`, caCert, caKey)
+#kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+#kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+`, region, caPath, region, keyPath)
 }

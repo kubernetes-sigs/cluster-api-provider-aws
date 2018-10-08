@@ -15,42 +15,35 @@ package ec2
 
 import (
 	"context"
+	"encoding/base64"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 )
 
-const (
-	defaultRegion = "us-east-1"
-)
-
-func (s *Service) getRegion() string {
-	switch x := s.EC2.(type) {
-	case *ec2.EC2:
-		return *x.Config.Region
-	default:
-		return defaultRegion
-	}
-}
-
-func (s *Service) getAvailableZones(ctx context.Context) ([]string, error) {
+// GetConsole returns the latest console output of an instance
+func (s *Service) GetConsole(ctx context.Context, instanceID string) (string, error) {
 	ctx, span := trace.StartSpan(
-		ctx, instrumentation.MethodName("services", "ec2", "getAvailableZones"),
+		ctx, instrumentation.MethodName("services", "ec2", "GetConsole"),
 	)
 	defer span.End()
-	out, err := s.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
-		Filters: []*ec2.Filter{s.filterAvailable()},
-	})
+
+	input := &ec2.GetConsoleOutputInput{
+		InstanceId: aws.String(instanceID),
+		Latest:     aws.Bool(true),
+	}
+
+	out, err := s.EC2.GetConsoleOutput(input)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to describe availability zones")
+		return "", err
 	}
 
-	zones := make([]string, 0, len(out.AvailabilityZones))
-	for _, zone := range out.AvailabilityZones {
-		zones = append(zones, *zone.ZoneName)
+	data, err := base64.StdEncoding.DecodeString(aws.StringValue(out.Output))
+	if err != nil {
+		return "", err
 	}
 
-	return zones, nil
+	return string(data), nil
 }

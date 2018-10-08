@@ -120,7 +120,7 @@ func TestInstanceIfExists(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.InstanceIfExists(&tc.instanceID)
+			instance, err := s.InstanceIfExists(tc.instanceID)
 			tc.check(instance, err)
 		})
 	}
@@ -177,7 +177,7 @@ func TestTerminateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			err := s.TerminateInstance(&tc.instanceID)
+			err := s.TerminateInstance(tc.instanceID)
 			tc.check(err)
 		})
 	}

@@ -14,24 +14,25 @@
 package cloudformation
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"fmt"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/iam"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ssm"
 )
 
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS
-func BootstrapTemplate() *cloudformation.Template {
+func BootstrapTemplate(accountID string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
 	template.Resources["AWSIAMManagedPolicyClusterController"] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("cluster-controller"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Cluster Controller`,
-		PolicyDocument:    clusterControllerPolicy(),
+		PolicyDocument:    clusterControllerPolicy(accountID),
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
@@ -51,6 +52,15 @@ func BootstrapTemplate() *cloudformation.Template {
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleMachineController"),
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
+		},
+	}
+
+	template.Resources["AWSIAMManagedPolicyNodes"] = cloudformation.AWSIAMManagedPolicy{
+		ManagedPolicyName: iam.NewManagedName("nodes"),
+		Description:       `For the Kubernetes Cluster API Provider AWS nodes`,
+		PolicyDocument:    nodePolicy(accountID),
+		Roles: []string{
+			cloudformation.Ref("AWSIAMRoleNodes"),
 		},
 	}
 
@@ -148,7 +158,7 @@ func ec2AssumeRolePolicy() *iam.PolicyDocument {
 	}
 }
 
-func clusterControllerPolicy() *iam.PolicyDocument {
+func clusterControllerPolicy(accountID string) *iam.PolicyDocument {
 	return &iam.PolicyDocument{
 		Version: iam.CurrentVersion,
 		Statement: []iam.StatementEntry{
@@ -189,7 +199,48 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 					"ec2:RevokeSecurityGroupIngress",
 					"elasticloadbalancing:CreateLoadBalancer",
 					"elasticloadbalancing:ConfigureHealthCheck",
+					"elasticloadbalancing:DeleteLoadBalancer",
 					"elasticloadbalancing:DescribeLoadBalancers",
+				},
+			},
+			{
+				Effect: iam.EffectAllow,
+				Action: iam.Actions{
+					"ssm:GetParameter",
+					"ssm:GetParameters",
+					"ssm:GetParametersByPath",
+					"ssm:DeleteParameter",
+					"ssm:DeleteParameters",
+					"ssm:PutParameter",
+				},
+				Resource: iam.Resources{
+					ssmPath(accountID, certificates.SSMCACertificatePath),
+					ssmPath(accountID, certificates.SSMCAPrivateKeyPath),
+				},
+			},
+		},
+	}
+}
+
+func ssmPath(accountID string, path string) string {
+	return fmt.Sprintf("arn:aws:ssm:*:%s:parameter%s/%s/*", accountID, ssm.Prefix, path)
+}
+
+func nodePolicy(accountID string) *iam.PolicyDocument {
+	return &iam.PolicyDocument{
+		Version: iam.CurrentVersion,
+		Statement: []iam.StatementEntry{
+			{
+				Effect: iam.EffectAllow,
+				Action: iam.Actions{
+					"ssm:DescribeParameters",
+					"ssm:GetParameter",
+					"ssm:GetParameters",
+					"ssm:GetParametersByPath",
+				},
+				Resource: iam.Resources{
+					ssmPath(accountID, "nodes"),
+					ssmPath(accountID, certificates.SSMCACertificatePath),
 				},
 			},
 		},
@@ -208,6 +259,7 @@ func machineControllerPolicy() *iam.PolicyDocument {
 					"ec2:DescribeInstances",
 					"ec2:RunInstances",
 					"ec2:TerminateInstances",
+					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				},
 			},
 		},
@@ -307,36 +359,24 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 	}
 }
 
-// CreateBootstrapStack creates a AWS CloudFormation stack to initialise
-// IAM policy
-func CreateBootstrapStack() error {
-	stackName := "cluster-api-provider-aws-sigs-k8s-io"
-	sess := session.New()
-	svc := cfn.New(sess)
+// ReconcileBootstrapStack creates or updates bootstrap CloudFormation
+func (s *Service) ReconcileBootstrapStack(stackName string, accountID string) error {
 
-	template := BootstrapTemplate()
+	template := BootstrapTemplate(accountID)
 	yaml, err := template.YAML()
 	if err != nil {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
 	}
 
-	input := &cfn.CreateStackInput{
-		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
-		TemplateBody: aws.String(string(yaml)),
-		StackName:    aws.String(stackName),
+	if err := s.createStack(stackName, string(yaml)); err != nil {
+		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
+			glog.Infof("AWS Cloudformation stack %q already exists", stackName)
+			updateErr := s.updateStack(stackName, string(yaml))
+			if updateErr != nil {
+				return updateErr
+			}
+		}
+		return err
 	}
-
-	if _, err := svc.CreateStack(input); err != nil {
-		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
-	}
-
-	glog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
-	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
-	glog.V(2).Infof("waiting for stack %q to create", stackName)
-	if err := svc.WaitUntilStackCreateComplete(desInput); err != nil {
-		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
-	}
-
-	glog.V(2).Infof("stack %q created", stackName)
 	return nil
 }

@@ -14,11 +14,13 @@
 package ec2
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 )
 
 const (
@@ -67,7 +69,11 @@ func (s *Service) clusterTagKey(clusterName string) string {
 }
 
 // createTags tags a resource with tags including the cluster tag
-func (s *Service) createTags(clusterName, resourceID string, lifecycle ResourceLifecycle, name, role string, additionalTags map[string]string) error {
+func (s *Service) createTags(ctx context.Context, clusterName, resourceID string, lifecycle ResourceLifecycle, name, role string, additionalTags map[string]string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "ReplaceThis"),
+	)
+	defer span.End()
 	tags := s.buildTags(clusterName, lifecycle, name, role, additionalTags)
 
 	awsTags := make([]*ec2.Tag, 0, len(tags))

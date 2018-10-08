@@ -11,46 +11,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ec2
+package sts
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 	"go.opencensus.io/trace"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 )
 
-const (
-	defaultRegion = "us-east-1"
-)
-
-func (s *Service) getRegion() string {
-	switch x := s.EC2.(type) {
-	case *ec2.EC2:
-		return *x.Config.Region
-	default:
-		return defaultRegion
-	}
-}
-
-func (s *Service) getAvailableZones(ctx context.Context) ([]string, error) {
+func (s *Service) AccountID(ctx context.Context) (string, error) {
 	ctx, span := trace.StartSpan(
-		ctx, instrumentation.MethodName("services", "ec2", "getAvailableZones"),
+		ctx, instrumentation.MethodName("services", "sts", "AccountID"),
 	)
 	defer span.End()
-	out, err := s.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
-		Filters: []*ec2.Filter{s.filterAvailable()},
-	})
+	input := &sts.GetCallerIdentityInput{}
+
+	out, err := s.STS.GetCallerIdentity(input)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to describe availability zones")
+		return "", errors.Wrap(err, "unable to get caller identity")
 	}
 
-	zones := make([]string, 0, len(out.AvailabilityZones))
-	for _, zone := range out.AvailabilityZones {
-		zones = append(zones, *zone.ZoneName)
-	}
-
-	return zones, nil
+	return aws.StringValue(out.Account), nil
 }

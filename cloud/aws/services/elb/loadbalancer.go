@@ -14,28 +14,40 @@
 package elb
 
 import (
+	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"go.opencensus.io/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/instrumentation"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
+	"strings"
+	"time"
 )
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
-func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.Network) error {
+func (s *Service) ReconcileLoadbalancers(ctx context.Context, clusterName string, network *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "ReconcileLoadbalancers"),
+	)
+	defer span.End()
 	glog.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
-	spec := s.getAPIServerClassicELBSpec(clusterName, network)
+	spec, err := s.getAPIServerClassicELBSpec(clusterName, network)
+
+	if err != nil {
+		return err
+	}
 
 	// Describe or create.
-	apiELB, err := s.describeClassicELB(spec.Name)
+	apiELB, err := s.describeClassicELB(ctx, spec.Name)
 	if IsNotFound(err) {
-		apiELB, err = s.createClassicELB(spec)
+		apiELB, err = s.createClassicELB(ctx, spec)
 		if err != nil {
 			return err
 		}
@@ -53,7 +65,82 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 	return nil
 }
 
-func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alpha1.Network) *v1alpha1.ClassicELB {
+// DeleteLoadbalancers deletes the load balancers for the given cluster.
+func (s *Service) DeleteLoadbalancers(ctx context.Context, clusterName string, network *v1alpha1.Network) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "DeleteLoadbalancers"),
+	)
+	defer span.End()
+	glog.V(2).Info("Delete load balancers")
+
+	// Get default api server spec.
+	spec, err := s.getAPIServerClassicELBSpec(clusterName, network)
+
+	if err != nil {
+		// The ELB never existed
+		return nil
+	}
+
+	if spec.Name == "" {
+		// The ELB never existed
+		return nil
+	}
+
+	// Describe or create.
+	apiELB, err := s.describeClassicELB(ctx, spec.Name)
+	if IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if err := s.deleteClassicELBAndWait(ctx, apiELB.Name); err != nil {
+		return err
+	}
+
+	glog.V(2).Info("Deleting load balancers completed successfully")
+	return nil
+}
+
+// RegisterInstanceWithClassicELB registers an instance with a classic ELB
+func (s *Service) RegisterInstanceWithClassicELB(ctx context.Context, instanceID string, loadBalancer string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "ec2", "DeleteLoadbalancers"),
+	)
+	defer span.End()
+	input := &elb.RegisterInstancesWithLoadBalancerInput{
+		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
+		LoadBalancerName: aws.String(loadBalancer),
+	}
+
+	check := func() (done bool, err error) {
+		_, err = s.ELB.RegisterInstancesWithLoadBalancer(input)
+
+		if code, _ := awserrors.Code(err); code == "LoadBalancerNotFound" {
+			return false, nil
+		}
+
+		if err != nil {
+			return false, err
+		}
+
+		return true, nil
+
+	}
+
+	if err := wait.WaitForWithRetryable(ctx, wait.NewBackoff(), check, []string{}); err != nil {
+		return errors.Wrapf(err, "failed to wait register instance %q with classic ELB %q", instanceID, loadBalancer)
+	}
+
+	return nil
+}
+
+func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alpha1.Network) (*v1alpha1.ClassicELB, error) {
+	if network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
+		return nil, NewFailedDependency(errors.New("security groups not ready"))
+	}
+
 	res := &v1alpha1.ClassicELB{
 		Name:   fmt.Sprintf("%s-apiserver", clusterName),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
@@ -80,10 +167,14 @@ func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alph
 		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
 	}
 
-	return res
+	return res, nil
 }
 
-func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.ClassicELB, error) {
+func (s *Service) createClassicELB(ctx context.Context, spec *v1alpha1.ClassicELB) (*v1alpha1.ClassicELB, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "elb", "createClassicELB"),
+	)
+	defer span.End()
 	input := &elb.CreateLoadBalancerInput{
 		LoadBalancerName: aws.String(spec.Name),
 		Subnets:          aws.StringSlice(spec.SubnetIDs),
@@ -130,9 +221,68 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 	return res, nil
 }
 
-func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) {
+func (s *Service) deleteClassicELB(ctx context.Context, name string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "elb", "deleteClassicELB"),
+	)
+	defer span.End()
+	input := &elb.DeleteLoadBalancerInput{
+		LoadBalancerName: aws.String(name),
+	}
+
+	if _, err := s.ELB.DeleteLoadBalancer(input); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) deleteClassicELBAndWait(ctx context.Context, name string) error {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "elb", "deleteClassicELBAndWait"),
+	)
+	defer span.End()
+	if err := s.deleteClassicELB(ctx, name); err != nil {
+		return err
+	}
+
 	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{aws.String(name)},
+		LoadBalancerNames: aws.StringSlice([]string{name}),
+	}
+
+	check := func() (done bool, err error) {
+		out, err := s.ELB.DescribeLoadBalancers(input)
+
+		// ELB already deleted.
+		if len(out.LoadBalancerDescriptions) == 0 {
+			return true, nil
+		}
+
+		if code, _ := awserrors.Code(err); code == "LoadBalancerNotFound" {
+			return true, nil
+		}
+
+		if err != nil {
+			return false, err
+		}
+
+		return false, nil
+
+	}
+
+	if err := wait.WaitForWithRetryable(ctx, wait.NewBackoff(), check, []string{}); err != nil {
+		return errors.Wrapf(err, "failed to wait for ELB deletion %q", name)
+	}
+
+	return nil
+}
+
+func (s *Service) describeClassicELB(ctx context.Context, name string) (*v1alpha1.ClassicELB, error) {
+	ctx, span := trace.StartSpan(
+		ctx, instrumentation.MethodName("services", "elb", "describeClassicELB"),
+	)
+	defer span.End()
+	input := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
 
 	out, err := s.ELB.DescribeLoadBalancers(input)

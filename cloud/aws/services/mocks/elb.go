@@ -46,6 +46,18 @@ func (m *MockELBInterface) EXPECT() *MockELBInterfaceMockRecorder {
 	return m.recorder
 }
 
+// DeleteLoadbalancers mocks base method
+func (m *MockELBInterface) DeleteLoadbalancers(arg0 string, arg1 *v1alpha1.Network) error {
+	ret := m.ctrl.Call(m, "DeleteLoadbalancers", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteLoadbalancers indicates an expected call of DeleteLoadbalancers
+func (mr *MockELBInterfaceMockRecorder) DeleteLoadbalancers(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).DeleteLoadbalancers), arg0, arg1)
+}
+
 // ReconcileLoadbalancers mocks base method
 func (m *MockELBInterface) ReconcileLoadbalancers(arg0 string, arg1 *v1alpha1.Network) error {
 	ret := m.ctrl.Call(m, "ReconcileLoadbalancers", arg0, arg1)
