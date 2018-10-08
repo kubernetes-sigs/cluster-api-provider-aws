@@ -16,13 +16,16 @@ package cluster
 import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
+	certificates "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
+	ssmsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ssm"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -96,6 +99,31 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	// Load ec2 client.
 	ec2 := a.servicesGetter.EC2(sess)
 
+	// Load ssm client.
+
+	ssm := a.servicesGetter.SSM(sess)
+
+	caCert, caKey, err := certificates.NewCertificateAuthority()
+	if err != nil {
+		return errors.Wrap(err, "Failed to generate a CA for the control plane")
+	}
+
+	err = ssm.ReconcileParameter(cluster.Name,
+		certificates.SSMCACertificatePath,
+		string(certificates.EncodeCertPEM(caCert)))
+
+	if err != nil {
+		return errors.Wrap(err, "failed to put CA certificate in SSM Parameter store")
+	}
+
+	err = ssm.ReconcileParameter(cluster.Name,
+		certificates.SSMCAPrivateKeyPath,
+		string(certificates.EncodePrivateKeyPEM(caKey)))
+
+	if err != nil {
+		return errors.Wrap(err, "failed to put CA private key in SSM Parameter store")
+	}
+
 	if err := ec2.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
@@ -151,6 +179,22 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	// Load ec2 client.
 	ec2 := a.servicesGetter.EC2(sess)
 
+	ssm := a.servicesGetter.SSM(sess)
+
+	err = ssm.DeleteParameter(cluster.Name,
+		certificates.SSMCACertificatePath)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to delete CA certificate from SSM Parameter store")
+	}
+
+	err = ssm.DeleteParameter(cluster.Name,
+		certificates.SSMCAPrivateKeyPath)
+
+	if err != nil {
+		return errors.Wrap(err, "failed to delete CA private key from SSM Parameter store")
+	}
+
 	if err := ec2.DeleteNetwork(cluster.Name, &status.Network); err != nil {
 		glog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
@@ -199,4 +243,8 @@ func (d *defaultServicesGetter) EC2(session *session.Session) service.EC2Interfa
 
 func (d *defaultServicesGetter) ELB(session *session.Session) service.ELBInterface {
 	return elbsvc.NewService(elb.New(session))
+}
+
+func (d *defaultServicesGetter) SSM(session *session.Session) service.SSMInterface {
+	return ssmsvc.NewService(ssm.New(session))
 }
