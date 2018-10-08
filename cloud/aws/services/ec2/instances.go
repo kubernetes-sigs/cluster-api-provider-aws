@@ -31,6 +31,7 @@ import (
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
 	glog.V(2).Infof("Looking for instance %q", *instanceID)
+
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{*instanceID}),
 	}
@@ -52,6 +53,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 
 // CreateInstance runs an ec2 instance.
 func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	glog.V(2).Info("Attempting to create an instance")
 
 	input := &v1alpha1.Instance{
 		Type:       config.InstanceType,
@@ -106,6 +108,8 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
 func (s *Service) TerminateInstance(instanceID *string) error {
+	glog.V(2).Infof("Attempting to terminate instance %q", *instanceID)
+
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: []*string{
 			instanceID,
@@ -122,6 +126,8 @@ func (s *Service) TerminateInstance(instanceID *string) error {
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
 func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+	glog.V(2).Info("Attempting to create or get machine")
+
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
 		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
@@ -141,6 +147,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 	}
 
 	// otherwise let's create it
+	glog.V(2).Info("Instance did not exist, attempting to creating it")
 	return s.CreateInstance(machine, config, clusterStatus)
 }
 
@@ -197,6 +204,8 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
 func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroups []*string) error {
+	glog.V(2).Infof("Attempting to update security groups on instance %q", *instanceID)
+
 	input := &ec2.ModifyInstanceAttributeInput{
 		InstanceId: instanceID,
 		Groups:     securityGroups,
@@ -215,8 +224,12 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroup
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
 func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error {
+	glog.V(2).Infof("Attempting to update tags on resource %q", *resourceID)
+
 	// If we have anything to create or update
 	if len(create) > 0 {
+		glog.V(2).Infof("Attempting to create tags on resource %q", *resourceID)
+
 		// Convert our create map into an array of *ec2.Tag
 		createTagsInput := mapToTags(create)
 
@@ -235,6 +248,8 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 
 	// If we have anything to remove
 	if len(remove) > 0 {
+		glog.V(2).Infof("Attempting to delete tags on resource %q", *resourceID)
+
 		// Convert our remove map into an array of *ec2.Tag
 		removeTagsInput := mapToTags(remove)
 
