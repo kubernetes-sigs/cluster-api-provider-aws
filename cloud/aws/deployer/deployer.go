@@ -17,6 +17,7 @@ limitations under the License.
 package deployer
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
@@ -79,7 +80,9 @@ func (*AWSDeployer) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1
 		return "", errors.New("key not found in status")
 	}
 
-	cfg, err := certificates.NewKubeconfig(status.Network.APIServerELB.DNSName, cert, key)
+	server := fmt.Sprintf("https://%s:6443", status.Network.APIServerELB.DNSName)
+
+	cfg, err := certificates.NewKubeconfig(server, cert, key)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate a kubeconfig")
 	}

@@ -57,6 +57,22 @@ func NewConflict(err error) error {
 	}
 }
 
+// NewFailedDependency returns a new error which indicates that a dependency failure status
+func NewFailedDependency(err error) error {
+	return &EC2Error{
+		err:  err,
+		Code: http.StatusFailedDependency,
+	}
+}
+
+// IsFailedDependency checks if the error is pf http.StatusFailedDependency
+func IsFailedDependency(err error) bool {
+	if ReasonForError(err) == http.StatusFailedDependency {
+		return true
+	}
+	return false
+}
+
 // IsNotFound returns true if the error was created by NewNotFound.
 func IsNotFound(err error) bool {
 	if ReasonForError(err) == http.StatusNotFound {

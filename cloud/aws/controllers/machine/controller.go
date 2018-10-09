@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
 	corev1 "k8s.io/api/core/v1"
@@ -43,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine/options"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 )
 
 const (
@@ -72,10 +74,12 @@ func Start(server *options.Server, shutdown <-chan struct{}) {
 	// AWS_SECRET_ACCESS_KEY=
 	sess := session.Must(session.NewSession())
 	ec2client := ec2.New(sess)
+	elbclient := elb.New(sess)
 
 	params := machineactuator.ActuatorParams{
 		MachinesGetter: client.ClusterV1alpha1(),
 		EC2Service:     ec2svc.NewService(ec2client),
+		ELBService:     elbsvc.NewService(elbclient),
 		Codec:          codec,
 		//		ClusterClient: client.ClusterV1alpha1().Clusters(corev1.NamespaceDefault),
 	}
