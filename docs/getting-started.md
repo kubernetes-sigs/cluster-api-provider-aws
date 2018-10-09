@@ -217,6 +217,9 @@ sh -c "cd ./clusterctl/examples/aws && ./generate-yaml.sh"
 
 ### Starting Cluster API
 
+If you haven't already, set up your [environment]((#setting-up-the-environment))
+in the [terminal session] you're working in.
+
 You can now start the Cluster API controllers and deploy a new cluster in AWS:
 
 *Bash:*
