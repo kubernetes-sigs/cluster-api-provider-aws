@@ -1044,8 +1044,7 @@
   revision = "e3762e86a74c878ffed47484592986685639c2cd"
 
 [[projects]]
-  branch = "master"
-  digest = "1:0859664ec0d20e3c7406ddc26ed27f5285d0155657f022026959e14b641bf277"
+  digest = "1:08a06bcc698f1c308d3a80aa36bd98f76913dfc8b069c45537bcad465454a688"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "clusterctl/clusterdeployer",
@@ -1077,7 +1076,8 @@
     "pkg/util",
   ]
   pruneopts = ""
-  revision = "5b128c0f9ab134087d1331be8176099201055a36"
+  revision = "f31486484d5b33c785540eeaffd47fe57832aef5"
+  version = "0.0.0-alpha.3"
 
 [solve-meta]
   analyzer-name = "dep"
