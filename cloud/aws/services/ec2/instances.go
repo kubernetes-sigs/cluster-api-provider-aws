@@ -51,7 +51,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
 	glog.V(2).Info("Attempting to create an instance")
 
 	input := &v1alpha1.Instance{
@@ -103,7 +103,12 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		}
 		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate,
 			clusterStatus.CAPrivateKey,
-			clusterStatus.Network.APIServerELB.DNSName))
+			clusterStatus.Network.APIServerELB.DNSName,
+			cluster.Name,
+			cluster.Spec.ClusterNetwork.ServiceDomain,
+			cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
+			cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
+			machine.Spec.Versions.ControlPlane))
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
@@ -161,7 +166,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
 	glog.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
@@ -184,7 +189,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 	// otherwise let's create it
 	glog.V(2).Info("Instance did not exist, attempting to creating it")
-	return s.CreateInstance(machine, config, clusterStatus)
+	return s.CreateInstance(machine, config, clusterStatus, cluster)
 }
 
 func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
@@ -342,7 +347,8 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 
 // initControlPlaneScript returns the b64 encoded script to run on start up.
 // The cert Must be CertPEM encoded and the key must be PrivateKeyPEM encoded
-func initControlPlaneScript(caCert []byte, caKey []byte, elbDNSName string) string {
+// TODO: convert to using cloud-init module rather than a startup script
+func initControlPlaneScript(caCert, caKey []byte, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion string) string {
 	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
 	return fmt.Sprintf(`#!/usr/bin/env bash
 
@@ -356,17 +362,22 @@ PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 cat >/tmp/kubeadm.yaml <<EOF
 ---
 apiVersion: kubeadm.k8s.io/v1alpha3
-kind: InitConfiguration
-nodeRegistration:
-  criSocket: /var/run/containerd/containerd.sock
----
-apiVersion: kubeadm.k8s.io/v1alpha3
 kind: ClusterConfiguration
-networking:
-  podSubnet: 192.168.0.0/16
 apiServerCertSANs:
   - "$PRIVATE_IP"
   - "%s"
+controlPlaneEndpoint: "%s:6443"
+clusterName: "%s"
+networking:
+  dnsDomain: "%s"
+  podSubnet: "%s"
+  serviceSubnet: "%s"
+kubernetesVersion: "%s"
+---
+apiVersion: kubeadm.k8s.io/v1alpha3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /var/run/containerd/containerd.sock
 EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
@@ -374,5 +385,5 @@ kubeadm init --config /tmp/kubeadm.yaml
 # Installing Calico
 kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
-`, caCert, caKey, elbDNSName)
+`, caCert, caKey, elbDNSName, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion)
 }

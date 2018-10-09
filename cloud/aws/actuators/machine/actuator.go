@@ -16,6 +16,8 @@ package machine
 // should not need to import the ec2 sdk here
 import (
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -25,16 +27,15 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
-	"time"
 )
 
 // ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
 // This should never need to import the ec2 sdk.
 type ec2Svc interface {
-	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
+	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus, *clusterv1.Cluster) (*v1alpha1.Instance, error)
 	InstanceIfExists(*string) (*v1alpha1.Instance, error)
 	TerminateInstance(string) error
-	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
+	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus, *clusterv1.Cluster) (*v1alpha1.Instance, error)
 	UpdateInstanceSecurityGroups(*string, []*string) error
 	UpdateResourceTags(*string, map[string]string, map[string]string) error
 }
@@ -101,14 +102,19 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine config")
 	}
 
-	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus)
+	defer func() {
+		if err := a.updateStatus(machine, status); err != nil {
+			glog.Errorf("failed to store provider status for machine %q: %v", machine.Name, err)
+		}
+	}()
+
+	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus, cluster)
 	if err != nil {
 
 		if ec2.IsFailedDependency(errors.Cause(err)) {
 			glog.Errorf("network not ready to launch instances yet: %s", err)
-			duration, _ := time.ParseDuration("60s")
 			return &controllerError.RequeueAfterError{
-				RequeueAfter: duration,
+				RequeueAfter: time.Minute,
 			}
 		}
 
@@ -123,14 +129,8 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
-	defer func() {
-		if err := a.updateStatus(machine, status); err != nil {
-			glog.Errorf("failed to store provider status for machine %q: %v", machine.Name, err)
-		}
-	}()
-
 	if err := a.reconcileLBAttachment(cluster, machine, i); err != nil {
-		return err
+		return errors.Wrap(err, "failed to reconcile LB attachment")
 	}
 
 	return nil
@@ -278,9 +278,10 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	glog.Infof("Found an instance: %v", instance)
 
 	switch instance.State {
-	case v1alpha1.InstanceStateRunning, v1alpha1.InstanceStatePending:
+	case v1alpha1.InstanceStateRunning:
 		glog.Infof("Machine %v is running", status.InstanceID)
-		//return true, nil
+	case v1alpha1.InstanceStatePending:
+		glog.Infof("Machine %v is pending", status.InstanceID)
 	default:
 		return false, nil
 	}

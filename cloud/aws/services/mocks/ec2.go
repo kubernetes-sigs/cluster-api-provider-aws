@@ -48,29 +48,29 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateInstance mocks base method
-func (m *MockEC2Interface) CreateInstance(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderConfig, arg2 *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
-	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2)
+func (m *MockEC2Interface) CreateInstance(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderConfig, arg2 *v1alpha1.AWSClusterProviderStatus, arg3 *v1alpha10.Cluster) (*v1alpha1.Instance, error) {
+	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateInstance indicates an expected call of CreateInstance
-func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1, arg2)
+func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1, arg2, arg3)
 }
 
 // CreateOrGetMachine mocks base method
-func (m *MockEC2Interface) CreateOrGetMachine(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderStatus, arg2 *v1alpha1.AWSMachineProviderConfig, arg3 *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
-	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1, arg2, arg3)
+func (m *MockEC2Interface) CreateOrGetMachine(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderStatus, arg2 *v1alpha1.AWSMachineProviderConfig, arg3 *v1alpha1.AWSClusterProviderStatus, arg4 *v1alpha10.Cluster) (*v1alpha1.Instance, error) {
+	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateOrGetMachine indicates an expected call of CreateOrGetMachine
-func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3)
+func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3, arg4)
 }
 
 // DeleteBastion mocks base method
