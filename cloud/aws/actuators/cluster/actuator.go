@@ -14,11 +14,7 @@
 package cluster
 
 import (
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
-	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -26,6 +22,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/client-go/tools/clientcmd"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -180,6 +182,80 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	}
 
 	return nil
+}
+
+// GetIP returns the IP of a machine, but this is going away.
+func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+
+	// Load provider status.
+	status, err := a.loadProviderStatus(cluster)
+	if err != nil {
+		return "", errors.Errorf("failed to load cluster provider status: %v", err)
+	}
+
+	if status.Network.APIServerELB.DNSName != "" {
+		return status.Network.APIServerELB.DNSName, nil
+	}
+
+	// Load provider config.
+	config, err := a.loadProviderConfig(cluster)
+	if err != nil {
+		return "", errors.Errorf("failed to load cluster provider config: %v", err)
+	}
+
+	sess := a.servicesGetter.Session(config)
+	elb := a.servicesGetter.ELB(sess)
+
+	dnsName, err := elb.GetAPIServerDNSName(cluster.Name)
+
+	if err != nil {
+		return "", errors.Errorf("failed to get DNS name for load balancer")
+	}
+
+	return dnsName, nil
+}
+
+// GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
+func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+
+	// Load provider status.
+	status, err := a.loadProviderStatus(cluster)
+	if err != nil {
+		return "", errors.Errorf("failed to load cluster provider status: %v", err)
+	}
+
+	cert, err := certificates.DecodeCertPEM(status.CACertificate)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode CA Cert")
+	}
+	if cert == nil {
+		return "", errors.New("certificate not found in status")
+	}
+	key, err := certificates.DecodePrivateKeyPEM(status.CAPrivateKey)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to decode private key")
+	}
+	if key == nil {
+		return "", errors.New("key not found in status")
+	}
+
+	dnsName, err := a.GetIP(cluster, machine)
+
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get DNS address")
+	}
+
+	server := fmt.Sprintf("https://%s:6443", dnsName)
+
+	cfg, err := certificates.NewKubeconfig(server, cert, key)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate a kubeconfig")
+	}
+	yaml, err := clientcmd.Write(*cfg)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to serialize config to yaml")
+	}
+	return string(yaml), nil
 }
 
 func (a *Actuator) loadProviderConfig(cluster *clusterv1.Cluster) (*providerconfigv1.AWSClusterProviderConfig, error) {

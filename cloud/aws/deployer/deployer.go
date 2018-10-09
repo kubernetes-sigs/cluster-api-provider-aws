@@ -14,81 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package deployer
+package cluster
 
 import (
-	"fmt"
-	"github.com/pkg/errors"
-	"k8s.io/client-go/tools/clientcmd"
-	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"github.com/golang/glog"
 
+	clusteractuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/certificates"
+	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // ProviderName is the name of the cloud provider
 const ProviderName = "aws"
 
 func init() {
-	clustercommon.RegisterClusterProvisioner(ProviderName, &AWSDeployer{})
-}
-
-// AWSDeployer implements the cluster-api Deployer interface.
-type AWSDeployer struct{}
-
-// GetIP returns the IP of a machine, but this is going away.
-func (*AWSDeployer) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
-		return "", errors.Wrap(err, "Failed to create codec in deployer")
+		glog.Fatalf("Could not create codec: %v", err)
 	}
 
-	status := &v1alpha1.AWSClusterProviderStatus{}
-	if err := codec.DecodeProviderStatus(cluster.Status.ProviderStatus, status); err != nil {
-		return "", errors.Wrap(err, "failed to decode cluster provider status in deployer")
-	}
-	if status.Network.APIServerELB.DNSName == "" {
-		return "", errors.New("ELB has no DNS name")
-	}
-	return status.Network.APIServerELB.DNSName, nil
-}
-
-// GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
-func (*AWSDeployer) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	codec, err := v1alpha1.NewCodec()
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to create codec in deployer")
+	params := clusteractuator.ActuatorParams{
+		Codec: codec,
 	}
 
-	status := &v1alpha1.AWSClusterProviderStatus{}
-	if err := codec.DecodeProviderStatus(cluster.Status.ProviderStatus, status); err != nil {
-		return "", errors.Wrap(err, "failed to decode machine provider status in deployer")
-	}
-	cert, err := certificates.DecodeCertPEM(status.CACertificate)
+	actuator, err := clusteractuator.NewActuator(params)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to decode CA Cert")
-	}
-	if cert == nil {
-		return "", errors.New("certificate not found in status")
-	}
-	key, err := certificates.DecodePrivateKeyPEM(status.CAPrivateKey)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to decode private key")
-	}
-	if key == nil {
-		return "", errors.New("key not found in status")
+		glog.Fatalf("Could not create aws cluster actuator: %v", err)
 	}
 
-	server := fmt.Sprintf("https://%s:6443", status.Network.APIServerELB.DNSName)
+	clustercommon.RegisterClusterProvisioner(ProviderName, actuator)
 
-	cfg, err := certificates.NewKubeconfig(server, cert, key)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate a kubeconfig")
-	}
-	yaml, err := clientcmd.Write(*cfg)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to serialize config to yaml")
-	}
-	return string(yaml), nil
 }

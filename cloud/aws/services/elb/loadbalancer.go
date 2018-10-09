@@ -15,10 +15,11 @@ package elb
 
 import (
 	"fmt"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 	"strings"
 	"time"
+
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -53,6 +54,17 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 
 	glog.V(2).Info("Reconcile load balancers completed successfully")
 	return nil
+}
+
+// GetAPIServerDNSName returns the DNS name endpoint for the API server
+func (s *Service) GetAPIServerDNSName(clusterName string) (string, error) {
+	apiELB, err := s.describeClassicELB(GenerateELBName(clusterName, TagValueAPIServerRole))
+
+	if err != nil {
+		return "", err
+	}
+
+	return apiELB.DNSName, nil
 }
 
 // DeleteLoadbalancers deletes the load balancers for the given cluster.
