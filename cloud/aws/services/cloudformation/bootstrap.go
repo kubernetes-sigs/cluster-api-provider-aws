@@ -14,6 +14,7 @@
 package cloudformation
 
 import (
+	"fmt"
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -23,7 +24,7 @@ import (
 
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS
-func BootstrapTemplate() *cloudformation.Template {
+func BootstrapTemplate(accountID string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
 	template.Resources["AWSIAMManagedPolicyClusterController"] = cloudformation.AWSIAMManagedPolicy{
@@ -42,7 +43,7 @@ func BootstrapTemplate() *cloudformation.Template {
 	template.Resources["AWSIAMManagedPolicyMachineController"] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("machine-controller"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Machine Controller`,
-		PolicyDocument:    machineControllerPolicy(),
+		PolicyDocument:    machineControllerPolicy(accountID),
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
@@ -195,7 +196,7 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 	}
 }
 
-func machineControllerPolicy() *iam.PolicyDocument {
+func machineControllerPolicy(accountID string) *iam.PolicyDocument {
 	return &iam.PolicyDocument{
 		Version: iam.CurrentVersion,
 		Statement: []iam.StatementEntry{
@@ -208,6 +209,17 @@ func machineControllerPolicy() *iam.PolicyDocument {
 					"ec2:RunInstances",
 					"ec2:TerminateInstances",
 					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+				},
+			},
+			{
+				Effect: iam.EffectAllow,
+				Resource: iam.Resources{fmt.Sprintf(
+					"arn:aws:iam::%s:role/%s",
+					accountID,
+					iam.NewManagedName("*"),
+				)},
+				Action: iam.Actions{
+					"iam:PassRole",
 				},
 			},
 		},
@@ -308,9 +320,9 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation
-func (s *Service) ReconcileBootstrapStack(stackName string) error {
+func (s *Service) ReconcileBootstrapStack(stackName string, accountID string) error {
 
-	template := BootstrapTemplate()
+	template := BootstrapTemplate(accountID)
 	yaml, err := template.YAML()
 	if err != nil {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
