@@ -71,6 +71,7 @@
     "service/elb",
     "service/elb/elbiface",
     "service/sts",
+    "service/sts/stsiface",
   ]
   pruneopts = ""
   revision = "34699de98eac41fa94737f6ce7b83d7a621c2634"
@@ -1092,6 +1093,8 @@
     "github.com/aws/aws-sdk-go/service/ec2/ec2iface",
     "github.com/aws/aws-sdk-go/service/elb",
     "github.com/aws/aws-sdk-go/service/elb/elbiface",
+    "github.com/aws/aws-sdk-go/service/sts",
+    "github.com/aws/aws-sdk-go/service/sts/stsiface",
     "github.com/awslabs/goformation/cloudformation",
     "github.com/golang/glog",
     "github.com/golang/mock/gomock",

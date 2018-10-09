@@ -25,6 +25,7 @@ vendor
 .env
 envfile
 minikube.kubeconfig
+kubeconfig
 
 # binaries
 cmd/cluster-controller/cluster-controller

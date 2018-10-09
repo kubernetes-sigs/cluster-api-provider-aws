@@ -51,13 +51,20 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
 	glog.V(2).Info("Attempting to create an instance")
 
 	input := &v1alpha1.Instance{
 		Type:       config.InstanceType,
 		IAMProfile: config.IAMInstanceProfile,
 	}
+
+	input.Tags = s.buildTags(
+		machine.ClusterName,
+		ResourceLifecycleOwned,
+		machine.Name,
+		machine.ObjectMeta.Labels["set"],
+		nil)
 
 	// Pick image from the machine configuration, or use a default one.
 	if config.AMI.ID != nil {
@@ -72,20 +79,36 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	} else {
 		sns := clusterStatus.Network.Subnets.FilterPrivate()
 		if len(sns) == 0 {
-			return nil, errors.New("failed to run instance, no subnets available")
+			return nil, NewFailedDependency(
+				errors.New("failed to run instance, no subnets available"),
+			)
 		}
 		input.SubnetID = sns[0].ID
 	}
 
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
+
+		if clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
+			return nil, NewFailedDependency(
+				errors.New("failed to run control plane, security group not available"),
+			)
+		}
+
 		if len(clusterStatus.CACertificate) == 0 {
 			return input, errors.New("Cluster Provider Status is missing CACertificate")
 		}
 		if len(clusterStatus.CAPrivateKey) == 0 {
 			return input, errors.New("Cluster Provider Status is missing CAPrivateKey")
 		}
-		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate, clusterStatus.CAPrivateKey))
+		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate,
+			clusterStatus.CAPrivateKey,
+			clusterStatus.Network.APIServerELB.DNSName,
+			cluster.Name,
+			cluster.Spec.ClusterNetwork.ServiceDomain,
+			cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
+			cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
+			machine.Spec.Versions.ControlPlane))
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
@@ -143,7 +166,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
 	glog.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
@@ -166,7 +189,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 	// otherwise let's create it
 	glog.V(2).Info("Instance did not exist, attempting to creating it")
-	return s.CreateInstance(machine, config, clusterStatus)
+	return s.CreateInstance(machine, config, clusterStatus, cluster)
 }
 
 func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
@@ -324,7 +347,8 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 
 // initControlPlaneScript returns the b64 encoded script to run on start up.
 // The cert Must be CertPEM encoded and the key must be PrivateKeyPEM encoded
-func initControlPlaneScript(caCert, caKey []byte) string {
+// TODO: convert to using cloud-init module rather than a startup script
+func initControlPlaneScript(caCert, caKey []byte, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion string) string {
 	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
 	return fmt.Sprintf(`#!/usr/bin/env bash
 
@@ -333,7 +357,23 @@ mkdir -p /etc/kubernetes/pki
 echo '%s' > /etc/kubernetes/pki/ca.crt
 echo '%s' > /etc/kubernetes/pki/ca.key
 
+PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
+
 cat >/tmp/kubeadm.yaml <<EOF
+---
+apiVersion: kubeadm.k8s.io/v1alpha3
+kind: ClusterConfiguration
+apiServerCertSANs:
+  - "$PRIVATE_IP"
+  - "%s"
+controlPlaneEndpoint: "%s:6443"
+clusterName: "%s"
+networking:
+  dnsDomain: "%s"
+  podSubnet: "%s"
+  serviceSubnet: "%s"
+kubernetesVersion: "%s"
+---
 apiVersion: kubeadm.k8s.io/v1alpha3
 kind: InitConfiguration
 nodeRegistration:
@@ -342,8 +382,8 @@ EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
 
-# Installation from https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/calico
+# Installing Calico
 kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
 kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
-`, caCert, caKey)
+`, caCert, caKey, elbDNSName, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion)
 }

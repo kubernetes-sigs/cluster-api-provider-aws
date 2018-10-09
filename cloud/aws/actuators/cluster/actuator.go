@@ -161,6 +161,13 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	// Load ec2 client.
 	ec2 := a.servicesGetter.EC2(sess)
 
+	// Load elb client.
+	elb := a.servicesGetter.ELB(sess)
+
+	if err := elb.DeleteLoadbalancers(cluster.Name, &status.Network); err != nil {
+		return errors.Errorf("unable to delete load balancers: %v", err)
+	}
+
 	if err := ec2.DeleteBastion(cluster.Name, status); err != nil {
 		return errors.Errorf("unable to delete bastion: %v", err)
 	}

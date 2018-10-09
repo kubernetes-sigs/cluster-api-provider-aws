@@ -16,24 +16,32 @@ package machine
 // should not need to import the ec2 sdk here
 import (
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 )
 
 // ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
 // This should never need to import the ec2 sdk.
 type ec2Svc interface {
-	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
+	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus, *clusterv1.Cluster) (*v1alpha1.Instance, error)
 	InstanceIfExists(*string) (*v1alpha1.Instance, error)
 	TerminateInstance(string) error
-	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error)
+	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus, *clusterv1.Cluster) (*v1alpha1.Instance, error)
 	UpdateInstanceSecurityGroups(*string, []*string) error
 	UpdateResourceTags(*string, map[string]string, map[string]string) error
+}
+
+type elbSvc interface {
+	RegisterInstanceWithAPIServerELB(clusterName string, instanceID string) error
 }
 
 // codec are the functions off the generated codec that this actuator uses.
@@ -49,6 +57,7 @@ type Actuator struct {
 
 	// Services
 	ec2            ec2Svc
+	elb            elbSvc
 	machinesGetter client.MachinesGetter
 }
 
@@ -63,6 +72,8 @@ type ActuatorParams struct {
 	MachinesGetter client.MachinesGetter
 	// EC2Service is the interface to ec2.
 	EC2Service ec2Svc
+	// ELBService is the interface to load balancing
+	ELBService elbSvc
 }
 
 // NewActuator returns an actuator.
@@ -70,6 +81,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 	return &Actuator{
 		codec:          params.Codec,
 		ec2:            params.EC2Service,
+		elb:            params.ELBService,
 		machinesGetter: params.MachinesGetter,
 	}, nil
 }
@@ -90,8 +102,22 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine config")
 	}
 
-	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus)
+	defer func() {
+		if err := a.updateStatus(machine, status); err != nil {
+			glog.Errorf("failed to store provider status for machine %q: %v", machine.Name, err)
+		}
+	}()
+
+	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus, cluster)
 	if err != nil {
+
+		if ec2.IsFailedDependency(errors.Cause(err)) {
+			glog.Errorf("network not ready to launch instances yet: %s", err)
+			return &controllerError.RequeueAfterError{
+				RequeueAfter: time.Minute,
+			}
+		}
+
 		return errors.Wrap(err, "failed to create or get machine")
 	}
 
@@ -103,7 +129,22 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
-	return a.updateStatus(machine, status)
+	if err := a.reconcileLBAttachment(cluster, machine, i); err != nil {
+		return errors.Wrap(err, "failed to reconcile LB attachment")
+	}
+
+	return nil
+}
+
+func (a *Actuator) reconcileLBAttachment(c *clusterv1.Cluster, m *clusterv1.Machine, i *v1alpha1.Instance) error {
+	if m.ObjectMeta.Labels["set"] == "controlplane" {
+		if err := a.elb.RegisterInstanceWithAPIServerELB(c.Name, i.ID); err != nil {
+			return errors.Wrapf(err,
+				"could not register control plane instance %q with load balancer", i.ID,
+			)
+		}
+	}
+	return nil
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
@@ -113,6 +154,11 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine provider status")
+	}
+
+	if status.InstanceID == nil {
+		// Instance was never created
+		return nil
 	}
 
 	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
@@ -229,14 +275,22 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return false, nil
 	}
 
-	glog.Infof("Found an instance: %#v", instance)
+	glog.Infof("Found an instance: %v", instance)
 
 	switch instance.State {
-	case v1alpha1.InstanceStateRunning, v1alpha1.InstanceStatePending:
-		return true, nil
+	case v1alpha1.InstanceStateRunning:
+		glog.Infof("Machine %v is running", status.InstanceID)
+	case v1alpha1.InstanceStatePending:
+		glog.Infof("Machine %v is pending", status.InstanceID)
 	default:
 		return false, nil
 	}
+
+	if err := a.reconcileLBAttachment(cluster, machine, instance); err != nil {
+		return true, err
+	}
+
+	return true, nil
 }
 
 func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
@@ -262,5 +316,6 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWS
 			return fmt.Errorf("failed to update machine status: %v", err)
 		}
 	}
+
 	return nil
 }

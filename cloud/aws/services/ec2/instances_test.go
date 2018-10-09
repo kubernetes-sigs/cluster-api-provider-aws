@@ -189,6 +189,7 @@ func TestCreateInstance(t *testing.T) {
 		machine       clusterv1.Machine
 		machineConfig *v1alpha1.AWSMachineProviderConfig
 		clusterStatus *v1alpha1.AWSClusterProviderStatus
+		cluster       clusterv1.Cluster
 		expect        func(m *mock_ec2iface.MockEC2API)
 		check         func(instance *v1alpha1.Instance, err error)
 	}{
@@ -226,17 +227,26 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
+			cluster: clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test1",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+						ServiceDomain: "cluster.local",
+						Services: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+					},
+				},
+			},
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
-					RunInstances(&ec2.RunInstancesInput{
-						ImageId:          aws.String("abc"),
-						InstanceType:     aws.String("m5.large"),
-						KeyName:          aws.String("default"),
-						MaxCount:         aws.Int64(1),
-						MinCount:         aws.Int64(1),
-						SubnetId:         aws.String("subnet-1"),
-						SecurityGroupIds: aws.StringSlice([]string{"2"}),
-					}).
+					// TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -266,7 +276,7 @@ func TestCreateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus)
+			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus, &tc.cluster)
 			tc.check(instance, err)
 		})
 	}
