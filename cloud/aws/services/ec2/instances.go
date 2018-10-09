@@ -27,6 +27,39 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 )
 
+// InstanceByTags returns the existing instance or nothing if it doesn't exist.
+func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
+	glog.V(2).Infof("Looking for existing instance for machine %q in cluster %q", machine.Name, cluster.Name)
+	input := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			s.filterClusterOwned(cluster.Name),
+			s.filterName(machine.Name),
+			{
+				Name:   aws.String("instance-state-name"),
+				Values: aws.StringSlice([]string{"pending", "running"}),
+			},
+		},
+	}
+	out, err := s.EC2.DescribeInstances(input)
+	switch {
+	case IsNotFound(err):
+		return nil, nil
+	case err != nil:
+		return nil, errors.Errorf("failed to describe instances: %v", err)
+	}
+
+	// TODO: currently just returns the first matched instance, need to
+	// better rationalize how to find the right instance to return if multiple
+	// match
+	for _, res := range out.Reservations {
+		for _, inst := range res.Instances {
+			return fromSDKTypeToInstance(inst), nil
+		}
+	}
+
+	return nil, nil
+}
+
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
 	glog.V(2).Infof("Looking for instance %q", *instanceID)
@@ -60,7 +93,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	}
 
 	input.Tags = s.buildTags(
-		machine.ClusterName,
+		cluster.Name,
 		ResourceLifecycleOwned,
 		machine.Name,
 		machine.ObjectMeta.Labels["set"],
@@ -185,6 +218,15 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 		}
 
 		return instance, errors.Wrapf(err, "failed to look up instance %q", *status.InstanceID)
+	}
+
+	glog.V(2).Infof("Looking up instance by tags")
+	instance, err := s.InstanceByTags(machine, cluster)
+	if err != nil && !IsNotFound(err) {
+		return instance, errors.Wrap(err, "failed to query instance by tags")
+	}
+	if err == nil && instance != nil {
+		return instance, nil
 	}
 
 	// otherwise let's create it

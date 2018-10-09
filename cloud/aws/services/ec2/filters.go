@@ -22,6 +22,14 @@ func (s *Service) filterCluster(clusterName string) *ec2.Filter {
 	}
 }
 
+// Returns an EC2 filter for name
+func (s *Service) filterName(name string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String("tag:Name"),
+		Values: aws.StringSlice([]string{name}),
+	}
+}
+
 // Returns an EC2 filter using the Cluster API per-cluster tag where
 // the resource is owned
 func (s *Service) filterClusterOwned(clusterName string) *ec2.Filter {
