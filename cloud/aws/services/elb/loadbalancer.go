@@ -15,13 +15,13 @@ package elb
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/wait"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -258,10 +258,23 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 	}
 
 	out, err := s.ELB.DescribeLoadBalancers(input)
-	if (err != nil && strings.Contains(err.Error(), "There is no ACTIVE Load Balancer")) || (out != nil && len(out.LoadBalancerDescriptions) == 0) {
-		return nil, NewNotFound(errors.Errorf("no classic load balancer found with name %q", name))
-	} else if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe classic load balancer: %s", name)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case elb.ErrCodeAccessPointNotFoundException:
+				return nil, errors.Wrapf(err, "no classic load balancer found with name: %q", name)
+			case elb.ErrCodeDependencyThrottleException:
+				return nil, errors.Wrap(err, "too many requests made to the ELB service")
+			default:
+				return nil, errors.Wrap(err, "unexpected aws error")
+			}
+		} else {
+			return nil, errors.Wrapf(err, "failed to describe classic load balancer: %s", name)
+		}
+	}
+
+	if out == nil && len(out.LoadBalancerDescriptions) == 0 {
+		return nil, NewNotFound(fmt.Errorf("no classic load balancer found with name %q", name))
 	}
 
 	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0]), nil

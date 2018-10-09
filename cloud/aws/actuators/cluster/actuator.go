@@ -209,7 +209,7 @@ func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine)
 	dnsName, err := elb.GetAPIServerDNSName(cluster.Name)
 
 	if err != nil {
-		return "", errors.Errorf("failed to get DNS name for load balancer")
+		return "", errors.Wrap(err, "failed to get DNS name for load balancer")
 	}
 
 	return dnsName, nil
