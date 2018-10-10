@@ -15,8 +15,8 @@ package ec2
 
 import (
 	"fmt"
+
 	"github.com/golang/glog"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	awsec2 "github.com/aws/aws-sdk-go/service/ec2"
@@ -47,24 +47,19 @@ func consoleOutputCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			sess, err := session.NewSession()
 			if err != nil {
-				glog.Error(err)
-				os.Exit(403)
+				glog.Fatal(err)
 			}
 
 			instanceID, err := client.MachineInstanceID(args[0])
-
 			if err != nil {
-				glog.Error(err)
-				os.Exit(404)
+				glog.Fatal(err)
 			}
 
 			svc := ec2.NewService(awsec2.New(sess))
 
-			out, err := svc.GetConsole(instanceID)
-
+			out, err := svc.GetConsoleOutput(instanceID)
 			if err != nil {
-				glog.Error(err)
-				os.Exit(500)
+				glog.Fatal(err)
 			}
 
 			fmt.Println(out)

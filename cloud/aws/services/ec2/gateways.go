@@ -50,21 +50,26 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 	}
 
 	for _, ig := range igs {
-		_, err := s.EC2.DetachInternetGateway(&ec2.DetachInternetGatewayInput{
+		detachReq := &ec2.DetachInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
 			VpcId:             aws.String(in.VPC.ID),
-		})
-		if err != nil {
-			return err
 		}
+
+		if _, err := s.EC2.DetachInternetGateway(detachReq); err != nil {
+			return errors.Wrapf(err, "failed to detach internet gateway %q", *ig.InternetGatewayId)
+		}
+
 		glog.Infof("detached internet gateway %q from VPC %q", *ig.InternetGatewayId, in.VPC.ID)
-		_, err = s.EC2.DeleteInternetGateway(&ec2.DeleteInternetGatewayInput{
+
+		deleteReq := &ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
-		})
-		if err != nil {
-			return err
 		}
-		glog.Infof("deleted internet gateway %q", in.VPC.ID)
+
+		if _, err = s.EC2.DeleteInternetGateway(deleteReq); err != nil {
+			return errors.Wrapf(err, "failed to delete internet gateway %q", *ig.InternetGatewayId)
+		}
+
+		glog.Infof("Deleted internet gateway %q", in.VPC.ID)
 	}
 	return nil
 }
@@ -86,13 +91,11 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
 		VpcId:             aws.String(vpc.ID),
 	})
-
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
 	}
 
 	glog.Infof("attached internet gateway %q to VPC %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
-
 	return ig.InternetGateway, nil
 }
 

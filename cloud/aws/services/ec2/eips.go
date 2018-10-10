@@ -60,6 +60,7 @@ func (s *Service) describeAddresses(clusterName string, role string) (*ec2.Descr
 	if role != "" {
 		filters = append(filters, s.filterAWSProviderRole(role))
 	}
+
 	return s.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: filters,
 	})
@@ -78,14 +79,16 @@ func (s *Service) releaseAddresses(clusterName string) error {
 			return errors.Errorf("failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
 		}
 
-		delete := func() (bool, error) {
-			_, err := s.EC2.ReleaseAddress(&ec2.ReleaseAddressInput{
-				AllocationId: ip.AllocationId,
-			})
+		releaseAddressInput := &ec2.ReleaseAddressInput{
+			AllocationId: ip.AllocationId,
+		}
 
+		delete := func() (bool, error) {
+			_, err := s.EC2.ReleaseAddress(releaseAddressInput)
 			if err != nil {
 				return false, err
 			}
+
 			return true, nil
 		}
 
@@ -95,11 +98,11 @@ func (s *Service) releaseAddresses(clusterName string) error {
 		}
 
 		err := wait.WaitForWithRetryable(wait.NewBackoff(), delete, retryableErrors)
-
 		if err != nil {
-			return errors.Wrapf(err, "failed to release elastic IP %q: %q", *ip.AllocationId, err)
+			return errors.Wrapf(err, "failed to release ElasticIP %q", *ip.AllocationId)
 		}
-		glog.Infof("released elastic IP %q with allocation ID %q", *ip.PublicIp, *ip.AllocationId)
+
+		glog.Infof("released ElasticIP %q with allocation ID %q", *ip.PublicIp, *ip.AllocationId)
 	}
 	return nil
 }

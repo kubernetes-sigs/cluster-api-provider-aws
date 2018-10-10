@@ -15,26 +15,27 @@ package ec2
 
 import (
 	"encoding/base64"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/pkg/errors"
 )
 
-// GetConsole returns the latest console output of an instance
-func (s *Service) GetConsole(instanceID string) (string, error) {
+// GetConsoleOutput returns the latest console output of an instance
+func (s *Service) GetConsoleOutput(instanceID string) (string, error) {
 	input := &ec2.GetConsoleOutputInput{
 		InstanceId: aws.String(instanceID),
 		Latest:     aws.Bool(true),
 	}
 
 	out, err := s.EC2.GetConsoleOutput(input)
-
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to get console output for instance %q", instanceID)
 	}
 
 	data, err := base64.StdEncoding.DecodeString(aws.StringValue(out.Output))
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to decode console output for instance %q", instanceID)
 	}
 
 	return string(data), nil

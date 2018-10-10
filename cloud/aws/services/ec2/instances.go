@@ -30,22 +30,21 @@ import (
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
 	glog.V(2).Infof("Looking for existing instance for machine %q in cluster %q", machine.Name, cluster.Name)
+
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			s.filterClusterOwned(cluster.Name),
 			s.filterName(machine.Name),
-			{
-				Name:   aws.String("instance-state-name"),
-				Values: aws.StringSlice([]string{"pending", "running"}),
-			},
+			s.filterInstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
 	}
+
 	out, err := s.EC2.DescribeInstances(input)
 	switch {
 	case IsNotFound(err):
 		return nil, nil
 	case err != nil:
-		return nil, errors.Errorf("failed to describe instances: %v", err)
+		return nil, errors.Wrap(err, "failed to describe instances by tags")
 	}
 
 	// TODO: currently just returns the first matched instance, need to
@@ -65,7 +64,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 	glog.V(2).Infof("Looking for instance %q", *instanceID)
 
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: aws.StringSlice([]string{*instanceID}),
+		InstanceIds: []*string{instanceID},
 	}
 
 	out, err := s.EC2.DescribeInstances(input)
@@ -73,7 +72,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 	case IsNotFound(err):
 		return nil, nil
 	case err != nil:
-		return nil, errors.Errorf("failed to describe instances: %v", err)
+		return nil, errors.Wrapf(err, "failed to describe instance: %q", *instanceID)
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
@@ -134,6 +133,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		if len(clusterStatus.CAPrivateKey) == 0 {
 			return input, errors.New("Cluster Provider Status is missing CAPrivateKey")
 		}
+
 		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate,
 			clusterStatus.CAPrivateKey,
 			clusterStatus.Network.APIServerELB.DNSName,
@@ -142,6 +142,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 			cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
 			cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
 			machine.Spec.Versions.ControlPlane))
+
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
@@ -168,31 +169,29 @@ func (s *Service) TerminateInstance(instanceID string) error {
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
-	_, err := s.EC2.TerminateInstances(input)
-	if err != nil {
-		return err
+	if _, err := s.EC2.TerminateInstances(input); err != nil {
+		return errors.Wrapf(err, "failed to terminate instance %q", instanceID)
 	}
 
 	glog.V(2).Infof("termination request sent for EC2 instance %q", instanceID)
-
 	return nil
 }
 
 // TerminateInstanceAndWait terminates and waits
 // for an EC2 instance to terminate.
 func (s *Service) TerminateInstanceAndWait(instanceID string) error {
-	s.TerminateInstance(instanceID)
+	if err := s.TerminateInstance(instanceID); err != nil {
+		return err
+	}
+
+	glog.V(2).Infof("waiting for EC2 instance %q to terminate", instanceID)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
-	glog.V(2).Infof("waiting for EC2 instance %q to terminate", instanceID)
-
-	err := s.EC2.WaitUntilInstanceTerminated(input)
-
-	if err != nil {
-		return err
+	if err := s.EC2.WaitUntilInstanceTerminated(input); err != nil {
+		return errors.Wrapf(err, "failed to wait for instance %q termination", instanceID)
 	}
 
 	return nil
@@ -294,9 +293,8 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroup
 		Groups:     securityGroups,
 	}
 
-	_, err := s.EC2.ModifyInstanceAttribute(input)
-	if err != nil {
-		return err
+	if _, err := s.EC2.ModifyInstanceAttribute(input); err != nil {
+		return errors.Wrapf(err, "failed to modify instance %q security groups", *instanceID)
 	}
 
 	return nil
@@ -323,9 +321,8 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 		}
 
 		// Create/Update tags in AWS.
-		_, err := s.EC2.CreateTags(input)
-		if err != nil {
-			return err
+		if _, err := s.EC2.CreateTags(input); err != nil {
+			return errors.Wrapf(err, "failed to create tags for resource %q: %+v", *resourceID, create)
 		}
 	}
 
@@ -343,9 +340,8 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 		}
 
 		// Delete tags in AWS.
-		_, err := s.EC2.DeleteTags(input)
-		if err != nil {
-			return err
+		if _, err := s.EC2.DeleteTags(input); err != nil {
+			return errors.Wrapf(err, "failed to delete tags for resource %q: %v", *resourceID, remove)
 		}
 	}
 

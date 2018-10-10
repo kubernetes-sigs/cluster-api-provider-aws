@@ -115,12 +115,12 @@ func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) e
 	}
 
 	for _, sn := range existing {
-		_, err := s.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
+		input := &ec2.DeleteSubnetInput{
 			SubnetId: aws.String(sn.ID),
-		})
+		}
 
-		if err != nil {
-			return err
+		if _, err := s.EC2.DeleteSubnet(input); err != nil {
+			return errors.Wrapf(err, "failed to delete subnet %q", sn.ID)
 		}
 
 		glog.Infof("deleted subnet %q in VPC %q", sn.ID, network.VPC.ID)

@@ -107,11 +107,9 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String(fmt.Sprintf("tag:%s", TagNameAWSClusterAPIRole)),
-				Values: []*string{aws.String(TagValueBastionRole)},
-			},
+			s.filterAWSProviderRole(TagValueBastionRole),
 			s.filterCluster(clusterName),
+			s.filterInstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
 	}
 
