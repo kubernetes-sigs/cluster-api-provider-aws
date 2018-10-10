@@ -17,6 +17,9 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/awserrors"
 )
 
 var _ error = &ELBError{}
@@ -51,7 +54,16 @@ func NewConflict(err error) error {
 
 // IsNotFound returns true if the error was created by NewNotFound.
 func IsNotFound(err error) bool {
-	return ReasonForError(err) == http.StatusNotFound
+	if ReasonForError(err) == http.StatusNotFound {
+		return true
+	}
+	if code, ok := awserrors.Code(errors.Cause(err)); ok {
+		switch code {
+		case elb.ErrCodeAccessPointNotFoundException:
+			return true
+		}
+	}
+	return false
 }
 
 // IsConflict returns true if the error was created by NewConflict.
@@ -61,13 +73,13 @@ func IsConflict(err error) bool {
 
 // IsSDKError returns true if the error is of type awserr.Error.
 func IsSDKError(err error) (ok bool) {
-	_, ok = err.(awserr.Error)
+	_, ok = errors.Cause(err).(awserr.Error)
 	return
 }
 
 // ReasonForError returns the HTTP status for a particular error.
 func ReasonForError(err error) int {
-	switch t := err.(type) {
+	switch t := errors.Cause(err).(type) {
 	case *ELBError:
 		return t.Code
 	}
