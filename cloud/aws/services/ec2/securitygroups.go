@@ -98,10 +98,8 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 	for _, sg := range network.SecurityGroups {
 		current := sg.IngressRules
 
-		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); err != nil {
-			if err := isIgnorableSecurityGroupError(err); err != nil {
-				return err
-			}
+		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); isIgnorableSecurityGroupError(err) != nil {
+			return err
 		}
 
 		glog.V(2).Infof("Revoked ingress rules %v from security group %q", current, sg.ID)
@@ -112,10 +110,8 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 			GroupId: aws.String(sg.ID),
 		}
 
-		if _, err := s.EC2.DeleteSecurityGroup(input); err != nil {
-			if err := isIgnorableSecurityGroupError(err); err != nil {
-				return err
-			}
+		if _, err := s.EC2.DeleteSecurityGroup(input); isIgnorableSecurityGroupError(err) != nil {
+			return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
 		}
 
 		glog.V(2).Infof("Deleted security group security group %q", sg.ID)
@@ -182,7 +178,7 @@ func (s *Service) authorizeSecurityGroupIngressRules(groupID string, rules v1alp
 	}
 
 	if _, err := s.EC2.AuthorizeSecurityGroupIngress(input); err != nil {
-		return errors.Wrapf(err, "failed to authorize security group ingress rules for %q", groupID)
+		return errors.Wrapf(err, "failed to authorize security group %q ingress rules: %v", groupID, rules)
 	}
 
 	return nil
@@ -195,7 +191,7 @@ func (s *Service) revokeSecurityGroupIngressRules(groupID string, rules v1alpha1
 	}
 
 	if _, err := s.EC2.RevokeSecurityGroupIngress(input); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", groupID, rules)
 	}
 
 	return nil

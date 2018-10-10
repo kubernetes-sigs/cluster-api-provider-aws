@@ -110,20 +110,18 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 			if as.SubnetId == nil {
 				continue
 			}
-			_, err := s.EC2.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{
-				AssociationId: as.RouteTableAssociationId,
-			})
-			if err != nil {
-				return err
+
+			if _, err := s.EC2.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{AssociationId: as.RouteTableAssociationId}); err != nil {
+				return errors.Wrapf(err, "failed to disassociate route table %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
 			}
+
 			glog.Infof("Deleted association between route table %q and subnet %q", *rt.RouteTableId, *as.SubnetId)
 		}
-		_, err := s.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{
-			RouteTableId: rt.RouteTableId,
-		})
-		if err != nil {
-			return err
+
+		if _, err := s.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
+			return errors.Wrapf(err, "failed to delete route table %q", *rt.RouteTableId)
 		}
+
 		glog.Infof("Deleted route table %q", *rt.RouteTableId)
 	}
 	return nil

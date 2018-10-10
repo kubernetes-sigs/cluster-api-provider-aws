@@ -91,9 +91,8 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); code != "InvalidVpcID.NotFound" && ok {
 			return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
-		} else {
-			return err
 		}
+		return err
 	}
 
 	glog.V(2).Infof("Deleted VPC %q", v.ID)
@@ -115,6 +114,7 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 		if IsNotFound(err) {
 			return nil, err
 		}
+
 		return nil, errors.Wrap(err, "failed to query ec2 for VPCs")
 	}
 
