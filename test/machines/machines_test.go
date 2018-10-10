@@ -13,7 +13,8 @@ import (
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/framework"
+	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
+	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 
 	apiv1 "k8s.io/api/core/v1"
@@ -31,6 +32,7 @@ const (
 	timeoutPoolMachineRunningInterval = 10 * time.Minute
 	region                            = "us-east-1"
 	awsCredentialsSecretName          = "aws-credentials-secret"
+	CloudProvider                     = "aws"
 )
 
 func TestCart(t *testing.T) {
@@ -52,9 +54,11 @@ func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) {
 }
 
 var _ = framework.SigKubeDescribe("Machines", func() {
-	f := framework.NewFramework()
-	var err error
 	var testNamespace *apiv1.Namespace
+	f, err := framework.NewFramework()
+	if err != nil {
+		panic(fmt.Errorf("unable to create framework: %v", err))
+	}
 
 	machinesToDelete := framework.InitMachinesToDelete()
 
@@ -71,7 +75,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 		_, err = f.KubeClient.CoreV1().Namespaces().Create(testNamespace)
 		Expect(err).NotTo(HaveOccurred())
 
-		f.DeployClusterAPIStack(testNamespace.Name)
+		f.DeployClusterAPIStack(testNamespace.Name, f.ActuatorImage, "")
 	})
 
 	AfterEach(func() {
@@ -79,7 +83,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 		machinesToDelete.Delete()
 
 		if testNamespace != nil {
-			f.DestroyClusterAPIStack(testNamespace.Name)
+			f.DestroyClusterAPIStack(testNamespace.Name, f.ActuatorImage, "")
 			log.Infof(testNamespace.Name+": %#v", testNamespace)
 			By(fmt.Sprintf("Destroying %q namespace", testNamespace.Name))
 			f.KubeClient.CoreV1().Namespaces().Delete(testNamespace.Name, &metav1.DeleteOptions{})
@@ -126,7 +130,9 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			f.CreateClusterAndWait(cluster)
 
 			// Create/delete a single machine, test instance is provisioned/terminated
-			testMachine := utils.TestingMachine(awsCredSecret.Name, cluster.Name, cluster.Namespace)
+			testMachineProviderConfig, err := utils.TestingMachineProviderConfig(awsCredSecret.Name, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderConfig)
 			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -187,10 +193,17 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			f.CreateClusterAndWait(cluster)
 
 			// Create master machine and verify the master node is ready
-			masterUserDataSecret := utils.MasterMachineUserDataSecret("masteruserdatasecret", testNamespace.Name)
-			createSecretAndWait(f, masterUserDataSecret)
+			masterUserDataSecret, err := manifests.MasterMachineUserDataSecret(
+				"masteruserdatasecret",
+				testNamespace.Name,
+				[]string{"\\$(curl -s http://169.254.169.254/latest/meta-data/public-hostname)", "\\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)"},
+			)
+			Expect(err).NotTo(HaveOccurred())
 
-			masterMachine := utils.MasterMachine(awsCredSecret.Name, masterUserDataSecret.Name, cluster.Name, cluster.Namespace)
+			createSecretAndWait(f, masterUserDataSecret)
+			masterMachineProviderConfig, err := utils.MasterMachineProviderConfig(awsCredSecret.Name, masterUserDataSecret.Name, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+			masterMachine := manifests.MasterMachine(cluster.Name, cluster.Namespace, masterMachineProviderConfig)
 			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
 			Expect(err).NotTo(HaveOccurred())
 			acw := &awsClientWrapper{client: awsClient}
@@ -209,12 +222,15 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Deploy the cluster API stack inside the master machine
-			clusterFramework := framework.NewFrameworkFromConfig(restConfig)
+			sshConfig, err := framework.DefaultSSHConfig()
+			Expect(err).NotTo(HaveOccurred())
+			clusterFramework, err := framework.NewFrameworkFromConfig(restConfig, sshConfig)
+			Expect(err).NotTo(HaveOccurred())
 			By(fmt.Sprintf("Creating %q namespace", testNamespace.Name))
 			_, err = clusterFramework.KubeClient.CoreV1().Namespaces().Create(testNamespace)
 			Expect(err).NotTo(HaveOccurred())
 
-			clusterFramework.DeployClusterAPIStack(testNamespace.Name)
+			clusterFramework.DeployClusterAPIStack(testNamespace.Name, f.ActuatorImage, "")
 
 			By("Deploy worker nodes through machineset")
 			masterPrivateIP, err := acw.GetPrivateIP(masterMachine)
@@ -224,17 +240,19 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			clusterFramework.CreateClusterAndWait(cluster)
 			createSecretAndWait(clusterFramework, awsCredSecret)
 
-			workerUserDataSecret, err := utils.WorkerMachineUserDataSecret("workeruserdatasecret", testNamespace.Name, masterPrivateIP)
+			workerUserDataSecret, err := manifests.WorkerMachineUserDataSecret("workeruserdatasecret", testNamespace.Name, masterPrivateIP)
 			Expect(err).NotTo(HaveOccurred())
 			createSecretAndWait(clusterFramework, workerUserDataSecret)
-
-			workerMachineSet := utils.WorkerMachineSet(awsCredSecret.Name, workerUserDataSecret.Name, cluster.Name, cluster.Namespace)
+			workerMachineSetProviderConfig, err := utils.WorkerMachineSetProviderConfig(awsCredSecret.Name, workerUserDataSecret.Name, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+			workerMachineSet := manifests.WorkerMachineSet(cluster.Name, cluster.Namespace, workerMachineSetProviderConfig)
 			fmt.Printf("workerMachineSet: %#v\n", workerMachineSet)
 			clusterFramework.CreateMachineSetAndWait(workerMachineSet, acw)
 			machinesToDelete.AddMachineSet(workerMachineSet, clusterFramework, acw)
 
 			By("Checking master and worker nodes are ready")
-			clusterFramework.WaitForNodesToGetReady()
+			err = clusterFramework.WaitForNodesToGetReady(2)
+			Expect(err).NotTo(HaveOccurred())
 
 			By("Checking compute node role and node linking")
 			err = wait.Poll(framework.PollInterval, framework.PoolTimeout, func() (bool, error) {
