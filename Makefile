@@ -49,13 +49,10 @@ genmocks: vendor
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 MachineInterface" "cloud/aws/actuators/machine/mock_machineiface/mock.go"
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 ClusterInterface" "cloud/aws/actuators/cluster/mock_clusteriface/mock.go"
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 ClusterInterface" "cloud/aws/actuators/cluster/mock_clusteriface/mock.go"
-	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services EC2Interface" "cloud/aws/services/mocks/ec2.go"
-	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services ELBInterface" "cloud/aws/services/mocks/elb.go"
+	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services EC2Interface" "cloud/aws/services/mocks/ec2.go"
+	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services ELBInterface" "cloud/aws/services/mocks/elb.go"
 
-build: clusterctl-bin clusterawsadm-bin cluster-controller machine-controller
-
-clusterctl-bin: vendor
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/clusterctl
+build: clusterawsadm-bin
 
 clusterawsadm-bin: vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
@@ -63,27 +60,11 @@ clusterawsadm-bin: vendor
 cluster-api-dev-helper-bin: vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/hack/cluster-api-dev-helper
 
-images: vendor
-	$(MAKE) -C cmd/cluster-controller image
-	$(MAKE) -C cmd/machine-controller image
-
 dev_push: cluster-controller-dev-push machine-controller-dev-push
 
-cluster-controller: vendor
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
-
-cluster-controller-dev-push: cluster-controller
-	$(MAKE) -C cmd/cluster-controller dev_push
-
-machine-controller: vendor
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
-
-machine-controller-dev-push: machine-controller
-	$(MAKE) -C cmd/machine-controller dev_push
-
-push: vendor
-	$(MAKE) -C cmd/cluster-controller push
-	$(MAKE) -C cmd/machine-controller push
+controller-manager-image:
+	docker build -t gcr.io/chuck-heptio/cluster-api-controller-manager:0.0.1-dev .
+	docker push gcr.io/chuck-heptio/cluster-api-controller-manager:0.0.1-dev
 
 check: fmt vet
 

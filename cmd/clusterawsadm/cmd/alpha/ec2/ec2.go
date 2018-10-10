@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	awsec2 "github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/client"
 )
 
