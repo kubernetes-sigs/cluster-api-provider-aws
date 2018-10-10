@@ -205,14 +205,7 @@ func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine)
 
 	sess := a.servicesGetter.Session(config)
 	elb := a.servicesGetter.ELB(sess)
-
-	dnsName, err := elb.GetAPIServerDNSName(cluster.Name)
-
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get DNS name for load balancer")
-	}
-
-	return dnsName, nil
+	return elb.GetAPIServerDNSName(cluster.Name)
 }
 
 // GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
@@ -227,20 +220,18 @@ func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.
 	cert, err := certificates.DecodeCertPEM(status.CACertificate)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode CA Cert")
-	}
-	if cert == nil {
+	} else if cert == nil {
 		return "", errors.New("certificate not found in status")
 	}
+
 	key, err := certificates.DecodePrivateKeyPEM(status.CAPrivateKey)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode private key")
-	}
-	if key == nil {
+	} else if key == nil {
 		return "", errors.New("key not found in status")
 	}
 
 	dnsName, err := a.GetIP(cluster, machine)
-
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get DNS address")
 	}
@@ -251,10 +242,12 @@ func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate a kubeconfig")
 	}
+
 	yaml, err := clientcmd.Write(*cfg)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to serialize config to yaml")
 	}
+
 	return string(yaml), nil
 }
 

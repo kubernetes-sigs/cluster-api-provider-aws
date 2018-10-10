@@ -147,7 +147,7 @@ func (mr *MockEC2InterfaceMockRecorder) TerminateInstance(arg0 interface{}) *gom
 }
 
 // UpdateInstanceSecurityGroups mocks base method
-func (m *MockEC2Interface) UpdateInstanceSecurityGroups(arg0 *string, arg1 []*string) error {
+func (m *MockEC2Interface) UpdateInstanceSecurityGroups(arg0 string, arg1 []string) error {
 	ret := m.ctrl.Call(m, "UpdateInstanceSecurityGroups", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0

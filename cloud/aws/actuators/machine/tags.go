@@ -71,7 +71,6 @@ func (a *Actuator) updateMachineAnnotationJSON(machine *clusterv1.Machine, annot
 	}
 
 	a.updateMachineAnnotation(machine, annotation, string(b))
-
 	return nil
 }
 

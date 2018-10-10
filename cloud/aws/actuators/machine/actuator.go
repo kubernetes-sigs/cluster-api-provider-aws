@@ -106,6 +106,7 @@ func (a *Actuator) clusterProviderConfig(cluster *clusterv1.Cluster) (*v1alpha1.
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
+
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine provider status")
@@ -151,6 +152,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	if machine.Annotations == nil {
 		machine.Annotations = map[string]string{}
 	}
+
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
 	if err := a.reconcileLBAttachment(cluster, machine, i); err != nil {
@@ -168,11 +170,10 @@ func (a *Actuator) reconcileLBAttachment(c *clusterv1.Cluster, m *clusterv1.Mach
 
 	if m.ObjectMeta.Labels["set"] == "controlplane" {
 		if err := a.elb(clusterConfig).RegisterInstanceWithAPIServerELB(c.Name, i.ID); err != nil {
-			return errors.Wrapf(err,
-				"could not register control plane instance %q with load balancer", i.ID,
-			)
+			return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 		}
 	}
+
 	return nil
 }
 
@@ -202,8 +203,8 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get instance")
 	}
 
-	// The machine hasn't been created yet
 	if instance == nil {
+		// The machine hasn't been created yet
 		return nil
 	}
 
@@ -266,9 +267,9 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	securityGroupsChanged, err := a.ensureSecurityGroups(
 		ec2svc,
 		machine,
-		status.InstanceID,
+		*status.InstanceID,
 		config.AdditionalSecurityGroups,
-		instanceDescription.SecurityGroups,
+		instanceDescription.SecurityGroupIDs,
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed to ensure security groups")
@@ -282,15 +283,13 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	// We need to update the machine since annotations may have changed.
 	if securityGroupsChanged || tagsChanged {
-		err = a.updateMachine(machine)
-		if err != nil {
+		if err := a.updateMachine(machine); err != nil {
 			return errors.Wrap(err, "failed to update machine")
 		}
 	}
 
 	// Finally update the machine status.
-	err = a.updateStatus(machine, status)
-	if err != nil {
+	if err := a.updateStatus(machine, status); err != nil {
 		return errors.Wrap(err, "failed to update machine status")
 	}
 
@@ -300,6 +299,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 // Exists test for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	glog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
+
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return false, err
@@ -319,6 +319,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	if err != nil {
 		return false, err
 	}
+
 	if instance == nil {
 		return false, nil
 	}
@@ -344,8 +345,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
 	machinesClient := a.machinesGetter.Machines(machine.Namespace)
 
-	_, err := machinesClient.Update(machine)
-	if err != nil {
+	if _, err := machinesClient.Update(machine); err != nil {
 		return fmt.Errorf("failed to update machine: %v", err)
 	}
 
@@ -354,10 +354,12 @@ func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
 
 func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
 	machinesClient := a.machinesGetter.Machines(machine.Namespace)
+
 	encodedProviderStatus, err := a.codec.EncodeProviderStatus(status)
 	if err != nil {
 		return fmt.Errorf("failed to encode machine status: %v", err)
 	}
+
 	if encodedProviderStatus != nil {
 		machine.Status.ProviderStatus = encodedProviderStatus
 		if _, err := machinesClient.UpdateStatus(machine); err != nil {

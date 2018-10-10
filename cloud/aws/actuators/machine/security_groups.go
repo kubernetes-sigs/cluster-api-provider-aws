@@ -15,6 +15,8 @@ package machine
 
 // should not need to import the ec2 sdk here
 import (
+	"sort"
+
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
 
@@ -33,147 +35,79 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (a *Actuator) ensureSecurityGroups(ec2svc service.EC2MachineInterface, machine *clusterv1.Machine, instanceID *string, additionalSecurityGroups []v1alpha1.AWSResourceReference, instanceSecurityGroups map[string]string) (bool, error) {
-	// Get the SecurityGroup annotations
+func (a *Actuator) ensureSecurityGroups(ec2svc service.EC2MachineInterface, machine *clusterv1.Machine, instanceID string, additional []v1alpha1.AWSResourceReference, existing []string) (bool, error) {
 	annotation, err := a.machineAnnotationJSON(machine, SecurityGroupsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
 	}
 
-	// Now we check to see if we need to mutate any mutable state.
-	// Check if any additions have been made to the instance Security Groups.
-	changed, groupIDs, newAnnotation := a.securityGroupsChanged(
-		annotation,
-		additionalSecurityGroups,
-		instanceSecurityGroups,
-	)
-	if changed {
-		// Finally, update the instance with our new security groups.
-		err := ec2svc.UpdateInstanceSecurityGroups(instanceID, groupIDs)
-		if err != nil {
-			return false, err
-		}
-
-		// And then update the annotation to reflect our new managed state.
-		err = a.updateMachineAnnotationJSON(machine, SecurityGroupsLastAppliedAnnotation, newAnnotation)
-		if err != nil {
-			return false, err
-		}
+	changed, ids := a.securityGroupsChanged(annotation, additional, existing)
+	if !changed {
+		return false, nil
 	}
 
-	return changed, nil
+	if err := ec2svc.UpdateInstanceSecurityGroups(instanceID, ids); err != nil {
+		return false, err
+	}
+
+	// Build and store annotation.
+	newAnnotation := make(map[string]interface{}, len(additional))
+	for _, id := range additional {
+		newAnnotation[*id.ID] = struct{}{}
+	}
+
+	if err := a.updateMachineAnnotationJSON(machine, SecurityGroupsLastAppliedAnnotation, newAnnotation); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
-// securityGroupsChanged determines which security groups to delete and which to
-// add.
-func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, src []v1alpha1.AWSResourceReference, dst map[string]string) (bool, []*string, map[string]interface{}) {
-	// State tracking for decisions later in the method.
-	// The bool here indicates if a listed groupID was deleted or not, which is
-	// used while generating our final array later.
+// securityGroupsChanged determines which security groups to delete and which to add.
+func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, additional []v1alpha1.AWSResourceReference, existing []string) (bool, []string) {
 	state := map[string]bool{}
-
-	// Get the `src` into an easily usable map. We call this `newAnnotation` as
-	// this map will also be returned at the end to be used as the new
-	// machine annotation.
-	//
-	// We can also set each entry in the `src` to true in the `state`, because
-	// we know we want to keep these. These additions to the state could
-	// represent new or unchanged securityGroups. It doesn't matter which.
-	newAnnotation := map[string]interface{}{}
-	for _, s := range src {
-		newAnnotation[*s.ID] = struct{}{}
+	for _, s := range additional {
 		state[*s.ID] = true
 	}
 
-	// Loop over `annotation`, checking `newAnnotation` for things that were
-	// deleted since last time.
-	// If we find something in the `annotation`, but not in the `newAnnotation`,
-	// we flag it as `false` (not found, deleted).
+	// Loop over `annotation`, checking the state for things that were deleted since last time.
+	// If we find something in the `annotation`, but not in the state, we flag it as `false` (not found, deleted).
 	for groupID := range annotation {
-		_, ok := newAnnotation[groupID]
-
-		if !ok {
+		if _, ok := state[groupID]; !ok {
 			state[groupID] = false
 		}
 	}
 
-	// At this point our `state` variable now represents which groupIDs we wish
-	// to keep, and which we wish to drop, based on the incoming Kubernetes
-	// state in `newAnnotation` (`src`) and the state from last time in the
-	// `annotation`.
-	// This `state` variable represents the state of what we have been and are
-	// responsible for managing.
-	// We are now able to build up a new map, which will represent the combined
-	// state of what the machine actuator is managing, as well as groups being
-	// managed externally.
-	groupsMap := map[string]struct{}{}
-
-	// Add groups that we want to keep from the new state to groupsMap.
-	for groupID, keep := range state {
+	// Build the security group list.
+	res := []string{}
+	for id, keep := range state {
 		if keep {
-			groupsMap[groupID] = struct{}{}
+			res = append(res, id)
 		}
 	}
 
-	// Loop over `dst` (AWS) comparing entries to the `state` map.
-	//
-	// If we find a `dst` entry in the `state` map and it's set to `true`, add
-	// it to the `groupsMap`. (We're managing it and wish to keep it)
-	//
-	// If we find an entry in the `state` map and it's set to `false`, don't add
-	// it to the `groupsMap`. (We're managing it and wish to delete it)
-	//
-	// If we don't find an entry in the `state` map, we aren't managing this
-	// groupID, add it to `groupsMap`. (It's externally managed, keep it)
-	for groupID := range dst {
-		keep, ok := state[groupID]
-
-		// If we don't find this in the state map, we aren't managing it. Add
-		// it to the groupsMap and continue.
-		if !ok {
-			groupsMap[groupID] = struct{}{}
-			continue
-		}
-
-		// Ok, we found it in the state map, what do we want to do?
-		// If we're keeping it, add it to the groupsMap, otherwise do nothing
-		// and let it drop.
-		if keep {
-			groupsMap[groupID] = struct{}{}
+	// Add groups managed externally (i.e. not in the state).
+	for _, id := range existing {
+		if _, ok := state[id]; !ok {
+			res = append(res, id)
 		}
 	}
 
-	// Variable indicating if state was changed compared to AWS.
-	changed := false
+	changed := len(existing) != len(res)
 
-	// At this point, we know exactly what we're going to send to AWS and what
-	// our new annotation should be.
-	// We perform a final comparison of the dst (AWS) state to the groupsMap,
-	// to see if we really need to send a request to AWS.
-	if len(dst) == len(groupsMap) {
-		// We need to compare each item, in case any changed.
-		for groupID := range dst {
-			_, ok := groupsMap[groupID]
-			if !ok {
-				// A change was detected.
+	if !changed {
+		// Length is the same, check if the ids are the same too.
+		sort.Strings(existing)
+		sort.Strings(res)
+		for i, id := range res {
+			if existing[i] != id {
 				changed = true
 				break
 			}
 		}
-	} else {
-		// If the lengths are different, the state definitely changed. No
-		// comparison needed.
-		changed = true
 	}
 
-	// Generate a groups array to send back to the calling function.
-	groupsArray := []*string{}
-	for groupID := range groupsMap {
-		groupsArray = append(groupsArray, &groupID)
-	}
-
-	// Finally, we're done.
-	return changed, groupsArray, newAnnotation
+	return changed, res
 }
 
 // tagsChanged determines which tags to delete and which to add.

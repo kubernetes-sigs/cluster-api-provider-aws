@@ -338,15 +338,3 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
 
 	return res
 }
-
-// groupsIdentifierToMap converts a []*ec2.GroupIdentifier to a
-// map[string]string
-func groupIdentifierToMap(src []*ec2.GroupIdentifier) map[string]string {
-	out := make(map[string]string)
-
-	for _, g := range src {
-		out[*g.GroupId] = *g.GroupName
-	}
-
-	return out
-}
