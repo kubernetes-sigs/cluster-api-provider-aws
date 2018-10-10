@@ -101,10 +101,6 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 }
 
 func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
-	if status.Bastion.ID != "" {
-		return s.InstanceIfExists(aws.String(status.Bastion.ID))
-	}
-
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			s.filterAWSProviderRole(TagValueBastionRole),
