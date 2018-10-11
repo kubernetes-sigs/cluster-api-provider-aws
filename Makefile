@@ -14,6 +14,7 @@
 
 GOFLAGS += -ldflags '-extldflags "-static"'
 GOREBUILD :=
+GOPATH := $(shell go env GOPATH)
 
 .PHONY: gendeepcopy
 
@@ -37,8 +38,8 @@ depend-update:
 generate: gendeepcopy
 
 gendeepcopy: vendor
-	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
-	$$GOPATH/bin/deepcopy-gen \
+	go build -o $(GOPATH)/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
+	$(GOPATH)/bin/deepcopy-gen \
 	  -i ./cloud/aws/providerconfig,./cloud/aws/providerconfig/v1alpha1 \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
