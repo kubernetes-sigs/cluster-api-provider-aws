@@ -17,8 +17,7 @@ package machine
 import (
 	"encoding/json"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-
+	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -34,7 +33,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (a *Actuator) ensureTags(machine *clusterv1.Machine, instanceID *string, additionalTags map[string]string) (bool, error) {
+func (a *Actuator) ensureTags(svc service.EC2MachineInterface, machine *clusterv1.Machine, instanceID *string, additionalTags map[string]string) (bool, error) {
 	annotation, err := a.machineAnnotationJSON(machine, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -46,7 +45,7 @@ func (a *Actuator) ensureTags(machine *clusterv1.Machine, instanceID *string, ad
 	// upated.
 	changed, created, deleted, newAnnotation := a.tagsChanged(annotation, additionalTags)
 	if changed {
-		err = a.ec2.UpdateResourceTags(instanceID, created, deleted)
+		err = svc.UpdateResourceTags(instanceID, created, deleted)
 		if err != nil {
 			return false, err
 		}
@@ -87,24 +86,6 @@ func (a *Actuator) updateMachineAnnotation(machine *clusterv1.Machine, annotatio
 
 	// Update the machine object with these annotations
 	machine.SetAnnotations(annotations)
-}
-
-func (a *Actuator) machineProviderConfig(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderConfig, error) {
-	machineProviderCfg := &v1alpha1.AWSMachineProviderConfig{}
-	err := a.codec.DecodeFromProviderConfig(machine.Spec.ProviderConfig, machineProviderCfg)
-	return machineProviderCfg, err
-}
-
-func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
-	status := &v1alpha1.AWSMachineProviderStatus{}
-	err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
-	return status, err
-}
-
-func (a *Actuator) clusterProviderStatus(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderStatus, error) {
-	providerStatus := &v1alpha1.AWSClusterProviderStatus{}
-	err := a.codec.DecodeProviderStatus(cluster.Status.ProviderStatus, providerStatus)
-	return providerStatus, err
 }
 
 // Returns a map[string]interface from a JSON annotation.
