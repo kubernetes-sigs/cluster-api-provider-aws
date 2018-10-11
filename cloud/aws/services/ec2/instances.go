@@ -285,16 +285,16 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
-func (s *Service) UpdateInstanceSecurityGroups(instanceID *string, securityGroups []*string) error {
-	glog.V(2).Infof("Attempting to update security groups on instance %q", *instanceID)
+func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) error {
+	glog.V(2).Infof("Attempting to update security groups on instance %q", instanceID)
 
 	input := &ec2.ModifyInstanceAttributeInput{
-		InstanceId: instanceID,
-		Groups:     securityGroups,
+		InstanceId: aws.String(instanceID),
+		Groups:     aws.StringSlice(ids),
 	}
 
 	if _, err := s.EC2.ModifyInstanceAttribute(input); err != nil {
-		return errors.Wrapf(err, "failed to modify instance %q security groups", *instanceID)
+		return errors.Wrapf(err, "failed to modify instance %q security groups", instanceID)
 	}
 
 	return nil
@@ -374,10 +374,6 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 
 	if len(v.Tags) > 0 {
 		i.Tags = tagsToMap(v.Tags)
-	}
-
-	if len(v.SecurityGroups) > 0 {
-		i.SecurityGroups = groupIdentifierToMap(v.SecurityGroups)
 	}
 
 	return i
