@@ -21,8 +21,8 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster/options"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/controllers/cluster"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/controllers/cluster/options"
 )
 
 func init() {

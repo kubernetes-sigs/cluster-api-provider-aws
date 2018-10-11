@@ -11,13 +11,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package elb
 
 import (
-	_ "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/deployer"
-	"sigs.k8s.io/cluster-api/clusterctl/cmd"
+	"testing"
+
+	"github.com/golang/mock/gomock"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
 )
 
-func main() {
-	cmd.Execute()
+func TestNewService(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+	svc := NewService(elbMock)
+	if svc == nil {
+		t.Fatalf("Service shouldn't be nil")
+	}
 }
