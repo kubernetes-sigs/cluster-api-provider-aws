@@ -31,7 +31,10 @@ go_image(
     embed = [":go_default_library"],
     goarch = "amd64",
     goos = "linux",
-    # "//conditions:default": fail("only building on Linux supported. Try again with --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 ")
+    # goos = select(
+    #   "@io_bazel_rules_go//go/platform:linux": "linux",
+    #   "//conditions:default": fail("only building on Linux supported. Try again with --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 ")
+    # )
     pure = "on",
 )
 
