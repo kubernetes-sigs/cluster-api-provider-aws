@@ -19,5 +19,5 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
-cd "${REPO_ROOT}" && make vendor
-go build  "${REPO_ROOT}"/...
+
+cd $REPO_ROOT && make manager clusterctl

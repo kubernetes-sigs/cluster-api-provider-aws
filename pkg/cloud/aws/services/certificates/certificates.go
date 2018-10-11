@@ -119,7 +119,7 @@ func NewSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 		NotAfter:              now.Add(duration365d * 10).UTC(),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
-		IsCA: true,
+		IsCA:                  true,
 	}
 
 	certDERBytes, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, key.Public(), key)
@@ -153,7 +153,7 @@ func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.Private
 	return &api.Config{
 		Clusters: map[string]*api.Cluster{
 			clusterName: {
-				Server: endpoint,
+				Server:                   endpoint,
 				CertificateAuthorityData: EncodeCertPEM(caCert),
 			},
 		},
