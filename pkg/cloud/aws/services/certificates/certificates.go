@@ -59,16 +59,18 @@ type Config struct {
 func (cfg *Config) NewSignedCert(key *rsa.PrivateKey, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*x509.Certificate, error) {
 	serial, err := rand.Int(rand.Reader, new(big.Int).SetInt64(math.MaxInt64))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to generate random integer for signed cerficate")
 	}
+
 	if len(cfg.CommonName) == 0 {
 		return nil, errors.New("must specify a CommonName")
 	}
+
 	if len(cfg.Usages) == 0 {
 		return nil, errors.New("must specify at least one ExtKeyUsage")
 	}
 
-	certTmpl := x509.Certificate{
+	tmpl := x509.Certificate{
 		Subject: pkix.Name{
 			CommonName:   cfg.CommonName,
 			Organization: cfg.Organization,
@@ -81,11 +83,13 @@ func (cfg *Config) NewSignedCert(key *rsa.PrivateKey, caCert *x509.Certificate, 
 		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  cfg.Usages,
 	}
-	certDERBytes, err := x509.CreateCertificate(rand.Reader, &certTmpl, caCert, key.Public(), caKey)
+
+	b, err := x509.CreateCertificate(rand.Reader, &tmpl, caCert, key.Public(), caKey)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create signed certificate: %+v", tmpl)
 	}
-	return x509.ParseCertificate(certDERBytes)
+
+	return x509.ParseCertificate(b)
 }
 
 // NewCertificateAuthority creates new certificate and private key for the certificate authority
@@ -103,49 +107,54 @@ func NewCertificateAuthority() (*x509.Certificate, *rsa.PrivateKey, error) {
 	return cert, key, nil
 }
 
-// NewSelfSignedCACert creates a CA certificate
+// NewSelfSignedCACert creates a CA certificate.
 func NewSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 	cfg := Config{
 		CommonName: "kubernetes",
 	}
-	now := time.Now()
+
+	now := time.Now().UTC()
+
 	tmpl := x509.Certificate{
 		SerialNumber: new(big.Int).SetInt64(0),
 		Subject: pkix.Name{
 			CommonName:   cfg.CommonName,
 			Organization: cfg.Organization,
 		},
-		NotBefore:             now.UTC(),
-		NotAfter:              now.Add(duration365d * 10).UTC(),
+		NotBefore:             now,
+		NotAfter:              now.Add(duration365d * 10),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
 	}
 
-	certDERBytes, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, key.Public(), key)
+	b, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, key.Public(), key)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create self signed CA certificate: %+v", tmpl)
 	}
-	return x509.ParseCertificate(certDERBytes)
+
+	return x509.ParseCertificate(b)
 }
 
-// NewKubeconfig creates a new Kubeconfig where endpoint is the ELB endpoint
+// NewKubeconfig creates a new Kubeconfig where endpoint is the ELB endpoint.
 func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
-	// client cert config
 	cfg := &Config{
 		CommonName:   "kubernetes-admin",
 		Organization: []string{"system:masters"},
 		Usages:       []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
 	}
+
 	clientKey, err := NewPrivateKey()
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create private key")
 	}
+
 	clientCert, err := cfg.NewSignedCert(clientKey, caCert, caKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to sign certificate")
 	}
 
+	// TODO: make this configurable.
 	clusterName := "test1"
 	userName := "kubernetes-admin"
 	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
@@ -173,7 +182,7 @@ func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.Private
 	}, nil
 }
 
-// EncodeCertPEM returns PEM-endcoded certificate data
+// EncodeCertPEM returns PEM-endcoded certificate data.
 func EncodeCertPEM(cert *x509.Certificate) []byte {
 	block := pem.Block{
 		Type:  "CERTIFICATE",
@@ -182,31 +191,34 @@ func EncodeCertPEM(cert *x509.Certificate) []byte {
 	return pem.EncodeToMemory(&block)
 }
 
-// EncodePrivateKeyPEM returns PEM-encoded private key data
+// EncodePrivateKeyPEM returns PEM-encoded private key data.
 func EncodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 	block := pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
+
 	return pem.EncodeToMemory(&block)
 }
 
 // DecodeCertPEM attempts to return a decoded certificate or nil
-// if the encoded input does not contain a certificate
+// if the encoded input does not contain a certificate.
 func DecodeCertPEM(encoded []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(encoded)
 	if block == nil {
 		return nil, nil
 	}
+
 	return x509.ParseCertificate(block.Bytes)
 }
 
 // DecodePrivateKeyPEM attempts to return a decoded key or nil
-// if the encoded input does not contain a private key
+// if the encoded input does not contain a private key.
 func DecodePrivateKeyPEM(encoded []byte) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode(encoded)
 	if block == nil {
 		return nil, nil
 	}
+
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
