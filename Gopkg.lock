@@ -545,14 +545,6 @@
   version = "kubernetes-1.11.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:43d79b0290453dc251444653c07c2f2a287254a9f4bda5eb61d758ecdfcf138a"
-  name = "k8s.io/apiserver"
-  packages = ["pkg/util/logs"]
-  pruneopts = ""
-  revision = "f2a92f83c30cfb3169b95f548cc98f02e1a1abc5"
-
-[[projects]]
   digest = "1:da788b52eda4a8cd4c564a69051b029f310f4ec232cfa3ec0e49b80b0e7b6616"
   name = "k8s.io/client-go"
   packages = [
@@ -664,14 +656,6 @@
   digest = "1:6b56d8a105abea39ebd825d0872dc3e516df6bd0c9d7dcdabbc542d3f3cb8eb0"
   name = "sigs.k8s.io/cluster-api"
   packages = [
-    "cmd/clusterctl/clientcmd",
-    "cmd/clusterctl/clusterdeployer",
-    "cmd/clusterctl/clusterdeployer/bootstrap/existing",
-    "cmd/clusterctl/clusterdeployer/bootstrap/minikube",
-    "cmd/clusterctl/clusterdeployer/clusterclient",
-    "cmd/clusterctl/cmd",
-    "cmd/clusterctl/providercomponents",
-    "cmd/clusterctl/validation",
     "pkg/apis",
     "pkg/apis/cluster/common",
     "pkg/apis/cluster/v1alpha1",
@@ -679,10 +663,8 @@
     "pkg/client/clientset_generated/clientset/scheme",
     "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
     "pkg/controller/cluster",
-    "pkg/controller/config",
     "pkg/controller/error",
     "pkg/controller/machine",
-    "pkg/controller/noderefutil",
     "pkg/util",
   ]
   pruneopts = ""
@@ -714,14 +696,8 @@
     "pkg/runtime/signals",
     "pkg/source",
     "pkg/source/internal",
-    "pkg/webhook",
     "pkg/webhook/admission",
-    "pkg/webhook/admission/builder",
     "pkg/webhook/admission/types",
-    "pkg/webhook/internal/cert",
-    "pkg/webhook/internal/cert/generator",
-    "pkg/webhook/internal/cert/writer",
-    "pkg/webhook/internal/cert/writer/atomic",
     "pkg/webhook/types",
   ]
   pruneopts = ""
@@ -758,29 +734,21 @@
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/apimachinery/pkg/watch",
-    "k8s.io/apiserver/pkg/util/logs",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/code-generator/cmd/deepcopy-gen",
-    "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1",
     "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset",
     "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
     "sigs.k8s.io/cluster-api/pkg/controller/cluster",
-    "sigs.k8s.io/cluster-api/pkg/controller/config",
     "sigs.k8s.io/cluster-api/pkg/controller/error",
     "sigs.k8s.io/cluster-api/pkg/controller/machine",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
-    "sigs.k8s.io/controller-runtime/pkg/controller",
-    "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
     "sigs.k8s.io/controller-runtime/pkg/runtime/log",
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
-    "sigs.k8s.io/controller-runtime/pkg/source",
-    "sigs.k8s.io/controller-runtime/pkg/webhook",
-    "sigs.k8s.io/controller-runtime/pkg/webhook/admission/builder",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
