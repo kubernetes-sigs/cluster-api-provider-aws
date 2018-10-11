@@ -18,7 +18,7 @@ GOPATH := $(shell go env GOPATH)
 
 .PHONY: gendeepcopy
 
-all: generate build images
+all: generate build
 
 ifndef FASTBUILD
 # If FASTBUILD isn't defined, fully rebuild Go binaries, and always
@@ -45,15 +45,14 @@ gendeepcopy: vendor
 	  -h boilerplate.go.txt
 
 genmocks: vendor
-	hack/generate-mocks.sh "github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API" "pkg/cloud/aws/services/ec2/mock_ec2iface/mock.go"
-	hack/generate-mocks.sh "github.com/aws/aws-sdk-go/service/elb/elbiface ELBAPI" "pkg/cloud/aws/services/elb/mock_elbiface/mock.go"
-	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 MachineInterface" "pkg/cloud/aws/actuators/machine/mock_machineiface/mock.go"
-	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 ClusterInterface" "pkg/cloud/aws/actuators/cluster/mock_clusteriface/mock.go"
-	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 ClusterInterface" "pkg/cloud/aws/actuators/cluster/mock_clusteriface/mock.go"
-	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services EC2Interface" "pkg/cloud/aws/services/mocks/ec2.go"
-	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services ELBInterface" "pkg/cloud/aws/services/mocks/elb.go"
+	hack/generate-mocks.sh "github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API" "cloud/aws/services/ec2/mock_ec2iface/mock.go"
+	hack/generate-mocks.sh "github.com/aws/aws-sdk-go/service/elb/elbiface ELBAPI" "cloud/aws/services/elb/mock_elbiface/mock.go"
+	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 MachineInterface" "cloud/aws/actuators/machine/mock_machineiface/mock.go"
+	hack/generate-mocks.sh "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1 ClusterInterface" "cloud/aws/actuators/cluster/mock_clusteriface/mock.go"
+	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services EC2Interface" "cloud/aws/services/mocks/ec2.go"
+	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services ELBInterface" "cloud/aws/services/mocks/elb.go"
 
-build: clusterctl-bin clusterawsadm-bin cluster-controller machine-controller
+build: clusterctl-bin
 
 clusterctl-bin: vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/clusterctl
@@ -65,26 +64,10 @@ cluster-api-dev-helper-bin: vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/hack/cluster-api-dev-helper
 
 images: vendor
-	$(MAKE) -C cmd/cluster-controller image
-	$(MAKE) -C cmd/machine-controller image
+	# TODO: manager image here
 
-dev_push: cluster-controller-dev-push machine-controller-dev-push
-
-cluster-controller: vendor
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
-
-cluster-controller-dev-push: cluster-controller
-	$(MAKE) -C cmd/cluster-controller dev_push
-
-machine-controller: vendor
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
-
-machine-controller-dev-push: machine-controller
-	$(MAKE) -C cmd/machine-controller dev_push
-
-push: vendor
-	$(MAKE) -C cmd/cluster-controller push
-	$(MAKE) -C cmd/machine-controller push
+dev_push:
+	# TODO: manager image here
 
 check: fmt vet
 
@@ -115,15 +98,3 @@ envfile:
 
 clean:
 	rm -rf clusterctl/examples/aws/out
-
-# These should become unnecessary after Bazelification
-
-minikube_build: cluster-controller-minikube-build machine-controller-minikube-build
-
-cluster-controller-minikube-build: vendor
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(GOFLAGS) -o cmd/cluster-controller/cluster-controller sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
-	$(MAKE) -C cmd/cluster-controller minikube_build
-
-machine-controller-minikube-build: vendor
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build $(GOFLAGS) -o cmd/machine-controller/machine-controller sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
-	$(MAKE) -C cmd/machine-controller minikube_build
