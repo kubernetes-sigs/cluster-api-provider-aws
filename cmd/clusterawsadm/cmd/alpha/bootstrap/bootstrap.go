@@ -23,8 +23,8 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/cloudformation"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/sts"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
 )
 
 func RootCmd() *cobra.Command {
