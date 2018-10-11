@@ -19,30 +19,20 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/ec2"
+	elbsvc "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 )
-
-// ec2Svc are the functions from the ec2 service, not the client, this actuator needs.
-// This should never need to import the ec2 sdk.
-type ec2Svc interface {
-	CreateInstance(*clusterv1.Machine, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus, *clusterv1.Cluster) (*v1alpha1.Instance, error)
-	InstanceIfExists(*string) (*v1alpha1.Instance, error)
-	TerminateInstance(string) error
-	CreateOrGetMachine(*clusterv1.Machine, *v1alpha1.AWSMachineProviderStatus, *v1alpha1.AWSMachineProviderConfig, *v1alpha1.AWSClusterProviderStatus, *clusterv1.Cluster) (*v1alpha1.Instance, error)
-	UpdateInstanceSecurityGroups(*string, []*string) error
-	UpdateResourceTags(*string, map[string]string, map[string]string) error
-}
-
-type elbSvc interface {
-	RegisterInstanceWithAPIServerELB(clusterName string, instanceID string) error
-}
 
 // codec are the functions off the generated codec that this actuator uses.
 type codec interface {
@@ -51,39 +41,66 @@ type codec interface {
 	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
 }
 
-// Actuator is responsible for performing machine reconciliation
+// Actuator is responsible for performing machine reconciliation.
 type Actuator struct {
 	codec codec
 
-	// Services
-	ec2            ec2Svc
-	elb            elbSvc
 	machinesGetter client.MachinesGetter
+	servicesGetter service.Getter
 }
 
-// ActuatorParams holds parameter information for Actuator
+// ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	// Codec is needed to work with the provider configs and statuses.
-	Codec codec
-
-	// Services
-
-	// ClusterService is the interface to cluster-api.
+	Codec          codec
 	MachinesGetter client.MachinesGetter
-	// EC2Service is the interface to ec2.
-	EC2Service ec2Svc
-	// ELBService is the interface to load balancing
-	ELBService elbSvc
+	ServicesGetter service.Getter
 }
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) (*Actuator, error) {
-	return &Actuator{
+	res := &Actuator{
 		codec:          params.Codec,
-		ec2:            params.EC2Service,
-		elb:            params.ELBService,
 		machinesGetter: params.MachinesGetter,
-	}, nil
+		servicesGetter: params.ServicesGetter,
+	}
+
+	if res.servicesGetter == nil {
+		res.servicesGetter = new(defaultServicesGetter)
+	}
+
+	return res, nil
+}
+
+func (a *Actuator) ec2(clusterConfig *v1alpha1.AWSClusterProviderConfig) service.EC2MachineInterface {
+	return a.servicesGetter.EC2(a.servicesGetter.Session(clusterConfig))
+}
+
+func (a *Actuator) elb(clusterConfig *v1alpha1.AWSClusterProviderConfig) service.ELBInterface {
+	return a.servicesGetter.ELB(a.servicesGetter.Session(clusterConfig))
+}
+
+func (a *Actuator) machineProviderConfig(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderConfig, error) {
+	machineProviderCfg := &v1alpha1.AWSMachineProviderConfig{}
+	err := a.codec.DecodeFromProviderConfig(machine.Spec.ProviderConfig, machineProviderCfg)
+	return machineProviderCfg, err
+}
+
+func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
+	status := &v1alpha1.AWSMachineProviderStatus{}
+	err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
+	return status, err
+}
+
+func (a *Actuator) clusterProviderStatus(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderStatus, error) {
+	providerStatus := &v1alpha1.AWSClusterProviderStatus{}
+	err := a.codec.DecodeProviderStatus(cluster.Status.ProviderStatus, providerStatus)
+	return providerStatus, err
+}
+
+func (a *Actuator) clusterProviderConfig(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderConfig, error) {
+	providerConfig := &v1alpha1.AWSClusterProviderConfig{}
+	err := a.codec.DecodeFromProviderConfig(cluster.Spec.ProviderConfig, providerConfig)
+	return providerConfig, err
 }
 
 // Create creates a machine and is invoked by the machine controller.
@@ -93,10 +110,17 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine provider status")
 	}
+
 	clusterStatus, err := a.clusterProviderStatus(cluster)
 	if err != nil {
 		return errors.Wrap(err, "failed to get cluster provider status")
 	}
+
+	clusterConfig, err := a.clusterProviderConfig(cluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to get cluster provider config")
+	}
+
 	config, err := a.machineProviderConfig(machine)
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine config")
@@ -108,10 +132,10 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		}
 	}()
 
-	i, err := a.ec2.CreateOrGetMachine(machine, status, config, clusterStatus, cluster)
+	i, err := a.ec2(clusterConfig).CreateOrGetMachine(machine, status, config, clusterStatus, cluster)
 	if err != nil {
 
-		if ec2.IsFailedDependency(errors.Cause(err)) {
+		if ec2svc.IsFailedDependency(errors.Cause(err)) {
 			glog.Errorf("network not ready to launch instances yet: %s", err)
 			return &controllerError.RequeueAfterError{
 				RequeueAfter: time.Minute,
@@ -137,8 +161,13 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 }
 
 func (a *Actuator) reconcileLBAttachment(c *clusterv1.Cluster, m *clusterv1.Machine, i *v1alpha1.Instance) error {
+	clusterConfig, err := a.clusterProviderConfig(c)
+	if err != nil {
+		return errors.Wrap(err, "failed to get cluster provider config")
+	}
+
 	if m.ObjectMeta.Labels["set"] == "controlplane" {
-		if err := a.elb.RegisterInstanceWithAPIServerELB(c.Name, i.ID); err != nil {
+		if err := a.elb(clusterConfig).RegisterInstanceWithAPIServerELB(c.Name, i.ID); err != nil {
 			return errors.Wrapf(err,
 				"could not register control plane instance %q with load balancer", i.ID,
 			)
@@ -156,12 +185,19 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine provider status")
 	}
 
+	clusterConfig, err := a.clusterProviderConfig(cluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to get cluster provider config")
+	}
+
 	if status.InstanceID == nil {
 		// Instance was never created
 		return nil
 	}
 
-	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	ec2svc := a.ec2(clusterConfig)
+
+	instance, err := ec2svc.InstanceIfExists(status.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -179,8 +215,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
 		return nil
 	default:
-		err = a.ec2.TerminateInstance(aws.StringValue(status.InstanceID))
-		if err != nil {
+		if err := ec2svc.TerminateInstance(aws.StringValue(status.InstanceID)); err != nil {
 			return errors.Wrap(err, "failed to terminate instance")
 		}
 	}
@@ -209,8 +244,15 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine status")
 	}
 
+	clusterConfig, err := a.clusterProviderConfig(cluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to get cluster provider config")
+	}
+
+	ec2svc := a.ec2(clusterConfig)
+
 	// Get the current instance description from AWS.
-	instanceDescription, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instanceDescription, err := ec2svc.InstanceIfExists(status.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -222,6 +264,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	// Ensure that the security groups are correct.
 	securityGroupsChanged, err := a.ensureSecurityGroups(
+		ec2svc,
 		machine,
 		status.InstanceID,
 		config.AdditionalSecurityGroups,
@@ -232,7 +275,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	// Ensure that the tags are correct.
-	tagsChanged, err := a.ensureTags(machine, status.InstanceID, config.AdditionalTags)
+	tagsChanged, err := a.ensureTags(ec2svc, machine, status.InstanceID, config.AdditionalTags)
 	if err != nil {
 		return errors.Wrap(err, "failed to ensure tags")
 	}
@@ -262,12 +305,17 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return false, err
 	}
 
+	clusterConfig, err := a.clusterProviderConfig(cluster)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get cluster provider config")
+	}
+
 	// TODO worry about pointers. instance if exists returns *any* instance
 	if status.InstanceID == nil {
 		return false, nil
 	}
 
-	instance, err := a.ec2.InstanceIfExists(status.InstanceID)
+	instance, err := a.ec2(clusterConfig).InstanceIfExists(status.InstanceID)
 	if err != nil {
 		return false, err
 	}
@@ -318,4 +366,18 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWS
 	}
 
 	return nil
+}
+
+type defaultServicesGetter struct{}
+
+func (d *defaultServicesGetter) Session(clusterConfig *v1alpha1.AWSClusterProviderConfig) *session.Session {
+	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
+}
+
+func (d *defaultServicesGetter) EC2(session *session.Session) service.EC2Interface {
+	return ec2svc.NewService(ec2.New(session))
+}
+
+func (d *defaultServicesGetter) ELB(session *session.Session) service.ELBInterface {
+	return elbsvc.NewService(elb.New(session))
 }

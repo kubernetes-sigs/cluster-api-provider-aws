@@ -16,6 +16,7 @@ package machine
 // should not need to import the ec2 sdk here
 import (
 	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	service "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services"
 
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -32,7 +33,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (a *Actuator) ensureSecurityGroups(machine *clusterv1.Machine, instanceID *string, additionalSecurityGroups []v1alpha1.AWSResourceReference, instanceSecurityGroups map[string]string) (bool, error) {
+func (a *Actuator) ensureSecurityGroups(ec2svc service.EC2MachineInterface, machine *clusterv1.Machine, instanceID *string, additionalSecurityGroups []v1alpha1.AWSResourceReference, instanceSecurityGroups map[string]string) (bool, error) {
 	// Get the SecurityGroup annotations
 	annotation, err := a.machineAnnotationJSON(machine, SecurityGroupsLastAppliedAnnotation)
 	if err != nil {
@@ -48,7 +49,7 @@ func (a *Actuator) ensureSecurityGroups(machine *clusterv1.Machine, instanceID *
 	)
 	if changed {
 		// Finally, update the instance with our new security groups.
-		err := a.ec2.UpdateInstanceSecurityGroups(instanceID, groupIDs)
+		err := ec2svc.UpdateInstanceSecurityGroups(instanceID, groupIDs)
 		if err != nil {
 			return false, err
 		}
