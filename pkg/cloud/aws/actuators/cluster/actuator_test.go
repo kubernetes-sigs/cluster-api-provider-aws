@@ -20,9 +20,9 @@ import (
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster/mock_clusteriface"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -88,7 +88,7 @@ func TestGetIP(t *testing.T) {
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
 				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig/v1alpha1","region":"us-east-1"}`),
+					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig.k8s.io/v1alpha1","region":"us-east-1"}`),
 				},
 			},
 		},
@@ -99,7 +99,7 @@ func TestGetIP(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
 				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig/v1alpha1","region":"us-east-1"}`),
+					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig.k8s.io/v1alpha1","region":"us-east-1"}`),
 				},
 			},
 		},
@@ -148,7 +148,7 @@ func TestReconcile(t *testing.T) {
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
 				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig/v1alpha1","region":"us-east-1"}`),
+					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig.k8s.io/v1alpha1","region":"us-east-1"}`),
 				},
 			},
 		},
