@@ -30,6 +30,7 @@ endif
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure
+	./hack/update-bazel.sh
 
 depend-update:
 	dep version || go get -u github.com/golang/dep/cmd/dep
