@@ -35,14 +35,8 @@ depend-update:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure -update
 
-generate: gendeepcopy
-
-gendeepcopy: vendor
-	go build -o $(GOPATH)/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
-	$(GOPATH)/bin/deepcopy-gen \
-	  -i ./pkg/cloud/aws/providerconfig,./pkg/cloud/aws/providerconfig/v1alpha1 \
-	  -O zz_generated.deepcopy \
-	  -h boilerplate.go.txt
+generate: vendor
+	GOPATH=${GOPATH} go generate ./pkg/... ./cmd/...
 
 genmocks: vendor
 	hack/generate-mocks.sh "github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API" "cloud/aws/services/ec2/mock_ec2iface/mock.go"

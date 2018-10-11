@@ -18,9 +18,10 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
+
+	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 )
 
 // MockELBInterface is a mock of ELBInterface interface

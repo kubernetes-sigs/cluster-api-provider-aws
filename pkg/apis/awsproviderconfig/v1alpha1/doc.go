@@ -11,21 +11,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package options
-
-import (
-	"sigs.k8s.io/cluster-api/pkg/controller/config"
-)
-
-// Server is the server configuration
-type Server struct {
-	CommonConfig *config.Configuration
-}
-
-// NewServer creates a new server with default controller configuration
-func NewServer() *Server {
-	s := Server{
-		CommonConfig: &config.ControllerConfig,
-	}
-	return &s
-}
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig
+// +k8s:openapi-gen=true
+// +k8s:defaulter-gen=TypeMeta
+// +groupName=awsproviderconfig.k8s.io
+package v1alpha1

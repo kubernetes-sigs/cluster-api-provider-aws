@@ -11,6 +11,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig
+// +k8s:openapi-gen=true
+// +k8s:defaulter-gen=TypeMeta
 package v1alpha1
 
 import (
@@ -21,8 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 
 // AWSProviderConfigCodec is a runtime codec for the provider configuration
@@ -32,51 +36,23 @@ type AWSProviderConfigCodec struct {
 	decoder runtime.Decoder
 }
 
-// GroupName is the provider group name
-const GroupName = "awsproviderconfig"
-
-// SchemeGroupVersion represents the API group and version
-var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
-
 var (
+	// SchemeGroupVersion represents the API group and version
+	SchemeGroupVersion = schema.GroupVersion{Group: "awsproviderconfig.k8s.io", Version: "v1alpha1"}
 	// SchemeBuilder collects functions that add things to a scheme.
-	SchemeBuilder      runtime.SchemeBuilder
-	localSchemeBuilder = &SchemeBuilder
-
-	// AddToScheme applies all the stored functions to the scheme.
-	AddToScheme = localSchemeBuilder.AddToScheme
+	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
 
 func init() {
-	localSchemeBuilder.Register(addKnownTypes)
-}
-
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSMachineProviderConfig{},
-	)
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSClusterProviderConfig{},
-	)
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSMachineProviderStatus{},
-	)
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&AWSClusterProviderStatus{},
-	)
-	return nil
+	SchemeBuilder.Register(&AWSMachineProviderConfig{})
+	SchemeBuilder.Register(&AWSClusterProviderConfig{})
+	SchemeBuilder.Register(&AWSMachineProviderStatus{})
+	SchemeBuilder.Register(&AWSClusterProviderStatus{})
 }
 
 // NewScheme creates a new Scheme
 func NewScheme() (*runtime.Scheme, error) {
-	scheme := runtime.NewScheme()
-	if err := AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := providerconfig.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	return scheme, nil
+	return SchemeBuilder.Build()
 }
 
 // NewCodec creates a serializer/deserializer for the provider configuration
