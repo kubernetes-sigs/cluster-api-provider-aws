@@ -44,6 +44,19 @@
         {"shape":"DuplicateInstanceId"}
       ]
     },
+    "CancelMaintenanceWindowExecution":{
+      "name":"CancelMaintenanceWindowExecution",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CancelMaintenanceWindowExecutionRequest"},
+      "output":{"shape":"CancelMaintenanceWindowExecutionResult"},
+      "errors":[
+        {"shape":"InternalServerError"},
+        {"shape":"DoesNotExistException"}
+      ]
+    },
     "CreateActivation":{
       "name":"CreateActivation",
       "http":{
@@ -621,6 +634,19 @@
         {"shape":"InternalServerError"}
       ]
     },
+    "DescribeMaintenanceWindowSchedule":{
+      "name":"DescribeMaintenanceWindowSchedule",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeMaintenanceWindowScheduleRequest"},
+      "output":{"shape":"DescribeMaintenanceWindowScheduleResult"},
+      "errors":[
+        {"shape":"InternalServerError"},
+        {"shape":"DoesNotExistException"}
+      ]
+    },
     "DescribeMaintenanceWindowTargets":{
       "name":"DescribeMaintenanceWindowTargets",
       "http":{
@@ -655,6 +681,18 @@
       },
       "input":{"shape":"DescribeMaintenanceWindowsRequest"},
       "output":{"shape":"DescribeMaintenanceWindowsResult"},
+      "errors":[
+        {"shape":"InternalServerError"}
+      ]
+    },
+    "DescribeMaintenanceWindowsForTarget":{
+      "name":"DescribeMaintenanceWindowsForTarget",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeMaintenanceWindowsForTargetRequest"},
+      "output":{"shape":"DescribeMaintenanceWindowsForTargetResult"},
       "errors":[
         {"shape":"InternalServerError"}
       ]
@@ -2201,6 +2239,19 @@
       "members":{
       }
     },
+    "CancelMaintenanceWindowExecutionRequest":{
+      "type":"structure",
+      "required":["WindowExecutionId"],
+      "members":{
+        "WindowExecutionId":{"shape":"MaintenanceWindowExecutionId"}
+      }
+    },
+    "CancelMaintenanceWindowExecutionResult":{
+      "type":"structure",
+      "members":{
+        "WindowExecutionId":{"shape":"MaintenanceWindowExecutionId"}
+      }
+    },
     "ClientToken":{
       "type":"string",
       "max":64,
@@ -2685,7 +2736,10 @@
       "members":{
         "Name":{"shape":"MaintenanceWindowName"},
         "Description":{"shape":"MaintenanceWindowDescription"},
+        "StartDate":{"shape":"MaintenanceWindowStringDateTime"},
+        "EndDate":{"shape":"MaintenanceWindowStringDateTime"},
         "Schedule":{"shape":"MaintenanceWindowSchedule"},
+        "ScheduleTimezone":{"shape":"MaintenanceWindowTimezone"},
         "Duration":{"shape":"MaintenanceWindowDurationHours"},
         "Cutoff":{"shape":"MaintenanceWindowCutoff"},
         "AllowUnassociatedTargets":{"shape":"MaintenanceWindowAllowUnassociatedTargets"},
@@ -2716,6 +2770,7 @@
           "box":true
         },
         "RejectedPatches":{"shape":"PatchIdList"},
+        "RejectedPatchesAction":{"shape":"PatchAction"},
         "Description":{"shape":"BaselineDescription"},
         "Sources":{"shape":"PatchSourceList"},
         "ClientToken":{
@@ -3359,6 +3414,27 @@
         "NextToken":{"shape":"NextToken"}
       }
     },
+    "DescribeMaintenanceWindowScheduleRequest":{
+      "type":"structure",
+      "members":{
+        "WindowId":{"shape":"MaintenanceWindowId"},
+        "Targets":{"shape":"Targets"},
+        "ResourceType":{"shape":"MaintenanceWindowResourceType"},
+        "Filters":{"shape":"PatchOrchestratorFilterList"},
+        "MaxResults":{
+          "shape":"MaintenanceWindowSearchMaxResults",
+          "box":true
+        },
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeMaintenanceWindowScheduleResult":{
+      "type":"structure",
+      "members":{
+        "ScheduledWindowExecutions":{"shape":"ScheduledWindowExecutionList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
     "DescribeMaintenanceWindowTargetsRequest":{
       "type":"structure",
       "required":["WindowId"],
@@ -3396,6 +3472,29 @@
       "type":"structure",
       "members":{
         "Tasks":{"shape":"MaintenanceWindowTaskList"},
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeMaintenanceWindowsForTargetRequest":{
+      "type":"structure",
+      "required":[
+        "Targets",
+        "ResourceType"
+      ],
+      "members":{
+        "Targets":{"shape":"Targets"},
+        "ResourceType":{"shape":"MaintenanceWindowResourceType"},
+        "MaxResults":{
+          "shape":"MaintenanceWindowSearchMaxResults",
+          "box":true
+        },
+        "NextToken":{"shape":"NextToken"}
+      }
+    },
+    "DescribeMaintenanceWindowsForTargetResult":{
+      "type":"structure",
+      "members":{
+        "WindowIdentities":{"shape":"MaintenanceWindowsForTargetList"},
         "NextToken":{"shape":"NextToken"}
       }
     },
@@ -3467,6 +3566,10 @@
         "Instances":{"shape":"Integer"},
         "InstancesWithInstalledPatches":{"shape":"Integer"},
         "InstancesWithInstalledOtherPatches":{"shape":"Integer"},
+        "InstancesWithInstalledRejectedPatches":{
+          "shape":"InstancesCount",
+          "box":true
+        },
         "InstancesWithMissingPatches":{"shape":"Integer"},
         "InstancesWithFailedPatches":{"shape":"Integer"},
         "InstancesWithNotApplicablePatches":{"shape":"Integer"}
@@ -4079,7 +4182,11 @@
         "WindowId":{"shape":"MaintenanceWindowId"},
         "Name":{"shape":"MaintenanceWindowName"},
         "Description":{"shape":"MaintenanceWindowDescription"},
+        "StartDate":{"shape":"MaintenanceWindowStringDateTime"},
+        "EndDate":{"shape":"MaintenanceWindowStringDateTime"},
         "Schedule":{"shape":"MaintenanceWindowSchedule"},
+        "ScheduleTimezone":{"shape":"MaintenanceWindowTimezone"},
+        "NextExecutionTime":{"shape":"MaintenanceWindowStringDateTime"},
         "Duration":{"shape":"MaintenanceWindowDurationHours"},
         "Cutoff":{"shape":"MaintenanceWindowCutoff"},
         "AllowUnassociatedTargets":{"shape":"MaintenanceWindowAllowUnassociatedTargets"},
@@ -4247,6 +4354,7 @@
           "box":true
         },
         "RejectedPatches":{"shape":"PatchIdList"},
+        "RejectedPatchesAction":{"shape":"PatchAction"},
         "PatchGroups":{"shape":"PatchGroupList"},
         "CreatedDate":{"shape":"DateTime"},
         "ModifiedDate":{"shape":"DateTime"},
@@ -4289,6 +4397,12 @@
         "Message":{"shape":"String"}
       },
       "exception":true
+    },
+    "InstallOverrideList":{
+      "type":"string",
+      "max":256,
+      "min":1,
+      "pattern":"^https://.+$|^s3://([^/]+)/(.*?([^/]+))$"
     },
     "InstanceAggregatedAssociationOverview":{
       "type":"structure",
@@ -4475,9 +4589,14 @@
         "PatchGroup":{"shape":"PatchGroup"},
         "BaselineId":{"shape":"BaselineId"},
         "SnapshotId":{"shape":"SnapshotId"},
+        "InstallOverrideList":{"shape":"InstallOverrideList"},
         "OwnerInformation":{"shape":"OwnerInformation"},
         "InstalledCount":{"shape":"PatchInstalledCount"},
         "InstalledOtherCount":{"shape":"PatchInstalledOtherCount"},
+        "InstalledRejectedCount":{
+          "shape":"PatchInstalledRejectedCount",
+          "box":true
+        },
         "MissingCount":{"shape":"PatchMissingCount"},
         "FailedCount":{"shape":"PatchFailedCount"},
         "NotApplicableCount":{"shape":"PatchNotApplicableCount"},
@@ -4540,6 +4659,7 @@
       "type":"string",
       "max":255
     },
+    "InstancesCount":{"type":"integer"},
     "Integer":{"type":"integer"},
     "InternalServerError":{
       "type":"structure",
@@ -5602,7 +5722,19 @@
         "Description":{"shape":"MaintenanceWindowDescription"},
         "Enabled":{"shape":"MaintenanceWindowEnabled"},
         "Duration":{"shape":"MaintenanceWindowDurationHours"},
-        "Cutoff":{"shape":"MaintenanceWindowCutoff"}
+        "Cutoff":{"shape":"MaintenanceWindowCutoff"},
+        "Schedule":{"shape":"MaintenanceWindowSchedule"},
+        "ScheduleTimezone":{"shape":"MaintenanceWindowTimezone"},
+        "EndDate":{"shape":"MaintenanceWindowStringDateTime"},
+        "StartDate":{"shape":"MaintenanceWindowStringDateTime"},
+        "NextExecutionTime":{"shape":"MaintenanceWindowStringDateTime"}
+      }
+    },
+    "MaintenanceWindowIdentityForTarget":{
+      "type":"structure",
+      "members":{
+        "WindowId":{"shape":"MaintenanceWindowId"},
+        "Name":{"shape":"MaintenanceWindowName"}
       }
     },
     "MaintenanceWindowIdentityList":{
@@ -5669,6 +5801,10 @@
       "max":256,
       "min":1
     },
+    "MaintenanceWindowSearchMaxResults":{
+      "type":"integer",
+      "min":1
+    },
     "MaintenanceWindowStepFunctionsInput":{
       "type":"string",
       "max":4096,
@@ -5686,6 +5822,7 @@
         "Name":{"shape":"MaintenanceWindowStepFunctionsName"}
       }
     },
+    "MaintenanceWindowStringDateTime":{"type":"string"},
     "MaintenanceWindowTarget":{
       "type":"structure",
       "members":{
@@ -5800,6 +5937,11 @@
         "STEP_FUNCTIONS",
         "LAMBDA"
       ]
+    },
+    "MaintenanceWindowTimezone":{"type":"string"},
+    "MaintenanceWindowsForTargetList":{
+      "type":"list",
+      "member":{"shape":"MaintenanceWindowIdentityForTarget"}
     },
     "ManagedInstanceId":{
       "type":"string",
@@ -6179,6 +6321,13 @@
         "Language":{"shape":"PatchLanguage"}
       }
     },
+    "PatchAction":{
+      "type":"string",
+      "enum":[
+        "ALLOW_AS_DEPENDENCY",
+        "BLOCK"
+      ]
+    },
     "PatchBaselineIdentity":{
       "type":"structure",
       "members":{
@@ -6227,6 +6376,7 @@
       "enum":[
         "INSTALLED",
         "INSTALLED_OTHER",
+        "INSTALLED_REJECTED",
         "MISSING",
         "NOT_APPLICABLE",
         "FAILED"
@@ -6341,6 +6491,7 @@
     },
     "PatchInstalledCount":{"type":"integer"},
     "PatchInstalledOtherCount":{"type":"integer"},
+    "PatchInstalledRejectedCount":{"type":"integer"},
     "PatchKbNumber":{"type":"string"},
     "PatchLanguage":{"type":"string"},
     "PatchList":{
@@ -6892,6 +7043,18 @@
       "type":"string",
       "max":256,
       "min":1
+    },
+    "ScheduledWindowExecution":{
+      "type":"structure",
+      "members":{
+        "WindowId":{"shape":"MaintenanceWindowId"},
+        "Name":{"shape":"MaintenanceWindowName"},
+        "ExecutionTime":{"shape":"MaintenanceWindowStringDateTime"}
+      }
+    },
+    "ScheduledWindowExecutionList":{
+      "type":"list",
+      "member":{"shape":"ScheduledWindowExecution"}
     },
     "SendAutomationSignalRequest":{
       "type":"structure",
@@ -7573,7 +7736,10 @@
         "WindowId":{"shape":"MaintenanceWindowId"},
         "Name":{"shape":"MaintenanceWindowName"},
         "Description":{"shape":"MaintenanceWindowDescription"},
+        "StartDate":{"shape":"MaintenanceWindowStringDateTime"},
+        "EndDate":{"shape":"MaintenanceWindowStringDateTime"},
         "Schedule":{"shape":"MaintenanceWindowSchedule"},
+        "ScheduleTimezone":{"shape":"MaintenanceWindowTimezone"},
         "Duration":{
           "shape":"MaintenanceWindowDurationHours",
           "box":true
@@ -7602,7 +7768,10 @@
         "WindowId":{"shape":"MaintenanceWindowId"},
         "Name":{"shape":"MaintenanceWindowName"},
         "Description":{"shape":"MaintenanceWindowDescription"},
+        "StartDate":{"shape":"MaintenanceWindowStringDateTime"},
+        "EndDate":{"shape":"MaintenanceWindowStringDateTime"},
         "Schedule":{"shape":"MaintenanceWindowSchedule"},
+        "ScheduleTimezone":{"shape":"MaintenanceWindowTimezone"},
         "Duration":{"shape":"MaintenanceWindowDurationHours"},
         "Cutoff":{"shape":"MaintenanceWindowCutoff"},
         "AllowUnassociatedTargets":{"shape":"MaintenanceWindowAllowUnassociatedTargets"},
@@ -7717,6 +7886,7 @@
           "box":true
         },
         "RejectedPatches":{"shape":"PatchIdList"},
+        "RejectedPatchesAction":{"shape":"PatchAction"},
         "Description":{"shape":"BaselineDescription"},
         "Sources":{"shape":"PatchSourceList"},
         "Replace":{
@@ -7740,6 +7910,7 @@
           "box":true
         },
         "RejectedPatches":{"shape":"PatchIdList"},
+        "RejectedPatchesAction":{"shape":"PatchAction"},
         "CreatedDate":{"shape":"DateTime"},
         "ModifiedDate":{"shape":"DateTime"},
         "Description":{"shape":"BaselineDescription"},

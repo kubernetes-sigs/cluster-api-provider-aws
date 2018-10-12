@@ -19,6 +19,7 @@ package generators
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"k8s.io/kube-openapi/pkg/generators/rules"
 
@@ -57,6 +58,25 @@ type apiViolation struct {
 	field string
 }
 
+// apiViolations implements sort.Interface for []apiViolation based on the fields: rule,
+// packageName, typeName and field.
+type apiViolations []apiViolation
+
+func (a apiViolations) Len() int      { return len(a) }
+func (a apiViolations) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a apiViolations) Less(i, j int) bool {
+	if a[i].rule != a[j].rule {
+		return a[i].rule < a[j].rule
+	}
+	if a[i].packageName != a[j].packageName {
+		return a[i].packageName < a[j].packageName
+	}
+	if a[i].typeName != a[j].typeName {
+		return a[i].typeName < a[j].typeName
+	}
+	return a[i].field < a[j].field
+}
+
 // APIRule is the interface for validating API rule on Go types
 type APIRule interface {
 	// Validate evaluates API rule on type t and returns a list of field names in
@@ -90,6 +110,7 @@ func (l *apiLinter) validate(t *types.Type) error {
 
 // report prints any API rule violation to writer w and returns error if violation exists
 func (l *apiLinter) report(w io.Writer) error {
+	sort.Sort(apiViolations(l.violations))
 	for _, v := range l.violations {
 		fmt.Fprintf(w, "API rule violation: %s,%s,%s,%s\n", v.rule, v.packageName, v.typeName, v.field)
 	}

@@ -30,13 +30,14 @@ import (
 
 const (
 	testdataDir          = "./testdata"
-	inputDir             = testdataDir + "/listtype"
+	inputDir             = testdataDir + "/listtype" + "," + testdataDir + "/dummytype"
 	outputBase           = "pkg"
 	outputPackage        = "generated"
 	outputBaseFilename   = "openapi_generated"
-	reportFilename       = "test.report"
 	generatedSwaggerFile = "generated.json"
+	generatedReportFile  = "generated.report"
 	goldenSwaggerFile    = "golden.json"
+	goldenReportFile     = "golden.report"
 	timeoutSeconds       = 5.0
 )
 
@@ -51,6 +52,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 		tempDir             string
 		terr                error
 		generatedSwaggerDef string
+		generatedReportDef  string
 	)
 
 	BeforeSuite(func() {
@@ -60,9 +62,10 @@ var _ = Describe("Open API Definitions Generation", func() {
 		// Build the OpenAPI code generator.
 		binary_path, berr := gexec.Build("../../cmd/openapi-gen/openapi-gen.go")
 		Expect(berr).ShouldNot(HaveOccurred())
+		generatedReportDef = filepath.Join(tempDir, generatedReportFile)
 		// Run the OpenAPI code generator, creating OpenAPIDefinition code
 		// to be compiled into builder.
-		command := exec.Command(binary_path, "-i", inputDir, "-o", outputBase, "-p", outputPackage, "-O", outputBaseFilename, "-r", reportFilename)
+		command := exec.Command(binary_path, "-i", inputDir, "-o", outputBase, "-p", outputPackage, "-O", outputBaseFilename, "-r", generatedReportDef)
 		session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
@@ -88,6 +91,17 @@ var _ = Describe("Open API Definitions Generation", func() {
 		It("Generated OpenAPI swagger definitions should match golden files", func() {
 			// Diff the generated swagger against the golden swagger. Exit code should be zero.
 			command := exec.Command("diff", goldenSwaggerFile, generatedSwaggerDef)
+			command.Dir = testdataDir
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+		})
+	})
+
+	Describe("Validating API Rule Violation Reporting", func() {
+		It("Generated API rule violations should match golden report files", func() {
+			// Diff the generated report against the golden report. Exit code should be zero.
+			command := exec.Command("diff", goldenReportFile, generatedReportDef)
 			command.Dir = testdataDir
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).ShouldNot(HaveOccurred())

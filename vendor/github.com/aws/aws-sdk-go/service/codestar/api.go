@@ -15,7 +15,7 @@ const opAssociateTeamMember = "AssociateTeamMember"
 // AssociateTeamMemberRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateTeamMember operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -113,7 +113,7 @@ const opCreateProject = "CreateProject"
 // CreateProjectRequest generates a "aws/request.Request" representing the
 // client's request for the CreateProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -215,7 +215,7 @@ const opCreateUserProfile = "CreateUserProfile"
 // CreateUserProfileRequest generates a "aws/request.Request" representing the
 // client's request for the CreateUserProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -303,7 +303,7 @@ const opDeleteProject = "DeleteProject"
 // DeleteProjectRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -391,7 +391,7 @@ const opDeleteUserProfile = "DeleteUserProfile"
 // DeleteUserProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteUserProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -473,7 +473,7 @@ const opDescribeProject = "DescribeProject"
 // DescribeProjectRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -565,7 +565,7 @@ const opDescribeUserProfile = "DescribeUserProfile"
 // DescribeUserProfileRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeUserProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -647,7 +647,7 @@ const opDisassociateTeamMember = "DisassociateTeamMember"
 // DisassociateTeamMemberRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateTeamMember operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -739,7 +739,7 @@ const opListProjects = "ListProjects"
 // ListProjectsRequest generates a "aws/request.Request" representing the
 // client's request for the ListProjects operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -821,7 +821,7 @@ const opListResources = "ListResources"
 // ListResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListResources operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -906,7 +906,7 @@ const opListTagsForProject = "ListTagsForProject"
 // ListTagsForProjectRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -991,7 +991,7 @@ const opListTeamMembers = "ListTeamMembers"
 // ListTeamMembersRequest generates a "aws/request.Request" representing the
 // client's request for the ListTeamMembers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1076,7 +1076,7 @@ const opListUserProfiles = "ListUserProfiles"
 // ListUserProfilesRequest generates a "aws/request.Request" representing the
 // client's request for the ListUserProfiles operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1158,7 +1158,7 @@ const opTagProject = "TagProject"
 // TagProjectRequest generates a "aws/request.Request" representing the
 // client's request for the TagProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1247,7 +1247,7 @@ const opUntagProject = "UntagProject"
 // UntagProjectRequest generates a "aws/request.Request" representing the
 // client's request for the UntagProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1336,7 +1336,7 @@ const opUpdateProject = "UpdateProject"
 // UpdateProjectRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateProject operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1418,7 +1418,7 @@ const opUpdateTeamMember = "UpdateTeamMember"
 // UpdateTeamMemberRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateTeamMember operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1518,7 +1518,7 @@ const opUpdateUserProfile = "UpdateUserProfile"
 // UpdateUserProfileRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateUserProfile operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1737,6 +1737,9 @@ type CreateProjectInput struct {
 	//
 	// Name is a required field
 	Name *string `locationName:"name" min:"1" type:"string" required:"true"`
+
+	// The tags created for the project.
+	Tags map[string]*string `locationName:"tags" type:"map"`
 }
 
 // String returns the string representation
@@ -1795,6 +1798,12 @@ func (s *CreateProjectInput) SetId(v string) *CreateProjectInput {
 // SetName sets the Name field's value.
 func (s *CreateProjectInput) SetName(v string) *CreateProjectInput {
 	s.Name = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateProjectInput) SetTags(v map[string]*string) *CreateProjectInput {
+	s.Tags = v
 	return s
 }
 
@@ -2247,6 +2256,9 @@ type DescribeProjectOutput struct {
 	// The ID of the primary stack in AWS CloudFormation used to generate resources
 	// for the project.
 	StackId *string `locationName:"stackId" type:"string"`
+
+	// The project creation or deletion status.
+	Status *ProjectStatus `locationName:"status" type:"structure"`
 }
 
 // String returns the string representation
@@ -2304,6 +2316,12 @@ func (s *DescribeProjectOutput) SetProjectTemplateId(v string) *DescribeProjectO
 // SetStackId sets the StackId field's value.
 func (s *DescribeProjectOutput) SetStackId(v string) *DescribeProjectOutput {
 	s.StackId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DescribeProjectOutput) SetStatus(v *ProjectStatus) *DescribeProjectOutput {
+	s.Status = v
 	return s
 }
 
@@ -2969,6 +2987,41 @@ func (s *ListUserProfilesOutput) SetNextToken(v string) *ListUserProfilesOutput 
 // SetUserProfiles sets the UserProfiles field's value.
 func (s *ListUserProfilesOutput) SetUserProfiles(v []*UserProfileSummary) *ListUserProfilesOutput {
 	s.UserProfiles = v
+	return s
+}
+
+// An indication of whether a project creation or deletion is failed or successful.
+type ProjectStatus struct {
+	_ struct{} `type:"structure"`
+
+	// In the case of a project creation or deletion failure, a reason for the failure.
+	Reason *string `locationName:"reason" type:"string"`
+
+	// The phase of completion for a project creation or deletion.
+	//
+	// State is a required field
+	State *string `locationName:"state" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ProjectStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ProjectStatus) GoString() string {
+	return s.String()
+}
+
+// SetReason sets the Reason field's value.
+func (s *ProjectStatus) SetReason(v string) *ProjectStatus {
+	s.Reason = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *ProjectStatus) SetState(v string) *ProjectStatus {
+	s.State = &v
 	return s
 }
 

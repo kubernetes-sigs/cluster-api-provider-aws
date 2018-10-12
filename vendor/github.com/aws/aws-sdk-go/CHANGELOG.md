@@ -1,3 +1,99 @@
+Release v1.15.53 (2018-10-11)
+===
+
+### Service Client Updates
+* `service/athena`: Updates service API and documentation
+  * 1. GetQueryExecution API changes to return statementType of a submitted Athena query.  2. GetQueryResults API changes to return the number of rows added to a table when a CTAS query is executed.
+* `service/directconnect`: Updates service API and documentation
+  * This release adds support for Jumbo Frames over AWS Direct Connect. You can now set MTU value when creating new virtual interfaces. This release also includes a new API to modify MTU value of existing virtual interfaces.
+* `service/ec2`: Updates service API
+  * You can now launch the smaller-sized G3 instance called g3s.xlarge. G3s.xlarge provides 4 vCPU, 30.5 GB RAM and a NVIDIA Tesla M60 GPU. It is ideal for remote workstations, engineering and architectural applications, and 3D visualizations and rendering for visual effects.
+* `service/mediaconvert`: Updates service paginators
+  * Added Paginators for all the MediaConvert list operations
+* `service/transcribe`: Updates service API and documentation
+
+Release v1.15.52 (2018-10-10)
+===
+
+### Service Client Updates
+* `service/comprehend`: Updates service API
+* `service/es`: Updates service API and documentation
+  * Amazon Elasticsearch Service now supports customer-scheduled service software updates. When new service software becomes available, you can request an update to your domain and benefit from new features more quickly. If you take no action, we update the service software automatically after a certain time frame.
+* `service/transcribe`: Updates service API and documentation
+
+Release v1.15.51 (2018-10-09)
+===
+
+### Service Client Updates
+* `service/ssm`: Updates service API and documentation
+  * Adds StartDate, EndDate, and ScheduleTimezone to CreateMaintenanceWindow and UpdateMaintenanceWindow; Adds NextExecutionTime to GetMaintenanceWindow and DescribeMaintenanceWindows; Adds CancelMaintenanceWindowExecution, DescribeMaintenanceWindowSchedule and DescribeMaintenanceWindowsForTarget APIs.
+
+Release v1.15.50 (2018-10-08)
+===
+
+### Service Client Updates
+* `service/iot`: Updates service API and documentation
+  * We are releasing job execution timeout functionalities to customers. Customer now can set job execution timeout on the job level when creating a job.
+* `service/iot-jobs-data`: Updates service API and documentation
+
+Release v1.15.49 (2018-10-05)
+===
+
+### Service Client Updates
+* `service/ds`: Updates service API and documentation
+  * SDK changes to create a new type of trust for active directory
+
+Release v1.15.48 (2018-10-04)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service API and documentation
+  * Adding support for multi-value parameters in TestInvokeMethod and TestInvokeAuthorizer.
+* `service/codebuild`: Updates service API and documentation
+  * Add resolved source version field in build output
+* `service/ssm`: Updates service API and documentation
+  * Adds RejectedPatchesAction to baseline to enable stricted validation of the rejected Patches List ; Add InstalledRejected and InstallOverrideList to compliance reporting
+* `service/storagegateway`: Updates service API and documentation
+  * AWS Storage Gateway now enables you to specify folders and subfolders when you update your file gateway's view of your S3 objects using the Refresh Cache API.
+
+Release v1.15.47 (2018-10-02)
+===
+
+### Service Client Updates
+* `service/sagemaker`: Updates service waiters
+  * Waiter for SageMaker Batch Transform Jobs.
+* `service/secretsmanager`: Updates service documentation
+  * Documentation updates for secretsmanager
+
+### SDK Enhancements
+* `aws/config`: fix typo in Config struct documentation (#2169)
+  * fix typo in Config struct documentation in aws-sdk-go/aws/config.go
+* `internal/csm`: Add region to api call metrics (#2175)
+* `private/model/api`: Use modeled service signing version in code generation (#2162)
+  * Updates the SDK's code generate to make use of the model's service signature version when generating the client for the service. This allows the SDK to generate a client using the correct signature version, e.g v4 vs s3v4 without the need for additional customizations.
+
+### SDK Bugs
+* `service/cloudfront/sign`: Do not Escape HTML when encode the cloudfront sign policy (#2164)
+  * Fixes the signer escaping HTML elements `<`, `>`, and `&` in the signature policy incorrectly. Allows use of multiple query parameters in the URL to be signed.
+  * Fixes #2163
+Release v1.15.46 (2018-10-01)
+===
+
+### Service Client Updates
+* `service/guardduty`: Updates service API and documentation
+  * Support optional FindingPublishingFrequency parameter in CreateDetector and UpdateDetector operations, and ClientToken on Create* operations
+* `service/rekognition`: Updates service documentation
+  * Documentation updates for Amazon Rekognition
+
+Release v1.15.45 (2018-09-28)
+===
+
+### Service Client Updates
+* `service/codestar`: Updates service API and documentation
+  * This release enables tagging CodeStar Projects at creation. The CreateProject API now includes optional tags parameter.
+* `service/ec2`: Updates service API
+  * You can now use EC2 High Memory instances with 6 TiB memory (u-6tb1.metal), 9 TiB memory (u-9tb1.metal), and 12 TiB memory (u-12tb1.metal), which are ideal for running large in-memory databases, including production deployments of SAP HANA. These instances offer 448 logical processors, where each logical processor is a hyperthread on 224 cores. These instance deliver high networking throughput and lower latency with up to 25 Gbps of aggregate network bandwidth using Elastic Network Adapter (ENA)-based Enhanced Networking. These instances are EBS-Optimized by default, and support encrypted and unencrypted EBS volumes. This instance is only available in host-tenancy. You will need an EC2 Dedicated Host for this instance type to launch an instance.
+
 Release v1.15.44 (2018-09-27)
 ===
 
