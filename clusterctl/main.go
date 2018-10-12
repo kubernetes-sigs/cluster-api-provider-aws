@@ -26,6 +26,9 @@ import (
 
 func main() {
 	cfg := config.GetConfigOrDie()
+	if cfg == nil {
+		glog.Fatal("unable to get kubeconfig")
+	}
 
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
