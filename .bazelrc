@@ -1,0 +1,4 @@
+build --workspace_status_command=./hack/print-workspace-status.sh
+run --workspace_status_command=./hack/print-workspace-status.sh
+
+test --features=race --test_output=errors
