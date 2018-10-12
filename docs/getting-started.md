@@ -93,7 +93,7 @@ Store with KMS encryption for security, you can use the following command:
 *Bash:*
 
 ```bash
-aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key \
+aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
   --type SecureString \
   --value "$(aws ec2 create-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io | jq .KeyMaterial -r)"
 {
