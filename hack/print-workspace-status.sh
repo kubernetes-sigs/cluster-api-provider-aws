@@ -37,10 +37,10 @@ if GIT_VERSION=$(git describe --tags --abbrev=14 2>/dev/null); then
     DASHES_IN_VERSION=$(echo "${GIT_VERSION}" | sed "s/[^-]//g")
     if [[ "${DASHES_IN_VERSION}" == "---" ]] ; then
         # We have distance to subversion (v1.1.0-subversion-1-gCommitHash)
-        GIT_VERSION=$(echo "${GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{14\}\)$/.\1\+\2/")
+        GIT_VERSION=$(echo "${GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{14\}\)$/.\1\-\2/")
     elif [[ "${DASHES_IN_VERSION}" == "--" ]] ; then
         # We have distance to base tag (v1.1.0-1-gCommitHash)
-        GIT_VERSION=$(echo "${GIT_VERSION}" | sed "s/-g\([0-9a-f]\{14\}\)$/+\1/")
+        GIT_VERSION=$(echo "${GIT_VERSION}" | sed "s/-g\([0-9a-f]\{14\}\)$/-\1/")
     fi
     if [[ "${GIT_TREE_STATE}" == "dirty" ]]; then
         # git describe --dirty only considers changes to existing files, but
@@ -70,7 +70,6 @@ fi
 cat <<EOF
 STABLE_DOCKER_REPO ${DOCKER_REPO_OVERRIDE:-gcr.io/cluster-api}
 GIT_COMMIT ${GIT_COMMIT-}
-DOCKER_TAG ${docker_tag-}
 GIT_TREE_STATE ${GIT_TREE_STATE-}
 GIT_MAJOR ${GIT_MAJOR-}
 GIT_MINOR ${GIT_MINOR-}
