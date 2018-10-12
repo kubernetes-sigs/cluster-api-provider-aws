@@ -8,15 +8,12 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	context "golang.org/x/net/context"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	longrunning "google.golang.org/genproto/googleapis/longrunning"
 	status "google.golang.org/genproto/googleapis/rpc/status"
-	math "math"
-)
-
-import (
-	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1480,86 +1477,6 @@ func init() {
 	proto.RegisterType((*WordInfo)(nil), "google.cloud.videointelligence.v1p1beta1.WordInfo")
 }
 
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
-
-// VideoIntelligenceServiceClient is the client API for VideoIntelligenceService service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type VideoIntelligenceServiceClient interface {
-	// Performs asynchronous video annotation. Progress and results can be
-	// retrieved through the `google.longrunning.Operations` interface.
-	// `Operation.metadata` contains `AnnotateVideoProgress` (progress).
-	// `Operation.response` contains `AnnotateVideoResponse` (results).
-	AnnotateVideo(ctx context.Context, in *AnnotateVideoRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
-}
-
-type videoIntelligenceServiceClient struct {
-	cc *grpc.ClientConn
-}
-
-func NewVideoIntelligenceServiceClient(cc *grpc.ClientConn) VideoIntelligenceServiceClient {
-	return &videoIntelligenceServiceClient{cc}
-}
-
-func (c *videoIntelligenceServiceClient) AnnotateVideo(ctx context.Context, in *AnnotateVideoRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
-	out := new(longrunning.Operation)
-	err := c.cc.Invoke(ctx, "/google.cloud.videointelligence.v1p1beta1.VideoIntelligenceService/AnnotateVideo", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// VideoIntelligenceServiceServer is the server API for VideoIntelligenceService service.
-type VideoIntelligenceServiceServer interface {
-	// Performs asynchronous video annotation. Progress and results can be
-	// retrieved through the `google.longrunning.Operations` interface.
-	// `Operation.metadata` contains `AnnotateVideoProgress` (progress).
-	// `Operation.response` contains `AnnotateVideoResponse` (results).
-	AnnotateVideo(context.Context, *AnnotateVideoRequest) (*longrunning.Operation, error)
-}
-
-func RegisterVideoIntelligenceServiceServer(s *grpc.Server, srv VideoIntelligenceServiceServer) {
-	s.RegisterService(&_VideoIntelligenceService_serviceDesc, srv)
-}
-
-func _VideoIntelligenceService_AnnotateVideo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AnnotateVideoRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(VideoIntelligenceServiceServer).AnnotateVideo(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/google.cloud.videointelligence.v1p1beta1.VideoIntelligenceService/AnnotateVideo",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VideoIntelligenceServiceServer).AnnotateVideo(ctx, req.(*AnnotateVideoRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _VideoIntelligenceService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "google.cloud.videointelligence.v1p1beta1.VideoIntelligenceService",
-	HandlerType: (*VideoIntelligenceServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "AnnotateVideo",
-			Handler:    _VideoIntelligenceService_AnnotateVideo_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "google/cloud/videointelligence/v1p1beta1/video_intelligence.proto",
-}
-
 func init() {
 	proto.RegisterFile("google/cloud/videointelligence/v1p1beta1/video_intelligence.proto", fileDescriptor_9e6ec0147460ac77)
 }
@@ -1679,4 +1596,84 @@ var fileDescriptor_9e6ec0147460ac77 = []byte{
 	0x4c, 0x60, 0x37, 0xb9, 0x9b, 0x53, 0x9e, 0xd4, 0x4e, 0x77, 0x3b, 0xbb, 0xfb, 0xb1, 0xf2, 0x3f,
 	0x13, 0xd1, 0x97, 0x5c, 0xf4, 0xe5, 0x94, 0xe8, 0xcb, 0xd3, 0xc4, 0xce, 0x59, 0x8e, 0xfb, 0xf6,
 	0xad, 0x2f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x82, 0x99, 0xe4, 0x9b, 0x15, 0x16, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// VideoIntelligenceServiceClient is the client API for VideoIntelligenceService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type VideoIntelligenceServiceClient interface {
+	// Performs asynchronous video annotation. Progress and results can be
+	// retrieved through the `google.longrunning.Operations` interface.
+	// `Operation.metadata` contains `AnnotateVideoProgress` (progress).
+	// `Operation.response` contains `AnnotateVideoResponse` (results).
+	AnnotateVideo(ctx context.Context, in *AnnotateVideoRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
+}
+
+type videoIntelligenceServiceClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewVideoIntelligenceServiceClient(cc *grpc.ClientConn) VideoIntelligenceServiceClient {
+	return &videoIntelligenceServiceClient{cc}
+}
+
+func (c *videoIntelligenceServiceClient) AnnotateVideo(ctx context.Context, in *AnnotateVideoRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.cloud.videointelligence.v1p1beta1.VideoIntelligenceService/AnnotateVideo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// VideoIntelligenceServiceServer is the server API for VideoIntelligenceService service.
+type VideoIntelligenceServiceServer interface {
+	// Performs asynchronous video annotation. Progress and results can be
+	// retrieved through the `google.longrunning.Operations` interface.
+	// `Operation.metadata` contains `AnnotateVideoProgress` (progress).
+	// `Operation.response` contains `AnnotateVideoResponse` (results).
+	AnnotateVideo(context.Context, *AnnotateVideoRequest) (*longrunning.Operation, error)
+}
+
+func RegisterVideoIntelligenceServiceServer(s *grpc.Server, srv VideoIntelligenceServiceServer) {
+	s.RegisterService(&_VideoIntelligenceService_serviceDesc, srv)
+}
+
+func _VideoIntelligenceService_AnnotateVideo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AnnotateVideoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VideoIntelligenceServiceServer).AnnotateVideo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/google.cloud.videointelligence.v1p1beta1.VideoIntelligenceService/AnnotateVideo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VideoIntelligenceServiceServer).AnnotateVideo(ctx, req.(*AnnotateVideoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _VideoIntelligenceService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "google.cloud.videointelligence.v1p1beta1.VideoIntelligenceService",
+	HandlerType: (*VideoIntelligenceServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AnnotateVideo",
+			Handler:    _VideoIntelligenceService_AnnotateVideo_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "google/cloud/videointelligence/v1p1beta1/video_intelligence.proto",
 }

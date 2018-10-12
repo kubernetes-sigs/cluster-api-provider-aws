@@ -136,20 +136,19 @@ func (m *TimeWindow) GetEndTime() *timestamp.Timestamp {
 	return nil
 }
 
-// Cloud asset. This include all Google Cloud Platform resources, as well as
-// IAM policies and other non-GCP assets.
+// Cloud asset. This includes all Google Cloud Platform resources,
+// Cloud IAM policies, and other non-GCP assets.
 type Asset struct {
-	// The full name of the asset. See:
-	// https://cloud.google.com/apis/design/resource_names#full_resource_name
-	// Example:
-	// "//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1".
+	// The full name of the asset. For example: `//compute.googleapis.com/projects/my_project_123/zones/zone1/instances/instance1`.
+	// See [Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)
+	// for more information.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Type of the asset. Example: "google.compute.disk".
 	AssetType string `protobuf:"bytes,2,opt,name=asset_type,json=assetType,proto3" json:"asset_type,omitempty"`
 	// Representation of the resource.
 	Resource *Resource `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource,omitempty"`
-	// Representation of the actual IAM policy set on a cloud resource. For each
-	// resource, there must be at most one IAM policy set on it.
+	// Representation of the actual Cloud IAM policy set on a cloud resource. For each
+	// resource, there must be at most one Cloud IAM policy set on it.
 	IamPolicy            *v1.Policy `protobuf:"bytes,4,opt,name=iam_policy,json=iamPolicy,proto3" json:"iam_policy,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
@@ -214,8 +213,8 @@ type Resource struct {
 	// The API version. Example: "v1".
 	Version string `protobuf:"bytes,1,opt,name=version,proto3" json:"version,omitempty"`
 	// The URL of the discovery document containing the resource's JSON schema.
-	// Example:
-	// "https://www.googleapis.com/discovery/v1/apis/compute/v1/rest".
+	// For example:
+	// `"https://www.googleapis.com/discovery/v1/apis/compute/v1/rest"`.
 	// It will be left unspecified for resources without a discovery-based API,
 	// such as Cloud Bigtable.
 	DiscoveryDocumentUri string `protobuf:"bytes,2,opt,name=discovery_document_uri,json=discoveryDocumentUri,proto3" json:"discovery_document_uri,omitempty"`
@@ -229,12 +228,13 @@ type Resource struct {
 	// `https://cloudresourcemanager.googleapis.com/v1/projects/my-project-123`.
 	// It will be left unspecified for resources without a REST API.
 	ResourceUrl string `protobuf:"bytes,4,opt,name=resource_url,json=resourceUrl,proto3" json:"resource_url,omitempty"`
-	// The full name of the immediate parent of this resource. See:
-	// https://cloud.google.com/apis/design/resource_names#full_resource_name
+	// The full name of the immediate parent of this resource. See
+	// [Resource Names](https://cloud.google.com/apis/design/resource_names#full_resource_name)
+	// for more information.
 	//
-	// For GCP assets, it is the parent resource defined in the IAM policy
-	// hierarchy: https://cloud.google.com/iam/docs/overview#policy_hierarchy.
-	// Example: "//cloudresourcemanager.googleapis.com/projects/my_project_123".
+	// For GCP assets, it is the parent resource defined in the [Cloud IAM policy
+	// hierarchy](https://cloud.google.com/iam/docs/overview#policy_hierarchy).
+	// For example: `"//cloudresourcemanager.googleapis.com/projects/my_project_123"`.
 	//
 	// For third-party assets, it is up to the users to define.
 	Parent string `protobuf:"bytes,5,opt,name=parent,proto3" json:"parent,omitempty"`
