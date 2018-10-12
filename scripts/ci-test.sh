@@ -19,5 +19,9 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
-cd "${REPO_ROOT}" && make check
-go test -v -tags=integration "${REPO_ROOT}"/...
+
+cd $REPO_ROOT && \
+	source ./scripts/fetch_ext_bins.sh && \
+	fetch_tools && \
+	setup_envs && \
+	make test

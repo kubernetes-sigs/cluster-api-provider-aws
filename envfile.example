@@ -5,5 +5,4 @@ export AWS_SECRET_ACCESS_KEY=""
 export SSH_KEY_NAME=""
 
 # use a dev image instead of the released image
-export CLUSTER_CONTROLLER_IMAGE=""
-export MACHINE_CONTROLLER_IMAGE=""
+export MANAGER_IMAGE=""

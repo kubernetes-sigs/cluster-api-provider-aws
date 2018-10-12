@@ -12,21 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Image URL to use all building/pushing image targets
+IMG ?= gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest
+
+# Go environment flags.
 GOFLAGS += -ldflags '-extldflags "-static"'
 GOREBUILD :=
 GOPATH := $(shell go env GOPATH)
 
-.PHONY: gendeepcopy
+all: test manager clusterctl clusterawsadm
 
-all: generate build
-
-ifndef FASTBUILD
-# If FASTBUILD isn't defined, fully rebuild Go binaries, and always
-# run dep ensure
-GOREBUILD += -a
-.PHONY: vendor
-endif
-
+# Dependency managemnt.
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure
@@ -35,6 +31,7 @@ depend-update:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure -update
 
+# Generate code.
 generate: vendor
 	GOPATH=${GOPATH} go generate ./pkg/... ./cmd/...
 
@@ -46,38 +43,48 @@ genmocks: vendor
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services EC2Interface" "cloud/aws/services/mocks/ec2.go"
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services ELBInterface" "cloud/aws/services/mocks/elb.go"
 
-build: clusterctl-bin
+# Build manager binary.
+manager: generate fmt vet
+	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/manager
 
-clusterctl-bin: vendor
+# Build clusterctl binary.
+clusterctl: generate fmt vet
 	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/clusterctl
 
-clusterawsadm-bin: vendor
+# Build clusterawsadm binary.
+clusterawsadm: vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
 
-cluster-api-dev-helper-bin: vendor
+# Build cluster-api-dev-helper binary.
+cluster-api-dev-helper: vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/hack/cluster-api-dev-helper
 
-images: vendor
-	# TODO: manager image here
+# Run tests
+test: generate fmt vet
+	go test -v -tags=integration ./pkg/... ./cmd/...
 
-dev_push:
-	# TODO: manager image here
+# Run go fmt against code.
+fmt:
+	go fmt ./pkg/... ./cmd/...
 
-check: fmt vet
+# Run go vet against code.
+vet:
+	go vet ./pkg/... ./cmd/...
 
-test: vendor
-	go test -race -cover ./cmd/... ./pkg/... ./clusterctl/...
-
-fmt: vendor
-	hack/verify-gofmt.sh
-
-vet: vendor
-	go vet ./...
-
+# Run go lint.
 lint:
 	golint || go get -u golang.org/x/lint/golint
 	golint -set_exit_status ./cmd/... ./pkg/... ./clusterctl/...
 
+# Build the docker image
+docker-build: generate fmt vet
+	docker build . -t ${IMG}
+
+# Push the docker image
+docker-push:
+	docker push ${IMG}
+
+# Example.
 examples = clusterctl/examples/aws/out/cluster.yaml clusterctl/examples/aws/out/machines.yaml clusterctl/examples/aws/out/provider-components.yaml
 templates = clusterctl/examples/aws/cluster.yaml.template clusterctl/examples/aws/machines.yaml.template clusterctl/examples/aws/provider-components.yaml.template
 example: $(examples)
@@ -90,5 +97,6 @@ envfile:
 	echo "\033[0;31mPlease fill out your envfile!\033[0m"
 	exit 1
 
+# Cleanup
 clean:
 	rm -rf clusterctl/examples/aws/out
