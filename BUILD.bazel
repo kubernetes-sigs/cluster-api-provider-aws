@@ -1,0 +1,32 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix sigs.k8s.io/cluster-api-provider-aws
+# gazelle:build_file_name BUILD,BUILD.bazel
+# gazelle:proto disable_global
+# gazelle:exclude vendor/golang.org/x/tools/go/ssa/interp/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/internal/gccgoimporter/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/internal/gcimporter/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/loader/testdata
+# gazelle:exclude vendor/golang.org/x/tools/cmd/fiximports/testdata
+gazelle(
+    name = "gazelle",
+    command = "fix",
+)
+
+filegroup(
+    name = "all-images",
+    srcs = [
+        "//clusterctl:clusterctl-image",
+        "//cmd/clusterawsadm:clusterawsadm-image",
+        "//cmd/manager:manager-image",
+    ],
+)
+
+filegroup(
+    name = "all-images-dev",
+    srcs = [
+        "//clusterctl:clusterctl-image-dev",
+        "//cmd/clusterawsadm:clusterawsadm-image-dev",
+        "//cmd/manager:manager-image-dev",
+    ],
+)
