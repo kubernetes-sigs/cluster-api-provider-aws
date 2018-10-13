@@ -15,8 +15,6 @@ package machine
 
 // should not need to import the ec2 sdk here
 import (
-	"encoding/json"
-
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -60,53 +58,69 @@ func (a *Actuator) ensureTags(svc service.EC2MachineInterface, machine *clusterv
 	return changed, nil
 }
 
-// updateMachineAnnotationJSON updates the `annotation` on `machine` with
-// `content`. `content` in this case should be a `map[string]interface{}`
-// suitable for turning into JSON. This `content` map will be marshalled into a
-// JSON string before being set as the given `annotation`.
-func (a *Actuator) updateMachineAnnotationJSON(machine *clusterv1.Machine, annotation string, content map[string]interface{}) error {
-	b, err := json.Marshal(content)
-	if err != nil {
-		return err
+// tagsChanged determines which tags to delete and which to add.
+func (a *Actuator) tagsChanged(annotation map[string]interface{}, src map[string]string) (bool, map[string]string, map[string]string, map[string]interface{}) {
+	// Bool tracking if we found any changed state.
+	changed := false
+
+	// Tracking for created/updated
+	created := map[string]string{}
+
+	// Tracking for tags that were deleted.
+	deleted := map[string]string{}
+
+	// The new annotation that we need to set if anything is created/updated.
+	newAnnotation := map[string]interface{}{}
+
+	// Loop over annotation, checking if entries are in src.
+	// If an entry is present in annotation but not src, it has been deleted
+	// since last time. We flag this in the deleted map.
+	for t, v := range annotation {
+		_, ok := src[t]
+
+		// Entry isn't in src, it has been deleted.
+		if !ok {
+			// Cast v to a string here. This should be fine, tags are always
+			// strings.
+			deleted[t] = v.(string)
+			changed = true
+		}
 	}
 
-	a.updateMachineAnnotation(machine, annotation, string(b))
-	return nil
-}
+	// Loop over src, checking for entries in annotation.
+	//
+	// If an entry is in src, but not annotation, it has been created since
+	// last time.
+	//
+	// If an entry is in both src and annotation, we compare their values, if
+	// the value in src differs from that in annotation, the tag has been
+	// updated since last time.
+	for t, v := range src {
+		av, ok := annotation[t]
 
-// updateMachineAnnotation updates the `annotation` on the given `machine` with
-// `content`.
-func (a *Actuator) updateMachineAnnotation(machine *clusterv1.Machine, annotation string, content string) {
-	// Get the annotations
-	annotations := machine.GetAnnotations()
+		// Entries in the src always need to be noted in the newAnnotation. We
+		// know they're going to be created or updated.
+		newAnnotation[t] = v
 
-	// Set our annotation to the given content.
-	annotations[annotation] = content
+		// Entry isn't in annotation, it's new.
+		if !ok {
+			created[t] = v
+			newAnnotation[t] = v
+			changed = true
+			continue
+		}
 
-	// Update the machine object with these annotations
-	machine.SetAnnotations(annotations)
-}
+		// Entry is in annotation, has the value changed?
+		if v != av {
+			created[t] = v
+			changed = true
+		}
 
-// Returns a map[string]interface from a JSON annotation.
-// This method gets the given `annotation` from the `machine` and unmarshalls it
-// from a JSON string into a `map[string]interface{}`.
-func (a *Actuator) machineAnnotationJSON(machine *clusterv1.Machine, annotation string) (map[string]interface{}, error) {
-	out := map[string]interface{}{}
-
-	jsonAnnotation := a.machineAnnotation(machine, annotation)
-	if len(jsonAnnotation) == 0 {
-		return out, nil
+		// Entry existed in both src and annotation, and their values were
+		// equal. Nothing to do.
 	}
 
-	err := json.Unmarshal([]byte(jsonAnnotation), &out)
-	if err != nil {
-		return out, err
-	}
-
-	return out, nil
-}
-
-// Fetches the specific machine annotation.
-func (a *Actuator) machineAnnotation(machine *clusterv1.Machine, annotation string) string {
-	return machine.GetAnnotations()[annotation]
+	// We made it through the loop, and everything that was in src, was also
+	// in dst. Nothing changed.
+	return changed, created, deleted, newAnnotation
 }
