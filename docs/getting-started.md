@@ -31,6 +31,7 @@
 - An AWS IAM role to give to the Cluster API control plane.
 - [Minikube][minikube]
 - [kubectl][kubectl]
+- [gettext][gettext] on MacOS (`brew install gettext && brew link --force gettext`)
 
 ### Optional
 
@@ -293,3 +294,4 @@ kubectl logs -c aws-cluster-controller -f `
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [aws_powershell]: (https://docs.aws.amazon.com/powershell/index.html#lang/en_us)
 [aws-vault]: https://github.com/99designs/aws-vault
+[gettext]: http://brewformulas.org/Gettext
