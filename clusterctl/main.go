@@ -45,7 +45,6 @@ func main() {
 		ClustersGetter: cs.ClusterV1alpha1(),
 	})
 
-	cluster.NewActuator(cluster.ActuatorParams{})
 	common.RegisterClusterProvisioner("aws", clusterActuator)
 	cmd.Execute()
 }
