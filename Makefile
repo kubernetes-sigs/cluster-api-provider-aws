@@ -116,3 +116,13 @@ help:  ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "See docs/development.md for more information"
+
+install: manifests ## Install CRDs into a cluster
+	kubectl apply -f config/crds
+
+deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+	kubectl apply -f config/crds
+	kustomize build config/default | kubectl apply -f -
+
+manifests: ## Generate manifests e.g. CRD, RBAC etc.
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all

@@ -51,7 +51,7 @@ func defineTestingStartCmd(parent *cobra.Command) {
 		Long:  `Start tests with an existing kubeconfig context. Expects to be run in the repository using Go 1.11`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var wg sync.WaitGroup
-			a := runShell(`go run ./clusterctl create cluster -v2  \
+			a := runShell(`go run ./clusterctl create cluster -v4  \
 				-m ./clusterctl/examples/aws/out/machines.yaml \
 				-c ./clusterctl/examples/aws/out/cluster.yaml \
 				-p ./clusterctl/examples/aws/out/provider-components.yaml \
@@ -187,7 +187,6 @@ func destroyClusters() {
 
 func destroyControlPlane() {
 	runShellWithWait("kubectl delete deployment clusterapi-controllers --force=true --grace-period 0 --wait=true")
-	runShellWithWait("kubectl delete statefulsets etcd-clusterapi --force=true --grace-period 0 --wait=true")
 }
 
 func controllerLogs(wg *sync.WaitGroup) {

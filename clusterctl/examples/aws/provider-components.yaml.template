@@ -32,7 +32,7 @@ spec:
         operator: Exists
       containers:
       - name: controller-manager
-        image: gcr.io/k8s-cluster-api/controller-manager:0.0.7
+        image: gcr.io/k8s-cluster-api/controller-manager:0.0.8
         volumeMounts:
         - name: config
           mountPath: /etc/kubernetes
@@ -42,7 +42,6 @@ spec:
         - "./controller-manager"
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
-        - --leader-elect
         resources:
           requests:
             cpu: 100m

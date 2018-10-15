@@ -16,6 +16,7 @@
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig
 // +k8s:openapi-gen=true
 // +k8s:defaulter-gen=TypeMeta
+// +groupName=awsproviderconfig.k8s.io
 package v1alpha1
 
 import (
@@ -46,8 +47,6 @@ var (
 func init() {
 	SchemeBuilder.Register(&AWSMachineProviderConfig{})
 	SchemeBuilder.Register(&AWSClusterProviderConfig{})
-	SchemeBuilder.Register(&AWSMachineProviderStatus{})
-	SchemeBuilder.Register(&AWSClusterProviderStatus{})
 }
 
 // NewScheme creates a new Scheme
