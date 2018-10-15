@@ -76,13 +76,6 @@ type AWSMachineProviderConfig struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSMachineProviderConfigList contains a list of AWSMachineProviderConfig
-type AWSMachineProviderConfigList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSMachineProviderConfig `json:"items"`
-}
-
 func init() {
-	SchemeBuilder.Register(&AWSMachineProviderConfig{}, &AWSMachineProviderConfigList{})
+	SchemeBuilder.Register(&AWSMachineProviderConfig{})
 }

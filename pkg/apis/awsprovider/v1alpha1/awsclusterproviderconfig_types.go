@@ -39,13 +39,6 @@ type AWSClusterProviderConfig struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSClusterProviderConfigList contains a list of AWSClusterProviderConfig
-type AWSClusterProviderConfigList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSClusterProviderConfig `json:"items"`
-}
-
 func init() {
-	SchemeBuilder.Register(&AWSClusterProviderConfig{}, &AWSClusterProviderConfigList{})
+	SchemeBuilder.Register(&AWSClusterProviderConfig{})
 }
