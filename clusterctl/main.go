@@ -14,36 +14,13 @@
 package main
 
 import (
-	"github.com/golang/glog"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 )
 
 func main() {
-	cfg := config.GetConfigOrDie()
-	if cfg == nil {
-		glog.Fatal("unable to get kubeconfig")
-	}
-
-	codec, err := v1alpha1.NewCodec()
-	if err != nil {
-		glog.Fatal(err)
-	}
-
-	cs, err := clientset.NewForConfig(cfg)
-	if err != nil {
-		glog.Fatal(err)
-	}
-
-	clusterActuator, _ := cluster.NewActuator(cluster.ActuatorParams{
-		Codec:          codec,
-		ClustersGetter: cs.ClusterV1alpha1(),
-	})
+	clusterActuator, _ := cluster.NewActuator(cluster.ActuatorParams{})
 
 	common.RegisterClusterProvisioner("aws", clusterActuator)
 	cmd.Execute()
