@@ -56,8 +56,8 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
-func MachineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
-	status := &v1alpha1.AWSMachineProviderStatus{}
+func MachineProviderConfig(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderConfig, error) {
+	status := &v1alpha1.AWSMachineProviderConfig{}
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		return nil, err
@@ -72,9 +72,9 @@ func MachineInstanceID(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	status, err := MachineProviderStatus(m)
+	config, err := MachineProviderConfig(m)
 	if err != nil {
 		return "", err
 	}
-	return *status.InstanceID, nil
+	return *config.Status.InstanceID, nil
 }

@@ -43,7 +43,7 @@ pip install --upgrade pip &> /dev/null
 )
 
 // ReconcileBastion ensures a bastion is created for the cluster
-func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1.AWSClusterProviderStatus) error {
+func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1.AWSClusterProviderConfigStatus) error {
 	glog.V(2).Info("Reconciling bastion host")
 
 	subnets := status.Network.Subnets
@@ -82,7 +82,7 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 }
 
 // DeleteBastion deletes the Bastion instance
-func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterProviderStatus) error {
+func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterProviderConfigStatus) error {
 	instance, err := s.describeBastionInstance(clusterName, status)
 	if err != nil {
 		if IsNotFound(err) {
@@ -100,7 +100,7 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 	return nil
 }
 
-func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderConfigStatus) (*v1alpha1.Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			s.filterAWSProviderRole(TagValueBastionRole),

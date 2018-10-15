@@ -15,7 +15,6 @@ package machine
 
 // should not need to import the ec2 sdk here
 import (
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -85,18 +84,6 @@ func (a *Actuator) machineProviderConfig(machine *clusterv1.Machine) (*v1alpha1.
 	return machineProviderCfg, err
 }
 
-func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
-	status := &v1alpha1.AWSMachineProviderStatus{}
-	err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
-	return status, err
-}
-
-func (a *Actuator) clusterProviderStatus(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderStatus, error) {
-	providerStatus := &v1alpha1.AWSClusterProviderStatus{}
-	err := a.codec.DecodeProviderStatus(cluster.Status.ProviderStatus, providerStatus)
-	return providerStatus, err
-}
-
 func (a *Actuator) clusterProviderConfig(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderConfig, error) {
 	providerConfig := &v1alpha1.AWSClusterProviderConfig{}
 	err := a.codec.DecodeFromProviderConfig(cluster.Spec.ProviderConfig, providerConfig)
@@ -107,14 +94,9 @@ func (a *Actuator) clusterProviderConfig(cluster *clusterv1.Cluster) (*v1alpha1.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
 
-	status, err := a.machineProviderStatus(machine)
+	machineConfig, err := a.machineProviderConfig(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine provider status")
-	}
-
-	clusterStatus, err := a.clusterProviderStatus(cluster)
-	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider status")
+		return errors.Wrap(err, "failed to get machine provider config")
 	}
 
 	clusterConfig, err := a.clusterProviderConfig(cluster)
@@ -122,18 +104,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get cluster provider config")
 	}
 
-	config, err := a.machineProviderConfig(machine)
-	if err != nil {
-		return errors.Wrap(err, "failed to get machine config")
-	}
-
-	defer func() {
-		if err := a.updateStatus(machine, status); err != nil {
-			glog.Errorf("failed to store provider status for machine %q: %v", machine.Name, err)
-		}
-	}()
-
-	i, err := a.ec2(clusterConfig).CreateOrGetMachine(machine, status, config, clusterStatus, cluster)
+	i, err := a.ec2(clusterConfig).CreateOrGetMachine(machine, machineConfig, cluster, clusterConfig)
 	if err != nil {
 
 		if ec2svc.IsFailedDependency(errors.Cause(err)) {
@@ -146,8 +117,8 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to create or get machine")
 	}
 
-	status.InstanceID = &i.ID
-	status.InstanceState = aws.String(string(i.State))
+	machineConfig.Status.InstanceID = &i.ID
+	machineConfig.Status.InstanceState = aws.String(string(i.State))
 
 	if machine.Annotations == nil {
 		machine.Annotations = map[string]string{}
@@ -181,9 +152,9 @@ func (a *Actuator) reconcileLBAttachment(c *clusterv1.Cluster, m *clusterv1.Mach
 func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
 
-	status, err := a.machineProviderStatus(machine)
+	config, err := a.machineProviderConfig(machine)
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine provider status")
+		return errors.Wrap(err, "failed to get machine provider config")
 	}
 
 	clusterConfig, err := a.clusterProviderConfig(cluster)
@@ -191,14 +162,14 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get cluster provider config")
 	}
 
-	if status.InstanceID == nil {
+	if config.Status.InstanceID == nil {
 		// Instance was never created
 		return nil
 	}
 
 	ec2svc := a.ec2(clusterConfig)
 
-	instance, err := ec2svc.InstanceIfExists(status.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(config.Status.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -216,7 +187,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
 		return nil
 	default:
-		if err := ec2svc.TerminateInstance(aws.StringValue(status.InstanceID)); err != nil {
+		if err := ec2svc.TerminateInstance(aws.StringValue(config.Status.InstanceID)); err != nil {
 			return errors.Wrap(err, "failed to terminate instance")
 		}
 	}
@@ -232,17 +203,9 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	// Get the updated config. We're going to compare parts of this to the
 	// current Tags and Security Groups that AWS is aware of.
-	config, err := a.machineProviderConfig(machine)
+	machineConfig, err := a.machineProviderConfig(machine)
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine config")
-	}
-
-	// Get the new status from the provided machine object.
-	// We need this in case any of it has changed, and we also require the
-	// instanceID for various AWS queries.
-	status, err := a.machineProviderStatus(machine)
-	if err != nil {
-		return errors.Wrap(err, "failed to get machine status")
 	}
 
 	clusterConfig, err := a.clusterProviderConfig(cluster)
@@ -253,7 +216,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	ec2svc := a.ec2(clusterConfig)
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := ec2svc.InstanceIfExists(status.InstanceID)
+	instanceDescription, err := ec2svc.InstanceIfExists(machineConfig.Status.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -264,33 +227,19 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// TODO: Implement immutable state check.
 
 	// Ensure that the security groups are correct.
-	securityGroupsChanged, err := a.ensureSecurityGroups(
+	if _, err := a.ensureSecurityGroups(
 		ec2svc,
 		machine,
-		*status.InstanceID,
-		config.AdditionalSecurityGroups,
+		*machineConfig.Status.InstanceID,
+		machineConfig.Spec.AdditionalSecurityGroups,
 		instanceDescription.SecurityGroupIDs,
-	)
-	if err != nil {
+	); err != nil {
 		return errors.Wrap(err, "failed to ensure security groups")
 	}
 
 	// Ensure that the tags are correct.
-	tagsChanged, err := a.ensureTags(ec2svc, machine, status.InstanceID, config.AdditionalTags)
-	if err != nil {
+	if _, err := a.ensureTags(ec2svc, machine, machineConfig.Status.InstanceID, machineConfig.Spec.AdditionalTags); err != nil {
 		return errors.Wrap(err, "failed to ensure tags")
-	}
-
-	// We need to update the machine since annotations may have changed.
-	if securityGroupsChanged || tagsChanged {
-		if err := a.updateMachine(machine); err != nil {
-			return errors.Wrap(err, "failed to update machine")
-		}
-	}
-
-	// Finally update the machine status.
-	if err := a.updateStatus(machine, status); err != nil {
-		return errors.Wrap(err, "failed to update machine status")
 	}
 
 	return nil
@@ -300,7 +249,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	glog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
 
-	status, err := a.machineProviderStatus(machine)
+	machineConfig, err := a.machineProviderConfig(machine)
 	if err != nil {
 		return false, err
 	}
@@ -311,11 +260,11 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	// TODO worry about pointers. instance if exists returns *any* instance
-	if status.InstanceID == nil {
+	if machineConfig.Status.InstanceID == nil {
 		return false, nil
 	}
 
-	instance, err := a.ec2(clusterConfig).InstanceIfExists(status.InstanceID)
+	instance, err := a.ec2(clusterConfig).InstanceIfExists(machineConfig.Status.InstanceID)
 	if err != nil {
 		return false, err
 	}
@@ -328,9 +277,9 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning:
-		glog.Infof("Machine %v is running", status.InstanceID)
+		glog.Infof("Machine %v is running", machineConfig.Status.InstanceID)
 	case v1alpha1.InstanceStatePending:
-		glog.Infof("Machine %v is pending", status.InstanceID)
+		glog.Infof("Machine %v is pending", machineConfig.Status.InstanceID)
 	default:
 		return false, nil
 	}
@@ -342,38 +291,10 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	return true, nil
 }
 
-func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
-	machinesClient := a.machinesGetter.Machines(machine.Namespace)
-
-	if _, err := machinesClient.Update(machine); err != nil {
-		return fmt.Errorf("failed to update machine: %v", err)
-	}
-
-	return nil
-}
-
-func (a *Actuator) updateStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
-	machinesClient := a.machinesGetter.Machines(machine.Namespace)
-
-	encodedProviderStatus, err := a.codec.EncodeProviderStatus(status)
-	if err != nil {
-		return fmt.Errorf("failed to encode machine status: %v", err)
-	}
-
-	if encodedProviderStatus != nil {
-		machine.Status.ProviderStatus = encodedProviderStatus
-		if _, err := machinesClient.UpdateStatus(machine); err != nil {
-			return fmt.Errorf("failed to update machine status: %v", err)
-		}
-	}
-
-	return nil
-}
-
 type defaultServicesGetter struct{}
 
 func (d *defaultServicesGetter) Session(clusterConfig *v1alpha1.AWSClusterProviderConfig) *session.Session {
-	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
+	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Spec.Region)))
 }
 
 func (d *defaultServicesGetter) EC2(session *session.Session) service.EC2Interface {

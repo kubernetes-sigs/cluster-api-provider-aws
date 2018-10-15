@@ -46,8 +46,6 @@ var (
 func init() {
 	SchemeBuilder.Register(&AWSMachineProviderConfig{})
 	SchemeBuilder.Register(&AWSClusterProviderConfig{})
-	SchemeBuilder.Register(&AWSMachineProviderStatus{})
-	SchemeBuilder.Register(&AWSClusterProviderStatus{})
 }
 
 // NewScheme creates a new Scheme

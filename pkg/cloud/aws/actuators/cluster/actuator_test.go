@@ -154,16 +154,12 @@ func TestReconcile(t *testing.T) {
 		},
 	}
 
-	clusters.ci.EXPECT().
-		UpdateStatus(gomock.AssignableToTypeOf(&clusterv1.Cluster{})).
-		Return(&clusterv1.Cluster{}, nil)
-
 	services.ec2.EXPECT().
 		ReconcileNetwork("test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
 		Return(nil)
 
 	services.ec2.EXPECT().
-		ReconcileBastion("test", "", gomock.AssignableToTypeOf(&providerconfigv1.AWSClusterProviderStatus{})).
+		ReconcileBastion("test", "", gomock.AssignableToTypeOf(&providerconfigv1.AWSClusterProviderConfigStatus{})).
 		Return(nil)
 
 	services.elb.EXPECT().

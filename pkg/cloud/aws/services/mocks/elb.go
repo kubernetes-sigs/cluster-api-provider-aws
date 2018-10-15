@@ -18,9 +18,8 @@
 package mocks
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 )
 

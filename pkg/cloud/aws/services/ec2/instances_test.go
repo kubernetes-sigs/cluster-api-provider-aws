@@ -188,7 +188,7 @@ func TestCreateInstance(t *testing.T) {
 		name          string
 		machine       clusterv1.Machine
 		machineConfig *v1alpha1.AWSMachineProviderConfig
-		clusterStatus *v1alpha1.AWSClusterProviderStatus
+		clusterConfig *v1alpha1.AWSClusterProviderConfig
 		cluster       clusterv1.Cluster
 		expect        func(m *mock_ec2iface.MockEC2API)
 		check         func(instance *v1alpha1.Instance, err error)
@@ -201,28 +201,32 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			machineConfig: &v1alpha1.AWSMachineProviderConfig{
-				AMI: v1alpha1.AWSResourceReference{
-					ID: aws.String("abc"),
-				},
-				InstanceType: "m5.large",
-			},
-			clusterStatus: &v1alpha1.AWSClusterProviderStatus{
-				Network: v1alpha1.Network{
-					Subnets: v1alpha1.Subnets{
-						&v1alpha1.Subnet{
-							ID:       "subnet-1",
-							IsPublic: false,
-						},
-						&v1alpha1.Subnet{
-							IsPublic: false,
-						},
+				Spec: v1alpha1.AWSMachineProviderConfigSpec{
+					AMI: v1alpha1.AWSResourceReference{
+						ID: aws.String("abc"),
 					},
-					SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
-						v1alpha1.SecurityGroupControlPlane: {
-							ID: "1",
+					InstanceType: "m5.large",
+				},
+			},
+			clusterConfig: &v1alpha1.AWSClusterProviderConfig{
+				Status: v1alpha1.AWSClusterProviderConfigStatus{
+					Network: v1alpha1.Network{
+						Subnets: v1alpha1.Subnets{
+							&v1alpha1.Subnet{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&v1alpha1.Subnet{
+								IsPublic: false,
+							},
 						},
-						v1alpha1.SecurityGroupNode: {
-							ID: "2",
+						SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
+							v1alpha1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							v1alpha1.SecurityGroupNode: {
+								ID: "2",
+							},
 						},
 					},
 				},
@@ -276,7 +280,7 @@ func TestCreateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus, &tc.cluster)
+			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, &tc.cluster, tc.clusterConfig)
 			tc.check(instance, err)
 		})
 	}

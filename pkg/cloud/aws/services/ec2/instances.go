@@ -83,12 +83,12 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
+func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, cluster *clusterv1.Cluster, clusterConfig *v1alpha1.AWSClusterProviderConfig) (*v1alpha1.Instance, error) {
 	glog.V(2).Info("Attempting to create an instance")
 
 	input := &v1alpha1.Instance{
-		Type:       config.InstanceType,
-		IAMProfile: config.IAMInstanceProfile,
+		Type:       config.Spec.InstanceType,
+		IAMProfile: config.Spec.IAMInstanceProfile,
 	}
 
 	input.Tags = s.buildTags(
@@ -99,17 +99,17 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		nil)
 
 	// Pick image from the machine configuration, or use a default one.
-	if config.AMI.ID != nil {
-		input.ImageID = *config.AMI.ID
+	if config.Spec.AMI.ID != nil {
+		input.ImageID = *config.Spec.AMI.ID
 	} else {
-		input.ImageID = s.defaultAMILookup(clusterStatus.Region)
+		input.ImageID = s.defaultAMILookup(clusterConfig.Status.Region)
 	}
 
 	// Pick subnet from the machine configuration, or default to the first private available.
-	if config.Subnet != nil && config.Subnet.ID != nil {
-		input.SubnetID = *config.Subnet.ID
+	if config.Spec.Subnet != nil && config.Spec.Subnet.ID != nil {
+		input.SubnetID = *config.Spec.Subnet.ID
 	} else {
-		sns := clusterStatus.Network.Subnets.FilterPrivate()
+		sns := clusterConfig.Status.Network.Subnets.FilterPrivate()
 		if len(sns) == 0 {
 			return nil, NewFailedDependency(
 				errors.New("failed to run instance, no subnets available"),
@@ -121,38 +121,38 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	// apply values based on the role of the machine
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
 
-		if clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
+		if clusterConfig.Status.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
 			return nil, NewFailedDependency(
 				errors.New("failed to run control plane, security group not available"),
 			)
 		}
 
-		if len(clusterStatus.CACertificate) == 0 {
+		if len(clusterConfig.Status.CACertificate) == 0 {
 			return input, errors.New("Cluster Provider Status is missing CACertificate")
 		}
-		if len(clusterStatus.CAPrivateKey) == 0 {
+		if len(clusterConfig.Status.CAPrivateKey) == 0 {
 			return input, errors.New("Cluster Provider Status is missing CAPrivateKey")
 		}
 
-		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate,
-			clusterStatus.CAPrivateKey,
-			clusterStatus.Network.APIServerELB.DNSName,
+		input.UserData = aws.String(initControlPlaneScript(clusterConfig.Status.CACertificate,
+			clusterConfig.Status.CAPrivateKey,
+			clusterConfig.Status.Network.APIServerELB.DNSName,
 			cluster.Name,
 			cluster.Spec.ClusterNetwork.ServiceDomain,
 			cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
 			cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
 			machine.Spec.Versions.ControlPlane))
 
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterConfig.Status.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
 	if machine.ObjectMeta.Labels["set"] == "node" {
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupNode].ID)
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterConfig.Status.Network.SecurityGroups[v1alpha1.SecurityGroupNode].ID)
 	}
 
 	// Pick SSH key, if any.
-	if config.KeyName != "" {
-		input.KeyName = aws.String(config.KeyName)
+	if config.Spec.KeyName != "" {
+		input.KeyName = aws.String(config.Spec.KeyName)
 	} else {
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
@@ -198,13 +198,13 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, machineConfig *v1alpha1.AWSMachineProviderConfig, cluster *clusterv1.Cluster, clusterConfig *v1alpha1.AWSClusterProviderConfig) (*v1alpha1.Instance, error) {
 	glog.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
-	if status.InstanceID != nil {
-		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
-		instance, err := s.InstanceIfExists(status.InstanceID)
+	if machineConfig.Status.InstanceID != nil {
+		glog.V(2).Infof("Looking up instance %q", *machineConfig.Status.InstanceID)
+		instance, err := s.InstanceIfExists(machineConfig.Status.InstanceID)
 
 		// if there was no error, return the found instance
 		if err == nil {
@@ -213,10 +213,10 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 		// if there was an error but it's not IsNotFound then it's a real error
 		if !IsNotFound(err) {
-			return instance, errors.Wrapf(err, "instance %q was not found", *status.InstanceID)
+			return instance, errors.Wrapf(err, "instance %q was not found", *machineConfig.Status.InstanceID)
 		}
 
-		return instance, errors.Wrapf(err, "failed to look up instance %q", *status.InstanceID)
+		return instance, errors.Wrapf(err, "failed to look up instance %q", *machineConfig.Status.InstanceID)
 	}
 
 	glog.V(2).Infof("Looking up instance by tags")
@@ -230,7 +230,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 	// otherwise let's create it
 	glog.V(2).Info("Instance did not exist, attempting to creating it")
-	return s.CreateInstance(machine, config, clusterStatus, cluster)
+	return s.CreateInstance(machine, machineConfig, cluster, clusterConfig)
 }
 
 func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {

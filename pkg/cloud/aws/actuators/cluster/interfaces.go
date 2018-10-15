@@ -20,6 +20,4 @@ import (
 
 type codec interface {
 	DecodeFromProviderConfig(clusterv1.ProviderConfig, runtime.Object) error
-	DecodeProviderStatus(*runtime.RawExtension, runtime.Object) error
-	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
 }
