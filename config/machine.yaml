@@ -1,0 +1,19 @@
+apiVersion: cluster.k8s.io/v1alpha1
+kind: Machine
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+    set: controlplane
+  name: machine-sample
+  namespace: system
+spec:
+  versions:
+    kubelet: v1.12.0
+    controlPlane: v1.12.0
+  providerConfig:
+    value:
+      apiVersion: awsproviderconfig/v1alpha1
+      kind: AWSMachineProviderConfig
+      instanceType: t2.medium
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      keyName: "laptop"
