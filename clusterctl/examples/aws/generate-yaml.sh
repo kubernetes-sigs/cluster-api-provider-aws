@@ -7,8 +7,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${DIR}/out
 
 # provider-components
-export CLUSTER_CONTROLLER_IMAGE="${CLUSTER_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
-export MACHINE_CONTROLLER_IMAGE="${MACHINE_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1}"
+
+export REGISTRY="${REGISTRY:-gcr.io}"
+export REPOSITORY="${REPOSITORY:-cluster-api-provider-aws/cluster-api-aws-controller}"
+export TAG="${TAG:-latest}"
+export IMG="${REGISTRY}/${REPOSITORY}:${TAG}"
 
 # aws credentials
 # TODO generate a secret instead of embedding directly in the YAML

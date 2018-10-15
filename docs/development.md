@@ -7,12 +7,11 @@
 <!-- TOC depthFrom:2 -->
 - [Updating mocks](#updating-mocks)
 - [Set up](#set-up)
-  - [Base requirements](#base-requirements)
-  - [Using Google Cloud](#using-google-cloud)
-    - [Using images on Google Cloud](#using-images-on-google-cloud)
-  - [Using AWS Elastic Container Registry](#using-aws-elastic-container-registry)
-    - [Using images on Elastic Container Registry](#using-images-on-elastic-container-registry)
-    - [Using Minikube only](#using-minikube-only)
+    - [Base requirements](#base-requirements)
+    - [Using Google Cloud](#using-google-cloud)
+        - [Using images on Google Cloud](#using-images-on-google-cloud)
+    - [Using AWS Elastic Container Registry](#using-aws-elastic-container-registry)
+        - [Using images on Elastic Container Registry](#using-images-on-elastic-container-registry)
 - [cluster-api-dev-helper](#cluster-api-dev-helper)
 
 <!-- /TOC -->
@@ -53,8 +52,8 @@ Google Container Registry.
 #### Using images on Google Cloud
 
 ``` bash
-export CLUSTER_CONTROLLER_IMAGE=gcr.io/$(gcloud config get-value project)/aws-cluster-controller:0.0.1-dev
-export MACHINE_CONTROLLER_IMAGE=gcr.io/$(gcloud config get-value project)/aws-machine-controller:0.0.1-dev
+export REGISTRY=gcr.io
+export REPOSITORY=$(gcloud config get-value project)/cluster-api-aws-controller
 ```
 
 Then generate the [example configuration](../README.md#running-clusterctl) as normal.
@@ -68,33 +67,23 @@ Then generate the [example configuration](../README.md#running-clusterctl) as no
 1. Create two ECR repositories.
 
     ``` bash
-    aws ecr create-repository --repository-name aws-machine-controller
-    aws ecr create-repository --repository-name aws-cluster-controller
+    aws ecr create-repository --repository-name cluster-api-aws-controller
     ```
 1. Run `eval $(aws ecr get-login --no-include-email)` or use the [ECR Credential Helper[ecr_credential_helper] to set up Docker
-1. Push dev images with `DEV_REPO_TYPE=ECR make dev_push`
+1. Push dev images with `make docker-push`
 
 #### Using images on Elastic Container Registry
 
 ``` bash
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
-export CLUSTER_CONTROLLER_IMAGE=${AWS_ACCOUNT_ID}.dkr.ecr.${DEFAULT_AWS_REGION}.amazonaws.com/aws-cluster-controller:0.0.1-dev
-export MACHINE_CONTROLLER_IMAGE=${AWS_ACCOUNT_ID}.dkr.ecr.${DEFAULT_AWS_REGION}.amazonaws.com/aws-machine-controller:0.0.1-dev
+export REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${DEFAULT_AWS_REGION}.amazonaws.com
+export REPOSITORY=cluster-api-aws-controller
 ```
 
 Then generate the [example configuration](getting-started.md#generating-cluster-manifests) as normal.
 
 You will also need to configure minikube or your bootstrap cluster with credentials to access ECR, using [image pull secrets][image_pull_secrets]
 or another mechanism.
-
-#### Using Minikube only
-
-You can also build and test using only the local storage on the minikube VM,
-using:
-
-``` bash
-make minikube_build FASTBUILD=true
-```
 
 ## cluster-api-dev-helper
 
@@ -104,9 +93,8 @@ utility in the /hack directory.
 To install it, run:
 
 ``` bash
-make cluster-api-dev-helper-bin FASTBUILD=true
+make cluster-api-dev-helper-bin
 ```
-
 
 <!-- References -->
 

@@ -50,39 +50,8 @@ spec:
           limits:
             cpu: 100m
             memory: 30Mi
-      - name: aws-cluster-controller
-        image: ${CLUSTER_CONTROLLER_IMAGE}
-        volumeMounts:
-        - name: config
-          mountPath: /etc/kubernetes
-        - name: certs
-          mountPath: /etc/ssl/certs
-        env:
-        - name: AWS_REGION
-          value: ${AWS_REGION}
-        - name: AWS_ACCESS_KEY_ID
-          value: ${AWS_ACCESS_KEY_ID}
-        - name: AWS_SECRET_ACCESS_KEY
-          value: ${AWS_SECRET_ACCESS_KEY}
-        - name: NODE_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: spec.nodeName
-        command:
-        - "./cluster-controller"
-        args:
-        - --kubeconfig=/etc/kubernetes/admin.conf
-        - --leader-elect
-        - -v2
-        resources:
-          requests:
-            cpu: 200m
-            memory: 200Mi
-          limits:
-            cpu: 400m
-            memory: 500Mi
-      - name: aws-machine-controller
-        image: ${MACHINE_CONTROLLER_IMAGE}
+      - name: cluster-api-aws-controller
+        image: ${IMG}
         volumeMounts:
         - name: config
           mountPath: /etc/kubernetes
@@ -99,12 +68,8 @@ spec:
           value: ${AWS_ACCESS_KEY_ID}
         - name: AWS_SECRET_ACCESS_KEY
           value: ${AWS_SECRET_ACCESS_KEY}
-        command:
-        - "./machine-controller"
         args:
         - --kubeconfig=/etc/kubernetes/admin.conf
-        - --leader-elect
-        - -v2
         resources:
           requests:
             cpu: 200m
