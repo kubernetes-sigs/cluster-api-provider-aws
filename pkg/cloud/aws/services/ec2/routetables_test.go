@@ -140,7 +140,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 			},
-			err: errors.New(`no nat gateways are available in availability zone "us-east-1a"`),
+			err: errors.New(`no nat gateways available in "us-east-1a"`),
 		},
 	}
 

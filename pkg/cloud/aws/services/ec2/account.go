@@ -14,6 +14,8 @@
 package ec2
 
 import (
+	"sort"
+
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 )
@@ -45,5 +47,6 @@ func (s *Service) getAvailableZones() ([]string, error) {
 		zones = append(zones, *zone.ZoneName)
 	}
 
+	sort.Strings(zones)
 	return zones, nil
 }

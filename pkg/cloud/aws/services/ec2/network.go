@@ -70,14 +70,17 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 		return err
 	}
 
+	// NAT Gateways.
 	if err := s.deleteNatGateways(clusterName, network.Subnets, &network.VPC); err != nil {
 		return err
 	}
 
+	// EIPs.
 	if err := s.releaseAddresses(clusterName); err != nil {
 		return err
 	}
 
+	// Internet Gateways.
 	if err := s.deleteInternetGateways(clusterName, network); err != nil {
 		return err
 	}

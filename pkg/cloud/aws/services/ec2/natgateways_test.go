@@ -100,7 +100,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								},
 								{
 									Name:   aws.String("state"),
-									Values: []*string{aws.String("available")},
+									Values: []*string{aws.String("pending"), aws.String("available")},
 								},
 							},
 						}),
@@ -177,7 +177,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								},
 								{
 									Name:   aws.String("state"),
-									Values: []*string{aws.String("available")},
+									Values: []*string{aws.String("pending"), aws.String("available")},
 								},
 							},
 						}),
@@ -253,7 +253,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								},
 								{
 									Name:   aws.String("state"),
-									Values: []*string{aws.String("available")},
+									Values: []*string{aws.String("pending"), aws.String("available")},
 								},
 							},
 						}),
