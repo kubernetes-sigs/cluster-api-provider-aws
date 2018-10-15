@@ -17,8 +17,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/golang/glog"
-
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
@@ -46,23 +44,32 @@ func generateCmd() *cobra.Command {
 		Use:   "generate-cloudformation [AWS Account ID]",
 		Short: "Generate bootstrap AWS CloudFormation template",
 		Long: `Generate bootstrap AWS CloudFormation template with initial IAM policies.
- You must enter an AWS account ID to generate the CloudFormation template.
+You must enter an AWS account ID to generate the CloudFormation template.
+
+Instructions for obtaining the AWS account ID can be found on https://docs.aws.amazon.com/IAM/latest/UserGuide/console_account-alias.html
 `,
-		Args: cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-
-			if !sts.ValidateAccountID(args[0]) {
-				glog.Error("Not entered a valid AWS Account ID")
-				os.Exit(500)
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				fmt.Printf("Error: requires AWS Account ID as an argument\n\n")
+				cmd.Help()
+				os.Exit(200)
 			}
-
+			if !sts.ValidateAccountID(args[0]) {
+				fmt.Printf("Error: provided AWS Account ID is invalid\n\n")
+				cmd.Help()
+				os.Exit(201)
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			template := cloudformation.BootstrapTemplate(args[0])
 			j, err := template.YAML()
 			if err != nil {
-				glog.Error(err)
-				os.Exit(1)
+				return err
 			}
+
 			fmt.Print(string(j))
+			return nil
 		},
 	}
 	return newCmd
@@ -73,39 +80,26 @@ func createStackCmd() *cobra.Command {
 		Use:   "create-stack",
 		Short: "Create a new AWS CloudFormation stack using the bootstrap template",
 		Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
-		Run: func(cmd *cobra.Command, args []string) {
-
+		RunE: func(cmd *cobra.Command, args []string) error {
 			stackName := "cluster-api-provider-aws-sigs-k8s-io"
 			sess, err := session.NewSession()
 			if err != nil {
-				glog.Error(err)
-				os.Exit(403)
+				return err
 			}
 
 			stsSvc := sts.NewService(awssts.New(sess))
-
 			accountID, stsErr := stsSvc.AccountID()
-
 			if stsErr != nil {
-				glog.Error(stsErr)
-				os.Exit(1)
+				return stsErr
 			}
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
-
 			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID)
-
-			showErr := cfnSvc.ShowStackResources(stackName)
-
-			if showErr != nil {
-				glog.Error(showErr)
-				os.Exit(1)
-			}
-
 			if err != nil {
-				glog.Error(err)
-				os.Exit(1)
+				return err
 			}
+
+			return cfnSvc.ShowStackResources(stackName)
 		},
 	}
 

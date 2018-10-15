@@ -15,8 +15,7 @@ package ec2
 
 import (
 	"fmt"
-
-	"github.com/golang/glog"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	awsec2 "github.com/aws/aws-sdk-go/service/ec2"
@@ -40,30 +39,38 @@ func RootCmd() *cobra.Command {
 
 func consoleOutputCmd() *cobra.Command {
 	newCmd := &cobra.Command{
-		Use:   "console-output",
+		Use:   "console-output [EC2 Machine ID]",
 		Short: "Get console output for host",
-		Long:  "Get console output for host",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Long: `Get console output for host.
+You must enter a Machine ID for machine you want to get console output. Machine ID can be obtained by following https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html
+`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				fmt.Printf("Error: requires EC2 Machine ID as an argument\n\n")
+				cmd.Help()
+				os.Exit(202)
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			sess, err := session.NewSession()
 			if err != nil {
-				glog.Fatal(err)
+				return err
 			}
 
 			instanceID, err := client.MachineInstanceID(args[0])
 			if err != nil {
-				glog.Fatal(err)
+				return err
 			}
 
 			svc := ec2.NewService(awsec2.New(sess))
-
 			out, err := svc.GetConsoleOutput(instanceID)
 			if err != nil {
-				glog.Fatal(err)
+				return err
 			}
 
 			fmt.Println(out)
-
+			return nil
 		},
 	}
 	return newCmd
