@@ -44,10 +44,17 @@ func TestReconcileVPC(t *testing.T) {
 						VpcIds: []*string{
 							aws.String("vpc-exists"),
 						},
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("state"),
+								Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+							},
+						},
 					})).
 					Return(&ec2.DescribeVpcsOutput{
 						Vpcs: []*ec2.Vpc{
 							{
+								State:     aws.String("available"),
 								VpcId:     aws.String("vpc-exists"),
 								CidrBlock: aws.String("10.0.0.0/8"),
 							},
@@ -65,6 +72,12 @@ func TestReconcileVPC(t *testing.T) {
 						VpcIds: []*string{
 							aws.String("vpc-new"),
 						},
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("state"),
+								Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+							},
+						},
 					})).
 					Return(&ec2.DescribeVpcsOutput{}, nil)
 
@@ -72,6 +85,7 @@ func TestReconcileVPC(t *testing.T) {
 					CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
 					Return(&ec2.CreateVpcOutput{
 						Vpc: &ec2.Vpc{
+							State:     aws.String("available"),
 							VpcId:     aws.String("vpc-new"),
 							CidrBlock: aws.String("10.1.0.0/16"),
 						},

@@ -57,6 +57,7 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 	if keyName == "" {
 		keyName = defaultSSHKeyName
 	}
+
 	spec := s.getDefaultBastion(clusterName, status.Region, status.Network, keyName)
 
 	// Describe bastion instance, if any.
