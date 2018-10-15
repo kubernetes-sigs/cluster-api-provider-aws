@@ -16,6 +16,36 @@ spec:
       properties:
         apiVersion:
           type: string
+        conditions:
+          items:
+            properties:
+              lastProbeTime:
+                format: date-time
+                type: string
+              lastTransitionTime:
+                format: date-time
+                type: string
+              message:
+                type: string
+              reason:
+                type: string
+              status:
+                type: string
+              type:
+                type: string
+            required:
+            - type
+            - status
+            - lastProbeTime
+            - lastTransitionTime
+            - reason
+            - message
+            type: object
+          type: array
+        instanceID:
+          type: string
+        instanceState:
+          type: string
         kind:
           type: string
         metadata:

@@ -50,19 +50,6 @@ spec:
               type: string
           required:
           - id
-          - instanceState
-          - type
-          - subnetId
-          - imageId
-          - keyName
-          - securityGroupIds
-          - userData
-          - iamProfile
-          - privateIp
-          - publicIp
-          - enaSupport
-          - ebsOptimized
-          - tags
           type: object
         kind:
           type: string
@@ -131,15 +118,6 @@ spec:
                   type: array
                 tags:
                   type: object
-              required:
-              - name
-              - dnsName
-              - scheme
-              - subnetIds
-              - securityGroupIds
-              - listeners
-              - healthChecks
-              - tags
               type: object
             internetGatewayId:
               type: string
@@ -182,19 +160,9 @@ spec:
               - id
               - cidrBlock
               type: object
-          required:
-          - vpc
-          - internetGatewayId
-          - securityGroups
-          - subnets
-          - apiServerElb
           type: object
         region:
           type: string
-      required:
-      - region
-      - network
-      - bastion
   version: v1alpha1
 status:
   acceptedNames:

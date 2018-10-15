@@ -35,8 +35,6 @@ spec:
                 type: array
               id:
                 type: string
-            required:
-            - filters
             type: object
           type: array
         additionalTags:
@@ -61,8 +59,6 @@ spec:
               type: array
             id:
               type: string
-          required:
-          - filters
           type: object
         apiVersion:
           type: string
@@ -98,13 +94,7 @@ spec:
               type: array
             id:
               type: string
-          required:
-          - filters
           type: object
-      required:
-      - ami
-      - instanceType
-      - keyName
   version: v1alpha1
 status:
   acceptedNames:

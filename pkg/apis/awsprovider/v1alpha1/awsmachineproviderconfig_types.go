@@ -34,10 +34,10 @@ type AWSMachineProviderConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// AMI is the reference to the AMI from which to create the machine instance.
-	AMI AWSResourceReference `json:"ami"`
+	AMI AWSResourceReference `json:"ami,omitempty"`
 
 	// InstanceType is the type of instance to create. Example: m4.xlarge
-	InstanceType string `json:"instanceType"`
+	InstanceType string `json:"instanceType,omitempty"`
 
 	// AdditionalTags is the set of tags to add to an instance, in addition to the ones
 	// added by default by the actuator. These tags are additive. The actuator will ensure
@@ -71,7 +71,7 @@ type AWSMachineProviderConfig struct {
 
 	// KeyName is the name of the SSH key to install on the instance.
 	// +optional
-	KeyName string `json:"keyName"`
+	KeyName string `json:"keyName,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

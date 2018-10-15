@@ -38,7 +38,7 @@ type AWSResourceReference struct {
 	// They are applied according to the rules defined by the AWS API:
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html
 	// +optional
-	Filters []Filter `json:"filters"`
+	Filters []Filter `json:"filters,omitempty"`
 }
 
 // Filter is a filter used to identify an AWS resource
@@ -84,19 +84,19 @@ type AWSMachineProviderCondition struct {
 type Network struct {
 
 	// VPC defines the cluster vpc.
-	VPC VPC `json:"vpc"`
+	VPC VPC `json:"vpc,omitempty"`
 
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
-	InternetGatewayID *string `json:"internetGatewayId"`
+	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
 
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
-	SecurityGroups map[SecurityGroupRole]*SecurityGroup `json:"securityGroups"`
+	SecurityGroups map[SecurityGroupRole]*SecurityGroup `json:"securityGroups,omitempty"`
 
 	// Subnets includes all the subnets defined inside the VPC.
-	Subnets Subnets `json:"subnets"`
+	Subnets Subnets `json:"subnets,omitempty"`
 
 	// APIServerELB is the Kubernetes api server classic load balancer.
-	APIServerELB ClassicELB `json:"apiServerElb"`
+	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`
 }
 
 // VPC defines an AWS vpc.
@@ -162,28 +162,28 @@ var (
 type ClassicELB struct {
 	// The name of the load balancer. It must be unique within the set of load balancers
 	// defined in the region. It also serves as identifier.
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// DNSName is the dns name of the load balancer.
-	DNSName string `json:"dnsName"`
+	DNSName string `json:"dnsName,omitempty"`
 
 	// Scheme is the load balancer scheme, either internet-facing or private.
-	Scheme ClassicELBScheme `json:"scheme"`
+	Scheme ClassicELBScheme `json:"scheme,omitempty"`
 
 	// SubnetIDs is an array of subnets in the VPC attached to the load balancer.
-	SubnetIDs []string `json:"subnetIds"`
+	SubnetIDs []string `json:"subnetIds,omitempty"`
 
 	// SecurityGroupIDs is an array of security groups assigned to the load balancer.
-	SecurityGroupIDs []string `json:"securityGroupIds"`
+	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
-	Listeners []*ClassicELBListener `json:"listeners"`
+	Listeners []*ClassicELBListener `json:"listeners,omitempty"`
 
 	// HealthCheck is the classic elb health check associated with the load balancer.
-	HealthCheck *ClassicELBHealthCheck `json:"healthChecks"`
+	HealthCheck *ClassicELBHealthCheck `json:"healthChecks,omitempty"`
 
 	// Tags is a map of tags associated with the load balancer.
-	Tags map[string]string `json:"tags"`
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 // ClassicELBListener defines an AWS classic load balancer listener.
@@ -356,42 +356,42 @@ type Instance struct {
 	ID string `json:"id"`
 
 	// The current state of the instance.
-	State InstanceState `json:"instanceState"`
+	State InstanceState `json:"instanceState,omitempty"`
 
 	// The instance type.
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 
 	// The ID of the subnet of the instance.
-	SubnetID string `json:"subnetId"`
+	SubnetID string `json:"subnetId,omitempty"`
 
 	// The ID of the AMI used to launch the instance.
-	ImageID string `json:"imageId"`
+	ImageID string `json:"imageId,omitempty"`
 
 	// The name of the SSH key pair.
-	KeyName *string `json:"keyName"`
+	KeyName *string `json:"keyName,omitempty"`
 
 	// SecurityGroupIDs are one or more security group IDs this instance belongs to.
-	SecurityGroupIDs []string `json:"securityGroupIds"`
+	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// UserData is the raw data script passed to the instance which is run upon bootstrap.
 	// This field must not be base64 encoded and should only be used when running a new instance.
-	UserData *string `json:"userData"`
+	UserData *string `json:"userData,omitempty"`
 
 	// The name of the IAM instance profile associated with the instance, if applicable.
-	IAMProfile string `json:"iamProfile"`
+	IAMProfile string `json:"iamProfile,omitempty"`
 
 	// The private IPv4 address assigned to the instance.
-	PrivateIP *string `json:"privateIp"`
+	PrivateIP *string `json:"privateIp,omitempty"`
 
 	// The public IPv4 address assigned to the instance, if applicable.
-	PublicIP *string `json:"publicIp"`
+	PublicIP *string `json:"publicIp,omitempty"`
 
 	// Specifies whether enhanced networking with ENA is enabled.
-	ENASupport *bool `json:"enaSupport"`
+	ENASupport *bool `json:"enaSupport,omitempty"`
 
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
-	EBSOptimized *bool `json:"ebsOptimized"`
+	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
 
 	// The tags associated with the instance.
-	Tags map[string]string `json:"tags"`
+	Tags map[string]string `json:"tags,omitempty"`
 }

@@ -31,7 +31,7 @@ type AWSClusterProviderConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// The AWS Region the cluster lives in.
-	Region string `json:"region"`
+	Region string `json:"region,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
 	SSHKeyName string `json:"sshKeyName,omitempty"`

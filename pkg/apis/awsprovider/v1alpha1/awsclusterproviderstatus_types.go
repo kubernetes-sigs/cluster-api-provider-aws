@@ -30,9 +30,9 @@ type AWSClusterProviderStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Region  string   `json:"region"`
-	Network Network  `json:"network"`
-	Bastion Instance `json:"bastion"`
+	Region  string   `json:"region,omitempty"`
+	Network Network  `json:"network,omitempty"`
+	Bastion Instance `json:"bastion,omitempty"`
 
 	// CACertificate is a PEM encoded CA Certificate for the control plane nodes.
 	CACertificate []byte
