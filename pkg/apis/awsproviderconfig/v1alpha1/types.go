@@ -28,6 +28,8 @@ import (
 // Required parameters such as region that are not specified by this configuration, will be defaulted
 // by the actuator.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
+// +kubebuilder:resource=true
 type AWSMachineProviderConfig struct {
 	metav1.TypeMeta `json:",inline"`
 

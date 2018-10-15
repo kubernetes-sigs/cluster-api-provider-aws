@@ -7,8 +7,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${DIR}/out
 
 # provider-components
-export CLUSTER_CONTROLLER_IMAGE="${CLUSTER_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
-export MACHINE_CONTROLLER_IMAGE="${MACHINE_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1}"
+
+export REGISTRY="${REGISTRY:-gcr.io}"
+export REPOSITORY="${REPOSITORY:-cluster-api-provider-aws/cluster-api-aws-controller}"
+export TAG="${TAG:-latest}"
+export IMG="${REGISTRY}/${REPOSITORY}:${TAG}"
 
 # aws credentials
 # TODO generate a secret instead of embedding directly in the YAML
@@ -26,7 +29,15 @@ CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
 
+CONFIG_DIR=${DIR}/../../../config
+
 OVERWRITE=0
+
+function addYAMLtoProvider {
+  FILENAME=$1
+  echo "---" >> "${PROVIDERCOMPONENT_GENERATED_FILE}"
+  cat "$FILENAME" >> "${PROVIDERCOMPONENT_GENERATED_FILE}"
+}
 
 SCRIPT=$(basename $0)
 while test $# -gt 0; do
@@ -74,6 +85,11 @@ mkdir -p ${OUTPUT_DIR}
 
 envsubst < $PROVIDERCOMPONENT_TEMPLATE_FILE \
   > "${PROVIDERCOMPONENT_GENERATED_FILE}"
+
+addYAMLtoProvider "${CONFIG_DIR}/rbac.yaml"
+addYAMLtoProvider "${CONFIG_DIR}/cluster_v1alpha1_cluster.yaml"
+addYAMLtoProvider "${CONFIG_DIR}/cluster_v1alpha1_machine.yaml"
+
 echo "Done generating ${PROVIDERCOMPONENT_GENERATED_FILE}"
 
 envsubst < $CLUSTER_TEMPLATE_FILE \
