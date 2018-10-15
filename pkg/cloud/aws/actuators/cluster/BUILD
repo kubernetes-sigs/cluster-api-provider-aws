@@ -9,7 +9,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/awsproviderconfig/v1alpha1:go_default_library",
+        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/services:go_default_library",
         "//pkg/cloud/aws/services/certificates:go_default_library",
         "//pkg/cloud/aws/services/ec2:go_default_library",
@@ -33,7 +33,7 @@ go_test(
     srcs = ["actuator_test.go"],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/apis/awsproviderconfig/v1alpha1:go_default_library",
+        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/actuators/cluster/mock_clusteriface:go_default_library",
         "//pkg/cloud/aws/services:go_default_library",
         "//pkg/cloud/aws/services/mocks:go_default_library",

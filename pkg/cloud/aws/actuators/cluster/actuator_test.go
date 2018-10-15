@@ -14,13 +14,14 @@
 package cluster_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster/mock_clusteriface"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
@@ -42,7 +43,7 @@ type testServicesGetter struct {
 	elb *mocks.MockELBInterface
 }
 
-func (d *testServicesGetter) Session(clusterConfig *providerconfigv1.AWSClusterProviderConfig) *session.Session {
+func (d *testServicesGetter) Session(clusterConfig *providerv1.AWSClusterProviderConfig) *session.Session {
 	return nil
 }
 
@@ -58,11 +59,6 @@ func TestGetIP(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	c, err := providerconfigv1.NewCodec()
-	if err != nil {
-		t.Fatalf("failed to create codec: %v", err)
-	}
-
 	clusters := &clusterGetter{
 		ci: mock_clusteriface.NewMockClusterInterface(mockCtrl),
 	}
@@ -73,7 +69,6 @@ func TestGetIP(t *testing.T) {
 	}
 
 	ap := cluster.ActuatorParams{
-		Codec:          c,
 		ClustersGetter: clusters,
 		ServicesGetter: services,
 	}
@@ -88,9 +83,12 @@ func TestGetIP(t *testing.T) {
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
 				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig.k8s.io/v1alpha1","region":"us-east-1"}`),
+					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
 				},
 			},
+		},
+		Status: clusterv1.ClusterStatus{
+			ProviderStatus: RuntimeRawExtension(&providerv1.AWSClusterProviderStatus{}, t),
 		},
 	}
 
@@ -99,7 +97,7 @@ func TestGetIP(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
 				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig.k8s.io/v1alpha1","region":"us-east-1"}`),
+					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
 				},
 			},
 		},
@@ -118,11 +116,6 @@ func TestReconcile(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	c, err := providerconfigv1.NewCodec()
-	if err != nil {
-		t.Fatalf("failed to create codec: %v", err)
-	}
-
 	clusters := &clusterGetter{
 		ci: mock_clusteriface.NewMockClusterInterface(mockCtrl),
 	}
@@ -133,7 +126,6 @@ func TestReconcile(t *testing.T) {
 	}
 
 	ap := cluster.ActuatorParams{
-		Codec:          c,
 		ClustersGetter: clusters,
 		ServicesGetter: services,
 	}
@@ -148,29 +140,36 @@ func TestReconcile(t *testing.T) {
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
 				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsproviderconfig.k8s.io/v1alpha1","region":"us-east-1"}`),
+					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
 				},
 			},
 		},
 	}
 
-	clusters.ci.EXPECT().
-		UpdateStatus(gomock.AssignableToTypeOf(&clusterv1.Cluster{})).
-		Return(&clusterv1.Cluster{}, nil)
-
 	services.ec2.EXPECT().
-		ReconcileNetwork("test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
+		ReconcileNetwork("test", gomock.AssignableToTypeOf(&providerv1.Network{})).
 		Return(nil)
 
 	services.ec2.EXPECT().
-		ReconcileBastion("test", "", gomock.AssignableToTypeOf(&providerconfigv1.AWSClusterProviderStatus{})).
+		ReconcileBastion("test", "", gomock.AssignableToTypeOf(&providerv1.AWSClusterProviderStatus{})).
 		Return(nil)
 
 	services.elb.EXPECT().
-		ReconcileLoadbalancers("test", gomock.AssignableToTypeOf(&providerconfigv1.Network{})).
+		ReconcileLoadbalancers("test", gomock.AssignableToTypeOf(&providerv1.Network{})).
 		Return(nil)
 
 	if err := actuator.Reconcile(cluster); err != nil {
 		t.Fatalf("failed to reconcile cluster: %v", err)
+	}
+}
+
+func RuntimeRawExtension(p interface{}, t *testing.T) *runtime.RawExtension {
+	t.Helper()
+	out, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &runtime.RawExtension{
+		Raw: out,
 	}
 }

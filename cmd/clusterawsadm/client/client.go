@@ -21,8 +21,7 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
@@ -56,23 +55,13 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
-func MachineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
-	status := &v1alpha1.AWSMachineProviderStatus{}
-	codec, err := v1alpha1.NewCodec()
-	if err != nil {
-		return nil, err
-	}
-	err = codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
-	return status, err
-}
-
 func MachineInstanceID(name string) (string, error) {
 	c := NewClient()
 	m, err := c.ClusterV1alpha1().Machines("default").Get(name, v1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	status, err := MachineProviderStatus(m)
+	status, err := providerv1.MachineStatusFromBytes(m.Status.ProviderStatus.Raw)
 	if err != nil {
 		return "", err
 	}

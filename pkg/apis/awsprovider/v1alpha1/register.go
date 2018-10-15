@@ -25,7 +25,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/ghodss/yaml"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 
@@ -36,3 +39,38 @@ var (
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
+
+func ClusterConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSClusterProviderConfig, error) {
+	var config AWSClusterProviderConfig
+	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClusterProviderStatus, error) {
+	if extension == nil {
+		return &AWSClusterProviderStatus{}, nil
+	}
+	var status AWSClusterProviderStatus
+	if err := yaml.Unmarshal(extension.Raw, &status); err != nil {
+		return nil, err
+	}
+	return &status, nil
+}
+
+func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSMachineProviderConfig, error) {
+	var config AWSMachineProviderConfig
+	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
+func MachineStatusFromBytes(raw []byte) (*AWSMachineProviderStatus, error) {
+	var status AWSMachineProviderStatus
+	if err := yaml.Unmarshal(raw, &status); err != nil {
+		return nil, err
+	}
+	return &status, nil
+}

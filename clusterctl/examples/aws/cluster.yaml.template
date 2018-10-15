@@ -11,7 +11,7 @@ spec:
     serviceDomain: "cluster.local"
   providerConfig:
     value:
-      apiVersion: "awsproviderconfig/v1alpha1"
+      apiVersion: "awsprovider/v1alpha1"
       kind: "AWSClusterProviderConfig"
       region: "${AWS_REGION}"
       sshKeyName: "${SSH_KEY_NAME}"

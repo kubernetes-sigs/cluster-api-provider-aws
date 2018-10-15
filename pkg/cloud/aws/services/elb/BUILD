@@ -11,7 +11,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/awsproviderconfig/v1alpha1:go_default_library",
+        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/wait:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
