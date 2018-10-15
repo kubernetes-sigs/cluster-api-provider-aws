@@ -176,12 +176,12 @@ func defineTestingApplyControllerManifestsCmd(parent *cobra.Command) {
 }
 
 func destroyMachines() {
-	runShellWithWait("kubectl get machine -o name | xargs kubectl patch -p '{\"metadata\":{\"finalizers\":null}}'")
+	runShellWithWait("kubectl get machine -o name | xargs kubectl patch -p '{\"metadata\":{\"finalizers\":null}}' --type=merge")
 	runShellWithWait("kubectl delete machines --force=true --grace-period 0 --all --wait=true")
 }
 
 func destroyClusters() {
-	runShellWithWait("kubectl patch cluster test1 -p '{\"metadata\":{\"finalizers\":null}}'")
+	runShellWithWait("kubectl patch cluster test1 -p '{\"metadata\":{\"finalizers\":null}}' --type=merge")
 	runShellWithWait("kubectl delete clusters --force=true --grace-period 0 --all --wait=true")
 }
 
