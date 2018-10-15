@@ -11,7 +11,6 @@ go_library(
         "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/cloudformation:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/sts:go_default_library",
-        "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
     ],
 )

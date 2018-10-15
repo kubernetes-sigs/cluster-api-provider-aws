@@ -8,7 +8,6 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//pkg/apis:go_default_library",
-        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/actuators/cluster:go_default_library",
         "//pkg/cloud/aws/actuators/machine:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis:go_default_library",
