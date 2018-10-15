@@ -24,7 +24,9 @@ load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_depen
 
 go_rules_dependencies()
 
-go_register_toolchains()
+go_register_toolchains(
+    go_version = "1.11.1",
+)
 
 http_archive(
     name = "bazel_gazelle",
@@ -48,6 +50,10 @@ load(
     "container_pull",
     container_repositories = "repositories",
 )
+load(
+    "@io_bazel_rules_docker//go:image.bzl",
+    _go_image_repos = "repositories",
+)
 
 container_repositories()
 
@@ -57,3 +63,5 @@ container_pull(
     repository = "library/golang",
     tag = "1.10-alpine",
 )
+
+_go_image_repos()
