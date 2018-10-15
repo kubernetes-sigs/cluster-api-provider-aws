@@ -100,7 +100,11 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 }
 
 func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, error) {
-	input := &ec2.DescribeVpcsInput{}
+	input := &ec2.DescribeVpcsInput{
+		Filters: []*ec2.Filter{
+			s.filterVPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
+		},
+	}
 
 	if id == "" {
 		// Try to find a previously created and tagged VPC
@@ -122,6 +126,12 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 		return nil, NewNotFound(errors.Errorf("could not find vpc %q", id))
 	} else if len(out.Vpcs) > 1 {
 		return nil, NewConflict(errors.Errorf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
+	}
+
+	switch *out.Vpcs[0].State {
+	case ec2.VpcStateAvailable, ec2.VpcStatePending:
+	default:
+		return nil, NewNotFound(errors.Errorf("could not find available or pending vpc"))
 	}
 
 	return &v1alpha1.VPC{
