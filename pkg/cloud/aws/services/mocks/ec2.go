@@ -18,9 +18,8 @@
 package mocks
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
+	reflect "reflect"
 	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	v1alpha10 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -49,7 +48,7 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateInstance mocks base method
-func (m *MockEC2Interface) CreateInstance(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderConfig, arg2 *v1alpha1.AWSClusterProviderStatus, arg3 *v1alpha10.Cluster) (*v1alpha1.Instance, error) {
+func (m *MockEC2Interface) CreateInstance(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderConfig, arg2 *v1alpha10.Cluster, arg3 *v1alpha1.AWSClusterProviderConfig) (*v1alpha1.Instance, error) {
 	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
@@ -62,20 +61,20 @@ func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2, arg3 in
 }
 
 // CreateOrGetMachine mocks base method
-func (m *MockEC2Interface) CreateOrGetMachine(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderStatus, arg2 *v1alpha1.AWSMachineProviderConfig, arg3 *v1alpha1.AWSClusterProviderStatus, arg4 *v1alpha10.Cluster) (*v1alpha1.Instance, error) {
-	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1, arg2, arg3, arg4)
+func (m *MockEC2Interface) CreateOrGetMachine(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderConfig, arg2 *v1alpha10.Cluster, arg3 *v1alpha1.AWSClusterProviderConfig) (*v1alpha1.Instance, error) {
+	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateOrGetMachine indicates an expected call of CreateOrGetMachine
-func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3, arg4)
+func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3)
 }
 
 // DeleteBastion mocks base method
-func (m *MockEC2Interface) DeleteBastion(arg0 string, arg1 *v1alpha1.AWSClusterProviderStatus) error {
+func (m *MockEC2Interface) DeleteBastion(arg0 string, arg1 *v1alpha1.AWSClusterProviderConfigStatus) error {
 	ret := m.ctrl.Call(m, "DeleteBastion", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -112,7 +111,7 @@ func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomo
 }
 
 // ReconcileBastion mocks base method
-func (m *MockEC2Interface) ReconcileBastion(arg0, arg1 string, arg2 *v1alpha1.AWSClusterProviderStatus) error {
+func (m *MockEC2Interface) ReconcileBastion(arg0, arg1 string, arg2 *v1alpha1.AWSClusterProviderConfigStatus) error {
 	ret := m.ctrl.Call(m, "ReconcileBastion", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0

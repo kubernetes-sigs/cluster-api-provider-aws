@@ -66,41 +66,23 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	glog.Infof("Reconciling cluster %v.", cluster.Name)
 
-	// Get a cluster api client for the namespace of the cluster.
-	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
-
 	// Load provider config.
 	config, err := a.loadProviderConfig(cluster)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
-	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
-	if err != nil {
-		return errors.Errorf("failed to load cluster provider status: %v", err)
-	}
-
 	// Store some config parameters in the status.
-	status.Region = config.Region
+	config.Status.Region = config.Spec.Region
 
-	if len(status.CACertificate) == 0 {
+	if len(config.Status.CACertificate) == 0 {
 		caCert, caKey, err := certificates.NewCertificateAuthority()
 		if err != nil {
 			return errors.Wrap(err, "Failed to generate a CA for the control plane")
 		}
-		status.CACertificate = certificates.EncodeCertPEM(caCert)
-		status.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
+		config.Status.CACertificate = certificates.EncodeCertPEM(caCert)
+		config.Status.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
 	}
-
-	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
-	// the cluster state might have partial changes that should be stored.
-	defer func() {
-		// TODO(vincepri): remove this after moving to tag-discovery based approach.
-		if err := a.storeProviderStatus(clusterClient, cluster, status); err != nil {
-			glog.Errorf("failed to store provider status for cluster %q: %v", cluster.Name, err)
-		}
-	}()
 
 	// Create new aws session.
 	sess := a.servicesGetter.Session(config)
@@ -108,18 +90,18 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	// Load ec2 client.
 	ec2 := a.servicesGetter.EC2(sess)
 
-	if err := ec2.ReconcileNetwork(cluster.Name, &status.Network); err != nil {
+	if err := ec2.ReconcileNetwork(cluster.Name, &config.Status.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
-	if err := ec2.ReconcileBastion(cluster.Name, config.SSHKeyName, status); err != nil {
+	if err := ec2.ReconcileBastion(cluster.Name, config.Spec.SSHKeyName, &config.Status); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
 	// Load elb client.
 	elb := a.servicesGetter.ELB(sess)
 
-	if err := elb.ReconcileLoadbalancers(cluster.Name, &status.Network); err != nil {
+	if err := elb.ReconcileLoadbalancers(cluster.Name, &config.Status.Network); err != nil {
 		return errors.Errorf("unable to reconcile load balancers: %v", err)
 	}
 
@@ -130,32 +112,14 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	glog.Infof("Deleting cluster %v.", cluster.Name)
 
-	// Get a cluster api client for the namespace of the cluster.
-	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
-
 	// Load provider config.
 	config, err := a.loadProviderConfig(cluster)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
-	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
-	if err != nil {
-		return errors.Errorf("failed to load cluster provider status: %v", err)
-	}
-
 	// Store some config parameters in the status.
-	status.Region = config.Region
-
-	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
-	// the cluster state might have partial changes that should be stored.
-	defer func() {
-		// TODO(vincepri): remove this after moving to tag-discovery based approach.
-		if err := a.storeProviderStatus(clusterClient, cluster, status); err != nil {
-			glog.Errorf("failed to store provider status for cluster %q: %v", cluster.Name, err)
-		}
-	}()
+	config.Status.Region = config.Spec.Region
 
 	// Create new aws session.
 	sess := a.servicesGetter.Session(config)
@@ -166,15 +130,15 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	// Load elb client.
 	elb := a.servicesGetter.ELB(sess)
 
-	if err := elb.DeleteLoadbalancers(cluster.Name, &status.Network); err != nil {
+	if err := elb.DeleteLoadbalancers(cluster.Name, &config.Status.Network); err != nil {
 		return errors.Errorf("unable to delete load balancers: %v", err)
 	}
 
-	if err := ec2.DeleteBastion(cluster.Name, status); err != nil {
+	if err := ec2.DeleteBastion(cluster.Name, &config.Status); err != nil {
 		return errors.Errorf("unable to delete bastion: %v", err)
 	}
 
-	if err := ec2.DeleteNetwork(cluster.Name, &status.Network); err != nil {
+	if err := ec2.DeleteNetwork(cluster.Name, &config.Status.Network); err != nil {
 		glog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: 5 * 1000 * 1000 * 1000,
@@ -187,15 +151,23 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 // GetIP returns the IP of a machine, but this is going away.
 func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 
-	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
+	// Load provider config.
+	config, err := a.loadProviderConfig(cluster)
 	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider status: %v", err)
+		return "", errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
-	if status.Network.APIServerELB.DNSName != "" {
-		return status.Network.APIServerELB.DNSName, nil
+	if config.Status.Network.APIServerELB.DNSName != "" {
+		return config.Status.Network.APIServerELB.DNSName, nil
 	}
+
+	sess := a.servicesGetter.Session(config)
+	elbService := a.servicesGetter.ELB(sess)
+	return elbService.GetAPIServerDNSName(cluster.Name)
+}
+
+// GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
+func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 
 	// Load provider config.
 	config, err := a.loadProviderConfig(cluster)
@@ -203,28 +175,14 @@ func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine)
 		return "", errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
-	sess := a.servicesGetter.Session(config)
-	elb := a.servicesGetter.ELB(sess)
-	return elb.GetAPIServerDNSName(cluster.Name)
-}
-
-// GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
-func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-
-	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
-	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider status: %v", err)
-	}
-
-	cert, err := certificates.DecodeCertPEM(status.CACertificate)
+	cert, err := certificates.DecodeCertPEM(config.Status.CACertificate)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode CA Cert")
 	} else if cert == nil {
 		return "", errors.New("certificate not found in status")
 	}
 
-	key, err := certificates.DecodePrivateKeyPEM(status.CAPrivateKey)
+	key, err := certificates.DecodePrivateKeyPEM(config.Status.CAPrivateKey)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode private key")
 	} else if key == nil {
@@ -257,30 +215,10 @@ func (a *Actuator) loadProviderConfig(cluster *clusterv1.Cluster) (*providerconf
 	return providerConfig, err
 }
 
-func (a *Actuator) loadProviderStatus(cluster *clusterv1.Cluster) (*providerconfigv1.AWSClusterProviderStatus, error) {
-	providerStatus := &providerconfigv1.AWSClusterProviderStatus{}
-	err := a.codec.DecodeProviderStatus(cluster.Status.ProviderStatus, providerStatus)
-	return providerStatus, err
-}
-
-func (a *Actuator) storeProviderStatus(clusterClient client.ClusterInterface, cluster *clusterv1.Cluster, status *providerconfigv1.AWSClusterProviderStatus) error {
-	raw, err := a.codec.EncodeProviderStatus(status)
-	if err != nil {
-		return errors.Errorf("failed to encode provider status: %v", err)
-	}
-
-	cluster.Status.ProviderStatus = raw
-	if _, err := clusterClient.UpdateStatus(cluster); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type defaultServicesGetter struct{}
 
 func (d *defaultServicesGetter) Session(clusterConfig *providerconfigv1.AWSClusterProviderConfig) *session.Session {
-	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
+	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Spec.Region)))
 }
 
 func (d *defaultServicesGetter) EC2(session *session.Session) service.EC2Interface {

@@ -51,7 +51,7 @@ type EC2Interface interface {
 // actuator
 type EC2ClusterInterface interface {
 	ReconcileNetwork(clusterName string, network *providerv1.Network) error
-	ReconcileBastion(clusterName, keyName string, status *providerv1.AWSClusterProviderStatus) error
+	ReconcileBastion(clusterName, keyName string, status *providerv1.AWSClusterProviderConfigStatus) error
 	DeleteNetwork(clusterName string, network *providerv1.Network) error
 }
 
@@ -59,10 +59,10 @@ type EC2ClusterInterface interface {
 // actuator
 type EC2MachineInterface interface {
 	InstanceIfExists(instanceID *string) (*providerv1.Instance, error)
-	CreateInstance(machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*providerv1.Instance, error)
+	CreateInstance(machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, cluster *clusterv1.Cluster, clusterConfig *providerv1.AWSClusterProviderConfig) (*providerv1.Instance, error)
 	TerminateInstance(instanceID string) error
-	DeleteBastion(instanceID string, status *providerv1.AWSClusterProviderStatus) error
-	CreateOrGetMachine(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*providerv1.Instance, error)
+	DeleteBastion(instanceID string, status *providerv1.AWSClusterProviderConfigStatus) error
+	CreateOrGetMachine(machine *clusterv1.Machine, machineConfig *providerv1.AWSMachineProviderConfig, cluster *clusterv1.Cluster, clusterConfig *providerv1.AWSClusterProviderConfig) (*providerv1.Instance, error)
 	UpdateInstanceSecurityGroups(instanceID string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
 }

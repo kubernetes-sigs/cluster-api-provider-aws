@@ -29,7 +29,7 @@ Following are design decisions around this type:
 - The list of ELBs that should be associated with a machine are set explicitly in the config
   and are attached when the instance is created.
 
-## AWSMachineProviderStatus
+## AWSMachineProviderConfigStatus
 Defines the status portion of a Machine specific to AWS. It is meant to be embedded in the
 Machine.Status.ProviderStatus field of a cluster API Machine.
 

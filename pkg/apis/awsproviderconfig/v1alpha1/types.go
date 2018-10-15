@@ -22,56 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// AWSMachineProviderConfig is the type that will be embedded in a Machine.Spec.ProviderConfig field
-// for an AWS instance. It is used by the AWS machine actuator to create a single machine instance,
-// using the RunInstances call (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html)
-// Required parameters such as region that are not specified by this configuration, will be defaulted
-// by the actuator.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSMachineProviderConfig struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// AMI is the reference to the AMI from which to create the machine instance.
-	AMI AWSResourceReference `json:"ami"`
-
-	// InstanceType is the type of instance to create. Example: m4.xlarge
-	InstanceType string `json:"instanceType"`
-
-	// AdditionalTags is the set of tags to add to an instance, in addition to the ones
-	// added by default by the actuator. These tags are additive. The actuator will ensure
-	// these tags are present, but will not remove any other tags that may exist on the
-	// instance.
-	// +optional
-	AdditionalTags map[string]string `json:"additionalTags,omitempty"`
-
-	// IAMInstanceProfile is a name of an IAM instance profile to assign to the instance
-	// +optional
-	IAMInstanceProfile string `json:"iamInstanceProfile,omitempty"`
-
-	// PublicIP specifies whether the instance should get a public IP.
-	// Precedence for this setting is as follows:
-	// 1. This field if set
-	// 2. Cluster/flavor setting
-	// 3. Subnet default
-	// +optional
-	PublicIP *bool `json:"publicIP,omitempty"`
-
-	// AdditionalSecurityGroups is an array of references to security groups that should be applied to the
-	// instance. These security groups would be set in addition to any security groups defined
-	// at the cluster level or in the actuator.
-	// +optional
-	AdditionalSecurityGroups []AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
-
-	// Subnet is a reference to the subnet to use for this instance. If not specified,
-	// the cluster subnet will be used.
-	// +optional
-	Subnet *AWSResourceReference `json:"subnet,omitempty"`
-
-	// KeyName is the name of the SSH key to install on the instance.
-	// +optional
-	KeyName string `json:"keyName"`
-}
-
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
 // Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 // a validation error.
@@ -88,7 +38,7 @@ type AWSResourceReference struct {
 	// They are applied according to the rules defined by the AWS API:
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html
 	// +optional
-	Filters []Filter `json:"filters"`
+	Filters []Filter `json:"filters,omitempty"`
 }
 
 // Filter is a filter used to identify an AWS resource
@@ -98,39 +48,6 @@ type Filter struct {
 
 	// Values includes one or more filter values. Filter values are case-sensitive.
 	Values []string `json:"values"`
-}
-
-// AWSClusterProviderConfig is the providerConfig for AWS in the cluster
-// object
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSClusterProviderConfig struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// The AWS Region the cluster lives in.
-	Region string `json:"region"`
-
-	// SSHKeyName is the name of the ssh key to attach to the bastion host.
-	SSHKeyName string `json:"sshKeyName,omitempty"`
-}
-
-// AWSMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
-// It containsk AWS-specific status information.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSMachineProviderStatus struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// InstanceID is the instance ID of the machine created in AWS
-	// +optional
-	InstanceID *string `json:"instanceID,omitempty"`
-
-	// InstanceState is the state of the AWS instance for this machine
-	// +optional
-	InstanceState *string `json:"instanceState,omitempty"`
-
-	// Conditions is a set of conditions associated with the Machine to indicate
-	// errors or other status
-	// +optional
-	Conditions []AWSMachineProviderCondition `json:"conditions,omitempty"`
 }
 
 // AWSMachineProviderConditionType is a valid value for AWSMachineProviderCondition.Type
@@ -143,7 +60,7 @@ const (
 	MachineCreated AWSMachineProviderConditionType = "MachineCreated"
 )
 
-// AWSMachineProviderCondition is a condition in a AWSMachineProviderStatus
+// AWSMachineProviderCondition is a condition in a AWSMachineProviderConfigStatus
 type AWSMachineProviderCondition struct {
 	// Type is the type of the condition.
 	Type AWSMachineProviderConditionType `json:"type"`
@@ -163,40 +80,23 @@ type AWSMachineProviderCondition struct {
 	Message string `json:"message"`
 }
 
-// AWSClusterProviderStatus contains the status fields
-// relevant to AWS in the cluster object.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSClusterProviderStatus struct {
-	metav1.TypeMeta `json:",inline"`
-
-	Region  string   `json:"region"`
-	Network Network  `json:"network"`
-	Bastion Instance `json:"bastion"`
-
-	// CACertificate is a PEM encoded CA Certificate for the control plane nodes.
-	CACertificate []byte
-
-	// CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control plane nodes.
-	CAPrivateKey []byte
-}
-
 // Network encapsulates AWS networking resources.
 type Network struct {
 
 	// VPC defines the cluster vpc.
-	VPC VPC `json:"vpc"`
+	VPC VPC `json:"vpc,omitempty"`
 
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
-	InternetGatewayID *string `json:"internetGatewayId"`
+	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
 
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
-	SecurityGroups map[SecurityGroupRole]*SecurityGroup `json:"securityGroups"`
+	SecurityGroups map[SecurityGroupRole]*SecurityGroup `json:"securityGroups,omitempty"`
 
 	// Subnets includes all the subnets defined inside the VPC.
-	Subnets Subnets `json:"subnets"`
+	Subnets Subnets `json:"subnets,omitempty"`
 
 	// APIServerELB is the Kubernetes api server classic load balancer.
-	APIServerELB ClassicELB `json:"apiServerElb"`
+	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`
 }
 
 // VPC defines an AWS vpc.
@@ -262,28 +162,28 @@ var (
 type ClassicELB struct {
 	// The name of the load balancer. It must be unique within the set of load balancers
 	// defined in the region. It also serves as identifier.
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// DNSName is the dns name of the load balancer.
-	DNSName string `json:"dnsName"`
+	DNSName string `json:"dnsName,omitempty"`
 
 	// Scheme is the load balancer scheme, either internet-facing or private.
-	Scheme ClassicELBScheme `json:"scheme"`
+	Scheme ClassicELBScheme `json:"scheme,omitempty"`
 
 	// SubnetIDs is an array of subnets in the VPC attached to the load balancer.
-	SubnetIDs []string `json:"subnetIds"`
+	SubnetIDs []string `json:"subnetIds,omitempty"`
 
 	// SecurityGroupIDs is an array of security groups assigned to the load balancer.
-	SecurityGroupIDs []string `json:"securityGroupIds"`
+	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
-	Listeners []*ClassicELBListener `json:"listeners"`
+	Listeners []*ClassicELBListener `json:"listeners,omitempty"`
 
 	// HealthCheck is the classic elb health check associated with the load balancer.
-	HealthCheck *ClassicELBHealthCheck `json:"healthChecks"`
+	HealthCheck *ClassicELBHealthCheck `json:"healthChecks,omitempty"`
 
 	// Tags is a map of tags associated with the load balancer.
-	Tags map[string]string `json:"tags"`
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 // ClassicELBListener defines an AWS classic load balancer listener.
@@ -453,45 +353,45 @@ var (
 
 // Instance describes an AWS instance.
 type Instance struct {
-	ID string `json:"id"`
+	ID string `json:"id,omitempty"`
 
 	// The current state of the instance.
-	State InstanceState `json:"instanceState"`
+	State InstanceState `json:"instanceState,omitempty"`
 
 	// The instance type.
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 
 	// The ID of the subnet of the instance.
-	SubnetID string `json:"subnetId"`
+	SubnetID string `json:"subnetId,omitempty"`
 
 	// The ID of the AMI used to launch the instance.
-	ImageID string `json:"imageId"`
+	ImageID string `json:"imageId,omitempty"`
 
 	// The name of the SSH key pair.
-	KeyName *string `json:"keyName"`
+	KeyName *string `json:"keyName,omitempty"`
 
 	// SecurityGroupIDs are one or more security group IDs this instance belongs to.
-	SecurityGroupIDs []string `json:"securityGroupIds"`
+	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// UserData is the raw data script passed to the instance which is run upon bootstrap.
 	// This field must not be base64 encoded and should only be used when running a new instance.
-	UserData *string `json:"userData"`
+	UserData *string `json:"userData,omitempty"`
 
 	// The name of the IAM instance profile associated with the instance, if applicable.
-	IAMProfile string `json:"iamProfile"`
+	IAMProfile string `json:"iamProfile,omitempty"`
 
 	// The private IPv4 address assigned to the instance.
-	PrivateIP *string `json:"privateIp"`
+	PrivateIP *string `json:"privateIp,omitempty"`
 
 	// The public IPv4 address assigned to the instance, if applicable.
-	PublicIP *string `json:"publicIp"`
+	PublicIP *string `json:"publicIp,omitempty"`
 
 	// Specifies whether enhanced networking with ENA is enabled.
-	ENASupport *bool `json:"enaSupport"`
+	ENASupport *bool `json:"enaSupport,omitempty"`
 
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
-	EBSOptimized *bool `json:"ebsOptimized"`
+	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
 
 	// The tags associated with the instance.
-	Tags map[string]string `json:"tags"`
+	Tags map[string]string `json:"tags,omitempty"`
 }
