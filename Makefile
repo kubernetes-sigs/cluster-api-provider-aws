@@ -17,12 +17,15 @@ IMG ?= gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest
 
 # Go environment flags.
 GOFLAGS += -ldflags '-extldflags "-static"'
-GOREBUILD :=
 GOPATH := $(shell go env GOPATH)
+
+ifndef FASTBUILD
+.PHONY: vendor
+endif
 
 all: test manager clusterctl clusterawsadm
 
-# Dependency managemnt.
+# Dependency management.
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure
@@ -44,40 +47,32 @@ genmocks: vendor
 	hack/generate-mocks.sh "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/services ELBInterface" "cloud/aws/services/mocks/elb.go"
 
 # Build manager binary.
-manager: generate fmt vet
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+manager: generate
+	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/manager
 
 # Build clusterctl binary.
-clusterctl: generate fmt vet
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/clusterctl
+clusterctl: generate
+	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/clusterctl
 
 # Build clusterawsadm binary.
 clusterawsadm: vendor
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
+	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
 
 # Build cluster-api-dev-helper binary.
 cluster-api-dev-helper: vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/hack/cluster-api-dev-helper
 
 # Run tests
-test: generate fmt vet
+test: generate lint
 	go test -v -tags=integration ./pkg/... ./cmd/...
 
 # Run go fmt against code.
-fmt:
-	go fmt ./pkg/... ./cmd/...
-
-# Run go vet against code.
-vet:
-	go vet ./pkg/... ./cmd/...
-
-# Run go lint.
 lint:
-	golint || go get -u golang.org/x/lint/golint
-	golint -set_exit_status ./cmd/... ./pkg/... ./clusterctl/...
+	golangci-lint > /dev/null || scripts/install-golint.sh -b $(GOPATH)/bin v1.10.2
+	golangci-lint run
 
 # Build the docker image
-docker-build: generate fmt vet
+docker-build: generate
 	docker build . -t ${IMG}
 
 # Push the docker image

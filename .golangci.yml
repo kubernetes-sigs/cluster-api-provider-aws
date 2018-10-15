@@ -1,0 +1,21 @@
+run:
+  concurrency: 4
+  deadline: 1m
+  issues-exit-code: 1
+  tests: true
+  skip-dirs:
+    - vendor$
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+issues:
+  exclude:
+    - "stutters"
+linters:
+  enable:
+    - gofmt
+    - govet
+    - golint
+  enable-all: false
+  fast: true
