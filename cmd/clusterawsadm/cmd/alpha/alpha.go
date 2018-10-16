@@ -16,7 +16,6 @@ package alpha
 import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/ec2"
 )
 
 func AlphaCmd() *cobra.Command {
@@ -29,6 +28,5 @@ func AlphaCmd() *cobra.Command {
 		},
 	}
 	newCmd.AddCommand(bootstrap.RootCmd())
-	newCmd.AddCommand(ec2.RootCmd())
 	return newCmd
 }
