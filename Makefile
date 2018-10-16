@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DBG ?= 0
+
+ifeq ($(DBG),1)
+GOGCFLAGS ?= -gcflags=all="-N -l"
+endif
+
 VERSION     ?= $(shell git describe --always --abbrev=7)
 MUTABLE_TAG ?= latest
 IMAGE        = origin-libvirt-machine-controllers
@@ -64,12 +70,12 @@ bin:
 	@mkdir $@
 
 .PHONY: build
-build: | bin ## build binary
-	$(DOCKER_CMD) go install -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
-	$(DOCKER_CMD) go install -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
+build: ## build binary
+	$(DOCKER_CMD) go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
+	$(DOCKER_CMD) go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
 
 aws-actuator:
-	$(DOCKER_CMD) go build -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
 
 .PHONY: images
 images: ## Create images
