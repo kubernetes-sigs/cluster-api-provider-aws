@@ -88,6 +88,13 @@ func (s *Service) filterAvailable() *ec2.Filter {
 	}
 }
 
+func (s *Service) filterNATGatewayStates(states ...string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String("state"),
+		Values: aws.StringSlice(states),
+	}
+}
+
 func (s *Service) filterInstanceStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("instance-state-name"),

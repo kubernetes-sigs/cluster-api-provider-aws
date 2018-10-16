@@ -94,7 +94,7 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
 		Filter: []*ec2.Filter{
 			s.filterVpc(vpcID),
-			s.filterAvailable(),
+			s.filterNATGatewayStates(ec2.NatGatewayStatePending, ec2.NatGatewayStateAvailable),
 		},
 	}
 
@@ -143,7 +143,6 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 	}
 
 	glog.Infof("NAT gateway %q for subnet ID %q is now available", *out.NatGateway.NatGatewayId, subnetID)
-
 	return out.NatGateway, nil
 }
 
@@ -211,5 +210,5 @@ func (s *Service) getNatGatewayForSubnet(subnets v1alpha1.Subnets, sn *v1alpha1.
 		return gws[0], nil
 	}
 
-	return "", errors.Errorf("no nat gateways are available in availability zone %q for subnet %q", sn.AvailabilityZone, sn.ID)
+	return "", errors.Errorf("no nat gateways available in %q for private subnet %q, current state: %+v", sn.AvailabilityZone, sn.ID, azGateways)
 }
