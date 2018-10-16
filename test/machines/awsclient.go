@@ -3,8 +3,8 @@ package machines
 import (
 	"fmt"
 
-	machineutils "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
+	machineutils "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 

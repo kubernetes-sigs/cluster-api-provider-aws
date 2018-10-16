@@ -28,8 +28,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"github.com/aws/aws-sdk-go/aws"

@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 )
 
 type awsClient struct {

@@ -37,8 +37,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 
-	clusteractuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/cluster"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/cluster/options"
+	clusteractuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/controllers/cluster/options"
 )
 
 const (

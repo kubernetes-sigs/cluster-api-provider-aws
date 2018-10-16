@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterclient "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -37,8 +37,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
-	clustoplog "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/logging"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	clustoplog "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/logging"
 )
 
 const (

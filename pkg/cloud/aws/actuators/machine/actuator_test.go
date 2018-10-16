@@ -24,9 +24,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
-	mockaws "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client/mock"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig/v1alpha1"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
@@ -34,7 +34,6 @@ import (
 
 const (
 	controllerLogName = "awsMachine"
-	defaultLogLevel   = "info"
 
 	defaultNamespace         = "default"
 	defaultAvailabilityZone  = "us-east-1a"

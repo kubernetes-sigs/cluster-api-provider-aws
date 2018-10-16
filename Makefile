@@ -51,14 +51,14 @@ test: generate-mocks unit
 gendeepcopy:
 	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	deepcopy-gen \
-	  -i ./cloud/aws/providerconfig,./cloud/aws/providerconfig/v1alpha1 \
+	  -i ./pkg/cloud/aws/providerconfig,./pkg/cloud/aws/providerconfig/v1alpha1 \
 	  -O zz_generated.deepcopy \
 	  -h boilerplate.go.txt
 
 .PHONY: generate-mocks
 generate-mocks:
 	go build -o $$GOPATH/bin/mockgen sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/golang/mock/mockgen/
-	go generate ./cloud/aws/client/
+	go generate ./pkg/cloud/aws/client/
 
 bin:
 	@mkdir $@
@@ -85,7 +85,7 @@ check: fmt vet lint test ## Check your code
 
 .PHONY: unit
 unit: # Run unit test
-	$(DOCKER_CMD) go test -race -cover ./cmd/... ./cloud/...
+	$(DOCKER_CMD) go test -race -cover ./cmd/... ./pkg/cloud/...
 
 .PHONY: integration
 integration: ## Run integration test
