@@ -30,13 +30,11 @@
 - name: install baseline dependencies
   apt:
     force_apt_get: True
-    name: "{{ item }}"
+    name: "{{ common_debs }}"
     state: latest
-  with_items: "{{ common_debs }}"
 
 - name: install extra debs
   apt:
     force_apt_get: True
-    name: "{{ item }}"
+    name: "{{ common_extra_debs }}"
     state: latest
-  with_items: "{{ common_extra_debs }}"
