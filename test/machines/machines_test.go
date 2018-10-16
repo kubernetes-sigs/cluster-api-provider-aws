@@ -139,10 +139,24 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
 
-			f.CreateMachineAndWait(testMachine, &awsClientWrapper{client: awsClient})
-			machinesToDelete.AddMachine(testMachine, f, &awsClientWrapper{client: awsClient})
+			securityGroups, err := acw.GetSecurityGroups(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(securityGroups).To(Equal([]string{fmt.Sprintf("%s-default", clusterID)}))
 
-			// TODO(jchaloup): Run some tests here!!! E.g. check for properly set security groups, iam role, tags
+			iamRole, err := acw.GetIAMRole(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(iamRole).To(Equal(""))
+
+			tags, err := acw.GetTags(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tags).To(Equal(map[string]string{
+				fmt.Sprintf("kubernetes.io/cluster/%s", clusterID): "owned",
+				"openshift-node-group-config":                      "node-config-master",
+				"sub-host-type":                                    "default",
+				"host-type":                                        "master",
+				"Name":                                             testMachine.Name,
+				"clusterid":                                        clusterID,
+			}))
 
 			f.DeleteMachineAndWait(testMachine, acw)
 		})

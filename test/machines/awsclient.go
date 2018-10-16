@@ -51,3 +51,40 @@ func (client *awsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (
 
 	return *instance.PrivateIpAddress, nil
 }
+
+func (client *awsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machine) ([]string, error) {
+	instance, err := machineutils.GetInstance(machine, client.client)
+	if err != nil {
+		return nil, err
+	}
+	var groups []string
+	for _, groupIdentifier := range instance.SecurityGroups {
+		if *groupIdentifier.GroupName != "" {
+			groups = append(groups, *groupIdentifier.GroupName)
+		}
+	}
+	return groups, nil
+}
+
+func (client *awsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (string, error) {
+	instance, err := machineutils.GetInstance(machine, client.client)
+	if err != nil {
+		return "", err
+	}
+	if instance.IamInstanceProfile == nil {
+		return "", err
+	}
+	return *instance.IamInstanceProfile.Id, nil
+}
+
+func (client *awsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[string]string, error) {
+	instance, err := machineutils.GetInstance(machine, client.client)
+	if err != nil {
+		return nil, err
+	}
+	tags := make(map[string]string, len(instance.Tags))
+	for _, tag := range instance.Tags {
+		tags[*tag.Key] = *tag.Value
+	}
+	return tags, nil
+}
