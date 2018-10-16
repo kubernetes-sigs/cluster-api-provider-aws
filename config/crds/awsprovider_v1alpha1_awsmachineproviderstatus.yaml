@@ -1,0 +1,59 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: awsmachineproviderstatuses.awsprovider.k8s.io
+spec:
+  group: awsprovider.k8s.io
+  names:
+    kind: AWSMachineProviderStatus
+    plural: awsmachineproviderstatuses
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        conditions:
+          items:
+            properties:
+              lastProbeTime:
+                format: date-time
+                type: string
+              lastTransitionTime:
+                format: date-time
+                type: string
+              message:
+                type: string
+              reason:
+                type: string
+              status:
+                type: string
+              type:
+                type: string
+            required:
+            - type
+            - status
+            - lastProbeTime
+            - lastTransitionTime
+            - reason
+            - message
+            type: object
+          type: array
+        instanceID:
+          type: string
+        instanceState:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

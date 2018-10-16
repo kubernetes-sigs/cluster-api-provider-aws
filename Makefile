@@ -22,6 +22,8 @@ GOPATH := $(shell go env GOPATH)
 
 all: test manager clusterctl clusterawsadm
 
+.PHONY: vendor
+
 # Dependency managemnt.
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
@@ -100,3 +102,6 @@ envfile:
 # Cleanup
 clean:
 	rm -rf clusterctl/examples/aws/out
+
+manifests:
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
