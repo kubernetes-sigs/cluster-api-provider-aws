@@ -93,7 +93,8 @@ integration: ## Run integration test
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e test
-	$(DOCKER_CMD) go test -timeout 20m -v sigs.k8s.io/cluster-api-provider-aws/test/machines -kubeconfig $${KUBECONFIG:-~/.kube/config} -ssh-key $${SSH_PK:-~/.ssh/id_rsa} -cluster-id $${ENVIRONMENT_ID:-""} -ginkgo.v
+	# KUBECONFIG and SSH_PK dirs needs to be mounted inside a container if tests are run in containers
+	go test -timeout 20m -v sigs.k8s.io/cluster-api-provider-aws/test/machines -kubeconfig $${KUBECONFIG:-~/.kube/config} -ssh-key $${SSH_PK:-~/.ssh/id_rsa} -actuator-image $${ACTUATOR_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1} -cluster-id $${ENVIRONMENT_ID:-""} -ginkgo.v
 
 .PHONY: lint
 lint: ## Go lint your code
