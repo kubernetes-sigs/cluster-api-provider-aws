@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/providerconfig"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig"
 )
 
 // AWSProviderConfigCodec carries AWS provider configuration encoder/decoder

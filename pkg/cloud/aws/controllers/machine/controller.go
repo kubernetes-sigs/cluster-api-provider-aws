@@ -37,11 +37,11 @@ import (
 	machinecontroller "sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 
-	machineactuator "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/actuators/machine"
-	"sigs.k8s.io/cluster-api-provider-aws/cloud/aws/controllers/machine/options"
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/controllers/machine/options"
 
 	log "github.com/sirupsen/logrus"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/cloud/aws/client"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 )
 
 const (
