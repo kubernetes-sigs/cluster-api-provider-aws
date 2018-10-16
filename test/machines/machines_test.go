@@ -135,13 +135,16 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderConfig)
 			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
 			Expect(err).NotTo(HaveOccurred())
+			acw := &awsClientWrapper{client: awsClient}
+			f.CreateMachineAndWait(testMachine, acw)
+			machinesToDelete.AddMachine(testMachine, f, acw)
 
 			f.CreateMachineAndWait(testMachine, &awsClientWrapper{client: awsClient})
 			machinesToDelete.AddMachine(testMachine, f, &awsClientWrapper{client: awsClient})
 
 			// TODO(jchaloup): Run some tests here!!! E.g. check for properly set security groups, iam role, tags
 
-			f.DeleteMachineAndWait(testMachine, &awsClientWrapper{client: awsClient})
+			f.DeleteMachineAndWait(testMachine, acw)
 		})
 
 		It("Can deploy compute nodes through machineset", func() {
@@ -207,7 +210,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
 			Expect(err).NotTo(HaveOccurred())
 			acw := &awsClientWrapper{client: awsClient}
-			f.CreateMachineAndWait(masterMachine, &awsClientWrapper{client: awsClient})
+			f.CreateMachineAndWait(masterMachine, acw)
 			machinesToDelete.AddMachine(masterMachine, f, acw)
 
 			By("Collecting master kubeconfig")

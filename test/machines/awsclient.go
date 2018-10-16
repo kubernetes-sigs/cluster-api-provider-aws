@@ -27,35 +27,27 @@ func (client *awsClientWrapper) GetRunningInstances(machine *clusterv1alpha1.Mac
 }
 
 func (client *awsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machine) (string, error) {
-	runningInstances, err := machineutils.GetRunningInstances(machine, client.client)
+	instance, err := machineutils.GetInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
 
-	if len(runningInstances) == 0 {
-		return "", fmt.Errorf("no running machine instance found")
-	}
-
-	if *runningInstances[0].PublicDnsName == "" {
+	if *instance.PublicDnsName == "" {
 		return "", fmt.Errorf("machine instance public DNS name not set")
 	}
 
-	return *runningInstances[0].PublicDnsName, nil
+	return *instance.PublicDnsName, nil
 }
 
 func (client *awsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (string, error) {
-	runningInstances, err := machineutils.GetRunningInstances(machine, client.client)
+	instance, err := machineutils.GetInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
 
-	if len(runningInstances) == 0 {
-		return "", fmt.Errorf("no running machine instance found")
-	}
-
-	if *runningInstances[0].PrivateIpAddress == "" {
+	if *instance.PrivateIpAddress == "" {
 		return "", fmt.Errorf("machine instance public DNS name not set")
 	}
 
-	return *runningInstances[0].PrivateIpAddress, nil
+	return *instance.PrivateIpAddress, nil
 }
