@@ -15,7 +15,7 @@ package ec2
 
 import (
 	"github.com/golang/glog"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // ReconcileNetwork reconciles the network of the given cluster.

@@ -11,7 +11,7 @@ items:
         controlPlane: v1.12.0
       providerConfig:
         value:
-          apiVersion: awsproviderconfig/v1alpha1
+          apiVersion: awsprovider/v1alpha1
           kind: AWSMachineProviderConfig
           instanceType: t2.medium
           iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
@@ -27,7 +27,7 @@ items:
   #       kubelet: v1.12.0
   #     providerConfig:
   #       value:
-  #         apiVersion: awsproviderconfig/v1alpha1
+  #         apiVersion: awsprovider/v1alpha1
   #         kind: AWSMachineProviderConfig
   #         instanceType: t2.medium
   #         iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"

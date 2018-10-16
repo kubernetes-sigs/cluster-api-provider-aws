@@ -23,7 +23,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
@@ -35,14 +35,12 @@ import (
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
-	codec          codec
 	clustersGetter client.ClustersGetter
 	servicesGetter service.Getter
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
-	Codec          codec
 	ClustersGetter client.ClustersGetter
 	ServicesGetter service.Getter
 }
@@ -50,7 +48,6 @@ type ActuatorParams struct {
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	res := &Actuator{
-		codec:          params.Codec,
 		clustersGetter: params.ClustersGetter,
 		servicesGetter: params.ServicesGetter,
 	}
@@ -66,17 +63,14 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	glog.Infof("Reconciling cluster %v.", cluster.Name)
 
-	// Get a cluster api client for the namespace of the cluster.
-	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
-
 	// Load provider config.
-	config, err := a.loadProviderConfig(cluster)
+	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
 	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
+	status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider status: %v", err)
 	}
@@ -92,15 +86,6 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		status.CACertificate = certificates.EncodeCertPEM(caCert)
 		status.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
 	}
-
-	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
-	// the cluster state might have partial changes that should be stored.
-	defer func() {
-		// TODO(vincepri): remove this after moving to tag-discovery based approach.
-		if err := a.storeProviderStatus(clusterClient, cluster, status); err != nil {
-			glog.Errorf("failed to store provider status for cluster %q: %v", cluster.Name, err)
-		}
-	}()
 
 	// Create new aws session.
 	sess := a.servicesGetter.Session(config)
@@ -130,32 +115,20 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	glog.Infof("Deleting cluster %v.", cluster.Name)
 
-	// Get a cluster api client for the namespace of the cluster.
-	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
-
 	// Load provider config.
-	config, err := a.loadProviderConfig(cluster)
+	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
 	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
+	status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
 	if err != nil {
 		return errors.Errorf("failed to load cluster provider status: %v", err)
 	}
 
 	// Store some config parameters in the status.
 	status.Region = config.Region
-
-	// Always defer storing the cluster status. In case any of the calls below fails or returns an error
-	// the cluster state might have partial changes that should be stored.
-	defer func() {
-		// TODO(vincepri): remove this after moving to tag-discovery based approach.
-		if err := a.storeProviderStatus(clusterClient, cluster, status); err != nil {
-			glog.Errorf("failed to store provider status for cluster %q: %v", cluster.Name, err)
-		}
-	}()
 
 	// Create new aws session.
 	sess := a.servicesGetter.Session(config)
@@ -186,9 +159,11 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 
 // GetIP returns the IP of a machine, but this is going away.
 func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-
+	if cluster.Status.ProviderStatus == nil {
+		return "", errors.New("ProviderStatus is nil, cannot get IP")
+	}
 	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
+	status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
 	if err != nil {
 		return "", errors.Errorf("failed to load cluster provider status: %v", err)
 	}
@@ -198,7 +173,7 @@ func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine)
 	}
 
 	// Load provider config.
-	config, err := a.loadProviderConfig(cluster)
+	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
 	if err != nil {
 		return "", errors.Errorf("failed to load cluster provider config: %v", err)
 	}
@@ -212,7 +187,7 @@ func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine)
 func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
 
 	// Load provider status.
-	status, err := a.loadProviderStatus(cluster)
+	status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
 	if err != nil {
 		return "", errors.Errorf("failed to load cluster provider status: %v", err)
 	}
@@ -251,35 +226,9 @@ func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.
 	return string(yaml), nil
 }
 
-func (a *Actuator) loadProviderConfig(cluster *clusterv1.Cluster) (*providerconfigv1.AWSClusterProviderConfig, error) {
-	providerConfig := &providerconfigv1.AWSClusterProviderConfig{}
-	err := a.codec.DecodeFromProviderConfig(cluster.Spec.ProviderConfig, providerConfig)
-	return providerConfig, err
-}
-
-func (a *Actuator) loadProviderStatus(cluster *clusterv1.Cluster) (*providerconfigv1.AWSClusterProviderStatus, error) {
-	providerStatus := &providerconfigv1.AWSClusterProviderStatus{}
-	err := a.codec.DecodeProviderStatus(cluster.Status.ProviderStatus, providerStatus)
-	return providerStatus, err
-}
-
-func (a *Actuator) storeProviderStatus(clusterClient client.ClusterInterface, cluster *clusterv1.Cluster, status *providerconfigv1.AWSClusterProviderStatus) error {
-	raw, err := a.codec.EncodeProviderStatus(status)
-	if err != nil {
-		return errors.Errorf("failed to encode provider status: %v", err)
-	}
-
-	cluster.Status.ProviderStatus = raw
-	if _, err := clusterClient.UpdateStatus(cluster); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type defaultServicesGetter struct{}
 
-func (d *defaultServicesGetter) Session(clusterConfig *providerconfigv1.AWSClusterProviderConfig) *session.Session {
+func (d *defaultServicesGetter) Session(clusterConfig *providerv1.AWSClusterProviderConfig) *session.Session {
 	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
 }
 

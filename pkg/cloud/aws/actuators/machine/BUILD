@@ -10,7 +10,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/awsproviderconfig/v1alpha1:go_default_library",
+        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/services:go_default_library",
         "//pkg/cloud/aws/services/ec2:go_default_library",
         "//pkg/cloud/aws/services/elb:go_default_library",

@@ -7,7 +7,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/clusterctl",
     visibility = ["//visibility:private"],
     deps = [
-        "//pkg/apis/awsproviderconfig/v1alpha1:go_default_library",
+        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/actuators/cluster:go_default_library",
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/cmd:go_default_library",
