@@ -14,17 +14,42 @@
 package bootstrap
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
-	"os"
-
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
+	"os"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
+	"text/template"
 )
 
+// KubernetesAWSSecret is the template to generate an encoded version of the
+// users' AWS credentials
+const KubernetesAWSSecret = `apiVersion: v1
+kind: Secret
+metadata:
+  name: credentials.cluster-api-provider-aws.sigs.k8s.io
+type: Opaque
+data:
+  credentialsFile: {{ .CredentialsFile }}
+`
+
+// AWSCredentialsTemplate generates an AWS credentials file that can
+// be loaded by the various SDKs.
+const AWSCredentialsTemplate = `[default]
+aws_access_key_id = {{ .AccessKeyID }}
+aws_secret_access_key = {{ .SecretAccessKey }}
+region = {{ .Region }}
+{{if .SessionToken }}
+aws_session_token: {{ .SessionToken }}
+{{end}}
+`
+
+// RootCmd is the root of the `alpha bootstrap command`
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "bootstrap",
@@ -36,6 +61,7 @@ func RootCmd() *cobra.Command {
 	}
 	newCmd.AddCommand(generateCmd())
 	newCmd.AddCommand(createStackCmd())
+	newCmd.AddCommand(encodeAWSSecret())
 	return newCmd
 }
 
@@ -104,4 +130,105 @@ func createStackCmd() *cobra.Command {
 	}
 
 	return newCmd
+}
+
+func encodeAWSSecret() *cobra.Command {
+	newCmd := &cobra.Command{
+		Use:   "encode-aws-credentials",
+		Short: "Encode AWS credentials as a base64 encoded Kubernetes secret",
+		Long:  "Encode AWS credentials as a base64 encoded Kubernetes secret",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			creds := awsCredential{}
+
+			region, err := getEnv("AWS_REGION")
+			if err != nil {
+				return err
+			}
+			creds.Region = region
+
+			accessKeyID, err := getEnv("AWS_ACCESS_KEY_ID")
+			if err != nil {
+				return err
+			}
+			creds.AccessKeyID = accessKeyID
+
+			secretAccessKey, err := getEnv("AWS_SECRET_ACCESS_KEY")
+			if err != nil {
+				return err
+			}
+			creds.SecretAccessKey = secretAccessKey
+
+			sessionToken, err := getEnv("AWS_SESSION_TOKEN")
+			if err != nil {
+				creds.SessionToken = ""
+			} else {
+				creds.SessionToken = sessionToken
+			}
+
+			err = generateAWSKubernetesSecret(creds)
+
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	return newCmd
+}
+
+type awsCredential struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	SessionToken    string
+	Region          string
+}
+
+type awsCredentialsFile struct {
+	CredentialsFile string
+}
+
+func getEnv(key string) (string, error) {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return "", fmt.Errorf("Environment variable %q not found", key)
+	}
+	return val, nil
+}
+
+func generateAWSKubernetesSecret(creds awsCredential) error {
+
+	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
+	if err != nil {
+		return err
+	}
+
+	var credsFileStr bytes.Buffer
+	err = tmpl.Execute(&credsFileStr, creds)
+	if err != nil {
+		return err
+	}
+
+	encCreds := base64.StdEncoding.EncodeToString(credsFileStr.Bytes())
+
+	credsFile := awsCredentialsFile{
+		CredentialsFile: string(encCreds),
+	}
+
+	secretTmpl, err := template.New("AWS Credentials Secret").Parse(KubernetesAWSSecret)
+	if err != nil {
+		return err
+	}
+	var out bytes.Buffer
+
+	err = secretTmpl.Execute(&out, credsFile)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(out.String())
+
+	return nil
 }
