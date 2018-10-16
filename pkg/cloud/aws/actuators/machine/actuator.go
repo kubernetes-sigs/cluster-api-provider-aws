@@ -333,14 +333,19 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		},
 	}
 
+	clusterID, ok := getClusterID(machine)
+	if !ok {
+		mLog.Errorf("unable to get cluster ID for machine: %q", machine.Name)
+		return nil, err
+	}
 	// Add tags to the created machine
 	tagList := []*ec2.Tag{}
 	for _, tag := range machineProviderConfig.Tags {
 		tagList = append(tagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
 	}
 	tagList = append(tagList, []*ec2.Tag{
-		{Key: aws.String("clusterid"), Value: aws.String(cluster.Name)},
-		{Key: aws.String("kubernetes.io/cluster/" + cluster.Name), Value: aws.String("owned")},
+		{Key: aws.String("clusterid"), Value: aws.String(clusterID)},
+		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
 		{Key: aws.String("Name"), Value: aws.String(machine.Name)},
 	}...)
 
@@ -350,7 +355,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 	tagVolume := &ec2.TagSpecification{
 		ResourceType: aws.String("volume"),
-		Tags:         []*ec2.Tag{{Key: aws.String("clusterid"), Value: aws.String(cluster.Name)}},
+		Tags:         []*ec2.Tag{{Key: aws.String("clusterid"), Value: aws.String(clusterID)}},
 	}
 
 	userData := []byte{}
