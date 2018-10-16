@@ -84,7 +84,7 @@ func defineMinikubeSetup(parent *cobra.Command) {
 		Long:  `Set up minikube for use with Cluster API`,
 		Run: func(cmd *cobra.Command, args []string) {
 			runCommandWithWait("minikube", "config", "set", "bootstrapper", "kubeadm")
-			runCommandWithWait("minikube", "config", "set", "kubernetes-version", "v1.9.4")
+			runCommandWithWait("minikube", "config", "set", "kubernetes-version", "v1.12.1")
 		},
 	}
 	parent.AddCommand(newCmd)
