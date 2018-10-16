@@ -35,10 +35,8 @@
 
 - name: install baseline dependencies
   yum:
-    name: "{{ item }}"
-  with_items: "{{ common_rpms }}"
+    name: "{{ common_rpms }}"
 
 - name: install extra rpms
   yum:
-    name: "{{ item }}"
-  with_items: "{{ common_extra_rpms }}"
+    name: "{{ common_extra_rpms }}"

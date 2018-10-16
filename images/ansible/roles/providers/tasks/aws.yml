@@ -14,7 +14,8 @@
 ---
 - name: install aws clients
   pip:
-    name: "{{ item }}"
-  with_items:
-    - https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-    - awscli
+    name: "{{ packages }}"
+  vars:
+    packages:
+      - https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+      - awscli
