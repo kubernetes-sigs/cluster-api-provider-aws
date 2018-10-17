@@ -20,7 +20,7 @@ GOFLAGS += -ldflags '-extldflags "-static"'
 GOREBUILD :=
 GOPATH := $(shell go env GOPATH)
 
-all: test manager clusterctl clusterawsadm
+all: check-install test manager clusterctl clusterawsadm
 
 .PHONY: vendor
 
@@ -28,6 +28,9 @@ all: test manager clusterctl clusterawsadm
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure
+
+check-install:
+	./scripts/check-install.sh
 
 depend-update:
 	dep version || go get -u github.com/golang/dep/cmd/dep
@@ -50,15 +53,15 @@ manager: generate fmt vet
 	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/manager
 
 # Build clusterctl binary.
-clusterctl: generate fmt vet
+clusterctl: check-install generate fmt vet
 	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/clusterctl
 
 # Build clusterawsadm binary.
-clusterawsadm: vendor
+clusterawsadm: check-install vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
 
 # Build cluster-api-dev-helper binary.
-cluster-api-dev-helper: vendor
+cluster-api-dev-helper: check-install vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/hack/cluster-api-dev-helper
 
 # Run tests
