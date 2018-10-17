@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Image URL to use all building/pushing image targets
-IMG ?= gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest
+IMG ?= gcr.io/cluster-api-provider-aws/aws-cluster-api-controller:latest
 
 # Go environment flags.
 GOFLAGS += -ldflags '-extldflags "-static"'

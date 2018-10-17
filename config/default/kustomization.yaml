@@ -1,0 +1,37 @@
+# Adds namespace to all resources.
+namespace: aws-provider-system
+
+# Value of this field is prepended to the
+# names of all resources, e.g. a deployment named
+# "wordpress" becomes "alices-wordpress".
+# Note that it should also match with the prefix (text before '-') of the namespace
+# field above.
+namePrefix: aws-provider-
+
+# Labels to add to all resources and selectors.
+#commonLabels:
+#  someName: someValue
+
+# Each entry in this list must resolve to an existing
+# resource definition in YAML.  These are the resource
+# files that kustomize reads, modifies and emits as a
+# YAML string, with resources separated by document
+# markers ("---").
+resources:
+- ../crds/awsprovider_v1alpha1_awsclusterproviderconfig.yaml
+- ../crds/awsprovider_v1alpha1_awsclusterproviderstatus.yaml
+- ../crds/awsprovider_v1alpha1_awsmachineproviderconfig.yaml
+- ../crds/awsprovider_v1alpha1_awsmachineproviderstatus.yaml
+- ../rbac/rbac.yaml
+- ../manager/manager.yaml
+
+patches:
+- aws_manager_image_patch.yaml
+
+#TODO(vincepri): support credentials and ssh keys
+#secretGenerator:
+
+configMapGenerator:
+- name: machine-setup
+  files:
+  - "../../cmd/clusterctl/examples/aws/out/machines.yaml"
