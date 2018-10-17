@@ -14,17 +14,9 @@ limitations under the License.
 package controller
 
 import (
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
-)
-
-var (
-	logLevel string
-)
-
-const (
-	defaultLogLevel   = "info"
 )
 
 func init() {

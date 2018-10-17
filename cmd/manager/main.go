@@ -14,23 +14,23 @@ limitations under the License.
 package main
 
 import (
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
+	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
-	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"k8s.io/client-go/kubernetes"
-	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	//"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	"github.com/golang/glog"
 	log "github.com/sirupsen/logrus"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
-	"os"
 	"github.com/spf13/pflag"
+	"os"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 )
 
 var (
@@ -116,7 +116,7 @@ func initActuator(m manager.Manager) {
 		KubeClient:       kubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 		Logger:           logger,
-		Codec: 			  codec,
+		Codec:            codec,
 	}
 
 	machineactuator.MachineActuator, err = machineactuator.NewActuator(params)

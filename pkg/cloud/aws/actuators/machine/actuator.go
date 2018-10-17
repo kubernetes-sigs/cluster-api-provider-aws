@@ -37,9 +37,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	clustoplog "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/logging"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -54,6 +54,7 @@ const (
 	MachineCreationFailed = "MachineCreationFailed"
 )
 
+// MachineActuator is a variable used to include the actuator into the machine controller
 var MachineActuator *Actuator
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -62,7 +63,7 @@ type Actuator struct {
 	clusterClient    clusterclient.Interface
 	logger           *log.Entry
 	awsClientBuilder awsclient.AwsClientBuilderFuncType
-	codec 			 codec
+	codec            codec
 }
 
 // ActuatorParams holds parameter information for Actuator
@@ -71,7 +72,7 @@ type ActuatorParams struct {
 	ClusterClient    clusterclient.Interface
 	Logger           *log.Entry
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
-	Codec 			 codec
+	Codec            codec
 }
 
 type codec interface {
@@ -87,7 +88,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 		clusterClient:    params.ClusterClient,
 		logger:           params.Logger,
 		awsClientBuilder: params.AwsClientBuilder,
-		codec: 			  params.Codec,
+		codec:            params.Codec,
 	}
 	return actuator, nil
 }
