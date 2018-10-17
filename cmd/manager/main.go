@@ -30,6 +30,7 @@ import (
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	"os"
 	"github.com/spf13/pflag"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 )
 
 var (
@@ -105,11 +106,17 @@ func initActuator(m manager.Manager) {
 
 	logger := log.WithField("controller", "awsMachine")
 
+	codec, err := v1alpha1.NewCodec()
+	if err != nil {
+		glog.Fatal(err)
+	}
+
 	params := machineactuator.ActuatorParams{
 		ClusterClient:    client,
 		KubeClient:       kubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 		Logger:           logger,
+		Codec: 			  codec,
 	}
 
 	machineactuator.MachineActuator, err = machineactuator.NewActuator(params)

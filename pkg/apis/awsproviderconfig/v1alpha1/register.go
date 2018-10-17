@@ -100,7 +100,6 @@ func (codec *AWSProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*r
 	if err := codec.encoder.Encode(in, &buf); err != nil {
 		return nil, fmt.Errorf("encoding failed: %v", err)
 	}
-
 	return &runtime.RawExtension{Raw: buf.Bytes()}, nil
 }
 

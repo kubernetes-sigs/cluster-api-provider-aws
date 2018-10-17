@@ -17,7 +17,6 @@ limitations under the License.
 package machine
 
 import (
-	"bytes"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,14 +25,14 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/ghodss/yaml"
 )
 
 // SortInstances will examine the given slice of instances and return the current active instance for
@@ -185,59 +184,29 @@ func TerminateInstances(client awsclient.Client, instances []*ec2.Instance, mLog
 	return nil
 }
 
-// ProviderConfigFromClusterAPIMachineSpec gets the machine provider config MachineSetSpec from the
+// ProviderConfigMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func ProviderConfigFromClusterAPIMachineSpec(ms *clusterv1.MachineSpec) (*providerconfigv1.AWSMachineProviderConfig, error) {
-	if ms.ProviderConfig.Value == nil {
-		return nil, fmt.Errorf("no Value in ProviderConfig")
-	}
-	obj, gvk, err := providerconfigv1.Codecs.UniversalDecoder(providerconfigv1.SchemeGroupVersion).Decode([]byte(ms.ProviderConfig.Value.Raw), nil, nil)
-	if err != nil {
+func ProviderConfigMachine(machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderConfig, error) {
+	var config providerconfigv1.AWSMachineProviderConfig
+	if err := yaml.Unmarshal(machine.Spec.ProviderConfig.Value.Raw, &config); err != nil {
 		return nil, err
 	}
-	spec, ok := obj.(*providerconfigv1.AWSMachineProviderConfig)
-	if !ok {
-		return nil, fmt.Errorf("unexpected object when parsing machine provider config: %#v", gvk)
-	}
-	return spec, nil
+	return &config, nil
 }
 
-// AWSMachineProviderStatusFromClusterAPIMachine gets the machine provider status from the specified machine.
-func AWSMachineProviderStatusFromClusterAPIMachine(m *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
-	return AWSMachineProviderStatusFromMachineStatus(&m.Status)
+// ProviderStatusFromMachine gets the machine provider status from the specified machine.
+func ProviderStatusFromMachine(codec codec, m *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
+	status := &providerconfigv1.AWSMachineProviderStatus{}
+	var err error
+	if m.Status.ProviderStatus != nil {
+		err = codec.DecodeProviderStatus(m.Status.ProviderStatus, status)
+	}
+	return status, err
 }
 
-// AWSMachineProviderStatusFromMachineStatus gets the machine provider status from the specified machine status.
-func AWSMachineProviderStatusFromMachineStatus(s *clusterv1.MachineStatus) (*providerconfigv1.AWSMachineProviderStatus, error) {
-	if s.ProviderStatus == nil {
-		return &providerconfigv1.AWSMachineProviderStatus{}, nil
-	}
-	obj, gvk, err := providerconfigv1.Codecs.UniversalDecoder(providerconfigv1.SchemeGroupVersion).Decode([]byte(s.ProviderStatus.Raw), nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	status, ok := obj.(*providerconfigv1.AWSMachineProviderStatus)
-	if !ok {
-		return nil, fmt.Errorf("unexpected object: %#v", gvk)
-	}
-	return status, nil
-}
-
-// EncodeAWSMachineProviderStatus encodes the machine status into RawExtension
-func EncodeAWSMachineProviderStatus(awsStatus *providerconfigv1.AWSMachineProviderStatus) (*runtime.RawExtension, error) {
-	awsStatus.TypeMeta = metav1.TypeMeta{
-		APIVersion: providerconfigv1.SchemeGroupVersion.String(),
-		Kind:       "AWSMachineProviderStatus",
-	}
-	serializer := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, providerconfigv1.Scheme, providerconfigv1.Scheme, false)
-	var buffer bytes.Buffer
-	err := serializer.Encode(awsStatus, &buffer)
-	if err != nil {
-		return nil, err
-	}
-	return &runtime.RawExtension{
-		Raw: bytes.TrimSpace(buffer.Bytes()),
-	}, nil
+// EncodeProviderStatus encodes the machine status into RawExtension
+func EncodeProviderStatus(codec codec, awsStatus *providerconfigv1.AWSMachineProviderStatus) (*runtime.RawExtension, error) {
+	return codec.EncodeProviderStatus(awsStatus)
 }
 
 // IsMaster returns true if the machine is part of a cluster's control plane

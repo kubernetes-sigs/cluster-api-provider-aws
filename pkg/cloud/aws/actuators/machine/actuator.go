@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterclient "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -39,6 +39,7 @@ import (
 
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	clustoplog "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/logging"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -61,6 +62,7 @@ type Actuator struct {
 	clusterClient    clusterclient.Interface
 	logger           *log.Entry
 	awsClientBuilder awsclient.AwsClientBuilderFuncType
+	codec 			 codec
 }
 
 // ActuatorParams holds parameter information for Actuator
@@ -69,6 +71,13 @@ type ActuatorParams struct {
 	ClusterClient    clusterclient.Interface
 	Logger           *log.Entry
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
+	Codec 			 codec
+}
+
+type codec interface {
+	DecodeFromProviderConfig(clusterv1.ProviderConfig, runtime.Object) error
+	DecodeProviderStatus(*runtime.RawExtension, runtime.Object) error
+	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
 }
 
 // NewActuator returns a new AWS Actuator
@@ -78,6 +87,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 		clusterClient:    params.ClusterClient,
 		logger:           params.Logger,
 		awsClientBuilder: params.AwsClientBuilder,
+		codec: 			  params.Codec,
 	}
 	return actuator, nil
 }
@@ -105,7 +115,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 }
 
 func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, mLog log.FieldLogger, networkAddresses []corev1.NodeAddress) error {
-	awsStatusRaw, err := EncodeAWSMachineProviderStatus(awsStatus)
+	awsStatusRaw, err := EncodeProviderStatus(a.codec, awsStatus)
 	if err != nil {
 		mLog.Errorf("error encoding AWS provider status: %v", err)
 		return err
@@ -122,7 +132,7 @@ func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *pr
 		time := metav1.Now()
 		machineCopy.Status.LastUpdated = &time
 
-		_, err := a.clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
+		_, err := a.clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).Update(machineCopy)
 		if err != nil {
 			mLog.Errorf("error updating machine status: %v", err)
 			return err
@@ -139,7 +149,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, m
 
 	mLog.Debug("updating machine conditions")
 
-	awsStatus, err := AWSMachineProviderStatusFromClusterAPIMachine(machine)
+	awsStatus, err := ProviderStatusFromMachine(a.codec, machine)
 	if err != nil {
 		mLog.Errorf("error decoding machine provider status: %v", err)
 		return err
@@ -247,7 +257,7 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, client awsclient
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
 	mLog := clustoplog.WithMachine(a.logger, machine)
 
-	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigMachine(machine)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return nil, err
@@ -433,7 +443,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	mLog := clustoplog.WithMachine(a.logger, machine)
 
-	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigMachine(machine)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return err
@@ -470,7 +480,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	mLog := clustoplog.WithMachine(a.logger, machine)
 	mLog.Debugf("updating machine")
 
-	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigMachine(machine)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return err
@@ -568,7 +578,7 @@ func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *clusterv1.Machi
 func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clusterv1.Machine) ([]*ec2.Instance, error) {
 	mLog := clustoplog.WithMachine(a.logger, machine)
 
-	machineProviderConfig, err := ProviderConfigFromClusterAPIMachineSpec(&machine.Spec)
+	machineProviderConfig, err := ProviderConfigMachine(machine)
 	if err != nil {
 		mLog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return nil, err
@@ -594,7 +604,7 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	mLog.Debug("updating status")
 
 	// Starting with a fresh status as we assume full control of it here.
-	awsStatus, err := AWSMachineProviderStatusFromClusterAPIMachine(machine)
+	awsStatus, err := ProviderStatusFromMachine(a.codec, machine)
 	if err != nil {
 		mLog.Errorf("error decoding machine provider status: %v", err)
 		return err
@@ -637,7 +647,6 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	mLog.Debug("finished calculating AWS status")
 
 	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", UpdateConditionIfReasonOrMessageChange)
-
 	// TODO(jchaloup): do we really need to update tis?
 	// origInstanceID := awsStatus.InstanceID
 	// if !StringPtrsEqual(origInstanceID, awsStatus.InstanceID) {

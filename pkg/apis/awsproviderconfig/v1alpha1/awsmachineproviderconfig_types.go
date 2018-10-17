@@ -21,6 +21,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Annotation constants
+const (
+	// ClusterNameLabel is the label that a machineset must have to identify the
+	// cluster to which it belongs.
+	ClusterNameLabel = "sigs.k8s.io/cluster-api-cluster"
+	MachineRoleLabel = "sigs.k8s.io/cluster-api-machine-role"
+	MachineTypeLabel = "sigs.k8s.io/cluster-api-machine-type"
+)
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -180,5 +189,5 @@ type AWSMachineProviderConfigList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSMachineProviderConfig{}, &AWSMachineProviderConfigList{}, AWSMachineProviderStatus{})
+	SchemeBuilder.Register(&AWSMachineProviderConfig{}, &AWSMachineProviderConfigList{}, &AWSMachineProviderStatus{})
 }
