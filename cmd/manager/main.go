@@ -1,12 +1,9 @@
 /*
 Copyright 2018 The Kubernetes Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,17 +14,41 @@ limitations under the License.
 package main
 
 import (
-	"log"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"sigs.k8s.io/cluster-api-provider-aws/migration/pkg/apis"
-	"sigs.k8s.io/cluster-api-provider-aws/migration/pkg/controller"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"k8s.io/client-go/kubernetes"
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
+	//"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	"github.com/golang/glog"
+	log "github.com/sirupsen/logrus"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	"os"
+	"github.com/spf13/pflag"
 )
 
+var (
+	logLevel string
+)
+
+const (
+	defaultLogLevel = "info"
+)
+
+func init() {
+	pflag.CommandLine.StringVar(&logLevel, "log-level", defaultLogLevel, "Log level (debug,info,warn,error,fatal)")
+}
+
 func main() {
+	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
+	//flag.CommandLine.Parse([]string{})
+	pflag.Parse()
+
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -47,6 +68,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Fatal(err)
+	}
+
+	initActuator(mgr)
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
 		log.Fatal(err)
@@ -56,4 +82,38 @@ func main() {
 
 	// Start the Cmd
 	log.Fatal(mgr.Start(signals.SetupSignalHandler()))
+}
+
+func initActuator(m manager.Manager) {
+	config := m.GetConfig()
+	client, err := clientset.NewForConfig(config)
+	if err != nil {
+		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		glog.Fatalf("Could not create kubernetes client to talk to the apiserver: %v", err)
+	}
+
+	log.SetOutput(os.Stdout)
+	if lvl, err := log.ParseLevel(logLevel); err != nil {
+		log.Panic(err)
+	} else {
+		log.SetLevel(lvl)
+	}
+
+	logger := log.WithField("controller", "awsMachine")
+
+	params := machineactuator.ActuatorParams{
+		ClusterClient:    client,
+		KubeClient:       kubeClient,
+		AwsClientBuilder: awsclient.NewClient,
+		Logger:           logger,
+	}
+
+	machineactuator.MachineActuator, err = machineactuator.NewActuator(params)
+	if err != nil {
+		glog.Fatalf("Could not create AWS machine actuator: %v", err)
+	}
 }

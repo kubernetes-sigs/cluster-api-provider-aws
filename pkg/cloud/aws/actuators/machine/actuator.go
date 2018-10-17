@@ -32,7 +32,7 @@ import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clusterclient "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	//clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
+	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -52,6 +52,8 @@ const (
 	// MachineCreationFailed indicates that machine creation failed
 	MachineCreationFailed = "MachineCreationFailed"
 )
+
+var MachineActuator *Actuator
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
 type Actuator struct {
@@ -117,7 +119,8 @@ func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *pr
 
 	if !equality.Semantic.DeepEqual(machine.Status, machineCopy.Status) {
 		mLog.Info("machine status has changed, updating")
-		machineCopy.Status.LastUpdated = metav1.Now()
+		time := metav1.Now()
+		machineCopy.Status.LastUpdated = &time
 
 		_, err := a.clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
 		if err != nil {
