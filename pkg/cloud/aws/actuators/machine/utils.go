@@ -80,9 +80,9 @@ func chooseNewest(instance1, instance2 *ec2.Instance) *ec2.Instance {
 	return instance2
 }
 
-// GetInstance returns the AWS instance for a given machine. If multiple instances match our machine,
+// GetRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
 // the most recently launched will be returned. If no instance exists, an error will be returned.
-func GetInstance(machine *clusterv1.Machine, client awsclient.Client) (*ec2.Instance, error) {
+func GetRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*ec2.Instance, error) {
 	instances, err := GetRunningInstances(machine, client)
 	if err != nil {
 		return nil, err

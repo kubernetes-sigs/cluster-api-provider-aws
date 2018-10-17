@@ -27,7 +27,7 @@ func (client *awsClientWrapper) GetRunningInstances(machine *clusterv1alpha1.Mac
 }
 
 func (client *awsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := machineutils.GetInstance(machine, client.client)
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +40,7 @@ func (client *awsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machin
 }
 
 func (client *awsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := machineutils.GetInstance(machine, client.client)
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +53,7 @@ func (client *awsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (
 }
 
 func (client *awsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machine) ([]string, error) {
-	instance, err := machineutils.GetInstance(machine, client.client)
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (client *awsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machi
 }
 
 func (client *awsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := machineutils.GetInstance(machine, client.client)
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +78,7 @@ func (client *awsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (st
 }
 
 func (client *awsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[string]string, error) {
-	instance, err := machineutils.GetInstance(machine, client.client)
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
 	if err != nil {
 		return nil, err
 	}
