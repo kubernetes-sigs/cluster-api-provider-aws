@@ -71,7 +71,6 @@ bin:
 
 .PHONY: build
 build: ## build binary
-	$(DOCKER_CMD) go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
 	$(DOCKER_CMD) go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
 
 aws-actuator:
