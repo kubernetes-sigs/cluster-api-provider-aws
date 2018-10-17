@@ -20,4 +20,8 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-cd $REPO_ROOT && bazel test //pkg/... //cmd/...
+cd $REPO_ROOT && \
+	source ./scripts/fetch_ext_bins.sh && \
+	fetch_tools && \
+	setup_envs && \
+	make test
