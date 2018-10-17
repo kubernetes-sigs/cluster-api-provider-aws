@@ -7,7 +7,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterawsadm/cmd/alpha/bootstrap:go_default_library",
-        "//cmd/clusterawsadm/cmd/alpha/ec2:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
     ],
 )
