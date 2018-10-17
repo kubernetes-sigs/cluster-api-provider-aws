@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -291,4 +292,50 @@ func mockDescribeInstances(mockAWSClient *mockaws.MockClient) {
 func mockTerminateInstances(mockAWSClient *mockaws.MockClient) {
 	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(
 		&ec2.TerminateInstancesOutput{}, nil)
+}
+
+func TestRemoveDuplicatedTags(t *testing.T) {
+	cases := []struct {
+		tagList  []*ec2.Tag
+		expected []*ec2.Tag
+	}{
+		{
+			// empty tags
+			tagList:  []*ec2.Tag{},
+			expected: []*ec2.Tag{},
+		},
+		{
+			// no duplicate tags
+			tagList: []*ec2.Tag{
+				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
+				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
+			},
+			expected: []*ec2.Tag{
+				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
+				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
+			},
+		},
+		{
+			// multiple duplicate tags
+			tagList: []*ec2.Tag{
+				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
+				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
+				{Key: aws.String("clusterSize"), Value: aws.String("test-ClusterSizeValue")},
+				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameDuplicatedValue")},
+				{Key: aws.String("clusterSize"), Value: aws.String("test-ClusterSizeDuplicatedValue")},
+			},
+			expected: []*ec2.Tag{
+				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
+				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
+				{Key: aws.String("clusterSize"), Value: aws.String("test-ClusterSizeValue")},
+			},
+		},
+	}
+
+	for i, c := range cases {
+		actual := removeDuplicatedTags(c.tagList)
+		if !reflect.DeepEqual(c.expected, actual) {
+			t.Errorf("test #%d: expected %+v, got %+v", i, c.expected, actual)
+		}
+	}
 }
