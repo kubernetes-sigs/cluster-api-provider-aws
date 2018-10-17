@@ -17,14 +17,15 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"text/template"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
-	"os"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
-	"text/template"
 )
 
 // KubernetesAWSSecret is the template to generate an encoded version of the
@@ -45,7 +46,7 @@ aws_access_key_id = {{ .AccessKeyID }}
 aws_secret_access_key = {{ .SecretAccessKey }}
 region = {{ .Region }}
 {{if .SessionToken }}
-aws_session_token: {{ .SessionToken }}
+aws_session_token = {{ .SessionToken }}
 {{end}}
 `
 
