@@ -9,7 +9,7 @@ versions, and resources.
 Provide your domain + the api group and version + the resource Kind.
 The resource name will be the pluralized lowercased kind.
 
-`apiserver-boot create group version resource --group <group> --version <version> --kind <Kind>`
+`apiserver-boot create group --domain <domain> --group <group> --version <version> --kind <Kind>`
 
 ## Anatomy of a resource
 
@@ -21,7 +21,6 @@ Example:
 
 ```go
 // +genclient=true
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // +resource:path=foos
 // +k8s:openapi-gen=true
@@ -232,6 +231,6 @@ just before the Reconcile method to lookup the Foo object.
 ## Generating the wiring
 
 To generate the REST endpoint and storage wiring for your resource,
-run `apiserver-boot build generated` from the go package root directory.
+run `apiserver-boot generate` from the go package root directory.
 
 This will also generate go client code to read and write your resources under `pkg/client`.

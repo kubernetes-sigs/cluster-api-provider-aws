@@ -17,8 +17,6 @@ limitations under the License.
 package builders
 
 import (
-	"reflect"
-
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/apimachinery/announced"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"reflect"
 )
 
 type VersionedApiBuilder struct {
@@ -38,11 +37,7 @@ func NewApiVersion(group, version string) *VersionedApiBuilder {
 	b := &VersionedApiBuilder{
 		GroupVersion: schema.GroupVersion{group, version},
 	}
-	b.SchemaBuilder = runtime.NewSchemeBuilder(
-		b.registerTypes,
-		b.registerDefaults,
-		b.registerConversions,
-		b.registerSelectorConversions)
+	b.SchemaBuilder = runtime.NewSchemeBuilder(b.registerTypes, b.registerDefaults, b.registerConversions)
 	return b
 }
 
@@ -88,20 +83,6 @@ func (s *VersionedApiBuilder) registerDefaults(scheme *runtime.Scheme) error {
 func (s *VersionedApiBuilder) registerConversions(scheme *runtime.Scheme) error {
 	for _, k := range s.Kinds {
 		err := scheme.AddConversionFuncs(k.SchemeFns.GetConversionFunctions()...)
-		if err != nil {
-			glog.Errorf("Failed to add conversion functions %v", err)
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *VersionedApiBuilder) registerSelectorConversions(scheme *runtime.Scheme) error {
-	for _, k := range s.Kinds {
-		err := scheme.AddFieldLabelConversionFunc(
-			s.GroupVersion.String(),
-			k.Unversioned.GetKind(),
-			k.SchemeFns.FieldSelectorConversion)
 		if err != nil {
 			glog.Errorf("Failed to add conversion functions %v", err)
 			return err

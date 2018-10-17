@@ -17,14 +17,16 @@ limitations under the License.
 package build
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
-
-	"io/ioutil"
+	"strings"
 
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/util"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 )
 
 var Image string
@@ -76,9 +78,16 @@ func RunBuildContainer(cmd *cobra.Command, args []string) {
 	outputdir = dir
 	RunBuildExecutables(cmd, args)
 
-	log.Printf("Building the docker Image using %s.", path)
+	log.Printf("Building the docker Image.")
 
-	util.DoCmd("docker", "build", "-t", Image, dir)
+	c := exec.Command("docker", "build", "-t", Image, dir)
+	fmt.Printf("%s\n", strings.Join(c.Args, " "))
+	c.Stderr = os.Stderr
+	c.Stdout = os.Stdout
+	err = c.Run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 type dockerfileTemplateArguments struct {
@@ -86,9 +95,6 @@ type dockerfileTemplateArguments struct {
 
 var dockerfileTemplate = `
 FROM ubuntu:14.04
-
-RUN apt-get update
-RUN apt-get install -y ca-certificates
 
 ADD apiserver .
 ADD controller-manager .

@@ -25,8 +25,7 @@ import (
 // Generating code from student_types.go file will generate storage and status REST endpoints for
 // Student.
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient=true
 
 // +k8s:openapi-gen=true
 // +resource:path=students,rest=StudentREST

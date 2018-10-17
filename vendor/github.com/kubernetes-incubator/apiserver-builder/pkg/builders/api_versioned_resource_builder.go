@@ -18,13 +18,13 @@ package builders
 
 import (
 	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/pkg/api"
 )
 
 //
@@ -61,15 +61,15 @@ func NewApiResourceWithStorage(
 	unversionedBuilder UnversionedResourceBuilder,
 	schemeFns SchemeFns,
 	new, newList func() runtime.Object,
-	RESTFunc func() rest.Storage) *versionedResourceBuilder {
+	storage rest.Storage) *versionedResourceBuilder {
 	v := &versionedResourceBuilder{
-		unversionedBuilder, schemeFns, new, newList, nil, RESTFunc, nil,
+		unversionedBuilder, schemeFns, new, newList, nil, storage, nil,
 	}
 	if new == nil {
 		panic(fmt.Errorf("Cannot call NewApiResourceWithStorage with nil new function."))
 	}
-	if RESTFunc == nil {
-		panic(fmt.Errorf("Cannot call NewApiResourceWithStorage with nil RESTFunc function."))
+	if storage == nil {
+		panic(fmt.Errorf("Cannot call NewApiResourceWithStorage with nil new storage."))
 	}
 	return v
 }
@@ -84,11 +84,11 @@ type versionedResourceBuilder struct {
 	// NewListFunc returns and empty unversioned instance of a resource List
 	NewListFunc func() runtime.Object
 
-	// StorageBuilder is used to modify the default storage, mutually exclusive with RESTFunc
+	// Store is used to modify the default storage, mutually exclusive with RESTFunc
 	StorageBuilder StorageBuilder
 
-	// RESTFunc returns a rest.Storage implementation, mutually exclusive with StorageBuilder
-	RESTFunc func() rest.Storage
+	// REST a rest.Store implementation, mutually exclusive with StoreFunc
+	REST rest.Storage
 
 	Storage rest.StandardStorage
 }
@@ -111,8 +111,8 @@ type StorageWrapper struct {
 	registry.Store
 }
 
-func (s StorageWrapper) Create(ctx request.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
-	return s.Store.Create(ctx, obj, createValidation, includeUninitialized)
+func (s StorageWrapper) Create(ctx request.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error) {
+	return s.Store.Create(ctx, obj, false)
 }
 
 func (b *versionedResourceBuilder) Build(
@@ -120,10 +120,13 @@ func (b *versionedResourceBuilder) Build(
 	optionsGetter generic.RESTOptionsGetter) rest.StandardStorage {
 
 	// Set a default strategy
+	wcs := 1000
 	store := &StorageWrapper{registry.Store{
-		NewFunc:                  b.Unversioned.New,     // Use the unversioned type
-		NewListFunc:              b.Unversioned.NewList, // Use the unversioned type
-		DefaultQualifiedResource: b.getGroupResource(group),
+		Copier:            api.Scheme,
+		NewFunc:           b.Unversioned.New,     // Use the unversioned type
+		NewListFunc:       b.Unversioned.NewList, // Use the unversioned type
+		QualifiedResource: b.getGroupResource(group),
+		WatchCacheSize:    &wcs,
 	}}
 
 	// Use default, requires
@@ -170,9 +173,9 @@ func (b *versionedResourceBuilder) registerEndpoints(
 		path = b.Unversioned.GetName()
 	}
 
-	if b.RESTFunc != nil {
+	if b.REST != nil {
 		// Use the REST implementation directly.
-		registry[path] = b.RESTFunc()
+		registry[path] = b.REST
 	} else {
 		// Create a new REST implementation wired to storage.
 		registry[path] = b.

@@ -39,28 +39,14 @@ func CreateVersionedGenerator(apiversion *APIVersion, apigroup *APIGroup, filena
 	}
 }
 
-func hasSubresources(version *APIVersion) bool {
-	for _, v := range version.Resources {
-		if len(v.Subresources) != 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func (d *versionedGenerator) Imports(c *generator.Context) []string {
-	imports := []string{
+	return []string{
 		"metav1 \"k8s.io/apimachinery/pkg/apis/meta/v1\"",
 		"k8s.io/apimachinery/pkg/runtime",
 		"github.com/kubernetes-incubator/apiserver-builder/pkg/builders",
 		"k8s.io/apimachinery/pkg/runtime/schema",
 		d.apigroup.Pkg.Path,
 	}
-	if hasSubresources(d.apiversion) {
-		imports = append(imports, "k8s.io/apiserver/pkg/registry/rest")
-	}
-
-	return imports
 }
 
 func (d *versionedGenerator) Finalize(context *generator.Context, w io.Writer) error {
@@ -78,7 +64,7 @@ var (
 			{{.Kind}}SchemeFns{},
 			func() runtime.Object { return &{{ $api.Kind }}{} },     // Register versioned resource
 			func() runtime.Object { return &{{ $api.Kind }}List{} }, // Register versioned resource list
-			New{{ $api.REST }},
+			New{{ $api.REST }}(),
 		)
 	{{ else -}}
 		{{$api.Group}}{{$api.Kind}}Storage = builders.NewApiResource( // Resource status endpoint
@@ -109,7 +95,7 @@ var (
 			builders.SchemeFnsSingleton,
 			func() runtime.Object { return &{{ $subresource.Request }}{} }, // Register versioned resource
 			nil,
-			func() rest.Storage { return &{{ $subresource.REST }}{ {{$api.Group}}.New{{$api.Kind}}Registry({{$api.Group}}{{$api.Kind}}Storage) } },
+			&{{ $subresource.REST }}{ {{$api.Group}}.New{{$api.Kind}}Registry({{$api.Group}}{{$api.Kind}}Storage) },
 		),
 		{{ end -}}
 		{{ end -}}
@@ -138,36 +124,29 @@ func Resource(resource string) schema.GroupResource {
 //
 // {{.Kind}} Functions and Structs
 //
-// +k8s:deepcopy-gen=false
 type {{.Kind}}SchemeFns struct {
 	builders.DefaultSchemeFns
 }
 
-// +k8s:deepcopy-gen=false
-type {{.Strategy}} struct {
+type {{.Kind}}Strategy struct {
 	builders.DefaultStorageStrategy
 }
 
-// +k8s:deepcopy-gen=false
-type {{.StatusStrategy}} struct {
+type {{$api.Kind}}StatusStrategy struct {
 	builders.DefaultStatusStorageStrategy
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type {{$api.Kind}}List struct {
 	metav1.TypeMeta ` + "`json:\",inline\"`" + `
 	metav1.ListMeta ` + "`json:\"metadata,omitempty\"`" + `
 	Items           []{{$api.Kind}} ` + "`json:\"items\"`" + `
 }
-
 {{ range $subresource := $api.Subresources -}}
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
 type {{$subresource.Request}}List struct {
 	metav1.TypeMeta ` + "`json:\",inline\"`" + `
 	metav1.ListMeta ` + "`json:\"metadata,omitempty\"`" + `
 	Items           []{{$subresource.Request}} ` + "`json:\"items\"`" + `
 }
-{{ end }}{{ end -}}
+{{ end -}}{{ end -}}
 `

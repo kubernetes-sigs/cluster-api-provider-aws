@@ -18,25 +18,23 @@ package etcd3
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/golang/glog"
-	"golang.org/x/net/context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/etcd"
@@ -74,11 +72,6 @@ type store struct {
 	leaseManager  *leaseManager
 }
 
-type elemForDecode struct {
-	data []byte
-	rev  uint64
-}
-
 type objState struct {
 	obj   runtime.Object
 	meta  *storage.ResponseMeta
@@ -89,16 +82,10 @@ type objState struct {
 
 // New returns an etcd3 implementation of storage.Interface.
 func New(c *clientv3.Client, codec runtime.Codec, prefix string, transformer value.Transformer, pagingEnabled bool) storage.Interface {
-	return newStore(c, true, pagingEnabled, codec, prefix, transformer)
+	return newStore(c, pagingEnabled, codec, prefix, transformer)
 }
 
-// NewWithNoQuorumRead returns etcd3 implementation of storage.Interface
-// where Get operations don't require quorum read.
-func NewWithNoQuorumRead(c *clientv3.Client, codec runtime.Codec, prefix string, transformer value.Transformer, pagingEnabled bool) storage.Interface {
-	return newStore(c, false, pagingEnabled, codec, prefix, transformer)
-}
-
-func newStore(c *clientv3.Client, quorumRead, pagingEnabled bool, codec runtime.Codec, prefix string, transformer value.Transformer) *store {
+func newStore(c *clientv3.Client, pagingEnabled bool, codec runtime.Codec, prefix string, transformer value.Transformer) *store {
 	versioner := etcd.APIObjectVersioner{}
 	result := &store{
 		client:        c,
@@ -112,11 +99,6 @@ func newStore(c *clientv3.Client, quorumRead, pagingEnabled bool, codec runtime.
 		pathPrefix:   path.Join("/", prefix),
 		watcher:      newWatcher(c, codec, versioner, transformer),
 		leaseManager: newDefaultLeaseManager(c),
-	}
-	if !quorumRead {
-		// In case of non-quorum reads, we can set WithSerializable()
-		// options for all Get operations.
-		result.getOps = append(result.getOps, clientv3.WithSerializable())
 	}
 	return result
 }
@@ -239,7 +221,7 @@ func (s *store) conditionalDelete(ctx context.Context, key string, out runtime.O
 		if err != nil {
 			return err
 		}
-		if err := checkPreconditions(key, preconditions, origState.obj); err != nil {
+		if err := preconditions.Check(key, origState.obj); err != nil {
 			return err
 		}
 		txnResp, err := s.client.KV.Txn(ctx).If(
@@ -300,7 +282,7 @@ func (s *store) GuaranteedUpdate(
 
 	transformContext := authenticatedDataString(key)
 	for {
-		if err := checkPreconditions(key, preconditions, origState.obj); err != nil {
+		if err := preconditions.Check(key, origState.obj); err != nil {
 			return err
 		}
 
@@ -407,12 +389,21 @@ func (s *store) GetToList(ctx context.Context, key string, resourceVersion strin
 		if err != nil {
 			return storage.NewInternalError(err.Error())
 		}
-		if err := appendListItem(v, data, uint64(getResp.Kvs[0].ModRevision), storage.SimpleFilter(pred), s.codec, s.versioner); err != nil {
+		if err := appendListItem(v, data, uint64(getResp.Kvs[0].ModRevision), pred, s.codec, s.versioner); err != nil {
 			return err
 		}
 	}
 	// update version with cluster level revision
 	return s.versioner.UpdateList(listObj, uint64(getResp.Header.Revision), "")
+}
+
+func (s *store) Count(key string) (int64, error) {
+	key = path.Join(s.pathPrefix, key)
+	getResp, err := s.client.KV.Get(context.Background(), key, clientv3.WithRange(clientv3.GetPrefixRangeEnd(key)), clientv3.WithCountOnly())
+	if err != nil {
+		return 0, err
+	}
+	return getResp.Count, nil
 }
 
 // continueToken is a simple structured object for encoding the state of a continue token.
@@ -497,8 +488,6 @@ func (s *store) List(ctx context.Context, key, resourceVersion string, pred stor
 	}
 	keyPrefix := key
 
-	filter := storage.SimpleFilter(pred)
-
 	// set the appropriate clientv3 options to filter the returned data set
 	var paging bool
 	options := make([]clientv3.OpOption, 0, 4)
@@ -507,10 +496,11 @@ func (s *store) List(ctx context.Context, key, resourceVersion string, pred stor
 		options = append(options, clientv3.WithLimit(pred.Limit))
 	}
 
-	var returnedRV int64
+	var returnedRV, continueRV int64
+	var continueKey string
 	switch {
 	case s.pagingEnabled && len(pred.Continue) > 0:
-		continueKey, continueRV, err := decodeContinue(pred.Continue, keyPrefix)
+		continueKey, continueRV, err = decodeContinue(pred.Continue, keyPrefix)
 		if err != nil {
 			return apierrors.NewBadRequest(fmt.Sprintf("invalid continue token: %v", err))
 		}
@@ -523,19 +513,23 @@ func (s *store) List(ctx context.Context, key, resourceVersion string, pred stor
 		options = append(options, clientv3.WithRange(rangeEnd))
 		key = continueKey
 
-		options = append(options, clientv3.WithRev(continueRV))
-		returnedRV = continueRV
-
+		// If continueRV > 0, the LIST request needs a specific resource version.
+		// continueRV==0 is invalid.
+		// If continueRV < 0, the request is for the latest resource version.
+		if continueRV > 0 {
+			options = append(options, clientv3.WithRev(continueRV))
+			returnedRV = continueRV
+		}
 	case s.pagingEnabled && pred.Limit > 0:
 		if len(resourceVersion) > 0 {
-			fromRV, err := strconv.ParseInt(resourceVersion, 10, 64)
+			fromRV, err := s.versioner.ParseResourceVersion(resourceVersion)
 			if err != nil {
 				return apierrors.NewBadRequest(fmt.Sprintf("invalid resource version: %v", err))
 			}
 			if fromRV > 0 {
-				options = append(options, clientv3.WithRev(fromRV))
+				options = append(options, clientv3.WithRev(int64(fromRV)))
 			}
-			returnedRV = fromRV
+			returnedRV = int64(fromRV)
 		}
 
 		rangeEnd := clientv3.GetPrefixRangeEnd(keyPrefix)
@@ -543,14 +537,14 @@ func (s *store) List(ctx context.Context, key, resourceVersion string, pred stor
 
 	default:
 		if len(resourceVersion) > 0 {
-			fromRV, err := strconv.ParseInt(resourceVersion, 10, 64)
+			fromRV, err := s.versioner.ParseResourceVersion(resourceVersion)
 			if err != nil {
 				return apierrors.NewBadRequest(fmt.Sprintf("invalid resource version: %v", err))
 			}
 			if fromRV > 0 {
-				options = append(options, clientv3.WithRev(fromRV))
+				options = append(options, clientv3.WithRev(int64(fromRV)))
 			}
-			returnedRV = fromRV
+			returnedRV = int64(fromRV)
 		}
 
 		options = append(options, clientv3.WithPrefix())
@@ -562,7 +556,7 @@ func (s *store) List(ctx context.Context, key, resourceVersion string, pred stor
 	for {
 		getResp, err := s.client.KV.Get(ctx, key, options...)
 		if err != nil {
-			return interpretListError(err, len(pred.Continue) > 0)
+			return interpretListError(err, len(pred.Continue) > 0, continueKey, keyPrefix)
 		}
 		hasMore = getResp.More
 
@@ -588,11 +582,10 @@ func (s *store) List(ctx context.Context, key, resourceVersion string, pred stor
 
 			data, _, err := s.transformer.TransformFromStorage(kv.Value, authenticatedDataString(kv.Key))
 			if err != nil {
-				utilruntime.HandleError(fmt.Errorf("unable to transform key %q: %v", kv.Key, err))
-				continue
+				return storage.NewInternalErrorf("unable to transform key %q: %v", kv.Key, err)
 			}
 
-			if err := appendListItem(v, data, uint64(kv.ModRevision), filter, s.codec, s.versioner); err != nil {
+			if err := appendListItem(v, data, uint64(kv.ModRevision), pred, s.codec, s.versioner); err != nil {
 				return err
 			}
 		}
@@ -670,7 +663,7 @@ func (s *store) WatchList(ctx context.Context, key string, resourceVersion strin
 }
 
 func (s *store) watch(ctx context.Context, key string, rv string, pred storage.SelectionPredicate, recursive bool) (watch.Interface, error) {
-	rev, err := storage.ParseWatchResourceVersion(rv)
+	rev, err := s.versioner.ParseResourceVersion(rv)
 	if err != nil {
 		return nil, err
 	}
@@ -777,30 +770,15 @@ func decode(codec runtime.Codec, versioner storage.Versioner, value []byte, objP
 }
 
 // appendListItem decodes and appends the object (if it passes filter) to v, which must be a slice.
-func appendListItem(v reflect.Value, data []byte, rev uint64, filter storage.FilterFunc, codec runtime.Codec, versioner storage.Versioner) error {
+func appendListItem(v reflect.Value, data []byte, rev uint64, pred storage.SelectionPredicate, codec runtime.Codec, versioner storage.Versioner) error {
 	obj, _, err := codec.Decode(data, nil, reflect.New(v.Type().Elem()).Interface().(runtime.Object))
 	if err != nil {
 		return err
 	}
 	// being unable to set the version does not prevent the object from being extracted
 	versioner.UpdateObject(obj, rev)
-	if filter(obj) {
+	if matched, err := pred.Matches(obj); err == nil && matched {
 		v.Set(reflect.Append(v, reflect.ValueOf(obj).Elem()))
-	}
-	return nil
-}
-
-func checkPreconditions(key string, preconditions *storage.Preconditions, out runtime.Object) error {
-	if preconditions == nil {
-		return nil
-	}
-	objMeta, err := meta.Accessor(out)
-	if err != nil {
-		return storage.NewInternalErrorf("can't enforce preconditions %v on un-introspectable object %v, got error: %v", *preconditions, out, err)
-	}
-	if preconditions.UID != nil && *preconditions.UID != objMeta.GetUID() {
-		errMsg := fmt.Sprintf("Precondition failed: UID in precondition: %v, UID in object meta: %v", *preconditions.UID, objMeta.GetUID())
-		return storage.NewInvalidObjError(key, errMsg)
 	}
 	return nil
 }

@@ -17,12 +17,11 @@ limitations under the License.
 package server
 
 import (
-	"flag"
 	"fmt"
 	"io"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
+	flag "github.com/spf13/pflag"
 
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/apiserver"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
@@ -36,9 +35,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/apiserver-builder/pkg/validators"
+	"k8s.io/apimachinery/pkg/openapi"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/util/logs"
-	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/client-go/pkg/api"
 )
 
 var GetOpenApiDefinition openapi.GetOpenAPIDefinitions
@@ -51,7 +51,6 @@ type ServerOptions struct {
 	PrintOpenapi     bool
 	RunDelegatedAuth bool
 	BearerToken      string
-	Kubeconfig       string
 	PostStartHooks   []PostStartHook
 }
 
@@ -69,26 +68,21 @@ func StartApiServer(etcdPath string, apis []*builders.APIGroupBuilder, openapide
 
 	// To disable providers, manually specify the list provided by getKnownProviders()
 	cmd, _ := NewCommandStartServer(etcdPath, os.Stdout, os.Stderr, apis, wait.NeverStop, title, version)
-	if logflag := flag.CommandLine.Lookup("v"); logflag != nil {
-		level := logflag.Value.(*glog.Level)
-		levelPtr := (*int32)(level)
-		cmd.Flags().Int32Var(levelPtr, "loglevel", 0, "Set the level of log output")
-	}
-	cmd.Flags().AddFlagSet(pflag.CommandLine)
+	cmd.Flags().AddFlagSet(flag.CommandLine)
 	if err := cmd.Execute(); err != nil {
 		panic(err)
 	}
 }
 
-func NewServerOptions(etcdPath string, out, errOut io.Writer, b []*builders.APIGroupBuilder) *ServerOptions {
+func NewServerOptions(etcdPath string, out, errOut io.Writer, builders []*builders.APIGroupBuilder) *ServerOptions {
 	versions := []schema.GroupVersion{}
-	for _, b := range b {
+	for _, b := range builders {
 		versions = append(versions, b.GetLegacyCodec()...)
 	}
 
 	o := &ServerOptions{
-		RecommendedOptions: genericoptions.NewRecommendedOptions(etcdPath, builders.Codecs.LegacyCodec(versions...)),
-		APIBuilders:        b,
+		RecommendedOptions: genericoptions.NewRecommendedOptions(etcdPath, api.Scheme, api.Codecs.LegacyCodec(versions...)),
+		APIBuilders:        builders,
 		RunDelegatedAuth:   true,
 	}
 	o.RecommendedOptions.SecureServing.BindPort = 443
@@ -126,7 +120,6 @@ func NewCommandStartServer(etcdPath string, out, errOut io.Writer, builders []*b
 		"Print the openapi json and exit")
 	flags.BoolVar(&o.RunDelegatedAuth, "delegated-auth", true,
 		"Setup delegated auth")
-	//flags.StringVar(&o.Kubeconfig, "kubeconfig", "", "Kubeconfig of apiserver to talk to.")
 	o.RecommendedOptions.AddFlags(flags)
 	return cmd, o
 }
@@ -156,7 +149,7 @@ func (o ServerOptions) Config() (*apiserver.Config, error) {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
-	serverConfig := genericapiserver.NewConfig(builders.Codecs)
+	serverConfig := genericapiserver.NewConfig(api.Codecs)
 
 	err := applyOptions(
 		serverConfig,
@@ -168,18 +161,6 @@ func (o ServerOptions) Config() (*apiserver.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	//if serverConfig.SharedInformerFactory == nil && len(o.Kubeconfig) > 0 {
-	//	path, _ := filepath.Abs(o.Kubeconfig)
-	//	glog.Infof("Creating shared informer factory from kubeconfig %s", path)
-	//	config, err := clientcmd.BuildConfigFromFlags("", o.Kubeconfig)
-	//	clientset, err := kubernetes.NewForConfig(config)
-	//	if err != nil {
-	//		glog.Errorf("Couldn't create clientset due to %v. SharedInformerFactory will not be set.", err)
-	//		return nil, err
-	//	}
-	//	serverConfig.SharedInformerFactory = informers.NewSharedInformerFactory(clientset, 10*time.Minute)
-	//}
 
 	if o.RunDelegatedAuth {
 		err := applyOptions(
@@ -202,6 +183,10 @@ func (o *ServerOptions) RunServer(stopCh <-chan struct{}, title, version string)
 		return err
 	}
 
+	config.GenericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(GetOpenApiDefinition, api.Scheme)
+	config.GenericConfig.OpenAPIConfig.Info.Title = title
+	config.GenericConfig.OpenAPIConfig.Info.Version = version
+
 	if o.PrintBearerToken {
 		glog.Infof("Serving on loopback...")
 		glog.Infof("\n\n********************************\nTo test the server run:\n"+
@@ -215,13 +200,7 @@ func (o *ServerOptions) RunServer(stopCh <-chan struct{}, title, version string)
 		config.AddApi(provider)
 	}
 
-	config.Init()
-
-	config.GenericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(GetOpenApiDefinition, builders.Scheme)
-	config.GenericConfig.OpenAPIConfig.Info.Title = title
-	config.GenericConfig.OpenAPIConfig.Info.Version = version
-
-	server, err := config.Complete().New()
+	server, err := config.Init().Complete().New()
 	if err != nil {
 		return err
 	}
