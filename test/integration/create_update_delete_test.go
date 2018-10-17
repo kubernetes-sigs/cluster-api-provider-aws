@@ -9,7 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	//"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 

@@ -13,8 +13,8 @@ import (
 	"github.com/prometheus/common/log"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
-	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
-	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
+	//"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
+	//"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 
 	apiv1 "k8s.io/api/core/v1"

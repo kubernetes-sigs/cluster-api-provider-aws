@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	//"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 

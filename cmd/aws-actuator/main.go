@@ -51,7 +51,7 @@ import (
 	"text/template"
 
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	//"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 )
 
 const (

@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	"sigs.k8s.io/cluster-api/pkg/controller/config"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
-	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
+//	"sigs.k8s.io/cluster-api/pkg/controller/sharedinformers"
 )
 
 var (
