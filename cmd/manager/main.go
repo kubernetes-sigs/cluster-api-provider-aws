@@ -14,23 +14,21 @@ limitations under the License.
 package main
 
 import (
-	"k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
-	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
-	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
-	//"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	"github.com/golang/glog"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"os"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
+	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
 var (
@@ -87,10 +85,6 @@ func main() {
 
 func initActuator(m manager.Manager) {
 	config := m.GetConfig()
-	client, err := clientset.NewForConfig(config)
-	if err != nil {
-		glog.Fatalf("Could not create client for talking to the apiserver: %v", err)
-	}
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -112,7 +106,7 @@ func initActuator(m manager.Manager) {
 	}
 
 	params := machineactuator.ActuatorParams{
-		ClusterClient:    client,
+		Client:           m.GetClient(),
 		KubeClient:       kubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 		Logger:           logger,

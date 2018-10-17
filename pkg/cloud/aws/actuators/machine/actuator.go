@@ -19,10 +19,10 @@ package machine
 import (
 	"encoding/base64"
 	"fmt"
-	"time"
-
 	"github.com/golang/glog"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -31,7 +31,6 @@ import (
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clusterclient "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -40,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	clustoplog "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/logging"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -60,7 +60,7 @@ var MachineActuator *Actuator
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
 type Actuator struct {
 	kubeClient       kubernetes.Interface
-	clusterClient    clusterclient.Interface
+	client           client.Client
 	logger           *log.Entry
 	awsClientBuilder awsclient.AwsClientBuilderFuncType
 	codec            codec
@@ -69,7 +69,7 @@ type Actuator struct {
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
 	KubeClient       kubernetes.Interface
-	ClusterClient    clusterclient.Interface
+	Client           client.Client
 	Logger           *log.Entry
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
 	Codec            codec
@@ -85,7 +85,7 @@ type codec interface {
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	actuator := &Actuator{
 		kubeClient:       params.KubeClient,
-		clusterClient:    params.ClusterClient,
+		client:           params.Client,
 		logger:           params.Logger,
 		awsClientBuilder: params.AwsClientBuilder,
 		codec:            params.Codec,
@@ -133,8 +133,7 @@ func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *pr
 		time := metav1.Now()
 		machineCopy.Status.LastUpdated = &time
 
-		_, err := a.clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).Update(machineCopy)
-		if err != nil {
+		if err := a.client.Update(context.Background(), machineCopy); err != nil {
 			mLog.Errorf("error updating machine status: %v", err)
 			return err
 		}
