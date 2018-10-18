@@ -2,30 +2,27 @@
 set -o errexit
 set -o nounset
 
+# Directories.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-
 OUTPUT_DIR=${DIR}/out
 
-# provider-components
-export CLUSTER_CONTROLLER_IMAGE="${CLUSTER_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
-export MACHINE_CONTROLLER_IMAGE="${MACHINE_CONTROLLER_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1}"
+# Manager image.
+export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
 
-# aws credentials
-# TODO generate a secret instead of embedding directly in the YAML
-export AWS_REGION="${AWS_REGION:-us-west-2}"
-export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
-export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
+# Machine settings.
+export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
+export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
 
-PROVIDERCOMPONENT_TEMPLATE_FILE=${DIR}/provider-components.yaml.template
-PROVIDERCOMPONENT_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
-
+# Templates.
 CLUSTER_TEMPLATE_FILE=${DIR}/cluster.yaml.template
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
-
 MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
+MANAGER_PATCH_TEMPLATE_FILE=${DIR}/aws_manager_image_patch.yaml.template
+MANAGER_PATCH_GENERATED_FILE=${OUTPUT_DIR}/aws_manager_image_patch.yaml
 
+# Overwrite flag.
 OVERWRITE=0
 
 SCRIPT=$(basename $0)
@@ -65,21 +62,13 @@ if [ $OVERWRITE -ne 1 ] && [ -f $CLUSTER_GENERATED_FILE ]; then
   exit 1
 fi
 
-if [ $OVERWRITE -ne 1 ] && [ -f $PROVIDERCOMPONENT_GENERATED_FILE ]; then
-  echo File $PROVIDERCOMPONENT_GENERATED_FILE already exists. Delete it manually before running this script.
-  exit 1
-fi
-
 mkdir -p ${OUTPUT_DIR}
 
-envsubst < $PROVIDERCOMPONENT_TEMPLATE_FILE \
-  > "${PROVIDERCOMPONENT_GENERATED_FILE}"
-echo "Done generating ${PROVIDERCOMPONENT_GENERATED_FILE}"
-
-envsubst < $CLUSTER_TEMPLATE_FILE \
-  > "${CLUSTER_GENERATED_FILE}"
+envsubst < $CLUSTER_TEMPLATE_FILE > "${CLUSTER_GENERATED_FILE}"
 echo "Done generating ${CLUSTER_GENERATED_FILE}"
 
-envsubst < $MACHINES_TEMPLATE_FILE \
-  > "${MACHINES_GENERATED_FILE}"
+envsubst < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
 echo "Done generating ${MACHINES_GENERATED_FILE}"
+
+envsubst < $MANAGER_PATCH_TEMPLATE_FILE > "${MANAGER_PATCH_GENERATED_FILE}"
+echo "Done generating ${MANAGER_PATCH_GENERATED_FILE}"

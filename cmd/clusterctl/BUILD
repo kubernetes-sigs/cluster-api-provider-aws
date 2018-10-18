@@ -4,7 +4,7 @@ load("//build:rules.bzl", "cluster_api_binary")
 go_library(
     name = "go_default_library",
     srcs = ["main.go"],
-    importpath = "sigs.k8s.io/cluster-api-provider-aws/clusterctl",
+    importpath = "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterctl",
     visibility = ["//visibility:private"],
     deps = [
         "//pkg/cloud/aws/actuators/cluster:go_default_library",

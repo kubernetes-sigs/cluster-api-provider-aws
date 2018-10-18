@@ -1,0 +1,20 @@
+namespace: aws-provider-system
+namePrefix: aws-provider-
+
+resources:
+- ../crds/awsprovider_v1alpha1_awsclusterproviderconfig.yaml
+- ../crds/awsprovider_v1alpha1_awsclusterproviderstatus.yaml
+- ../crds/awsprovider_v1alpha1_awsmachineproviderconfig.yaml
+- ../crds/awsprovider_v1alpha1_awsmachineproviderstatus.yaml
+- ../rbac/rbac_role.yaml
+- ../rbac/rbac_role_binding.yaml
+- ../manager/manager.yaml
+
+patches:
+- ../../cmd/clusterctl/examples/aws/out/aws_manager_image_patch.yaml
+
+secretGenerator:
+- name: manager-bootstrap-credentials
+  type: Opaque
+  commands:
+    credentials: "cat ../../cmd/clusterctl/examples/aws/out/credentials"
