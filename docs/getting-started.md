@@ -29,9 +29,9 @@
 - Linux or MacOS (Windows isn't supported at the moment)
 - A set of AWS credentials sufficient to bootstrap the cluster (see [bootstrapping-aws-identity-and-access-management-with-cloudformation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)).
 - An AWS IAM role to give to the Cluster API control plane.
-- [Minikube][minikube]
+- [Minikube][minikube] version v0.30.0 or later
 - [kubectl][kubectl]
-- [gettext][gettext] on MacOS (`brew install gettext && brew link --force gettext`)
+- [kustomize][kustomize]
 
 ### Optional
 
@@ -141,11 +141,11 @@ Minikube needs to be installed on your local machine, as this is what will be us
 #### Customizing for Cluster API
 
 At present, the Cluster API provider runs minikube to create a new instance,
-but requires Kubernetes 1.9 and the kubeadm bootstrap method to work properly,
+but requires Kubernetes 1.12 and the kubeadm bootstrap method to work properly,
 so we configure Minikube as follows:
 
 ```bash
-minikube config set kubernetes-version v1.9.4
+minikube config set kubernetes-version v1.12.1
 minikube config set bootstrapper kubeadm
 ```
 
@@ -202,19 +202,44 @@ $ENV:AWS_SECRET_ACCESS_KEY=$awsCredentials.SecretAccessKey
 
 ## Deploying a cluster
 
-### Generating cluster manifests
+### Starting Minikube
+For security reasons, it's best to start a Minikube instance before using
+clusterctl to store your AWS credentials.
 
-The shell script `generate-yaml.sh` in [clusterctl/examples](clusterctl/examples) can be used to generate the cluster manifests.
+``` shell
+minikube start
+```
 
-> The following command is valid in both Bash and PowerShell.
+Then write the AWS credentials into the Minikube instance for use by Cluster API:
 
-```bash
-sh -c "cd ./clusterctl/examples/aws && ./generate-yaml.sh"
+``` shell
+minikube ssh 'mkdir -p .aws'
+clusterawsadm alpha bootstrap generate-aws-default-profile | minikube ssh 'cat > .aws/credentials'
+[default]
+aws_access_key_id = AKIAIOSFODNN7EXAMPLE
+aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+region = eu-west-1
+
+
+^C
 ```
 
 **NOTE**:
-> The generated manifests contain a copy of the AWS credentials.
-> Secure credentials storage is slated for a future release.
+> This will print the AWS credentials to the screen and then hang
+> (due to a restriction in Minikube).
+> This is OK, and you can cancel with Ctrl+C, but make sure to do this privately.
+
+### Generating cluster manifests
+
+The shell script `config/generate-yaml.sh` can be used to generate the
+cluster manifests.
+
+```bash
+./config/generate-yaml.sh
+```
+
+Then edit `out/cluster.yaml` and `out/machine.yaml` for your SSH key and AWS
+region and any other customisations you want to make.
 
 ### Starting Cluster API
 
@@ -227,45 +252,34 @@ You can now start the Cluster API controllers and deploy a new cluster in AWS:
 
 ```bash
 clusterctl create cluster -v2 --provider aws \
-  -m ./clusterctl/examples/aws/out/machines.yaml \
-  -c ./clusterctl/examples/aws/out/cluster.yaml \
-  -p ./clusterctl/examples/aws/out/provider-components.yaml
+  -m ./out/machines.yaml \
+  -c ./out/cluster.yaml \
+  -p ./out/provider-components.yaml \
+  --existing-bootstrap-cluster-kubeconfig ~/.kube/config
 
-I1005 16:18:54.768403   22094 clusterdeployer.go:95] Creating bootstrap cluster
-I1005 16:20:23.611501   22094 minikube.go:50] Ran: minikube [start --bootstrapper=kubeadm] Output: Starting local Kubernetes v1.9.4 cluster...
-Starting VM...
-Getting VM IP address...
-Moving files into cluster...
-Setting up certs...
-Connecting to cluster...
-Setting up kubeconfig...
-Starting cluster components...
-Kubectl is now configured to use the cluster.
-Loading cached images from config file.
-I1005 16:20:23.636837   22094 clusterdeployer.go:112] Applying Cluster API stack to bootstrap cluster
-I1005 16:20:23.636871   22094 clusterdeployer.go:301] Applying Cluster API APIServer
-I1005 16:20:24.048512   22094 clusterclient.go:511] Waiting for kubectl apply...
-I1005 16:20:24.776374   22094 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
-I1005 16:21:04.777556   22094 clusterclient.go:539] Waiting for Cluster v1alpha resources to become available...
-I1005 16:21:04.786146   22094 clusterclient.go:552] Waiting for Cluster v1alpha resources to be listable...
-I1005 16:21:15.668990   22094 clusterdeployer.go:307] Applying Cluster API Provider Components
-I1005 16:21:15.669022   22094 clusterclient.go:511] Waiting for kubectl apply...
-I1005 16:21:15.883375   22094 clusterdeployer.go:117] Provisioning target cluster via bootstrap cluster
-I1005 16:21:15.883402   22094 clusterdeployer.go:119] Creating cluster object test1 on bootstrap cluster in namespace "default"
-I1005 16:21:15.902219   22094 clusterdeployer.go:124] Creating master  in namespace "default"
-I1005 16:21:15.926980   22094 clusterclient.go:563] Waiting for Machine aws-controlplane-x7gxx to become ready...
+I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
+I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
+I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provider Components
+I1018 01:21:12.106909   16367 clusterclient.go:505] Waiting for kubectl apply...
+I1018 01:21:12.460755   16367 clusterclient.go:533] Waiting for Cluster v1alpha resources to become available...
+I1018 01:21:12.464840   16367 clusterclient.go:546] Waiting for Cluster v1alpha resources to be listable...
+I1018 01:21:12.517706   16367 clusterdeployer.go:116] Provisioning target cluster via bootstrap cluster
+I1018 01:21:12.517722   16367 clusterdeployer.go:118] Creating cluster object aws-provider-test1 on bootstrap cluster in namespace "aws-provider-system"
+I1018 01:21:12.524912   16367 clusterdeployer.go:123] Creating master  in namespace "aws-provider-system"
 ```
 
 *PowerShell:*
 
 ```powershell
 clusterctl create cluster -v2 --provider aws `
-  -m ./clusterctl/examples/aws/out/machines.yaml `
-  -c ./clusterctl/examples/aws/out/cluster.yaml `
-  -p ./clusterctl/examples/aws/out/provider-components.yaml
+  -m ./config/samples/out/machines.yaml `
+  -c ./config/samples/out/cluster.yaml `
+  -p ./config/samples/out/provider-components.yaml `
+  --existing-bootstrap-cluster-kubeconfig ~/.kube/config
 
-I1005 16:18:54.768403   22094 clusterdeployer.go:95] Creating bootstrap cluster
-I1005 16:20:23.611501   22094 minikube.go:50] Ran: minikube [start --bootstrapper=kubeadm] Output: Starting local Kubernetes v1.9.4 cluster...
+I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
+I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
+I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provider Components
 ...
 ```
 
@@ -276,14 +290,14 @@ Controller logs can be tailed using [`kubectl`][kubectl]:
 *Bash:*
 
 ```bash
-kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c aws-cluster-controller -f
+kubectl get po -o name -n aws-provider-system | grep aws-provider-controller-manager | xargs kubectl logs -n aws-provider-system -c manager -f
 ```
 
 *PowerShell:*
 
 ```powershell
-kubectl logs -c aws-cluster-controller -f `
-  $(kubectl get po -o name | Select-String -Pattern "clusterapi-controllers")
+kubectl logs -n aws-provider-system -c manager -f `
+  $(kubectl get po -o name | Select-String -Pattern "aws-provider-controller-manager")
 ```
 
 <!-- References -->
@@ -294,4 +308,4 @@ kubectl logs -c aws-cluster-controller -f `
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [aws_powershell]: (https://docs.aws.amazon.com/powershell/index.html#lang/en_us)
 [aws-vault]: https://github.com/99designs/aws-vault
-[gettext]: http://brewformulas.org/Gettext
+[kustomize]: https://github.com/kubernetes-sigs/kustomize

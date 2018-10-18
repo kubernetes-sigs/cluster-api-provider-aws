@@ -2,7 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: manager-role
+  name: aws-manager-role
 rules:
 - apiGroups:
   - awsprovider.k8s.io

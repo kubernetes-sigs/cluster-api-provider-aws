@@ -1,0 +1,20 @@
+namespace: aws-provider-system
+namePrefix: aws-provider-
+resources:
+  - ../../crds/awsprovider_v1alpha1_awsclusterproviderconfig.yaml
+  - ../../crds/awsprovider_v1alpha1_awsclusterproviderstatus.yaml
+  - ../../crds/awsprovider_v1alpha1_awsmachineproviderconfig.yaml
+  - ../../crds/awsprovider_v1alpha1_awsmachineproviderstatus.yaml
+  - ../../vendored/cluster-api/crds/cluster_v1alpha1_cluster.yaml
+  - ../../vendored/cluster-api/crds/cluster_v1alpha1_machine.yaml
+  - ../../vendored/cluster-api/crds/cluster_v1alpha1_machinedeployment.yaml
+  - ../../vendored/cluster-api/crds/cluster_v1alpha1_machineset.yaml
+  - ../../rbac/rbac_role.yaml
+  - ../../rbac/rbac_role_binding.yaml
+  - ../../vendored/cluster-api/rbac/rbac_role.yaml
+  - ../../vendored/cluster-api/rbac/rbac_role_binding.yaml
+  - ../../manager/manager.yaml
+  - ../../manager/service.yaml
+  - ../../vendored/cluster-api/manager/manager.yaml
+patches:
+  - aws_manager_image_patch.yaml

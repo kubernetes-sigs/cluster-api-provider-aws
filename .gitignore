@@ -21,17 +21,16 @@ vendor
 *~
 *.swp
 
-# envfile
+# envfiles
 .env
 envfile
-minikube.kubeconfig
 
+# kubeconfigs
+minikube.kubeconfig
 kubeconfig
 
-# binaries
-cmd/cluster-controller/cluster-controller
-cmd/machine-controller/machine-controller
-
+# Example output directory
+/out
 
 # bazel
 /bazel-bin
@@ -39,5 +38,3 @@ cmd/machine-controller/machine-controller
 /bazel-genfiles
 /bazel-out
 /bazel-testlogs
-
-

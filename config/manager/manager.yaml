@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      controller-tools.k8s.io: "1.0"
+  serviceName: controller-manager-service
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        controller-tools.k8s.io: "1.0"
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoExecute
+          key: node.alpha.kubernetes.io/notReady
+          operator: Exists
+        - effect: NoExecute
+          key: node.alpha.kubernetes.io/unreachable
+          operator: Exists
+      containers:
+        - name: manager
+          image: SET_BY_PATCH
+          command:
+            - "/root/manager"
+          args:
+            - "-logtostderr=true"
+            - "-stderrthreshold=INFO"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/kubernetes
+            - name: certs
+              mountPath: /etc/ssl/certs
+            - name: credentials
+              mountPath: /etc/aws
+          resources:
+            limits:
+              cpu: 100m
+              memory: 30Mi
+            requests:
+              cpu: 100m
+              memory: 20Mi
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+      volumes:
+        - name: config
+          hostPath:
+            path: /etc/kubernetes
+        - name: certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: credentials
+          hostPath:
+            path: /home/docker/.aws
+      terminationGracePeriodSeconds: 10

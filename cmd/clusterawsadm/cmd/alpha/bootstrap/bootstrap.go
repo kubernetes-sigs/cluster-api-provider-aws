@@ -36,7 +36,7 @@ metadata:
   name: credentials.cluster-api-provider-aws.sigs.k8s.io
 type: Opaque
 data:
-  credentialsFile: {{ .CredentialsFile }}
+  credentials: {{ .CredentialsFile }}
 `
 
 // AWSCredentialsTemplate generates an AWS credentials file that can
@@ -63,6 +63,7 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(generateCmd())
 	newCmd.AddCommand(createStackCmd())
 	newCmd.AddCommand(encodeAWSSecret())
+	newCmd.AddCommand(generateAWSDefaultProfile())
 	return newCmd
 }
 
@@ -139,34 +140,13 @@ func encodeAWSSecret() *cobra.Command {
 		Short: "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		Long:  "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds := awsCredential{}
+			creds, err := getCredentialsFromEnvironment()
 
-			region, err := getEnv("AWS_REGION")
 			if err != nil {
 				return err
 			}
-			creds.Region = region
 
-			accessKeyID, err := getEnv("AWS_ACCESS_KEY_ID")
-			if err != nil {
-				return err
-			}
-			creds.AccessKeyID = accessKeyID
-
-			secretAccessKey, err := getEnv("AWS_SECRET_ACCESS_KEY")
-			if err != nil {
-				return err
-			}
-			creds.SecretAccessKey = secretAccessKey
-
-			sessionToken, err := getEnv("AWS_SESSION_TOKEN")
-			if err != nil {
-				creds.SessionToken = ""
-			} else {
-				creds.SessionToken = sessionToken
-			}
-
-			err = generateAWSKubernetesSecret(creds)
+			err = generateAWSKubernetesSecret(*creds)
 
 			if err != nil {
 				return err
@@ -177,6 +157,65 @@ func encodeAWSSecret() *cobra.Command {
 	}
 
 	return newCmd
+}
+
+func generateAWSDefaultProfile() *cobra.Command {
+	newCmd := &cobra.Command{
+		Use:   "generate-aws-default-profile",
+		Short: "Generate an AWS profile from the current environment",
+		Long:  "Generate an AWS profile from the current environment to be saved into minikube",
+		RunE: func(cmd *cobra.Command, args []string) error {
+
+			creds, err := getCredentialsFromEnvironment()
+
+			if err != nil {
+				return err
+			}
+
+			profile, err := renderAWSDefaultProfile(*creds)
+
+			if err != nil {
+				return err
+			}
+
+			fmt.Println(profile.String())
+
+			return nil
+		},
+	}
+
+	return newCmd
+}
+
+func getCredentialsFromEnvironment() (*awsCredential, error) {
+	creds := awsCredential{}
+
+	region, err := getEnv("AWS_REGION")
+	if err != nil {
+		return nil, err
+	}
+	creds.Region = region
+
+	accessKeyID, err := getEnv("AWS_ACCESS_KEY_ID")
+	if err != nil {
+		return nil, err
+	}
+	creds.AccessKeyID = accessKeyID
+
+	secretAccessKey, err := getEnv("AWS_SECRET_ACCESS_KEY")
+	if err != nil {
+		return nil, err
+	}
+	creds.SecretAccessKey = secretAccessKey
+
+	sessionToken, err := getEnv("AWS_SESSION_TOKEN")
+	if err != nil {
+		creds.SessionToken = ""
+	} else {
+		creds.SessionToken = sessionToken
+	}
+
+	return &creds, nil
 }
 
 type awsCredential struct {
@@ -198,20 +237,30 @@ func getEnv(key string) (string, error) {
 	return val, nil
 }
 
-func generateAWSKubernetesSecret(creds awsCredential) error {
-
+func renderAWSDefaultProfile(creds awsCredential) (*bytes.Buffer, error) {
 	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var credsFileStr bytes.Buffer
 	err = tmpl.Execute(&credsFileStr, creds)
 	if err != nil {
+		return nil, err
+	}
+
+	return &credsFileStr, nil
+}
+
+func generateAWSKubernetesSecret(creds awsCredential) error {
+
+	profile, err := renderAWSDefaultProfile(creds)
+
+	if err != nil {
 		return err
 	}
 
-	encCreds := base64.StdEncoding.EncodeToString(credsFileStr.Bytes())
+	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
 
 	credsFile := awsCredentialsFile{
 		CredentialsFile: string(encCreds),

@@ -52,11 +52,11 @@ func defineTestingStartCmd(parent *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			var wg sync.WaitGroup
 			a := runShell(`go run ./clusterctl create cluster -v4  \
-				-m ./clusterctl/examples/aws/out/machines.yaml \
-				-c ./clusterctl/examples/aws/out/cluster.yaml \
-				-p ./clusterctl/examples/aws/out/provider-components.yaml \
+				-m ./out/machines.yaml \
+				-c ./out/cluster.yaml \
+				-p ./out/provider-components.yaml \
 				--provider aws \
-				--existing-bootstrap-cluster-kubeconfig /home/naadir/.kube/config`)
+				--existing-bootstrap-cluster-kubeconfig ${HOME}/.kube/config`)
 			wg.Add(1)
 			go controllerLogs(&wg)
 			a.Wait()
@@ -104,7 +104,7 @@ func defineTestingDeleteClustersCmd(parent *cobra.Command) {
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go controllerLogs(&wg)
-			runShell("kubectl delete clusters --all --wait=true")
+			runShell("kubectl delete clusters -n aws-provider-system --all --wait=true")
 			wg.Wait()
 		},
 	}
@@ -132,7 +132,7 @@ func defineTestingDeleteMachinesCmd(parent *cobra.Command) {
 			var wg sync.WaitGroup
 			wg.Add(1)
 			go controllerLogs(&wg)
-			runShell("kubectl delete machines --all --wait=true")
+			runShell("kubectl delete machines -n aws-provider-system --all --wait=true")
 			wg.Wait()
 		},
 	}
@@ -169,36 +169,36 @@ func defineTestingApplyControllerManifestsCmd(parent *cobra.Command) {
 		Short: "Apply controller manifests",
 		Long:  "Apply controller manifests",
 		Run: func(cmd *cobra.Command, args []string) {
-			runShellWithWait("kubectl apply -f clusterctl/examples/aws/out/provider-components.yaml")
+			runShellWithWait("kubectl apply -f ./out/provider-components.yaml")
 		},
 	}
 	parent.AddCommand(newCmd)
 }
 
 func destroyMachines() {
-	runShellWithWait("kubectl get machine -o name | xargs kubectl patch -p '{\"metadata\":{\"finalizers\":null}}' --type=merge")
-	runShellWithWait("kubectl delete machines --force=true --grace-period 0 --all --wait=true")
+	runShellWithWait("kubectl get machine -o name -n aws-provider-system | xargs kubectl patch  -n aws-provider-system -p '{\"metadata\":{\"finalizers\":null}}' --type=merge")
+	runShellWithWait("kubectl delete machines -n aws-provider-system --force=true --grace-period 0 --all --wait=true")
 }
 
 func destroyClusters() {
-	runShellWithWait("kubectl patch cluster test1 -p '{\"metadata\":{\"finalizers\":null}}' --type=merge")
-	runShellWithWait("kubectl delete clusters --force=true --grace-period 0 --all --wait=true")
+	runShellWithWait("kubectl patch cluster test1  -n aws-provider-system -p '{\"metadata\":{\"finalizers\":null}}' --type=merge")
+	runShellWithWait("kubectl delete clusters  -n aws-provider-system --force=true --grace-period 0 --all --wait=true")
 }
 
 func destroyControlPlane() {
-	runShellWithWait("kubectl delete deployment clusterapi-controllers --force=true --grace-period 0 --wait=true")
-	runShellWithWait("kubectl delete crds --all --force=true --grace-period 0 --wait=true")
+	runShellWithWait("kubectl delete statefulset aws-provider-controller-manager  -n aws-provider-system --force=true --grace-period 0 --wait=true")
+	runShellWithWait("kubectl delete crds  -n aws-provider-system --all --force=true --grace-period 0 --wait=true")
 }
 
 func controllerLogs(wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
-		b := runShell("kubectl get po -o name | grep clusterapi-controllers | xargs kubectl logs -c cluster-api-aws-controller -f")
+		b := runShell("kubectl get po -o name -n aws-provider-system | grep aws-provider-controller-manager | xargs kubectl logs -n aws-provider-system -c manager -f")
 		b.Wait()
 		time.Sleep(5 * 1000 * 1000 * 1000)
 	}
 }
 
 func restartControllers() {
-	runShellWithWait("kubectl get po -o name | grep clusterapi-controllers | xargs kubectl delete")
+	runShellWithWait("kubectl get po -o name -n aws-provider-system | grep aws-provider-controller-manager | xargs kubectl -n aws-provider-system delete")
 }
