@@ -17,12 +17,14 @@ IMG ?= gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest
 
 # Go environment flags.
 GOFLAGS += -ldflags '-extldflags "-static"'
-GOREBUILD :=
 GOPATH := $(shell go env GOPATH)
 
 all: check-install test manager clusterctl clusterawsadm
 
+ifndef FASTBUILD
+# If FASTBUILD isn't defined, always run dep ensure
 .PHONY: vendor
+endif
 
 # Dependency managemnt.
 vendor:
@@ -50,15 +52,15 @@ genmocks: vendor
 
 # Build manager binary.
 manager: generate fmt vet
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/manager
 
 # Build clusterctl binary.
 clusterctl: check-install generate fmt vet
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/clusterctl
+	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/clusterctl
 
 # Build clusterawsadm binary.
 clusterawsadm: check-install vendor
-	CGO_ENABLED=0 go install $(GOFLAGS) $(GOREBUILD) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
+	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
 
 # Build cluster-api-dev-helper binary.
 cluster-api-dev-helper: check-install vendor
@@ -91,7 +93,15 @@ docker-push:
 
 # Cleanup
 clean:
-	rm -rf clusterctl/examples/aws/out
+	rm -rf out
+	rm -f kubeconfig
+	rm -f minikube.kubeconfig
 
 manifests:
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac --name aws-manager
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+
+copy-creds-to-minikube: clusterawsadm
+	minikube ssh 'mkdir -p .aws'
+	echo "Hit ctrl+c next to work around minikube"
+	source ./envfile && clusterawsadm alpha bootstrap generate-aws-default-profile | minikube ssh 'cat > .aws/credentials'

@@ -14,8 +14,7 @@ spec:
     serviceDomain: "cluster.local"
   providerConfig:
     value:
-      apiVersion: "awsprovider/v1alpha1"
+      apiVersion: "awsprovider.k8s.io/v1alpha1"
       kind: "AWSClusterProviderConfig"
       region: "us-west-2"
-      sshKeyName: "laptop"
-
+      sshKeyName: "default"

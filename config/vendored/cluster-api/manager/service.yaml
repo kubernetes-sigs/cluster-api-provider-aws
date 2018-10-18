@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterapi-controller-manager-service
+  namespace: system
+  labels:
+    control-plane: clusterapi-controller-manager
+    controller-tools.k8s.io: "1.0"
+spec:
+  selector:
+    control-plane: clusterapi-controller-manager
+    controller-tools.k8s.io: "1.0"
+  ports:
+    - port: 443
