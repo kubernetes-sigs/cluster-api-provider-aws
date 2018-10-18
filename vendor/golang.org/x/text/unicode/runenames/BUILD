@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bits.go",
+        "runenames.go",
+        "tables.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/text/unicode/runenames",
+    importpath = "golang.org/x/text/unicode/runenames",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "example_test.go",
+        "runenames_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/golang.org/x/text/internal/gen:go_default_library",
+        "//vendor/golang.org/x/text/internal/testtext:go_default_library",
+        "//vendor/golang.org/x/text/internal/ucd:go_default_library",
+    ],
+)

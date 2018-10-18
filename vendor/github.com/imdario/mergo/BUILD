@@ -1,0 +1,37 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "map.go",
+        "merge.go",
+        "mergo.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/imdario/mergo",
+    importpath = "github.com/imdario/mergo",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "issue17_test.go",
+        "issue23_test.go",
+        "issue33_test.go",
+        "issue38_test.go",
+        "issue50_test.go",
+        "issue52_test.go",
+        "issue61_test.go",
+        "issue64_test.go",
+        "issue66_test.go",
+        "merge_appendslice_test.go",
+        "merge_test.go",
+        "mergo_test.go",
+        "pr80_test.go",
+        "pr81_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    deps = ["//vendor/gopkg.in/yaml.v2:go_default_library"],
+)

@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "hsalsa20.go",
+        "salsa2020_amd64.s",
+        "salsa208.go",
+        "salsa20_amd64.go",
+        "salsa20_ref.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/crypto/salsa20/salsa",
+    importpath = "golang.org/x/crypto/salsa20/salsa",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["salsa_test.go"],
+    embed = [":go_default_library"],
+)

@@ -1,0 +1,42 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "add.go",
+        "helpers.go",
+        "init.go",
+        "license_agpl.go",
+        "license_apache_2.go",
+        "license_bsd_clause_2.go",
+        "license_bsd_clause_3.go",
+        "license_gpl_2.go",
+        "license_gpl_3.go",
+        "license_lgpl.go",
+        "license_mit.go",
+        "licenses.go",
+        "project.go",
+        "root.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/spf13/cobra/cobra/cmd",
+    importpath = "github.com/spf13/cobra/cobra/cmd",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/spf13/cobra:go_default_library",
+        "@com_github_mitchellh_go_homedir//:go_default_library",
+        "@com_github_spf13_viper//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "add_test.go",
+        "golden_test.go",
+        "init_test.go",
+        "project_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    deps = ["@com_github_spf13_viper//:go_default_library"],
+)

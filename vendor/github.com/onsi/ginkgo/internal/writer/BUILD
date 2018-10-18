@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "fake_writer.go",
+        "writer.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/onsi/ginkgo/internal/writer",
+    importpath = "github.com/onsi/ginkgo/internal/writer",
+    visibility = ["//vendor/github.com/onsi/ginkgo:__subpackages__"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "writer_suite_test.go",
+        "writer_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/onsi/ginkgo:go_default_library",
+        "//vendor/github.com/onsi/gomega:go_default_library",
+        "//vendor/github.com/onsi/gomega/gbytes:go_default_library",
+    ],
+)

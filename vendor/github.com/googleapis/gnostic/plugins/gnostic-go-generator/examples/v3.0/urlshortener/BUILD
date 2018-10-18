@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/googleapis/gnostic/plugins/gnostic-go-generator/examples/v3.0/urlshortener",
+    importpath = "github.com/googleapis/gnostic/plugins/gnostic-go-generator/examples/v3.0/urlshortener",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//vendor/github.com/googleapis/gnostic/plugins/gnostic-go-generator/examples/googleauth:go_default_library",
+        "//vendor/github.com/googleapis/gnostic/plugins/gnostic-go-generator/examples/v3.0/urlshortener/urlshortener:go_default_library",
+        "@com_github_docopt_docopt_go//:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "urlshortener",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)

@@ -6,13 +6,13 @@
 
 <!-- TOC depthFrom:2 -->
 - [Updating mocks](#updating-mocks)
+- [Committing code](#committing-code)
 - [Set up](#set-up)
   - [Base requirements](#base-requirements)
   - [Using Google Cloud](#using-google-cloud)
     - [Using images on Google Cloud](#using-images-on-google-cloud)
   - [Using AWS Elastic Container Registry](#using-aws-elastic-container-registry)
     - [Using images on Elastic Container Registry](#using-images-on-elastic-container-registry)
-    - [Using Minikube only](#using-minikube-only)
 - [cluster-api-dev-helper](#cluster-api-dev-helper)
 
 <!-- /TOC -->
@@ -22,6 +22,14 @@
 When you update the mocks, please make sure the imports are not from the dependencies vendor directory. Instead, make them an explicit dependency of this project.
 
 For example, if you see `types "sigs.k8s.io/cluster-api/vendor/k8s.io/apimachinery/pkg/types"` in the import path, replace it with `types "k8s.io/apimachinery/pkg/types"`.
+
+## Committing code
+Ensure you have updated the vendor directory with:
+
+```
+make vendor REVENDOR=y
+```
+
 
 ## Set up
 
@@ -36,8 +44,9 @@ storage.
    - `brew install gettext && brew link --force gettext` on MacOS.
 1. Install [minikube][minikube]
    - `brew install minikube` on MacOS.
+1. Install [bazel][bazel]
 1. Configure `minikube`:
-    1. Use Kubernetes v1.9.4 `minikube config set kubernetes-version v1.9.4`.
+    1. Use Kubernetes v1.12.1 `minikube config set kubernetes-version v1.12.1`.
     1. Use kubeadm as bootstrapper `minikube config set bootstrapper kubeadm`.
 
 ### Using Google Cloud
@@ -87,24 +96,15 @@ Then generate the [example configuration](getting-started.md#generating-cluster-
 You will also need to configure minikube or your bootstrap cluster with credentials to access ECR, using [image pull secrets][image_pull_secrets]
 or another mechanism.
 
-#### Using Minikube only
-
-You can also build and test using only the local storage on the minikube VM,
-using:
-
-``` bash
-make minikube_build FASTBUILD=true
-```
-
 ## cluster-api-dev-helper
 
 Some command development tasks have been put into a cluster-api-dev-helper
 utility in the /hack directory.
 
-To install it, run:
+To build it, run:
 
 ``` bash
-make cluster-api-dev-helper-bin FASTBUILD=true
+bazel build //hack/cluster-api-dev-helper
 ```
 
 
@@ -118,3 +118,4 @@ make cluster-api-dev-helper-bin FASTBUILD=true
 [gettext]: https://www.gnu.org/software/gettext/
 [minikube]: https://kubernetes.io/docs/setup/minikube/
 [aws_cli]: https://docs.aws.amazon.com/cli/latest/userguide/installing.html
+[bazel]: https://docs.bazel.build/versions/master/install.html

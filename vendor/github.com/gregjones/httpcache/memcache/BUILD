@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["memcache.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/gregjones/httpcache/memcache",
+    importpath = "github.com/gregjones/httpcache/memcache",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_bradfitz_gomemcache//memcache:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["memcache_test.go"],
+    embed = [":go_default_library"],
+)

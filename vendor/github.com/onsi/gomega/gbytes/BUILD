@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "buffer.go",
+        "io_wrappers.go",
+        "say_matcher.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/onsi/gomega/gbytes",
+    importpath = "github.com/onsi/gomega/gbytes",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/onsi/gomega/format:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "buffer_test.go",
+        "gbuffer_suite_test.go",
+        "io_wrappers_test.go",
+        "say_matcher_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/onsi/ginkgo:go_default_library",
+        "//vendor/github.com/onsi/gomega:go_default_library",
+    ],
+)

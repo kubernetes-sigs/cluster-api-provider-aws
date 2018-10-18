@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["aggregator.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/kube-openapi/pkg/aggregator",
+    importpath = "k8s.io/kube-openapi/pkg/aggregator",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/kube-openapi/pkg/util:go_default_library",
+        "@com_github_go_openapi_spec//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["aggregator_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/ghodss/yaml:go_default_library",
+        "@com_github_go_openapi_spec//:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+    ],
+)

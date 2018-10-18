@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "dec.go",
+        "rounder.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/gopkg.in/inf.v0",
+    importpath = "gopkg.in/inf.v0",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "benchmark_test.go",
+        "dec_go1_2_test.go",
+        "dec_internal_test.go",
+        "dec_test.go",
+        "example_test.go",
+        "rounder_example_test.go",
+        "rounder_test.go",
+    ],
+    embed = [":go_default_library"],
+)

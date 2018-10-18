@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["xts.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/crypto/xts",
+    importpath = "golang.org/x/crypto/xts",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/golang.org/x/crypto/internal/subtle:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["xts_test.go"],
+    embed = [":go_default_library"],
+)
