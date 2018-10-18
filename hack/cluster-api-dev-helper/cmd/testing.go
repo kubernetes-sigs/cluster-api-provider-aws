@@ -56,7 +56,7 @@ func defineTestingStartCmd(parent *cobra.Command) {
 				-c ./clusterctl/examples/aws/out/cluster.yaml \
 				-p ./clusterctl/examples/aws/out/provider-components.yaml \
 				--provider aws \
-				--existing-bootstrap-cluster-kubeconfig /home/naadir/.kube/config`)
+				--existing-bootstrap-cluster-kubeconfig ${HOME}/.kube/config`)
 			wg.Add(1)
 			go controllerLogs(&wg)
 			a.Wait()
