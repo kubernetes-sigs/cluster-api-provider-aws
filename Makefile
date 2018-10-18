@@ -20,7 +20,7 @@ endif
 
 VERSION     ?= $(shell git describe --always --abbrev=7)
 MUTABLE_TAG ?= latest
-IMAGE        = origin-libvirt-machine-controllers
+IMAGE        = origin-aws-machine-controllers
 
 .PHONY: all
 all: generate build images check
