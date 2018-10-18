@@ -14,13 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
 set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-cd $REPO_ROOT && \
-    make vendor && \
-    ./hack/update-bazel.sh && \
-    bazel build //cmd/manager:manager //clusterctl:clusterctl
+cd $REPO_ROOT
+make vendor && ./hack/update-bazel.sh || exit 1
+bazel test --test_output all //pkg/... //cmd/...
+bazel_status=$?
+cp -R $(bazel info bazel-testlogs) ${ARTIFACTS}
+exit $bazel_status
+
+
+

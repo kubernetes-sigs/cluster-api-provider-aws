@@ -35,6 +35,7 @@ go_test(
         "v1alpha1_suite_test.go",
     ],
     embed = [":go_default_library"],
+    tags = ["manual"],
     deps = [
         "//vendor/github.com/onsi/gomega:go_default_library",
         "//vendor/golang.org/x/net/context:go_default_library",

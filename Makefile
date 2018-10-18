@@ -29,14 +29,14 @@ endif
 # Dependency managemnt.
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
-	dep ensure
+	${GOPATH}/bin/dep ensure
 
 check-install:
 	./scripts/check-install.sh
 
 depend-update:
 	dep version || go get -u github.com/golang/dep/cmd/dep
-	dep ensure -update
+	${GOPATH}/bin/dep ensure -update
 
 # Generate code.
 generate: vendor
