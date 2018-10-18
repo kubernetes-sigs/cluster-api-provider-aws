@@ -57,13 +57,16 @@ func homeDir() string {
 
 func MachineInstanceID(name string) (string, error) {
 	c := NewClient()
+
 	m, err := c.ClusterV1alpha1().Machines("default").Get(name, v1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	status, err := providerv1.MachineStatusFromBytes(m.Status.ProviderStatus.Raw)
+
+	status, err := providerv1.MachineStatusFromProviderStatus(m.Status.ProviderStatus)
 	if err != nil {
 		return "", err
 	}
+
 	return *status.InstanceID, nil
 }

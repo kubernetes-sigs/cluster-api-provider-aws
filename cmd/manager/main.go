@@ -20,6 +20,9 @@ import (
 	"flag"
 	"os"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -29,10 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 )
 
 func main() {
@@ -54,6 +53,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	clusterActuator, _ := cluster.NewActuator(cluster.ActuatorParams{
 		ClustersGetter: cs.ClusterV1alpha1(),
 	})
@@ -64,13 +64,17 @@ func main() {
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
 	common.RegisterClusterProvisioner("aws", clusterActuator)
+
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
 		panic(err)
 	}
+
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
 		panic(err)
 	}
+
 	capimachine.AddWithActuator(mgr, machineActuator)
+
 	capicluster.AddWithActuator(mgr, clusterActuator)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {

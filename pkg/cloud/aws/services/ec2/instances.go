@@ -17,14 +17,12 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/golang/glog"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
