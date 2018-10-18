@@ -27,11 +27,11 @@ all: test manager clusterctl clusterawsadm
 # Dependency managemnt.
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
-	dep ensure
+	${GOPATH}/bin/dep ensure
 
 depend-update:
 	dep version || go get -u github.com/golang/dep/cmd/dep
-	dep ensure -update
+	${GOPATH}/bin/dep ensure -update
 
 # Generate code.
 generate: vendor
