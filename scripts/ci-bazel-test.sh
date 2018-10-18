@@ -23,7 +23,7 @@ cd $REPO_ROOT
 make vendor && ./hack/update-bazel.sh || exit 1
 bazel test --test_output all //pkg/... //cmd/...
 bazel_status=$?
-cp -R $(bazel info bazel-testlogs) ${ARTIFACTS}
+python hack/coalesce.py
 exit $bazel_status
 
 
