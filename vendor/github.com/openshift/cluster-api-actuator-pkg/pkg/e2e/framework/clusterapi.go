@@ -1,9 +1,8 @@
 package framework
 
 import (
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/wait"
-
-	"github.com/prometheus/common/log"
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,169 +11,168 @@ import (
 func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorImage, actuatorPrivateKey string) {
 
 	f.By("Deploying cluster API stack components")
-	f.By("Deploying API server API service")
-	certsSecret, apiAPIService, err := manifests.ClusterAPIServerAPIServiceObjects(clusterAPINamespace)
-	f.ErrNotExpected(err)
-	_, err = f.KubeClient.CoreV1().Secrets(certsSecret.Namespace).Create(certsSecret)
+
+	f.By("Deploying cluster CRD manifest")
+	clusterCRDManifest := manifests.ClusterCRDManifest()
+	err := WaitUntilCreated(func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(clusterCRDManifest)
+		return err
+	}, func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(clusterCRDManifest.Name, metav1.GetOptions{})
+		return err
+	})
 	f.ErrNotExpected(err)
 
-	err = wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
-		if _, err := f.KubeClient.CoreV1().Secrets(certsSecret.Namespace).Get(certsSecret.Name, metav1.GetOptions{}); err != nil {
+	f.By("Deploying machine CRD manifest")
+	machineCRDManifest := manifests.MachineCRDManifest()
+	err = WaitUntilCreated(func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(machineCRDManifest)
+		return err
+	}, func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(machineCRDManifest.Name, metav1.GetOptions{})
+		return err
+	})
+	f.ErrNotExpected(err)
+
+	f.By("Deploying machineset CRD manifest")
+	machineSetCRDManifest := manifests.MachineSetCRDManifest()
+	err = WaitUntilCreated(func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(machineSetCRDManifest)
+		return err
+	}, func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(machineSetCRDManifest.Name, metav1.GetOptions{})
+		return err
+	})
+	f.ErrNotExpected(err)
+
+	f.By("Deploying machinedeployment CRD manifest")
+	machineDeploymentCRDManifest := manifests.MachineDeploymentCRDManifest()
+	err = WaitUntilCreated(func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(machineDeploymentCRDManifest)
+		return err
+	}, func() error {
+		_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(machineDeploymentCRDManifest.Name, metav1.GetOptions{})
+		return err
+	})
+	f.ErrNotExpected(err)
+
+	f.By("Deploying cluster role")
+	clusterRoleManifest := manifests.ClusterRoleManifest()
+	_, err = f.KubeClient.RbacV1().ClusterRoles().Create(clusterRoleManifest)
+	f.ErrNotExpected(err)
+
+	clusterRoleBinding := manifests.ClusterRoleBinding(clusterAPINamespace)
+	_, err = f.KubeClient.RbacV1().ClusterRoleBindings().Create(clusterRoleBinding)
+	f.ErrNotExpected(err)
+
+	f.By("Deploying controller manager")
+	managerManifest := manifests.ManagerManifest(clusterAPINamespace, actuatorImage)
+	_, err = f.KubeClient.AppsV1().StatefulSets(managerManifest.Namespace).Create(managerManifest)
+	f.ErrNotExpected(err)
+
+	managerServiceManifest := manifests.ManagerService(clusterAPINamespace)
+	_, err = f.KubeClient.CoreV1().Services(managerServiceManifest.Namespace).Create(managerServiceManifest)
+	f.ErrNotExpected(err)
+
+	f.By("Deploying machine controller")
+	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, "")
+	_, err = f.KubeClient.AppsV1().Deployments(deploymentManifest.Namespace).Create(deploymentManifest)
+	f.ErrNotExpected(err)
+
+	f.By("Waiting until cluster objects can be listed")
+	err = wait.Poll(PollInterval, PoolClusterAPIDeploymentTimeout, func() (bool, error) {
+		// Any namespace will do just to that one can list cluster objects
+		_, err := f.CAPIClient.ClusterV1alpha1().Clusters("default").List(metav1.ListOptions{})
+		if err != nil {
+			glog.V(2).Infof("unable to list clusters: %v", err)
 			return false, nil
 		}
+
 		return true, nil
 	})
-	f.ErrNotExpected(err)
-
-	f.By("Deploying API service")
-	_, err = f.APIRegistrationClient.Apiregistration().APIServices().Create(apiAPIService)
-	f.ErrNotExpected(err)
-
-	apiService := manifests.ClusterAPIService(clusterAPINamespace)
-	_, err = f.KubeClient.CoreV1().Services(apiService.Namespace).Create(apiService)
-	f.ErrNotExpected(err)
-
-	f.By("Deploying apiserver")
-	clusterAPIDeployment := manifests.ClusterAPIDeployment(clusterAPINamespace)
-	_, err = f.KubeClient.AppsV1beta2().Deployments(clusterAPIDeployment.Namespace).Create(clusterAPIDeployment)
-	f.ErrNotExpected(err)
-
-	f.By("Deploying controllers ")
-	clusterAPIControllersDeployment := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, actuatorPrivateKey)
-	_, err = f.KubeClient.AppsV1beta2().Deployments(clusterAPIDeployment.Namespace).Create(clusterAPIControllersDeployment)
-	f.ErrNotExpected(err)
-
-	f.By("Deploying role binding")
-	clusterAPIRoleBinding := manifests.ClusterAPIRoleBinding(clusterAPINamespace)
-	_, err = f.KubeClient.RbacV1().RoleBindings(clusterAPIRoleBinding.Namespace).Create(clusterAPIRoleBinding)
-	f.ErrNotExpected(err)
-
-	f.By("Deploying etcd cluster")
-	clusterAPIEtcdCluster := manifests.ClusterAPIEtcdCluster(clusterAPINamespace)
-	_, err = f.KubeClient.AppsV1beta2().StatefulSets(clusterAPIEtcdCluster.Namespace).Create(clusterAPIEtcdCluster)
-	f.ErrNotExpected(err)
-
-	f.By("Deploying etcd service")
-	etcdService := manifests.ClusterAPIEtcdService(clusterAPINamespace)
-	_, err = f.KubeClient.CoreV1().Services(etcdService.Namespace).Create(etcdService)
-	f.ErrNotExpected(err)
-
-	f.By("Waiting for cluster API stack to come up")
-	err = wait.Poll(PollInterval, PoolClusterAPIDeploymentTimeout, func() (bool, error) {
-		if deployment, err := f.KubeClient.AppsV1beta2().Deployments(clusterAPIDeployment.Namespace).Get(clusterAPIDeployment.Name, metav1.GetOptions{}); err == nil {
-			// Check all the pods are running
-			log.Infof("Waiting for all cluster-api deployment pods to be ready, have %v, expecting 1", deployment.Status.ReadyReplicas)
-			if deployment.Status.ReadyReplicas < 1 {
-				return false, nil
-			}
-			return true, nil
-		}
-
-		return false, nil
-	})
-	f.ErrNotExpected(err)
 
 	f.By("Cluster API stack deployed")
 }
 
 func (f *Framework) DestroyClusterAPIStack(clusterAPINamespace, actuatorImage, actuatorPrivateKey string) {
-	var orphanDeletepolicy metav1.DeletionPropagation = "Orphan"
-	var zero int64 = 0
 
-	f.By("Deleting etcd service")
-	etcdService := manifests.ClusterAPIEtcdService(clusterAPINamespace)
+	f.By("Deleting machine manager")
+	managerServiceManifest := manifests.ManagerService(clusterAPINamespace)
 	err := WaitUntilDeleted(func() error {
-		return f.KubeClient.CoreV1().Services(etcdService.Namespace).Delete(etcdService.Name, &metav1.DeleteOptions{})
+		return f.KubeClient.CoreV1().Services(managerServiceManifest.Namespace).Delete(managerServiceManifest.Name, &metav1.DeleteOptions{})
 	}, func() error {
-		_, err := f.KubeClient.CoreV1().Services(etcdService.Namespace).Get(etcdService.Name, metav1.GetOptions{})
+		_, err := f.KubeClient.CoreV1().Services(managerServiceManifest.Namespace).Get(managerServiceManifest.Name, metav1.GetOptions{})
 		return err
 	})
 	f.ErrNotExpected(err)
 
-	f.By("Scaling down etcd cluster")
-	clusterAPIEtcdCluster := manifests.ClusterAPIEtcdCluster(clusterAPINamespace)
-	f.ScaleSatefulSetDownToZero(clusterAPIEtcdCluster)
-	f.ErrNotExpected(err)
-
-	f.By("Deleting etcd cluster")
-	WaitUntilDeleted(func() error {
-		return f.KubeClient.AppsV1beta2().StatefulSets(clusterAPIEtcdCluster.Namespace).Delete(clusterAPIEtcdCluster.Name, &metav1.DeleteOptions{PropagationPolicy: &orphanDeletepolicy, GracePeriodSeconds: &zero})
-	}, func() error {
-		_, err := f.KubeClient.AppsV1beta2().StatefulSets(clusterAPIEtcdCluster.Namespace).Get(clusterAPIEtcdCluster.Name, metav1.GetOptions{})
-		return err
-	})
-	// Ignore the error, the deployment has 0 replicas.
-	// No longer affecting future deployments since it lives in a different namespace.
-
-	f.By("Deleting role binding")
-	clusterAPIRoleBinding := manifests.ClusterAPIRoleBinding(clusterAPINamespace)
+	managerManifest := manifests.ManagerManifest(clusterAPINamespace, actuatorImage)
 	err = WaitUntilDeleted(func() error {
-		return f.KubeClient.RbacV1().RoleBindings(clusterAPIRoleBinding.Namespace).Delete(clusterAPIRoleBinding.Name, &metav1.DeleteOptions{})
+		return f.KubeClient.AppsV1().StatefulSets(managerManifest.Namespace).Delete(managerManifest.Name, &metav1.DeleteOptions{})
 	}, func() error {
-		_, err := f.KubeClient.RbacV1().RoleBindings(clusterAPIRoleBinding.Namespace).Get(clusterAPIRoleBinding.Name, metav1.GetOptions{})
+		_, err := f.KubeClient.AppsV1().StatefulSets(managerManifest.Namespace).Get(managerManifest.Name, metav1.GetOptions{})
 		return err
 	})
 	f.ErrNotExpected(err)
 
-	clusterAPIControllersDeployment := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, actuatorPrivateKey)
-	f.By("Scaling down controllers deployment")
-	err = f.ScaleDeploymentDownToZero(clusterAPIControllersDeployment)
-	f.ErrNotExpected(err)
-
-	f.By("Deleting controllers deployment")
-	WaitUntilDeleted(func() error {
-		return f.KubeClient.AppsV1beta2().Deployments(clusterAPIControllersDeployment.Namespace).Delete(clusterAPIControllersDeployment.Name, &metav1.DeleteOptions{PropagationPolicy: &orphanDeletepolicy, GracePeriodSeconds: &zero})
-	}, func() error {
-		_, err := f.KubeClient.AppsV1beta2().Deployments(clusterAPIControllersDeployment.Namespace).Get(clusterAPIControllersDeployment.Name, metav1.GetOptions{})
-		return err
-	})
-	// Ignore the error, the deployment has 0 replicas.
-	// No longer affecting future deployments since it lives in a different namespace.
-
-	clusterAPIDeployment := manifests.ClusterAPIDeployment(clusterAPINamespace)
-	f.By("Scaling down apiserver deployment")
-	err = f.ScaleDeploymentDownToZero(clusterAPIDeployment)
-	f.ErrNotExpected(err)
-
-	f.By("Deleting apiserver deployment")
-	WaitUntilDeleted(func() error {
-		return f.KubeClient.AppsV1beta2().Deployments(clusterAPIDeployment.Namespace).Delete(clusterAPIDeployment.Name, &metav1.DeleteOptions{PropagationPolicy: &orphanDeletepolicy, GracePeriodSeconds: &zero})
-	}, func() error {
-		_, err := f.KubeClient.AppsV1beta2().Deployments(clusterAPIDeployment.Namespace).Get(clusterAPIDeployment.Name, metav1.GetOptions{})
-		return err
-	})
-	// Ignore the error, the deployment has 0 replicas.
-	// No longer affecting future deployments since it lives in a different namespace.
-
-	f.By("Deleting cluster api service")
-	apiService := manifests.ClusterAPIService(clusterAPINamespace)
+	f.By("Deleting cluster role")
+	clusterRoleBinding := manifests.ClusterRoleBinding(clusterAPINamespace)
 	err = WaitUntilDeleted(func() error {
-		return f.KubeClient.CoreV1().Services(apiService.Namespace).Delete(apiService.Name, &metav1.DeleteOptions{})
+		return f.KubeClient.RbacV1().ClusterRoleBindings().Delete(clusterRoleBinding.Name, &metav1.DeleteOptions{})
 	}, func() error {
-		_, err := f.KubeClient.CoreV1().Services(apiService.Namespace).Get(apiService.Name, metav1.GetOptions{})
+		_, err := f.KubeClient.RbacV1().ClusterRoleBindings().Get(clusterRoleBinding.Name, metav1.GetOptions{})
 		return err
 	})
 	f.ErrNotExpected(err)
 
-	// Even though the certs are different, only the secret name(space) and apiservice name(space) are actually used
-	certsSecret, apiAPIService, err := manifests.ClusterAPIServerAPIServiceObjects(clusterAPINamespace)
-	f.ErrNotExpected(err)
-
-	f.By("Deleting cluster api api service")
+	clusterRoleManifest := manifests.ClusterRoleManifest()
 	err = WaitUntilDeleted(func() error {
-		return f.APIRegistrationClient.Apiregistration().APIServices().Delete(apiAPIService.Name, &metav1.DeleteOptions{})
+		return f.KubeClient.RbacV1().ClusterRoles().Delete(clusterRoleManifest.Name, &metav1.DeleteOptions{})
 	}, func() error {
-		_, err := f.APIRegistrationClient.Apiregistration().APIServices().Get(apiAPIService.Name, metav1.GetOptions{})
+		_, err := f.KubeClient.RbacV1().ClusterRoles().Get(clusterRoleManifest.Name, metav1.GetOptions{})
 		return err
 	})
 	f.ErrNotExpected(err)
 
-	f.By("Deleting api server certs")
-	err = WaitUntilDeleted(func() error {
-		return f.KubeClient.CoreV1().Secrets(certsSecret.Namespace).Delete(certsSecret.Name, &metav1.DeleteOptions{})
-	}, func() error {
-		_, err := f.KubeClient.CoreV1().Secrets(certsSecret.Namespace).Get(certsSecret.Name, metav1.GetOptions{})
-		return err
-	})
-	f.ErrNotExpected(err)
+	// Do not delete the CRDs as they are always in the default namespace.
+	// Deleting and creating the same object in a row puts the object into terminating state for a long time at some point.
+	// f.By("Deleting machinedeployment CRD manifest")
+	// machineDeploymentCRDManifest := manifests.MachineDeploymentCRDManifest()
+	// err = WaitUntilDeleted(func() error {
+	// 	return f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(machineDeploymentCRDManifest.Name, &metav1.DeleteOptions{})
+	// }, func() error {
+	// 	_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(machineDeploymentCRDManifest.Name, metav1.GetOptions{})
+	// 	return err
+	// })
+	// f.ErrNotExpected(err)
+	//
+	// f.By("Deleting machineset CRD manifest")
+	// machineSetCRDManifest := manifests.MachineSetCRDManifest()
+	// err = WaitUntilDeleted(func() error {
+	// 	return f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(machineSetCRDManifest.Name, &metav1.DeleteOptions{})
+	// }, func() error {
+	// 	_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(machineSetCRDManifest.Name, metav1.GetOptions{})
+	// 	return err
+	// })
+	// f.ErrNotExpected(err)
+	//
+	// f.By("Deleting machine CRD manifest")
+	// machineCRDManifest := manifests.MachineCRDManifest()
+	// err = WaitUntilDeleted(func() error {
+	// 	return f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(machineCRDManifest.Name, &metav1.DeleteOptions{})
+	// }, func() error {
+	// 	_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(machineCRDManifest.Name, metav1.GetOptions{})
+	// 	return err
+	// })
+	// f.ErrNotExpected(err)
+	//
+	// f.By("Deleting cluster CRD manifest")
+	// clusterCRDManifest := manifests.ClusterCRDManifest()
+	// err = WaitUntilDeleted(func() error {
+	// 	return f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Delete(clusterCRDManifest.Name, &metav1.DeleteOptions{})
+	// }, func() error {
+	// 	_, err := f.APIExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(clusterCRDManifest.Name, metav1.GetOptions{})
+	// 	return err
+	// })
+	// f.ErrNotExpected(err)
 }

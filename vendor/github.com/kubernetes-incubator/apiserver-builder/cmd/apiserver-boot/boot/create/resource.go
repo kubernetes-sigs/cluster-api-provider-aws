@@ -21,6 +21,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/util"
@@ -35,16 +36,18 @@ var nonNamespacedKind bool
 var createResourceCmd = &cobra.Command{
 	Use:   "resource",
 	Short: "Creates an API group, version and resource",
-	Long:  `Creates an API group, version and resource.  Will not recreate group or resource if they already exist.  Creates file pkg/apis/<group>/<version>/<kind>_types.go`,
+	Long:  `Creates an API group, version and resource.  Will not recreate group or resource if they already exist.`,
 	Example: `# Create new resource "Bee" in the "insect" group with version "v1beta"
 # Will automatically the group and version if they do not exist
-apiserver-boot create group version resource --group insect --version v1beta --kind Bee`,
+apiserver-boot create group version kind --group insect --version v1beta --kind Bee`,
 	Run: RunCreateResource,
 }
 
 func AddCreateResource(cmd *cobra.Command) {
-	RegisterResourceFlags(createResourceCmd)
-
+	createResourceCmd.Flags().StringVar(&groupName, "group", "", "name of the API group to create")
+	createResourceCmd.Flags().StringVar(&versionName, "version", "", "name of the API version to create")
+	createResourceCmd.Flags().StringVar(&kindName, "kind", "", "name of the API kind to create")
+	createResourceCmd.Flags().StringVar(&resourceName, "resource", "", "optional name of the API resource to create, normally the plural name of the kind in lowercase")
 	createResourceCmd.Flags().BoolVar(&nonNamespacedKind, "non-namespaced", false, "if set, the API kind will be non namespaced")
 
 	cmd.AddCommand(createResourceCmd)
@@ -56,7 +59,31 @@ func RunCreateResource(cmd *cobra.Command, args []string) {
 	}
 
 	util.GetDomain()
-	ValidateResourceFlags()
+	if len(groupName) == 0 {
+		log.Fatalf("Must specify --group")
+	}
+	if len(versionName) == 0 {
+		log.Fatalf("Must specify --version")
+	}
+	if len(kindName) == 0 {
+		log.Fatal("Must specify --kind")
+	}
+	if len(resourceName) == 0 {
+		resourceName = inflect.NewDefaultRuleset().Pluralize(strings.ToLower(kindName))
+	}
+
+	if strings.ToLower(groupName) != groupName {
+		log.Fatalf("--group must be lowercase was (%s)", groupName)
+	}
+	versionMatch := regexp.MustCompile("^v\\d+(alpha\\d+|beta\\d+)*$")
+	if !versionMatch.MatchString(versionName) {
+		log.Fatalf(
+			"--version has bad format. must match ^v\\d+(alpha\\d+|beta\\d+)*$.  "+
+				"e.g. v1alpha1,v1beta1,v1 was(%s)", versionName)
+	}
+	if string(kindName[0]) != strings.ToUpper(string(kindName[0])) {
+		log.Fatalf("--kind must start with uppercase letter was (%s)", kindName)
+	}
 
 	cr := util.GetCopyright(copyright)
 
@@ -94,26 +121,6 @@ func createResource(boilerplate string) {
 		if !found {
 			log.Printf("API group version kind %s/%s/%s already exists.",
 				groupName, versionName, kindName)
-			found = true
-		}
-	}
-
-	os.MkdirAll(filepath.Join("docs", "examples"), 0700)
-	docpath := filepath.Join("docs", "examples", strings.ToLower(kindName), fmt.Sprintf("%s.yaml", strings.ToLower(kindName)))
-	created = util.WriteIfNotFound(docpath, "example-template", exampleTemplate, a)
-	if !created {
-		if !found {
-			log.Printf("Example %s already exists.", docpath)
-			found = true
-		}
-	}
-
-	os.MkdirAll("sample", 0700)
-	samplepath := filepath.Join("sample", fmt.Sprintf("%s.yaml", strings.ToLower(kindName)))
-	created = util.WriteIfNotFound(samplepath, "sample-template", sampleTemplate, a)
-	if !created {
-		if !found {
-			log.Printf("Sample %s already exists.", docpath)
 			found = true
 		}
 	}
@@ -157,9 +164,6 @@ func createResource(boilerplate string) {
 		}
 	}
 
-	path = filepath.Join(dir, "pkg", "controller", "sharedinformers", "informers.go")
-	created = util.WriteIfNotFound(path, "sharedinformer-template", sharedInformersTemplate, a)
-
 	if found {
 		os.Exit(-1)
 	}
@@ -194,11 +198,9 @@ import (
 	"{{ .Repo }}/pkg/apis/{{.Group}}"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient=true
 {{- if .NonNamespacedKind }}
-// +genclient:nonNamespaced
-{{- end }}
+// +nonNamespaced=true{{ end }}
 
 // {{.Kind}}
 // +k8s:openapi-gen=true
@@ -315,7 +317,7 @@ var _ = Describe("{{.Kind}}", func() {
 	Describe("when sending a storage request", func() {
 		Context("for a valid config", func() {
 			It("should provide CRUD access to the object", func() {
-				client = cs.{{ title .Group}}{{title .Version}}().{{plural .Kind}}({{ if not .NonNamespacedKind }}"{{lower .Kind}}-test-valid"{{ end }})
+				client = cs.{{ title .Group}}{{title .Version}}Client.{{plural .Kind}}({{ if not .NonNamespacedKind }}"{{lower .Kind}}-test-valid"{{ end }})
 
 				By("returning success from the create request")
 				actual, err := client.Create(&instance)
@@ -347,28 +349,6 @@ var _ = Describe("{{.Kind}}", func() {
 })
 `
 
-var sharedInformersTemplate = `
-{{.BoilerPlate}}
-
-package sharedinformers
-
-// SetupKubernetesTypes registers the config for watching Kubernetes types
-func (si *SharedInformers) SetupKubernetesTypes() bool {
-    // Set this to true to initial the ClientSet and InformerFactory for
-    // Kubernetes APIs (e.g. Deployment)
-	return false
-}
-
-// StartAdditionalInformers starts watching Deployments
-func (si *SharedInformers) StartAdditionalInformers(shutdown <-chan struct{}) {
-    // Start specific Kubernetes API informers here.  Note, it is only necessary
-    // to start 1 informer for each Kind. (e.g. only 1 Deployment informer)
-
-    // Uncomment this to start listening for Deployment Create / Update / Deletes
-    // go si.KubernetesFactory.Apps().V1beta1().Deployments().Informer().Run(shutdown)
-}
-`
-
 var resourceControllerTemplate = `
 {{.BoilerPlate}}
 
@@ -377,7 +357,10 @@ package {{ lower .Kind }}
 import (
 	"log"
 
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
+	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 
 	"{{.Repo}}/pkg/apis/{{.Group}}/{{.Version}}"
 	"{{.Repo}}/pkg/controller/sharedinformers"
@@ -386,17 +369,30 @@ import (
 
 // +controller:group={{ .Group }},version={{ .Version }},kind={{ .Kind}},resource={{ .Resource }}
 type {{.Kind}}ControllerImpl struct {
-	builders.DefaultControllerFns
+	// informer listens for events about {{.Kind}}
+	informer cache.SharedIndexInformer
 
 	// lister indexes properties about {{.Kind}}
 	lister listers.{{.Kind}}Lister
 }
 
 // Init initializes the controller and is called by the generated code
-// Register watches for additional resource types here.
-func (c *{{.Kind}}ControllerImpl) Init(arguments sharedinformers.ControllerInitArguments) {
-	// Use the lister for indexing {{.Resource}} labels
-	c.lister = arguments.GetSharedInformers().Factory.{{title .Group}}().{{title .Version}}().{{plural .Kind}}().Lister()
+// Registers eventhandlers to enqueue events
+// config - client configuration for talking to the apiserver
+// si - informer factory shared across all controllers for listening to events and indexing resource properties
+// queue - message queue for handling new events.  unique to this controller.
+func (c *{{.Kind}}ControllerImpl) Init(
+	config *rest.Config,
+	si *sharedinformers.SharedInformers,
+	queue workqueue.RateLimitingInterface) {
+
+	// Set the informer and lister for subscribing to events and indexing {{.Resource}} labels
+	i := si.Factory.{{title .Group}}().{{title .Version}}().{{plural .Kind}}()
+	c.informer = i.Informer()
+	c.lister = i.Lister()
+
+	// Add an event handler to enqueue a message for {{.Resource}} adds / updates
+	c.informer.AddEventHandler(&controller.QueueingEventHandler{queue})
 }
 
 // Reconcile handles enqueued messages
@@ -407,7 +403,7 @@ func (c *{{.Kind}}ControllerImpl) Reconcile(u *{{.Version}}.{{.Kind}}) error {
 }
 
 func (c *{{.Kind}}ControllerImpl) Get(namespace, name string) (*{{.Version}}.{{.Kind}}, error) {
-	return c.lister.{{ if not .NonNamespacedKind }}{{plural .Kind}}(namespace).{{ end }}Get(name)
+	return c.lister.{{ if not .NonNamespacedKind }}{{ title .Resource }}(namespace).{{ end }}Get(name)
 }
 `
 
@@ -495,7 +491,7 @@ var _ = Describe("{{ .Kind }} controller", func() {
 
 	Describe("when creating a new object", func() {
 		It("invoke the reconcile method", func() {
-			client = cs.{{title .Group}}{{title .Version}}().{{ plural .Kind }}({{ if not .NonNamespacedKind }}"{{lower .Kind }}-controller-test-handler"{{ end }})
+			client = cs.{{title .Group}}{{title .Version}}Client.{{ plural .Kind }}({{ if not .NonNamespacedKind }}"{{lower .Kind }}-controller-test-handler"{{ end }})
 			before = make(chan struct{})
 			after = make(chan struct{})
 
@@ -536,20 +532,4 @@ var _ = Describe("{{ .Kind }} controller", func() {
 		})
 	})
 })
-`
-
-var exampleTemplate = `note: {{ .Kind }} Example
-sample: |
-  apiVersion: {{ .Group }}.{{ .Domain }}/{{ .Version }}
-  kind: {{ .Kind }}
-  metadata:
-    name: {{ lower .Kind }}-example
-  spec:
-`
-
-var sampleTemplate = `apiVersion: {{ .Group }}.{{ .Domain }}/{{ .Version }}
-kind: {{ .Kind }}
-metadata:
-  name: {{ lower .Kind }}-example
-spec:
 `

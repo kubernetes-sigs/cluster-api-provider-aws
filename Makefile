@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DBG ?= 0
+
+ifeq ($(DBG),1)
+GOGCFLAGS ?= -gcflags=all="-N -l"
+endif
+
 VERSION     ?= $(shell git describe --always --abbrev=7)
 MUTABLE_TAG ?= latest
-IMAGE        = origin-libvirt-machine-controllers
+IMAGE        = origin-aws-machine-controllers
 
 .PHONY: all
 all: generate build images check
@@ -40,6 +46,7 @@ vendor:
 	dep ensure -v -update
 	patch -p1 < 0001-Delete-annotated-machines-first-when-scaling-down.patch
 	patch -p1 < 0002-Sort-machines-before-syncing.patch
+	patch -p1 < 0001-use-Update-instead-of-Status.Update-as-CustomResourc.patch
 
 .PHONY: generate
 generate: gendeepcopy generate-mocks
@@ -64,12 +71,11 @@ bin:
 	@mkdir $@
 
 .PHONY: build
-build: | bin ## build binary
-	$(DOCKER_CMD) go install -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/cluster-controller
-	$(DOCKER_CMD) go install -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
+build: ## build binary
+	$(DOCKER_CMD) go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/manager
 
 aws-actuator:
-	$(DOCKER_CMD) go build -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
 
 .PHONY: images
 images: ## Create images
@@ -98,7 +104,7 @@ test-e2e: ## Run e2e test
 
 .PHONY: lint
 lint: ## Go lint your code
-	hack/go-lint.sh -min_confidence 0.3 $$(go list -f '{{ .ImportPath }}' ./... | grep -v 'sigs.k8s.io/cluster-api-provider-aws/test')
+	hack/go-lint.sh -min_confidence 0.3 $$(go list -f '{{ .ImportPath }}' ./... | grep -v -e 'sigs.k8s.io/cluster-api-provider-aws/test' -e 'sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock')
 
 .PHONY: fmt
 fmt: ## Go fmt your code

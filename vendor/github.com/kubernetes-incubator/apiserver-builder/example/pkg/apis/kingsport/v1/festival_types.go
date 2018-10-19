@@ -1,3 +1,4 @@
+
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -14,6 +15,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+
+
 package v1
 
 import (
@@ -28,9 +31,8 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/example/pkg/apis/kingsport"
 )
 
-// +genclient
-// +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient=true
+// +nonNamespaced=true
 
 // Festival
 // +k8s:openapi-gen=true
@@ -62,12 +64,6 @@ func (FestivalStrategy) Validate(ctx request.Context, obj runtime.Object) field.
 	o := obj.(*kingsport.Festival)
 	log.Printf("Validating fields for Festival %s\n", o.Name)
 	errors := field.ErrorList{}
-
-	if o.Spec.Year < 0 {
-		errors = append(errors,
-			field.Invalid(field.NewPath("spec", "year"), o.Spec.Year, "year must be > 0"))
-	}
-
 	// perform validation here and add to errors using field.Invalid
 	return errors
 }

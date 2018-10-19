@@ -31,8 +31,6 @@ var GenerateForBuild bool = true
 var goos string = "linux"
 var goarch string = "amd64"
 var outputdir string = "bin"
-var Bazel bool
-var Gazelle bool
 
 var createBuildExecutablesCmd = &cobra.Command{
 	Use:   "executables",
@@ -43,104 +41,24 @@ var createBuildExecutablesCmd = &cobra.Command{
 apiserver-boot build executables
 
 # Build binaries into the linux/ directory using the cross compiler for linux:amd64
-apiserver-boot build executables --goos linux --goarch amd64 --output linux/
-
-# Regenerate Bazel BUILD files, and then build with bazel
-# Must first install bazel and gazelle !!!
-apiserver-boot build executables --bazel --gazelle
-
-# Run Bazel without generating BUILD files
-apiserver-boot build executables --bazel
-
-# Run Bazel without generating BUILD files or generated code
-apiserver-boot build executables --bazel --generate=false
-`,
+apiserver-boot build --goos linux --goarch amd64 --output linux/`,
 	Run: RunBuildExecutables,
 }
 
 func AddBuildExecutables(cmd *cobra.Command) {
 	cmd.AddCommand(createBuildExecutablesCmd)
 
-	createBuildExecutablesCmd.Flags().BoolVar(&GenUnversionedClient, "gen-unversioned-client", true, "If true, generate unversioned clients.")
-	createBuildExecutablesCmd.Flags().StringVar(&vendorDir, "vendor-dir", "", "Location of directory containing vendor files.")
 	createBuildExecutablesCmd.Flags().BoolVar(&GenerateForBuild, "generate", true, "if true, generate code before building")
 	createBuildExecutablesCmd.Flags().StringVar(&goos, "goos", "", "if specified, set this GOOS")
 	createBuildExecutablesCmd.Flags().StringVar(&goarch, "goarch", "", "if specified, set this GOARCH")
 	createBuildExecutablesCmd.Flags().StringVar(&outputdir, "output", "bin", "if set, write the binaries to this directory")
-	createBuildExecutablesCmd.Flags().BoolVar(&Bazel, "bazel", false, "if true, use bazel to build.  May require updating build rules with gazelle.")
-	createBuildExecutablesCmd.Flags().BoolVar(&Gazelle, "gazelle", false, "if true, run gazelle before running bazel.")
 }
 
 func RunBuildExecutables(cmd *cobra.Command, args []string) {
-	if Bazel {
-		BazelBuild(cmd, args)
-	} else {
-		GoBuild(cmd, args)
-	}
-}
-
-func BazelBuild(cmd *cobra.Command, args []string) {
 	if GenerateForBuild {
 		log.Printf("regenerating generated code.  To disable regeneration, run with --generate=false.")
 		RunGenerate(cmd, args)
 	}
-
-	if Gazelle {
-		c := exec.Command("bazel", "run", "//:gazelle")
-		fmt.Printf("%s\n", strings.Join(c.Args, " "))
-		c.Stderr = os.Stderr
-		c.Stdout = os.Stdout
-		err := c.Run()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	c := exec.Command("bazel", "build",
-		filepath.Join("cmd", "apiserver"),
-		filepath.Join("cmd", "controller-manager"))
-	fmt.Printf("%s\n", strings.Join(c.Args, " "))
-	c.Stderr = os.Stderr
-	c.Stdout = os.Stdout
-	err := c.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	os.RemoveAll(filepath.Join("bin", "apiserver"))
-	os.RemoveAll(filepath.Join("bin", "controller-manager"))
-
-	c = exec.Command("cp",
-		filepath.Join("bazel-bin", "cmd", "apiserver", "apiserver"),
-		filepath.Join("bin", "apiserver"))
-	fmt.Printf("%s\n", strings.Join(c.Args, " "))
-	c.Stderr = os.Stderr
-	c.Stdout = os.Stdout
-	err = c.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c = exec.Command("cp",
-		filepath.Join("bazel-bin", "cmd", "controller-manager", "controller-manager"),
-		filepath.Join("bin", "controller-manager"))
-	fmt.Printf("%s\n", strings.Join(c.Args, " "))
-	c.Stderr = os.Stderr
-	c.Stdout = os.Stdout
-	err = c.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func GoBuild(cmd *cobra.Command, args []string) {
-	if GenerateForBuild {
-		log.Printf("regenerating generated code.  To disable regeneration, run with --generate=false.")
-		RunGenerate(cmd, args)
-	}
-
-	os.RemoveAll(filepath.Join("bin", "apiserver"))
-	os.RemoveAll(filepath.Join("bin", "controller-manager"))
 
 	// Build the apiserver
 	path := filepath.Join("cmd", "apiserver", "main.go")

@@ -42,12 +42,7 @@ apiserver-boot run local
 kubectl --kubeconfig kubeconfig api-versions
 
 # Run locally without rebuilding
-apiserver-boot run local --build=false
-
-# Create an instance and fetch it
-nano -w samples/<type>.yaml
-kubectl --kubeconfig kubeconfig apply -f samples/<type>.yaml
-kubectl --kubeconfig kubeconfig get <type>`,
+apiserver-boot run local --build=false`,
 	Run: RunLocal,
 }
 
@@ -60,14 +55,8 @@ var buildBin bool
 
 var server string
 var controllermanager string
-var toRun []string
-var disableDelegatedAuth bool
-var securePort int32
 
 func AddLocal(cmd *cobra.Command) {
-	localCmd.Flags().StringSliceVar(&toRun, "run", []string{"etcd", "apiserver", "controller-manager"}, "path to apiserver binary to run")
-	localCmd.Flags().BoolVar(&disableDelegatedAuth, "disable-delegated-auth", true, "If true, disable delegated auth in the apiserver with --delegated-auth=false.")
-
 	localCmd.Flags().StringVar(&server, "apiserver", "", "path to apiserver binary to run")
 	localCmd.Flags().StringVar(&controllermanager, "controller-manager", "", "path to controller-manager binary to run")
 	localCmd.Flags().StringVar(&etcd, "etcd", "", "if non-empty, use this etcd instead of starting a new one")
@@ -79,48 +68,32 @@ func AddLocal(cmd *cobra.Command) {
 	localCmd.Flags().BoolVar(&printetcd, "printetcd", false, "if true, pipe the etcd stdout and stderr")
 	localCmd.Flags().BoolVar(&buildBin, "build", true, "if true, build the binaries before running")
 
-	localCmd.Flags().Int32Var(&securePort, "secure-port", 9443, "Secure port from apiserver to serve requests")
-
-	localCmd.Flags().BoolVar(&bazel, "bazel", false, "if true, use bazel to build.  May require updating build rules with gazelle.")
-	localCmd.Flags().BoolVar(&gazelle, "gazelle", false, "if true, run gazelle before running bazel.")
-	localCmd.Flags().BoolVar(&generate, "generate", true, "if true, generate code before building")
-
 	cmd.AddCommand(localCmd)
 }
 
 func RunLocal(cmd *cobra.Command, args []string) {
 	if buildBin {
-		build.Bazel = bazel
-		build.Gazelle = gazelle
-		build.GenerateForBuild = generate
 		build.RunBuildExecutables(cmd, args)
 	}
 
 	WriteKubeConfig()
 
-	r := map[string]interface{}{}
-	for _, s := range toRun {
-		r[s] = nil
-	}
-
 	// Start etcd
-	if _, f := r["etcd"]; f {
+	if len(etcd) == 0 {
 		etcd = "http://localhost:2379"
 		etcdCmd := RunEtcd()
 		defer etcdCmd.Process.Kill()
-		time.Sleep(time.Second * 2)
 	}
+
+	time.Sleep(time.Second * 2)
 
 	// Start apiserver
-	if _, f := r["apiserver"]; f {
-		go RunApiserver()
-		time.Sleep(time.Second * 2)
-	}
+	go RunApiserver()
+
+	time.Sleep(time.Second * 2)
 
 	// Start controller manager
-	if _, f := r["controller-manager"]; f {
-		go RunControllerManager()
-	}
+	go RunControllerManager()
 
 	fmt.Printf("to test the server run `kubectl --kubeconfig %s api-versions`\n", config)
 	select {} // wait forever
@@ -136,7 +109,6 @@ func RunEtcd() *exec.Cmd {
 	fmt.Printf("%s\n", strings.Join(etcdCmd.Args, " "))
 	go func() {
 		err := etcdCmd.Run()
-		defer etcdCmd.Process.Kill()
 		if err != nil {
 			log.Fatalf("Failed to run etcd %v", err)
 			os.Exit(-1)
@@ -150,17 +122,11 @@ func RunApiserver() *exec.Cmd {
 		server = "bin/apiserver"
 	}
 
-	flags := []string{
-		fmt.Sprintf("--etcd-servers=%s", etcd),
-		fmt.Sprintf("--secure-port=%v", securePort),
-	}
-
-	if disableDelegatedAuth {
-		flags = append(flags, "--delegated-auth=false")
-	}
-
 	apiserverCmd := exec.Command(server,
-		flags...,
+		"--delegated-auth=false",
+		fmt.Sprintf("--etcd-servers=%s", etcd),
+		"--secure-port=9443",
+		"--print-bearer-token",
 	)
 	fmt.Printf("%s\n", strings.Join(apiserverCmd.Args, " "))
 	if printapiserver {
@@ -170,7 +136,6 @@ func RunApiserver() *exec.Cmd {
 
 	err := apiserverCmd.Run()
 	if err != nil {
-		defer apiserverCmd.Process.Kill()
 		log.Fatalf("Failed to run apiserver %v", err)
 		os.Exit(-1)
 	}
@@ -193,7 +158,6 @@ func RunControllerManager() *exec.Cmd {
 
 	err := controllerManagerCmd.Run()
 	if err != nil {
-		defer controllerManagerCmd.Process.Kill()
 		log.Fatalf("Failed to run controller-manager %v", err)
 		os.Exit(-1)
 	}
@@ -209,20 +173,15 @@ func WriteKubeConfig() {
 		os.Exit(-1)
 	}
 	path := filepath.Join(dir, "apiserver.local.config", "certificates", "apiserver")
-	util.WriteIfNotFound(config, "kubeconfig-template", configTemplate, ConfigArgs{Path: path, Port: fmt.Sprintf("%v", securePort)})
-}
-
-type ConfigArgs struct {
-	Path string
-	Port string
+	util.WriteIfNotFound(config, "kubeconfig-template", configTemplate, path)
 }
 
 var configTemplate = `
 apiVersion: v1
 clusters:
 - cluster:
-    certificate-authority: {{ .Path }}.crt
-    server: https://localhost:{{ .Port }}
+    certificate-authority: {{ . }}.crt
+    server: https://localhost:9443
   name: apiserver
 contexts:
 - context:
@@ -235,6 +194,6 @@ preferences: {}
 users:
 - name: apiserver
   user:
-    client-certificate: {{ .Path }}.crt
-    client-key: {{ .Path }}.key
+    client-certificate: {{ . }}.crt
+    client-key: {{ . }}.key
 `

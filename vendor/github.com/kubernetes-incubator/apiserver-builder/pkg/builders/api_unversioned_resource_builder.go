@@ -24,18 +24,17 @@ import (
 // name - name of the resource - e.g. "deployments"
 // new - function for creating new empty UNVERSIONED instances - e.g. func() runtime.Object { return &Deployment{} }
 // newList - function for creating an empty list of UNVERSIONED instances - e.g. func() runtime.Object { return &DeploymentList{} }
-func NewInternalResource(name, kind string, new, newList func() runtime.Object) UnversionedResourceBuilder {
-	return NewBuilder(name, kind, "", new, newList, true)
+func NewInternalResource(name string, new, newList func() runtime.Object) UnversionedResourceBuilder {
+	return NewBuilder(name, "", new, newList, true)
 }
 
 // NewInternalResourceStatus returns a new strategy for the status subresource of an object
 // name - name of the resource - e.g. "deployments"
 // new - function for creating new empty UNVERSIONED instances - e.g. func() runtime.Object { return &Deployment{} }
 // newList - function for creating an empty list of UNVERSIONED instances - e.g. func() runtime.Object { return &DeploymentList{} }
-func NewInternalResourceStatus(name, kind string, new, newList func() runtime.Object) UnversionedResourceBuilder {
+func NewInternalResourceStatus(name string, new, newList func() runtime.Object) UnversionedResourceBuilder {
 	return NewBuilder(
 		name,
-		kind,
 		"status",
 		new, newList,
 		true)
@@ -45,10 +44,9 @@ func NewInternalResourceStatus(name, kind string, new, newList func() runtime.Ob
 // name - name of the resource - e.g. "deployments"
 // path - path to the subresource - e.g. "scale"
 // new - function for creating new empty UNVERSIONED instances - e.g. func() runtime.Object { return &Deployment{} }
-func NewInternalSubresource(name, kind, path string, new func() runtime.Object) UnversionedResourceBuilder {
+func NewInternalSubresource(name, path string, new func() runtime.Object) UnversionedResourceBuilder {
 	return NewBuilder(
 		name,
-		kind,
 		path,
 		new,
 		nil,   // Don't provide a list function
@@ -57,14 +55,13 @@ func NewInternalSubresource(name, kind, path string, new func() runtime.Object) 
 }
 
 func NewBuilder(
-	name, kind, path string,
+	name, path string,
 	new, newList func() runtime.Object,
 	useRegistryStore bool) UnversionedResourceBuilder {
 
 	return &UnversionedResourceBuilderImpl{
 		path,
 		name,
-		kind,
 		new,
 		newList,
 		useRegistryStore,
@@ -81,14 +78,12 @@ type UnversionedResourceBuilder interface {
 
 	GetPath() string
 	GetName() string
-	GetKind() string
 	ShouldUseRegistryStore() bool
 }
 
 type UnversionedResourceBuilderImpl struct {
 	Path             string
 	Name             string
-	Kind             string
 	NewFunc          func() runtime.Object
 	NewListFunc      func() runtime.Object
 	UseRegistryStore bool
@@ -100,10 +95,6 @@ func (b *UnversionedResourceBuilderImpl) GetPath() string {
 
 func (b *UnversionedResourceBuilderImpl) GetName() string {
 	return b.Name
-}
-
-func (b *UnversionedResourceBuilderImpl) GetKind() string {
-	return b.Kind
 }
 
 func (b *UnversionedResourceBuilderImpl) ShouldUseRegistryStore() bool {

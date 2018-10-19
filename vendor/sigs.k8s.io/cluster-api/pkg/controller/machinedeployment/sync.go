@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -24,32 +25,36 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/client-go/util/retry"
+	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	dutil "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util"
 )
 
 // sync is responsible for reconciling deployments on scaling events or when they
 // are paused.
-func (dc *MachineDeploymentControllerImpl) sync(d *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet, machineMap map[types.UID]*v1alpha1.MachineList) error {
-	newMS, oldMSs, err := dc.getAllMachineSetsAndSyncRevision(d, msList, machineMap, false)
+func (r *ReconcileMachineDeployment) sync(d *clusterv1alpha1.MachineDeployment, msList []*clusterv1alpha1.MachineSet, machineMap map[types.UID]*clusterv1alpha1.MachineList) error {
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, machineMap, false)
 	if err != nil {
 		return err
 	}
-	if err := dc.scale(d, newMS, oldMSs); err != nil {
+
+	if err := r.scale(d, newMS, oldMSs); err != nil {
 		// If we get an error while trying to scale, the deployment will be requeued
 		// so we can abort this resync
 		return err
 	}
-
-	// TODO: Clean up the deployment when it's paused and no rollback is in flight.
-
+	//
+	// // TODO: Clean up the deployment when it's paused and no rollback is in flight.
+	//
 	allMSs := append(oldMSs, newMS)
-	return dc.syncDeploymentStatus(allMSs, newMS, d)
+	return r.syncDeploymentStatus(allMSs, newMS, d)
 }
 
 // getAllMachineSetsAndSyncRevision returns all the machine sets for the provided deployment (new and all old), with new MS's and deployment's revision updated.
@@ -64,11 +69,11 @@ func (dc *MachineDeploymentControllerImpl) sync(d *v1alpha1.MachineDeployment, m
 //
 // Note that currently the deployment controller is using caches to avoid querying the server for reads.
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
-func (dc *MachineDeploymentControllerImpl) getAllMachineSetsAndSyncRevision(d *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet, machineMap map[types.UID]*v1alpha1.MachineList, createIfNotExisted bool) (*v1alpha1.MachineSet, []*v1alpha1.MachineSet, error) {
+func (r *ReconcileMachineDeployment) getAllMachineSetsAndSyncRevision(d *clusterv1alpha1.MachineDeployment, msList []*clusterv1alpha1.MachineSet, machineMap map[types.UID]*clusterv1alpha1.MachineList, createIfNotExisted bool) (*clusterv1alpha1.MachineSet, []*clusterv1alpha1.MachineSet, error) {
 	_, allOldMSs := dutil.FindOldMachineSets(d, msList)
 
 	// Get new machine set with the updated revision number
-	newMS, err := dc.getNewMachineSet(d, msList, allOldMSs, createIfNotExisted)
+	newMS, err := r.getNewMachineSet(d, msList, allOldMSs, createIfNotExisted)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -81,7 +86,7 @@ func (dc *MachineDeploymentControllerImpl) getAllMachineSetsAndSyncRevision(d *v
 // 2. If there's existing new MS, update its revision number if it's smaller than (maxOldRevision + 1), where maxOldRevision is the max revision number among all old MSes.
 // 3. If there's no existing new MS and createIfNotExisted is true, create one with appropriate revision number (maxOldRevision + 1) and replicas.
 // Note that the machine-template-hash will be added to adopted MSes and machines.
-func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineDeployment, msList, oldMSs []*v1alpha1.MachineSet, createIfNotExisted bool) (*v1alpha1.MachineSet, error) {
+func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.MachineDeployment, msList, oldMSs []*clusterv1alpha1.MachineSet, createIfNotExisted bool) (*clusterv1alpha1.MachineSet, error) {
 	existingNewMS := dutil.FindNewMachineSet(d, msList)
 
 	// Calculate the max revision number among all old MSes
@@ -102,20 +107,14 @@ func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineD
 		minReadySecondsNeedsUpdate := msCopy.Spec.MinReadySeconds != *d.Spec.MinReadySeconds
 		if annotationsUpdated || minReadySecondsNeedsUpdate {
 			msCopy.Spec.MinReadySeconds = *d.Spec.MinReadySeconds
-			return dc.machineClient.ClusterV1alpha1().MachineSets(msCopy.ObjectMeta.Namespace).Update(msCopy)
+			return nil, r.Update(context.Background(), msCopy)
 		}
 
 		// Apply revision annotation from existingNewMS if it is missing from the deployment.
-		// needsUpdate is false if there is not annotation or is already present.
-		needsUpdate := dutil.SetDeploymentRevision(d, msCopy.Annotations[dutil.RevisionAnnotation])
-
-		if needsUpdate {
-			var err error
-			if d, err = dc.machineClient.ClusterV1alpha1().MachineDeployments(d.Namespace).Update(d); err != nil {
-				return nil, err
-			}
-		}
-		return msCopy, nil
+		err := r.updateMachineDeployment(d, func(innerDeployment *clusterv1alpha1.MachineDeployment) {
+			dutil.SetDeploymentRevision(d, msCopy.Annotations[dutil.RevisionAnnotation])
+		})
+		return msCopy, err
 	}
 
 	if !createIfNotExisted {
@@ -130,7 +129,7 @@ func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineD
 	newMSSelector := dutil.CloneSelectorAndAddLabel(&d.Spec.Selector, dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
 
 	// Create new MachineSet
-	newMS := v1alpha1.MachineSet{
+	newMS := clusterv1alpha1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			// Make the name deterministic, to ensure idempotence
 			Name:            d.Name + "-" + apirand.SafeEncodeString(machineTemplateSpecHash),
@@ -138,7 +137,7 @@ func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineD
 			Labels:          newMSTemplate.Labels,
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(d, controllerKind)},
 		},
-		Spec: v1alpha1.MachineSetSpec{
+		Spec: clusterv1alpha1.MachineSetSpec{
 			Replicas:        new(int32),
 			MinReadySeconds: *d.Spec.MinReadySeconds,
 			Selector:        *newMSSelector,
@@ -158,14 +157,15 @@ func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineD
 	// hash collisions. If there is any other error, we need to report it in the status of
 	// the Deployment.
 	alreadyExists := false
-	createdMS, err := dc.machineClient.ClusterV1alpha1().MachineSets(d.Namespace).Create(&newMS)
+	err = r.Create(context.Background(), &newMS)
+	createdMS := &newMS
 	switch {
 	// We may end up hitting this due to a slow cache or a fast resync of the Deployment.
 	case errors.IsAlreadyExists(err):
 		alreadyExists = true
 
-		// Fetch a copy of the MachineSet.
-		ms, msErr := dc.msLister.MachineSets(newMS.Namespace).Get(newMS.Name)
+		ms := &clusterv1alpha1.MachineSet{}
+		msErr := r.Get(context.Background(), client.ObjectKey{Namespace: newMS.Namespace, Name: newMS.Name}, ms)
 		if msErr != nil {
 			return nil, msErr
 		}
@@ -187,13 +187,12 @@ func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineD
 		return nil, err
 	}
 
-	needsUpdate := dutil.SetDeploymentRevision(d, newRevision)
 	if !alreadyExists {
 		glog.V(4).Infof("Created new machine set %q", createdMS.Name)
 	}
-	if needsUpdate {
-		_, err = dc.machineClient.ClusterV1alpha1().MachineDeployments(d.Namespace).UpdateStatus(d)
-	}
+	err = r.updateMachineDeployment(d, func(innerDeployment *clusterv1alpha1.MachineDeployment) {
+		dutil.SetDeploymentRevision(d, newRevision)
+	})
 	return createdMS, err
 }
 
@@ -202,7 +201,7 @@ func (dc *MachineDeploymentControllerImpl) getNewMachineSet(d *v1alpha1.MachineD
 // have the effect of hastening the rollout progress, which could produce a higher proportion of unavailable
 // replicas in the event of a problem with the rolled out template. Should run only on scaling events or
 // when a deployment is paused and not during the normal rollout process.
-func (dc *MachineDeploymentControllerImpl) scale(deployment *v1alpha1.MachineDeployment, newMS *v1alpha1.MachineSet, oldMSs []*v1alpha1.MachineSet) error {
+func (r *ReconcileMachineDeployment) scale(deployment *clusterv1alpha1.MachineDeployment, newMS *clusterv1alpha1.MachineSet, oldMSs []*clusterv1alpha1.MachineSet) error {
 	if deployment.Spec.Replicas == nil {
 		return fmt.Errorf("spec replicas for deployment %v is nil, this is unexpected", deployment.Name)
 	}
@@ -215,7 +214,7 @@ func (dc *MachineDeploymentControllerImpl) scale(deployment *v1alpha1.MachineDep
 		if *(activeOrLatest.Spec.Replicas) == *(deployment.Spec.Replicas) {
 			return nil
 		}
-		_, _, err := dc.scaleMachineSet(activeOrLatest, *(deployment.Spec.Replicas), deployment)
+		_, err := r.scaleMachineSet(activeOrLatest, *(deployment.Spec.Replicas), deployment)
 		return err
 	}
 
@@ -223,7 +222,7 @@ func (dc *MachineDeploymentControllerImpl) scale(deployment *v1alpha1.MachineDep
 	// This case handles machine set adoption during a saturated new machine set.
 	if dutil.IsSaturated(deployment, newMS) {
 		for _, old := range dutil.FilterActiveMachineSets(oldMSs) {
-			if _, _, err := dc.scaleMachineSet(old, 0, deployment); err != nil {
+			if _, err := r.scaleMachineSet(old, 0, deployment); err != nil {
 				return err
 			}
 		}
@@ -301,7 +300,7 @@ func (dc *MachineDeploymentControllerImpl) scale(deployment *v1alpha1.MachineDep
 			}
 
 			// TODO: Use transactions when we have them.
-			if _, _, err := dc.scaleMachineSetOperation(ms, nameToSize[ms.Name], deployment, scalingOperation); err != nil {
+			if _, err := r.scaleMachineSetOperation(ms, nameToSize[ms.Name], deployment, scalingOperation); err != nil {
 				// Return as soon as we fail, the deployment is requeued
 				return err
 			}
@@ -310,13 +309,49 @@ func (dc *MachineDeploymentControllerImpl) scale(deployment *v1alpha1.MachineDep
 	return nil
 }
 
-func (dc *MachineDeploymentControllerImpl) scaleMachineSet(ms *v1alpha1.MachineSet, newScale int32, deployment *v1alpha1.MachineDeployment) (bool, *v1alpha1.MachineSet, error) {
+// syncDeploymentStatus checks if the status is up-to-date and sync it if necessary
+func (r *ReconcileMachineDeployment) syncDeploymentStatus(allMSs []*clusterv1alpha1.MachineSet, newMS *clusterv1alpha1.MachineSet, d *clusterv1alpha1.MachineDeployment) error {
+	newStatus := calculateStatus(allMSs, newMS, d)
+
+	if reflect.DeepEqual(d.Status, newStatus) {
+		return nil
+	}
+
+	d.Status = newStatus
+	return r.Status().Update(context.Background(), d)
+}
+
+// calculateStatus calculates the latest status for the provided deployment by looking into the provided machine sets.
+func calculateStatus(allMSs []*clusterv1alpha1.MachineSet, newMS *clusterv1alpha1.MachineSet, deployment *clusterv1alpha1.MachineDeployment) clusterv1alpha1.MachineDeploymentStatus {
+	availableReplicas := dutil.GetAvailableReplicaCountForMachineSets(allMSs)
+	totalReplicas := dutil.GetReplicaCountForMachineSets(allMSs)
+	unavailableReplicas := totalReplicas - availableReplicas
+	// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
+	// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
+	if unavailableReplicas < 0 {
+		unavailableReplicas = 0
+	}
+
+	status := clusterv1alpha1.MachineDeploymentStatus{
+		// TODO: Ensure that if we start retrying status updates, we won't pick up a new Generation value.
+		ObservedGeneration:  deployment.Generation,
+		Replicas:            dutil.GetActualReplicaCountForMachineSets(allMSs),
+		UpdatedReplicas:     dutil.GetActualReplicaCountForMachineSets([]*clusterv1alpha1.MachineSet{newMS}),
+		ReadyReplicas:       dutil.GetReadyReplicaCountForMachineSets(allMSs),
+		AvailableReplicas:   availableReplicas,
+		UnavailableReplicas: unavailableReplicas,
+	}
+
+	return status
+}
+
+func (r *ReconcileMachineDeployment) scaleMachineSet(ms *clusterv1alpha1.MachineSet, newScale int32, deployment *clusterv1alpha1.MachineDeployment) (bool, error) {
 	if ms.Spec.Replicas == nil {
-		return false, nil, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+		return false, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
 	// No need to scale
 	if *(ms.Spec.Replicas) == newScale {
-		return false, ms, nil
+		return false, nil
 	}
 	var scalingOperation string
 	if *(ms.Spec.Replicas) < newScale {
@@ -325,13 +360,13 @@ func (dc *MachineDeploymentControllerImpl) scaleMachineSet(ms *v1alpha1.MachineS
 		scalingOperation = "down"
 	}
 
-	scaled, newMS, err := dc.scaleMachineSetOperation(ms, newScale, deployment, scalingOperation)
-	return scaled, newMS, err
+	scaled, err := r.scaleMachineSetOperation(ms, newScale, deployment, scalingOperation)
+	return scaled, err
 }
 
-func (dc *MachineDeploymentControllerImpl) scaleMachineSetOperation(ms *v1alpha1.MachineSet, newScale int32, deployment *v1alpha1.MachineDeployment, scaleOperation string) (bool, *v1alpha1.MachineSet, error) {
+func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha1.MachineSet, newScale int32, deployment *clusterv1alpha1.MachineDeployment, scaleOperation string) (bool, error) {
 	if ms.Spec.Replicas == nil {
-		return false, nil, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
+		return false, fmt.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)
 	}
 	sizeNeedsUpdate := *(ms.Spec.Replicas) != newScale
 
@@ -340,27 +375,26 @@ func (dc *MachineDeploymentControllerImpl) scaleMachineSetOperation(ms *v1alpha1
 	scaled := false
 	var err error
 	if sizeNeedsUpdate || annotationsNeedUpdate {
-		msCopy := ms.DeepCopy()
-		*(msCopy.Spec.Replicas) = newScale
-		dutil.SetReplicasAnnotations(msCopy, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment))
-		ms, err = dc.machineClient.ClusterV1alpha1().MachineSets(msCopy.Namespace).Update(msCopy)
+		*(ms.Spec.Replicas) = newScale
+		dutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment))
+		err = r.Update(context.Background(), ms)
 		if err == nil && sizeNeedsUpdate {
 			scaled = true
 		}
 	}
-	return scaled, ms, err
+	return scaled, err
 }
 
 // cleanupDeployment is responsible for cleaning up a deployment ie. retains all but the latest N old machine sets
 // where N=d.Spec.RevisionHistoryLimit. Old machine sets are older versions of the machinetemplate of a deployment kept
 // around by default 1) for historical reasons and 2) for the ability to rollback a deployment.
-func (dc *MachineDeploymentControllerImpl) cleanupDeployment(oldMSs []*v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) error {
+func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1.MachineSet, deployment *clusterv1alpha1.MachineDeployment) error {
 	if deployment.Spec.RevisionHistoryLimit == nil {
 		return nil
 	}
 
 	// Avoid deleting machine set with deletion timestamp set
-	aliveFilter := func(ms *v1alpha1.MachineSet) bool {
+	aliveFilter := func(ms *clusterv1alpha1.MachineSet) bool {
 		return ms != nil && ms.ObjectMeta.DeletionTimestamp == nil
 	}
 	cleanableMSes := dutil.FilterMachineSets(oldMSs, aliveFilter)
@@ -383,7 +417,7 @@ func (dc *MachineDeploymentControllerImpl) cleanupDeployment(oldMSs []*v1alpha1.
 			continue
 		}
 		glog.V(4).Infof("Trying to cleanup machine set %q for deployment %q", ms.Name, deployment.Name)
-		if err := dc.machineClient.ClusterV1alpha1().MachineSets(ms.Namespace).Delete(ms.Name, nil); err != nil && !errors.IsNotFound(err) {
+		if err := r.Delete(context.Background(), ms); err != nil && !errors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.
 			return err
@@ -393,54 +427,16 @@ func (dc *MachineDeploymentControllerImpl) cleanupDeployment(oldMSs []*v1alpha1.
 	return nil
 }
 
-// syncDeploymentStatus checks if the status is up-to-date and sync it if necessary
-func (dc *MachineDeploymentControllerImpl) syncDeploymentStatus(allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, d *v1alpha1.MachineDeployment) error {
-	newStatus := calculateStatus(allMSs, newMS, d)
-
-	if reflect.DeepEqual(d.Status, newStatus) {
-		return nil
-	}
-
-	newDeployment := d
-	newDeployment.Status = newStatus
-	_, err := dc.machineClient.ClusterV1alpha1().MachineDeployments(newDeployment.Namespace).UpdateStatus(newDeployment)
-	return err
-}
-
-// calculateStatus calculates the latest status for the provided deployment by looking into the provided machine sets.
-func calculateStatus(allMSs []*v1alpha1.MachineSet, newMS *v1alpha1.MachineSet, deployment *v1alpha1.MachineDeployment) v1alpha1.MachineDeploymentStatus {
-	availableReplicas := dutil.GetAvailableReplicaCountForMachineSets(allMSs)
-	totalReplicas := dutil.GetReplicaCountForMachineSets(allMSs)
-	unavailableReplicas := totalReplicas - availableReplicas
-	// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
-	// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
-	if unavailableReplicas < 0 {
-		unavailableReplicas = 0
-	}
-
-	status := v1alpha1.MachineDeploymentStatus{
-		// TODO: Ensure that if we start retrying status updates, we won't pick up a new Generation value.
-		ObservedGeneration:  deployment.Generation,
-		Replicas:            dutil.GetActualReplicaCountForMachineSets(allMSs),
-		UpdatedReplicas:     dutil.GetActualReplicaCountForMachineSets([]*v1alpha1.MachineSet{newMS}),
-		ReadyReplicas:       dutil.GetReadyReplicaCountForMachineSets(allMSs),
-		AvailableReplicas:   availableReplicas,
-		UnavailableReplicas: unavailableReplicas,
-	}
-
-	return status
-}
-
 // isScalingEvent checks whether the provided deployment has been updated with a scaling event
 // by looking at the desired-replicas annotation in the active machine sets of the deployment.
 //
 // msList should come from getMachineSetsForDeployment(d).
 // machineMap should come from getMachineMapForDeployment(d, msList).
-func (dc *MachineDeploymentControllerImpl) isScalingEvent(d *v1alpha1.MachineDeployment, msList []*v1alpha1.MachineSet, machineMap map[types.UID]*v1alpha1.MachineList) (bool, error) {
+func (r *ReconcileMachineDeployment) isScalingEvent(d *clusterv1alpha1.MachineDeployment, msList []*clusterv1alpha1.MachineSet, machineMap map[types.UID]*clusterv1alpha1.MachineList) (bool, error) {
 	if d.Spec.Replicas == nil {
 		return false, fmt.Errorf("spec replicas for deployment %v is nil, this is unexpected", d.Name)
 	}
-	newMS, oldMSs, err := dc.getAllMachineSetsAndSyncRevision(d, msList, machineMap, false)
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(d, msList, machineMap, false)
 	if err != nil {
 		return false, err
 	}
@@ -455,4 +451,28 @@ func (dc *MachineDeploymentControllerImpl) isScalingEvent(d *v1alpha1.MachineDep
 		}
 	}
 	return false, nil
+}
+
+func (r *ReconcileMachineDeployment) updateMachineDeployment(d *clusterv1alpha1.MachineDeployment, modify func(*clusterv1alpha1.MachineDeployment)) error {
+	return updateMachineDeployment(r.Client, d, modify)
+}
+
+// We have this as standalone variant to be able to use it from the tests
+func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployment, modify func(*clusterv1alpha1.MachineDeployment)) error {
+	dCopy := d.DeepCopy()
+	modify(dCopy)
+	if equality.Semantic.DeepEqual(dCopy, d) {
+		return nil
+	}
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		//Get latest version from API
+		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
+			return err
+		}
+		// Apply modifications
+		modify(d)
+		// Update the machineDeployment
+		return c.Update(context.Background(), d)
+	})
+	return err
 }

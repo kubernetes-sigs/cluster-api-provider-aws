@@ -38,12 +38,7 @@ apiserver-boot run in-cluster --name example --namespace default --image gcr.io/
 rm -rf ~/.kube/cache/discovery/
 
 # Run kubectl and check for the new version
-kubectl api-versions
-
-# Create an instance and fetch it
-nano -w samples/<type>.yaml
-kubectl apply -f samples/<type>.yaml
-kubectl get <type>`,
+kubectl api-versions`,
 	Run: RunInCluster,
 }
 

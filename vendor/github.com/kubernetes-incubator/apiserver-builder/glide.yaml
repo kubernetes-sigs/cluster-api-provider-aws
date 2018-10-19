@@ -1,0 +1,44 @@
+package: github.com/kubernetes-incubator/apiserver-builder
+ignore:
+- github.com/kubernetes-incubator/apiserver-builder
+import:
+- package: github.com/go-openapi/analysis
+  version: b44dc874b601d9e4e2f6e19140e794ba24bead3b
+- package: github.com/go-openapi/jsonpointer
+  version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
+- package: github.com/go-openapi/jsonreference
+  version: 13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272
+- package: github.com/go-openapi/loads
+  version: 18441dfa706d924a39a030ee2c3b1d8d81917b38
+- package: github.com/go-openapi/spec
+  version: 6aced65f8501fe1217321abf0749d354824ba2ff
+- package: github.com/go-openapi/swag
+  version: 1d0bd113de87027671077d3c71eb3ac5d7dbba72
+- package: github.com/golang/glog
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+- package: github.com/pkg/errors
+  version: a22138067af1c4942683050411a841ade67fe1eb
+- package: github.com/spf13/cobra
+  version: 7b1b6e8dc027253d45fc029bc269d1c019f83a34
+- package: github.com/spf13/pflag
+  version: d90f37a48761fe767528f31db1955e4f795d652f
+- package: github.com/markbates/inflect
+  version: 6cacb66d100482ef7cc366289ccb156020e57e76
+- package: k8s.io/apimachinery
+  version: cff8db64dd5b6fb0166dc2cf36e39c7ff4fe48c8
+- package: k8s.io/apiserver
+  version: 2e70bac0745c7f8e506f7f3e432d040c55d5718a
+- package: k8s.io/client-go
+  version: 36b51953e6efc7779fe27c14258d78573de4e0de
+- package: k8s.io/gengo
+- package: github.com/onsi/ginkgo
+  version: ~1.3.1
+- package: github.com/onsi/gomega
+  version: ~1.1.0
+- package: k8s.io/kubernetes
+  version: ~1.8.0-alpha.1
+  subpackages:
+  - cmd/libs/go2idl
+- package: github.com/kubernetes-incubator/reference-docs
+  subpackages:
+  - gen-apidocs

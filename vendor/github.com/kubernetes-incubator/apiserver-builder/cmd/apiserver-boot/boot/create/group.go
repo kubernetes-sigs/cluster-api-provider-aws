@@ -21,10 +21,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"strings"
-
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/util"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 var createGroupCmd = &cobra.Command{
@@ -41,7 +40,7 @@ func AddCreateGroup(cmd *cobra.Command) {
 	createGroupCmd.Flags().StringVar(&groupName, "group", "", "name of the API group to create")
 
 	cmd.AddCommand(createGroupCmd)
-	createGroupCmd.AddCommand(createVersionCmd)
+	AddCreateVersion(createGroupCmd)
 }
 
 func RunCreateGroup(cmd *cobra.Command, args []string) {

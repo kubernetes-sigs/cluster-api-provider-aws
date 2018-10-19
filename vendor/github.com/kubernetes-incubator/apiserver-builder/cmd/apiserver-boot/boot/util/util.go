@@ -37,7 +37,7 @@ var GoSrc string
 // writeIfNotFound returns true if the file was created and false if it already exists
 func WriteIfNotFound(path, templateName, templateValue string, data interface{}) bool {
 	// Make sure the directory exists
-	os.MkdirAll(filepath.Dir(path), 0700)
+	exec.Command("mkdir", "-p", filepath.Dir(path)).CombinedOutput()
 
 	// Don't create the doc.go if it exists
 	if _, err := os.Stat(path); err == nil {
@@ -72,13 +72,32 @@ func WriteIfNotFound(path, templateName, templateValue string, data interface{})
 
 func GetCopyright(file string) string {
 	if len(file) == 0 {
-		file = "boilerplate.go.txt"
+		// default to boilerplate.go.txt
+		if _, err := os.Stat("boilerplate.go.txt"); err == nil {
+			// Set this because it is passed to generators
+			file = "boilerplate.go.txt"
+			cr, err := ioutil.ReadFile(file)
+			if err != nil {
+				log.Fatalf("could not read Copyright file %s", file)
+			}
+			return string(cr)
+		}
+
+		log.Fatalf("apiserver-boot create-resource requires the --copyright flag if boilerplate.go.txt does not exist")
 	}
-	cr, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatalf("Must create boilerplate.go.txt file with copyright and file headers")
+
+	if _, err := os.Stat(file); err != nil {
+		if !os.IsNotExist(err) {
+			log.Fatalf("Could not stat %s: %v", file, err)
+		}
+		return ""
+	} else {
+		cr, err := ioutil.ReadFile(file)
+		if err != nil {
+			log.Fatalf("could not read Copyright file %s", file)
+		}
+		return string(cr)
 	}
-	return string(cr)
 }
 
 func GetDomain() string {
@@ -89,7 +108,7 @@ func GetDomain() string {
 	r := regexp.MustCompile("\\+domain=(.*)")
 	l := r.FindSubmatch(b)
 	if len(l) < 2 {
-		log.Fatalf("pkg/apis/doc.go does not contain the domain (// +domain=.*)")
+		log.Fatalf("pkg/apis/doc.go does not contain the domain (// +domain=.*)", l)
 	}
 	Domain = string(l[1])
 	return Domain
@@ -112,30 +131,5 @@ func DoCmd(cmd string, args ...string) {
 	err := c.Run()
 	if err != nil {
 		log.Fatalf("command failed %v", err)
-	}
-}
-
-func CheckInstall() {
-	bins := []string{"apiregister-gen", "client-gen", "deepcopy-gen", "gen-apidocs", "informer-gen",
-		"openapi-gen", "apiserver-boot", "conversion-gen", "defaulter-gen", "lister-gen"}
-	missing := []string{}
-
-	e, err := os.Executable()
-	if err != nil {
-		log.Fatal("unable to get directory of apiserver-builder tools")
-	}
-
-	dir := filepath.Dir(e)
-	for _, b := range bins {
-		_, err = os.Stat(filepath.Join(dir, b))
-		if err != nil {
-			missing = append(missing, b)
-		}
-	}
-	if len(missing) > 0 {
-		log.Fatalf("Error running apiserver-boot."+
-			"\nThe following files are missing [%s]"+
-			"\napiserver-boot must be installed using a release tar.gz downloaded from the git repo.",
-			strings.Join(missing, ","))
 	}
 }

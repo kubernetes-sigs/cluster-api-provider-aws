@@ -1,7 +1,6 @@
 package machine
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,9 +11,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
@@ -24,13 +21,24 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/providerconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
+	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	//"os"
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+func init() {
+	// Add types to scheme
+	clusterv1.AddToScheme(scheme.Scheme)
+}
 
 const (
 	controllerLogName = "awsMachine"
@@ -106,9 +114,13 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 		PublicIP: aws.Bool(true),
 	}
 
-	var buf bytes.Buffer
-	if err := providerconfigv1.Encoder.Encode(machinePc, &buf); err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("encoding failed: %v", err)
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed creating codec: %v", err)
+	}
+	config, err := codec.EncodeToProviderConfig(machinePc)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("encodeToProviderConfig failed: %v", err)
 	}
 
 	machine := &clusterv1.Machine{
@@ -123,9 +135,7 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 		},
 
 		Spec: clusterv1.MachineSpec{
-			ProviderConfig: clusterv1.ProviderConfig{
-				Value: &runtime.RawExtension{Raw: buf.Bytes()},
-			},
+			ProviderConfig: *config,
 		},
 	}
 
@@ -154,32 +164,38 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 		},
 	}
 
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			// kube client is needed to fetch aws credentials:
 			// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
 			// cluster client for updating machine statues
 			// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
-
 			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterName)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
-			fakeClient := fake.NewSimpleClientset(machine)
+			//fakeClient := fake.NewSimpleClientset(machine)
+
+			fakeClient := fake.NewFakeClient(machine)
 			logger := log.WithField("controller", controllerLogName)
 
 			mockCtrl := gomock.NewController(t)
 			mockAWSClient := mockaws.NewMockClient(mockCtrl)
 
 			params := ActuatorParams{
-				ClusterClient: fakeClient,
-				KubeClient:    fakeKubeClient,
+				Client:     fakeClient,
+				KubeClient: fakeKubeClient,
 				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
 					return mockAWSClient, nil
 				},
 				Logger: logger,
+				Codec:  codec,
 			}
 
 			actuator, err := NewActuator(params)
@@ -188,21 +204,30 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			}
 
 			mockRunInstances(mockAWSClient, tc.createErrorExpected)
-			mockDescribeInstances(mockAWSClient)
+			mockDescribeInstances(mockAWSClient, tc.createErrorExpected)
 			mockTerminateInstances(mockAWSClient)
 
 			// Create the machine
 			createErr := actuator.Create(cluster, machine)
 
 			// Get updated machine object from the cluster client
-			machine, err = fakeClient.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
+			key := types.NamespacedName{
+				Namespace: machine.Namespace,
+				Name:      machine.Name,
+			}
+			updatedMachine := clusterv1.Machine{}
+			err = fakeClient.Get(context.Background(), client.ObjectKey(key), &updatedMachine)
 			if err != nil {
 				t.Fatalf("Unable to retrieve machine: %v", err)
 			}
 
-			machineStatus, err := AWSMachineProviderStatusFromClusterAPIMachine(machine)
+			codec, err := providerconfigv1.NewCodec()
 			if err != nil {
-				t.Fatalf("Error decoding machine provider status: %v", err)
+				t.Fatalf("error creating codec: %v", err)
+			}
+			machineStatus, err := ProviderStatusFromMachine(codec, &updatedMachine)
+			if err != nil {
+				t.Fatalf("error getting machineStatus: %v", err)
 			}
 
 			if tc.createErrorExpected {
@@ -212,7 +237,6 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 				assert.NoError(t, createErr)
 				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationSucceeded)
 			}
-
 			if !tc.createErrorExpected {
 				// Get the machine
 				if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
@@ -267,7 +291,13 @@ func mockRunInstances(mockAWSClient *mockaws.MockClient, genError bool) {
 		}, err)
 }
 
-func mockDescribeInstances(mockAWSClient *mockaws.MockClient) {
+func mockDescribeInstances(mockAWSClient *mockaws.MockClient, genError bool) {
+	var err error
+
+	if genError {
+		err = errors.New("requested RunInstances error")
+	}
+
 	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(
 		&ec2.DescribeInstancesOutput{
 			Reservations: []*ec2.Reservation{
@@ -285,7 +315,7 @@ func mockDescribeInstances(mockAWSClient *mockaws.MockClient) {
 					},
 				},
 			},
-		}, nil).AnyTimes()
+		}, err).AnyTimes()
 }
 
 func mockTerminateInstances(mockAWSClient *mockaws.MockClient) {
