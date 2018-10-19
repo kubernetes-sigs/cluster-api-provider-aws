@@ -947,7 +947,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5e1957c10fbc2d3663ad0c9069c1daf31b077447b2d72ac5376ac854507b6d42"
+  digest = "1:83227f5bf2052c6d0e58b550a33e4bbd83acd78fb5ea772f30f3a2af4e3a31fd"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "pkg/apis",
@@ -961,7 +961,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "19551f1e342dfef3c73657de8cd7db54594e95c3"
+  revision = "f80969d1a60cc19ecce34bb9f8db4acda369a11d"
 
 [[projects]]
   digest = "1:4c3be496e0e0977b54e265fea184b57e9928fed12a1a14687c04b5d42e044abc"
@@ -1050,7 +1050,6 @@
     "github.com/prometheus/common/log",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
-    "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
     "golang.org/x/net/context",
     "k8s.io/api/core/v1",
