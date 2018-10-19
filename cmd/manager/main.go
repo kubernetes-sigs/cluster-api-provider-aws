@@ -14,9 +14,9 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"github.com/golang/glog"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"os"
@@ -40,13 +40,11 @@ const (
 )
 
 func init() {
-	pflag.CommandLine.StringVar(&logLevel, "log-level", defaultLogLevel, "Log level (debug,info,warn,error,fatal)")
+	flag.CommandLine.StringVar(&logLevel, "log-level", defaultLogLevel, "Log level (debug,info,warn,error,fatal)")
 }
 
 func main() {
-	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
-	//flag.CommandLine.Parse([]string{})
-	pflag.Parse()
+	flag.Parse()
 
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
