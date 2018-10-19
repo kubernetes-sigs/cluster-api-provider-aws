@@ -135,13 +135,30 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderConfig)
 			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
 			Expect(err).NotTo(HaveOccurred())
+			acw := &awsClientWrapper{client: awsClient}
+			f.CreateMachineAndWait(testMachine, acw)
+			machinesToDelete.AddMachine(testMachine, f, acw)
 
-			f.CreateMachineAndWait(testMachine, &awsClientWrapper{client: awsClient})
-			machinesToDelete.AddMachine(testMachine, f, &awsClientWrapper{client: awsClient})
+			securityGroups, err := acw.GetSecurityGroups(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(securityGroups).To(Equal([]string{fmt.Sprintf("%s-default", clusterID)}))
 
-			// TODO(jchaloup): Run some tests here!!! E.g. check for properly set security groups, iam role, tags
+			iamRole, err := acw.GetIAMRole(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(iamRole).To(Equal(""))
 
-			f.DeleteMachineAndWait(testMachine, &awsClientWrapper{client: awsClient})
+			tags, err := acw.GetTags(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tags).To(Equal(map[string]string{
+				fmt.Sprintf("kubernetes.io/cluster/%s", clusterID): "owned",
+				"openshift-node-group-config":                      "node-config-master",
+				"sub-host-type":                                    "default",
+				"host-type":                                        "master",
+				"Name":                                             testMachine.Name,
+				"clusterid":                                        clusterID,
+			}))
+
+			f.DeleteMachineAndWait(testMachine, acw)
 		})
 
 		It("Can deploy compute nodes through machineset", func() {
@@ -207,7 +224,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
 			Expect(err).NotTo(HaveOccurred())
 			acw := &awsClientWrapper{client: awsClient}
-			f.CreateMachineAndWait(masterMachine, &awsClientWrapper{client: awsClient})
+			f.CreateMachineAndWait(masterMachine, acw)
 			machinesToDelete.AddMachine(masterMachine, f, acw)
 
 			By("Collecting master kubeconfig")

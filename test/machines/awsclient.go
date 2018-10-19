@@ -27,35 +27,64 @@ func (client *awsClientWrapper) GetRunningInstances(machine *clusterv1alpha1.Mac
 }
 
 func (client *awsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machine) (string, error) {
-	runningInstances, err := machineutils.GetRunningInstances(machine, client.client)
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
 
-	if len(runningInstances) == 0 {
-		return "", fmt.Errorf("no running machine instance found")
-	}
-
-	if *runningInstances[0].PublicDnsName == "" {
+	if *instance.PublicDnsName == "" {
 		return "", fmt.Errorf("machine instance public DNS name not set")
 	}
 
-	return *runningInstances[0].PublicDnsName, nil
+	return *instance.PublicDnsName, nil
 }
 
 func (client *awsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (string, error) {
-	runningInstances, err := machineutils.GetRunningInstances(machine, client.client)
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
 
-	if len(runningInstances) == 0 {
-		return "", fmt.Errorf("no running machine instance found")
-	}
-
-	if *runningInstances[0].PrivateIpAddress == "" {
+	if *instance.PrivateIpAddress == "" {
 		return "", fmt.Errorf("machine instance public DNS name not set")
 	}
 
-	return *runningInstances[0].PrivateIpAddress, nil
+	return *instance.PrivateIpAddress, nil
+}
+
+func (client *awsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machine) ([]string, error) {
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
+	if err != nil {
+		return nil, err
+	}
+	var groups []string
+	for _, groupIdentifier := range instance.SecurityGroups {
+		if *groupIdentifier.GroupName != "" {
+			groups = append(groups, *groupIdentifier.GroupName)
+		}
+	}
+	return groups, nil
+}
+
+func (client *awsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (string, error) {
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
+	if err != nil {
+		return "", err
+	}
+	if instance.IamInstanceProfile == nil {
+		return "", err
+	}
+	return *instance.IamInstanceProfile.Id, nil
+}
+
+func (client *awsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[string]string, error) {
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
+	if err != nil {
+		return nil, err
+	}
+	tags := make(map[string]string, len(instance.Tags))
+	for _, tag := range instance.Tags {
+		tags[*tag.Key] = *tag.Value
+	}
+	return tags, nil
 }
