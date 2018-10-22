@@ -113,6 +113,11 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 			{ID: aws.String("sg-08b1ffd32874d59a2")}, // aws-actuator_infra_k8s
 		},
 		PublicIP: aws.Bool(true),
+		LoadBalancerNames: []string{
+			"cluster-con",
+			"cluster-ext",
+			"cluster-int",
+		},
 	}
 
 	codec, err := providerconfigv1.NewCodec()
@@ -207,6 +212,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			mockRunInstances(mockAWSClient, tc.createErrorExpected)
 			mockDescribeInstances(mockAWSClient, tc.createErrorExpected)
 			mockTerminateInstances(mockAWSClient)
+			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.createErrorExpected)
 
 			// Create the machine
 			createErr := actuator.Create(cluster, machine)
@@ -367,5 +373,16 @@ func TestRemoveDuplicatedTags(t *testing.T) {
 		if !reflect.DeepEqual(c.expected, actual) {
 			t.Errorf("test #%d: expected %+v, got %+v", i, c.expected, actual)
 		}
+	}
+}
+
+func mockRegisterInstancesWithLoadBalancer(mockAWSClient *mockaws.MockClient, createError bool) {
+	if createError {
+		return
+	}
+	// RegisterInstancesWithLoadBalancer should be called for every load balancer name in the machine
+	// spec for create and for update (3 * 2 = 6)
+	for i := 0; i < 6; i++ {
+		mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any())
 	}
 }

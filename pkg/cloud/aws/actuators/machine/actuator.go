@@ -35,6 +35,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
@@ -121,12 +122,6 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		}
 		return err
 	}
-
-	// TODO(csrwng):
-	// Part of the status that gets updated when the machine gets created is the PublicIP.
-	// However, after a call to runInstance, most of the time a PublicIP is not yet allocated.
-	// If we don't yet have complete status (ie. the instance state is Pending, instead of Running),
-	// maybe we should return an error so the machine controller keeps retrying until we have complete status we can set.
 	return a.updateStatus(machine, instance, mLog)
 }
 
@@ -433,14 +428,11 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil, fmt.Errorf("unexpected reservation creating instance")
 	}
 
-	// TOOD(csrwng):
-	// One issue we have right now with how this works, is that usually at the end of the RunInstances call,
-	// the instance state is not yet 'Running'. Rather it is 'Pending'. Therefore the status
-	// is not yet complete (like PublicIP). One possible fix would be to wait and poll here
-	// until the instance is in the Running state. The other approach is to return an error
-	// so that the machine is requeued and in the exists function return false if the status doesn't match.
-	// That would require making the create re-entrant so we can just update the status.
-	return runResult.Instances[0], nil
+	instance := runResult.Instances[0]
+
+	err = a.UpdateLoadBalancers(client, machineProviderConfig, instance, mLog)
+
+	return instance, err
 }
 
 // Delete deletes a machine and updates its finalizer
@@ -547,6 +539,11 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	}
 
+	err = a.UpdateLoadBalancers(client, machineProviderConfig, newestInstance, mLog)
+	if err != nil {
+		return err
+	}
+
 	// We do not support making changes to pre-existing instances, just update status.
 	return a.updateStatus(machine, newestInstance, mLog)
 }
@@ -611,6 +608,30 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clus
 	}
 
 	return GetRunningInstances(machine, client)
+}
+
+// UpdateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
+func (a *Actuator) UpdateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance, mLog log.FieldLogger) error {
+	if len(providerConfig.LoadBalancerNames) == 0 {
+		return nil
+	}
+	elbInstance := &elb.Instance{InstanceId: instance.InstanceId}
+	var errs []error
+	for _, elbName := range providerConfig.LoadBalancerNames {
+		req := &elb.RegisterInstancesWithLoadBalancerInput{
+			Instances:        []*elb.Instance{elbInstance},
+			LoadBalancerName: aws.String(elbName),
+		}
+		_, err := client.RegisterInstancesWithLoadBalancer(req)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %v", elbName, err))
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to register instances with elbs: %v", errs)
+	}
+	return nil
 }
 
 // updateStatus calculates the new machine status, checks if anything has changed, and updates if so.

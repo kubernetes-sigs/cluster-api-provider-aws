@@ -87,12 +87,10 @@ func (in *AWSMachineProviderConfig) DeepCopyInto(out *AWSMachineProviderConfig) 
 	}
 	in.Subnet.DeepCopyInto(&out.Subnet)
 	out.Placement = in.Placement
-	if in.LoadBalancerIDs != nil {
-		in, out := &in.LoadBalancerIDs, &out.LoadBalancerIDs
-		*out = make([]AWSResourceReference, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+	if in.LoadBalancerNames != nil {
+		in, out := &in.LoadBalancerNames, &out.LoadBalancerNames
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	return
 }
