@@ -52,11 +52,13 @@ func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClust
 	if extension == nil {
 		return &AWSClusterProviderStatus{}, nil
 	}
-	var status AWSClusterProviderStatus
-	if err := yaml.Unmarshal(extension.Raw, &status); err != nil {
+
+	status := new(AWSClusterProviderStatus)
+	if err := yaml.Unmarshal(extension.Raw, status); err != nil {
 		return nil, err
 	}
-	return &status, nil
+
+	return status, nil
 }
 
 func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSMachineProviderConfig, error) {
@@ -67,10 +69,15 @@ func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*
 	return &config, nil
 }
 
-func MachineStatusFromBytes(raw []byte) (*AWSMachineProviderStatus, error) {
-	var status AWSMachineProviderStatus
-	if err := yaml.Unmarshal(raw, &status); err != nil {
+func MachineStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSMachineProviderStatus, error) {
+	if extension == nil {
+		return &AWSMachineProviderStatus{}, nil
+	}
+
+	status := new(AWSMachineProviderStatus)
+	if err := yaml.Unmarshal(extension.Raw, status); err != nil {
 		return nil, err
 	}
-	return &status, nil
+
+	return status, nil
 }
