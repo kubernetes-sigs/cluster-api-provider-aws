@@ -685,6 +685,6 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 }
 
 func getClusterID(machine *clusterv1.Machine) (string, bool) {
-	clusterID, ok := machine.Labels[providerconfigv1.ClusterNameLabel]
+	clusterID, ok := machine.Labels[providerconfigv1.ClusterIDLabel]
 	return clusterID, ok
 }

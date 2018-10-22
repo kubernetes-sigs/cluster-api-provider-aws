@@ -50,8 +50,8 @@ const (
 	awsCredentialsSecretName = "aws-credentials-secret"
 	userDataSecretName       = "aws-actuator-user-data-secret"
 
-	keyName     = "aws-actuator-key-name"
-	clusterName = "aws-actuator-cluster"
+	keyName   = "aws-actuator-key-name"
+	clusterID = "aws-actuator-cluster"
 )
 
 const userDataBlob = `#cloud-config
@@ -129,7 +129,7 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 			Name:      "aws-actuator-testing-machine",
 			Namespace: defaultNamespace,
 			Labels: map[string]string{
-				providerconfigv1.ClusterNameLabel: clusterID,
+				providerconfigv1.ClusterIDLabel:   clusterID,
 				providerconfigv1.MachineRoleLabel: "infra",
 				providerconfigv1.MachineTypeLabel: "master",
 			},
@@ -175,7 +175,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
 			// cluster client for updating machine statues
 			// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterName)
+			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterID)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -338,25 +338,20 @@ func TestRemoveDuplicatedTags(t *testing.T) {
 			// no duplicate tags
 			tagList: []*ec2.Tag{
 				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
-				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
 			},
 			expected: []*ec2.Tag{
 				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
-				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
 			},
 		},
 		{
 			// multiple duplicate tags
 			tagList: []*ec2.Tag{
 				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
-				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
 				{Key: aws.String("clusterSize"), Value: aws.String("test-ClusterSizeValue")},
-				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameDuplicatedValue")},
 				{Key: aws.String("clusterSize"), Value: aws.String("test-ClusterSizeDuplicatedValue")},
 			},
 			expected: []*ec2.Tag{
 				{Key: aws.String("clusterID"), Value: aws.String("test-ClusterIDValue")},
-				{Key: aws.String("clusterName"), Value: aws.String("test-ClusterNameValue")},
 				{Key: aws.String("clusterSize"), Value: aws.String("test-ClusterSizeValue")},
 			},
 		},

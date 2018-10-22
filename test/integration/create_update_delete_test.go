@@ -32,7 +32,7 @@ const (
 	awsCredentialsSecretName = "aws-credentials-secret"
 	userDataSecretName       = "aws-actuator-user-data-secret"
 
-	clusterName = "tb-asg-35"
+	clusterID = "tb-asg-35"
 )
 
 const userDataBlob = `#cloud-config
@@ -100,7 +100,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 		t.Fatalf("GOPATH not set")
 	}
 
-	machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterName)
+	machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterID)
 	if err != nil {
 		t.Fatal(err)
 	}
