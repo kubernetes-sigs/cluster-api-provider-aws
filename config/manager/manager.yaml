@@ -1,3 +1,25 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: system #TODO: add the prefix here manually, next version of kustomize won't prefix namespaces.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-manager-service
+  namespace: system
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+spec:
+  selector:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+  ports:
+  - port: 443
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -35,6 +57,7 @@ spec:
           command:
             - "/root/manager"
           args:
+            - "-v2"
             - "-logtostderr=true"
             - "-stderrthreshold=INFO"
           volumeMounts:
@@ -43,7 +66,7 @@ spec:
             - name: certs
               mountPath: /etc/ssl/certs
             - name: credentials
-              mountPath: /etc/aws
+              mountPath: /root/.aws
           resources:
             limits:
               cpu: 100m
@@ -64,6 +87,6 @@ spec:
           hostPath:
             path: /etc/ssl/certs
         - name: credentials
-          hostPath:
-            path: /home/docker/.aws
+          secret:
+            secretName: manager-bootstrap-credentials
       terminationGracePeriodSeconds: 10

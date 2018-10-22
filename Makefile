@@ -13,7 +13,8 @@
 # limitations under the License.
 
 # Image URL to use all building/pushing image targets
-IMG ?= gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest
+MANAGER_IMAGE ?= gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest
+DEV_MANAGER_IMAGE ?= gcr.io/$(shell gcloud config get-value project)/cluster-api-aws-controller:0.0.1
 
 # Go environment flags.
 GOFLAGS += -ldflags '-extldflags "-static"'
@@ -52,7 +53,7 @@ manager: generate fmt vet
 
 # Build clusterctl binary.
 clusterctl: check-install generate fmt vet
-	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/clusterctl
+	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterctl
 
 # Build clusterawsadm binary.
 clusterawsadm: check-install vendor
@@ -77,27 +78,42 @@ vet:
 # Run go lint.
 lint:
 	golint || go get -u golang.org/x/lint/golint
-	golint -set_exit_status ./cmd/... ./pkg/... ./clusterctl/...
+	golint -set_exit_status ./cmd/... ./pkg/...
 
 # Build the docker image
 docker-build: generate fmt vet
-	docker build . -t ${IMG}
+	docker build . -t ${MANAGER_IMAGE}
 
 # Push the docker image
 docker-push:
-	docker push ${IMG}
+	docker push ${MANAGER_IMAGE}
 
 # Cleanup
 clean:
-	rm -rf out
+	rm -rf cmd/clusterctl/examples/aws/out/
 	rm -f kubeconfig
 	rm -f minikube.kubeconfig
 
-manifests:
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go rbac --name aws-manager
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+# Manifests.
+cmd/clusterctl/examples/aws/out/:
+	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
-copy-creds-to-minikube: clusterawsadm
-	minikube ssh 'mkdir -p .aws'
-	echo "Hit ctrl+c next to work around minikube"
-	source ./envfile && clusterawsadm alpha bootstrap generate-aws-default-profile | minikube ssh 'cat > .aws/credentials'
+cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out/ clusterawsadm
+	clusterawsadm alpha bootstrap generate-aws-default-profile > cmd/clusterctl/examples/aws/out/credentials
+
+manifests: cmd/clusterctl/examples/aws/out/credentials
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+	kustomize build config/default/ > cmd/clusterctl/examples/aws/out/provider-components.yaml
+	echo "---" >> cmd/clusterctl/examples/aws/out/provider-components.yaml
+	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> cmd/clusterctl/examples/aws/out/provider-components.yaml
+
+# Create cluster.
+create-cluster:
+	clusterctl create cluster -v3 --provider aws -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+
+# Development.
+dev-images:
+	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) $(MAKE) docker-build docker-push
+
+dev-manifests:
+	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) $(MAKE) manifests

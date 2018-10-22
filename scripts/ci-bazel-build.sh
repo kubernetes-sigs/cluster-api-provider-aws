@@ -20,9 +20,7 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-
-
 cd $REPO_ROOT && \
     make vendor && \
     ./hack/update-bazel.sh && \
-    bazel build //cmd/manager:manager //clusterctl:clusterctl
+    bazel build //cmd/manager:manager //cmd/clusterctl:clusterctl

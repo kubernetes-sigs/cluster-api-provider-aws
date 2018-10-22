@@ -1,4 +1,0 @@
-namespace: aws-provider-system
-namePrefix: aws-provider-
-resources:
-  - ../../samples/cluster.yaml

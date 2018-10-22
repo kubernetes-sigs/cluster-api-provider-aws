@@ -16,7 +16,7 @@ gazelle(
 filegroup(
     name = "all-images",
     srcs = [
-        "//clusterctl:clusterctl-image",
+        "//cmd/clusterctl:clusterctl-image",
         "//cmd/clusterawsadm:clusterawsadm-image",
         "//cmd/manager:manager-image",
     ],
@@ -25,7 +25,7 @@ filegroup(
 filegroup(
     name = "all-images-dev",
     srcs = [
-        "//clusterctl:clusterctl-image-dev",
+        "//cmd/clusterctl:clusterctl-image-dev",
         "//cmd/clusterawsadm:clusterawsadm-image-dev",
         "//cmd/manager:manager-image-dev",
     ],

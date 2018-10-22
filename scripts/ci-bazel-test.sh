@@ -25,6 +25,3 @@ bazel test --test_output all //pkg/... //cmd/...
 bazel_status=$?
 python hack/coalesce.py
 exit $bazel_status
-
-
-
