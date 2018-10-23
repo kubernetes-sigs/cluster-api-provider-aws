@@ -75,6 +75,12 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 		return errors.Errorf("failed to load cluster provider status: %v", err)
 	}
 
+	defer func() {
+		if err := a.storeClusterStatus(cluster, status); err != nil {
+			glog.Errorf("failed to store provider status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+		}
+	}()
+
 	// Store some config parameters in the status.
 	status.Region = config.Region
 
@@ -224,6 +230,23 @@ func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 
 	return string(yaml), nil
+}
+
+func (a *Actuator) storeClusterStatus(cluster *clusterv1.Cluster, status *providerv1.AWSClusterProviderStatus) error {
+	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
+
+	ext, err := providerv1.EncodeClusterStatus(status)
+	if err != nil {
+		return fmt.Errorf("failed to update cluster status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+	}
+
+	cluster.Status.ProviderStatus = ext
+
+	if _, err := clusterClient.UpdateStatus(cluster); err != nil {
+		return fmt.Errorf("failed to update cluster status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+	}
+
+	return nil
 }
 
 type defaultServicesGetter struct{}
