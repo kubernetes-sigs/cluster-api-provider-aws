@@ -39,11 +39,11 @@ func RootCmd() *cobra.Command {
 
 // Execute starts the process
 func Execute() {
+	flag.CommandLine.Parse([]string{})
 	if err := RootCmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	flag.CommandLine.Parse([]string{})
 	flag.Set("v", "2")
 
 	// Honor glog flags for verbosity control
