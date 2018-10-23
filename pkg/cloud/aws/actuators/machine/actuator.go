@@ -69,6 +69,21 @@ type ActuatorParams struct {
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
 }
 
+// Scan machine tags, and return a deduped tags list
+func removeDuplicatedTags(tags []*ec2.Tag) []*ec2.Tag {
+	m := make(map[string]bool)
+	result := []*ec2.Tag{}
+
+	// look for duplicates
+	for _, entry := range tags {
+		if _, value := m[*entry.Key]; !value {
+			m[*entry.Key] = true
+			result = append(result, entry)
+		}
+	}
+	return result
+}
+
 // NewActuator returns a new AWS Actuator
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	actuator := &Actuator{
@@ -339,16 +354,16 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil, err
 	}
 	// Add tags to the created machine
-	tagList := []*ec2.Tag{}
+	rawTagList := []*ec2.Tag{}
 	for _, tag := range machineProviderConfig.Tags {
-		tagList = append(tagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
+		rawTagList = append(rawTagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
 	}
-	tagList = append(tagList, []*ec2.Tag{
+	rawTagList = append(rawTagList, []*ec2.Tag{
 		{Key: aws.String("clusterid"), Value: aws.String(clusterID)},
 		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
 		{Key: aws.String("Name"), Value: aws.String(machine.Name)},
 	}...)
-
+	tagList := removeDuplicatedTags(rawTagList)
 	tagInstance := &ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
 		Tags:         tagList,
