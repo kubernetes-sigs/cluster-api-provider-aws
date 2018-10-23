@@ -230,11 +230,12 @@ region = eu-west-1
 
 ### Generating cluster manifests
 
-The shell script `config/generate-yaml.sh` can be used to generate the
+The shell script `generate-yaml.sh` can be used to generate the
 cluster manifests.
 
 ```bash
-./config/generate-yaml.sh
+cd ./cmd/clusterctl/examples/aws/
+./generate-yaml.sh
 ```
 
 Then edit `out/cluster.yaml` and `out/machine.yaml` for your SSH key and AWS
