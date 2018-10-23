@@ -146,6 +146,10 @@ func TestReconcile(t *testing.T) {
 		},
 	}
 
+	clusters.ci.EXPECT().
+		UpdateStatus(gomock.AssignableToTypeOf(cluster)).
+		Return(cluster, nil)
+
 	services.ec2.EXPECT().
 		ReconcileNetwork("test", gomock.AssignableToTypeOf(&providerv1.Network{})).
 		Return(nil)
