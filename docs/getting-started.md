@@ -45,21 +45,20 @@
 
 Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can use `go get sigs.k8s.io/cluster-api/provider-aws/...`.
 
-### Bootstrapping AWS Identity and Access Management with CloudFormation
-
-**NOTE**:
-> Your credentials must let you make changes in AWS Identity and Access Management (IAM),
-> and use CloudFormation.
-
-The [example](../clusterctl/examples/aws/bootstrap-cloudformation.yaml) CloudFormation template can be used to create IAM roles, users and instance profiles required to bootstrap the cluster.
-
 ### Installing clusterawsadm
 
 `clusterawsadm`, is a helper utlity that users might choose to use to quickly setup prerequisites.
 
 > NOTE: This command requires to have a working AWS environment.
 
+### Bootstrapping AWS Identity and Access Management with CloudFormation
+
+**NOTE**:
+> Your credentials must let you make changes in AWS Identity and Access Management (IAM),
+> and use CloudFormation.
+
 ```bash
+export AWS_REGION=us-east-1
 clusterawsadm alpha bootstrap create-stack
 ```
 
