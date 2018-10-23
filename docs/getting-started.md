@@ -51,7 +51,7 @@ Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-a
 > Your credentials must let you make changes in AWS Identity and Access Management (IAM),
 > and use CloudFormation.
 
-The [example](../clusterctl/examples/aws/bootstrap-cloudformation.yaml) CloudFormation template can be used to create IAM roles, users and instance profiles required to bootstrap the cluster.
+The [example](../cmd/clusterctl/examples/aws/bootstrap-cloudformation.yaml) CloudFormation template can be used to create IAM roles, users and instance profiles required to bootstrap the cluster.
 
 ### Installing clusterawsadm
 
