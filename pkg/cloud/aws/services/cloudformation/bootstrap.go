@@ -15,9 +15,11 @@ package cloudformation
 
 import (
 	"fmt"
+
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
 )
@@ -27,34 +29,21 @@ import (
 func BootstrapTemplate(accountID string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
-	template.Resources["AWSIAMManagedPolicyClusterController"] = cloudformation.AWSIAMManagedPolicy{
-		ManagedPolicyName: iam.NewManagedName("cluster-controller"),
-		Description:       `For the Kubernetes Cluster API Provider AWS Cluster Controller`,
-		PolicyDocument:    clusterControllerPolicy(),
+	template.Resources["AWSIAMManagedPolicyControllers"] = cloudformation.AWSIAMManagedPolicy{
+		ManagedPolicyName: iam.NewManagedName("controllers"),
+		Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
+		PolicyDocument:    controllersPolicy(accountID),
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
 		Roles: []string{
-			cloudformation.Ref("AWSIAMRoleClusterController"),
-			cloudformation.Ref("AWSIAMRoleControlPlane"),
-		},
-	}
-
-	template.Resources["AWSIAMManagedPolicyMachineController"] = cloudformation.AWSIAMManagedPolicy{
-		ManagedPolicyName: iam.NewManagedName("machine-controller"),
-		Description:       `For the Kubernetes Cluster API Provider AWS Machine Controller`,
-		PolicyDocument:    machineControllerPolicy(accountID),
-		Groups: []string{
-			cloudformation.Ref("AWSIAMGroupBootstrapper"),
-		},
-		Roles: []string{
-			cloudformation.Ref("AWSIAMRoleMachineController"),
+			cloudformation.Ref("AWSIAMRoleControllers"),
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
 		},
 	}
 
 	template.Resources["AWSIAMManagedPolicyCloudProviderControlPlane"] = cloudformation.AWSIAMManagedPolicy{
-		ManagedPolicyName: "control-plane-cloud-provider-aws.k8s.io",
+		ManagedPolicyName: iam.NewManagedName("control-plane"),
 		Description:       `For the Kubernetes Cloud Provider AWS Control Plane`,
 		PolicyDocument:    cloudProviderControlPlaneAwsPolicy(),
 		Roles: []string{
@@ -63,7 +52,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 	}
 
 	template.Resources["AWSIAMManagedPolicyCloudProviderNodes"] = cloudformation.AWSIAMManagedPolicy{
-		ManagedPolicyName: "nodes.cloud-provider-aws.k8s.io",
+		ManagedPolicyName: iam.NewManagedName("nodes"),
 		Description:       `For the Kubernetes Cloud Provider AWS nodes`,
 		PolicyDocument:    cloudProviderNodeAwsPolicy(),
 		Roles: []string{
@@ -88,13 +77,8 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
-	template.Resources["AWSIAMRoleClusterController"] = cloudformation.AWSIAMRole{
-		RoleName:                 iam.NewManagedName("cluster-controller"),
-		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
-	}
-
-	template.Resources["AWSIAMRoleMachineController"] = cloudformation.AWSIAMRole{
-		RoleName:                 iam.NewManagedName("machine-controller"),
+	template.Resources["AWSIAMRoleControllers"] = cloudformation.AWSIAMRole{
+		RoleName:                 iam.NewManagedName("controllers"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
@@ -110,17 +94,10 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources["AWSIAMInstanceProfileClusterController"] = cloudformation.AWSIAMInstanceProfile{
-		InstanceProfileName: iam.NewManagedName("cluster-controller"),
+	template.Resources["AWSIAMInstanceProfileControllers"] = cloudformation.AWSIAMInstanceProfile{
+		InstanceProfileName: iam.NewManagedName("controllers"),
 		Roles: []string{
-			cloudformation.Ref("AWSIAMRoleClusterController"),
-		},
-	}
-
-	template.Resources["AWSIAMInstanceProfileMachineController"] = cloudformation.AWSIAMInstanceProfile{
-		InstanceProfileName: iam.NewManagedName("machine-controller"),
-		Roles: []string{
-			cloudformation.Ref("AWSIAMRoleMachineController"),
+			cloudformation.Ref("AWSIAMRoleControllers"),
 		},
 	}
 
@@ -147,7 +124,7 @@ func ec2AssumeRolePolicy() *iam.PolicyDocument {
 	}
 }
 
-func clusterControllerPolicy() *iam.PolicyDocument {
+func controllersPolicy(accountID string) *iam.PolicyDocument {
 	return &iam.PolicyDocument{
 		Version: iam.CurrentVersion,
 		Statement: []iam.StatementEntry{
@@ -175,6 +152,7 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 					"ec2:DeleteVpc",
 					"ec2:DescribeAddresses",
 					"ec2:DescribeAvailabilityZones",
+					"ec2:DescribeInstances",
 					"ec2:DescribeInternetGateways",
 					"ec2:DescribeNatGateways",
 					"ec2:DescribeRouteTables",
@@ -186,28 +164,12 @@ func clusterControllerPolicy() *iam.PolicyDocument {
 					"ec2:ModifySubnetAttribute",
 					"ec2:ReleaseAddress",
 					"ec2:RevokeSecurityGroupIngress",
+					"ec2:RunInstances",
+					"ec2:TerminateInstances",
 					"elasticloadbalancing:CreateLoadBalancer",
 					"elasticloadbalancing:ConfigureHealthCheck",
 					"elasticloadbalancing:DeleteLoadBalancer",
 					"elasticloadbalancing:DescribeLoadBalancers",
-				},
-			},
-		},
-	}
-}
-
-func machineControllerPolicy(accountID string) *iam.PolicyDocument {
-	return &iam.PolicyDocument{
-		Version: iam.CurrentVersion,
-		Statement: []iam.StatementEntry{
-			{
-				Effect:   iam.EffectAllow,
-				Resource: iam.Resources{"*"},
-				Action: iam.Actions{
-					"ec2:CreateTags",
-					"ec2:DescribeInstances",
-					"ec2:RunInstances",
-					"ec2:TerminateInstances",
 					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				},
 			},
