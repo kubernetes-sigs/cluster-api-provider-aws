@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "chacha20poly1305.go",
+        "chacha20poly1305_amd64.go",
+        "chacha20poly1305_amd64.s",
+        "chacha20poly1305_generic.go",
+        "chacha20poly1305_noasm.go",
+        "xchacha20poly1305.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/crypto/chacha20poly1305",
+    importpath = "golang.org/x/crypto/chacha20poly1305",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/golang.org/x/crypto/internal/chacha20:go_default_library",
+        "//vendor/golang.org/x/crypto/internal/subtle:go_default_library",
+        "//vendor/golang.org/x/crypto/poly1305:go_default_library",
+    ] + select({
+        "@io_bazel_rules_go//go/platform:amd64": [
+            "//vendor/golang.org/x/sys/cpu:go_default_library",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "chacha20poly1305_test.go",
+        "chacha20poly1305_vectors_test.go",
+    ],
+    embed = [":go_default_library"],
+)

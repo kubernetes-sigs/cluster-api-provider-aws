@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "download.go",
+        "main.go",
+        "path.go",
+        "steps.go",
+        "system.go",
+        "system_unix.go",
+        "system_windows.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/tools/cmd/getgo",
+    importpath = "golang.org/x/tools/cmd/getgo",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "getgo",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "download_test.go",
+        "main_test.go",
+        "path_test.go",
+    ],
+    embed = [":go_default_library"],
+)

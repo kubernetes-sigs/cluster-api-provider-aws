@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "compact.go",
+        "print.go",
+        "triegen.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/text/internal/triegen",
+    importpath = "golang.org/x/text/internal/triegen",
+    visibility = ["//vendor/golang.org/x/text:__subpackages__"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "data_test.go",
+        "example_compact_test.go",
+        "example_test.go",
+    ],
+    embed = [":go_default_library"],
+)

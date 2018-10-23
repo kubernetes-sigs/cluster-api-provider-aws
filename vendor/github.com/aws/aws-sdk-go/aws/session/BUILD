@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "doc.go",
+        "env_config.go",
+        "session.go",
+        "shared_config.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/aws/aws-sdk-go/aws/session",
+    importpath = "github.com/aws/aws-sdk-go/aws/session",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/client:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/corehandlers:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials/stscreds:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/csm:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/defaults:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/endpoints:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/request:go_default_library",
+        "//vendor/github.com/go-ini/ini:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "custom_ca_bundle_test.go",
+        "env_config_test.go",
+        "session_test.go",
+        "shared_config_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/defaults:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/endpoints:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/awstesting:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/internal/shareddefaults:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/s3:go_default_library",
+        "//vendor/github.com/go-ini/ini:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+    ],
+)

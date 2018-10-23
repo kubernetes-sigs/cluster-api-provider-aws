@@ -1,0 +1,44 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "config.go",
+        "context.go",
+        "context_1_6.go",
+        "context_1_7.go",
+        "convert_types.go",
+        "doc.go",
+        "errors.go",
+        "jsonvalue.go",
+        "logger.go",
+        "types.go",
+        "url.go",
+        "url_1_7.go",
+        "version.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/aws/aws-sdk-go/aws",
+    importpath = "github.com/aws/aws-sdk-go/aws",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/endpoints:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/internal/sdkio:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "config_test.go",
+        "context_test.go",
+        "convert_types_test.go",
+        "types_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/awstesting:go_default_library",
+    ],
+)

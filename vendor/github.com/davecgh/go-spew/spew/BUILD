@@ -1,0 +1,34 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bypass.go",
+        "bypasssafe.go",
+        "common.go",
+        "config.go",
+        "doc.go",
+        "dump.go",
+        "format.go",
+        "spew.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/davecgh/go-spew/spew",
+    importpath = "github.com/davecgh/go-spew/spew",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "common_test.go",
+        "dump_test.go",
+        "dumpnocgo_test.go",
+        "example_test.go",
+        "format_test.go",
+        "internal_test.go",
+        "internalunsafe_test.go",
+        "spew_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+)

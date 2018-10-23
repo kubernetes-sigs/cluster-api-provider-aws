@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["user.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/golang/mock/sample",
+    importpath = "github.com/golang/mock/sample",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/golang/mock/sample/imp1:go_default_library",
+        "//vendor/github.com/golang/mock/sample/imp2:go_default_library",
+        "//vendor/github.com/golang/mock/sample/imp3:go_default_library",
+        "//vendor/github.com/golang/mock/sample/imp4:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["user_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/golang/mock/gomock:go_default_library",
+        "//vendor/github.com/golang/mock/sample/imp1:go_default_library",
+        "//vendor/github.com/golang/mock/sample/mock_user:go_default_library",
+    ],
+)

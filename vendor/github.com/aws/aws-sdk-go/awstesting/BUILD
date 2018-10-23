@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "assert.go",
+        "client.go",
+        "custom_ca_bundle.go",
+        "util.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/aws/aws-sdk-go/awstesting",
+    importpath = "github.com/aws/aws-sdk-go/awstesting",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/client:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/client/metadata:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/defaults:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/private/util:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "assert_test.go",
+        "util_test.go",
+    ],
+    embed = [":go_default_library"],
+)

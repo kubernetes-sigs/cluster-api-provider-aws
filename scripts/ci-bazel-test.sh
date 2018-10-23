@@ -20,7 +20,6 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 cd $REPO_ROOT
-make vendor && ./hack/update-bazel.sh || exit 1
 bazel test --test_output all //pkg/... //cmd/...
 bazel_status=$?
 python hack/coalesce.py

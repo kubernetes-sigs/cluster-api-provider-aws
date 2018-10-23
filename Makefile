@@ -22,8 +22,7 @@ GOPATH := $(shell go env GOPATH)
 
 all: check-install test manager clusterctl clusterawsadm
 
-ifndef FASTBUILD
-# If FASTBUILD isn't defined, always run dep ensure
+ifdef REVENDOR
 .PHONY: vendor
 endif
 
@@ -31,6 +30,7 @@ endif
 vendor:
 	${GOPATH}/bin/dep version || go get -u github.com/golang/dep/cmd/dep
 	${GOPATH}/bin/dep ensure
+	bazel run //:gazelle
 
 check-install:
 	./scripts/check-install.sh

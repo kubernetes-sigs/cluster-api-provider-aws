@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["patch.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/apimachinery/pkg/util/jsonmergepatch",
+    importpath = "k8s.io/apimachinery/pkg/util/jsonmergepatch",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/k8s.io/apimachinery/pkg/util/json:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/mergepatch:go_default_library",
+        "@com_github_evanphx_json_patch//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["patch_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/davecgh/go-spew/spew:go_default_library",
+        "//vendor/github.com/ghodss/yaml:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/json:go_default_library",
+        "@com_github_evanphx_json_patch//:go_default_library",
+    ],
+)

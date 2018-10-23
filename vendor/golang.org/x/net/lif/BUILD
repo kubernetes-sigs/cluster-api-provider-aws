@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "address.go",
+        "binary.go",
+        "lif.go",
+        "link.go",
+        "sys.go",
+        "sys_solaris_amd64.s",
+        "syscall.go",
+        "zsys_solaris_amd64.go",
+    ],
+    cgo = True,
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/net/lif",
+    importpath = "golang.org/x/net/lif",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "address_test.go",
+        "link_test.go",
+    ],
+    embed = [":go_default_library"],
+)

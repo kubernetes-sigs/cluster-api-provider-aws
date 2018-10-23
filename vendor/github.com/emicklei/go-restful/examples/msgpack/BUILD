@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["msgpack_entity.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/emicklei/go-restful/examples/msgpack",
+    importpath = "github.com/emicklei/go-restful/examples/msgpack",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/emicklei/go-restful:go_default_library",
+        "@in_gopkg_vmihailenco_msgpack_v2//:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["msgpack_entity_test.go"],
+    embed = [":go_default_library"],
+    deps = ["//vendor/github.com/emicklei/go-restful:go_default_library"],
+)

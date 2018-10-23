@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "dce.go",
+        "doc.go",
+        "hash.go",
+        "marshal.go",
+        "node.go",
+        "node_net.go",
+        "sql.go",
+        "time.go",
+        "util.go",
+        "uuid.go",
+        "version1.go",
+        "version4.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/google/uuid",
+    importpath = "github.com/google/uuid",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "json_test.go",
+        "seq_test.go",
+        "sql_test.go",
+        "uuid_test.go",
+    ],
+    embed = [":go_default_library"],
+)
