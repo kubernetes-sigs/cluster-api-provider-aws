@@ -278,6 +278,8 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 		return nil, errors.Errorf("no instance returned for reservation %v", out.GoString())
 	}
 
+	s.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
+
 	return fromSDKTypeToInstance(out.Instances[0]), nil
 }
 

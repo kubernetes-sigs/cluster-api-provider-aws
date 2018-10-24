@@ -129,12 +129,12 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
-	if err := a.storeMachineStatus(machine, status); err != nil {
-		glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-	}
-
 	if err := a.reconcileLBAttachment(cluster, machine, i); err != nil {
 		return errors.Wrap(err, "failed to reconcile LB attachment")
+	}
+
+	if err := a.storeMachineStatus(machine, status, true); err != nil {
+		glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	return nil
@@ -223,10 +223,6 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine status")
 	}
 
-	if err := a.storeMachineStatus(machine, status); err != nil {
-		glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-	}
-
 	clusterConfig, err := a.clusterProviderConfig(cluster)
 	if err != nil {
 		return errors.Wrap(err, "failed to get cluster provider config")
@@ -263,10 +259,13 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to ensure tags")
 	}
 
-	// We need to update the machine since annotations may have changed.
 	if securityGroupsChanged || tagsChanged {
-		if err := a.updateMachine(machine); err != nil {
-			return errors.Wrap(err, "failed to update machine")
+		if err := a.storeMachineStatus(machine, status, true); err != nil {
+			glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+		}
+	} else {
+		if err := a.storeMachineStatus(machine, status, false); err != nil {
+			glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 		}
 	}
 
@@ -319,27 +318,24 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	return true, nil
 }
 
-func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
-	machinesClient := a.machinesGetter.Machines(machine.Namespace)
-
-	if _, err := machinesClient.Update(machine); err != nil {
-		return fmt.Errorf("failed to update machine: %v", err)
-	}
-
-	return nil
-}
-
-func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
+func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, updateResource bool) error {
 	machinesClient := a.machinesGetter.Machines(machine.Namespace)
 
 	ext, err := v1alpha1.EncodeMachineStatus(status)
 	if err != nil {
-		return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+		return fmt.Errorf("failed to encode machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	machine.Status.ProviderStatus = ext
-	if _, err := machinesClient.UpdateStatus(machine); err != nil {
-		return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+
+	if updateResource {
+		if _, err := machinesClient.Update(machine); err != nil {
+			return fmt.Errorf("failed to update machine for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+		}
+	} else {
+		if _, err := machinesClient.UpdateStatus(machine); err != nil {
+			return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+		}
 	}
 
 	return nil

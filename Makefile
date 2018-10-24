@@ -96,7 +96,7 @@ clean:
 
 # Manifests.
 cmd/clusterctl/examples/aws/out/:
-	./cmd/clusterctl/examples/aws/generate-yaml.sh
+	MANAGER_IMAGE=${MANAGER_IMAGE} ./cmd/clusterctl/examples/aws/generate-yaml.sh
 
 cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out/ clusterawsadm
 	clusterawsadm alpha bootstrap generate-aws-default-profile > cmd/clusterctl/examples/aws/out/credentials
