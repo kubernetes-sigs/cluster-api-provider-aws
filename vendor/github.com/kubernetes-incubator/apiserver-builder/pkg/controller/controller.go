@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/builders"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
@@ -31,17 +30,11 @@ import (
 
 // QueueingEventHandler queues the key for the object on add and update events
 type QueueingEventHandler struct {
-	Queue         workqueue.RateLimitingInterface
-	ObjToKey      func(obj interface{}) (string, error)
-	EnqueueDelete bool
+	Queue workqueue.RateLimitingInterface
 }
 
 func (c *QueueingEventHandler) enqueue(obj interface{}) {
-	fn := c.ObjToKey
-	if c.ObjToKey == nil {
-		fn = cache.DeletionHandlingMetaNamespaceKeyFunc
-	}
-	key, err := fn(obj)
+	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
 		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
 		return
@@ -61,9 +54,6 @@ func (c *QueueingEventHandler) OnUpdate(oldObj, newObj interface{}) {
 
 func (c *QueueingEventHandler) OnDelete(obj interface{}) {
 	glog.V(6).Infof("Delete event for %+v\n", obj)
-	if c.EnqueueDelete {
-		c.enqueue(obj)
-	}
 }
 
 // QueueWorker continuously runs a Reconcile function against a message Queue
@@ -126,18 +116,6 @@ func (q *QueueWorker) ProcessMessage() bool {
 	glog.V(4).Infof("Too many retries for %s Queue message %v: %v", q.Name, key, err)
 	q.Queue.Forget(key)
 	return false
-}
-
-func GetDefaults(c interface{}) DefaultMethods {
-	i, ok := c.(DefaultMethods)
-	if !ok {
-		return &builders.DefaultControllerFns{}
-	}
-	return i
-}
-
-type DefaultMethods interface {
-	Run(stopCh <-chan struct{})
 }
 
 type Controller interface {

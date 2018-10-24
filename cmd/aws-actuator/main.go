@@ -51,7 +51,7 @@ import (
 	"text/template"
 
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -722,10 +722,10 @@ func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, us
 		objList = append(objList, userData)
 	}
 	fakeKubeClient := kubernetesfake.NewSimpleClientset(objList...)
-	fakeClient := fake.NewSimpleClientset(machine)
+	fakeClient := fake.NewFakeClient(machine)
 
 	params := machineactuator.ActuatorParams{
-		ClusterClient:    fakeClient,
+		Client:           fakeClient,
 		KubeClient:       fakeKubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 		Logger:           logger,

@@ -22,13 +22,16 @@ WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-aws
 # This expects that the context passed to the docker build command is
 # the cluster-api-provider-aws directory.
 # e.g. docker build -t <tag> -f <this_Dockerfile> <path_to_cluster-api-aws>
-COPY . .
+COPY pkg/    pkg/
+COPY cmd/    cmd/
+COPY vendor/ vendor/
 
-RUN GOPATH="/go" CGO_ENABLED=0 GOOS=linux go install -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/machine-controller
-RUN GOPATH="/go" CGO_ENABLED=0 GOOS=linux go install -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/cmd/controller-manager
+
+RUN GOPATH="/go" CGO_ENABLED=0 GOOS=linux go build -o /go/bin/machine-controller-manager -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+RUN GOPATH="/go" CGO_ENABLED=0 GOOS=linux go build -o /go/bin/manager -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/cmd/manager
 
 # Final container
 FROM openshift/origin-base
 RUN yum install -y ca-certificates openssh
 
-COPY --from=builder /go/bin/machine-controller /go/bin/controller-manager .
+COPY --from=builder /go/bin/manager /go/bin/machine-controller-manager /

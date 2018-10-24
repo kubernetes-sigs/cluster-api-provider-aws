@@ -26,16 +26,17 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/pkg/api"
 )
 
 // Global registry of API groups
 var APIGroupBuilders = []*APIGroupBuilder{}
 
 type APIGroupBuilder struct {
-	UnVersioned     *UnVersionedApiBuilder
-	Versions        []*VersionedApiBuilder
-	Name            string
-	ImportPrefix    string
+	UnVersioned  *UnVersionedApiBuilder
+	Versions     []*VersionedApiBuilder
+	Name         string
+	ImportPrefix string
 	RootScopedKinds []string
 }
 
@@ -104,10 +105,10 @@ func (g *APIGroupBuilder) Build(optionsGetter generic.RESTOptionsGetter) *generi
 	// Build a new group
 	i := genericapiserver.NewDefaultAPIGroupInfo(
 		g.Name,
-		Registry,
-		Scheme,
+		api.Registry,
+		api.Scheme,
 		metav1.ParameterCodec,
-		Codecs)
+		api.Codecs)
 
 	// First group version is preferred
 	i.GroupMeta.GroupVersion = g.Versions[0].GroupVersion
@@ -128,6 +129,7 @@ func (g *APIGroupBuilder) Install(
 			GroupName:                  g.Name,
 			RootScopedKinds:            sets.NewString(append(g.RootScopedKinds, "APIService")...),
 			VersionPreferenceOrder:     g.GetVersionPreferenceOrder(),
+			ImportPrefix:               g.ImportPrefix,
 			AddInternalObjectsToScheme: g.UnVersioned.SchemaBuilder.AddToScheme,
 		},
 		g.VersionToSchemeFunc(),
@@ -139,5 +141,5 @@ func (g *APIGroupBuilder) Install(
 
 // Announce installs the API group for an api server
 func (g *APIGroupBuilder) Announce() {
-	g.Install(GroupFactoryRegistry, Registry, Scheme)
+	g.Install(api.GroupFactoryRegistry, api.Registry, api.Scheme)
 }

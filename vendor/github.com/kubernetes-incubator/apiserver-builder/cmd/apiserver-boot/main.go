@@ -28,13 +28,10 @@ import (
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/create"
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/init_repo"
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/run"
-	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/update"
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/util"
-	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/version"
 )
 
 func main() {
-	util.CheckInstall()
 	gopath := os.Getenv("GOPATH")
 	if len(gopath) == 0 {
 		log.Fatal("GOPATH not defined")
@@ -57,8 +54,6 @@ func main() {
 	create.AddCreate(cmd)
 	build.AddBuild(cmd)
 	run.AddRun(cmd)
-	update.AddUpdate(cmd)
-	version.AddVersion(cmd)
 
 	if err := cmd.Execute(); err != nil {
 		log.Fatal(err)
@@ -73,7 +68,7 @@ var cmd = &cobra.Command{
 apiserver-boot init repo --domain example.com
 
 # Create new resource "Bee" in the "insect" group with version "v1beta"
-apiserver-boot create group version resource --group insect --version v1beta --kind Bee
+apiserver-boot create group version kind --group insect --version v1beta --kind Bee
 
 # Build the generated code, apiserver and controller-manager so they be run locally.
 apiserver-boot build executables

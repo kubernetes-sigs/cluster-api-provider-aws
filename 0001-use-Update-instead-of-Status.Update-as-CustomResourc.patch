@@ -1,0 +1,35 @@
+From 16531c16bfa5030bb5f85d75f20353eeff46ba25 Mon Sep 17 00:00:00 2001
+From: Enxebre <alberto.garcial@hotmail.com>
+Date: Fri, 19 Oct 2018 09:51:27 +0200
+Subject: [PATCH] use Update() instead of Status.Update() as
+ CustomResourceSubresources might not be enable
+
+---
+ vendor/sigs.k8s.io/cluster-api/pkg/controller/node/node.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/vendor/sigs.k8s.io/cluster-api/pkg/controller/node/node.go b/vendor/sigs.k8s.io/cluster-api/pkg/controller/node/node.go
+index cb16730b..f1a4bff3 100644
+--- a/vendor/sigs.k8s.io/cluster-api/pkg/controller/node/node.go
++++ b/vendor/sigs.k8s.io/cluster-api/pkg/controller/node/node.go
+@@ -75,7 +75,7 @@ func (c *ReconcileNode) link(node *corev1.Node) error {
+ 	t := metav1.Now()
+ 	machine.Status.LastUpdated = &t
+ 	machine.Status.NodeRef = objectRef(node)
+-	if err = c.Client.Status().Update(context.Background(), machine); err != nil {
++	if err = c.Client.Update(context.Background(), machine); err != nil {
+ 		glog.Errorf("Error updating machine to link to node: %v\n", err)
+ 	} else {
+ 		glog.Infof("Successfully linked machine %s to node %s\n",
+@@ -121,7 +121,7 @@ func (c *ReconcileNode) unlink(node *corev1.Node) error {
+ 	t := metav1.Now()
+ 	machine.Status.LastUpdated = &t
+ 	machine.Status.NodeRef = nil
+-	if err = c.Client.Status().Update(context.Background(), machine); err != nil {
++	if err = c.Client.Update(context.Background(), machine); err != nil {
+ 		glog.Errorf("Error updating machine %s to unlink node %s: %v\n",
+ 			machine.ObjectMeta.Name, node.ObjectMeta.Name, err)
+ 	} else {
+-- 
+2.15.2 (Apple Git-101.1)
+

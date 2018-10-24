@@ -3,7 +3,6 @@ package machines
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -25,14 +24,8 @@ import (
 )
 
 const (
-	clusterAPIStackDefaultNamespace   = "kube-system"
-	poolTimeout                       = 20 * time.Second
-	pollInterval                      = 1 * time.Second
-	poolClusterAPIDeploymentTimeout   = 10 * time.Minute
-	timeoutPoolMachineRunningInterval = 10 * time.Minute
-	region                            = "us-east-1"
-	awsCredentialsSecretName          = "aws-credentials-secret"
-	CloudProvider                     = "aws"
+	region                   = "us-east-1"
+	awsCredentialsSecretName = "aws-credentials-secret"
 )
 
 func TestCart(t *testing.T) {

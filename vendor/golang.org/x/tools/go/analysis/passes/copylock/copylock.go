@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package copylock defines an Analyzer that checks for locks
+// erroneously passed by value.
 package copylock
 
 import (
@@ -17,9 +19,15 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 )
 
+const Doc = `check for locks erroneously passed by value
+
+Inadvertently copying a value containing a lock, such as sync.Mutex or
+sync.WaitGroup, may cause both copies to malfunction. Generally such
+values should be referred to through a pointer.`
+
 var Analyzer = &analysis.Analyzer{
 	Name:             "copylocks",
-	Doc:              "check for locks erroneously passed by value",
+	Doc:              Doc,
 	Requires:         []*analysis.Analyzer{inspect.Analyzer},
 	RunDespiteErrors: true,
 	Run:              run,
@@ -255,6 +263,15 @@ func lockPath(tpkg *types.Package, typ types.Type) typePath {
 	// is a sync.Locker, but a value is not. This differentiates
 	// embedded interfaces from embedded values.
 	if types.Implements(types.NewPointer(typ), lockerType) && !types.Implements(typ, lockerType) {
+		return []types.Type{typ}
+	}
+
+	// In go1.10, sync.noCopy did not implement Locker.
+	// (The Unlock method was added only in CL 121876.)
+	// TODO(adonovan): remove workaround when we drop go1.10.
+	if named, ok := typ.(*types.Named); ok &&
+		named.Obj().Name() == "noCopy" &&
+		named.Obj().Pkg().Path() == "sync" {
 		return []types.Type{typ}
 	}
 

@@ -32,7 +32,3 @@ func (DefaultSchemeFns) DefaultingFunction(interface{}) {}
 func (DefaultSchemeFns) GetConversionFunctions() []interface{} { return []interface{}{} }
 
 func (DefaultSchemeFns) Register(scheme *runtime.Scheme) error { return nil }
-
-func (DefaultSchemeFns) FieldSelectorConversion(label, value string) (string, string, error) {
-	return runtime.DefaultMetaV1FieldSelectorConversion(label, value)
-}

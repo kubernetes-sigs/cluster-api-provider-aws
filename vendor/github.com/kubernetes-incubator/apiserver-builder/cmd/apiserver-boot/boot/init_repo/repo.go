@@ -19,6 +19,7 @@ package init_repo
 import (
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/kubernetes-incubator/apiserver-builder/cmd/apiserver-boot/boot/util"
@@ -27,26 +28,23 @@ import (
 
 var repoCmd = &cobra.Command{
 	Use:     "repo",
-	Short:   "Initialize a repo with the apiserver scaffolding and vendor/ dependencies",
-	Long:    `Initialize a repo with the apiserver scaffolding and vendor/ dependencies`,
+	Short:   "Initialize a repo with the apiserver scaffolding and glide dependencies",
+	Long:    `Initialize a repo with the apiserver scaffolding and glide dependencies`,
 	Example: `apiserver-boot init repo --domain mydomain`,
 	Run:     RunInitRepo,
 }
 
 var installDeps bool
 var domain string
-var copyright string
+var copyright string = "boilerplate.go.txt"
 
 func AddInitRepo(cmd *cobra.Command) {
 	cmd.AddCommand(repoCmd)
 	repoCmd.Flags().StringVar(&domain, "domain", "", "domain the api groups live under")
 
 	// Hide this flag by default
-	repoCmd.Flags().StringVar(&copyright, "copyright", "boilerplate.go.txt", "Location of copyright boilerplate file.")
 	repoCmd.Flags().
 		BoolVar(&installDeps, "install-deps", true, "if true, install the vendored deps packaged with apiserver-boot.")
-	repoCmd.Flags().
-		BoolVar(&Update, "update", false, "if true, don't touch Gopkg.toml or Gopkg.lock, and replace versions of packages managed by apiserver-boot.")
 	repoCmd.Flags().MarkHidden("install-deps")
 }
 
@@ -56,34 +54,22 @@ func RunInitRepo(cmd *cobra.Command, args []string) {
 	}
 	cr := util.GetCopyright(copyright)
 
-	createBazelWorkspace()
 	createApiserver(cr)
 	createControllerManager(cr)
 	createAPIs(cr)
+	createDocs()
 
 	createPackage(cr, filepath.Join("pkg"))
 	createPackage(cr, filepath.Join("pkg", "controller"))
 	createPackage(cr, filepath.Join("pkg", "controller", "sharedinformers"))
 	createPackage(cr, filepath.Join("pkg", "openapi"))
 
-	os.MkdirAll("bin", 0700)
+	exec.Command("mkdir", "-p", filepath.Join("bin")).CombinedOutput()
 
 	if installDeps {
-		log.Printf("installing vendor/ directory.  To disable this, run with --install-deps=false.")
-		RunVendorInstall(nil, nil)
+		log.Printf("installing godeps.  To disable this, run with --install-deps=false.")
+		copyGlide()
 	}
-}
-
-func createBazelWorkspace() {
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	path := filepath.Join(dir, "WORKSPACE")
-	util.WriteIfNotFound(path, "bazel-workspace-template", workspaceTemplate, nil)
-	path = filepath.Join(dir, "BUILD.bazel")
-	util.WriteIfNotFound(path, "bazel-build-template",
-		buildTemplate, buildTemplateArguments{util.Repo})
 }
 
 type controllerManagerTemplateArguments struct {
@@ -133,6 +119,7 @@ func createControllerManager(boilerplate string) {
 			boilerplate,
 			util.Repo,
 		})
+
 }
 
 type apiserverTemplateArguments struct {
@@ -147,7 +134,7 @@ var apiserverTemplate = `
 package main
 
 import (
-	// Make sure dep tools picks up these dependencies
+	// Make sure glide gets these dependencies
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "github.com/go-openapi/loads"
 
@@ -235,37 +222,8 @@ package apis
 
 `
 
-var workspaceTemplate = `
-http_archive(
-    name = "io_bazel_rules_go",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.6.0/rules_go-0.6.0.tar.gz",
-    sha256 = "ba6feabc94a5d205013e70792accb6cce989169476668fbaf98ea9b342e13b59",
-)
-load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_toolchains")
-go_rules_dependencies()
-go_register_toolchains()
-
-load("@io_bazel_rules_go//proto:def.bzl", "proto_register_toolchains")
-proto_register_toolchains()
-`
-
-type buildTemplateArguments struct {
-	Repo string
+func createDocs() {
+	exec.Command("mkdir", "-p", filepath.Join("docs", "openapi-spec")).CombinedOutput()
+	exec.Command("mkdir", "-p", filepath.Join("docs", "static_includes")).CombinedOutput()
+	exec.Command("mkdir", "-p", filepath.Join("docs", "examples")).CombinedOutput()
 }
-
-var buildTemplate = `
-# gazelle:proto disable
-# gazelle:exclude vendor
-load("@io_bazel_rules_go//go:def.bzl", "gazelle")
-
-gazelle(
-    name = "gazelle",
-    command = "fix",
-    prefix = "{{.Repo}}",
-    external = "vendored",
-    args = [
-        "-build_file_name",
-        "BUILD,BUILD.bazel",
-    ],
-)
-`

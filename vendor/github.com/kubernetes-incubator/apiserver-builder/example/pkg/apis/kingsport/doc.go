@@ -1,3 +1,4 @@
+
 /*
 Copyright YEAR The Kubernetes Authors.
 
@@ -14,8 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+
+
+
 // +k8s:deepcopy-gen=package,register
 // +groupName=kingsport.k8s.io
 
 // Package api is the internal version of the API.
 package kingsport
+

@@ -7,15 +7,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubernetes-incubator/apiserver-builder/pkg/controller"
-	"github.com/prometheus/common/log"
+	"github.com/golang/glog"
+
+	"k8s.io/client-go/tools/clientcmd"
 
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	apiregistrationclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
+	// apiregistrationclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 
 	. "github.com/onsi/ginkgo"
@@ -24,7 +26,7 @@ import (
 
 const (
 	// Default timeout for pools
-	PoolTimeout = 60 * time.Second
+	PoolTimeout = 5 * time.Minute
 	// Default waiting interval for pools
 	PollInterval = 5 * time.Second
 	// Node waiting internal
@@ -34,7 +36,7 @@ const (
 	PoolDeletionTimeout             = 1 * time.Minute
 	// Pool timeout for kubeconfig
 	PoolKubeConfigTimeout = 10 * time.Minute
-	PoolNodesReadyTimeout = 5 * time.Minute
+	PoolNodesReadyTimeout = 10 * time.Minute
 	// Instances are running timeout
 	TimeoutPoolMachineRunningInterval = 10 * time.Minute
 )
@@ -52,12 +54,18 @@ var sshuser string
 
 var actuatorImage string
 
+var libvirtURI string
+var libvirtPK string
+
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "kubeconfig file")
 	flag.StringVar(&ClusterID, "cluster-id", "", "cluster ID")
 	flag.StringVar(&sshkey, "ssh-key", "", "Path to private ssh to connect to instances (e.g. to download kubeconfig or copy docker images)")
 	flag.StringVar(&sshuser, "ssh-user", "ec2-user", "Ssh user to connect to instances")
 	flag.StringVar(&actuatorImage, "actuator-image", "gcr.io/k8s-cluster-api/machine-controller:0.0.1", "Actuator image to run")
+	// libvirt specific flags
+	flag.StringVar(&libvirtURI, "libvirt-uri", "", "Libvirt URI to connect to libvirt from within machine controller container")
+	flag.StringVar(&libvirtPK, "libvirt-pk", "", "Private key to connect to qemu+ssh libvirt uri")
 
 	flag.Parse()
 }
@@ -73,13 +81,17 @@ type SSHConfig struct {
 
 // Framework supports common operations used by tests
 type Framework struct {
-	KubeClient            *kubernetes.Clientset
-	CAPIClient            *clientset.Clientset
-	APIRegistrationClient *apiregistrationclientset.Clientset
-	Kubeconfig            string
-	RestConfig            *rest.Config
+	KubeClient         *kubernetes.Clientset
+	CAPIClient         *clientset.Clientset
+	APIExtensionClient *apiextensionsclientset.Clientset
+	// APIRegistrationClient *apiregistrationclientset.Clientset
+	Kubeconfig string
+	RestConfig *rest.Config
 
 	SSH *SSHConfig
+
+	LibvirtURI string
+	LibvirtPK  string
 
 	ActuatorImage  string
 	ErrNotExpected ErrNotExpectedFnc
@@ -100,6 +112,9 @@ func NewFramework() (*Framework, error) {
 			Key:  sshkey,
 			User: sshuser,
 		},
+
+		LibvirtURI: libvirtURI,
+		LibvirtPK:  libvirtPK,
 
 		ActuatorImage: actuatorImage,
 	}
@@ -127,6 +142,8 @@ func NewFrameworkFromConfig(config *rest.Config, sshConfig *SSHConfig) (*Framewo
 		RestConfig:    config,
 		SSH:           sshConfig,
 		ActuatorImage: actuatorImage,
+		LibvirtURI:    libvirtURI,
+		LibvirtPK:     libvirtPK,
 	}
 
 	f.ErrNotExpected = f.DefaultErrNotExpected
@@ -140,7 +157,11 @@ func (f *Framework) buildClientsets() error {
 	var err error
 
 	if f.RestConfig == nil {
-		f.RestConfig, err = controller.GetConfig(f.Kubeconfig)
+		config, err := clientcmd.LoadFromFile(f.Kubeconfig)
+		if err != nil {
+			return err
+		}
+		f.RestConfig, err = clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
 		if err != nil {
 			return err
 		}
@@ -160,8 +181,8 @@ func (f *Framework) buildClientsets() error {
 		}
 	}
 
-	if f.APIRegistrationClient == nil {
-		f.APIRegistrationClient, err = apiregistrationclientset.NewForConfig(f.RestConfig)
+	if f.APIExtensionClient == nil {
+		f.APIExtensionClient, err = apiextensionsclientset.NewForConfig(f.RestConfig)
 		if err != nil {
 			return err
 		}
@@ -182,7 +203,7 @@ func (f *Framework) ScaleSatefulSetDownToZero(statefulset *appsv1beta2.StatefulS
 	err := wait.Poll(PollInterval, PoolDeletionTimeout, func() (bool, error) {
 		// give it some time
 		_, err := f.KubeClient.AppsV1beta2().StatefulSets(statefulset.Namespace).Update(statefulset)
-		log.Infof("ScaleSatefulSetDownToZero.err: %v\n", err)
+		glog.V(2).Infof("ScaleSatefulSetDownToZero.err: %v\n", err)
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
 				return true, nil
@@ -219,7 +240,7 @@ func (f *Framework) ScaleDeploymentDownToZero(deployment *appsv1beta2.Deployment
 	err := wait.Poll(PollInterval, PoolDeletionTimeout, func() (bool, error) {
 		// give it some time
 		_, err := f.KubeClient.AppsV1beta2().Deployments(deployment.Namespace).Update(deployment)
-		log.Infof("ScaleDeploymentDownToZero.err: %v\n", err)
+		glog.V(2).Infof("ScaleDeploymentDownToZero.err: %v\n", err)
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
 				return true, nil
@@ -254,7 +275,7 @@ func WaitUntilDeleted(delFnc func() error, getFnc func() error) error {
 	return wait.Poll(PollInterval, PoolDeletionTimeout, func() (bool, error) {
 
 		err := delFnc()
-		log.Infof("del.err: %v\n", err)
+		glog.V(2).Infof("del.err: %v\n", err)
 		if err != nil {
 			if strings.Contains(err.Error(), "object is being deleted") {
 				return false, nil
@@ -266,8 +287,29 @@ func WaitUntilDeleted(delFnc func() error, getFnc func() error) error {
 		}
 
 		err = getFnc()
-		log.Infof("get.err: %v\n", err)
+		glog.V(2).Infof("get.err: %v\n", err)
 		if err != nil && strings.Contains(err.Error(), "not found") {
+			return true, nil
+		}
+		return false, nil
+	})
+}
+
+func WaitUntilCreated(createFnc func() error, getFnc func() error) error {
+	return wait.Poll(PollInterval, PoolDeletionTimeout, func() (bool, error) {
+
+		err := createFnc()
+		glog.V(2).Infof("create.err: %v\n", err)
+		if err != nil {
+			if strings.Contains(err.Error(), "already exists") {
+				return true, nil
+			}
+			return false, nil
+		}
+
+		err = getFnc()
+		glog.V(2).Infof("get.err: %v\n", err)
+		if err == nil {
 			return true, nil
 		}
 		return false, nil
@@ -299,18 +341,20 @@ func SigKubeDescribe(text string, body func()) bool {
 }
 
 func (f *Framework) UploadDockerImageToInstance(image, targetMachine string) error {
-	log.Infof("Uploading %q to the master machine under %q", image, targetMachine)
-	cmd := exec.Command("bash", "-c", fmt.Sprintf(
-		"docker save %v | bzip2 | ssh -o StrictHostKeyChecking=no -i %v ec2-user@%v \"bunzip2 > /tmp/tempimage.bz2 && sudo docker load -i /tmp/tempimage.bz2\"",
+	glog.V(2).Infof("Uploading %q to the master machine under %q", image, targetMachine)
+	cmdStr := fmt.Sprintf(
+		"docker save %v | bzip2 | ssh -o StrictHostKeyChecking=no -i %v %v@%v \"bunzip2 > /tmp/tempimage.bz2 && sudo docker load -i /tmp/tempimage.bz2\"",
 		image,
 		f.SSH.Key,
+		f.SSH.User,
 		targetMachine,
-	))
+	)
+	cmd := exec.Command("bash", "-c", cmdStr)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Info(string(out))
+		glog.V(2).Info(string(out))
 		return err
 	}
-	log.Info(string(out))
+	glog.V(2).Info(string(out))
 	return nil
 }

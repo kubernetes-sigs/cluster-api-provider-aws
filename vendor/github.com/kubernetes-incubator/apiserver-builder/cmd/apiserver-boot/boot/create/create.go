@@ -26,7 +26,7 @@ var createCmd = &cobra.Command{
 	Long:  `Command group for bootstrapping new resources.`,
 	Example: `# Create new resource "Bee" in the "insect" group with version "v1beta"
 # Will automatically the group and version if they do not exist
-apiserver-boot create group version resource --group insect --version v1beta1 --kind Bee
+apiserver-boot create group version kind --group insect --version v1beta --kind Bee
 
 # Create a new group "insect"
 apiserver-boot create group --group insect
@@ -37,15 +37,11 @@ apiserver-boot create group --group insect --version v1beta`,
 	Run: RunCreate,
 }
 
-var copyright string
+var copyright string = "boilerplate.go.txt"
 
 func AddCreate(cmd *cobra.Command) {
 	cmd.AddCommand(createCmd)
-	cmd.Flags().StringVar(&copyright, "copyright", "boilerplate.go.txt", "Location of copyright boilerplate file.")
 	AddCreateGroup(createCmd)
-	AddCreateResource(createCmd)
-	AddCreateSubresource(createCmd)
-	AddCreateVersion(createCmd)
 }
 
 func RunCreate(cmd *cobra.Command, args []string) {

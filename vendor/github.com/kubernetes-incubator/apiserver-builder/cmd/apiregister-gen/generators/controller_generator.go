@@ -21,8 +21,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/markbates/inflect"
 	"k8s.io/gengo/generator"
+	"github.com/markbates/inflect"
 )
 
 type controllerGenerator struct {
@@ -56,8 +56,7 @@ func (d *controllerGenerator) Imports(c *generator.Context) []string {
 func (d *controllerGenerator) Finalize(context *generator.Context, w io.Writer) error {
 	temp := template.Must(template.New("controller-template").Funcs(
 		template.FuncMap{
-			"title":  strings.Title,
-			"plural": inflect.NewDefaultRuleset().Pluralize,
+			"title": strings.Title,
 		},
 	).Parse(ControllerAPITemplate))
 	return temp.Execute(w, d.controller)
@@ -75,47 +74,24 @@ type {{.Target.Kind}}Controller struct {
 
 	BeforeReconcile func(key string)
 	AfterReconcile  func(key string, err error)
-
-	Informers *sharedinformers.SharedInformers
 }
 
 // NewController returns a new {{.Target.Kind}}Controller for responding to {{.Target.Kind}} events
 func New{{.Target.Kind}}Controller(config *rest.Config, si *sharedinformers.SharedInformers) *{{.Target.Kind}}Controller {
 	q := workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "{{.Target.Kind}}")
 
-	queue := &controller.QueueWorker{q, 10, "{{.Target.Kind}}", nil}
-	c := &{{.Target.Kind}}Controller{queue, nil, "{{.Target.Kind}}", nil, nil, si}
-
 	// For non-generated code to add events
 	uc := &{{.Target.Kind}}ControllerImpl{}
-	var ci sharedinformers.Controller = uc
+	uc.Init(config, si, q)
 
-    // Call the Init method that is implemented.
-    // Support multiple Init methods for backwards compatibility
-	if i, ok := ci.(sharedinformers.LegacyControllerInit); ok {
-        i.Init(config, si, c.LookupAndReconcile)
-    } else if i, ok := ci.(sharedinformers.ControllerInit); ok {
-        i.Init(&sharedinformers.ControllerInitArgumentsImpl{si, config, c.LookupAndReconcile})
-    }
-
-	c.controller = uc
-
+	queue := &controller.QueueWorker{q, 10, "{{.Target.Kind}}", nil}
+	c := &{{.Target.Kind}}Controller{queue, uc, "{{.Target.Kind}}", nil, nil}
 	queue.Reconcile = c.reconcile
-	if c.Informers.WorkerQueues == nil {
-		c.Informers.WorkerQueues = map[string]*controller.QueueWorker{}
-	}
-	c.Informers.WorkerQueues["{{.Target.Kind}}"] = queue
-	si.Factory.{{title .Target.Group}}().{{title .Target.Version}}().{{plural .Target.Kind }}().Informer().
-        AddEventHandler(&controller.QueueingEventHandler{q, nil, false})
 	return c
 }
 
 func (c *{{.Target.Kind}}Controller) GetName() string {
 	return c.Name
-}
-
-func (c *{{.Target.Kind}}Controller) LookupAndReconcile(key string) (err error) {
-	return c.reconcile(key)
 }
 
 func (c *{{.Target.Kind}}Controller) reconcile(key string) (err error) {
@@ -153,10 +129,7 @@ func (c *{{.Target.Kind}}Controller) reconcile(key string) (err error) {
 }
 
 func (c *{{.Target.Kind}}Controller) Run(stopCh <-chan struct{}) {
-	for _, q := range c.Informers.WorkerQueues {
-		q.Run(stopCh)
-	}
-    controller.GetDefaults(c.controller).Run(stopCh)
+	c.queue.Run(stopCh)
 }
 `
 
@@ -201,8 +174,7 @@ func (d *allControllerGenerator) Imports(c *generator.Context) []string {
 func (d *allControllerGenerator) Finalize(context *generator.Context, w io.Writer) error {
 	temp := template.Must(template.New("all-controller-template").Funcs(
 		template.FuncMap{
-			"title":  strings.Title,
-			"plural": inflect.NewDefaultRuleset().Pluralize,
+			"title": strings.Title,
 		},
 	).Parse(AllControllerAPITemplate))
 	return temp.Execute(w, d)
@@ -244,18 +216,16 @@ func (d *informersGenerator) Imports(c *generator.Context) []string {
 	repo := d.Controllers[0].Repo
 	return []string{
 		"time",
-		"github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
 		"k8s.io/client-go/rest",
 		repo + "/pkg/client/clientset_generated/clientset",
 		repo + "/pkg/client/informers_generated/externalversions",
-		"k8s.io/client-go/tools/cache",
 	}
 }
 
 func (d *informersGenerator) Finalize(context *generator.Context, w io.Writer) error {
 	temp := template.Must(template.New("informersGenerator-template").Funcs(
 		template.FuncMap{
-			"title":  strings.Title,
+			"title": strings.Title,
 			"plural": inflect.NewDefaultRuleset().Pluralize,
 		},
 	).Parse(InformersTemplate))
@@ -266,22 +236,14 @@ var InformersTemplate = `
 // SharedInformers wraps all informers used by controllers so that
 // they are shared across controller implementations
 type SharedInformers struct {
-	controller.SharedInformersDefaults
-	Factory           externalversions.SharedInformerFactory
+	Factory externalversions.SharedInformerFactory
 }
 
 // newSharedInformers returns a set of started informers
 func NewSharedInformers(config *rest.Config, shutdown <-chan struct{}) *SharedInformers {
-	si := &SharedInformers{
-		controller.SharedInformersDefaults{},
-		externalversions.NewSharedInformerFactory(clientset.NewForConfigOrDie(config), 10*time.Minute),
-	}
-    if si.SetupKubernetesTypes() {
-        si.InitKubernetesInformers(config)
-    }
-	si.Init()
+	cs := clientset.NewForConfigOrDie(config)
+	si := &SharedInformers{externalversions.NewSharedInformerFactory(cs, 10*time.Minute)}
 	si.startInformers(shutdown)
-	si.StartAdditionalInformers(shutdown)
 	return si
 }
 
@@ -292,66 +254,4 @@ func (si *SharedInformers) startInformers(shutdown <-chan struct{}) {
 	{{ end -}}
 }
 
-// ControllerInitArguments are arguments provided to the Init function for a new controller.
-type ControllerInitArguments interface {
-    // GetSharedInformers returns the SharedInformers that can be used to access
-    // informers and listers for watching and indexing Kubernetes Resources
-    GetSharedInformers() *SharedInformers
-
-    // GetRestConfig returns the Config to create new client-go clients
-    GetRestConfig() *rest.Config
-
-    // Watch uses resourceInformer to watch a resource.  When create, update, or deletes
-    // to the resource type are encountered, watch uses watchResourceToReconcileResourceKey
-    // to lookup the key for the resource reconciled by the controller (maybe a different type
-    // than the watched resource), and enqueue it to be reconciled.
-    // watchName: name of the informer.  may appear in logs
-    // resourceInformer: gotten from the SharedInformer.  controls which resource type is watched
-    // getReconcileKey: takes an instance of the watched resource and returns
-    //                                      a key for the reconciled resource type to enqueue.
-	Watch(watchName string, resourceInformer cache.SharedIndexInformer,
-            getReconcileKey func(interface{}) (string, error))
-}
-
-type ControllerInitArgumentsImpl struct {
-    Si *SharedInformers
-    Rc *rest.Config
-    Rk func(key string) error
-}
-
-func (c ControllerInitArgumentsImpl) GetSharedInformers() *SharedInformers {
-  return c.Si
-}
-
-func (c ControllerInitArgumentsImpl) GetRestConfig() *rest.Config {
-  return c.Rc
-}
-
-// Watch uses resourceInformer to watch a resource.  When create, update, or deletes
-// to the resource type are encountered, watch uses watchResourceToReconcileResourceKey
-// to lookup the key for the resource reconciled by the controller (maybe a different type
-// than the watched resource), and enqueue it to be reconciled.
-// watchName: name of the informer.  may appear in logs
-// resourceInformer: gotten from the SharedInformer.  controls which resource type is watched
-// getReconcileKey: takes an instance of the watched resource and returns
-//                                      a key for the reconciled resource type to enqueue.
-func (c ControllerInitArgumentsImpl) Watch(
-    watchName string, resourceInformer cache.SharedIndexInformer,
-    getReconcileKey func(interface{}) (string, error)) {
-    c.Si.Watch(watchName, resourceInformer, getReconcileKey, c.Rk)
-}
-
-type Controller interface {}
-
-// LegacyControllerInit old controllers may implement this, and we keep
-// it for backwards compatibility.
-type LegacyControllerInit interface {
-    Init(config *rest.Config, si *SharedInformers, r func(key string) error)
-}
-
-// ControllerInit new controllers should implement this.  It is more flexible in
-// allowing additional options to be passed in
-type ControllerInit interface {
-    Init(args ControllerInitArguments)
-}
 `

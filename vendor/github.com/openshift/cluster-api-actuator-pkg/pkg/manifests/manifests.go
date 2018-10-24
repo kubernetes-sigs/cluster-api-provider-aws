@@ -5,231 +5,877 @@ import (
 	"fmt"
 	"text/template"
 
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/cert/triple"
-	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
+	// apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func ClusterAPIServerAPIServiceObjects(clusterAPINamespace string) (*apiv1.Secret, *apiregistrationv1beta1.APIService, error) {
-	// Copied from the https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/deployer/clusterapiserver.go#L46 (getApiServerCertsForNamespace)
-	name := "clusterapi"
-
-	caKeyPair, err := triple.NewCA(fmt.Sprintf("%s-certificate-authority", name))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create root-ca: %v", err)
+func ClusterCRDManifest() *v1beta1.CustomResourceDefinition {
+	return &v1beta1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CustomResourceDefinition",
+			APIVersion: "apiextensions.k8s.io/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "clusters.cluster.k8s.io",
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "cluster.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Plural: "clusters",
+				Kind:   "Cluster",
+			},
+			Scope: "Namespaced",
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"spec": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Required: []string{
+								"clusterNetwork",
+							},
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"clusterNetwork": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Required: []string{
+										"services",
+										"pods",
+										"serviceDomain",
+									},
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"pods": v1beta1.JSONSchemaProps{
+											Type: "object",
+											Required: []string{
+												"cidrBlocks",
+											},
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"cidrBlocks": v1beta1.JSONSchemaProps{
+													Type: "array",
+													Items: &v1beta1.JSONSchemaPropsOrArray{
+														Schema: &v1beta1.JSONSchemaProps{
+															Type: "string",
+														},
+													},
+												},
+											},
+										},
+										"serviceDomain": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+										"services": v1beta1.JSONSchemaProps{
+											Type: "object",
+											Required: []string{
+												"cidrBlocks",
+											},
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"cidrBlocks": v1beta1.JSONSchemaProps{
+													Type: "array",
+													Items: &v1beta1.JSONSchemaPropsOrArray{
+														Schema: &v1beta1.JSONSchemaProps{
+															Type: "string",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+								"providerConfig": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"value": v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+										"valueFrom": v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+									},
+								},
+							},
+						},
+						"status": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"providerStatus": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+								"apiEndpoints": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+											Required: []string{
+												"host",
+												"port",
+											},
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"host": v1beta1.JSONSchemaProps{
+													Type: "string",
+												},
+												"port": v1beta1.JSONSchemaProps{
+													Type:   "integer",
+													Format: "int64",
+												},
+											},
+										},
+									},
+								},
+								"errorMessage": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+								"errorReason": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+					},
+				},
+			},
+		},
 	}
-
-	apiServerKeyPair, err := triple.NewServerKeyPair(
-		caKeyPair,
-		fmt.Sprintf("%s.%s.svc", name, clusterAPINamespace),
-		name,
-		clusterAPINamespace,
-		"cluster.local",
-		[]string{},
-		[]string{})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create apiserver key pair: %v", err)
-	}
-
-	return &apiv1.Secret{
-			Type: "kubernetes.io/tls",
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cluster-apiserver-certs",
-				Namespace: clusterAPINamespace,
-				Labels: map[string]string{
-					"api":       "clusterapi",
-					"apiserver": "true",
-				},
-			},
-			Data: map[string][]byte{
-				"tls.crt": cert.EncodeCertPEM(apiServerKeyPair.Cert),
-				"tls.key": cert.EncodePrivateKeyPEM(apiServerKeyPair.Key),
-			},
-		}, &apiregistrationv1beta1.APIService{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "v1alpha1.cluster.k8s.io",
-				Namespace: clusterAPINamespace,
-				Labels: map[string]string{
-					"api":       "clusterapi",
-					"apiserver": "true",
-				},
-			},
-			Spec: apiregistrationv1beta1.APIServiceSpec{
-				Version:              "v1alpha1",
-				Group:                "cluster.k8s.io",
-				GroupPriorityMinimum: 2000,
-				Service: &apiregistrationv1beta1.ServiceReference{
-					Name:      "clusterapi",
-					Namespace: clusterAPINamespace,
-				},
-				VersionPriority: 10,
-				CABundle:        cert.EncodeCertPEM(caKeyPair.Cert),
-			},
-		}, nil
 }
 
-func ClusterAPIService(clusterAPINamespace string) *apiv1.Service {
-	return &apiv1.Service{
+func MachineCRDManifest() *v1beta1.CustomResourceDefinition {
+	return &v1beta1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CustomResourceDefinition",
+			APIVersion: "apiextensions.k8s.io/v1beta1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "clusterapi",
+			Name: "machines.cluster.k8s.io",
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "cluster.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Plural: "machines",
+				Kind:   "Machine",
+			},
+			Scope: "Namespaced",
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+						"spec": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Required: []string{
+								"providerConfig",
+							},
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"versions": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Required: []string{
+										"kubelet",
+									},
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"controlPlane": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+										"kubelet": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+									},
+								},
+								"configSource": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+								"metadata": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+								"providerConfig": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"value": v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+										"valueFrom": v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+									},
+								},
+								"taints": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+									},
+								},
+							},
+						},
+						"status": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"providerStatus": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+								"versions": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Required: []string{
+										"kubelet",
+									},
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"controlPlane": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+										"kubelet": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+									},
+								},
+								"addresses": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+									},
+								},
+								"conditions": v1beta1.JSONSchemaProps{
+									Type: "array",
+									Items: &v1beta1.JSONSchemaPropsOrArray{
+										Schema: &v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+									},
+								},
+								"errorMessage": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+								"errorReason": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+								"lastUpdated": v1beta1.JSONSchemaProps{
+									Type:   "string",
+									Format: "date-time",
+								},
+								"nodeRef": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func MachineSetCRDManifest() *v1beta1.CustomResourceDefinition {
+	return &v1beta1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CustomResourceDefinition",
+			APIVersion: "apiextensions.k8s.io/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machinesets.cluster.k8s.io",
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "cluster.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Plural: "machinesets",
+				Kind:   "MachineSet",
+			},
+			Scope: v1beta1.ResourceScope("Namespaced"),
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"status": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Required: []string{
+								"replicas",
+							},
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"errorMessage": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+								"errorReason": v1beta1.JSONSchemaProps{
+									Type: "string",
+								},
+								"fullyLabeledReplicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"observedGeneration": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int64",
+								},
+								"readyReplicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"replicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"availableReplicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+							},
+						},
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+						"spec": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Required: []string{
+								"selector",
+							},
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"minReadySeconds": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"replicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"selector": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+								"template": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"metadata": v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+										"spec": v1beta1.JSONSchemaProps{
+											Type: "object",
+											Required: []string{
+												"providerConfig",
+											},
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"configSource": v1beta1.JSONSchemaProps{
+													Type: "object",
+												},
+												"metadata": v1beta1.JSONSchemaProps{
+													Type: "object",
+												},
+												"providerConfig": v1beta1.JSONSchemaProps{
+													Type: "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{
+														"value": v1beta1.JSONSchemaProps{
+															Type: "object",
+														},
+														"valueFrom": v1beta1.JSONSchemaProps{
+															Type: "object",
+														},
+													},
+												},
+												"taints": v1beta1.JSONSchemaProps{
+													Type: "array",
+													Items: &v1beta1.JSONSchemaPropsOrArray{
+														Schema: &v1beta1.JSONSchemaProps{
+															Type: "object",
+														},
+													},
+												},
+												"versions": v1beta1.JSONSchemaProps{
+													Type: "object",
+													Required: []string{
+														"kubelet",
+													},
+													Properties: map[string]v1beta1.JSONSchemaProps{
+														"controlPlane": v1beta1.JSONSchemaProps{
+															Type: "string",
+														},
+														"kubelet": v1beta1.JSONSchemaProps{
+															Type: "string",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func MachineDeploymentCRDManifest() *v1beta1.CustomResourceDefinition {
+	return &v1beta1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CustomResourceDefinition",
+			APIVersion: "apiextensions.k8s.io/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machinedeployments.cluster.k8s.io",
+			Labels: map[string]string{
+				"controller-tools.k8s.io": "1.0",
+			},
+		},
+		Spec: v1beta1.CustomResourceDefinitionSpec{
+			Group:   "cluster.k8s.io",
+			Version: "v1alpha1",
+			Names: v1beta1.CustomResourceDefinitionNames{
+				Plural: "machinedeployments",
+				Kind:   "MachineDeployment",
+			},
+			Scope: "Namespaced",
+			Validation: &v1beta1.CustomResourceValidation{
+				OpenAPIV3Schema: &v1beta1.JSONSchemaProps{
+					Properties: map[string]v1beta1.JSONSchemaProps{
+						"apiVersion": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"kind": v1beta1.JSONSchemaProps{
+							Type: "string",
+						},
+						"metadata": v1beta1.JSONSchemaProps{
+							Type: "object",
+						},
+						"spec": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Required: []string{
+								"selector",
+								"template",
+							},
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"paused": v1beta1.JSONSchemaProps{
+									Type: "boolean",
+								},
+								"progressDeadlineSeconds": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"replicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"revisionHistoryLimit": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"selector": v1beta1.JSONSchemaProps{
+									Type: "object",
+								},
+								"strategy": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"rollingUpdate": v1beta1.JSONSchemaProps{
+											Type: "object",
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"maxSurge": v1beta1.JSONSchemaProps{
+													Type: "object",
+												},
+												"maxUnavailable": v1beta1.JSONSchemaProps{
+													Type: "object",
+												},
+											},
+										},
+										"type": v1beta1.JSONSchemaProps{
+											Type: "string",
+										},
+									},
+								},
+								"template": v1beta1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]v1beta1.JSONSchemaProps{
+										"metadata": v1beta1.JSONSchemaProps{
+											Type: "object",
+										},
+										"spec": v1beta1.JSONSchemaProps{
+											Type: "object",
+											Required: []string{
+												"providerConfig",
+											},
+											Properties: map[string]v1beta1.JSONSchemaProps{
+												"versions": v1beta1.JSONSchemaProps{
+													Type: "object",
+													Required: []string{
+														"kubelet",
+													},
+													Properties: map[string]v1beta1.JSONSchemaProps{
+														"controlPlane": v1beta1.JSONSchemaProps{
+															Type: "string",
+														},
+														"kubelet": v1beta1.JSONSchemaProps{
+															Type: "string",
+														},
+													},
+												},
+												"configSource": v1beta1.JSONSchemaProps{
+													Type: "object",
+												},
+												"metadata": v1beta1.JSONSchemaProps{
+													Type: "object",
+												},
+												"providerConfig": v1beta1.JSONSchemaProps{
+													Type: "object",
+													Properties: map[string]v1beta1.JSONSchemaProps{
+														"valueFrom": v1beta1.JSONSchemaProps{
+															Type: "object",
+														},
+														"value": v1beta1.JSONSchemaProps{
+															Type: "object",
+														},
+													},
+												},
+												"taints": v1beta1.JSONSchemaProps{
+													Type: "array",
+													Items: &v1beta1.JSONSchemaPropsOrArray{
+														Schema: &v1beta1.JSONSchemaProps{
+															Type: "object",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+								"minReadySeconds": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+							},
+						},
+						"status": v1beta1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1beta1.JSONSchemaProps{
+								"readyReplicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"replicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"unavailableReplicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"updatedReplicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"availableReplicas": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int32",
+								},
+								"observedGeneration": v1beta1.JSONSchemaProps{
+									Type:   "integer",
+									Format: "int64",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func ClusterRoleManifest() *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterRole",
+			APIVersion: "rbac.authorization.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "manager-role",
+		},
+		Rules: []rbacv1.PolicyRule{
+			rbacv1.PolicyRule{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{
+					"cluster.k8s.io",
+				},
+				Resources: []string{
+					"clusters",
+				},
+			},
+			rbacv1.PolicyRule{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{
+					"cluster.k8s.io",
+				},
+				Resources: []string{
+					"machines",
+				},
+			},
+			rbacv1.PolicyRule{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{
+					"cluster.k8s.io",
+				},
+				Resources: []string{
+					"machinedeployments",
+				},
+			},
+			rbacv1.PolicyRule{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{
+					"cluster.k8s.io",
+				},
+				Resources: []string{
+					"machinesets",
+				},
+			},
+			rbacv1.PolicyRule{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{
+					"cluster.k8s.io",
+				},
+				Resources: []string{
+					"machines",
+				},
+			},
+			rbacv1.PolicyRule{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{
+					"",
+				},
+				Resources: []string{
+					"nodes",
+				},
+			},
+			rbacv1.PolicyRule{
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+					"patch",
+					"delete",
+				},
+				APIGroups: []string{
+					"cluster.k8s.io",
+				},
+				Resources: []string{
+					"machines",
+				},
+			},
+		},
+	}
+}
+
+func ClusterRoleBinding(clusterAPINamespace string) *rbacv1.ClusterRoleBinding {
+	return &rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterRoleBinding",
+			APIVersion: "rbac.authorization.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "manager-rolebinding",
+		},
+		Subjects: []rbacv1.Subject{
+			rbacv1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      "default",
+				Namespace: clusterAPINamespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "manager-role",
+		},
+	}
+}
+
+func ManagerManifest(clusterAPINamespace, managerImage string) *appsv1.StatefulSet {
+	var terminationGracePeriodSeconds int64 = 10
+	return &appsv1.StatefulSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "StatefulSet",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "controller-manager",
 			Namespace: clusterAPINamespace,
 			Labels: map[string]string{
-				"api":       "clusterapi",
-				"apiserver": "true",
+				"control-plane":           "controller-manager",
+				"controller-tools.k8s.io": "1.0",
+			},
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"control-plane":           "controller-manager",
+					"controller-tools.k8s.io": "1.0",
+				},
+			},
+			Template: apiv1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"control-plane":           "controller-manager",
+						"controller-tools.k8s.io": "1.0",
+					},
+				},
+				Spec: apiv1.PodSpec{
+					Containers: []apiv1.Container{
+						apiv1.Container{
+							Name:  "manager",
+							Image: managerImage,
+							Command: []string{
+								"/manager",
+							},
+							Resources: apiv1.ResourceRequirements{
+								Limits: apiv1.ResourceList{
+									"memory": resource.MustParse("30Mi"),
+									"cpu":    resource.MustParse("100m"),
+								},
+								Requests: apiv1.ResourceList{
+									"cpu":    resource.MustParse("100m"),
+									"memory": resource.MustParse("30Mi"),
+								},
+							},
+						},
+					},
+					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
+					Tolerations: []apiv1.Toleration{
+						apiv1.Toleration{
+							Key:    "node-role.kubernetes.io/master",
+							Effect: "NoSchedule",
+						},
+						apiv1.Toleration{
+							Key:      "CriticalAddonsOnly",
+							Operator: "Exists",
+						},
+						apiv1.Toleration{
+							Key:      "node.alpha.kubernetes.io/notReady",
+							Operator: "Exists",
+							Effect:   "NoExecute",
+						},
+						apiv1.Toleration{
+							Key:      "node.alpha.kubernetes.io/unreachable",
+							Operator: "Exists",
+							Effect:   "NoExecute",
+						},
+					},
+				},
+			},
+			ServiceName: "controller-manager-service",
+		},
+	}
+}
+
+func ManagerService(clusterAPINamespace string) *apiv1.Service {
+	return &apiv1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "controller-manager-service",
+			Namespace: clusterAPINamespace,
+			Labels: map[string]string{
+				"control-plane":           "controller-manager",
+				"controller-tools.k8s.io": "1.0",
 			},
 		},
 		Spec: apiv1.ServiceSpec{
 			Ports: []apiv1.ServicePort{
-				{
-					Port:       443,
-					Protocol:   apiv1.ProtocolTCP,
-					TargetPort: intstr.FromInt(443),
+				apiv1.ServicePort{
+					Port: 443,
 				},
 			},
 			Selector: map[string]string{
-				"api":       "clusterapi",
-				"apiserver": "true",
+				"control-plane":           "controller-manager",
+				"controller-tools.k8s.io": "1.0",
 			},
 		},
 	}
 }
 
-func ClusterAPIDeployment(clusterAPINamespace string) *appsv1beta2.Deployment {
+func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, ActuatorPrivateKey string) *appsv1.Deployment {
 	var replicas int32 = 1
-	return &appsv1beta2.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "clusterapi-apiserver",
-			Namespace: clusterAPINamespace,
-			Labels: map[string]string{
-				"api":       "clusterapi",
-				"apiserver": "true",
-			},
-		},
-		Spec: appsv1beta2.DeploymentSpec{
-			// https://github.com/kubernetes/kubernetes/issues/51133
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"api":       "clusterapi",
-					"apiserver": "true",
-				},
-			},
-			Replicas: &replicas,
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"api":       "clusterapi",
-						"apiserver": "true",
-					},
-				},
-				Spec: apiv1.PodSpec{
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
-					Tolerations: []apiv1.Toleration{
-						{
-							Effect: apiv1.TaintEffectNoSchedule,
-							Key:    "node-role.kubernetes.io/master",
-						},
-						{
-							Key:      "CriticalAddonsOnly",
-							Operator: "Exists",
-						},
-						{
-							Effect:   apiv1.TaintEffectNoExecute,
-							Key:      "node.alpha.kubernetes.io/notReady",
-							Operator: "Exists",
-						},
-						{
-							Effect:   apiv1.TaintEffectNoExecute,
-							Key:      "node.alpha.kubernetes.io/unreachable",
-							Operator: "Exists",
-						},
-					},
-					Containers: []apiv1.Container{
-						{
-							Name:  "apiserver",
-							Image: "gcr.io/k8s-cluster-api/cluster-apiserver:0.0.6",
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "cluster-apiserver-certs",
-									MountPath: "/apiserver.local.config/certificates",
-									ReadOnly:  true,
-								},
-								{
-									Name:      "config",
-									MountPath: "/etc/kubernetes",
-								},
-								{
-									Name:      "certs",
-									MountPath: "/etc/ssl/certs",
-								},
-							},
-							Command: []string{"./apiserver"},
-							Args: []string{
-								"--etcd-servers=http://etcd-clusterapi-svc:2379",
-								"--tls-cert-file=/apiserver.local.config/certificates/tls.crt",
-								"--tls-private-key-file=/apiserver.local.config/certificates/tls.key",
-								"--audit-log-path=-",
-								"--audit-log-maxage=0",
-								"--audit-log-maxbackup=0",
-								"--authorization-kubeconfig=/etc/kubernetes/admin.conf",
-								"--kubeconfig=/etc/kubernetes/admin.conf",
-							},
-							Resources: apiv1.ResourceRequirements{
-								Requests: apiv1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("50Mi"),
-								},
-								Limits: apiv1.ResourceList{
-									"cpu":    resource.MustParse("300m"),
-									"memory": resource.MustParse("200Mi"),
-								},
-							},
-						},
-					},
-					Volumes: []apiv1.Volume{
-						{
-							Name: "cluster-apiserver-certs",
-							VolumeSource: apiv1.VolumeSource{
-								Secret: &apiv1.SecretVolumeSource{
-									SecretName: "cluster-apiserver-certs",
-								},
-							},
-						},
-						{
-							Name: "config",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/etc/kubernetes",
-								},
-							},
-						},
-						{
-							Name: "certs",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/etc/ssl/certs",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, ActuatorPrivateKey string) *appsv1beta2.Deployment {
-	var replicas int32 = 1
-	deployment := &appsv1beta2.Deployment{
+	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "clusterapi-controllers",
 			Namespace: clusterAPINamespace,
@@ -237,7 +883,7 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 				"api": "clusterapi",
 			},
 		},
-		Spec: appsv1beta2.DeploymentSpec{
+		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"api": "clusterapi",
@@ -276,32 +922,6 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 					},
 					Containers: []apiv1.Container{
 						{
-							Name:  "controller-manager",
-							Image: actuatorImage,
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "config",
-									MountPath: "/etc/kubernetes",
-								},
-								{
-									Name:      "certs",
-									MountPath: "/etc/ssl/certs",
-								},
-							},
-							Command: []string{"./controller-manager"},
-							Args:    []string{"--kubeconfig=/etc/kubernetes/admin.conf"},
-							Resources: apiv1.ResourceRequirements{
-								Requests: apiv1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("20Mi"),
-								},
-								Limits: apiv1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("30Mi"),
-								},
-							},
-						},
-						{
 							Name:  fmt.Sprintf("machine-controller"),
 							Image: actuatorImage,
 							VolumeMounts: []apiv1.VolumeMount{
@@ -328,7 +948,7 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 									},
 								},
 							},
-							Command: []string{"./machine-controller"},
+							Command: []string{"./machine-controller-manager"},
 							Args: []string{
 								"--log-level=debug",
 								"--kubeconfig=/etc/kubernetes/admin.conf",
@@ -422,182 +1042,6 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 	}
 
 	return deployment
-}
-
-func ClusterAPIRoleBinding(clusterAPINamespace string) *rbacv1.RoleBinding {
-	return &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "clusterapi",
-			Namespace: "kube-system",
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "Role",
-			Name:     "extension-apiserver-authentication-reader",
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      "default",
-				Namespace: clusterAPINamespace,
-			},
-		},
-	}
-}
-
-func ClusterAPIEtcdCluster(clusterAPINamespace string) *appsv1beta2.StatefulSet {
-	var terminationGracePeriodSeconds int64 = 10
-	var replicas int32 = 1
-	hostPathDirectoryOrCreate := apiv1.HostPathDirectoryOrCreate
-	return &appsv1beta2.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "etcd-clusterapi",
-			Namespace: clusterAPINamespace,
-		},
-		Spec: appsv1beta2.StatefulSetSpec{
-			ServiceName: "etcd",
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "etcd",
-				},
-			},
-			Replicas: &replicas,
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "etcd",
-					},
-				},
-				Spec: apiv1.PodSpec{
-					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/master": "",
-					},
-					Tolerations: []apiv1.Toleration{
-						{
-							Effect: apiv1.TaintEffectNoSchedule,
-							Key:    "node-role.kubernetes.io/master",
-						},
-						{
-							Key:      "CriticalAddonsOnly",
-							Operator: "Exists",
-						},
-						{
-							Effect:   apiv1.TaintEffectNoExecute,
-							Key:      "node.alpha.kubernetes.io/notReady",
-							Operator: "Exists",
-						},
-						{
-							Effect:   apiv1.TaintEffectNoExecute,
-							Key:      "node.alpha.kubernetes.io/unreachable",
-							Operator: "Exists",
-						},
-					},
-					Containers: []apiv1.Container{
-						{
-							Name:  "etcd",
-							Image: "k8s.gcr.io/etcd:3.1.12",
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "etcd-data-dir",
-									MountPath: "/etcd-data-dir",
-								},
-							},
-							Env: []apiv1.EnvVar{
-								{
-									Name:  "ETCD_DATA_DIR",
-									Value: "/etcd-data-dir",
-								},
-							},
-							Command: []string{
-								"/usr/local/bin/etcd",
-								"--listen-client-urls",
-								"http://0.0.0.0:2379",
-								"--advertise-client-urls",
-								"http://localhost:2379",
-							},
-							Ports: []apiv1.ContainerPort{
-								{
-									ContainerPort: 2379,
-								},
-							},
-							Resources: apiv1.ResourceRequirements{
-								Requests: apiv1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("50Mi"),
-								},
-								Limits: apiv1.ResourceList{
-									"cpu":    resource.MustParse("200m"),
-									"memory": resource.MustParse("300Mi"),
-								},
-							},
-							ReadinessProbe: &apiv1.Probe{
-								Handler: apiv1.Handler{
-									HTTPGet: &apiv1.HTTPGetAction{
-										Port: intstr.FromInt(2379),
-										Path: "/health",
-									},
-								},
-								InitialDelaySeconds: 10,
-								TimeoutSeconds:      2,
-								PeriodSeconds:       10,
-								SuccessThreshold:    1,
-								FailureThreshold:    1,
-							},
-							LivenessProbe: &apiv1.Probe{
-								Handler: apiv1.Handler{
-									HTTPGet: &apiv1.HTTPGetAction{
-										Port: intstr.FromInt(2379),
-										Path: "/health",
-									},
-								},
-								InitialDelaySeconds: 10,
-								TimeoutSeconds:      2,
-								PeriodSeconds:       10,
-								SuccessThreshold:    1,
-								FailureThreshold:    3,
-							},
-						},
-					},
-					Volumes: []apiv1.Volume{
-						{
-							Name: "etcd-data-dir",
-							VolumeSource: apiv1.VolumeSource{
-								HostPath: &apiv1.HostPathVolumeSource{
-									Path: "/etc/kubernetes",
-									Type: &hostPathDirectoryOrCreate,
-								},
-							},
-						},
-					},
-					TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
-				},
-			},
-		},
-	}
-}
-
-func ClusterAPIEtcdService(clusterAPINamespace string) *apiv1.Service {
-	return &apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "etcd-clusterapi-svc",
-			Namespace: clusterAPINamespace,
-			Labels: map[string]string{
-				"app": "etcd",
-			},
-		},
-		Spec: apiv1.ServiceSpec{
-			Ports: []apiv1.ServicePort{
-				{
-					Port:       2379,
-					TargetPort: intstr.FromInt(2379),
-					Name:       "etcd",
-				},
-			},
-			Selector: map[string]string{
-				"app": "etcd",
-			},
-		},
-	}
 }
 
 func TestingMachine(clusterID string, namespace string, providerConfig clusterv1alpha1.ProviderConfig) *clusterv1alpha1.Machine {
