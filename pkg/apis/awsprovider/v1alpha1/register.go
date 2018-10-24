@@ -97,7 +97,6 @@ func EncodeMachineStatus(status *AWSMachineProviderStatus) (*runtime.RawExtensio
 
 	return &runtime.RawExtension{
 		Raw: rawBytes,
-		//Object: ??,
 	}, nil
 }
 
@@ -115,6 +114,5 @@ func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtensio
 
 	return &runtime.RawExtension{
 		Raw: rawBytes,
-		//Object: ??,
 	}, nil
 }
