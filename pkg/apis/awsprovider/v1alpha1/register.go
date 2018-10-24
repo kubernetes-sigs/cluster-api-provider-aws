@@ -28,6 +28,8 @@ import (
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/json"
+
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
@@ -91,7 +93,7 @@ func EncodeMachineStatus(status *AWSMachineProviderStatus) (*runtime.RawExtensio
 	var err error
 
 	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
-	if rawBytes, err = yaml.Marshal(status); err != nil {
+	if rawBytes, err = json.Marshal(status); err != nil {
 		return nil, err
 	}
 
@@ -104,11 +106,12 @@ func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtensio
 	if status == nil {
 		return &runtime.RawExtension{}, nil
 	}
+
 	var rawBytes []byte
 	var err error
 
 	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
-	if rawBytes, err = yaml.Marshal(status); err != nil {
+	if rawBytes, err = json.Marshal(status); err != nil {
 		return nil, err
 	}
 

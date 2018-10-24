@@ -22,9 +22,13 @@ rules:
   - cluster.k8s.io
   resources:
   - clusters
+  - clusters/status
   - machines
+  - machines/status
   - machinedeployments
+  - machinedeployments/status
   - machinesets
+  - machinesets/status
   verbs:
   - get
   - list
