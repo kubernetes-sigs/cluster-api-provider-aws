@@ -1,6 +1,6 @@
-From 7200e6dadae55cd330ca567d88521297c94f0acd Mon Sep 17 00:00:00 2001
+From ab07b60b23d26cc712a65d89abecf3ad495e2929 Mon Sep 17 00:00:00 2001
 From: Jan Chaloupka <jchaloup@redhat.com>
-Date: Tue, 25 Sep 2018 13:34:47 +0200
+Date: Sat, 20 Oct 2018 12:37:52 +0200
 Subject: [PATCH 2/2] Sort machines before syncing
 
 ---
@@ -8,28 +8,28 @@ Subject: [PATCH 2/2] Sort machines before syncing
  1 file changed, 13 insertions(+), 2 deletions(-)
 
 diff --git a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
-index 89f3bc5..49b68fb 100644
+index 63a8051..ce303ca 100644
 --- a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
 +++ b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
-@@ -18,6 +18,7 @@ package machineset
- 
+@@ -19,6 +19,7 @@ package machineset
  import (
+ 	"context"
  	"fmt"
 +	"sort"
  	"strings"
  	"sync"
  	"time"
-@@ -120,7 +121,8 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
+@@ -161,7 +162,8 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
  	}
- 
+
  	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
--	var filteredMachines []*v1alpha1.Machine
+-	var filteredMachines []*clusterv1alpha1.Machine
 +	var machineNames []string
-+	machineSetMachines := make(map[string]*v1alpha1.Machine)
- 	for _, machine := range allMachines {
++	machineSetMachines := make(map[string]*clusterv1alpha1.Machine)
+ 	for idx := range allMachines.Items {
+ 		machine := &allMachines.Items[idx]
  		if shouldExcludeMachine(machineSet, machine) {
- 			continue
-@@ -132,7 +134,16 @@ func (c *MachineSetControllerImpl) Reconcile(machineSet *v1alpha1.MachineSet) er
+@@ -174,7 +176,16 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
  				continue
  			}
  		}
@@ -41,12 +41,11 @@ index 89f3bc5..49b68fb 100644
 +	// sort the filteredMachines from the oldest to the youngest
 +	sort.Strings(machineNames)
 +
-+	var filteredMachines []*v1alpha1.Machine
++	var filteredMachines []*clusterv1alpha1.Machine
 +	for _, machineName := range machineNames {
 +		filteredMachines = append(filteredMachines, machineSetMachines[machineName])
  	}
- 
- 	syncErr := c.syncReplicas(machineSet, filteredMachines)
--- 
-2.7.5
 
+ 	syncErr := r.syncReplicas(machineSet, filteredMachines)
+--
+2.7.5
