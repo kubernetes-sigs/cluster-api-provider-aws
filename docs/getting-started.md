@@ -40,6 +40,8 @@
 - [jq][jq]
 - [PowerShell AWS Tools][aws_powershell]
 - [Go](https://golang.org/dl/)
+- make
+- gettext
 
 ## Prerequisites
 
@@ -201,44 +203,16 @@ $ENV:AWS_SECRET_ACCESS_KEY=$awsCredentials.SecretAccessKey
 
 ## Deploying a cluster
 
-### Starting Minikube
-For security reasons, it's best to start a Minikube instance before using
-clusterctl to store your AWS credentials.
-
-``` shell
-minikube start
-```
-
-Then write the AWS credentials into the Minikube instance for use by Cluster API:
-
-``` shell
-minikube ssh 'mkdir -p .aws'
-clusterawsadm alpha bootstrap generate-aws-default-profile | minikube ssh 'cat > .aws/credentials'
-[default]
-aws_access_key_id = AKIAIOSFODNN7EXAMPLE
-aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-region = eu-west-1
-
-
-^C
-```
-
-**NOTE**:
-> This will print the AWS credentials to the screen and then hang
-> (due to a restriction in Minikube).
-> This is OK, and you can cancel with Ctrl+C, but make sure to do this privately.
-
 ### Generating cluster manifests
 
-The shell script `generate-yaml.sh` can be used to generate the
+There is a make target `manifests` that can be used to generate the
 cluster manifests.
 
 ```bash
-cd ./cmd/clusterctl/examples/aws/
-./generate-yaml.sh
+make manifests
 ```
 
-Then edit `out/cluster.yaml` and `out/machine.yaml` for your SSH key and AWS
+Then edit `cmd/clusterctl/examples/aws/out/cluster.yaml` and `cmd/clusterctl/examples/aws/out/machine.yaml` for AWS
 region and any other customisations you want to make.
 
 ### Starting Cluster API
@@ -252,10 +226,9 @@ You can now start the Cluster API controllers and deploy a new cluster in AWS:
 
 ```bash
 clusterctl create cluster -v2 --provider aws \
-  -m ./out/machines.yaml \
-  -c ./out/cluster.yaml \
-  -p ./out/provider-components.yaml \
-  --existing-bootstrap-cluster-kubeconfig ~/.kube/config
+  -m ./cmd/clusterctl/examples/aws/out/machines.yaml \
+  -c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
+  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
 
 I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
 I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
@@ -272,10 +245,9 @@ I1018 01:21:12.524912   16367 clusterdeployer.go:123] Creating master  in namesp
 
 ```powershell
 clusterctl create cluster -v2 --provider aws `
-  -m ./config/samples/out/machines.yaml `
-  -c ./config/samples/out/cluster.yaml `
-  -p ./config/samples/out/provider-components.yaml `
-  --existing-bootstrap-cluster-kubeconfig ~/.kube/config
+  -m ./cmd/clusterctl/examples/aws/out/machines.yaml `
+  -c ./cmd/clusterctl/examples/aws/out/cluster.yaml `
+  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
 
 I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
 I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
