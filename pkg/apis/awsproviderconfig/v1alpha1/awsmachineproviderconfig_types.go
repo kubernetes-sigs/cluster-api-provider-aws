@@ -133,9 +133,9 @@ type AWSMachineProviderConfig struct {
 	// Placement specifies where to create the instance in AWS
 	Placement Placement
 
-	// LoadBalancerIDs is the IDs of the load balancers to which the new instance
+	// LoadBalancerNames is the names of the load balancers to which the new instance
 	// should be added once it is created.
-	LoadBalancerIDs []AWSResourceReference
+	LoadBalancerNames []string
 }
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
