@@ -129,6 +129,10 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
+	if err := a.storeMachineStatus(machine, status); err != nil {
+		glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+	}
+
 	if err := a.reconcileLBAttachment(cluster, machine, i); err != nil {
 		return errors.Wrap(err, "failed to reconcile LB attachment")
 	}
@@ -217,6 +221,10 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
 		return errors.Wrap(err, "failed to get machine status")
+	}
+
+	if err := a.storeMachineStatus(machine, status); err != nil {
+		glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	clusterConfig, err := a.clusterProviderConfig(cluster)
@@ -316,6 +324,22 @@ func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
 
 	if _, err := machinesClient.Update(machine); err != nil {
 		return fmt.Errorf("failed to update machine: %v", err)
+	}
+
+	return nil
+}
+
+func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
+	machinesClient := a.machinesGetter.Machines(machine.Namespace)
+
+	ext, err := v1alpha1.EncodeMachineStatus(status)
+	if err != nil {
+		return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+	}
+
+	machine.Status.ProviderStatus = ext
+	if _, err := machinesClient.UpdateStatus(machine); err != nil {
+		return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	return nil
