@@ -23,6 +23,7 @@ import (
 )
 
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;update;patch
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
 	AddToManagerFuncs = append(AddToManagerFuncs, func(m manager.Manager) error {
