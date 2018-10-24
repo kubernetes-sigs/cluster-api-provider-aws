@@ -7,7 +7,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${DIR}/out
 
 # Manager image.
-export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/k8s-cluster-api/aws-cluster-controller:0.0.1}"
+export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest}"
 
 # Machine settings.
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
