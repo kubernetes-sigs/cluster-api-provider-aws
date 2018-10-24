@@ -323,14 +323,14 @@ func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alph
 
 	ext, err := v1alpha1.EncodeMachineStatus(status)
 	if err != nil {
-		return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+		return fmt.Errorf("failed to encode machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	machine.Status.ProviderStatus = ext
 
 	if updateResource {
 		if _, err := machinesClient.Update(machine); err != nil {
-			return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+			return fmt.Errorf("failed to update machine for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 		}
 	} else {
 		if _, err := machinesClient.UpdateStatus(machine); err != nil {

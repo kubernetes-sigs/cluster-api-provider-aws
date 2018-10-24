@@ -260,6 +260,9 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.EXPECT().
+					WaitUntilInstanceRunning(gomock.Any()).
+					Return(nil)
 			},
 			check: func(instance *v1alpha1.Instance, err error) {
 				if err != nil {
