@@ -49,7 +49,7 @@ Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-a
 
 ### Installing clusterawsadm
 
-`clusterawsadm`, is a helper utlity that users might choose to use to quickly setup prerequisites.
+`clusterawsadm`, is a helper utlity to quickly setup prerequisites.
 
 > NOTE: This command requires to have a working AWS environment.
 
@@ -61,7 +61,7 @@ Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-a
 
 ```bash
 export AWS_REGION=us-east-1
-clusterawsadm alpha bootstrap create-stack
+clusterawsadm alpha bootstrap cloudformation create-stack
 ```
 
 ### SSH Key pair
@@ -150,58 +150,16 @@ minikube config set kubernetes-version v1.12.1
 minikube config set bootstrapper kubeadm
 ```
 
-### Setting up the environment
-
-The current iteration of the Cluster API Provider AWS relies on credentials being present in your environment.
-These then get written into the cluster manifests for use by the controllers.
-
-*Bash:*
-
-```bash
-# Region used to deploy the cluster in.
-export AWS_REGION=us-east-1
-
-# User access credentials.
-export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
-export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-
-# SSH Key to be used to run instances.
-export SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
-```
-
-*PowerShell:*
-
-```powershell
-$ENV:AWS_REGION = "us-east-1"
-$ENV:AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
-$ENV:AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-$ENV:SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
-```
-
-If you applied the CloudFormation template above, an IAM user was created for you:
-
-*Bash:*
-
-```bash
-export AWS_CREDENTIALS=$(aws iam create-access-key \
-  --user-name bootstrapper.cluster-api-provider-aws.sigs.k8s.io)
-export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq .AccessKey.AccessKeyId -r)
-export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq .AccessKey.SecretAccessKey -r)
-```
-
-*PowerShell:*
-
-```powershell
-$awsCredentials = New-IAMAccessKey -UserName bootstrapper.cluster-api-provider-aws.sigs.k8s.io
-$ENV:AWS_ACCESS_KEY_ID=$awsCredentials.AccessKeyId
-$ENV:AWS_SECRET_ACCESS_KEY=$awsCredentials.SecretAccessKey
-```
-
-**NOTE**:
-> To save credentials securely in your environment, [aws-vault][aws-vault] uses the OS keystore as permanent storage,
-> and offers shell features to securely expose and setup local AWS environments.
-
 ## Deploying a cluster
+
+### Generating the aws credentials
+
+If you used `clusterawsadm` to create the prerequisites, an IAM user was created for you and the AWS credentials can be populated with the following commands:
+
+```bash
+mkdir out
+clusterawsadm alpha bootstrap credentials generate-credentials bootstrapper.cluster-api-provider-aws.sigs.k8s.io > out/credentials
+```
 
 ### Generating cluster manifests
 

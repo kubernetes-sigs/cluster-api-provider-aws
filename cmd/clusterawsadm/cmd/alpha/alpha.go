@@ -27,6 +27,6 @@ func AlphaCmd() *cobra.Command {
 			cmd.Help()
 		},
 	}
-	newCmd.AddCommand(bootstrap.RootCmd())
+	newCmd.AddCommand(bootstrap.Cmd())
 	return newCmd
 }
