@@ -1,0 +1,6 @@
+resources:
+- ../samples/common-provider-components.yaml
+- ../samples/aws-provider-components.yaml
+- ../../out/credentials.yaml
+patches:
+- secret-patch.yaml

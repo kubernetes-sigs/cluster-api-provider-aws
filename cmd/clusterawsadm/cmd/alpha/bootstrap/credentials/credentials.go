@@ -15,6 +15,7 @@ package credentials
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"text/template"
@@ -24,6 +25,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/spf13/cobra"
 )
+
+// KubernetesAWSSecret is the template to generate an encoded version of the
+// users' AWS credentials
+const KubernetesAWSSecret = `apiVersion: v1
+kind: Secret
+metadata:
+  name: credentials.cluster-api-provider-aws.sigs.k8s.io
+  namespace: aws-provider-system
+type: Opaque
+data:
+  credentials: {{ .CredentialsFile }}
+`
 
 // AWSCredentialsTemplate generates an AWS credentials file that can
 // be loaded by the various SDKs.
@@ -46,7 +59,6 @@ func Cmd() *cobra.Command {
 			cmd.Help()
 		},
 	}
-	newCmd.AddCommand(generateAWSDefaultProfile())
 	newCmd.AddCommand(generateCredentials())
 	return newCmd
 }
@@ -54,8 +66,8 @@ func Cmd() *cobra.Command {
 func generateCredentials() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "generate-credentials [user name]",
-		Short: "Generate an AWS profile for a given IAM user",
-		Long:  "Generate an AWS profile for a given IAM user to be saved as a kubernetes secret",
+		Short: "Generate a Kubernetes secret containing an AWS profile for a given IAM user",
+		Long:  "Generate a Kubernetes secret containing an AWS profile for a given IAM user to be saved as a kubernetes secret",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				fmt.Printf("Error: requires user name\n\n")
@@ -86,77 +98,11 @@ func generateCredentials() *cobra.Command {
 				SecretAccessKey: aws.StringValue(out.AccessKey.SecretAccessKey),
 			}
 
-			profile, err := renderAWSDefaultProfile(creds)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(profile.String())
-
-			return nil
+			return generateAWSKubernetesSecret(creds)
 		},
 	}
 
 	return newCmd
-}
-
-func generateAWSDefaultProfile() *cobra.Command {
-	newCmd := &cobra.Command{
-		Use:   "generate-aws-default-profile",
-		Short: "Generate an AWS profile from the current environment",
-		Long:  "Generate an AWS profile from the current environment to be saved into minikube",
-		RunE: func(cmd *cobra.Command, args []string) error {
-
-			creds, err := getCredentialsFromEnvironment()
-
-			if err != nil {
-				return err
-			}
-
-			profile, err := renderAWSDefaultProfile(*creds)
-
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(profile.String())
-
-			return nil
-		},
-	}
-
-	return newCmd
-}
-
-func getCredentialsFromEnvironment() (*awsCredential, error) {
-	creds := awsCredential{}
-
-	region, err := getEnv("AWS_REGION")
-	if err != nil {
-		return nil, err
-	}
-	creds.Region = region
-
-	accessKeyID, err := getEnv("AWS_ACCESS_KEY_ID")
-	if err != nil {
-		return nil, err
-	}
-	creds.AccessKeyID = accessKeyID
-
-	secretAccessKey, err := getEnv("AWS_SECRET_ACCESS_KEY")
-	if err != nil {
-		return nil, err
-	}
-	creds.SecretAccessKey = secretAccessKey
-
-	sessionToken, err := getEnv("AWS_SESSION_TOKEN")
-	if err != nil {
-		creds.SessionToken = ""
-	} else {
-		creds.SessionToken = sessionToken
-	}
-
-	return &creds, nil
 }
 
 type awsCredential struct {
@@ -166,12 +112,8 @@ type awsCredential struct {
 	Region          string
 }
 
-func getEnv(key string) (string, error) {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return "", fmt.Errorf("Environment variable %q not found", key)
-	}
-	return val, nil
+type awsCredentialsFile struct {
+	CredentialsFile string
 }
 
 func renderAWSDefaultProfile(creds awsCredential) (*bytes.Buffer, error) {
@@ -187,4 +129,34 @@ func renderAWSDefaultProfile(creds awsCredential) (*bytes.Buffer, error) {
 	}
 
 	return &credsFileStr, nil
+}
+
+func generateAWSKubernetesSecret(creds awsCredential) error {
+	profile, err := renderAWSDefaultProfile(creds)
+
+	if err != nil {
+		return err
+	}
+
+	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
+
+	credsFile := awsCredentialsFile{
+		CredentialsFile: string(encCreds),
+	}
+
+	secretTmpl, err := template.New("AWS Credentials Secret").Parse(KubernetesAWSSecret)
+	if err != nil {
+		return err
+	}
+	var out bytes.Buffer
+
+	err = secretTmpl.Execute(&out, credsFile)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(out.String())
+
+	return nil
 }

@@ -154,24 +154,36 @@ minikube config set bootstrapper kubeadm
 
 ### Generating the aws credentials
 
-If you used `clusterawsadm` to create the prerequisites, an IAM user was created for you and the AWS credentials can be populated with the following commands:
+If you used `clusterawsadm` to create the prerequisites, an IAM user was created for you and the AWS credentials secret can be populated with the following commands:
 
 ```bash
 mkdir out
-clusterawsadm alpha bootstrap credentials generate-credentials bootstrapper.cluster-api-provider-aws.sigs.k8s.io > out/credentials
+clusterawsadm alpha bootstrap credentials generate-credentials bootstrapper.cluster-api-provider-aws.sigs.k8s.io > out/credentials.yaml
 ```
 
-### Generating cluster manifests
+### Generating the provider-config manifest
 
-There is a make target `manifests` that can be used to generate the
-cluster manifests.
+To deploy the cluster-api-provider-aws components, we need to merge the common cluster-api components manifest, with the aws provider specific components, and add the credentials secret we generated in the previous step. This can be done with `kustomize`:
 
 ```bash
-make manifests
+kustomize build config/provider-components/ > out/provider-components.yaml
 ```
 
-Then edit `cmd/clusterctl/examples/aws/out/cluster.yaml` and `cmd/clusterctl/examples/aws/out/machine.yaml` for AWS
-region and any other customisations you want to make.
+### Create the cluster manifest
+
+Copy the sample cluster manifest and make any desired changes:
+
+```bash
+cp config/samples/cluster.yaml out/
+```
+
+### Create the machines manifest
+
+Copy the sample machines manifest and make any desired changes:
+
+```bash
+cp config/samples/cluster.yaml out/
+```
 
 ### Starting Cluster API
 
@@ -184,9 +196,9 @@ You can now start the Cluster API controllers and deploy a new cluster in AWS:
 
 ```bash
 clusterctl create cluster -v2 --provider aws \
-  -m ./cmd/clusterctl/examples/aws/out/machines.yaml \
-  -c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
-  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+  -m ./out/machines.yaml \
+  -c ./out/cluster.yaml \
+  -p ./out/provider-components.yaml
 
 I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
 I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster

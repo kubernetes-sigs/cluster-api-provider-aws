@@ -41,7 +41,7 @@ generate: vendor
 	# generate kubebuilder components
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
 	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ > config/samples/common-provider-components.yaml
-
+	kustomize build config/aws-provider-components/ > config/samples/aws-provider-components.yaml
 
 genmocks: vendor
 	hack/generate-mocks.sh "github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API" "pkg/cloud/aws/services/ec2/mock_ec2iface/mock.go"
