@@ -56,59 +56,109 @@ func (d *testServicesGetter) ELB(session *session.Session) service.ELBInterface 
 }
 
 func TestGetIP(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	clusters := &clusterGetter{
-		ci: mock_clusteriface.NewMockClusterInterface(mockCtrl),
-	}
-
-	services := &testServicesGetter{
-		ec2: mocks.NewMockEC2Interface(mockCtrl),
-		elb: mocks.NewMockELBInterface(mockCtrl),
-	}
-
-	ap := cluster.ActuatorParams{
-		ClustersGetter: clusters,
-		ServicesGetter: services,
-	}
-
-	actuator, err := cluster.NewActuator(ap)
-	if err != nil {
-		t.Fatalf("could not create an actuator: %v", err)
-	}
-
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
-		Spec: clusterv1.ClusterSpec{
-			ProviderConfig: clusterv1.ProviderConfig{
-				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
+	testcases := []struct {
+		name       string
+		cluster    *clusterv1.Cluster
+		expectedIP string
+		elbExpects func(*mocks.MockELBInterface)
+	}{
+		{
+			name: "sunny day test",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
+				Spec: clusterv1.ClusterSpec{
+					ProviderConfig: clusterv1.ProviderConfig{
+						Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{}, t),
+					},
+				},
+				Status: clusterv1.ClusterStatus{
+					ProviderStatus: RuntimeRawExtension(&providerv1.AWSClusterProviderStatus{}, t),
 				},
 			},
-		},
-		Status: clusterv1.ClusterStatus{
-			ProviderStatus: RuntimeRawExtension(&providerv1.AWSClusterProviderStatus{}, t),
-		},
-	}
-
-	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
-		Spec: clusterv1.MachineSpec{
-			ProviderConfig: clusterv1.ProviderConfig{
-				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
-				},
+			expectedIP: "something",
+			elbExpects: func(m *mocks.MockELBInterface) {
+				m.EXPECT().
+					GetAPIServerDNSName("test").
+					Return("something", nil)
 			},
 		},
+		{
+			name: "lookup IP if the status is empty",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
+				Spec: clusterv1.ClusterSpec{
+					ProviderConfig: clusterv1.ProviderConfig{
+						Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{}, t),
+					},
+				},
+			},
+			expectedIP: "dunno",
+			elbExpects: func(m *mocks.MockELBInterface) {
+				m.EXPECT().
+					GetAPIServerDNSName("test").
+					Return("dunno", nil)
+			},
+		},
+		{
+			name: "return the IP if it is stored in the status",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
+				Spec: clusterv1.ClusterSpec{
+					ProviderConfig: clusterv1.ProviderConfig{
+						Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{}, t),
+					},
+				},
+				Status: clusterv1.ClusterStatus{
+					ProviderStatus: RuntimeRawExtension(&providerv1.AWSClusterProviderStatus{
+						Network: providerv1.Network{
+							APIServerELB: providerv1.ClassicELB{
+								DNSName: "banana",
+							},
+						},
+					}, t),
+				},
+			},
+			expectedIP: "banana",
+		},
 	}
 
-	services.elb.EXPECT().
-		GetAPIServerDNSName("test").
-		Return("", nil)
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 
-	if _, err := actuator.GetIP(cluster, machine); err != nil {
-		t.Fatalf("failed to get API server address: %v", err)
+			clusters := &clusterGetter{
+				ci: mock_clusteriface.NewMockClusterInterface(mockCtrl),
+			}
+
+			services := &testServicesGetter{
+				ec2: mocks.NewMockEC2Interface(mockCtrl),
+				elb: mocks.NewMockELBInterface(mockCtrl),
+			}
+
+			ap := cluster.ActuatorParams{
+				ClustersGetter: clusters,
+				ServicesGetter: services,
+			}
+
+			actuator, err := cluster.NewActuator(ap)
+			if err != nil {
+				t.Fatalf("could not create an actuator: %v", err)
+			}
+
+			if tc.elbExpects != nil {
+				tc.elbExpects(services.elb)
+			}
+
+			ip, err := actuator.GetIP(tc.cluster, nil)
+			if err != nil {
+				t.Fatalf("failed to get API server address: %v", err)
+			}
+
+			if ip != tc.expectedIP {
+				t.Fatalf("got the wrong IP. Found %v, wanted %v", ip, tc.expectedIP)
+			}
+		})
 	}
 }
 
@@ -139,9 +189,9 @@ func TestReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
-				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
-				},
+				Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{
+					Region: "us-east-1",
+				}, t),
 			},
 		},
 	}
