@@ -33,7 +33,7 @@ vendor:
 	bazel run //:gazelle
 
 check-install:
-	./scripts/check-install.sh
+	GOPATH=${GOPATH} ./scripts/check-install.sh
 
 # Generate code.
 generate: vendor
