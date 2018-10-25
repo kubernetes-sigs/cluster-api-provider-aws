@@ -82,9 +82,9 @@ func TestGetIP(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
-				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
-				},
+				Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{
+					Region: "us-east-1",
+				}, t),
 			},
 		},
 		Status: clusterv1.ClusterStatus{
@@ -96,9 +96,9 @@ func TestGetIP(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 		Spec: clusterv1.MachineSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
-				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
-				},
+				Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{
+					Region: "us-east-1",
+				}, t),
 			},
 		},
 	}
@@ -139,9 +139,9 @@ func TestReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
-				Value: &runtime.RawExtension{
-					Raw: []byte(`{"kind":"AWSClusterProviderConfig","apiVersion":"awsprovider.k8s.io/v1alpha1","region":"us-east-1"}`),
-				},
+				Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{
+					Region: "us-east-1",
+				}, t),
 			},
 		},
 	}
