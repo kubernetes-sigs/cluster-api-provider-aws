@@ -38,6 +38,10 @@ check-install:
 # Generate code.
 generate: vendor
 	GOPATH=${GOPATH} go generate ./pkg/... ./cmd/...
+	# generate kubebuilder components
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ > config/samples/common-provider-components.yaml
+
 
 genmocks: vendor
 	hack/generate-mocks.sh "github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API" "pkg/cloud/aws/services/ec2/mock_ec2iface/mock.go"
@@ -93,19 +97,6 @@ clean:
 	rm -rf cmd/clusterctl/examples/aws/out/
 	rm -f kubeconfig
 	rm -f minikube.kubeconfig
-
-# Manifests.
-cmd/clusterctl/examples/aws/out/:
-	MANAGER_IMAGE=${MANAGER_IMAGE} ./cmd/clusterctl/examples/aws/generate-yaml.sh
-
-cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out/ clusterawsadm
-	clusterawsadm alpha bootstrap generate-aws-default-profile > cmd/clusterctl/examples/aws/out/credentials
-
-manifests: cmd/clusterctl/examples/aws/out/credentials
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
-	kustomize build config/default/ > cmd/clusterctl/examples/aws/out/provider-components.yaml
-	echo "---" >> cmd/clusterctl/examples/aws/out/provider-components.yaml
-	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> cmd/clusterctl/examples/aws/out/provider-components.yaml
 
 # Create cluster.
 create-cluster:
