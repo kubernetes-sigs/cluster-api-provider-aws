@@ -52,6 +52,7 @@ go_test(
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/google/gofuzz:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/api/extensions/v1beta1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/equality:go_default_library",
@@ -72,6 +73,5 @@ go_test(
         "//vendor/k8s.io/client-go/tools/clientcmd/api:go_default_library",
         "//vendor/k8s.io/client-go/util/flowcontrol:go_default_library",
         "//vendor/k8s.io/client-go/util/testing:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )

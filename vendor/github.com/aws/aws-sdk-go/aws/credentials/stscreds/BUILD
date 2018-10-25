@@ -22,6 +22,6 @@ go_test(
     deps = [
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/sts:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
 )

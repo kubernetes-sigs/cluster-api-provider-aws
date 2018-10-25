@@ -54,13 +54,21 @@ func main() {
 		panic(err)
 	}
 
-	clusterActuator, _ := cluster.NewActuator(cluster.ActuatorParams{
+	clusterActuator, err := cluster.NewActuator(cluster.ActuatorParams{
 		ClustersGetter: cs.ClusterV1alpha1(),
 	})
 
-	machineActuator, _ := machine.NewActuator(machine.ActuatorParams{
+	if err != nil {
+		panic(err)
+	}
+
+	machineActuator, err := machine.NewActuator(machine.ActuatorParams{
 		MachinesGetter: cs.ClusterV1alpha1(),
 	})
+
+	if err != nil {
+		panic(err)
+	}
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
 	common.RegisterClusterProvisioner("aws", clusterActuator)

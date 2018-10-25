@@ -26,10 +26,10 @@ go_test(
     deps = [
         "//vendor/github.com/awslabs/goformation/cloudformation:go_default_library",
         "//vendor/github.com/awslabs/goformation/intrinsics:go_default_library",
+        "//vendor/github.com/johandorland/gojsonschema:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
         "//vendor/github.com/onsi/gomega/gstruct:go_default_library",
         "//vendor/github.com/sanathkr/yaml:go_default_library",
-        "@com_github_johandorland_gojsonschema//:go_default_library",
     ],
 )

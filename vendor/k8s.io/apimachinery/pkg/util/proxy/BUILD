@@ -13,6 +13,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/github.com/mxk/go-flowrate/flowrate:go_default_library",
         "//vendor/golang.org/x/net/html:go_default_library",
         "//vendor/golang.org/x/net/html/atom:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
@@ -21,7 +22,6 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
         "//vendor/k8s.io/apimachinery/third_party/forked/golang/netutil:go_default_library",
-        "@com_github_mxk_go_flowrate//flowrate:go_default_library",
     ],
 )
 
@@ -34,11 +34,11 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
         "//vendor/golang.org/x/net/websocket:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/diff:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/httpstream:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/net:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
-        "@com_github_stretchr_testify//require:go_default_library",
     ],
 )

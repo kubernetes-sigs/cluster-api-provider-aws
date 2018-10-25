@@ -24,6 +24,6 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/ec2metadata:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/awstesting/unit:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
 )

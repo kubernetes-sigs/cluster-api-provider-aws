@@ -31,5 +31,5 @@ go_test(
         "suite_test.go",
     ],
     embed = [":go_default_library"],
-    deps = ["@in_gopkg_check_v1//:go_default_library"],
+    deps = ["//vendor/gopkg.in/check.v1:go_default_library"],
 )

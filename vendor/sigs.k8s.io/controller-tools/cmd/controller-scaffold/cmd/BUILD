@@ -13,8 +13,10 @@ go_library(
     importpath = "sigs.k8s.io/controller-tools/cmd/controller-scaffold/cmd",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/github.com/mitchellh/go-homedir:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
+        "//vendor/github.com/spf13/viper:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/meta:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/pkg/scaffold:go_default_library",
@@ -24,7 +26,5 @@ go_library(
         "//vendor/sigs.k8s.io/controller-tools/pkg/scaffold/project:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/pkg/scaffold/resource:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/pkg/scaffold/webhook:go_default_library",
-        "@com_github_mitchellh_go_homedir//:go_default_library",
-        "@com_github_spf13_viper//:go_default_library",
     ],
 )

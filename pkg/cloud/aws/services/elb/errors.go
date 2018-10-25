@@ -25,7 +25,7 @@ import (
 var _ error = &ELBError{}
 
 // ELBError is an error exposed to users of this library.
-type ELBError struct {
+type ELBError struct { //nolint
 	err error
 
 	Code int

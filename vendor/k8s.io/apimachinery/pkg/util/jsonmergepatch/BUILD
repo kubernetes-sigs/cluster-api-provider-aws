@@ -7,9 +7,9 @@ go_library(
     importpath = "k8s.io/apimachinery/pkg/util/jsonmergepatch",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/github.com/evanphx/json-patch:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/json:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/mergepatch:go_default_library",
-        "@com_github_evanphx_json_patch//:go_default_library",
     ],
 )
 
@@ -19,8 +19,8 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//vendor/github.com/davecgh/go-spew/spew:go_default_library",
+        "//vendor/github.com/evanphx/json-patch:go_default_library",
         "//vendor/github.com/ghodss/yaml:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/json:go_default_library",
-        "@com_github_evanphx_json_patch//:go_default_library",
     ],
 )

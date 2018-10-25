@@ -59,6 +59,8 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
         "//vendor/go.uber.org/atomic:go_default_library",
         "//vendor/go.uber.org/multierr:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
@@ -66,7 +68,5 @@ go_test(
         "//vendor/go.uber.org/zap/internal/exit:go_default_library",
         "//vendor/go.uber.org/zap/internal/ztest:go_default_library",
         "//vendor/go.uber.org/zap/zaptest/observer:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
-        "@com_github_stretchr_testify//require:go_default_library",
     ],
 )

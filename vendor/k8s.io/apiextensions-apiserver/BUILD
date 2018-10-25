@@ -9,8 +9,8 @@ go_library(
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/k8s.io/apiextensions-apiserver/pkg/cmd/server:go_default_library",
-        "@io_k8s_apiserver//pkg/server:go_default_library",
-        "@io_k8s_apiserver//pkg/util/logs:go_default_library",
+        "//vendor/k8s.io/apiserver/pkg/server:go_default_library",
+        "//vendor/k8s.io/apiserver/pkg/util/logs:go_default_library",
     ],
 )
 

@@ -22,9 +22,9 @@ go_library(
     importpath = "github.com/spf13/cobra/cobra/cmd",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/github.com/mitchellh/go-homedir:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
-        "@com_github_mitchellh_go_homedir//:go_default_library",
-        "@com_github_spf13_viper//:go_default_library",
+        "//vendor/github.com/spf13/viper:go_default_library",
     ],
 )
 
@@ -38,5 +38,5 @@ go_test(
     ],
     data = glob(["testdata/**"]),
     embed = [":go_default_library"],
-    deps = ["@com_github_spf13_viper//:go_default_library"],
+    deps = ["//vendor/github.com/spf13/viper:go_default_library"],
 )

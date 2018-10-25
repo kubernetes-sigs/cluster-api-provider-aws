@@ -8,7 +8,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/emicklei/go-restful:go_default_library",
-        "@in_gopkg_vmihailenco_msgpack_v2//:go_default_library",
+        "//vendor/gopkg.in/vmihailenco/msgpack.v2:go_default_library",
     ],
 )
 

@@ -1,23 +1,51 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
+load("//build:run_in_workspace_with_goroot.bzl", "workspace_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+# Update the excludes if you get "unrecognised import path"
 
 # gazelle:prefix sigs.k8s.io/cluster-api-provider-aws
 # gazelle:build_file_name BUILD,BUILD.bazel
 # gazelle:proto disable_global
-# gazelle:exclude vendor/golang.org/x/tools/go/ssa/interp/testdata
+# gazelle:exclude vendor/github.com/golang/mock/mockgen/tests/vendor_dep
+# gazelle:exclude vendor/golang.org/x/tools/cmd/bundle/testdata
+# gazelle:exclude vendor/golang.org/x/tools/cmd/fiximports/testdata
+# gazelle:exclude vendor/golang.org/x/tools/cmd/guru/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/asmdecl/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/atomic/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/bools/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/buildtag/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/cgocall/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/composite/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/copylock/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/ctrlflow/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/lostcancel/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/nilfunc/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/pkgfact/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/stdmethods/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/stdmethods/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/tests/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/unsafeptr/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/analysis/passes/unusedresult/testdata
 # gazelle:exclude vendor/golang.org/x/tools/go/internal/gccgoimporter/testdata
 # gazelle:exclude vendor/golang.org/x/tools/go/internal/gcimporter/testdata
 # gazelle:exclude vendor/golang.org/x/tools/go/loader/testdata
-# gazelle:exclude vendor/golang.org/x/tools/cmd/fiximports/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/pointer/testdata
+# gazelle:exclude vendor/golang.org/x/tools/go/ssa/interp/testdata
+# gazelle:exclude vendor/k8s.io/gengo/testdata
+# gazelle:exclude vendor/github.com/golang/dep/cmd/dep/testdata
 gazelle(
     name = "gazelle",
     command = "fix",
+    external = "vendored",
 )
 
 filegroup(
     name = "all-images",
     srcs = [
-        "//cmd/clusterctl:clusterctl-image",
         "//cmd/clusterawsadm:clusterawsadm-image",
+        "//cmd/clusterctl:clusterctl-image",
         "//cmd/manager:manager-image",
     ],
 )
@@ -25,8 +53,44 @@ filegroup(
 filegroup(
     name = "all-images-dev",
     srcs = [
-        "//cmd/clusterctl:clusterctl-image-dev",
         "//cmd/clusterawsadm:clusterawsadm-image-dev",
+        "//cmd/clusterctl:clusterctl-image-dev",
         "//cmd/manager:manager-image-dev",
     ],
 )
+
+workspace_binary(
+    name = "dep",
+    cmd = "@com_github_golang_dep//cmd/dep",
+)
+
+workspace_binary(
+    name = "generate",
+    args = [
+        "generate",
+        "./pkg/...",
+        "./cmd/...",
+    ],
+    cmd = "@go_sdk//:bin/go",
+)
+
+workspace_binary(
+    name = "lint",
+    args = ["run"],
+    cmd = "@com_github_golangci_golangci-lint//cmd/golangci-lint",
+)
+
+workspace_binary(
+    name = "lint-full",
+    args = ["run --fast=false"],
+    cmd = "@com_github_golangci_golangci-lint//cmd/golangci-lint",
+)
+
+filegroup(
+    name = "all-srcs",
+    srcs = glob(["**"]),
+)
+
+exports_files(glob([
+    "WORKSPACE",
+]))

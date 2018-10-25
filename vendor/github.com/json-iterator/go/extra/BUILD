@@ -30,6 +30,6 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//vendor/github.com/json-iterator/go:go_default_library",
-        "@com_github_stretchr_testify//require:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
     ],
 )

@@ -73,6 +73,6 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/service/dynamodb:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/route53:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/s3:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
 )

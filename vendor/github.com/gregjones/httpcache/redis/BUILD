@@ -7,8 +7,8 @@ go_library(
     importpath = "github.com/gregjones/httpcache/redis",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/github.com/garyburd/redigo/redis:go_default_library",
         "//vendor/github.com/gregjones/httpcache:go_default_library",
-        "@com_github_garyburd_redigo//redis:go_default_library",
     ],
 )
 
@@ -16,5 +16,5 @@ go_test(
     name = "go_default_test",
     srcs = ["redis_test.go"],
     embed = [":go_default_library"],
-    deps = ["@com_github_garyburd_redigo//redis:go_default_library"],
+    deps = ["//vendor/github.com/garyburd/redigo/redis:go_default_library"],
 )

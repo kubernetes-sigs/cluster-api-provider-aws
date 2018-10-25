@@ -6,5 +6,5 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/apiextensions-apiserver/pkg/features",
     importpath = "k8s.io/apiextensions-apiserver/pkg/features",
     visibility = ["//visibility:public"],
-    deps = ["@io_k8s_apiserver//pkg/util/feature:go_default_library"],
+    deps = ["//vendor/k8s.io/apiserver/pkg/util/feature:go_default_library"],
 )

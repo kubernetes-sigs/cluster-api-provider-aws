@@ -14,9 +14,9 @@ go_test(
     srcs = ["zapgrpc_test.go"],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "//vendor/go.uber.org/zap/zapcore:go_default_library",
         "//vendor/go.uber.org/zap/zaptest/observer:go_default_library",
-        "@com_github_stretchr_testify//require:go_default_library",
     ],
 )
