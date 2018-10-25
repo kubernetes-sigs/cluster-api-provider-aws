@@ -164,18 +164,18 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 }
 
 // GetIP returns the IP of a machine, but this is going away.
-func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-	if cluster.Status.ProviderStatus == nil {
-		return "", errors.New("ProviderStatus is nil, cannot get IP")
-	}
-	// Load provider status.
-	status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
-	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider status: %v", err)
-	}
+func (a *Actuator) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
+	if cluster.Status.ProviderStatus != nil {
 
-	if status.Network.APIServerELB.DNSName != "" {
-		return status.Network.APIServerELB.DNSName, nil
+		// Load provider status.
+		status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
+		if err != nil {
+			return "", errors.Errorf("failed to load cluster provider status: %v", err)
+		}
+
+		if status.Network.APIServerELB.DNSName != "" {
+			return status.Network.APIServerELB.DNSName, nil
+		}
 	}
 
 	// Load provider config.
