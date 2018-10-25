@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: controller-manager
-  namespace: system
+  name: aws-provider-controller-manager
+  namespace: aws-provider-system
 spec:
   template:
     spec:

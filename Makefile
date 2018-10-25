@@ -32,11 +32,14 @@ vendor:
 	${GOPATH}/bin/dep ensure
 	bazel run //:gazelle
 
+kustomize:
+	${GOPATH}/bin/kustomize version || go get -u sigs.k8s.io/kustomize
+
 check-install:
 	./scripts/check-install.sh
 
 # Generate code.
-generate: vendor
+generate: vendor kustomize
 	GOPATH=${GOPATH} go generate ./pkg/... ./cmd/...
 	# generate kubebuilder components
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
@@ -103,6 +106,18 @@ create-cluster:
 	clusterctl create cluster -v3 --provider aws -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
 
 # Development.
+# Manifests.
+cmd/clusterctl/examples/aws/out/:
+	MANAGER_IMAGE=${MANAGER_IMAGE} ./cmd/clusterctl/examples/aws/generate-yaml.sh
+
+out/credentials.yaml: clusterawsadm
+	mkdir -p out
+	clusterawsadm alpha bootstrap credentials generate-credentials bootstrapper.cluster-api-provider-aws.sigs.k8s.io > out/credentials.yaml
+
+manifests: cmd/clusterctl/examples/aws/out/ out/credentials.yaml
+	kustomize build config/provider-components/ > cmd/clusterctl/examples/aws/out/provider-components-base.yaml
+	kustomize build cmd/clusterctl/examples/aws/default/ > cmd/clusterctl/examples/aws/out/provider-components.yaml
+
 dev-images:
 	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) $(MAKE) docker-build docker-push
 

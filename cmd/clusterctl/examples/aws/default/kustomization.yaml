@@ -1,0 +1,4 @@
+resources:
+- ../out/provider-components-base.yaml
+patches:
+- ../out/aws_manager_image_patch.yaml
