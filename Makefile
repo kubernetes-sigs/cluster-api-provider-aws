@@ -63,6 +63,13 @@ clusterawsadm: check-install vendor
 cluster-api-dev-helper: check-install vendor
 	CGO_ENABLED=0 go install $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/hack/cluster-api-dev-helper
 
+# Build the release binaries
+build-release-binaries: check-install vendor
+	GOOS=linux CGO_ENABLED=0 go build -o clusterctl-linux-amd64 $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterctl
+	GOOS=linux CGO_ENABLED=0 go build -o clusterawsadm-linux-amd64 $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
+	GOOS=darwin CGO_ENABLED=0 go build -o clusterctl-darwin-amd64 $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterctl
+	GOOS=darwin CGO_ENABLED=0 go build -o clusterawsadm-darwin-amd64 $(GOFLAGS) sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
+
 # Run tests
 test: generate fmt vet
 	go test -v -tags=integration ./pkg/... ./cmd/...

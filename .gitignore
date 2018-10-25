@@ -35,3 +35,7 @@ kubeconfig
 /bazel-genfiles
 /bazel-out
 /bazel-testlogs
+
+# release builds
+clusterctl-*-amd64
+clusterawsadm-*-amd64
