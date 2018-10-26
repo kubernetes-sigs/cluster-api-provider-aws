@@ -46,7 +46,7 @@ type ActuatorParams struct {
 }
 
 // NewActuator creates a new Actuator
-func NewActuator(params ActuatorParams) (*Actuator, error) {
+func NewActuator(params ActuatorParams) *Actuator {
 	res := &Actuator{
 		clustersGetter: params.ClustersGetter,
 		servicesGetter: params.ServicesGetter,
@@ -56,7 +56,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 		res.servicesGetter = new(defaultServicesGetter)
 	}
 
-	return res, nil
+	return res
 }
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller

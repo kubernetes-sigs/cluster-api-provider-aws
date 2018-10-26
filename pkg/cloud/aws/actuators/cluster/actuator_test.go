@@ -141,10 +141,7 @@ func TestGetIP(t *testing.T) {
 				ServicesGetter: services,
 			}
 
-			actuator, err := cluster.NewActuator(ap)
-			if err != nil {
-				t.Fatalf("could not create an actuator: %v", err)
-			}
+			actuator := cluster.NewActuator(ap)
 
 			if tc.elbExpects != nil {
 				tc.elbExpects(services.elb)
@@ -180,10 +177,7 @@ func TestReconcile(t *testing.T) {
 		ServicesGetter: services,
 	}
 
-	actuator, err := cluster.NewActuator(ap)
-	if err != nil {
-		t.Fatalf("could not create an actuator: %v", err)
-	}
+	actuator := cluster.NewActuator(ap)
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},

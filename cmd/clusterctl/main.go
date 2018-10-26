@@ -20,12 +20,7 @@ import (
 )
 
 func main() {
-	clusterActuator, err := cluster.NewActuator(cluster.ActuatorParams{})
-
-	if err != nil {
-		panic(err)
-	}
-
+	clusterActuator := cluster.NewActuator(cluster.ActuatorParams{})
 	common.RegisterClusterProvisioner("aws", clusterActuator)
 	cmd.Execute()
 }
