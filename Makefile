@@ -107,7 +107,7 @@ clean: ## Remove all generated files
 	rm -f bazel-*
 
 cmd/clusterctl/examples/aws/out/:
-	MANAGER_IMAGE=${IMAGE} ./cmd/clusterctl/examples/aws/generate-yaml.sh
+	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
 cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out/ clusterawsadm ## Generate k8s secret for AWS credentials
 	clusterawsadm alpha bootstrap generate-aws-default-profile > cmd/clusterctl/examples/aws/out/credentials
