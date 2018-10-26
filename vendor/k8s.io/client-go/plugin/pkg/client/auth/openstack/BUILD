@@ -8,10 +8,10 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/github.com/gophercloud/gophercloud:go_default_library",
+        "//vendor/github.com/gophercloud/gophercloud/openstack:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/net:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
-        "@com_github_gophercloud_gophercloud//:go_default_library",
-        "@com_github_gophercloud_gophercloud//openstack:go_default_library",
     ],
 )
 

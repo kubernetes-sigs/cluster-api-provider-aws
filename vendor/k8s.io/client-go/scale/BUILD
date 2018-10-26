@@ -38,6 +38,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/api/apps/v1beta1:go_default_library",
         "//vendor/k8s.io/api/apps/v1beta2:go_default_library",
         "//vendor/k8s.io/api/autoscaling/v1:go_default_library",
@@ -53,6 +54,5 @@ go_test(
         "//vendor/k8s.io/client-go/rest/fake:go_default_library",
         "//vendor/k8s.io/client-go/restmapper:go_default_library",
         "//vendor/k8s.io/client-go/testing:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )

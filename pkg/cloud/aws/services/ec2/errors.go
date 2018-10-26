@@ -30,7 +30,7 @@ const (
 var _ error = &EC2Error{}
 
 // EC2Error is an error exposed to users of this library.
-type EC2Error struct {
+type EC2Error struct { //nolint
 	err error
 
 	Code int

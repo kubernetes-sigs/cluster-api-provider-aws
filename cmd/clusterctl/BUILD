@@ -1,5 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
-load("//build:rules.bzl", "cluster_api_binary")
+load("//build:cluster_api_binary.bzl", "cluster_api_binary")
 
 go_library(
     name = "go_default_library",

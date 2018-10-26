@@ -28,7 +28,7 @@ func (s *Service) createStack(stackName string, yaml string) error {
 
 	input := &cfn.CreateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
-		TemplateBody: aws.String(string(yaml)),
+		TemplateBody: aws.String(yaml),
 		StackName:    aws.String(stackName),
 	}
 	glog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
@@ -50,7 +50,7 @@ func (s *Service) updateStack(stackName string, yaml string) error {
 
 	input := &cfn.UpdateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
-		TemplateBody: aws.String(string(yaml)),
+		TemplateBody: aws.String(yaml),
 		StackName:    aws.String(stackName),
 	}
 	glog.V(2).Infof("updating AWS CloudFormation stack %q", stackName)

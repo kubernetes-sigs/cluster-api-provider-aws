@@ -31,11 +31,11 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/gengo/examples/set-gen/sets:go_default_library",
         "//vendor/k8s.io/gengo/generator:go_default_library",
         "//vendor/k8s.io/gengo/namer:go_default_library",
         "//vendor/k8s.io/gengo/parser:go_default_library",
         "//vendor/k8s.io/gengo/types:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )

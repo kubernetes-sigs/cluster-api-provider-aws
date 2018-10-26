@@ -32,7 +32,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/gopkg.in/check.v1:go_default_library",
         "//vendor/gopkg.in/yaml.v2:go_default_library",
-        "@in_gopkg_check_v1//:go_default_library",
     ],
 )

@@ -19,5 +19,5 @@ go_test(
         "jsonpatch_supercomplex_test.go",
     ],
     embed = [":go_default_library"],
-    deps = ["@com_github_stretchr_testify//assert:go_default_library"],
+    deps = ["//vendor/github.com/stretchr/testify/assert:go_default_library"],
 )

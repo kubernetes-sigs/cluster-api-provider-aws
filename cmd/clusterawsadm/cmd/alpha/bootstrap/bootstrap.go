@@ -30,6 +30,7 @@ import (
 
 // KubernetesAWSSecret is the template to generate an encoded version of the
 // users' AWS credentials
+// nolint
 const KubernetesAWSSecret = `apiVersion: v1
 kind: Secret
 metadata:
@@ -56,8 +57,11 @@ func RootCmd() *cobra.Command {
 		Use:   "bootstrap",
 		Short: "bootstrap cloudformation",
 		Long:  `Create and apply bootstrap AWS CloudFormation template to create IAM permissions for the Cluster API`,
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := cmd.Help(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 	newCmd.AddCommand(generateCmd())
@@ -79,7 +83,9 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				fmt.Printf("Error: requires AWS Account ID as an argument\n\n")
-				cmd.Help()
+				if err := cmd.Help(); err != nil {
+					return err
+				}
 				os.Exit(200)
 			}
 			if !sts.ValidateAccountID(args[0]) {
@@ -265,7 +271,7 @@ func generateAWSKubernetesSecret(creds awsCredential) error {
 	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
 
 	credsFile := awsCredentialsFile{
-		CredentialsFile: string(encCreds),
+		CredentialsFile: encCreds,
 	}
 
 	secretTmpl, err := template.New("AWS Credentials Secret").Parse(KubernetesAWSSecret)

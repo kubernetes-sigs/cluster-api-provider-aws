@@ -8,9 +8,9 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/golang.org/x/oauth2:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/net:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
-        "@org_golang_x_oauth2//:go_default_library",
     ],
 )
 

@@ -6,7 +6,7 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/gregjones/httpcache/memcache",
     importpath = "github.com/gregjones/httpcache/memcache",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_bradfitz_gomemcache//memcache:go_default_library"],
+    deps = ["//vendor/github.com/bradfitz/gomemcache/memcache:go_default_library"],
 )
 
 go_test(

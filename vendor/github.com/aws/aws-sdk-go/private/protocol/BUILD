@@ -42,6 +42,6 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/private/protocol/rest:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/private/protocol/restjson:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/private/protocol/restxml:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
 )

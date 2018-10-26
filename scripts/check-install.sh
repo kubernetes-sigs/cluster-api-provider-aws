@@ -34,4 +34,6 @@ if [ "${WORKINGDIR}" != "${EXPECTEDDIR}" ]; then
     exit 1
 fi
 
+echo "Repository is set up correctly"
+
 exit 0

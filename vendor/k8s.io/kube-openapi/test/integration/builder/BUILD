@@ -7,10 +7,10 @@ go_library(
     importpath = "k8s.io/kube-openapi/test/integration/builder",
     visibility = ["//visibility:private"],
     deps = [
+        "//vendor/github.com/go-openapi/spec:go_default_library",
         "//vendor/k8s.io/kube-openapi/pkg/builder:go_default_library",
         "//vendor/k8s.io/kube-openapi/pkg/common:go_default_library",
         "//vendor/k8s.io/kube-openapi/test/integration/pkg/generated:go_default_library",
-        "@com_github_go_openapi_spec//:go_default_library",
     ],
 )
 

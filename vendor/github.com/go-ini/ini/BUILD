@@ -31,7 +31,7 @@ go_test(
     data = glob(["testdata/**"]),
     embed = [":go_default_library"],
     deps = [
-        "@com_github_smartystreets_goconvey//convey:go_default_library",
-        "@in_gopkg_ini_v1//:go_default_library",
+        "//vendor/github.com/smartystreets/goconvey/convey:go_default_library",
+        "//vendor/gopkg.in/ini.v1:go_default_library",
     ],
 )

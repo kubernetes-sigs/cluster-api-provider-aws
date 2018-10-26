@@ -10,6 +10,7 @@ go_library(
     importpath = "sigs.k8s.io/controller-tools/examples/godocbot/pkg/controller/pullrequest",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/github.com/google/go-github/github:go_default_library",
         "//vendor/k8s.io/api/apps/v1:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
@@ -23,6 +24,5 @@ go_library(
         "//vendor/sigs.k8s.io/controller-runtime/pkg/reconcile:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/source:go_default_library",
         "//vendor/sigs.k8s.io/controller-tools/examples/godocbot/pkg/apis/code/v1alpha1:go_default_library",
-        "@com_github_google_go_github//github:go_default_library",
     ],
 )

@@ -7,8 +7,8 @@ go_library(
     importpath = "k8s.io/kube-openapi/pkg/aggregator",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/github.com/go-openapi/spec:go_default_library",
         "//vendor/k8s.io/kube-openapi/pkg/util:go_default_library",
-        "@com_github_go_openapi_spec//:go_default_library",
     ],
 )
 
@@ -18,7 +18,7 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//vendor/github.com/ghodss/yaml:go_default_library",
-        "@com_github_go_openapi_spec//:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
+        "//vendor/github.com/go-openapi/spec:go_default_library",
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
 )

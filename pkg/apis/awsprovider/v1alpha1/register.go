@@ -42,6 +42,7 @@ var (
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
 
+// ClusterConfigFromProviderConfig unmarshals a provider config into an AWS Cluster type
 func ClusterConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSClusterProviderConfig, error) {
 	var config AWSClusterProviderConfig
 	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
@@ -50,6 +51,7 @@ func ClusterConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*
 	return &config, nil
 }
 
+// ClusterStatusFromProviderStatus unmarshals a provider status into an AWS Cluster type
 func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClusterProviderStatus, error) {
 	if extension == nil {
 		return &AWSClusterProviderStatus{}, nil
@@ -63,6 +65,7 @@ func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClust
 	return status, nil
 }
 
+// MachineConfigFromProviderConfig unmarshals a provider config into an AWS machine type
 func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSMachineProviderConfig, error) {
 	var config AWSMachineProviderConfig
 	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
@@ -71,6 +74,7 @@ func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*
 	return &config, nil
 }
 
+// MachineStatusFromProviderStatus unmarshals a provider status into an AWS machine type
 func MachineStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSMachineProviderStatus, error) {
 	if extension == nil {
 		return &AWSMachineProviderStatus{}, nil
@@ -84,6 +88,7 @@ func MachineStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSMachi
 	return status, nil
 }
 
+// EncodeMachineStatus marshals the machine status
 func EncodeMachineStatus(status *AWSMachineProviderStatus) (*runtime.RawExtension, error) {
 	if status == nil {
 		return &runtime.RawExtension{}, nil
@@ -102,6 +107,7 @@ func EncodeMachineStatus(status *AWSMachineProviderStatus) (*runtime.RawExtensio
 	}, nil
 }
 
+// EncodeClusterStatus marshals the machine status
 func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtension, error) {
 	if status == nil {
 		return &runtime.RawExtension{}, nil

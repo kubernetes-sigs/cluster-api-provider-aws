@@ -29,9 +29,9 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/go.uber.org/zap:go_default_library",
         "//vendor/go.uber.org/zap/internal/ztest:go_default_library",
         "//vendor/go.uber.org/zap/zapcore:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )

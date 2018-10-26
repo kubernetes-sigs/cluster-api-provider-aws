@@ -14,10 +14,11 @@
 package sts
 
 import (
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
-	"regexp"
 )
 
 var reAccountID = regexp.MustCompile(`[0-9]{12}`)

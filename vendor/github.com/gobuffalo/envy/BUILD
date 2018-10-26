@@ -16,5 +16,5 @@ go_test(
     name = "go_default_test",
     srcs = ["envy_test.go"],
     embed = [":go_default_library"],
-    deps = ["@com_github_stretchr_testify//require:go_default_library"],
+    deps = ["//vendor/github.com/stretchr/testify/require:go_default_library"],
 )

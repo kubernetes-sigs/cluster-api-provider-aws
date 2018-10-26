@@ -30,12 +30,12 @@ go_test(
     srcs = ["fixture_test.go"],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/meta:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1/unstructured:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/watch:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
     ],
 )

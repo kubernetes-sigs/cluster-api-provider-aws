@@ -18,7 +18,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/bootstrap"
 )
 
-func AlphaCmd() *cobra.Command {
+// AlphaCmd is the top-level alpha set of commands
+func AlphaCmd() *cobra.Command { // nolint
 	newCmd := &cobra.Command{
 		Use:   "alpha",
 		Short: "alpha commands",

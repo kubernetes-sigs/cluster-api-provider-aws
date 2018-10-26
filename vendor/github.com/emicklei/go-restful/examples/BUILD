@@ -29,10 +29,10 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//vendor/github.com/emicklei/go-restful:go_default_library",
-        "@com_github_emicklei_go_restful_openapi//:go_default_library",
-        "@com_github_emicklei_go_restful_swagger12//:go_default_library",
-        "@com_github_go_openapi_spec//:go_default_library",
-        "@com_github_gorilla_schema//:go_default_library",
+        "//vendor/github.com/emicklei/go-restful-openapi:go_default_library",
+        "//vendor/github.com/emicklei/go-restful-swagger12:go_default_library",
+        "//vendor/github.com/go-openapi/spec:go_default_library",
+        "//vendor/github.com/gorilla/schema:go_default_library",
     ],
 )
 

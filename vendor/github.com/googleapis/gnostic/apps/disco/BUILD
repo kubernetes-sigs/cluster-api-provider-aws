@@ -12,12 +12,12 @@ go_library(
     importpath = "github.com/googleapis/gnostic/apps/disco",
     visibility = ["//visibility:private"],
     deps = [
+        "//vendor/github.com/docopt/docopt-go:go_default_library",
         "//vendor/github.com/golang/protobuf/proto:go_default_library",
         "//vendor/github.com/googleapis/gnostic/OpenAPIv2:go_default_library",
         "//vendor/github.com/googleapis/gnostic/OpenAPIv3:go_default_library",
         "//vendor/github.com/googleapis/gnostic/compiler:go_default_library",
         "//vendor/github.com/googleapis/gnostic/discovery:go_default_library",
-        "@com_github_docopt_docopt_go//:go_default_library",
     ],
 )
 

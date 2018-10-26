@@ -51,36 +51,36 @@ go_test(
     embed = [":go_default_library"],
     deps = select({
         "@io_bazel_rules_go//go/platform:android": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:darwin": [
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
             "//vendor/golang.org/x/sys/unix:go_default_library",
-            "@com_github_fsnotify_fsnotify//:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:dragonfly": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:freebsd": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:linux": [
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
             "//vendor/golang.org/x/sys/unix:go_default_library",
-            "@com_github_fsnotify_fsnotify//:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:nacl": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:netbsd": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:openbsd": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:solaris": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "@io_bazel_rules_go//go/platform:windows": [
-            "@com_github_fsnotify_fsnotify//:go_default_library",
+            "//vendor/github.com/fsnotify/fsnotify:go_default_library",
         ],
         "//conditions:default": [],
     }),

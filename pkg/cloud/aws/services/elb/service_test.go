@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface" //nolint
 )
 
 func TestNewService(t *testing.T) {

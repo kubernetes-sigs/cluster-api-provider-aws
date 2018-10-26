@@ -33,7 +33,10 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
+        "//vendor/github.com/coreos/etcd/clientv3:go_default_library",
+        "//vendor/github.com/coreos/etcd/pkg/transport:go_default_library",
         "//vendor/github.com/ghodss/yaml:go_default_library",
+        "//vendor/github.com/stretchr/testify/require:go_default_library",
         "//vendor/k8s.io/api/autoscaling/v1:go_default_library",
         "//vendor/k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1:go_default_library",
         "//vendor/k8s.io/apiextensions-apiserver/pkg/apiserver:go_default_library",
@@ -51,11 +54,8 @@ go_test(
         "//vendor/k8s.io/apimachinery/pkg/util/json:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/watch:go_default_library",
+        "//vendor/k8s.io/apiserver/pkg/endpoints/request:go_default_library",
         "//vendor/k8s.io/client-go/dynamic:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
-        "@com_github_coreos_etcd//clientv3:go_default_library",
-        "@com_github_coreos_etcd//pkg/transport:go_default_library",
-        "@com_github_stretchr_testify//require:go_default_library",
-        "@io_k8s_apiserver//pkg/endpoints/request:go_default_library",
     ],
 )

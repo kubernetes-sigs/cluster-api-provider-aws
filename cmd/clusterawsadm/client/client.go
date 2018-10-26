@@ -12,6 +12,7 @@
 // limitations under the License.
 
 // Note: the example only works with the code within the same release/branch.
+
 package client
 
 import (
@@ -25,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
+// NewClient creates a new Kubernetes client
 func NewClient() *clientset.Clientset {
 	var kubeconfig *string
 	if home := homeDir(); home != "" {
@@ -55,6 +57,7 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
+// MachineInstanceID gets an instance ID for a Cluster API machine
 func MachineInstanceID(name string) (string, error) {
 	c := NewClient()
 

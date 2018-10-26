@@ -49,6 +49,6 @@ go_test(
         "//vendor/github.com/golang/protobuf/proto/test_proto:go_default_library",
         "//vendor/github.com/golang/protobuf/ptypes:go_default_library",
         "//vendor/github.com/golang/protobuf/ptypes/any:go_default_library",
-        "@org_golang_x_sync//errgroup:go_default_library",
+        "//vendor/golang.org/x/sync/errgroup:go_default_library",
     ],
 )

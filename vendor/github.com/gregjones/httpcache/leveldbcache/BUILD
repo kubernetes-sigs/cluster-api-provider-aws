@@ -6,7 +6,7 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/gregjones/httpcache/leveldbcache",
     importpath = "github.com/gregjones/httpcache/leveldbcache",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_syndtr_goleveldb//leveldb:go_default_library"],
+    deps = ["//vendor/github.com/syndtr/goleveldb/leveldb:go_default_library"],
 )
 
 go_test(
