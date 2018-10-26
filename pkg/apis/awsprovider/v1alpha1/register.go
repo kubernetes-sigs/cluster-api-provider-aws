@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
-
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
@@ -45,13 +44,18 @@ var (
 // ClusterConfigFromProviderConfig unmarshals a provider config into an AWS Cluster type
 func ClusterConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSClusterProviderConfig, error) {
 	var config AWSClusterProviderConfig
+	// TODO(chuckha) is this the right behavior? Should this be an error?
+	// if the value is nil then the providerconfig should be nil.
+	if providerConfig.Value == nil {
+		return &config, nil
+	}
 	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil
 }
 
-// ClusterStatusFromProviderStatus unmarshals a provider status into an AWS Cluster type
+// ClusterStatusFromProviderStatus unmarshals a raw extension into an AWS Cluster type
 func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClusterProviderStatus, error) {
 	if extension == nil {
 		return &AWSClusterProviderStatus{}, nil
@@ -74,7 +78,7 @@ func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*
 	return &config, nil
 }
 
-// MachineStatusFromProviderStatus unmarshals a provider status into an AWS machine type
+// MachineStatusFromProviderStatus unmarshals a raw extension into an AWS machine type
 func MachineStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSMachineProviderStatus, error) {
 	if extension == nil {
 		return &AWSMachineProviderStatus{}, nil
@@ -107,7 +111,7 @@ func EncodeMachineStatus(status *AWSMachineProviderStatus) (*runtime.RawExtensio
 	}, nil
 }
 
-// EncodeClusterStatus marshals the machine status
+// EncodeClusterStatus marshals the cluster status
 func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtension, error) {
 	if status == nil {
 		return &runtime.RawExtension{}, nil
