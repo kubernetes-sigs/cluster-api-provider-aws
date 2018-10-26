@@ -66,22 +66,18 @@ check-install: ## Checks that you've installed this repository correctly
 .PHONY: manager
 manager: generate lint ## Build manager binary.
 	bazel build //cmd/manager $(BAZEL_ARGS)
-	cp -f bazel-bin/cmd/manager/*/manager $(GOPATH)/bin/aws-manager
 
 .PHONY: clusterctl
 clusterctl: check-install generate lint ## Build clusterctl binary.
 	bazel build //cmd/clusterctl $(BAZEL_ARGS)
-	cp -f bazel-bin/cmd/clusterctl/*/clusterctl $(GOPATH)/bin/clusterctl
 
 .PHONY: clusterawsadm
 clusterawsadm: check-install dep-ensure ## Build clusterawsadm binary.
 	bazel build //cmd/clusterawsadm $(BAZEL_ARGS)
-	cp -f bazel-bin/cmd/clusterawsadm/*/clusterawsadm $(GOPATH)/bin/clusterawsadm
 
 .PHONY: cluster-api-dev-helper
 cluster-api-dev-helper: check-install dep-ensure ## Build cluster-api-dev-helper binary
 	bazel build //hack/cluster-api-dev-helper $(BAZEL_ARGS)
-	cp -f bazel-bin/hack/cluster-api-dev-helper/*/cluster-api-dev-helper $(GOPATH)/bin/cluster-api-dev-helper
 
 .PHONY: test
 test: lint generate ## Run tests
