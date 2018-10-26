@@ -4,7 +4,7 @@ set -o nounset
 
 # Directories.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-OUTPUT_DIR=${DIR}/out
+OUTPUT_DIR=${OUTPUT_DIR:-${DIR}/out}
 
 # Manager image.
 export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest}"

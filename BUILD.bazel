@@ -80,6 +80,17 @@ filegroup(
     srcs = glob(["**"]),
 )
 
+filegroup(
+  name = "cluster-api-kustomize-yaml",
+  srcs = glob([
+        "vendor/sigs.k8s.io/cluster-api/config/crds/*.yaml",
+        "vendor/sigs.k8s.io/cluster-api/config/rbac/*.yaml",
+        "vendor/sigs.k8s.io/cluster-api/config/manager/*.yaml",
+        "vendor/sigs.k8s.io/cluster-api/config/default/*.yaml"
+  ]),
+  visibility = ["//visibility:public"],
+)
+
 exports_files(glob([
     "WORKSPACE",
 ]))
