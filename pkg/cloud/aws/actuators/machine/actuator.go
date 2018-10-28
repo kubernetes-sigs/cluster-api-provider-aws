@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/kubernetes"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -133,9 +132,14 @@ func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *pr
 	if networkAddresses != nil {
 		machineCopy.Status.Addresses = networkAddresses
 	}
-
-	if !equality.Semantic.DeepEqual(machine.Status, machineCopy.Status) {
-		glog.Infof("machine status changed: %s", diff.ObjectReflectDiff(machine.Status, machineCopy.Status))
+	oldAWSStatus, err := ProviderStatusFromMachine(a.codec, machine)
+	if err != nil {
+		glog.Errorf("error updating machine status: %v", err)
+		return err
+	}
+	// TODO(vikasc): Revisit to compare complete machine status objects
+	if !equality.Semantic.DeepEqual(awsStatus, oldAWSStatus) || !equality.Semantic.DeepEqual(machine.Status.Addresses, machineCopy.Status.Addresses) {
+		glog.Infof("machine status has changed, updating")
 		time := metav1.Now()
 		machineCopy.Status.LastUpdated = &time
 
