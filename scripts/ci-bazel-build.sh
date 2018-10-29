@@ -20,5 +20,5 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-cd $REPO_ROOT && \
+cd "${REPO_ROOT}" && \
     bazel build //cmd/manager:manager //cmd/clusterctl:clusterctl //cmd/clusterawsadm:clusterawsadm
