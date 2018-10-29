@@ -21,9 +21,11 @@ FASTBUILD ?= n ## Set FASTBUILD=y (case-sensitive) to skip some slow tasks
 
 ## Image URL to use all building/pushing image targets
 STABLE_DOCKER_REPO ?= gcr.io/cluster-api-provider-aws
-MANAGER_IMAGE ?= $(STABLE_DOCKER_REPO)/cluster-api-aws-controller:latest
+MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
+MANAGER_IMAGE_TAG ?= latest
+MANAGER_IMAGE ?= $(STABLE_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 DEV_DOCKER_REPO ?= gcr.io/$(shell gcloud config get-value project)
-DEV_MANAGER_IMAGE ?= $(DEV_DOCKER_REPO)/cluster-api-aws-controller:latest
+DEV_MANAGER_IMAGE ?= $(DEV_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 
 DEPCACHEAGE ?= 24h # Enables caching for Dep
 BAZEL_ARGS ?=
@@ -89,11 +91,11 @@ docker-build: generate ## Build the docker image
 
 .PHONY: docker-push
 docker-push: generate ## Push production docker image
-	bazel run //cmd/manager:manager-push --define=STABLE_DOCKER_REPO=$(STABLE_DOCKER_REPO) $(BAZEL_ARGS)
+	bazel run //cmd/manager:manager-push --define=STABLE_DOCKER_REPO=$(STABLE_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) $(BAZEL_ARGS)
 
 .PHONY: docker-push-dev
 docker-push-dev: generate ## Push development image
-	bazel run //cmd/manager:manager-push-dev --define=DEV_DOCKER_REPO=$(DEV_DOCKER_REPO) $(BAZEL_ARGS)
+	bazel run //cmd/manager:manager-push-dev --define=DEV_DOCKER_REPO=$(DEV_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) $(BAZEL_ARGS)
 
 .PHONY: clean
 clean: ## Remove all generated files
@@ -140,7 +142,7 @@ ifneq ($(FASTBUILD),y)
 ## Define slow dependency targets here
 
 generate: dep-ensure ## Run go generate
-	GOPATH=$(go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
+	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
 
 lint: dep-ensure ## Lint codebase

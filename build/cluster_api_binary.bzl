@@ -49,7 +49,7 @@ def cluster_api_binary(name):
         images = {
             "{registry}/aws-{name}:{tag}".format(
                 registry = "$(STABLE_DOCKER_REPO)",
-                name = name,
+                name = "$(MANAGER_IMAGE_NAME)",
                 tag = tag,
             ): ":{name}-amd64".format(name = name)
             for tag in tags
@@ -70,7 +70,7 @@ def cluster_api_binary(name):
         images = {
             "{registry}/aws-{name}:{tag}".format(
                 registry = "$(DEV_DOCKER_REPO)",
-                name = name,
+                name = "$(MANAGER_IMAGE_NAME)",
                 tag = tag,
             ): ":{name}-amd64".format(name = name)
             for tag in tags
