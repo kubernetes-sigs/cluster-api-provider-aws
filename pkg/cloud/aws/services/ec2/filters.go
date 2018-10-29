@@ -109,6 +109,13 @@ func (s *Service) filterVPCStates(states ...string) *ec2.Filter {
 	}
 }
 
+func (s *Service) filterSubnetsStates(states ...string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String("state"),
+		Values: aws.StringSlice(states),
+	}
+}
+
 // Add additional cluster tag filters, to match on our tags
 func (s *Service) addFilterTags(clusterName string, filters []*ec2.Filter) []*ec2.Filter {
 	filters = append(filters, s.filterCluster(clusterName))

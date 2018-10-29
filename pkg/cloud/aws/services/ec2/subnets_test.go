@@ -72,6 +72,10 @@ func TestReconcileSubnets(t *testing.T) {
 								Name:   aws.String("tag-key"),
 								Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
 							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
 						},
 					})).
 					Return(&ec2.DescribeSubnetsOutput{
@@ -148,6 +152,10 @@ func TestReconcileSubnets(t *testing.T) {
 							{
 								Name:   aws.String("tag-key"),
 								Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
 							},
 						},
 					})).
