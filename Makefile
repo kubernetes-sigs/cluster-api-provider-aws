@@ -140,7 +140,7 @@ ifneq ($(FASTBUILD),y)
 ## Define slow dependency targets here
 
 generate: dep-ensure ## Run go generate
-	bazel run //:generate $(BAZEL_ARGS)
+	GOPATH=$(go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
 
 lint: dep-ensure ## Lint codebase
