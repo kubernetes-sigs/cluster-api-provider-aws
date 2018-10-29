@@ -51,10 +51,12 @@ func defineTestingStartCmd(parent *cobra.Command) {
 		Long:  `Start tests with an existing kubeconfig context. Expects to be run in the repository using Go 1.11`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var wg sync.WaitGroup
-			a := runShell(`go run ./clusterctl create cluster -v4  \
-				-m ./out/machines.yaml \
-				-c ./out/cluster.yaml \
-				-p ./out/provider-components.yaml \
+			a := runShell(`bazel-bin/cmd/clusterctl/linux_amd64_stripped/clusterctl -v4  \
+			  create cluster \
+				-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
+				-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
+				-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
+				-a ./cmd/clusterctl/examples/aws/out/addons.yaml \
 				--provider aws \
 				--existing-bootstrap-cluster-kubeconfig ${HOME}/.kube/config`)
 			wg.Add(1)
