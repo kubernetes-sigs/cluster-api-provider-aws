@@ -14,18 +14,17 @@
 package cluster_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster/mock_clusteriface" // nolint
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/mocks"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
@@ -68,11 +67,11 @@ func TestGetIP(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 				Spec: clusterv1.ClusterSpec{
 					ProviderConfig: clusterv1.ProviderConfig{
-						Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{}, t),
+						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{}),
 					},
 				},
 				Status: clusterv1.ClusterStatus{
-					ProviderStatus: RuntimeRawExtension(&providerv1.AWSClusterProviderStatus{}, t),
+					ProviderStatus: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderStatus{}),
 				},
 			},
 			expectedIP: "something",
@@ -88,7 +87,7 @@ func TestGetIP(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 				Spec: clusterv1.ClusterSpec{
 					ProviderConfig: clusterv1.ProviderConfig{
-						Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{}, t),
+						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{}),
 					},
 				},
 			},
@@ -105,17 +104,17 @@ func TestGetIP(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 				Spec: clusterv1.ClusterSpec{
 					ProviderConfig: clusterv1.ProviderConfig{
-						Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{}, t),
+						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{}),
 					},
 				},
 				Status: clusterv1.ClusterStatus{
-					ProviderStatus: RuntimeRawExtension(&providerv1.AWSClusterProviderStatus{
+					ProviderStatus: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderStatus{
 						Network: providerv1.Network{
 							APIServerELB: providerv1.ClassicELB{
 								DNSName: "banana",
 							},
 						},
-					}, t),
+					}),
 				},
 			},
 			expectedIP: "banana",
@@ -183,9 +182,9 @@ func TestReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test"},
 		Spec: clusterv1.ClusterSpec{
 			ProviderConfig: clusterv1.ProviderConfig{
-				Value: RuntimeRawExtension(&providerv1.AWSClusterProviderConfig{
+				Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{
 					Region: "us-east-1",
-				}, t),
+				}),
 			},
 		},
 	}
@@ -208,16 +207,5 @@ func TestReconcile(t *testing.T) {
 
 	if err := actuator.Reconcile(cluster); err != nil {
 		t.Fatalf("failed to reconcile cluster: %v", err)
-	}
-}
-
-func RuntimeRawExtension(p interface{}, t *testing.T) *runtime.RawExtension {
-	t.Helper()
-	out, err := json.Marshal(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return &runtime.RawExtension{
-		Raw: out,
 	}
 }
