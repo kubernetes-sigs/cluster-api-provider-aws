@@ -54,8 +54,6 @@ spec:
       containers:
         - name: manager
           image: SET_BY_PATCH
-          command:
-            - "/root/manager"
           args:
             - "-logtostderr=true"
             - "-stderrthreshold=INFO"

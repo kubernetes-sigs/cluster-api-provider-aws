@@ -47,7 +47,7 @@ def cluster_api_binary(name):
     container_bundle(
         name = name + "-image",
         images = {
-            "{registry}/aws-{name}:{tag}".format(
+            "{registry}/{name}:{tag}".format(
                 registry = "$(STABLE_DOCKER_REPO)",
                 name = "$(MANAGER_IMAGE_NAME)",
                 tag = tag,
@@ -68,7 +68,7 @@ def cluster_api_binary(name):
     container_bundle(
         name = name + "-image-dev",
         images = {
-            "{registry}/aws-{name}:{tag}".format(
+            "{registry}/{name}:{tag}".format(
                 registry = "$(DEV_DOCKER_REPO)",
                 name = "$(MANAGER_IMAGE_NAME)",
                 tag = tag,
