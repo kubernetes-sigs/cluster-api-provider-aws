@@ -72,15 +72,15 @@ To add a new Analyzer to an existing driver, add another item to the list:
 
 A driver may use the name, flags, and documentation to provide on-line
 help that describes the analyses its performs.
-The "analyze" command, shown below, is an example of a driver that runs
+The vet command, shown below, is an example of a driver that runs
 multiple analyzers. It is based on the multichecker package
 (see the "Standalone commands" section for details).
 
-	$ go build golang.org/x/tools/cmd/analyze
-	$ ./analyze help
-	Analyze is a tool for static analysis of Go programs.
+	$ go build golang.org/x/tools/cmd/vet
+	$ ./vet help
+	vet is a tool for static analysis of Go programs.
 
-	Usage: analyze [-flag] [package]
+	Usage: vet [-flag] [package]
 
 	Registered analyzers:
 
@@ -90,7 +90,7 @@ multiple analyzers. It is based on the multichecker package
 	    ...
 	    unusedresult check for unused results of calls to some functions
 
-	$ ./analyze help unusedresult
+	$ ./vet help unusedresult
 	unusedresult: check for unused results of calls to some functions
 
 	Analyzer flags:
@@ -204,6 +204,18 @@ Diagnostic is defined as:
 
 The optional Category field is a short identifier that classifies the
 kind of message when an analysis produces several kinds of diagnostic.
+
+Most Analyzers inspect typed Go syntax trees, but a few, such as asmdecl
+and buildtag, inspect the raw text of Go source files or even non-Go
+files such as assembly. To report a diagnostic against a line of a
+raw text file, use the following sequence:
+
+	content, err := ioutil.ReadFile(filename)
+	if err != nil { ... }
+	tf := fset.AddFile(filename, -1, len(content))
+	tf.SetLinesForContent(content)
+	...
+	pass.Reportf(tf.LineStart(line), "oops")
 
 
 Modular analysis with Facts

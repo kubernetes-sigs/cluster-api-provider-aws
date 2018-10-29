@@ -6,6 +6,7 @@ go_library(
         "certgenerator.go",
         "doc.go",
         "selfsigned.go",
+        "util.go",
     ],
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/controller-runtime/pkg/webhook/internal/cert/generator",
     importpath = "sigs.k8s.io/controller-runtime/pkg/webhook/internal/cert/generator",
@@ -18,6 +19,13 @@ go_test(
     srcs = [
         "certgenerator_test.go",
         "selfsigned_test.go",
+        "suite_test.go",
     ],
     embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/onsi/ginkgo:go_default_library",
+        "//vendor/github.com/onsi/gomega:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/envtest:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/log:go_default_library",
+    ],
 )

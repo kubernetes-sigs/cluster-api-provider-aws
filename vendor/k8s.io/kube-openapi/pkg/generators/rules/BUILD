@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "doc.go",
         "names_match.go",
+        "omitempty_match_case.go",
     ],
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/kube-openapi/pkg/generators/rules",
     importpath = "k8s.io/kube-openapi/pkg/generators/rules",
@@ -17,7 +18,10 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["names_match_test.go"],
+    srcs = [
+        "names_match_test.go",
+        "omitempty_match_case_test.go",
+    ],
     embed = [":go_default_library"],
     deps = ["//vendor/k8s.io/gengo/types:go_default_library"],
 )

@@ -1,0 +1,52 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "ast.go",
+        "comma_token.go",
+        "comment_token.go",
+        "doc.go",
+        "empty_token.go",
+        "expression.go",
+        "ini.go",
+        "ini_lexer.go",
+        "ini_parser.go",
+        "literal_tokens.go",
+        "newline_token.go",
+        "number_helper.go",
+        "op_tokens.go",
+        "parse_error.go",
+        "parse_stack.go",
+        "sep_tokens.go",
+        "skipper.go",
+        "statement.go",
+        "value_util.go",
+        "visitor.go",
+        "walker.go",
+        "ws_token.go",
+    ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/aws/aws-sdk-go/internal/ini",
+    importpath = "github.com/aws/aws-sdk-go/internal/ini",
+    visibility = ["//vendor/github.com/aws/aws-sdk-go:__subpackages__"],
+    deps = ["//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "bench_test.go",
+        "ini_lexer_test.go",
+        "ini_parser_test.go",
+        "literal_tokens_test.go",
+        "number_helper_test.go",
+        "op_tokens_test.go",
+        "parse_stack_test.go",
+        "sep_tokens_test.go",
+        "skipper_test.go",
+        "value_util_test.go",
+        "walker_test.go",
+    ],
+    data = glob(["testdata/**"]),
+    embed = [":go_default_library"],
+)

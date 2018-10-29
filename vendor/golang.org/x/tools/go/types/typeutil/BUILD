@@ -12,6 +12,7 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/tools/go/types/typeutil",
     importpath = "golang.org/x/tools/go/types/typeutil",
     visibility = ["//visibility:public"],
+    deps = ["//vendor/golang.org/x/tools/go/ast/astutil:go_default_library"],
 )
 
 go_test(

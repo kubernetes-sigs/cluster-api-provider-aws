@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package asmdecl defines an Analyzer that reports mismatches between
+// assembly files and Go declarations.
 package asmdecl
 
 import (
@@ -11,6 +13,7 @@ import (
 	"go/build"
 	"go/token"
 	"go/types"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -107,7 +110,13 @@ func init() {
 	for _, arch := range arches {
 		arch.sizes = types.SizesFor("gc", arch.name)
 		if arch.sizes == nil {
-			panic("missing SizesFor for gc/" + arch.name)
+			// TODO(adonovan): fix: now that asmdecl is not in the standard
+			// library we cannot assume types.SizesFor is consistent with arches.
+			// For now, assume 64-bit norms and print a warning.
+			// But this warning should really be deferred until we attempt to use
+			// arch, which is very unlikely.
+			arch.sizes = types.SizesFor("gc", "amd64")
+			log.Printf("unknown architecture %s", arch.name)
 		}
 		arch.intSize = int(arch.sizes.Sizeof(types.Typ[types.Int]))
 		arch.ptrSize = int(arch.sizes.Sizeof(types.Typ[types.UnsafePointer]))
@@ -497,10 +506,20 @@ func asmParseDecl(pass *analysis.Pass, decl *ast.FuncDecl) map[string]*asmFunc {
 
 	// addParams adds asmVars for each of the parameters in list.
 	// isret indicates whether the list are the arguments or the return values.
+	// TODO(adonovan): simplify by passing (*types.Signature).{Params,Results}
+	// instead of list.
 	addParams := func(list []*ast.Field, isret bool) {
 		argnum := 0
 		for _, fld := range list {
 			t := pass.TypesInfo.Types[fld.Type].Type
+
+			// Work around github.com/golang/go/issues/28277.
+			if t == nil {
+				if ell, ok := fld.Type.(*ast.Ellipsis); ok {
+					t = types.NewSlice(pass.TypesInfo.Types[ell.Elt].Type)
+				}
+			}
+
 			align := int(arch.sizes.Alignof(t))
 			size := int(arch.sizes.Sizeof(t))
 			offset += -offset & (align - 1)

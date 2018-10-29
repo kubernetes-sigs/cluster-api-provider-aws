@@ -8,6 +8,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_Mods(t *testing.T) {
+	r := require.New(t)
+	Temp(func() {
+		Set(GO111MODULE, "off")
+		r.False(Mods())
+		Set(GO111MODULE, "on")
+		r.True(Mods())
+	})
+}
+
 // envy should detect when running as a unit test and return GO_ENV=test if otherwise undefined
 func Test_GO_ENVUnitTest(t *testing.T) {
 	r := require.New(t)

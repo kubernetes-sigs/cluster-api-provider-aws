@@ -14,14 +14,6 @@
 //				(idea is if you say import "compress/zlib", you go to
 //				http://godoc/pkg/compress/zlib)
 //
-// Command-line interface:
-//
-//	godoc packagepath [name ...]
-//
-//	godoc compress/zlib
-//		- prints doc for package compress/zlib
-//	godoc crypto/block Cipher NewCMAC
-//		- prints doc for Cipher and NewCMAC in package crypto/block
 
 // +build !golangorg
 
@@ -80,7 +72,7 @@ var (
 	// layout control
 	showTimestamps = flag.Bool("timestamps", false, "show timestamps with directory listings")
 	templateDir    = flag.String("templates", "", "load templates/JS/CSS from disk in this directory")
-	showPlayground = flag.Bool("play", false, "enable playground in web interface")
+	showPlayground = flag.Bool("play", false, "enable playground")
 	declLinks      = flag.Bool("links", true, "link identifiers to their declarations")
 
 	// search index
@@ -241,8 +233,10 @@ func main() {
 	if *writeIndex {
 		corpus.IndexThrottle = 1.0
 		corpus.IndexEnabled = true
+		initCorpus(corpus)
+	} else {
+		go initCorpus(corpus)
 	}
-	go initCorpus(corpus)
 
 	// Initialize the version info before readTemplates, which saves
 	// the map value in a method value.
