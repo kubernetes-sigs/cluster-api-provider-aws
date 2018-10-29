@@ -27,10 +27,7 @@ import (
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
 	AddToManagerFuncs = append(AddToManagerFuncs, func(m manager.Manager) error {
-		actuator, err := cluster.NewActuator(cluster.ActuatorParams{})
-		if err != nil {
-			return err
-		}
+		actuator := cluster.NewActuator(cluster.ActuatorParams{})
 		return capicluster.AddWithActuator(m, actuator)
 	})
 }

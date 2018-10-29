@@ -46,7 +46,7 @@ type ActuatorParams struct {
 }
 
 // NewActuator returns an actuator.
-func NewActuator(params ActuatorParams) (*Actuator, error) {
+func NewActuator(params ActuatorParams) *Actuator {
 	res := &Actuator{
 		machinesGetter: params.MachinesGetter,
 		servicesGetter: params.ServicesGetter,
@@ -56,7 +56,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 		res.servicesGetter = new(defaultServicesGetter)
 	}
 
-	return res, nil
+	return res
 }
 
 func (a *Actuator) ec2(clusterConfig *v1alpha1.AWSClusterProviderConfig) service.EC2MachineInterface {

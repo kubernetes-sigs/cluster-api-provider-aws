@@ -10,6 +10,7 @@ go_library(
         "//pkg/apis:go_default_library",
         "//pkg/cloud/aws/actuators/cluster:go_default_library",
         "//pkg/cloud/aws/actuators/machine:go_default_library",
+        "//pkg/record:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/common:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
