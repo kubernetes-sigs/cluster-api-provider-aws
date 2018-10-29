@@ -228,7 +228,8 @@ You can now start the Cluster API controllers and deploy a new cluster in AWS:
 clusterctl create cluster -v2 --provider aws \
   -m ./cmd/clusterctl/examples/aws/out/machines.yaml \
   -c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
-  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
+  -a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
 I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
@@ -247,7 +248,8 @@ I1018 01:21:12.524912   16367 clusterdeployer.go:123] Creating master  in namesp
 clusterctl create cluster -v2 --provider aws `
   -m ./cmd/clusterctl/examples/aws/out/machines.yaml `
   -c ./cmd/clusterctl/examples/aws/out/cluster.yaml `
-  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml `
+  -a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
 I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
