@@ -10,7 +10,7 @@
   - [Optional](#optional)
 - [Prerequisites](#prerequisites)
   - [Installing clusterawsadm](#installing-clusterawsadm)
-  - [Bootstrapping AWS Identity and Access Management with CloudFormation](#bootstrapping-aws-identity-and-access-management-with-clusterawsadm)
+  - [Bootstrapping AWS Identity and Access Management with CloudFormation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)
   - [SSH Key pair](#ssh-key-pair)
     - [Create a new key pair](#create-a-new-key-pair)
     - [Using an existing key](#using-an-existing-key)
