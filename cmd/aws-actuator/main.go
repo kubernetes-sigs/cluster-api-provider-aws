@@ -32,7 +32,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
@@ -94,7 +93,7 @@ func createCommand() *cobra.Command {
 				return err
 			}
 
-			actuator := createActuator(machine, awsCredentials, userData, log.WithField("example", "create-machine"))
+			actuator := createActuator(machine, awsCredentials, userData)
 			result, err := actuator.CreateMachine(cluster, machine)
 			if err != nil {
 				return err
@@ -126,7 +125,7 @@ func deleteCommand() *cobra.Command {
 				return err
 			}
 
-			actuator := createActuator(machine, awsCredentials, userData, log.WithField("example", "create-machine"))
+			actuator := createActuator(machine, awsCredentials, userData)
 			err = actuator.DeleteMachine(cluster, machine)
 			if err != nil {
 				return err
@@ -158,7 +157,7 @@ func existsCommand() *cobra.Command {
 				return err
 			}
 
-			actuator := createActuator(machine, awsCredentials, userData, log.WithField("example", "create-machine"))
+			actuator := createActuator(machine, awsCredentials, userData)
 			exists, err := actuator.Exists(cluster, machine)
 			if err != nil {
 				return err
@@ -307,7 +306,7 @@ type TestConfig struct {
 }
 
 func createCluster(testConfig *TestConfig, cluster *clusterv1.Cluster) error {
-	log.Infof("Creating %q cluster...", strings.Join([]string{cluster.Namespace, cluster.Name}, "/"))
+	glog.Infof("Creating %q cluster...", strings.Join([]string{cluster.Namespace, cluster.Name}, "/"))
 	if _, err := testConfig.CAPIClient.ClusterV1alpha1().Clusters(cluster.Namespace).Get(cluster.Name, metav1.GetOptions{}); err != nil {
 		if _, err := testConfig.CAPIClient.ClusterV1alpha1().Clusters(cluster.Namespace).Create(cluster); err != nil {
 			return fmt.Errorf("unable to create cluster: %v", err)
@@ -318,7 +317,7 @@ func createCluster(testConfig *TestConfig, cluster *clusterv1.Cluster) error {
 }
 
 func createMachineSet(testConfig *TestConfig, machineset *clusterv1.MachineSet) error {
-	log.Infof("Creating %q machineset...", strings.Join([]string{machineset.Namespace, machineset.Name}, "/"))
+	glog.Infof("Creating %q machineset...", strings.Join([]string{machineset.Namespace, machineset.Name}, "/"))
 	if _, err := testConfig.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Get(machineset.Name, metav1.GetOptions{}); err != nil {
 		if _, err := testConfig.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Create(machineset); err != nil {
 			return fmt.Errorf("unable to create machineset: %v", err)
@@ -329,7 +328,7 @@ func createMachineSet(testConfig *TestConfig, machineset *clusterv1.MachineSet) 
 }
 
 func createSecret(testConfig *TestConfig, secret *apiv1.Secret) error {
-	log.Infof("Creating %q secret...", strings.Join([]string{secret.Namespace, secret.Name}, "/"))
+	glog.Infof("Creating %q secret...", strings.Join([]string{secret.Namespace, secret.Name}, "/"))
 	if _, err := testConfig.KubeClient.CoreV1().Secrets(secret.Namespace).Get(secret.Name, metav1.GetOptions{}); err != nil {
 		if _, err := testConfig.KubeClient.CoreV1().Secrets(secret.Namespace).Create(secret); err != nil {
 			return fmt.Errorf("unable to create secret: %v", err)
@@ -346,7 +345,7 @@ func createNamespace(testConfig *TestConfig, namespace string) error {
 		},
 	}
 
-	log.Infof("Creating %q namespace...", nsObj.Name)
+	glog.Infof("Creating %q namespace...", nsObj.Name)
 	if _, err := testConfig.KubeClient.CoreV1().Namespaces().Get(nsObj.Name, metav1.GetOptions{}); err != nil {
 		if _, err := testConfig.KubeClient.CoreV1().Namespaces().Create(nsObj); err != nil {
 			return fmt.Errorf("unable to create namespace: %v", err)
@@ -375,13 +374,13 @@ func bootstrapCommand() *cobra.Command {
 				return fmt.Errorf("AWS_SECRET_ACCESS_KEY env needs to be set")
 			}
 
-			log.Infof("Reading cluster manifest from %v", path.Join(manifestsDir, "cluster.yaml"))
+			glog.Infof("Reading cluster manifest from %v", path.Join(manifestsDir, "cluster.yaml"))
 			cluster, err := readClusterManifest(path.Join(manifestsDir, "cluster.yaml"))
 			if err != nil {
 				return err
 			}
 
-			log.Infof("Reading master machine manifest from %v", path.Join(manifestsDir, "master-machine.yaml"))
+			glog.Infof("Reading master machine manifest from %v", path.Join(manifestsDir, "master-machine.yaml"))
 			masterMachine, err := readMachineManifest(
 				&manifestParams{
 					ClusterID: machinePrefix,
@@ -392,7 +391,7 @@ func bootstrapCommand() *cobra.Command {
 				return err
 			}
 
-			log.Infof("Reading master user data manifest from %v", path.Join(manifestsDir, "master-userdata.yaml"))
+			glog.Infof("Reading master user data manifest from %v", path.Join(manifestsDir, "master-userdata.yaml"))
 			masterUserDataSecret, err := readSecretManifest(path.Join(manifestsDir, "master-userdata.yaml"))
 			if err != nil {
 				return err
@@ -404,33 +403,33 @@ func bootstrapCommand() *cobra.Command {
 
 			var awsCredentialsSecret *apiv1.Secret
 			if cmd.Flag("aws-credentials").Value.String() != "" {
-				log.Infof("Reading aws credentials manifest from %v", cmd.Flag("aws-credentials").Value.String())
+				glog.Infof("Reading aws credentials manifest from %v", cmd.Flag("aws-credentials").Value.String())
 				awsCredentialsSecret, err = readSecretManifest(cmd.Flag("aws-credentials").Value.String())
 				if err != nil {
 					return err
 				}
 			}
 
-			log.Infof("Creating master machine")
-			actuator := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret, log.WithField("bootstrap", "create-master-machine"))
+			glog.Infof("Creating master machine")
+			actuator := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret)
 			result, err := actuator.CreateMachine(cluster, masterMachine)
 			if err != nil {
 				return err
 			}
 
-			log.Infof("Master machine created with ipv4: %v, InstanceId: %v", *result.PrivateIpAddress, *result.InstanceId)
+			glog.Infof("Master machine created with ipv4: %v, InstanceId: %v", *result.PrivateIpAddress, *result.InstanceId)
 
 			masterMachinePublicDNS := ""
 			masterMachinePrivateIP := ""
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-				log.Info("Waiting for master machine PublicDNS")
+				glog.Info("Waiting for master machine PublicDNS")
 				result, err := actuator.Describe(cluster, masterMachine)
 				if err != nil {
-					log.Info(err)
+					glog.Info(err)
 					return false, nil
 				}
 
-				log.Infof("PublicDnsName: %v\n", *result.PublicDnsName)
+				glog.Infof("PublicDnsName: %v\n", *result.PublicDnsName)
 				if *result.PublicDnsName == "" {
 					return false, nil
 				}
@@ -441,10 +440,10 @@ func bootstrapCommand() *cobra.Command {
 			})
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-				log.Infof("Pulling kubeconfig from %v:8443", masterMachinePublicDNS)
+				glog.Infof("Pulling kubeconfig from %v:8443", masterMachinePublicDNS)
 				output, err := cmdRun("ssh", fmt.Sprintf("ec2-user@%v", masterMachinePublicDNS), "sudo cat /etc/kubernetes/admin.conf")
 				if err != nil {
-					log.Infof("Unable to pull kubeconfig: %v, %v", err, string(output))
+					glog.Infof("Unable to pull kubeconfig: %v, %v", err, string(output))
 					return false, nil
 				}
 
@@ -462,7 +461,7 @@ func bootstrapCommand() *cobra.Command {
 				return true, nil
 			})
 
-			log.Infof("Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://%v:8443", masterMachinePublicDNS)
+			glog.Infof("Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://%v:8443", masterMachinePublicDNS)
 			if _, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "config", "set-cluster", "kubernetes", fmt.Sprintf("--server=https://%v:8443", masterMachinePublicDNS)); err != nil {
 				return err
 			}
@@ -489,7 +488,7 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-				log.Info("Waiting for all nodes to come up")
+				glog.Info("Waiting for all nodes to come up")
 				nodesList, err := kubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
 				if err != nil {
 					return false, nil
@@ -504,7 +503,7 @@ func bootstrapCommand() *cobra.Command {
 						}
 						ready = true
 					}
-					log.Infof("Is node %q ready?: %v\n", node.Name, ready)
+					glog.Infof("Is node %q ready?: %v\n", node.Name, ready)
 					if !ready {
 						nodesReady = false
 					}
@@ -513,8 +512,8 @@ func bootstrapCommand() *cobra.Command {
 				return nodesReady, nil
 			})
 
-			log.Info("Deploying cluster-api stack")
-			log.Info("Deploying aws credentials")
+			glog.Info("Deploying cluster-api stack")
+			glog.Info("Deploying aws credentials")
 
 			if err := createNamespace(tc, "test"); err != nil {
 				return err
@@ -536,9 +535,9 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-				log.Info("Deploying cluster-api server")
+				glog.Info("Deploying cluster-api server")
 				if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "cluster-api-server.yaml")), "--validate=false"); err != nil {
-					log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "cluster-api-server.yaml"), err, string(output))
+					glog.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "cluster-api-server.yaml"), err, string(output))
 					return false, nil
 				}
 
@@ -546,9 +545,9 @@ func bootstrapCommand() *cobra.Command {
 			})
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-				log.Info("Deploying cluster-api controllers")
+				glog.Info("Deploying cluster-api controllers")
 				if output, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "apply", fmt.Sprintf("-f=%v", path.Join(manifestsDir, "provider-components.yml"))); err != nil {
-					log.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "provider-components.yml"), err, string(output))
+					glog.Infof("Unable to apply %v manifest: %v\n%v", path.Join(manifestsDir, "provider-components.yml"), err, string(output))
 					return false, nil
 				}
 				return true, nil
@@ -573,23 +572,23 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-				log.Infof("Deploying cluster resource")
+				glog.Infof("Deploying cluster resource")
 
 				if err := createCluster(tc, testCluster); err != nil {
-					log.Infof("Unable to deploy cluster manifest: %v", err)
+					glog.Infof("Unable to deploy cluster manifest: %v", err)
 					return false, nil
 				}
 
 				return true, nil
 			})
 
-			log.Infof("Reading worker user data manifest from %v", path.Join(manifestsDir, "worker-userdata.yaml"))
+			glog.Infof("Reading worker user data manifest from %v", path.Join(manifestsDir, "worker-userdata.yaml"))
 			workerUserDataSecret, err := readSecretManifest(path.Join(manifestsDir, "worker-userdata.yaml"))
 			if err != nil {
 				return err
 			}
 
-			log.Infof("Generating worker machine set user data for master listening at %v", masterMachinePrivateIP)
+			glog.Infof("Generating worker machine set user data for master listening at %v", masterMachinePrivateIP)
 			workerUserDataSecret, err = generateWorkerUserData(masterMachinePrivateIP, workerUserDataSecret)
 			if err != nil {
 				return fmt.Errorf("unable to generate worker user data: %v", err)
@@ -599,7 +598,7 @@ func bootstrapCommand() *cobra.Command {
 				return err
 			}
 
-			log.Infof("Reading worker machine manifest from %v", path.Join(manifestsDir, "worker-machineset.yaml"))
+			glog.Infof("Reading worker machine manifest from %v", path.Join(manifestsDir, "worker-machineset.yaml"))
 			workerMachineSet, err := readMachineSetManifest(
 				&manifestParams{
 					ClusterID: machinePrefix,
@@ -615,9 +614,9 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
-				log.Info("Deploying worker machineset")
+				glog.Info("Deploying worker machineset")
 				if err := createMachineSet(tc, workerMachineSet); err != nil {
-					log.Infof("unable to create machineset: %v", err)
+					glog.Infof("unable to create machineset: %v", err)
 					return false, nil
 				}
 
@@ -713,7 +712,7 @@ func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc
 	return cluster, machine, awsCredentialsSecret, userDataSecret, nil
 }
 
-func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, userData *apiv1.Secret, logger *log.Entry) *machineactuator.Actuator {
+func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, userData *apiv1.Secret) *machineactuator.Actuator {
 	objList := []runtime.Object{}
 	if awsCredentials != nil {
 		objList = append(objList, awsCredentials)
@@ -728,7 +727,6 @@ func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, us
 		Client:           fakeClient,
 		KubeClient:       fakeKubeClient,
 		AwsClientBuilder: awsclient.NewClient,
-		Logger:           logger,
 	}
 
 	actuator, _ := machineactuator.NewActuator(params)
@@ -746,9 +744,6 @@ func checkFlags(cmd *cobra.Command) error {
 }
 
 func main() {
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
-
 	err := rootCmd.Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error occurred: %v\n", err)

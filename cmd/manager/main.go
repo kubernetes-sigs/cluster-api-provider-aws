@@ -15,11 +15,10 @@ package main
 
 import (
 	"flag"
+
 	"github.com/golang/glog"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"os"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
@@ -49,36 +48,36 @@ func main() {
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
-	log.Printf("Registering Components.")
+	glog.Info("Registering Components.")
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
 	initActuator(mgr)
 	// Setup all Controllers
 	if err := controller.AddToManager(mgr); err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
-	log.Printf("Starting the Cmd.")
+	glog.Info("Starting the Cmd.")
 
 	// Start the Cmd
-	log.Fatal(mgr.Start(signals.SetupSignalHandler()))
+	glog.Fatal(mgr.Start(signals.SetupSignalHandler()))
 }
 
 func initActuator(m manager.Manager) {
@@ -89,15 +88,6 @@ func initActuator(m manager.Manager) {
 		glog.Fatalf("Could not create kubernetes client to talk to the apiserver: %v", err)
 	}
 
-	log.SetOutput(os.Stdout)
-	if lvl, err := log.ParseLevel(logLevel); err != nil {
-		log.Panic(err)
-	} else {
-		log.SetLevel(lvl)
-	}
-
-	logger := log.WithField("controller", "awsMachine")
-
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		glog.Fatal(err)
@@ -107,7 +97,6 @@ func initActuator(m manager.Manager) {
 		Client:           m.GetClient(),
 		KubeClient:       kubeClient,
 		AwsClientBuilder: awsclient.NewClient,
-		Logger:           logger,
 		Codec:            codec,
 	}
 

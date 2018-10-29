@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -158,19 +158,15 @@ func GetInstances(machine *clusterv1.Machine, client awsclient.Client, instanceS
 }
 
 // TerminateInstances terminates all provided instances with a single EC2 request.
-func TerminateInstances(client awsclient.Client, instances []*ec2.Instance, mLog log.FieldLogger) error {
+func TerminateInstances(client awsclient.Client, instances []*ec2.Instance) error {
 	instanceIDs := []*string{}
 	// Cleanup all older instances:
 	for _, instance := range instances {
-		mLog.WithFields(log.Fields{
-			"instanceID": *instance.InstanceId,
-			"state":      *instance.State.Name,
-			"launchTime": *instance.LaunchTime,
-		}).Warn("cleaning up extraneous instance for machine")
+		glog.Infof("Cleaning up extraneous instance for machine: %v, state: %v, launchTime: %v", *instance.InstanceId, *instance.State.Name, *instance.LaunchTime)
 		instanceIDs = append(instanceIDs, instance.InstanceId)
 	}
 	for _, instanceID := range instanceIDs {
-		mLog.WithField("instanceID", *instanceID).Info("terminating instance")
+		glog.Infof("Terminating %v instance", *instanceID)
 	}
 
 	terminateInstancesRequest := &ec2.TerminateInstancesInput{
@@ -178,7 +174,7 @@ func TerminateInstances(client awsclient.Client, instances []*ec2.Instance, mLog
 	}
 	_, err := client.TerminateInstances(terminateInstancesRequest)
 	if err != nil {
-		mLog.Errorf("error terminating instances: %v", err)
+		glog.Errorf("error terminating instances: %v", err)
 		return fmt.Errorf("error terminating instances: %v", err)
 	}
 	return nil
