@@ -33,5 +33,6 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/credentials/endpointcreds:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/request:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/internal/shareddefaults:go_default_library",
     ],
 )

@@ -22,7 +22,8 @@ go_library(
         "//vendor/github.com/aws/aws-sdk-go/aws/defaults:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/endpoints:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/request:go_default_library",
-        "//vendor/github.com/go-ini/ini:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/internal/ini:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/internal/shareddefaults:go_default_library",
     ],
 )
 
@@ -43,9 +44,9 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/aws/defaults:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/endpoints:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/awstesting:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/internal/ini:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/internal/shareddefaults:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/s3:go_default_library",
-        "//vendor/github.com/go-ini/ini:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
     ],
 )

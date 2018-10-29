@@ -8,8 +8,6 @@ go_library(
         "exportdata.go",
         "gcimporter.go",
         "iimport.go",
-        "isAlias18.go",
-        "isAlias19.go",
         "newInterface10.go",
         "newInterface11.go",
     ],
@@ -21,7 +19,6 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
-        "bexport19_test.go",
         "bexport_test.go",
         "gcimporter11_test.go",
         "gcimporter_test.go",

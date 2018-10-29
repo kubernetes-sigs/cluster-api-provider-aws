@@ -13,7 +13,6 @@ go_library(
     importpath = "sigs.k8s.io/controller-runtime/pkg/webhook/internal/cert/writer",
     visibility = ["//vendor/sigs.k8s.io/controller-runtime/pkg/webhook:__subpackages__"],
     deps = [
-        "//vendor/github.com/ghodss/yaml:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",

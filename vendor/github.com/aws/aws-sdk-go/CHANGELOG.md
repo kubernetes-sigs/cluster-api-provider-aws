@@ -1,3 +1,124 @@
+Release v1.15.64 (2018-10-26)
+===
+
+### Service Client Updates
+* `service/alexaforbusiness`: Updates service documentation
+* `service/sagemaker`: Updates service API and documentation
+  * SageMaker notebook instances can now have a volume size configured.
+* `service/ssm`: Updates service API and documentation
+  * Compliance Severity feature release for State Manager. Users now have the ability to select compliance severity to their association in state manager console or CLI.
+
+Release v1.15.63 (2018-10-25)
+===
+
+### Service Client Updates
+* `service/ec2`: Updates service API and documentation
+  * As part of this release we are introducing EC2 On-Demand Capacity Reservations. With On-Demand Capacity Reservations, customers can reserve the exact EC2 capacity they need, and can keep it only for as long as they need it.
+
+Release v1.15.62 (2018-10-24)
+===
+
+### Service Client Updates
+* `service/alexaforbusiness`: Updates service API, documentation, and paginators
+* `service/codestar`: Updates service API and documentation
+  * This release lets you create projects from source code and a toolchain definition that you provide.
+
+Release v1.15.61 (2018-10-23)
+===
+
+### Service Client Updates
+* `service/ec2`: Updates service API, documentation, and examples
+  * Provides customers the ability to Bring Your Own IP (BYOIP) prefix.  You can bring part or all of your public IPv4 address range from your on-premises network to your AWS account. You continue to own the address range, but AWS advertises it on the internet.
+
+Release v1.15.60 (2018-10-22)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/inspector`: Updates service API and documentation
+  * Finding will be decorated with ec2 related metadata
+* `service/shield`: Updates service API and documentation
+  * AWS Shield Advanced API introduced a new service-specific AccessDeniedException which will be thrown when accessing individual attack information without sufficient permission.
+
+Release v1.15.59 (2018-10-19)
+===
+
+### Service Client Updates
+* `service/ssm`: Updates service API and documentation
+  * Rate Control feature release for State Manager. Users now have the ability to apply rate control parameters similar to run command to their association in state manager console or CLI.
+* `service/workspaces`: Updates service API
+  * Added support for PowerPro and GraphicsPro WorkSpaces bundles.
+
+### SDK Enhancements
+* `aws/request`: Add private ini package (#2210)
+  * Get rids of go-ini dependency in favor of `internal/ini` package.
+
+Release v1.15.58 (2018-10-18)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API and documentation
+  * This API update adds support for creating, managing, and deleting users in the AppStream 2.0 user pool.
+* `service/medialive`: Updates service API and documentation
+  * This release allows you to now turn on Quality-Defined Variable Bitrate (QVBR) encoding for your AWS Elemental MediaLive channels. You can now deliver a consistently high-quality video viewing experience while reducing overall distribution bitrates by using Quality-Defined Variable Bitrate (QVBR) encoding with AWS Elemental MediaLive. QVBR is a video compression technique that automatically adjusts output bitrates to the complexity of source content and only use the bits required to maintain a defined level of quality. This means using QVBR encoding, you can save on distribution cost, while maintaining, or increasing video quality for your viewers.
+* `service/route53`: Updates service API and documentation
+  * This change allows customers to disable health checks.
+
+Release v1.15.57 (2018-10-17)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service documentation
+  * Documentation updates for API Gateway
+* `service/events`: Updates service API and documentation
+  * AWS Events - AWS Organizations Support in Event-Bus Policies. This release introduces a new parameter in the PutPermission API named Condition. Using the Condition parameter, customers can allow one or more AWS Organizations to access their CloudWatch Events Event-Bus resource.
+
+Release v1.15.56 (2018-10-16)
+===
+
+### Service Client Updates
+* `service/glue`: Updates service API and documentation
+  * New Glue APIs for creating, updating, reading and deleting Data Catalog resource-based policies.
+* `service/lightsail`: Updates service API and documentation
+  * Adds support for Lightsail managed databases.
+* `service/resource-groups`: Updates service API and documentation
+
+Release v1.15.55 (2018-10-15)
+===
+
+### Service Client Updates
+* `service/lambda`: Updates service API and documentation
+  * Documentation updates for lambda
+* `service/rds`: Updates service API and documentation
+  * This release adds a new parameter to specify the DB instance or cluster parameter group for restore from DB snapshot and restore to point int time operations. For more information, see Amazon RDS Documentation.
+* `service/servicecatalog`: Updates service API, documentation, and paginators
+  * AWS Service Catalog enables you to reduce administrative maintenance and end-user training while adhering to compliance and security measures. With service actions, you as the administrator can enable end users to perform operational tasks, troubleshoot issues, run approved commands, or request permissions within Service Catalog. Service actions are defined using AWS Systems Manager documents, where you have access to pre-defined actions that implement AWS best practices, such asEC2 stop and reboot, as well as the ability to define custom actions.
+
+Release v1.15.54 (2018-10-12)
+===
+
+### Service Client Updates
+* `service/cloudtrail`: Updates service API and documentation
+  * The LookupEvents API now supports two new attribute keys: ReadOnly and AccessKeyId
+
+### SDK Enhancements
+* `aws/session`: Add support for credential source(#2201)
+  * Allows for shared config file to contain `credential_source` with any of the given values `EcsContainer`, `Environment` or `Ec2InstanceMetadata`
+
+Release v1.15.53 (2018-10-11)
+===
+
+### Service Client Updates
+* `service/athena`: Updates service API and documentation
+  * 1. GetQueryExecution API changes to return statementType of a submitted Athena query.  2. GetQueryResults API changes to return the number of rows added to a table when a CTAS query is executed.
+* `service/directconnect`: Updates service API and documentation
+  * This release adds support for Jumbo Frames over AWS Direct Connect. You can now set MTU value when creating new virtual interfaces. This release also includes a new API to modify MTU value of existing virtual interfaces.
+* `service/ec2`: Updates service API
+  * You can now launch the smaller-sized G3 instance called g3s.xlarge. G3s.xlarge provides 4 vCPU, 30.5 GB RAM and a NVIDIA Tesla M60 GPU. It is ideal for remote workstations, engineering and architectural applications, and 3D visualizations and rendering for visual effects.
+* `service/mediaconvert`: Updates service paginators
+  * Added Paginators for all the MediaConvert list operations
+* `service/transcribe`: Updates service API and documentation
+
 Release v1.15.52 (2018-10-10)
 ===
 

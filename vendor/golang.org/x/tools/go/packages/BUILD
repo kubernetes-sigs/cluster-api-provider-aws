@@ -17,6 +17,8 @@ go_library(
     deps = [
         "//vendor/golang.org/x/tools/go/gcexportdata:go_default_library",
         "//vendor/golang.org/x/tools/go/internal/cgo:go_default_library",
+        "//vendor/golang.org/x/tools/internal/gopathwalk:go_default_library",
+        "//vendor/golang.org/x/tools/internal/semver:go_default_library",
     ],
 )
 
@@ -30,4 +32,5 @@ go_test(
         "stdlib_test.go",
     ],
     embed = [":go_default_library"],
+    deps = ["//vendor/golang.org/x/tools/go/packages/packagestest:go_default_library"],
 )

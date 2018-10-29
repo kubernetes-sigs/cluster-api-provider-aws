@@ -35,6 +35,9 @@ func Test_Name_ParamID(t *testing.T) {
 		{V: "admin/widget", E: "admin_widget_id"},
 		{V: "widget", E: "widget_id"},
 		{V: "User", E: "user_id"},
+		{V: "Movies", E: "movie_id"},
+		{V: "movies", E: "movie_id"},
+		{V: "Movie", E: "movie_id"},
 		{V: "Post", E: "post_id"},
 	}
 	for _, tt := range table {

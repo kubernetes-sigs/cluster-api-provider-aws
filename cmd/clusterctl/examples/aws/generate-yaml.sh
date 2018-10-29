@@ -21,6 +21,7 @@ MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
 MANAGER_PATCH_TEMPLATE_FILE=${DIR}/aws_manager_image_patch.yaml.template
 MANAGER_PATCH_GENERATED_FILE=${OUTPUT_DIR}/aws_manager_image_patch.yaml
+ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
 
 # Overwrite flag.
 OVERWRITE=0
@@ -72,3 +73,6 @@ echo "Done generating ${MACHINES_GENERATED_FILE}"
 
 envsubst < $MANAGER_PATCH_TEMPLATE_FILE > "${MANAGER_PATCH_GENERATED_FILE}"
 echo "Done generating ${MANAGER_PATCH_GENERATED_FILE}"
+
+cp  ${DIR}/addons.yaml ${ADDONS_FILE}
+echo "Done copying ${ADDONS_FILE}"

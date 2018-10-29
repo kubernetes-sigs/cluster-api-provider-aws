@@ -105,7 +105,7 @@ clean: ## Remove all generated files
 cmd/clusterctl/examples/aws/out/:
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
-cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out/ clusterawsadm ## Generate k8s secret for AWS credentials
+cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out/ ## Generate k8s secret for AWS credentials
 	clusterawsadm alpha bootstrap generate-aws-default-profile > cmd/clusterctl/examples/aws/out/credentials
 
 .PHONY: examples

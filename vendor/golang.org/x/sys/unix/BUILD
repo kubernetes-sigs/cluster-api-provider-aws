@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "affinity_linux.go",
         "aliases.go",
+        "asm_aix_ppc64.s",
         "asm_darwin_386.s",
         "asm_darwin_amd64.s",
         "asm_darwin_arm.s",
@@ -48,6 +49,7 @@ go_library(
         "fcntl_linux_32bit.go",
         "ioctl.go",
         "openbsd_pledge.go",
+        "openbsd_unveil.go",
         "pagesize_unix.go",
         "race.go",
         "race0.go",

@@ -13,7 +13,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendor/golang.org/x/tools/go/ast/astutil:go_default_library",
-        "//vendor/golang.org/x/tools/internal/fastwalk:go_default_library",
+        "//vendor/golang.org/x/tools/internal/gopathwalk:go_default_library",
     ],
 )
 
@@ -21,4 +21,5 @@ go_test(
     name = "go_default_test",
     srcs = ["fix_test.go"],
     embed = [":go_default_library"],
+    deps = ["//vendor/golang.org/x/tools/go/packages/packagestest:go_default_library"],
 )

@@ -380,7 +380,7 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 }
 
 // initControlPlaneScript returns the b64 encoded script to run on start up.
-// The cert Must be CertPEM encoded and the key must be PrivateKeyPEM encoded
+// The cert must be CertPEM encoded and the key must be PrivateKeyPEM encoded
 // TODO: convert to using cloud-init module rather than a startup script
 func initControlPlaneScript(caCert, caKey []byte, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion string) string {
 	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
@@ -415,9 +415,5 @@ nodeRegistration:
 EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
-
-# Installing Calico
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/v3.2/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
 `, caCert, caKey, elbDNSName, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion)
 }

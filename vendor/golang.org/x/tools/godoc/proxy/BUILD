@@ -6,8 +6,5 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/golang.org/x/tools/godoc/proxy",
     importpath = "golang.org/x/tools/godoc/proxy",
     visibility = ["//visibility:public"],
-    deps = [
-        "//vendor/golang.org/x/net/context:go_default_library",
-        "//vendor/golang.org/x/tools/godoc/env:go_default_library",
-    ],
+    deps = ["//vendor/golang.org/x/tools/godoc/env:go_default_library"],
 )

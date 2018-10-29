@@ -284,6 +284,7 @@ var Irregularities = map[string]string{
 	"child":  "children",
 	"sex":    "sexes",
 	"move":   "moves",
+	"human":  "humans",
 }
 
 type AcronymCase struct {
