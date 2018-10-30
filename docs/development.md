@@ -16,14 +16,19 @@
 <!-- /TOC -->
 
 ## Committing code
+
 Ensure you have updated the vendor directory with:
 
-```
+``` shell
 make dep-ensure
 ```
+
 ## Mocks
 
 Mocks are set up using Bazel, see [build](../../build)
+
+If you then want to use these mocks with `go test ./...`, run
+`make copy-genmocks`
 
 ## Set up
 
