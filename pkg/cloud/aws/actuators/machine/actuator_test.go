@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
@@ -189,7 +187,6 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			//fakeClient := fake.NewSimpleClientset(machine)
 
 			fakeClient := fake.NewFakeClient(machine)
-			logger := log.WithField("controller", controllerLogName)
 
 			mockCtrl := gomock.NewController(t)
 			mockAWSClient := mockaws.NewMockClient(mockCtrl)
@@ -200,8 +197,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
 					return mockAWSClient, nil
 				},
-				Logger: logger,
-				Codec:  codec,
+				Codec: codec,
 			}
 
 			actuator, err := NewActuator(params)

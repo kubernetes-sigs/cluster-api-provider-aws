@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
-
 	//"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -107,13 +105,11 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 
 	fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
 	fakeClient := fake.NewFakeClient(machine)
-	logger := log.WithField("controller", controllerLogName)
 
 	params := machineactuator.ActuatorParams{
 		Client:           fakeClient,
 		KubeClient:       fakeKubeClient,
 		AwsClientBuilder: awsclient.NewClient,
-		Logger:           logger,
 	}
 
 	actuator, err := machineactuator.NewActuator(params)
