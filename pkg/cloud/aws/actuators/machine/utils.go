@@ -180,9 +180,9 @@ func TerminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 	return nil
 }
 
-// ProviderConfigMachine gets the machine provider config MachineSetSpec from the
+// ProviderConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func ProviderConfigMachine(machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func ProviderConfigFromMachine(machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	var config providerconfigv1.AWSMachineProviderConfig
 	if err := yaml.Unmarshal(machine.Spec.ProviderConfig.Value.Raw, &config); err != nil {
 		return nil, err

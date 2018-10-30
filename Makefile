@@ -91,7 +91,7 @@ check: fmt vet lint test ## Check your code
 
 .PHONY: unit
 unit: # Run unit test
-	$(DOCKER_CMD) go test -race -cover ./cmd/... ./pkg/cloud/...
+	$(DOCKER_CMD) go test -race -cover ./cmd/... ./pkg/...
 
 .PHONY: integration
 integration: ## Run integration test

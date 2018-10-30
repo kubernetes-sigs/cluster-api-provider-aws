@@ -91,7 +91,7 @@ func TestingMachineProviderConfig(awsCredentialsSecretName string, clusterID str
 	if err != nil {
 		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeToProviderConfig(machinePc)
+	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
 		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
 	}
@@ -153,7 +153,7 @@ func MasterMachineProviderConfig(awsCredentialsSecretName, masterUserDataSecretN
 	if err != nil {
 		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeToProviderConfig(machinePc)
+	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
 		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
 	}
@@ -215,7 +215,7 @@ func WorkerMachineSetProviderConfig(awsCredentialsSecretName, workerUserDataSecr
 	if err != nil {
 		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeToProviderConfig(machinePc)
+	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
 		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
 	}
