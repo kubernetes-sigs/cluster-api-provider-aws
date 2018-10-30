@@ -186,7 +186,7 @@ func (a *Actuator) removeStoppedMachine(machine *clusterv1.Machine, client awscl
 	return TerminateInstances(client, instances)
 }
 
-func buildEc2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {
+func buildEC2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {
 	filters := make([]*ec2.Filter, len(inputFilters))
 	for i, f := range inputFilters {
 		values := make([]*string, len(f.Values))
@@ -211,7 +211,7 @@ func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference
 			glog.Info("Describing security groups based on filters")
 			// Get groups based on filters
 			describeSecurityGroupsRequest := ec2.DescribeSecurityGroupsInput{
-				Filters: buildEc2Filters(g.Filters),
+				Filters: buildEC2Filters(g.Filters),
 			}
 			describeSecurityGroupsResult, err := client.DescribeSecurityGroups(&describeSecurityGroupsRequest)
 			if err != nil {
@@ -237,10 +237,11 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, client awsclient
 	// ID has priority
 	if subnet.ID != nil {
 		subnetIDs = append(subnetIDs, subnet.ID)
+		subnetIDs = append(subnetIDs, subnet.ID)
 	} else {
 		glog.Info("Describing subnets based on filters")
 		describeSubnetRequest := ec2.DescribeSubnetsInput{
-			Filters: buildEc2Filters(subnet.Filters),
+			Filters: buildEC2Filters(subnet.Filters),
 		}
 		describeSubnetResult, err := client.DescribeSubnets(&describeSubnetRequest)
 		if err != nil {
@@ -294,7 +295,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	} else if len(machineProviderConfig.AMI.Filters) > 0 {
 		glog.Info("Describing AMI based on filters")
 		describeImagesRequest := ec2.DescribeImagesInput{
-			Filters: buildEc2Filters(machineProviderConfig.AMI.Filters),
+			Filters: buildEC2Filters(machineProviderConfig.AMI.Filters),
 		}
 		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 		if err != nil {

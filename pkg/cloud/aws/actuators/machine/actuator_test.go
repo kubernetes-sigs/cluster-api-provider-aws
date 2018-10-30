@@ -28,7 +28,7 @@ import (
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	//"os"
+
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -326,6 +326,17 @@ func mockTerminateInstances(mockAWSClient *mockaws.MockClient) {
 		&ec2.TerminateInstancesOutput{}, nil)
 }
 
+func mockRegisterInstancesWithLoadBalancer(mockAWSClient *mockaws.MockClient, createError bool) {
+	if createError {
+		return
+	}
+	// RegisterInstancesWithLoadBalancer should be called for every load balancer name in the machine
+	// spec for create and for update (3 * 2 = 6)
+	for i := 0; i < 6; i++ {
+		mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any())
+	}
+}
+
 func TestRemoveDuplicatedTags(t *testing.T) {
 	cases := []struct {
 		tagList  []*ec2.Tag
@@ -367,13 +378,37 @@ func TestRemoveDuplicatedTags(t *testing.T) {
 	}
 }
 
-func mockRegisterInstancesWithLoadBalancer(mockAWSClient *mockaws.MockClient, createError bool) {
-	if createError {
-		return
+func TestBuildEC2Filters(t *testing.T) {
+	filter1 := "filter1"
+	filter2 := "filter2"
+	value1 := "A"
+	value2 := "B"
+	value3 := "C"
+
+	inputFilters := []providerconfigv1.Filter{
+		{
+			Name:   filter1,
+			Values: []string{value1, value2},
+		},
+		{
+			Name:   filter2,
+			Values: []string{value3},
+		},
 	}
-	// RegisterInstancesWithLoadBalancer should be called for every load balancer name in the machine
-	// spec for create and for update (3 * 2 = 6)
-	for i := 0; i < 6; i++ {
-		mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any())
+
+	expected := []*ec2.Filter{
+		{
+			Name:   &filter1,
+			Values: []*string{&value1, &value2},
+		},
+		{
+			Name:   &filter2,
+			Values: []*string{&value3},
+		},
+	}
+
+	got := buildEC2Filters(inputFilters)
+	if !reflect.DeepEqual(expected, got) {
+		t.Errorf("failed to buildEC2Filters. Expected: %+v, got: %+v", expected, got)
 	}
 }
