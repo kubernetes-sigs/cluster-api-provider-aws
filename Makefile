@@ -66,23 +66,23 @@ check-install: ## Checks that you've installed this repository correctly
 	@./scripts/check-install.sh
 
 .PHONY: manager
-manager: generate lint ## Build manager binary.
+manager: generate  ## Build manager binary.
 	bazel build //cmd/manager $(BAZEL_ARGS)
 
 .PHONY: clusterctl
-clusterctl: check-install generate lint ## Build clusterctl binary.
+clusterctl: generate ## Build clusterctl binary.
 	bazel build //cmd/clusterctl $(BAZEL_ARGS)
 
 .PHONY: clusterawsadm
-clusterawsadm: check-install dep-ensure ## Build clusterawsadm binary.
+clusterawsadm: dep-ensure ## Build clusterawsadm binary.
 	bazel build //cmd/clusterawsadm $(BAZEL_ARGS)
 
 .PHONY: cluster-api-dev-helper
-cluster-api-dev-helper: check-install dep-ensure ## Build cluster-api-dev-helper binary
+cluster-api-dev-helper: dep-ensure ## Build cluster-api-dev-helper binary
 	bazel build //hack/cluster-api-dev-helper $(BAZEL_ARGS)
 
 .PHONY: test
-test: lint generate ## Run tests
+test: generate ## Run tests
 	bazel test --nosandbox_debug //pkg/... //cmd/... $(BAZEL_ARGS)
 
 .PHONY: docker-build
