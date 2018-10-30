@@ -8,9 +8,9 @@
 - [Committing code](#committing-code)
 - [Mocks](#mocks)
 - [Set up](#set-up)
-  - [Base requirements](#base-requirements)
-  - [Using Google Cloud](#using-google-cloud)
-    - [Using images on Google Cloud](#using-images-on-google-cloud)
+    - [Base requirements](#base-requirements)
+    - [Using Google Cloud](#using-google-cloud)
+        - [Using images on Google Cloud](#using-images-on-google-cloud)
 - [cluster-api-dev-helper](#cluster-api-dev-helper)
 
 <!-- /TOC -->
@@ -58,7 +58,7 @@ Google Container Registry.
 
 1. [Install the gcloud cli][gcloud_sdk].
 1. Set project: `gcloud config set project YOUR_PROJECT_NAME`.
-1. Pushing dev images: `make dev_push`.
+1. Pushing dev images: `make docker-push-dev`.
 
 #### Using images on Google Cloud
 

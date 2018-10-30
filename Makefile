@@ -22,7 +22,7 @@ FASTBUILD ?= n ## Set FASTBUILD=y (case-sensitive) to skip some slow tasks
 ## Image URL to use all building/pushing image targets
 STABLE_DOCKER_REPO ?= gcr.io/cluster-api-provider-aws
 MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
-MANAGER_IMAGE_TAG ?= latest
+MANAGER_IMAGE_TAG ?= 0.0.2
 MANAGER_IMAGE ?= $(STABLE_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 DEV_DOCKER_REPO ?= gcr.io/$(shell gcloud config get-value project)
 DEV_MANAGER_IMAGE ?= $(DEV_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
@@ -81,6 +81,15 @@ clusterawsadm: dep-ensure ## Build clusterawsadm binary.
 cluster-api-dev-helper: dep-ensure ## Build cluster-api-dev-helper binary
 	bazel build //hack/cluster-api-dev-helper $(BAZEL_ARGS)
 
+.PHONY: release-binaries
+release-binaries: ## Build release binaries
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterctl //cmd/clusterawsadm
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterctl //cmd/clusterawsadm
+	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm out/clusterawsadm-darwin-amd64
+	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm out/clusterawsadm-linux-amd64
+	install bazel-bin/cmd/clusterctl/darwin_amd64_pure_stripped/clusterctl out/clusterctl-darwin-amd64
+	install bazel-bin/cmd/clusterctl/linux_amd64_pure_stripped/clusterctl out/clusterctl-linux-amd64
+
 .PHONY: test
 test: generate ## Run tests
 	bazel test --nosandbox_debug //pkg/... //cmd/... $(BAZEL_ARGS)
@@ -95,11 +104,11 @@ docker-build: generate ## Build the docker image
 
 .PHONY: docker-push
 docker-push: generate ## Push production docker image
-	bazel run //cmd/manager:manager-push --define=STABLE_DOCKER_REPO=$(STABLE_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) $(BAZEL_ARGS)
+	bazel run //cmd/manager:manager-push --define=DOCKER_REPO=$(STABLE_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG) $(BAZEL_ARGS)
 
 .PHONY: docker-push-dev
 docker-push-dev: generate ## Push development image
-	bazel run //cmd/manager:manager-push-dev --define=DEV_DOCKER_REPO=$(DEV_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) $(BAZEL_ARGS)
+	bazel run //cmd/manager:manager-push --define=DOCKER_REPO=$(DEV_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG) $(BAZEL_ARGS)
 
 .PHONY: clean
 clean: ## Remove all generated files
