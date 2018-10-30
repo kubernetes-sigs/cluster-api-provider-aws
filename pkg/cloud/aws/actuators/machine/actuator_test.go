@@ -122,7 +122,7 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeToProviderConfig(machinePc)
+	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("encodeToProviderConfig failed: %v", err)
 	}
