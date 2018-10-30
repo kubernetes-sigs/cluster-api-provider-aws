@@ -85,6 +85,10 @@ cluster-api-dev-helper: dep-ensure ## Build cluster-api-dev-helper binary
 test: generate ## Run tests
 	bazel test --nosandbox_debug //pkg/... //cmd/... $(BAZEL_ARGS)
 
+.PHONY: copy-genmocks
+copy-genmocks: test ## Copies generated mocks into the repository
+	cp -Rf bazel-genfiles/pkg/* pkg/
+
 .PHONY: docker-build
 docker-build: generate ## Build the docker image
 	bazel build //cmd/manager $(BAZEL_ARGS)
@@ -146,6 +150,7 @@ generate: dep-ensure ## Run go generate
 	$(MAKE) dep-ensure
 
 lint: dep-ensure ## Lint codebase
+	@echo If you have genereated new mocks, run make copy-genmocks before linting
 	bazel run //:lint $(BAZEL_ARGS)
 
 else
