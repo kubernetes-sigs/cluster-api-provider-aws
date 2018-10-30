@@ -164,6 +164,3 @@ lint:
 	@echo FASTBUILD is set: Skipping lint
 
 endif
-
-%:
-	@true
