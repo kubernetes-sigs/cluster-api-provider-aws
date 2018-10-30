@@ -6,7 +6,7 @@ package(default_visibility = ["//visibility:public"])
 # Update the excludes if you get "unrecognised import path"
 
 # gazelle:prefix sigs.k8s.io/cluster-api-provider-aws
-# gazelle:build_file_name BUILD,BUILD.bazel
+# gazelle:build_file_name BUILD.bazel,BUILD
 # gazelle:proto disable_global
 # gazelle:exclude vendor/github.com/golang/mock/mockgen/tests/vendor_dep
 # gazelle:exclude vendor/golang.org/x/tools/cmd/bundle/testdata
