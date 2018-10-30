@@ -1,5 +1,4 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
-load("//build:cluster_api_binary.bzl", "cluster_api_binary")
 
 go_library(
     name = "go_default_library",
@@ -17,6 +16,5 @@ go_binary(
     name = "clusterctl",
     embed = [":go_default_library"],
     visibility = ["//visibility:public"],
+    pure = "on",
 )
-
-cluster_api_binary(name = "clusterctl")

@@ -26,7 +26,7 @@ envfile
 minikube.kubeconfig
 kubeconfig
 
-# Example output directory
+# Example and binary output directory
 /out
 
 # bazel
