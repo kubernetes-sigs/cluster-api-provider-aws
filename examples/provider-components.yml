@@ -78,7 +78,8 @@ spec:
         command:
         - /machine-controller
         args:
-        - --log-level=debug
+        - --logtostderr=true
+        - --v=3
         - --kubeconfig=/etc/kubernetes/admin.conf
         resources:
           requests:
