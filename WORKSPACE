@@ -117,6 +117,12 @@ go_repository(
     commit = "4ed3216f3ec431b140b1d899130a69fc671678f4",  # v1.12.1
 )
 
+go_repository(
+    name = "com_github_a8m_envsubst",
+    importpath = "github.com/a8m/envsubst",
+    commit = "41dec2456c86b2a9fa51a22a808b7084b8d52c64", # v1.1.0
+)
+
 # for @io_k8s_kubernetes
 http_archive(
     name = "io_kubernetes_build",
