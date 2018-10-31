@@ -82,7 +82,6 @@ type AWSMachineProviderCondition struct {
 
 // Network encapsulates AWS networking resources.
 type Network struct {
-
 	// VPC defines the cluster vpc.
 	VPC VPC `json:"vpc,omitempty"`
 
@@ -244,7 +243,6 @@ type RouteTable struct {
 type SecurityGroupRole string
 
 var (
-
 	// SecurityGroupBastion defines an SSH bastion role
 	SecurityGroupBastion = SecurityGroupRole("bastion")
 
