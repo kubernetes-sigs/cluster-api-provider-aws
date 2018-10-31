@@ -5,5 +5,4 @@ run --workspace_status_command=./hack/print-workspace-status.sh
 
 test --features=race --test_output=errors
 test --build_tests_only
-test --sandbox_debug
 test --test_summary=detailed

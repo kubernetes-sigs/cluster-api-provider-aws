@@ -31,6 +31,7 @@ def cluster_api_binary_image(name):
         goarch = "amd64",
         goos = "linux",
         pure = "on",
+        visibility = ["//visibility:public"],
     )
 
     tags = [
