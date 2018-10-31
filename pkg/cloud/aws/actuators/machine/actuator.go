@@ -133,7 +133,14 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to reconcile LB attachment")
 	}
 
-	if err := a.storeMachineStatus(machine, status, true); err != nil {
+	if err := a.updateMachine(machine); err != nil {
+		glog.Errorf("failed to update machine %q in namespace %q trying to set annotation: %v", machine.Name, machine.Namespace, err)
+		return &controllerError.RequeueAfterError{
+			RequeueAfter: time.Minute,
+		}
+	}
+
+	if err := a.storeMachineStatus(machine, status); err != nil {
 		glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
@@ -169,8 +176,10 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get cluster provider config")
 	}
 
+	// status.InstanceID is nil, so don't do this
 	if status.InstanceID == nil {
 		// Instance was never created
+		glog.Infof("Machine %v does not exist", machine.Name)
 		return nil
 	}
 
@@ -183,6 +192,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	if instance == nil {
 		// The machine hasn't been created yet
+		glog.Info("Instance is nil and therefore does not exist")
 		return nil
 	}
 
@@ -192,6 +202,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
+		glog.Infof("instance %q is shutting down or already terminated", machine.Name)
 		return nil
 	default:
 		if err := ec2svc.TerminateInstance(aws.StringValue(status.InstanceID)); err != nil {
@@ -199,6 +210,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		}
 	}
 
+	glog.Info("shutdown signal was sent. Shutting down machine.")
 	return nil
 }
 
@@ -260,11 +272,11 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	if securityGroupsChanged || tagsChanged {
-		if err := a.storeMachineStatus(machine, status, true); err != nil {
+		if err := a.updateMachine(machine); err != nil {
 			glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 		}
 	} else {
-		if err := a.storeMachineStatus(machine, status, false); err != nil {
+		if err := a.storeMachineStatus(machine, status); err != nil {
 			glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 		}
 	}
@@ -318,7 +330,15 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	return true, nil
 }
 
-func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, updateResource bool) error {
+func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
+	machinesClient := a.machinesGetter.Machines(machine.Namespace)
+	if _, err := machinesClient.Update(machine); err != nil {
+		return fmt.Errorf("failed to update machine: %v", err)
+	}
+	return nil
+}
+
+func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
 	machinesClient := a.machinesGetter.Machines(machine.Namespace)
 
 	ext, err := v1alpha1.EncodeMachineStatus(status)
@@ -328,14 +348,8 @@ func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alph
 
 	machine.Status.ProviderStatus = ext
 
-	if updateResource {
-		if _, err := machinesClient.Update(machine); err != nil {
-			return fmt.Errorf("failed to update machine for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		}
-	} else {
-		if _, err := machinesClient.UpdateStatus(machine); err != nil {
-			return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		}
+	if _, err := machinesClient.UpdateStatus(machine); err != nil {
+		return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	return nil
