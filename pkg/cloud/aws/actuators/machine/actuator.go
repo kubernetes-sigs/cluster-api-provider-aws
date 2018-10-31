@@ -403,6 +403,13 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 
+	var placement *ec2.Placement
+	if machineProviderConfig.Placement.AvailabilityZone != "" && machineProviderConfig.Subnet.ID == nil {
+		placement = &ec2.Placement{
+			AvailabilityZone: aws.String(machineProviderConfig.Placement.AvailabilityZone),
+		}
+	}
+
 	inputConfig := ec2.RunInstancesInput{
 		ImageId:      amiID,
 		InstanceType: aws.String(machineProviderConfig.InstanceType),
@@ -414,6 +421,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		TagSpecifications:  []*ec2.TagSpecification{tagInstance, tagVolume},
 		NetworkInterfaces:  networkInterfaces,
 		UserData:           &userDataEnc,
+		Placement:          placement,
 	}
 
 	runResult, err := client.RunInstances(&inputConfig)
