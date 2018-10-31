@@ -248,10 +248,10 @@ var (
 	// SecurityGroupBastion defines an SSH bastion role
 	SecurityGroupBastion = SecurityGroupRole("bastion")
 
-	// SecurityGroupNode defines a Kubenetes workload node role
+	// SecurityGroupNode defines a Kubernetes workload node role
 	SecurityGroupNode = SecurityGroupRole("node")
 
-	// SecurityGroupControlPlane defines a Kubenetes control plane node role
+	// SecurityGroupControlPlane defines a Kubernetes control plane node role
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 )
 
