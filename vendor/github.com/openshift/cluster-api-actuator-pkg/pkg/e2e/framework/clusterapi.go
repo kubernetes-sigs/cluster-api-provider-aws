@@ -75,7 +75,7 @@ func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorImage, ac
 	f.ErrNotExpected(err)
 
 	f.By("Deploying machine controller")
-	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, "")
+	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, actuatorPrivateKey)
 	_, err = f.KubeClient.AppsV1().Deployments(deploymentManifest.Namespace).Create(deploymentManifest)
 	f.ErrNotExpected(err)
 
@@ -96,9 +96,19 @@ func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorImage, ac
 
 func (f *Framework) DestroyClusterAPIStack(clusterAPINamespace, actuatorImage, actuatorPrivateKey string) {
 
+	f.By("Deleting machine controller")
+	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, actuatorPrivateKey)
+	err := WaitUntilDeleted(func() error {
+		return f.KubeClient.AppsV1().Deployments(deploymentManifest.Namespace).Delete(deploymentManifest.Name, &metav1.DeleteOptions{})
+	}, func() error {
+		_, err := f.KubeClient.AppsV1().Deployments(deploymentManifest.Namespace).Get(deploymentManifest.Name, metav1.GetOptions{})
+		return err
+	})
+	f.ErrNotExpected(err)
+
 	f.By("Deleting machine manager")
 	managerServiceManifest := manifests.ManagerService(clusterAPINamespace)
-	err := WaitUntilDeleted(func() error {
+	err = WaitUntilDeleted(func() error {
 		return f.KubeClient.CoreV1().Services(managerServiceManifest.Namespace).Delete(managerServiceManifest.Name, &metav1.DeleteOptions{})
 	}, func() error {
 		_, err := f.KubeClient.CoreV1().Services(managerServiceManifest.Namespace).Get(managerServiceManifest.Name, metav1.GetOptions{})

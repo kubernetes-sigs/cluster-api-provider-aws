@@ -1,3 +1,101 @@
+Release v1.15.66 (2018-10-31)
+===
+
+### Service Client Updates
+* `service/config`: Updates service API
+* `service/greengrass`: Updates service API and documentation
+  * Greengrass APIs now support bulk deployment operations, and APIs that list definition versions now support pagination.
+* `service/mediastore-data`: Updates service API and documentation
+* `service/secretsmanager`: Updates service documentation
+  * Documentation updates for AWS Secrets Manager.
+
+Release v1.15.65 (2018-10-30)
+===
+
+### Service Client Updates
+* `service/chime`: Adds new service
+  * This is the initial release for the Amazon Chime AWS SDK. In this release, Amazon Chime adds support for administrative actions on users and accounts. API Documentation is also updated on https://docs.aws.amazon.com/chime/index.html
+* `service/dms`: Updates service waiters
+  * Add waiters for TestConnectionSucceeds, EndpointDeleted, ReplicationInstanceAvailable, ReplicationInstanceDeleted, ReplicationTaskReady, ReplicationTaskStopped, ReplicationTaskRunning and ReplicationTaskDeleted.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * This release adds the listener connection endpoint for SQL Server Always On to the list of fields returned when performing a describe-db-instances operation.
+
+Release v1.15.64 (2018-10-26)
+===
+
+### Service Client Updates
+* `service/alexaforbusiness`: Updates service documentation
+* `service/sagemaker`: Updates service API and documentation
+  * SageMaker notebook instances can now have a volume size configured.
+* `service/ssm`: Updates service API and documentation
+  * Compliance Severity feature release for State Manager. Users now have the ability to select compliance severity to their association in state manager console or CLI.
+
+Release v1.15.63 (2018-10-25)
+===
+
+### Service Client Updates
+* `service/ec2`: Updates service API and documentation
+  * As part of this release we are introducing EC2 On-Demand Capacity Reservations. With On-Demand Capacity Reservations, customers can reserve the exact EC2 capacity they need, and can keep it only for as long as they need it.
+
+Release v1.15.62 (2018-10-24)
+===
+
+### Service Client Updates
+* `service/alexaforbusiness`: Updates service API, documentation, and paginators
+* `service/codestar`: Updates service API and documentation
+  * This release lets you create projects from source code and a toolchain definition that you provide.
+
+Release v1.15.61 (2018-10-23)
+===
+
+### Service Client Updates
+* `service/ec2`: Updates service API, documentation, and examples
+  * Provides customers the ability to Bring Your Own IP (BYOIP) prefix.  You can bring part or all of your public IPv4 address range from your on-premises network to your AWS account. You continue to own the address range, but AWS advertises it on the internet.
+
+Release v1.15.60 (2018-10-22)
+===
+
+### Service Client Updates
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/inspector`: Updates service API and documentation
+  * Finding will be decorated with ec2 related metadata
+* `service/shield`: Updates service API and documentation
+  * AWS Shield Advanced API introduced a new service-specific AccessDeniedException which will be thrown when accessing individual attack information without sufficient permission.
+
+Release v1.15.59 (2018-10-19)
+===
+
+### Service Client Updates
+* `service/ssm`: Updates service API and documentation
+  * Rate Control feature release for State Manager. Users now have the ability to apply rate control parameters similar to run command to their association in state manager console or CLI.
+* `service/workspaces`: Updates service API
+  * Added support for PowerPro and GraphicsPro WorkSpaces bundles.
+
+### SDK Enhancements
+* `aws/request`: Add private ini package (#2210)
+  * Get rids of go-ini dependency in favor of `internal/ini` package.
+
+Release v1.15.58 (2018-10-18)
+===
+
+### Service Client Updates
+* `service/appstream`: Updates service API and documentation
+  * This API update adds support for creating, managing, and deleting users in the AppStream 2.0 user pool.
+* `service/medialive`: Updates service API and documentation
+  * This release allows you to now turn on Quality-Defined Variable Bitrate (QVBR) encoding for your AWS Elemental MediaLive channels. You can now deliver a consistently high-quality video viewing experience while reducing overall distribution bitrates by using Quality-Defined Variable Bitrate (QVBR) encoding with AWS Elemental MediaLive. QVBR is a video compression technique that automatically adjusts output bitrates to the complexity of source content and only use the bits required to maintain a defined level of quality. This means using QVBR encoding, you can save on distribution cost, while maintaining, or increasing video quality for your viewers.
+* `service/route53`: Updates service API and documentation
+  * This change allows customers to disable health checks.
+
+Release v1.15.57 (2018-10-17)
+===
+
+### Service Client Updates
+* `service/apigateway`: Updates service documentation
+  * Documentation updates for API Gateway
+* `service/events`: Updates service API and documentation
+  * AWS Events - AWS Organizations Support in Event-Bus Policies. This release introduces a new parameter in the PutPermission API named Condition. Using the Condition parameter, customers can allow one or more AWS Organizations to access their CloudWatch Events Event-Bus resource.
+
 Release v1.15.56 (2018-10-16)
 ===
 

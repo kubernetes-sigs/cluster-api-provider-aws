@@ -20,12 +20,11 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	tspb "github.com/golang/protobuf/ptypes/timestamp"
 	pb "google.golang.org/genproto/googleapis/firestore/v1beta1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/golang/protobuf/ptypes"
-	tspb "github.com/golang/protobuf/ptypes/timestamp"
 )
 
 // A DocumentSnapshot contains document data and metadata.
@@ -104,6 +103,9 @@ func (d *DocumentSnapshot) Data() map[string]interface{} {
 //
 // Field names given by struct field tags are observed, as described in
 // DocumentRef.Create.
+//
+// Only the fields actually present in the document are used to populate p. Other fields
+// of p are left unchanged.
 //
 // If the document does not exist, DataTo returns a NotFound error.
 func (d *DocumentSnapshot) DataTo(p interface{}) error {

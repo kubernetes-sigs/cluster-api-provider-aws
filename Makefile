@@ -43,10 +43,9 @@ depend:
 .PHONY: vendor
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
-	dep ensure -v -update
+	dep ensure -v
 	patch -p1 < 0001-Delete-annotated-machines-first-when-scaling-down.patch
 	patch -p1 < 0002-Sort-machines-before-syncing.patch
-	patch -p1 < 0001-use-Update-instead-of-Status.Update-as-CustomResourc.patch
 
 .PHONY: generate
 generate: gendeepcopy generate-mocks
