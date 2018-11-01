@@ -15,7 +15,6 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/ghodss/yaml:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
@@ -23,6 +22,7 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/util/json:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/scheme:go_default_library",
+        "//vendor/sigs.k8s.io/yaml:go_default_library",
     ],
 )
 
