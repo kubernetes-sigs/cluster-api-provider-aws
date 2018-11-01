@@ -22,7 +22,9 @@ set -o pipefail
 GROUP_NAME=capa-cred-test-group-$(openssl rand -hex 8)
 USERNAME=capa-cred-test-user-$(openssl rand -hex 8)
 
-echo "Group: ${GROUP_NAME}\nUser: ${USERNAME}"
+echo "Group: ${GROUP_NAME} User: ${USERNAME}"
+
+export AWS_CONFIG_FILE=/etc/aws-cred/credentials
 
 echo "Creating IAM group"
 aws iam create-group --group-name "${GROUP_NAME}"
