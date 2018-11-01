@@ -16,19 +16,19 @@ items:
           instanceType: "${CONTROL_PLANE_MACHINE_TYPE}"
           iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
           keyName: "${SSH_KEY_NAME}"
-  # - apiVersion: "cluster.k8s.io/v1alpha1"
-  #   kind: Machine
-  #   metadata:
-  #     generateName: aws-node-
-  #     labels:
-  #       set: node
-  #   spec:
-  #     versions:
-  #       kubelet: v1.12.0
-  #     providerConfig:
-  #       value:
-  #         apiVersion: awsprovider/v1alpha1
-  #         kind: AWSMachineProviderConfig
-  #         instanceType: "${NODE_MACHINE_TYPE}"
-  #         iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
-  #         keyName: "${SSH_KEY_NAME}"
+  - apiVersion: "cluster.k8s.io/v1alpha1"
+    kind: Machine
+    metadata:
+      generateName: aws-node-
+      labels:
+        set: node
+    spec:
+      versions:
+        kubelet: v1.12.0
+      providerConfig:
+        value:
+          apiVersion: awsprovider/v1alpha1
+          kind: AWSMachineProviderConfig
+          instanceType: "${NODE_MACHINE_TYPE}"
+          iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+          keyName: "${SSH_KEY_NAME}"

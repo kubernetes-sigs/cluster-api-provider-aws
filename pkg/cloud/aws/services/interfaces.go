@@ -59,10 +59,9 @@ type EC2ClusterInterface interface {
 // actuator
 type EC2MachineInterface interface {
 	InstanceIfExists(instanceID *string) (*providerv1.Instance, error)
-	CreateInstance(machine *clusterv1.Machine, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*providerv1.Instance, error)
 	TerminateInstance(instanceID string) error
 	DeleteBastion(instanceID string, status *providerv1.AWSClusterProviderStatus) error
-	CreateOrGetMachine(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*providerv1.Instance, error)
+	CreateOrGetMachine(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus, clusterConfig *providerv1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*providerv1.Instance, error)
 	UpdateInstanceSecurityGroups(instanceID string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
 }

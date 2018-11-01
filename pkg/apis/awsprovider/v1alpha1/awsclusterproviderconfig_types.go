@@ -35,6 +35,12 @@ type AWSClusterProviderConfig struct {
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
 	SSHKeyName string `json:"sshKeyName,omitempty"`
+
+	// CACertificate is a PEM encoded CA Certificate for the control plane nodes.
+	CACertificate []byte `json:"caCertificate,omitempty"`
+
+	// CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control plane nodes.
+	CAPrivateKey []byte `json:"caKey,omitemptuy"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

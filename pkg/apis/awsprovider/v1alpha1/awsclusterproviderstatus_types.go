@@ -33,12 +33,6 @@ type AWSClusterProviderStatus struct {
 	Region  string   `json:"region,omitempty"`
 	Network Network  `json:"network,omitempty"`
 	Bastion Instance `json:"bastion,omitempty"`
-
-	// CACertificate is a PEM encoded CA Certificate for the control plane nodes.
-	CACertificate []byte
-
-	// CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control plane nodes.
-	CAPrivateKey []byte
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -15,13 +15,13 @@ package ec2
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -63,6 +63,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
+		Filters:     []*ec2.Filter{s.filterInstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning)},
 	}
 
 	out, err := s.EC2.DescribeInstances(input)
@@ -81,8 +82,8 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
-	glog.V(2).Info("Attempting to create an instance")
+func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, clusterConfig *v1alpha1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*v1alpha1.Instance, error) {
+	glog.V(2).Infof("Creating a new instance for machine %q", machine.Name)
 
 	input := &v1alpha1.Instance{
 		Type:       config.InstanceType,
@@ -110,7 +111,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		sns := clusterStatus.Network.Subnets.FilterPrivate()
 		if len(sns) == 0 {
 			return nil, NewFailedDependency(
-				errors.New("failed to run instance, no subnets available"),
+				errors.Errorf("failed to run machine %q, no subnets available", machine.Name),
 			)
 		}
 		input.SubnetID = sns[0].ID
@@ -121,31 +122,50 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 
 		if clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
 			return nil, NewFailedDependency(
-				errors.New("failed to run control plane, security group not available"),
+				errors.New("failed to run controlplane, security group not available"),
 			)
 		}
 
-		if len(clusterStatus.CACertificate) == 0 {
-			return input, errors.New("Cluster Provider Status is missing CACertificate")
+		if len(clusterConfig.CACertificate) == 0 {
+			return nil, errors.New("failed to run controlplane, missing CACertificate")
 		}
-		if len(clusterStatus.CAPrivateKey) == 0 {
-			return input, errors.New("Cluster Provider Status is missing CAPrivateKey")
+		if len(clusterConfig.CAPrivateKey) == 0 {
+			return nil, errors.New("failed to run controlplane, missing CAPrivateKey")
 		}
 
-		input.UserData = aws.String(initControlPlaneScript(clusterStatus.CACertificate,
-			clusterStatus.CAPrivateKey,
-			clusterStatus.Network.APIServerELB.DNSName,
-			cluster.Name,
-			cluster.Spec.ClusterNetwork.ServiceDomain,
-			cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
-			cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
-			machine.Spec.Versions.ControlPlane))
+		userData, err := userdata.NewControlPlane(&userdata.ControlPlaneInput{
+			CACert:            string(clusterConfig.CACertificate),
+			CAKey:             string(clusterConfig.CAPrivateKey),
+			ELBAddress:        clusterStatus.Network.APIServerELB.DNSName,
+			ClusterName:       cluster.Name,
+			PodSubnet:         cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
+			ServiceSubnet:     cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
+			ServiceDomain:     cluster.Spec.ClusterNetwork.ServiceDomain,
+			KubernetesVersion: machine.Spec.Versions.ControlPlane,
+		})
 
+		if err != nil {
+			return input, err
+		}
+
+		input.UserData = aws.String(userData)
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
 	if machine.ObjectMeta.Labels["set"] == "node" {
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupNode].ID)
+
+		userData, err := userdata.NewNode(&userdata.NodeInput{
+			CACert:         string(clusterConfig.CACertificate),
+			BootstrapToken: bootstrapToken,
+			ELBAddress:     clusterStatus.Network.APIServerELB.DNSName,
+		})
+
+		if err != nil {
+			return input, err
+		}
+
+		input.UserData = aws.String(userData)
 	}
 
 	// Pick SSH key, if any.
@@ -161,17 +181,17 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
 func (s *Service) TerminateInstance(instanceID string) error {
-	glog.V(2).Infof("Attempting to terminate instance %q", instanceID)
+	glog.V(2).Infof("Attempting to terminate instance with id %q", instanceID)
 
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
 	if _, err := s.EC2.TerminateInstances(input); err != nil {
-		return errors.Wrapf(err, "failed to terminate instance %q", instanceID)
+		return errors.Wrapf(err, "failed to terminate instance with id %q", instanceID)
 	}
 
-	glog.V(2).Infof("termination request sent for EC2 instance %q", instanceID)
+	glog.V(2).Infof("Terminated instance with id %q", instanceID)
 	return nil
 }
 
@@ -182,7 +202,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 		return err
 	}
 
-	glog.V(2).Infof("waiting for EC2 instance %q to terminate", instanceID)
+	glog.V(2).Infof("Waiting for EC2 instance with id %q to terminate", instanceID)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -196,39 +216,30 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
-	glog.V(2).Info("Attempting to create or get machine")
+func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, clusterConfig *v1alpha1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*v1alpha1.Instance, error) {
+	glog.V(2).Infof("Attempting to create or get machine %q", machine.Name)
 
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
-		glog.V(2).Infof("Looking up instance %q", *status.InstanceID)
-		instance, err := s.InstanceIfExists(status.InstanceID)
+		glog.V(2).Infof("Looking up machine %q by id %q", machine.Name, *status.InstanceID)
 
-		// if there was no error, return the found instance
-		if err == nil {
+		instance, err := s.InstanceIfExists(status.InstanceID)
+		if err != nil && !IsNotFound(err) {
+			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", machine.Name, *status.InstanceID)
+		} else if err == nil && instance != nil {
 			return instance, nil
 		}
-
-		// if there was an error but it's not IsNotFound then it's a real error
-		if !IsNotFound(err) {
-			return instance, errors.Wrapf(err, "instance %q was not found", *status.InstanceID)
-		}
-
-		return instance, errors.Wrapf(err, "failed to look up instance %q", *status.InstanceID)
 	}
 
-	glog.V(2).Infof("Looking up instance by tags")
+	glog.V(2).Infof("Looking up machine %q by tags", machine.Name)
 	instance, err := s.InstanceByTags(machine, cluster)
 	if err != nil && !IsNotFound(err) {
-		return instance, errors.Wrap(err, "failed to query instance by tags")
-	}
-	if err == nil && instance != nil {
+		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", machine.Name)
+	} else if err == nil && instance != nil {
 		return instance, nil
 	}
 
-	// otherwise let's create it
-	glog.V(2).Info("Instance did not exist, attempting to creating it")
-	return s.CreateInstance(machine, config, clusterStatus, cluster)
+	return s.CreateInstance(machine, config, clusterStatus, clusterConfig, cluster, bootstrapToken)
 }
 
 func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
@@ -377,43 +388,4 @@ func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	}
 
 	return i
-}
-
-// initControlPlaneScript returns the b64 encoded script to run on start up.
-// The cert must be CertPEM encoded and the key must be PrivateKeyPEM encoded
-// TODO: convert to using cloud-init module rather than a startup script
-func initControlPlaneScript(caCert, caKey []byte, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion string) string {
-	// The script must start with #!. If it goes on the next line Dedent will start the script with a \n.
-	return fmt.Sprintf(`#!/usr/bin/env bash
-
-mkdir -p /etc/kubernetes/pki
-
-echo '%s' > /etc/kubernetes/pki/ca.crt
-echo '%s' > /etc/kubernetes/pki/ca.key
-
-PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
-
-cat >/tmp/kubeadm.yaml <<EOF
----
-apiVersion: kubeadm.k8s.io/v1alpha3
-kind: ClusterConfiguration
-apiServerCertSANs:
-  - "$PRIVATE_IP"
-  - "%s"
-controlPlaneEndpoint: "%s:6443"
-clusterName: "%s"
-networking:
-  dnsDomain: "%s"
-  podSubnet: "%s"
-  serviceSubnet: "%s"
-kubernetesVersion: "%s"
----
-apiVersion: kubeadm.k8s.io/v1alpha3
-kind: InitConfiguration
-nodeRegistration:
-  criSocket: /var/run/containerd/containerd.sock
-EOF
-
-kubeadm init --config /tmp/kubeadm.yaml
-`, caCert, caKey, elbDNSName, elbDNSName, clusterName, dnsDomain, podSubnet, serviceSubnet, k8sVersion)
 }

@@ -24,10 +24,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	elbsvc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/tokens"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -35,6 +40,8 @@ import (
 
 // Actuator is responsible for performing machine reconciliation.
 type Actuator struct {
+	*deployer.Deployer
+
 	machinesGetter client.MachinesGetter
 	servicesGetter service.Getter
 }
@@ -56,6 +63,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 		res.servicesGetter = new(defaultServicesGetter)
 	}
 
+	res.Deployer = deployer.New(res.servicesGetter)
 	return res
 }
 
@@ -107,7 +115,38 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get machine config")
 	}
 
-	i, err := a.ec2(clusterConfig).CreateOrGetMachine(machine, status, config, clusterStatus, cluster)
+	controlPlaneURL, err := a.GetIP(cluster, nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to retrieve controlplane url during machine creation")
+	}
+
+	var bootstrapToken string
+	if machine.ObjectMeta.Labels["set"] == "node" {
+		kubeConfig, err := a.GetKubeConfig(cluster, nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to retrieve kubeconfig during machine creation")
+		}
+
+		clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
+			return clientcmd.Load([]byte(kubeConfig))
+		})
+
+		if err != nil {
+			return errors.Wrap(err, "failed to retrieve kubeconfig during machine creation")
+		}
+
+		coreClient, err := corev1.NewForConfig(clientConfig)
+		if err != nil {
+			return errors.Wrap(err, "failed to initialize new corev1 client")
+		}
+
+		bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
+		if err != nil {
+			return errors.Wrap(err, "failed to create new bootstrap token")
+		}
+	}
+
+	i, err := a.ec2(clusterConfig).CreateOrGetMachine(machine, status, config, clusterStatus, clusterConfig, cluster, bootstrapToken)
 	if err != nil {
 
 		if ec2svc.IsFailedDependency(errors.Cause(err)) {

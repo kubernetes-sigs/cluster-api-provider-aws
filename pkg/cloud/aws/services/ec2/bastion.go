@@ -22,23 +22,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 )
 
 const (
-	bastionUserData = `#!/bin/bash
-
-BASTION_BOOTSTRAP_FILE=bastion_bootstrap.sh
-BASTION_BOOTSTRAP=https://s3.amazonaws.com/aws-quickstart/quickstart-linux-bastion/scripts/bastion_bootstrap.sh
-
-curl -s -o $BASTION_BOOTSTRAP_FILE $BASTION_BOOTSTRAP
-chmod +x $BASTION_BOOTSTRAP_FILE
-
-# This gets us far enough in the bastion script to be useful.
-apt-get -y update && apt-get -y install python-pip
-pip install --upgrade pip &> /dev/null
-
-./$BASTION_BOOTSTRAP_FILE --banner https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}scripts/banner_message.txt --enable true
-`
 	defaultSSHKeyName = "default"
 )
 
@@ -131,13 +118,14 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
 	name := fmt.Sprintf("%s-bastion", clusterName)
 	tags := s.buildTags(clusterName, ResourceLifecycleOwned, name, TagValueBastionRole, nil)
+	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
 	i := &v1alpha1.Instance{
 		Type:     "t2.micro",
 		SubnetID: network.Subnets.FilterPublic()[0].ID,
 		ImageID:  s.defaultBastionAMILookup(region),
 		KeyName:  aws.String(keyName),
-		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(bastionUserData))),
+		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
 		SecurityGroupIDs: []string{
 			network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID,
 		},

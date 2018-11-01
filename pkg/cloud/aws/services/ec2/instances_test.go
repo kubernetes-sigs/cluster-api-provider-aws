@@ -45,6 +45,12 @@ func TestInstanceIfExists(t *testing.T) {
 				m.EXPECT().
 					DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 						InstanceIds: []*string{aws.String("hello")},
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("instance-state-name"),
+								Values: []*string{aws.String("pending"), aws.String("running")},
+							},
+						},
 					})).
 					Return(nil, ec2svc.NewNotFound(errors.New("not found")))
 			},
@@ -65,6 +71,12 @@ func TestInstanceIfExists(t *testing.T) {
 				m.EXPECT().
 					DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 						InstanceIds: []*string{aws.String("id-1")},
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("instance-state-name"),
+								Values: []*string{aws.String("pending"), aws.String("running")},
+							},
+						},
 					})).
 					Return(&ec2.DescribeInstancesOutput{
 						Reservations: []*ec2.Reservation{
@@ -104,7 +116,15 @@ func TestInstanceIfExists(t *testing.T) {
 			instanceID: "one",
 			expect: func(m *mock_ec2iface.MockEC2API) {
 				m.EXPECT().
-					DescribeInstances(&ec2.DescribeInstancesInput{InstanceIds: []*string{aws.String("one")}}).
+					DescribeInstances(&ec2.DescribeInstancesInput{
+						InstanceIds: []*string{aws.String("one")},
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("instance-state-name"),
+								Values: []*string{aws.String("pending"), aws.String("running")},
+							},
+						},
+					}).
 					Return(nil, errors.New("some unknown error"))
 			},
 			check: func(i *v1alpha1.Instance, err error) {
@@ -189,6 +209,7 @@ func TestCreateInstance(t *testing.T) {
 		machine       clusterv1.Machine
 		machineConfig *v1alpha1.AWSMachineProviderConfig
 		clusterStatus *v1alpha1.AWSClusterProviderStatus
+		clusterConfig *v1alpha1.AWSClusterProviderConfig
 		cluster       clusterv1.Cluster
 		expect        func(m *mock_ec2iface.MockEC2API)
 		check         func(instance *v1alpha1.Instance, err error)
@@ -227,6 +248,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
+			clusterConfig: &v1alpha1.AWSClusterProviderConfig{},
 			cluster: clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test1",
@@ -279,7 +301,7 @@ func TestCreateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock)
 			s := ec2svc.NewService(ec2Mock)
-			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus, &tc.cluster)
+			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus, tc.clusterConfig, &tc.cluster, "")
 			tc.check(instance, err)
 		})
 	}

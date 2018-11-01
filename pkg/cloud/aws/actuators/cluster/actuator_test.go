@@ -190,6 +190,10 @@ func TestReconcile(t *testing.T) {
 	}
 
 	clusters.ci.EXPECT().
+		Update(gomock.AssignableToTypeOf(cluster)).
+		Return(cluster, nil)
+
+	clusters.ci.EXPECT().
 		UpdateStatus(gomock.AssignableToTypeOf(cluster)).
 		Return(cluster, nil)
 

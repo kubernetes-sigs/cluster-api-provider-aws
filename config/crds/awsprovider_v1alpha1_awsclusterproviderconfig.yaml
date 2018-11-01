@@ -16,6 +16,12 @@ spec:
       properties:
         apiVersion:
           type: string
+        caCertificate:
+          format: byte
+          type: string
+        caKey:
+          format: byte
+          type: string
         kind:
           type: string
         metadata:
@@ -24,6 +30,8 @@ spec:
           type: string
         sshKeyName:
           type: string
+      required:
+      - caKey
   version: v1alpha1
 status:
   acceptedNames:

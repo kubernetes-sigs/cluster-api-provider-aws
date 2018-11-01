@@ -14,20 +14,18 @@
 package cluster
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/tools/clientcmd"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	elbsvc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -35,6 +33,8 @@ import (
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
+	*deployer.Deployer
+
 	clustersGetter client.ClustersGetter
 	servicesGetter service.Getter
 }
@@ -56,6 +56,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 		res.servicesGetter = new(defaultServicesGetter)
 	}
 
+	res.Deployer = deployer.New(res.servicesGetter)
 	return res
 }
 
@@ -76,6 +77,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	}
 
 	defer func() {
+		if err := a.storeClusterConfig(cluster, config); err != nil {
+			glog.Errorf("failed to store provider config for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+		}
+
 		if err := a.storeClusterStatus(cluster, status); err != nil {
 			glog.Errorf("failed to store provider status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
 		}
@@ -84,13 +89,14 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 	// Store some config parameters in the status.
 	status.Region = config.Region
 
-	if len(status.CACertificate) == 0 {
+	if len(config.CACertificate) == 0 {
 		caCert, caKey, err := certificates.NewCertificateAuthority()
 		if err != nil {
 			return errors.Wrap(err, "Failed to generate a CA for the control plane")
 		}
-		status.CACertificate = certificates.EncodeCertPEM(caCert)
-		status.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
+
+		config.CACertificate = certificates.EncodeCertPEM(caCert)
+		config.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
 	}
 
 	// Create new aws session.
@@ -163,73 +169,21 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
-// GetIP returns the IP of a machine, but this is going away.
-func (a *Actuator) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
-	if cluster.Status.ProviderStatus != nil {
+func (a *Actuator) storeClusterConfig(cluster *clusterv1.Cluster, config *providerv1.AWSClusterProviderConfig) error {
+	clusterClient := a.clustersGetter.Clusters(cluster.Namespace)
 
-		// Load provider status.
-		status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
-		if err != nil {
-			return "", errors.Errorf("failed to load cluster provider status: %v", err)
-		}
-
-		if status.Network.APIServerELB.DNSName != "" {
-			return status.Network.APIServerELB.DNSName, nil
-		}
-	}
-
-	// Load provider config.
-	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
+	ext, err := providerv1.EncodeClusterConfig(config)
 	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider config: %v", err)
+		return err
 	}
 
-	sess := a.servicesGetter.Session(config)
-	elb := a.servicesGetter.ELB(sess)
-	return elb.GetAPIServerDNSName(cluster.Name)
-}
+	cluster.Spec.ProviderConfig.Value = ext
 
-// GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
-func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
-
-	// Load provider status.
-	status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
-	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider status: %v", err)
+	if _, err := clusterClient.Update(cluster); err != nil {
+		return err
 	}
 
-	cert, err := certificates.DecodeCertPEM(status.CACertificate)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to decode CA Cert")
-	} else if cert == nil {
-		return "", errors.New("certificate not found in status")
-	}
-
-	key, err := certificates.DecodePrivateKeyPEM(status.CAPrivateKey)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to decode private key")
-	} else if key == nil {
-		return "", errors.New("key not found in status")
-	}
-
-	dnsName, err := a.GetIP(cluster, machine)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get DNS address")
-	}
-
-	server := fmt.Sprintf("https://%s:6443", dnsName)
-
-	cfg, err := certificates.NewKubeconfig(server, cert, key)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate a kubeconfig")
-	}
-
-	yaml, err := clientcmd.Write(*cfg)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to serialize config to yaml")
-	}
-
-	return string(yaml), nil
+	return nil
 }
 
 func (a *Actuator) storeClusterStatus(cluster *clusterv1.Cluster, status *providerv1.AWSClusterProviderStatus) error {
@@ -237,13 +191,13 @@ func (a *Actuator) storeClusterStatus(cluster *clusterv1.Cluster, status *provid
 
 	ext, err := providerv1.EncodeClusterStatus(status)
 	if err != nil {
-		return fmt.Errorf("failed to update cluster status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+		return err
 	}
 
 	cluster.Status.ProviderStatus = ext
 
 	if _, err := clusterClient.UpdateStatus(cluster); err != nil {
-		return fmt.Errorf("failed to update cluster status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+		return err
 	}
 
 	return nil
