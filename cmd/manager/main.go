@@ -30,18 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
-var (
-	logLevel string
-)
-
-const (
-	defaultLogLevel = "info"
-)
-
-func init() {
-	flag.CommandLine.StringVar(&logLevel, "log-level", defaultLogLevel, "Log level (debug,info,warn,error,fatal)")
-}
-
 func main() {
 	flag.Parse()
 
