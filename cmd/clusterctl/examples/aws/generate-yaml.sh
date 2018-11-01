@@ -5,6 +5,7 @@ set -o nounset
 # Directories.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${OUTPUT_DIR:-${DIR}/out}
+ENVSUBST=${ENVSUBST:-envsubst}
 
 # Manager image.
 export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:latest}"
@@ -65,13 +66,13 @@ fi
 
 mkdir -p ${OUTPUT_DIR}
 
-envsubst < $CLUSTER_TEMPLATE_FILE > "${CLUSTER_GENERATED_FILE}"
+$ENVSUBST < $CLUSTER_TEMPLATE_FILE > "${CLUSTER_GENERATED_FILE}"
 echo "Done generating ${CLUSTER_GENERATED_FILE}"
 
-envsubst < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
+$ENVSUBST < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
 echo "Done generating ${MACHINES_GENERATED_FILE}"
 
-envsubst < $MANAGER_PATCH_TEMPLATE_FILE > "${MANAGER_PATCH_GENERATED_FILE}"
+$ENVSUBST < $MANAGER_PATCH_TEMPLATE_FILE > "${MANAGER_PATCH_GENERATED_FILE}"
 echo "Done generating ${MANAGER_PATCH_GENERATED_FILE}"
 
 cp  ${DIR}/addons.yaml ${ADDONS_FILE}
