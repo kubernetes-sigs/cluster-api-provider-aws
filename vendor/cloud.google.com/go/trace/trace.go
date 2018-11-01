@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This package is OBSOLETE. See https://cloud.google.com/trace/docs/setup/go.
+// Package trace is OBSOLETE. See https://cloud.google.com/trace/docs/setup/go.
 package trace // import "cloud.google.com/go/trace"
 
 import (
@@ -217,7 +217,7 @@ func (c *Client) SetSamplingPolicy(p SamplingPolicy) {
 // The trace information and identifiers will be read from the header value.
 // Otherwise, a new trace ID is made and the parent span ID is zero.
 // For the exact format of the header value, see
-// https://cloud.google.com/trace/docs/troubleshooting#how_do_i_force_a_request_to_be_traced
+// https://cloud.google.com/trace/docs/troubleshooting#force-trace
 //
 // The name of the new span is provided as an argument.
 //
@@ -646,6 +646,7 @@ func (s *Span) SetLabel(key, value string) {
 	s.span.Labels[key] = value
 }
 
+// FinishOption allows users to specify span finalizers.
 // Deprecated: see https://cloud.google.com/trace/docs/setup/go.
 type FinishOption interface {
 	modifySpan(s *Span)

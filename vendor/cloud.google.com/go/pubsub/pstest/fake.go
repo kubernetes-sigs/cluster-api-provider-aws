@@ -57,6 +57,7 @@ func timeNow() time.Time {
 	return now.Load().(func() time.Time)()
 }
 
+// Server is a fake Pub/Sub server.
 type Server struct {
 	Addr    string // The address that the server is listening on.
 	gServer gServer
@@ -148,6 +149,7 @@ type Message struct {
 
 }
 
+// Modack represents a modack sent to the server.
 type Modack struct {
 	AckID       string
 	AckDeadline int32
@@ -326,7 +328,7 @@ func (s *gServer) CreateSubscription(_ context.Context, ps *pb.Subscription) (*p
 // Can be set for testing.
 var minAckDeadlineSecs int32
 
-// SetMinAckDeadlineSecs changes the minack deadline to n. Must be
+// SetMinAckDeadline changes the minack deadline to n. Must be
 // greater than or equal to 1 second. Remember to reset this value
 // to the default after your test changes it. Example usage:
 // 		pstest.SetMinAckDeadlineSecs(1)
@@ -339,7 +341,7 @@ func SetMinAckDeadline(n time.Duration) {
 	minAckDeadlineSecs = int32(n / time.Second)
 }
 
-// ResetMinAckDeadlineSecs resets the minack deadline to the default.
+// ResetMinAckDeadline resets the minack deadline to the default.
 func ResetMinAckDeadline() {
 	minAckDeadlineSecs = 10
 }
@@ -612,6 +614,7 @@ func (s *gServer) Pull(ctx context.Context, req *pb.PullRequest) (*pb.PullRespon
 	}
 	max := int(req.MaxMessages)
 	if max < 0 {
+		s.mu.Unlock()
 		return nil, status.Error(codes.InvalidArgument, "MaxMessages cannot be negative")
 	}
 	if max == 0 { // MaxMessages not specified; use a default.
@@ -759,14 +762,14 @@ func (s *subscription) deliver() {
 		// curIndex. If it was delivered before, start with the stream after the one
 		// that owned it.
 		if m.streamIndex < 0 {
-			delIndex, ok := s.deliverMessage(m, curIndex, now)
+			delIndex, ok := s.tryDeliverMessage(m, curIndex, now)
 			if !ok {
 				break
 			}
 			curIndex = delIndex + 1
 			m.streamIndex = curIndex
 		} else {
-			delIndex, ok := s.deliverMessage(m, m.streamIndex, now)
+			delIndex, ok := s.tryDeliverMessage(m, m.streamIndex, now)
 			if !ok {
 				break
 			}
@@ -775,24 +778,30 @@ func (s *subscription) deliver() {
 	}
 }
 
-// deliverMessage attempts to deliver m to the stream at index i. If it can't, it
-// tries streams i+1, i+2, ..., wrapping around. It returns the index of the stream
-// it delivered the message to, or 0, false if it didn't deliver the message because
-// there are no active streams.
-func (s *subscription) deliverMessage(m *message, i int, now time.Time) (int, bool) {
-	for len(s.streams) > 0 {
-		if i >= len(s.streams) {
-			i = 0
-		}
-		st := s.streams[i]
+// tryDeliverMessage attempts to deliver m to the stream at index i. If it can't, it
+// tries streams i+1, i+2, ..., wrapping around. Once it's tried all streams, it
+// exits.
+//
+// It returns the index of the stream it delivered the message to, or 0, false if
+// it didn't deliver the message.
+//
+// Must be called with the lock held.
+func (s *subscription) tryDeliverMessage(m *message, start int, now time.Time) (int, bool) {
+	for i := 0; i < len(s.streams); i++ {
+		idx := (i + start) % len(s.streams)
+
+		st := s.streams[idx]
 		select {
 		case <-st.done:
-			s.streams = deleteStreamAt(s.streams, i)
+			s.streams = deleteStreamAt(s.streams, idx)
+			i--
 
 		case st.msgc <- m.proto:
 			(*m.deliveries)++
 			m.ackDeadline = now.Add(st.ackTimeout)
-			return i, true
+			return idx, true
+
+		default:
 		}
 	}
 	return 0, false
@@ -947,6 +956,7 @@ func (s *subscription) handleStreamingPullRequest(st *stream, req *pb.StreamingP
 	}
 }
 
+// Must be called with the lock held.
 func (s *subscription) ack(id string) {
 	m := s.msgs[id]
 	if m != nil {
@@ -955,6 +965,7 @@ func (s *subscription) ack(id string) {
 	}
 }
 
+// Must be called with the lock held.
 func (s *subscription) modifyAckDeadline(id string, d time.Duration) {
 	m := s.msgs[id]
 	if m == nil { // already acked: ignore.

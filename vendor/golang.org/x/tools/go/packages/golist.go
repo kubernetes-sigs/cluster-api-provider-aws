@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/tools/internal/gopathwalk"
-	"golang.org/x/tools/internal/semver"
 	"io/ioutil"
 	"log"
 	"os"
@@ -18,6 +16,9 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"golang.org/x/tools/internal/gopathwalk"
+	"golang.org/x/tools/internal/semver"
 )
 
 // A goTooOldError reports that the go command
@@ -130,7 +131,6 @@ extractQueries:
 		return nil, err
 	}
 	response.Roots = append(response.Roots, namedResults...)
-
 	return response, nil
 }
 
@@ -174,7 +174,7 @@ var modCacheRegexp = regexp.MustCompile(`(.*)@([^/\\]*)(.*)`)
 
 func runNamedQueries(cfg *Config, driver driver, addPkg func(*Package), queries []string) ([]string, error) {
 	// Determine which directories are relevant to scan.
-	roots, modulesEnabled, err := roots(cfg)
+	roots, modRoot, err := roots(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,26 @@ func runNamedQueries(cfg *Config, driver driver, addPkg func(*Package), queries 
 			}
 		}
 	}
-	gopathwalk.Walk(roots, add, gopathwalk.Options{ModulesEnabled: modulesEnabled})
+	gopathwalk.Walk(roots, add, gopathwalk.Options{ModulesEnabled: modRoot != ""})
+
+	// Weird special case: the top-level package in a module will be in
+	// whatever directory the user checked the repository out into. It's
+	// more reasonable for that to not match the package name. So, if there
+	// are any Go files in the mod root, query it just to be safe.
+	if modRoot != "" {
+		rel, err := filepath.Rel(cfg.Dir, modRoot)
+		if err != nil {
+			panic(err) // See above.
+		}
+
+		files, err := ioutil.ReadDir(modRoot)
+		for _, f := range files {
+			if strings.HasSuffix(f.Name(), ".go") {
+				simpleMatches = append(simpleMatches, rel)
+				break
+			}
+		}
+	}
 
 	var results []string
 	addResponse := func(r *driverResponse) {
@@ -291,42 +310,39 @@ func runNamedQueries(cfg *Config, driver driver, addPkg func(*Package), queries 
 
 // roots selects the appropriate paths to walk based on the passed-in configuration,
 // particularly the environment and the presence of a go.mod in cfg.Dir's parents.
-func roots(cfg *Config) ([]gopathwalk.Root, bool, error) {
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	cmd := exec.CommandContext(cfg.Context, "go", "env", "GOROOT", "GOPATH", "GOMOD")
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	cmd.Dir = cfg.Dir
-	cmd.Env = cfg.Env
-	if err := cmd.Run(); err != nil {
-		return nil, false, fmt.Errorf("running go env: %v (stderr: %q)", err, stderr.Bytes())
+func roots(cfg *Config) ([]gopathwalk.Root, string, error) {
+	stdout, err := invokeGo(cfg, "env", "GOROOT", "GOPATH", "GOMOD")
+	if err != nil {
+		return nil, "", err
 	}
 
-	fields := strings.Split(string(stdout.Bytes()), "\n")
+	fields := strings.Split(stdout.String(), "\n")
 	if len(fields) != 4 || len(fields[3]) != 0 {
-		return nil, false, fmt.Errorf("go env returned unexpected output: %q (stderr: %q)", stdout.Bytes(), stderr.Bytes())
+		return nil, "", fmt.Errorf("go env returned unexpected output: %q", stdout.String())
 	}
 	goroot, gopath, gomod := fields[0], filepath.SplitList(fields[1]), fields[2]
-	modsEnabled := gomod != ""
+	var modDir string
+	if gomod != "" {
+		modDir = filepath.Dir(gomod)
+	}
 
 	var roots []gopathwalk.Root
 	// Always add GOROOT.
 	roots = append(roots, gopathwalk.Root{filepath.Join(goroot, "/src"), gopathwalk.RootGOROOT})
 	// If modules are enabled, scan the module dir.
-	if modsEnabled {
-		roots = append(roots, gopathwalk.Root{filepath.Dir(gomod), gopathwalk.RootCurrentModule})
+	if modDir != "" {
+		roots = append(roots, gopathwalk.Root{modDir, gopathwalk.RootCurrentModule})
 	}
 	// Add either GOPATH/src or GOPATH/pkg/mod, depending on module mode.
 	for _, p := range gopath {
-		if modsEnabled {
+		if modDir != "" {
 			roots = append(roots, gopathwalk.Root{filepath.Join(p, "/pkg/mod"), gopathwalk.RootModuleCache})
 		} else {
 			roots = append(roots, gopathwalk.Root{filepath.Join(p, "/src"), gopathwalk.RootGOPATH})
 		}
 	}
 
-	return roots, modsEnabled, nil
+	return roots, modDir, nil
 }
 
 // These functions were copied from goimports. See further documentation there.
@@ -449,7 +465,7 @@ func golistDriverCurrent(cfg *Config, words ...string) (*driverResponse, error) 
 
 	// Run "go list" for complete
 	// information on the specified packages.
-	buf, err := golist(cfg, golistargs(cfg, words))
+	buf, err := invokeGo(cfg, golistargs(cfg, words)...)
 	if err != nil {
 		return nil, err
 	}
@@ -573,12 +589,18 @@ func golistargs(cfg *Config, words []string) []string {
 	return fullargs
 }
 
-// golist returns the JSON-encoded result of a "go list args..." query.
-func golist(cfg *Config, args []string) (*bytes.Buffer, error) {
+// invokeGo returns the stdout of a go command invocation.
+func invokeGo(cfg *Config, args ...string) (*bytes.Buffer, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	cmd := exec.CommandContext(cfg.Context, "go", args...)
-	cmd.Env = cfg.Env
+	// On darwin the cwd gets resolved to the real path, which breaks anything that
+	// expects the working directory to keep the original path, including the
+	// go command when dealing with modules.
+	// The Go stdlib has a special feature where if the cwd and the PWD are the
+	// same node then it trusts the PWD, so by setting it in the env for the child
+	// process we fix up all the paths returned by the go command.
+	cmd.Env = append(append([]string{}, cfg.Env...), "PWD="+cfg.Dir)
 	cmd.Dir = cfg.Dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -588,12 +610,12 @@ func golist(cfg *Config, args []string) (*bytes.Buffer, error) {
 			// Catastrophic error:
 			// - executable not found
 			// - context cancellation
-			return nil, fmt.Errorf("couldn't exec 'go list': %s %T", err, err)
+			return nil, fmt.Errorf("couldn't exec 'go %v': %s %T", args, err, err)
 		}
 
-		// Old go list?
-		if strings.Contains(fmt.Sprint(cmd.Stderr), "flag provided but not defined") {
-			return nil, goTooOldError{fmt.Errorf("unsupported version of go list: %s: %s", exitErr, cmd.Stderr)}
+		// Old go version?
+		if strings.Contains(stderr.String(), "flag provided but not defined") {
+			return nil, goTooOldError{fmt.Errorf("unsupported version of go: %s: %s", exitErr, stderr)}
 		}
 
 		// Export mode entails a build.
@@ -601,25 +623,23 @@ func golist(cfg *Config, args []string) (*bytes.Buffer, error) {
 		// (despite the -e flag) and the Export field is blank.
 		// Do not fail in that case.
 		if !usesExportData(cfg) {
-			return nil, fmt.Errorf("go list: %s: %s", exitErr, cmd.Stderr)
+			return nil, fmt.Errorf("go %v: %s: %s", args, exitErr, stderr)
 		}
 	}
 
-	// Print standard error output from "go list".
-	// Due to the -e flag, this should be empty.
-	// However, in -export mode it contains build errors.
-	// Should go list save build errors in the Package.Error JSON field?
-	// See https://github.com/golang/go/issues/26319.
-	// If so, then we should continue to print stderr as go list
-	// will be silent unless something unexpected happened.
-	// If not, perhaps we should suppress it to reduce noise.
-	if len(stderr.Bytes()) != 0 {
-		fmt.Fprintf(os.Stderr, "go list stderr <<%s>>\n", stderr)
+	// As of writing, go list -export prints some non-fatal compilation
+	// errors to stderr, even with -e set. We would prefer that it put
+	// them in the Package.Error JSON (see http://golang.org/issue/26319).
+	// In the meantime, there's nowhere good to put them, but they can
+	// be useful for debugging. Print them if $GOPACKAGESPRINTGOLISTERRORS
+	// is set.
+	if len(stderr.Bytes()) != 0 && os.Getenv("GOPACKAGESPRINTGOLISTERRORS") != "" {
+		fmt.Fprintf(os.Stderr, "go %v stderr: <<%s>>\n", args, stderr)
 	}
 
 	// debugging
 	if false {
-		fmt.Fprintln(os.Stderr, stdout)
+		fmt.Fprintf(os.Stderr, "go %v stdout: <<%s>>\n", args, stdout)
 	}
 
 	return stdout, nil

@@ -344,11 +344,11 @@ func InitMachinesToDelete() *MachinesToDelete {
 }
 
 func (m *MachinesToDelete) AddMachine(machine *clusterv1alpha1.Machine, framework *Framework, client CloudProviderClient) {
-	m.machines = append([]machineToDelete{machineToDelete{machine: machine, framework: framework, client: client}}, m.machines...)
+	m.machines = append([]machineToDelete{{machine: machine, framework: framework, client: client}}, m.machines...)
 }
 
 func (m *MachinesToDelete) AddMachineSet(machineset *clusterv1alpha1.MachineSet, framework *Framework, client CloudProviderClient) {
-	m.machinesets = append([]machinesetToDelete{machinesetToDelete{machineset: machineset, framework: framework, client: client}}, m.machinesets...)
+	m.machinesets = append([]machinesetToDelete{{machineset: machineset, framework: framework, client: client}}, m.machinesets...)
 }
 
 func (m *MachinesToDelete) Delete() {
