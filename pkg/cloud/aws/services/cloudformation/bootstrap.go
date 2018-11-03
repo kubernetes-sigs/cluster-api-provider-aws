@@ -15,6 +15,8 @@ package cloudformation
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path"
 
 	"github.com/awslabs/goformation/cloudformation"
 	"github.com/golang/glog"
@@ -24,12 +26,21 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
 )
 
+const (
+	ControllersPolicy  = "AWSIAMManagedPolicyControllers"
+	ControlPlanePolicy = "AWSIAMManagedPolicyCloudProviderControlPlane"
+	NodePolicy         = "AWSIAMManagedPolicyCloudProviderNodes"
+)
+
+// ManagedIAMPolicyNames slice of managed IAM policies
+var ManagedIAMPolicyNames = [...]string{ControllersPolicy, ControlPlanePolicy, NodePolicy}
+
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS
 func BootstrapTemplate(accountID string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
-	template.Resources["AWSIAMManagedPolicyControllers"] = cloudformation.AWSIAMManagedPolicy{
+	template.Resources[ControllersPolicy] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("controllers"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
 		PolicyDocument:    controllersPolicy(accountID),
@@ -42,7 +53,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources["AWSIAMManagedPolicyCloudProviderControlPlane"] = cloudformation.AWSIAMManagedPolicy{
+	template.Resources[ControlPlanePolicy] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("control-plane"),
 		Description:       `For the Kubernetes Cloud Provider AWS Control Plane`,
 		PolicyDocument:    cloudProviderControlPlaneAwsPolicy(),
@@ -51,7 +62,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources["AWSIAMManagedPolicyCloudProviderNodes"] = cloudformation.AWSIAMManagedPolicy{
+	template.Resources[NodePolicy] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("nodes"),
 		Description:       `For the Kubernetes Cloud Provider AWS nodes`,
 		PolicyDocument:    cloudProviderNodeAwsPolicy(),
@@ -279,6 +290,40 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 			},
 		},
 	}
+}
+
+func getPolicyDocFromPolicyName(policyName, accountID string) (*iam.PolicyDocument, error) {
+	switch policyName {
+	case ControllersPolicy:
+		return controllersPolicy(accountID), nil
+	case ControlPlanePolicy:
+		return cloudProviderControlPlaneAwsPolicy(), nil
+	case NodePolicy:
+		return cloudProviderNodeAwsPolicy(), nil
+	}
+	return nil, fmt.Errorf("PolicyName %q did not match with any ManagedIAMPolicy", policyName)
+}
+
+// GenerateManagedIAMPolicyDocuments generates JSON representation of policy documents for all ManagedIAMPolicy
+func (s *Service) GenerateManagedIAMPolicyDocuments(policyDocDir, accountID string) error {
+	for _, pn := range ManagedIAMPolicyNames {
+		pd, err := getPolicyDocFromPolicyName(pn, accountID)
+		if err != nil {
+			return fmt.Errorf("Error: failed to get PolicyDocument for ManagedIAMPolicy %q, %v", pn, err)
+		}
+
+		pds, err := pd.JSON()
+		if err != nil {
+			return fmt.Errorf("ERROR: failed to marshal policy document for ManagedIAMPolicy %q: %v", pn, err)
+		}
+
+		fn := path.Join(policyDocDir, fmt.Sprintf("%s.json", pn))
+		err = ioutil.WriteFile(fn, []byte(pds), 0755)
+		if err != nil {
+			return fmt.Errorf("ERROR: failed to generate policy document for ManagedIAMPolicy %q: %v", pn, err)
+		}
+	}
+	return nil
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation
