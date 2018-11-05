@@ -237,16 +237,20 @@ func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference
 	return securityGroupIDs, nil
 }
 
-func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, client awsclient.Client) ([]*string, error) {
+func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone string, client awsclient.Client) ([]*string, error) {
 	var subnetIDs []*string
 	// ID has priority
 	if subnet.ID != nil {
 		subnetIDs = append(subnetIDs, subnet.ID)
-		subnetIDs = append(subnetIDs, subnet.ID)
 	} else {
+		var filters []providerconfigv1.Filter
+		if availabilityZone != "" {
+			filters = append(filters, providerconfigv1.Filter{Name: "availabilityZone", Values: []string{availabilityZone}})
+		}
+		filters = append(filters, subnet.Filters...)
 		glog.Info("Describing subnets based on filters")
 		describeSubnetRequest := ec2.DescribeSubnetsInput{
-			Filters: buildEC2Filters(subnet.Filters),
+			Filters: buildEC2Filters(filters),
 		}
 		describeSubnetResult, err := client.DescribeSubnets(&describeSubnetRequest)
 		if err != nil {
@@ -337,7 +341,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	if err != nil {
 		return nil, fmt.Errorf("error getting security groups IDs: %v,", err)
 	}
-	subnetIDs, err := getSubnetIDs(machineProviderConfig.Subnet, client)
+	subnetIDs, err := getSubnetIDs(machineProviderConfig.Subnet, machineProviderConfig.Placement.AvailabilityZone, client)
 	if err != nil {
 		return nil, fmt.Errorf("error getting subnet IDs: %v,", err)
 	}
