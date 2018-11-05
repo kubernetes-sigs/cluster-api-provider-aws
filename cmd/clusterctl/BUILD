@@ -15,6 +15,6 @@ go_library(
 go_binary(
     name = "clusterctl",
     embed = [":go_default_library"],
-    visibility = ["//visibility:public"],
     pure = "on",
+    visibility = ["//visibility:public"],
 )

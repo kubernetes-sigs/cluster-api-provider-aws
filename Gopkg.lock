@@ -892,6 +892,14 @@
   pruneopts = ""
   revision = "5818a3a284a11812aaed11d5ca0bcadec2c50e83"
 
+[[projects]]
+  digest = "1:321081b4a44256715f2b68411d8eda9a17f17ebfe6f0cc61d2cc52d11c08acfa"
+  name = "sigs.k8s.io/yaml"
+  packages = ["."]
+  pruneopts = ""
+  revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
+  version = "v1.1.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -910,7 +918,6 @@
     "github.com/aws/aws-sdk-go/service/sts/stsiface",
     "github.com/awslabs/goformation/cloudformation",
     "github.com/emicklei/go-restful",
-    "github.com/ghodss/yaml",
     "github.com/golang/glog",
     "github.com/golang/mock/gomock",
     "github.com/onsi/ginkgo",
@@ -957,6 +964,7 @@
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/controller-tools/cmd/controller-gen",
     "sigs.k8s.io/testing_frameworks/integration",
+    "sigs.k8s.io/yaml",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
