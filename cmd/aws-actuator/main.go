@@ -438,6 +438,9 @@ func bootstrapCommand() *cobra.Command {
 				masterMachinePrivateIP = *result.PrivateIpAddress
 				return true, nil
 			})
+			if err != nil {
+				glog.Errorf("Unable to get DNS name: %v", err)
+			}
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
 				glog.Infof("Pulling kubeconfig from %v:8443", masterMachinePublicDNS)
@@ -460,6 +463,9 @@ func bootstrapCommand() *cobra.Command {
 
 				return true, nil
 			})
+			if err != nil {
+				glog.Errorf("Unable to create kubeconfig: %v", err)
+			}
 
 			glog.Infof("Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://%v:8443", masterMachinePublicDNS)
 			if _, err := cmdRun("kubectl", "--kubeconfig=kubeconfig", "config", "set-cluster", "kubernetes", fmt.Sprintf("--server=https://%v:8443", masterMachinePublicDNS)); err != nil {
@@ -511,6 +517,9 @@ func bootstrapCommand() *cobra.Command {
 
 				return nodesReady, nil
 			})
+			if err != nil {
+				glog.Errorf("Failed to get all nodes up and running: %v", err)
+			}
 
 			glog.Info("Deploying cluster-api stack")
 			glog.Info("Deploying aws credentials")
@@ -543,6 +552,9 @@ func bootstrapCommand() *cobra.Command {
 
 				return true, nil
 			})
+			if err != nil {
+				glog.Errorf("Unable to deploy cluster-api server %v", err)
+			}
 
 			err = wait.Poll(pollInterval, timeoutPoolAWSInterval, func() (bool, error) {
 				glog.Info("Deploying cluster-api controllers")
@@ -552,6 +564,9 @@ func bootstrapCommand() *cobra.Command {
 				}
 				return true, nil
 			})
+			if err != nil {
+				glog.Errorf("Unable to deploy cluster-api controllers: %v", err)
+			}
 
 			testCluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -581,6 +596,9 @@ func bootstrapCommand() *cobra.Command {
 
 				return true, nil
 			})
+			if err != nil {
+				glog.Errorf("Unable to deploy cluster resource %v", err)
+			}
 
 			glog.Infof("Reading worker user data manifest from %v", path.Join(manifestsDir, "worker-userdata.yaml"))
 			workerUserDataSecret, err := readSecretManifest(path.Join(manifestsDir, "worker-userdata.yaml"))
@@ -622,6 +640,9 @@ func bootstrapCommand() *cobra.Command {
 
 				return true, nil
 			})
+			if err != nil {
+				glog.Errorf("Unable to deploy worker machineset: %v", err)
+			}
 
 			return nil
 		},
@@ -663,12 +684,9 @@ type manifestParams struct {
 
 func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *clusterv1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
 	var err error
-	machine := &clusterv1.Machine{}
-	{
-		machine, err = readMachineManifest(manifestParams, machineLoc)
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
+	machine, err := readMachineManifest(manifestParams, machineLoc)
+	if err != nil {
+		return nil, nil, nil, nil, err
 	}
 
 	cluster := &clusterv1.Cluster{}
