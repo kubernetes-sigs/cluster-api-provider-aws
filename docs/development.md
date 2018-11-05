@@ -8,9 +8,9 @@
 - [Committing code](#committing-code)
 - [Mocks](#mocks)
 - [Set up](#set-up)
-    - [Base requirements](#base-requirements)
-    - [Using Google Cloud](#using-google-cloud)
-        - [Using images on Google Cloud](#using-images-on-google-cloud)
+  - [Base requirements](#base-requirements)
+  - [Using Google Cloud](#using-google-cloud)
+    - [Using images on Google Cloud](#using-images-on-google-cloud)
 - [cluster-api-dev-helper](#cluster-api-dev-helper)
 
 <!-- /TOC -->
@@ -46,7 +46,8 @@ required for the provider manifests.
 3. Install [minikube][minikube]
    - `brew install minikube` on MacOS.
 4. Install [bazel][bazel]
-5. Configure `minikube`:
+5. Configure Python 2.7+ with [pyenv][pyenv] if your default is Python 3.x.
+6. Configure `minikube`:
     1. Use Kubernetes v1.12.1 `minikube config set kubernetes-version v1.12.1`.
     2. Use kubeadm as bootstrapper `minikube config set bootstrapper kubeadm`.
 
@@ -91,3 +92,4 @@ make cluster-api-dev-helper
 [minikube]: https://kubernetes.io/docs/setup/minikube/
 [aws_cli]: https://docs.aws.amazon.com/cli/latest/userguide/installing.html
 [bazel]: https://docs.bazel.build/versions/master/install.html
+[pyenv]: https://github.com/pyenv/pyenv
