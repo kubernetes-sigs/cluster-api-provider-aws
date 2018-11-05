@@ -98,17 +98,25 @@ test: generate ## Run tests
 copy-genmocks: test ## Copies generated mocks into the repository
 	cp -Rf bazel-genfiles/pkg/* pkg/
 
+BAZEL_DOCKER_ARGS_COMMON := --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG) $(BAZEL_ARGS)
+BAZEL_DOCKER_ARGS := --define=DOCKER_REPO=$(STABLE_DOCKER_REPO) $(BAZEL_DOCKER_ARGS_COMMON)
+BAZEL_DOCKER_ARGS_DEV := --define=DOCKER_REPO=$(DEV_DOCKER_REPO) $(BAZEL_DOCKER_ARGS_COMMON)
+
 .PHONY: docker-build
-docker-build: generate ## Build the docker image
-	bazel build //cmd/manager $(BAZEL_ARGS)
+docker-build: generate ## Build the production docker image
+	bazel run //cmd/manager:manager-image $(BAZEL_DOCKER_ARGS)
+
+.PHONY: docker-build-dev
+docker-build-dev: generate ## Build the development docker image
+	bazel run //cmd/manager:manager-image $(BAZEL_DOCKER_ARGS_DEV)
 
 .PHONY: docker-push
 docker-push: generate ## Push production docker image
-	bazel run //cmd/manager:manager-push --define=DOCKER_REPO=$(STABLE_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG) $(BAZEL_ARGS)
+	bazel run //cmd/manager:manager-push $(BAZEL_DOCKER_ARGS)
 
 .PHONY: docker-push-dev
 docker-push-dev: generate ## Push development image
-	bazel run //cmd/manager:manager-push --define=DOCKER_REPO=$(DEV_DOCKER_REPO) --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG) $(BAZEL_ARGS)
+	bazel run //cmd/manager:manager-push $(BAZEL_DOCKER_ARGS_DEV)
 
 .PHONY: clean
 clean: ## Remove all generated files
