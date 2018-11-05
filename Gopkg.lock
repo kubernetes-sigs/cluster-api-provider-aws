@@ -767,6 +767,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:a260d2283fb2b612c237df5a7de12133a5c83063a6e16955199bff86e3e4269e"
+  name = "k8s.io/cluster-bootstrap"
+  packages = [
+    "token/api",
+    "token/util",
+  ]
+  pruneopts = ""
+  revision = "f574069107f7246cf0a827d06126404028914e97"
+
+[[projects]]
+  branch = "master"
   digest = "1:bc58db16947c92752bf6d1ead0d2596bd638456a2c23e00c567505680d772670"
   name = "k8s.io/code-generator"
   packages = [
@@ -941,6 +952,8 @@
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/client-go/tools/record",
+    "k8s.io/cluster-bootstrap/token/api",
+    "k8s.io/cluster-bootstrap/token/util",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",

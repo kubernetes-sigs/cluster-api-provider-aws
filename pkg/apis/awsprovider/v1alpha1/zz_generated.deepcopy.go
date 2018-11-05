@@ -25,6 +25,16 @@ func (in *AWSClusterProviderConfig) DeepCopyInto(out *AWSClusterProviderConfig) 
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.CACertificate != nil {
+		in, out := &in.CACertificate, &out.CACertificate
+		*out = make([]byte, len(*in))
+		copy(*out, *in)
+	}
+	if in.CAPrivateKey != nil {
+		in, out := &in.CAPrivateKey, &out.CAPrivateKey
+		*out = make([]byte, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
@@ -53,16 +63,6 @@ func (in *AWSClusterProviderStatus) DeepCopyInto(out *AWSClusterProviderStatus) 
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Network.DeepCopyInto(&out.Network)
 	in.Bastion.DeepCopyInto(&out.Bastion)
-	if in.CACertificate != nil {
-		in, out := &in.CACertificate, &out.CACertificate
-		*out = make([]byte, len(*in))
-		copy(*out, *in)
-	}
-	if in.CAPrivateKey != nil {
-		in, out := &in.CAPrivateKey, &out.CAPrivateKey
-		*out = make([]byte, len(*in))
-		copy(*out, *in)
-	}
 	return
 }
 

@@ -95,7 +95,7 @@ test: generate ## Run tests
 	bazel test --nosandbox_debug //pkg/... //cmd/... $(BAZEL_ARGS)
 
 .PHONY: copy-genmocks
-copy-genmocks: test ## Copies generated mocks into the repository
+copy-genmocks: ## Copies generated mocks into the repository
 	cp -Rf bazel-genfiles/pkg/* pkg/
 
 BAZEL_DOCKER_ARGS_COMMON := --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG) $(BAZEL_ARGS)
@@ -152,7 +152,7 @@ manifests-dev: ## Push development manifest
 
 .PHONY: create-cluster
 create-cluster: ## Create a Kubernetes cluster on AWS using examples
-	clusterctl create cluster -v3 --provider aws -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+	clusterctl create cluster -v 4 --provider aws -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 lint-full: dep-ensure ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
@@ -161,6 +161,9 @@ lint-full: dep-ensure ## Run slower linters to detect possible issues
 ifneq ($(FASTBUILD),y)
 
 ## Define slow dependency targets here
+
+reset-bazel: ## Deep cleaning for bazel
+	bazel clean --expunge
 
 generate: dep-ensure ## Run go generate
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)

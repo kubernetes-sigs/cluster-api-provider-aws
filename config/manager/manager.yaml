@@ -54,7 +54,9 @@ spec:
       containers:
         - name: manager
           image: SET_BY_PATCH
+          imagePullPolicy: Always
           args:
+            - "-v=3"
             - "-logtostderr=true"
             - "-stderrthreshold=INFO"
           volumeMounts:

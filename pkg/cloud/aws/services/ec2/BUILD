@@ -26,6 +26,7 @@ go_library(
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
+        "//pkg/cloud/aws/services/userdata:go_default_library",
         "//pkg/cloud/aws/services/wait:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
