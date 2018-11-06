@@ -69,58 +69,58 @@ container_pull(
 
 go_repository(
     name = "com_github_golang_dep",
+    build_file_generation = "on",
     importpath = "github.com/golang/dep",
     strip_prefix = "dep-22125cfaa6ddc71e145b1535d4b7ee9744fefff2",
     urls = ["https://github.com/golang/dep/archive/22125cfaa6ddc71e145b1535d4b7ee9744fefff2.zip"],
-    build_file_generation = "on",
 )
 
 go_repository(
     name = "com_github_alecthomas_gometalinter",
+    build_file_generation = "on",
     importpath = "github.com/alecthomas/gometalinter",
     strip_prefix = "gometalinter-8edca99e8a88355e29f550113bcba6ecfa39ae11",
     urls = ["https://github.com/alecthomas/gometalinter/archive/8edca99e8a88355e29f550113bcba6ecfa39ae11.zip"],
-    build_file_generation = "on",
 )
 
 go_repository(
     name = "com_github_golangci_golangci-lint",
+    build_file_generation = "on",
     importpath = "github.com/golangci/golangci-lint",
     strip_prefix = "golangci-lint-4570c043a9b56ccf0372cb6ba7a8b645d92b3357",
     urls = ["https://github.com/golangci/golangci-lint/archive/4570c043a9b56ccf0372cb6ba7a8b645d92b3357.zip"],
-    build_file_generation = "on",
 )
 
 go_repository(
     name = "com_github_golang_mock",
+    build_file_generation = "on",
     importpath = "github.com/golang/mock",
     strip_prefix = "mock-8a44ef6e8be577e050008c7886f24fc705d709fb",
     urls = ["https://github.com/golang/mock/archive/8a44ef6e8be577e050008c7886f24fc705d709fb.zip"],
-    build_file_generation = "on",
 )
 
 go_repository(
     name = "io_k8s_sigs_kind",
-    importpath = "sigs.k8s.io/kind",
     commit = "1284e993a84a56c994ea541dbcb97486a7b86b50",
+    importpath = "sigs.k8s.io/kind",
 )
 
 go_repository(
     name = "io_k8s_sigs_kustomize",
-    importpath = "sigs.k8s.io/kustomize",
     commit = "58492e2d83c59ed63881311f46ad6251f77dabc3",
+    importpath = "sigs.k8s.io/kustomize",
 )
 
 go_repository(
     name = "io_k8s_kubernetes",
-    importpath = "k8s.io/kubernetes",
     commit = "4ed3216f3ec431b140b1d899130a69fc671678f4",  # v1.12.1
+    importpath = "k8s.io/kubernetes",
 )
 
 go_repository(
     name = "com_github_a8m_envsubst",
-    importpath = "github.com/a8m/envsubst",
     commit = "41dec2456c86b2a9fa51a22a808b7084b8d52c64",  # v1.1.0
+    importpath = "github.com/a8m/envsubst",
 )
 
 # for @io_k8s_kubernetes
