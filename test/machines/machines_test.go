@@ -20,6 +20,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 )
 
@@ -131,6 +134,38 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			acw := &awsClientWrapper{client: awsClient}
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
+
+			var subnetID string
+			{
+				describeSubnetsInput := &ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name: aws.String("tag:Name"),
+							Values: []*string{
+								aws.String(fmt.Sprintf("%s-*", clusterID)),
+							},
+						},
+						{
+							Name: aws.String("availabilityZone"),
+							Values: []*string{
+								aws.String("us-east-1a"),
+							},
+						},
+					},
+				}
+				describeSubnetsResult, err := awsClient.DescribeSubnets(describeSubnetsInput)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(describeSubnetsResult.Subnets)).
+					To(Equal(1), "Test criteria not met. Only one Subnet should match the given Tag.")
+				subnetID = *describeSubnetsResult.Subnets[0].SubnetId
+			}
+			subnet, err := acw.GetSubnet(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(subnet).To(Equal(subnetID))
+
+			availabilityZone, err := acw.GetAvailabilityZone(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(availabilityZone).To(Equal("us-east-1a"))
 
 			securityGroups, err := acw.GetSecurityGroups(testMachine)
 			Expect(err).NotTo(HaveOccurred())

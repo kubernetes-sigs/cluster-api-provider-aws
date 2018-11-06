@@ -88,3 +88,25 @@ func (client *awsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[s
 	}
 	return tags, nil
 }
+
+func (client *awsClientWrapper) GetSubnet(machine *clusterv1alpha1.Machine) (string, error) {
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
+	if err != nil {
+		return "", err
+	}
+	if instance.SubnetId == nil {
+		return "", err
+	}
+	return *instance.SubnetId, nil
+}
+
+func (client *awsClientWrapper) GetAvailabilityZone(machine *clusterv1alpha1.Machine) (string, error) {
+	instance, err := machineutils.GetRunningInstance(machine, client.client)
+	if err != nil {
+		return "", err
+	}
+	if instance.Placement == nil {
+		return "", err
+	}
+	return *instance.Placement.AvailabilityZone, nil
+}
