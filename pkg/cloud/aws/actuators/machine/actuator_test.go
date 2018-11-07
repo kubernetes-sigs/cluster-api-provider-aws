@@ -522,22 +522,22 @@ func mockRunInstancesForPlacement(mockAWSClient *mockaws.MockClient, availabilit
 }
 
 type placementMatcher struct {
-	x *ec2.Placement
+	placement *ec2.Placement
 }
 
-func (m placementMatcher) Matches(x interface{}) bool {
-	input, ok := x.(*ec2.RunInstancesInput)
+func (m placementMatcher) Matches(input interface{}) bool {
+	runInstancesInput, ok := input.(*ec2.RunInstancesInput)
 	if !ok {
 		return false
 	}
-	if input.Placement == m.x {
+	if runInstancesInput.Placement == m.placement {
 		return true
 	}
 	return false
 }
 
 func (m placementMatcher) String() string {
-	return fmt.Sprintf("is placement: %#v", m.x)
+	return fmt.Sprintf("is placement: %#v", m.placement)
 }
 
-func Placement(x *ec2.Placement) gomock.Matcher { return placementMatcher{x} }
+func Placement(placement *ec2.Placement) gomock.Matcher { return placementMatcher{placement} }
