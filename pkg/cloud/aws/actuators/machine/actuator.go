@@ -254,8 +254,8 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone
 		}
 		describeSubnetResult, err := client.DescribeSubnets(&describeSubnetRequest)
 		if err != nil {
-			glog.Errorf("error describing security groups: %v", err)
-			return nil, fmt.Errorf("error describing security groups: %v", err)
+			glog.Errorf("error describing subnetes: %v", err)
+			return nil, fmt.Errorf("error describing subnets: %v", err)
 		}
 		for _, n := range describeSubnetResult.Subnets {
 			subnetID := *n.SubnetId
