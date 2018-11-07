@@ -48,23 +48,11 @@ vendor:
 	patch -p1 < 0002-Sort-machines-before-syncing.patch
 
 .PHONY: generate
-generate: gendeepcopy generate-mocks
+generate: 
+	go generate ./pkg/... ./cmd/...
 
 .PHONY: test
-test: generate-mocks unit
-
-.PHONY: gendeepcopy
-gendeepcopy:
-	go build -o $$GOPATH/bin/deepcopy-gen sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/code-generator/cmd/deepcopy-gen
-	deepcopy-gen \
-	  -i ./pkg/cloud/aws/providerconfig,./pkg/cloud/aws/providerconfig/v1alpha1 \
-	  -O zz_generated.deepcopy \
-	  -h boilerplate.go.txt
-
-.PHONY: generate-mocks
-generate-mocks:
-	go build -o $$GOPATH/bin/mockgen sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/golang/mock/mockgen/
-	go generate ./pkg/cloud/aws/client/
+test: unit
 
 bin:
 	@mkdir $@
