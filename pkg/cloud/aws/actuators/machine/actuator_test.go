@@ -412,3 +412,132 @@ func TestBuildEC2Filters(t *testing.T) {
 		t.Errorf("failed to buildEC2Filters. Expected: %+v, got: %+v", expected, got)
 	}
 }
+
+func TestAvailabiltyZone(t *testing.T) {
+	cases := []struct {
+		name             string
+		availabilityZone string
+		subnet           string
+	}{
+		{
+			name:             "availability zone only",
+			availabilityZone: "us-east-1a",
+		},
+		{
+			name:   "subnet only",
+			subnet: "subnet-b46032ec",
+		},
+		{
+			name:             "availability zone and subnet",
+			availabilityZone: "us-east-1a",
+			subnet:           "subnet-b46032ec",
+		},
+	}
+
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterID)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			machinePc := &providerconfigv1.AWSMachineProviderConfig{}
+			if err = codec.DecodeProviderConfig(&machine.Spec.ProviderConfig, machinePc); err != nil {
+				t.Fatal(err)
+			}
+
+			machinePc.Placement.AvailabilityZone = tc.availabilityZone
+			if tc.subnet == "" {
+				machinePc.Subnet.ID = nil
+			} else {
+				machinePc.Subnet.ID = aws.String(tc.subnet)
+			}
+
+			config, err := codec.EncodeProviderConfig(machinePc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			machine.Spec.ProviderConfig = *config
+
+			fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
+
+			fakeClient := fake.NewFakeClient(machine)
+
+			mockCtrl := gomock.NewController(t)
+			mockAWSClient := mockaws.NewMockClient(mockCtrl)
+
+			params := ActuatorParams{
+				Client:     fakeClient,
+				KubeClient: fakeKubeClient,
+				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+					return mockAWSClient, nil
+				},
+				Codec: codec,
+			}
+
+			actuator, err := NewActuator(params)
+			if err != nil {
+				t.Fatalf("Could not create AWS machine actuator: %v", err)
+			}
+
+			mockRunInstancesForPlacement(mockAWSClient, tc.availabilityZone, tc.subnet)
+			mockDescribeInstances(mockAWSClient, false)
+			mockTerminateInstances(mockAWSClient)
+			mockRegisterInstancesWithLoadBalancer(mockAWSClient, false)
+			mockDescribeSubnets(mockAWSClient)
+
+			actuator.Create(cluster, machine)
+		})
+	}
+}
+
+func mockDescribeSubnets(mockAWSClient *mockaws.MockClient) {
+	mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(&ec2.DescribeSubnetsOutput{}, nil)
+}
+
+func mockRunInstancesForPlacement(mockAWSClient *mockaws.MockClient, availabilityZone, subnet string) {
+	var placement *ec2.Placement
+	if availabilityZone != "" && subnet == "" {
+		placement = &ec2.Placement{AvailabilityZone: aws.String(availabilityZone)}
+	}
+
+	mockAWSClient.EXPECT().RunInstances(Placement(placement)).Return(
+		&ec2.Reservation{
+			Instances: []*ec2.Instance{
+				{
+					ImageId:    aws.String("ami-a9acbbd6"),
+					InstanceId: aws.String("i-02fcb933c5da7085c"),
+					State: &ec2.InstanceState{
+						Name: aws.String("Running"),
+						Code: aws.Int64(16),
+					},
+					LaunchTime: aws.Time(time.Now()),
+				},
+			},
+		}, nil)
+}
+
+type placementMatcher struct {
+	placement *ec2.Placement
+}
+
+func (m placementMatcher) Matches(input interface{}) bool {
+	runInstancesInput, ok := input.(*ec2.RunInstancesInput)
+	if !ok {
+		return false
+	}
+	if runInstancesInput.Placement == m.placement {
+		return true
+	}
+	return false
+}
+
+func (m placementMatcher) String() string {
+	return fmt.Sprintf("is placement: %#v", m.placement)
+}
+
+func Placement(placement *ec2.Placement) gomock.Matcher { return placementMatcher{placement} }
