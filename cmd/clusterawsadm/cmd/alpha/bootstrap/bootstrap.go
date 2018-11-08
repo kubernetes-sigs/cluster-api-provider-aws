@@ -66,6 +66,7 @@ func RootCmd() *cobra.Command {
 	}
 	newCmd.AddCommand(generateCmd())
 	newCmd.AddCommand(createStackCmd())
+	newCmd.AddCommand(generateIAMPolicyDocJSON())
 	newCmd.AddCommand(encodeAWSSecret())
 	newCmd.AddCommand(generateAWSDefaultProfile())
 	return newCmd
@@ -139,6 +140,68 @@ func createStackCmd() *cobra.Command {
 		},
 	}
 
+	return newCmd
+}
+
+func generateIAMPolicyDocJSON() *cobra.Command {
+	newCmd := &cobra.Command{
+		Use:   "generate-iam-policy-docs [AWS Account ID] [Directory for JSON]",
+		Short: "Generate PolicyDocument JSON for all ManagedIAMPolicies",
+		Long:  `Generate PolicyDocument JSON for all ManagedIAMPolicies`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 2 {
+				fmt.Printf("Error: requires, as arguments, an AWS Account ID and a directory for the exported JSON\n\n")
+				if err := cmd.Help(); err != nil {
+					return err
+				}
+				os.Exit(300)
+			}
+			accountID := args[0]
+			policyDocDir := args[1]
+
+			var err error
+			if !sts.ValidateAccountID(accountID) {
+				fmt.Printf("Error: provided AWS Account ID is invalid\n\n")
+				cmd.Help()
+				os.Exit(301)
+			}
+
+			if _, err = os.Stat(policyDocDir); os.IsNotExist(err) {
+				err = os.Mkdir(policyDocDir, 0755)
+				if err != nil {
+					fmt.Printf("Error: failed to make directory %q, %v", policyDocDir, err)
+					cmd.Help()
+					os.Exit(302)
+				}
+			}
+			if err != nil {
+				fmt.Printf("Error: failed to stat directory %q, %v", policyDocDir, err)
+				cmd.Help()
+				os.Exit(303)
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			accountID := args[0]
+			policyDocDir := args[1]
+			sess, err := session.NewSessionWithOptions(session.Options{
+				SharedConfigState: session.SharedConfigEnable,
+			})
+			if err != nil {
+				return fmt.Errorf("Error: failed to create a session: %v", err)
+			}
+
+			cfnSvc := cloudformation.NewService(cfn.New(sess))
+			err = cfnSvc.GenerateManagedIAMPolicyDocuments(policyDocDir, accountID)
+
+			if err != nil {
+				return fmt.Errorf("Error: failed to generate PolicyDocument for all ManagedIAMPolicies: %v", err)
+			}
+
+			fmt.Printf("PolicyDocument for all ManagedIAMPolicies successfully generated in JSON at %q\n", policyDocDir)
+			return nil
+		},
+	}
 	return newCmd
 }
 
