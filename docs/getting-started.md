@@ -47,6 +47,11 @@
 
 Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can use `go get sigs.k8s.io/cluster-api/provider-aws/...`.
 
+Before launching clusterctl, you need to define a few environment variables (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). You thus need an AWS user with sufficient permissions:
+
+1. You can create that user and assign the permissions manually.
+2. Or you can use the `clusterawsadm` tool.
+
 ### Installing clusterawsadm
 
 `clusterawsadm`, is a helper utlity that users might choose to use to quickly setup prerequisites.
@@ -257,6 +262,8 @@ I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provi
 ...
 ```
 
+The created minikube cluster is ephemeral and should be deleted on cluster creation success. During the cluster creation, the minikube configuration is written to `minikube.kubeconfig` in the directory you launched the `clusterctl` command.
+
 ## Troubleshooting
 
 Controller logs can be tailed using [`kubectl`][kubectl]:
@@ -264,12 +271,14 @@ Controller logs can be tailed using [`kubectl`][kubectl]:
 *Bash:*
 
 ```bash
+export KUBECONFIG=./minikube.kubeconfig
 kubectl get po -o name -n aws-provider-system | grep aws-provider-controller-manager | xargs kubectl logs -n aws-provider-system -c manager -f
 ```
 
 *PowerShell:*
 
 ```powershell
+$ENV:KUBECONFIG = "minikube.kubeconfig"
 kubectl logs -n aws-provider-system -c manager -f `
   $(kubectl get po -o name | Select-String -Pattern "aws-provider-controller-manager")
 ```
