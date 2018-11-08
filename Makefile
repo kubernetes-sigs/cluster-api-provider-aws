@@ -125,19 +125,19 @@ clean: ## Remove all generated files
 	rm -f minikube.kubeconfig
 	rm -f bazel-*
 
-cmd/clusterctl/examples/aws/out/:
+cmd/clusterctl/examples/aws/out:
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
-cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out/ ## Generate k8s secret for AWS credentials
+cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out ## Generate k8s secret for AWS credentials
 	clusterawsadm alpha bootstrap generate-aws-default-profile > cmd/clusterctl/examples/aws/out/credentials
 
 .PHONY: examples
 examples: ## Generate example output
-	$(MAKE) cmd/clusterctl/examples/aws/out/ IMAGE=${MANAGER_IMAGE}
+	$(MAKE) cmd/clusterctl/examples/aws/out IMAGE=${MANAGER_IMAGE}
 
 .PHONY: examples-dev
 examples-dev: ## Generate example output with developer image
-	$(MAKE) cmd/clusterctl/examples/aws/out/ IMAGE=${DEV_MANAGER_IMAGE}
+	$(MAKE) cmd/clusterctl/examples/aws/out IMAGE=${DEV_MANAGER_IMAGE}
 
 .PHONY: manifests
 manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for clusterctl
