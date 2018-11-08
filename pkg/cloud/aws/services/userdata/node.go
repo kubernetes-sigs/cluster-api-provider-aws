@@ -32,7 +32,7 @@ preferences: {}
 users: []
 EOF
 
-HOSTNAME="$(hostname -f 2>/dev/null || curl http://169.254.169.254/latest/meta-data/local-hostname)"
+HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
 
 cat >/tmp/kubeadm-node.yaml <<EOF
 ---
