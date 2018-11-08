@@ -47,10 +47,10 @@
 
 Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can use `go get sigs.k8s.io/cluster-api/provider-aws/...`.
 
-Before launching clusterctl, you need to define in your shell environment some variables (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). You thus need an AWS user with sufficient permissions:
+Before launching clusterctl, you need to define a few environment variables (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). You thus need an AWS user with sufficient permissions:
 
-1. You can create that user and assign the permissions by your self.
-2. Or you can use the `clusterawsadm` tool for this.
+1. You can create that user and assign the permissions manually.
+2. Or you can use the `clusterawsadm` tool.
 
 ### Installing clusterawsadm
 
@@ -262,7 +262,7 @@ I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provi
 ...
 ```
 
-The created minikube is ephemeral and should be deleted on cluster creation success. During the cluster creation, the minikube configuration is not written in the classical `~/.kube` but in the folder from which you launched the `clusterctl` command in the `minikube.kubeconfig` file.
+The created minikube cluster is ephemeral and should be deleted on cluster creation success. During the cluster creation, the minikube configuration is written to `minikube.kubeconfig` in the directory you launched the `clusterctl` command.
 
 ## Troubleshooting
 
