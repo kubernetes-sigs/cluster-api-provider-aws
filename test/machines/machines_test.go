@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
+	machineutils "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 )
 
@@ -34,19 +35,6 @@ const (
 func TestCart(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Machine Suite")
-}
-
-func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) {
-	_, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Create(secret)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = wait.Poll(framework.PollInterval, framework.PoolTimeout, func() (bool, error) {
-		if _, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Get(secret.Name, metav1.GetOptions{}); err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-	Expect(err).NotTo(HaveOccurred())
 }
 
 var _ = framework.SigKubeDescribe("Machines", func() {
@@ -202,6 +190,11 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 					"Name":                                             testMachine.Name,
 					"clusterid":                                        clusterID,
 				}))
+			})
+
+			By("Checking machine status", func() {
+				condition := getMachineCondition(f, testMachine)
+				Expect(condition.Reason).To(Equal(machineutils.MachineCreationSucceeded))
 			})
 
 			f.DeleteMachineAndWait(testMachine, acw)
