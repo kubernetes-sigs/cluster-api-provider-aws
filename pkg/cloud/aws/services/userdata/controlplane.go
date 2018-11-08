@@ -48,7 +48,6 @@ nodeRegistration:
   criSocket: /var/run/containerd/containerd.sock
   kubeletExtraArgs:
     cloud-provider: aws
-    allocate-node-cidrs: "false"
 EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
