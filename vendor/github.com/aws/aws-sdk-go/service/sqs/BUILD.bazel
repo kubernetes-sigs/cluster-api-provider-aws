@@ -28,7 +28,10 @@ go_library(
 
 go_test(
     name = "go_default_test",
-    srcs = ["checksums_test.go"],
+    srcs = [
+        "api_test.go",
+        "checksums_test.go",
+    ],
     embed = [":go_default_library"],
     deps = [
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",

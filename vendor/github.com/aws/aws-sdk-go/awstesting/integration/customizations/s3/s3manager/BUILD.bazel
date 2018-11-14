@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
@@ -6,4 +6,23 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/aws/aws-sdk-go/awstesting/integration/customizations/s3/s3manager",
     importpath = "github.com/aws/aws-sdk-go/awstesting/integration/customizations/s3/s3manager",
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "bucket_region_test.go",
+        "integration_test.go",
+        "shared_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/request:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/awstesting/integration:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/awstesting/integration/customizations/s3:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/s3:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/s3/s3manager:go_default_library",
+    ],
 )

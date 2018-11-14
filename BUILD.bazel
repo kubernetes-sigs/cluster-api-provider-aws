@@ -39,6 +39,7 @@ gazelle(
     name = "gazelle",
     command = "fix",
     external = "vendored",
+    build_tags = ["integration"],
 )
 
 filegroup(
