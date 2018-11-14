@@ -23,10 +23,11 @@ import (
 	elbsvc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 )
 
-// SDKGetter is the default getter based on the AWS SDK.
+// SDKGetter is the default getter based on the AWS SDK, its main purpose
+// is to provide cluster-aware clients to be used in machine and cluster actuators.
 type SDKGetter struct{}
 
-// Session returns a new AWS session.
+// Session returns a new AWS session based on the cluster configuration.
 func (*SDKGetter) Session(clusterConfig *v1alpha1.AWSClusterProviderConfig) *session.Session {
 	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
 }
