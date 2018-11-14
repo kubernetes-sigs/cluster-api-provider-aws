@@ -18,8 +18,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
@@ -29,7 +29,7 @@ const (
 )
 
 func (s *Service) reconcileSubnets(clusterName string, network *v1alpha1.Network) error {
-	glog.V(2).Infof("Reconciling subnets")
+	klog.V(2).Infof("Reconciling subnets")
 
 	// Make sure all subnets have a vpc id.
 	for _, sn := range network.Subnets {
@@ -103,7 +103,7 @@ LoopExisting:
 		nsn.DeepCopyInto(subnet)
 	}
 
-	glog.V(2).Infof("Subnets available: %v", network.Subnets)
+	klog.V(2).Infof("Subnets available: %v", network.Subnets)
 	return nil
 }
 
@@ -123,7 +123,7 @@ func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) e
 			return errors.Wrapf(err, "failed to delete subnet %q", sn.ID)
 		}
 
-		glog.Infof("deleted subnet %q in VPC %q", sn.ID, network.VPC.ID)
+		klog.Infof("deleted subnet %q in VPC %q", sn.ID, network.VPC.ID)
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 		}
 	}
 
-	glog.V(2).Infof("Created new subnet %q in VPC %q with cidr %q and availability zone %q",
+	klog.V(2).Infof("Created new subnet %q in VPC %q with cidr %q and availability zone %q",
 		*out.Subnet.SubnetId, *out.Subnet.VpcId, *out.Subnet.CidrBlock, *out.Subnet.AvailabilityZone)
 
 	return &v1alpha1.Subnet{
@@ -218,6 +218,6 @@ func (s *Service) deleteSubnet(sn *v1alpha1.Subnet) error {
 		return errors.Wrapf(err, "failed to delete subnet %q", sn.ID)
 	}
 
-	glog.V(2).Infof("Deleted subnet %q", sn.ID)
+	klog.V(2).Infof("Deleted subnet %q", sn.ID)
 	return nil
 }

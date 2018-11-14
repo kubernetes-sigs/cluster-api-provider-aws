@@ -16,7 +16,7 @@ go_library(
         "//vendor/github.com/aws/aws-sdk-go/service/cloudformation:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface:go_default_library",
         "//vendor/github.com/awslabs/goformation/cloudformation:go_default_library",
-        "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
     ],
 )

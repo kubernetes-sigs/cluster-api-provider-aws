@@ -20,11 +20,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	clusterapiclientsetscheme "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
 )
@@ -47,12 +47,12 @@ func Init(kubeClient *clientset.Clientset) {
 	initOnce.Do(func() {
 		scheme := runtime.NewScheme()
 		if err := corev1.AddToScheme(scheme); err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 		}
 		clusterapiclientsetscheme.AddToScheme(scheme)
 
 		broadcaster := record.NewBroadcaster()
-		broadcaster.StartLogging(glog.Infof)
+		broadcaster.StartLogging(klog.Infof)
 		broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.RESTClient()).Events("")})
 		defaultRecorder = broadcaster.NewRecorder(scheme, corev1.EventSource{Component: defaultRecorderSource})
 	})

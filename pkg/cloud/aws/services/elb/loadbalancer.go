@@ -23,14 +23,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
 func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.Network) error {
-	glog.V(2).Info("Reconciling load balancers")
+	klog.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
 	spec := s.getAPIServerClassicELBSpec(clusterName, network)
@@ -43,7 +43,7 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 			return err
 		}
 
-		glog.V(2).Infof("Created new classic load balancer for apiserver: %v", apiELB)
+		klog.V(2).Infof("Created new classic load balancer for apiserver: %v", apiELB)
 	} else if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 
 	apiELB.DeepCopyInto(&network.APIServerELB)
 
-	glog.V(2).Info("Reconcile load balancers completed successfully")
+	klog.V(2).Info("Reconcile load balancers completed successfully")
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (s *Service) GetAPIServerDNSName(clusterName string) (string, error) {
 
 // DeleteLoadbalancers deletes the load balancers for the given cluster.
 func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Network) error {
-	glog.V(2).Info("Delete load balancers")
+	klog.V(2).Info("Delete load balancers")
 
 	// Get default api server spec.
 	spec := s.getAPIServerClassicELBSpec(clusterName, network)
@@ -87,7 +87,7 @@ func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Netw
 		return err
 	}
 
-	glog.V(2).Info("Deleting load balancers completed successfully")
+	klog.V(2).Info("Deleting load balancers completed successfully")
 	return nil
 }
 
@@ -198,7 +198,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 		}
 	}
 
-	glog.V(2).Infof("Created load balancer with dns name: %q", *out.DNSName)
+	klog.V(2).Infof("Created load balancer with dns name: %q", *out.DNSName)
 
 	res := spec.DeepCopy()
 	res.DNSName = *out.DNSName

@@ -18,8 +18,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 )
@@ -29,7 +29,7 @@ const (
 )
 
 func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
-	glog.V(2).Infof("Reconciling VPC")
+	klog.V(2).Infof("Reconciling VPC")
 
 	vpc, err := s.describeVPC(clusterName, in.ID)
 	if IsNotFound(err) {
@@ -44,7 +44,7 @@ func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
 	}
 
 	vpc.DeepCopyInto(in)
-	glog.V(2).Infof("Working on VPC %q", in.ID)
+	klog.V(2).Infof("Working on VPC %q", in.ID)
 	return nil
 }
 
@@ -72,7 +72,7 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 		return nil, errors.Wrapf(err, "failed to tag vpc %q", *out.Vpc.VpcId)
 	}
 
-	glog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
+	klog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
 
 	return &v1alpha1.VPC{
 		ID:        *out.Vpc.VpcId,
@@ -95,7 +95,7 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 		return err
 	}
 
-	glog.V(2).Infof("Deleted VPC %q", v.ID)
+	klog.V(2).Infof("Deleted VPC %q", v.ID)
 	return nil
 }
 

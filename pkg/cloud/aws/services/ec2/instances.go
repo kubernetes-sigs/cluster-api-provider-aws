@@ -18,8 +18,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -27,7 +27,7 @@ import (
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Looking for existing instance for machine %q in cluster %q", machine.Name, cluster.Name)
+	klog.V(2).Infof("Looking for existing instance for machine %q in cluster %q", machine.Name, cluster.Name)
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -59,7 +59,7 @@ func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Looking for instance %q", *instanceID)
+	klog.V(2).Infof("Looking for instance %q", *instanceID)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
@@ -83,7 +83,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 
 // CreateInstance runs an ec2 instance.
 func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, clusterConfig *v1alpha1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Creating a new instance for machine %q", machine.Name)
+	klog.V(2).Infof("Creating a new instance for machine %q", machine.Name)
 
 	input := &v1alpha1.Instance{
 		Type:       config.InstanceType,
@@ -181,7 +181,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
 func (s *Service) TerminateInstance(instanceID string) error {
-	glog.V(2).Infof("Attempting to terminate instance with id %q", instanceID)
+	klog.V(2).Infof("Attempting to terminate instance with id %q", instanceID)
 
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -191,7 +191,7 @@ func (s *Service) TerminateInstance(instanceID string) error {
 		return errors.Wrapf(err, "failed to terminate instance with id %q", instanceID)
 	}
 
-	glog.V(2).Infof("Terminated instance with id %q", instanceID)
+	klog.V(2).Infof("Terminated instance with id %q", instanceID)
 	return nil
 }
 
@@ -202,7 +202,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 		return err
 	}
 
-	glog.V(2).Infof("Waiting for EC2 instance with id %q to terminate", instanceID)
+	klog.V(2).Infof("Waiting for EC2 instance with id %q to terminate", instanceID)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{instanceID}),
@@ -217,11 +217,11 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
 func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, clusterConfig *v1alpha1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*v1alpha1.Instance, error) {
-	glog.V(2).Infof("Attempting to create or get machine %q", machine.Name)
+	klog.V(2).Infof("Attempting to create or get machine %q", machine.Name)
 
 	// instance id exists, try to get it
 	if status.InstanceID != nil {
-		glog.V(2).Infof("Looking up machine %q by id %q", machine.Name, *status.InstanceID)
+		klog.V(2).Infof("Looking up machine %q by id %q", machine.Name, *status.InstanceID)
 
 		instance, err := s.InstanceIfExists(status.InstanceID)
 		if err != nil && !IsNotFound(err) {
@@ -231,7 +231,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 		}
 	}
 
-	glog.V(2).Infof("Looking up machine %q by tags", machine.Name)
+	klog.V(2).Infof("Looking up machine %q by tags", machine.Name)
 	instance, err := s.InstanceByTags(machine, cluster)
 	if err != nil && !IsNotFound(err) {
 		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", machine.Name)
@@ -297,7 +297,7 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
 func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) error {
-	glog.V(2).Infof("Attempting to update security groups on instance %q", instanceID)
+	klog.V(2).Infof("Attempting to update security groups on instance %q", instanceID)
 
 	input := &ec2.ModifyInstanceAttributeInput{
 		InstanceId: aws.String(instanceID),
@@ -316,11 +316,11 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) 
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
 func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error {
-	glog.V(2).Infof("Attempting to update tags on resource %q", *resourceID)
+	klog.V(2).Infof("Attempting to update tags on resource %q", *resourceID)
 
 	// If we have anything to create or update
 	if len(create) > 0 {
-		glog.V(2).Infof("Attempting to create tags on resource %q", *resourceID)
+		klog.V(2).Infof("Attempting to create tags on resource %q", *resourceID)
 
 		// Convert our create map into an array of *ec2.Tag
 		createTagsInput := mapToTags(create)
@@ -339,7 +339,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 
 	// If we have anything to remove
 	if len(remove) > 0 {
-		glog.V(2).Infof("Attempting to delete tags on resource %q", *resourceID)
+		klog.V(2).Infof("Attempting to delete tags on resource %q", *resourceID)
 
 		// Convert our remove map into an array of *ec2.Tag
 		removeTagsInput := mapToTags(remove)

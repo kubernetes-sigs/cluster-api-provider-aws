@@ -18,13 +18,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.Network) error {
-	glog.V(2).Infof("Reconciling security groups")
+	klog.V(2).Infof("Reconciling security groups")
 
 	if network.SecurityGroups == nil {
 		network.SecurityGroups = make(map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup)
@@ -60,7 +60,7 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 			network.SecurityGroups[role] = existing
 		}
 
-		glog.V(2).Infof("Security group for role %q: %v", role, network.SecurityGroups[role])
+		klog.V(2).Infof("Security group for role %q: %v", role, network.SecurityGroups[role])
 	}
 
 	// Second iteration creates or updates all permissions on the security group to match
@@ -78,7 +78,7 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 				return err
 			}
 
-			glog.V(2).Infof("Authorized ingress rules %v in security group %q", toAuthorize, sg)
+			klog.V(2).Infof("Authorized ingress rules %v in security group %q", toAuthorize, sg)
 		}
 
 		toRevoke := current.Difference(want)
@@ -87,7 +87,7 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 				return errors.Wrapf(err, "failed to revoke security group ingress rules for %q", sg.ID)
 			}
 
-			glog.V(2).Infof("Revoked ingress rules %v from security group %q", toRevoke, sg)
+			klog.V(2).Infof("Revoked ingress rules %v from security group %q", toRevoke, sg)
 		}
 	}
 
@@ -102,7 +102,7 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 			return err
 		}
 
-		glog.V(2).Infof("Revoked ingress rules %v from security group %q", current, sg.ID)
+		klog.V(2).Infof("Revoked ingress rules %v from security group %q", current, sg.ID)
 	}
 
 	for _, sg := range network.SecurityGroups {
@@ -114,7 +114,7 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 			return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
 		}
 
-		glog.V(2).Infof("Deleted security group security group %q", sg.ID)
+		klog.V(2).Infof("Deleted security group security group %q", sg.ID)
 	}
 	return nil
 }

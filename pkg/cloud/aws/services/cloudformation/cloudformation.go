@@ -20,8 +20,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 )
 
 func (s *Service) createStack(stackName string, yaml string) error {
@@ -31,18 +31,18 @@ func (s *Service) createStack(stackName string, yaml string) error {
 		TemplateBody: aws.String(yaml),
 		StackName:    aws.String(stackName),
 	}
-	glog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
+	klog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
 	if _, err := s.CFN.CreateStack(input); err != nil {
 		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
 	}
 
 	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
-	glog.V(2).Infof("waiting for stack %q to create", stackName)
+	klog.V(2).Infof("waiting for stack %q to create", stackName)
 	if err := s.CFN.WaitUntilStackCreateComplete(desInput); err != nil {
 		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
 	}
 
-	glog.V(2).Infof("stack %q created", stackName)
+	klog.V(2).Infof("stack %q created", stackName)
 	return nil
 }
 
@@ -53,17 +53,17 @@ func (s *Service) updateStack(stackName string, yaml string) error {
 		TemplateBody: aws.String(yaml),
 		StackName:    aws.String(stackName),
 	}
-	glog.V(2).Infof("updating AWS CloudFormation stack %q", stackName)
+	klog.V(2).Infof("updating AWS CloudFormation stack %q", stackName)
 	if _, err := s.CFN.UpdateStack(input); err != nil {
 		return errors.Wrap(err, "failed to update AWS CloudFormation stack")
 	}
 	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
-	glog.V(2).Infof("waiting for stack %q to update", stackName)
+	klog.V(2).Infof("waiting for stack %q to update", stackName)
 	if err := s.CFN.WaitUntilStackUpdateComplete(desInput); err != nil {
 		return errors.Wrap(err, "failed to update AWS CloudFormation stack")
 	}
 
-	glog.V(2).Infof("stack %q updated", stackName)
+	klog.V(2).Infof("stack %q updated", stackName)
 	return nil
 }
 

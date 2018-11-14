@@ -18,8 +18,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
@@ -28,7 +28,7 @@ const (
 )
 
 func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network) error {
-	glog.V(2).Infof("Reconciling routing tables")
+	klog.V(2).Infof("Reconciling routing tables")
 
 	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(clusterName, in.VPC.ID)
 	if err != nil {
@@ -37,7 +37,7 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 
 	for _, sn := range in.Subnets {
 		if igw, ok := subnetRouteMap[sn.ID]; ok {
-			glog.V(2).Infof("Subnet %q is already associated with route table %q", sn.ID, *igw.RouteTableId)
+			klog.V(2).Infof("Subnet %q is already associated with route table %q", sn.ID, *igw.RouteTableId)
 			// TODO(vincepri): if the route table ids are both non-empty and they don't match, replace the association.
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 			continue
@@ -70,7 +70,7 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 			return err
 		}
 
-		glog.V(2).Infof("Subnet %q has been associated with route table %q", sn.ID, rt.ID)
+		klog.V(2).Infof("Subnet %q has been associated with route table %q", sn.ID, rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 
@@ -115,14 +115,14 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 				return errors.Wrapf(err, "failed to disassociate route table %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
 			}
 
-			glog.Infof("Deleted association between route table %q and subnet %q", *rt.RouteTableId, *as.SubnetId)
+			klog.Infof("Deleted association between route table %q and subnet %q", *rt.RouteTableId, *as.SubnetId)
 		}
 
 		if _, err := s.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
 			return errors.Wrapf(err, "failed to delete route table %q", *rt.RouteTableId)
 		}
 
-		glog.Infof("Deleted route table %q", *rt.RouteTableId)
+		klog.Infof("Deleted route table %q", *rt.RouteTableId)
 	}
 	return nil
 }
