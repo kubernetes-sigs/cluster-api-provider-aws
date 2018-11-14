@@ -20,7 +20,7 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
 cd $REPO_ROOT
-bazel test --test_output all //test/e2e/...
+bazel test --define='gotags=integration' --test_output all //test/e2e/...
 bazel_status=$?
 python hack/coalesce.py
 exit $bazel_status

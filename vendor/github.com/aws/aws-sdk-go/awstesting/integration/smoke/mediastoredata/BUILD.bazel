@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["client.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/aws/aws-sdk-go/awstesting/integration/smoke/mediastoredata",
+    importpath = "github.com/aws/aws-sdk-go/awstesting/integration/smoke/mediastoredata",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/awstesting/integration/smoke:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/mediastore:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/mediastoredata:go_default_library",
+        "//vendor/github.com/gucumber/gucumber:go_default_library",
+    ],
+)

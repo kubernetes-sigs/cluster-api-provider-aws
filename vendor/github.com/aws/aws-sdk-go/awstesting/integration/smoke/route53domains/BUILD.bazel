@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["client.go"],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/aws/aws-sdk-go/awstesting/integration/smoke/route53domains",
+    importpath = "github.com/aws/aws-sdk-go/awstesting/integration/smoke/route53domains",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vendor/github.com/aws/aws-sdk-go/awstesting/integration/smoke:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/route53domains:go_default_library",
+        "//vendor/github.com/gucumber/gucumber:go_default_library",
+    ],
+)
