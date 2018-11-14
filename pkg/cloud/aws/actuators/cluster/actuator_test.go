@@ -22,7 +22,7 @@ import (
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster/mock_clusteriface" // nolint
-	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/mocks"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -46,11 +46,11 @@ func (d *testServicesGetter) Session(clusterConfig *providerv1.AWSClusterProvide
 	return nil
 }
 
-func (d *testServicesGetter) EC2(session *session.Session) service.EC2Interface {
+func (d *testServicesGetter) EC2(session *session.Session) services.EC2Interface {
 	return d.ec2
 }
 
-func (d *testServicesGetter) ELB(session *session.Session) service.ELBInterface {
+func (d *testServicesGetter) ELB(session *session.Session) services.ELBInterface {
 	return d.elb
 }
 
@@ -166,10 +166,7 @@ func TestReconcile(t *testing.T) {
 		ci: mock_clusteriface.NewMockClusterInterface(mockCtrl),
 	}
 
-	services := &testServicesGetter{
-		ec2: mocks.NewMockEC2Interface(mockCtrl),
-		elb: mocks.NewMockELBInterface(mockCtrl),
-	}
+	services := mocks.NewSDKGetter(mockCtrl)
 
 	ap := cluster.ActuatorParams{
 		ClustersGetter: clusters,
@@ -197,15 +194,15 @@ func TestReconcile(t *testing.T) {
 		UpdateStatus(gomock.AssignableToTypeOf(cluster)).
 		Return(cluster, nil)
 
-	services.ec2.EXPECT().
+	services.EC2Mock.EXPECT().
 		ReconcileNetwork("test", gomock.AssignableToTypeOf(&providerv1.Network{})).
 		Return(nil)
 
-	services.ec2.EXPECT().
+	services.EC2Mock.EXPECT().
 		ReconcileBastion("test", "", gomock.AssignableToTypeOf(&providerv1.AWSClusterProviderStatus{})).
 		Return(nil)
 
-	services.elb.EXPECT().
+	services.ELBMock.EXPECT().
 		ReconcileLoadbalancers("test", gomock.AssignableToTypeOf(&providerv1.Network{})).
 		Return(nil)
 

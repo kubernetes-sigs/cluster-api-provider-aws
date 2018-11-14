@@ -19,18 +19,15 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
-	elbsvc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/tokens"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -43,13 +40,13 @@ type Actuator struct {
 	*deployer.Deployer
 
 	machinesGetter client.MachinesGetter
-	servicesGetter service.Getter
+	servicesGetter services.Getter
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
 	MachinesGetter client.MachinesGetter
-	ServicesGetter service.Getter
+	ServicesGetter services.Getter
 }
 
 // NewActuator returns an actuator.
@@ -60,7 +57,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 	}
 
 	if res.servicesGetter == nil {
-		res.servicesGetter = new(defaultServicesGetter)
+		res.servicesGetter = services.NewSDKGetter()
 	}
 
 	res.Deployer = deployer.New(res.servicesGetter)
@@ -392,18 +389,4 @@ func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alph
 	}
 
 	return nil
-}
-
-type defaultServicesGetter struct{}
-
-func (d *defaultServicesGetter) Session(clusterConfig *v1alpha1.AWSClusterProviderConfig) *session.Session {
-	return session.Must(session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region)))
-}
-
-func (d *defaultServicesGetter) EC2(session *session.Session) service.EC2Interface {
-	return ec2svc.NewService(ec2.New(session))
-}
-
-func (d *defaultServicesGetter) ELB(session *session.Session) service.ELBInterface {
-	return elbsvc.NewService(elb.New(session))
 }

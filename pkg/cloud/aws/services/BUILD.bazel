@@ -2,12 +2,20 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["interfaces.go"],
+    srcs = [
+        "getters.go",
+        "interfaces.go",
+    ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/cloud/aws/services/ec2:go_default_library",
+        "//pkg/cloud/aws/services/elb:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/elb:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
     ],
 )
