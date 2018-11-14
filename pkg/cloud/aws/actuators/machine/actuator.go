@@ -22,11 +22,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
@@ -93,7 +93,7 @@ func (a *Actuator) clusterProviderConfig(cluster *clusterv1.Cluster) (*v1alpha1.
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
+	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
 
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
@@ -150,7 +150,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	if err != nil {
 
 		if ec2svc.IsFailedDependency(errors.Cause(err)) {
-			glog.Errorf("network not ready to launch instances yet: %s", err)
+			klog.Errorf("network not ready to launch instances yet: %s", err)
 			return &controllerError.RequeueAfterError{
 				RequeueAfter: time.Minute,
 			}
@@ -173,14 +173,14 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	if err := a.updateMachine(machine); err != nil {
-		glog.Errorf("failed to update machine %q in namespace %q trying to set annotation: %v", machine.Name, machine.Namespace, err)
+		klog.Errorf("failed to update machine %q in namespace %q trying to set annotation: %v", machine.Name, machine.Namespace, err)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: time.Minute,
 		}
 	}
 
 	if err := a.storeMachineStatus(machine, status); err != nil {
-		glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+		klog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	return nil
@@ -203,7 +203,7 @@ func (a *Actuator) reconcileLBAttachment(c *clusterv1.Cluster, m *clusterv1.Mach
 
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
+	klog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
 
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
@@ -218,7 +218,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// status.InstanceID is nil, so don't do this
 	if status.InstanceID == nil {
 		// Instance was never created
-		glog.Infof("Machine %v does not exist", machine.Name)
+		klog.Infof("Machine %v does not exist", machine.Name)
 		return nil
 	}
 
@@ -231,7 +231,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	if instance == nil {
 		// The machine hasn't been created yet
-		glog.Info("Instance is nil and therefore does not exist")
+		klog.Info("Instance is nil and therefore does not exist")
 		return nil
 	}
 
@@ -241,7 +241,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
-		glog.Infof("instance %q is shutting down or already terminated", machine.Name)
+		klog.Infof("instance %q is shutting down or already terminated", machine.Name)
 		return nil
 	default:
 		if err := ec2svc.TerminateInstance(aws.StringValue(status.InstanceID)); err != nil {
@@ -249,7 +249,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		}
 	}
 
-	glog.Info("shutdown signal was sent. Shutting down machine.")
+	klog.Info("shutdown signal was sent. Shutting down machine.")
 	return nil
 }
 
@@ -257,7 +257,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 // If the Update attempts to mutate any immutable state, the method will error
 // and no updates will be performed.
 func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	glog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
+	klog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
 
 	// Get the updated config. We're going to compare parts of this to the
 	// current Tags and Security Groups that AWS is aware of.
@@ -312,11 +312,11 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	if securityGroupsChanged || tagsChanged {
 		if err := a.updateMachine(machine); err != nil {
-			glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+			klog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 		}
 	} else {
 		if err := a.storeMachineStatus(machine, status); err != nil {
-			glog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
+			klog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 		}
 	}
 
@@ -325,7 +325,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	glog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
+	klog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
 
 	status, err := a.machineProviderStatus(machine)
 	if err != nil {
@@ -351,13 +351,13 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return false, nil
 	}
 
-	glog.Infof("Found an instance: %v", instance)
+	klog.Infof("Found an instance: %v", instance)
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning:
-		glog.Infof("Machine %v is running", status.InstanceID)
+		klog.Infof("Machine %v is running", status.InstanceID)
 	case v1alpha1.InstanceStatePending:
-		glog.Infof("Machine %v is pending", status.InstanceID)
+		klog.Infof("Machine %v is pending", status.InstanceID)
 	default:
 		return false, nil
 	}

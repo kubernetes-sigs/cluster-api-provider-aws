@@ -18,8 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
@@ -62,7 +62,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
-	glog.Infof("Reconciling cluster %v.", cluster.Name)
+	klog.Infof("Reconciling cluster %v.", cluster.Name)
 
 	// Load provider config.
 	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
@@ -78,11 +78,11 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 
 	defer func() {
 		if err := a.storeClusterConfig(cluster, config); err != nil {
-			glog.Errorf("failed to store provider config for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+			klog.Errorf("failed to store provider config for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
 		}
 
 		if err := a.storeClusterStatus(cluster, status); err != nil {
-			glog.Errorf("failed to store provider status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+			klog.Errorf("failed to store provider status for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
 		}
 	}()
 
@@ -125,7 +125,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) (reterr error) {
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
-	glog.Infof("Deleting cluster %v.", cluster.Name)
+	klog.Infof("Deleting cluster %v.", cluster.Name)
 
 	// Load provider config.
 	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
@@ -160,7 +160,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	}
 
 	if err := ec2.DeleteNetwork(cluster.Name, &status.Network); err != nil {
-		glog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
+		klog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: 5 * 1000 * 1000 * 1000,
 		}

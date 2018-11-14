@@ -19,8 +19,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 )
@@ -31,11 +31,11 @@ const (
 
 // ReconcileBastion ensures a bastion is created for the cluster
 func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1.AWSClusterProviderStatus) error {
-	glog.V(2).Info("Reconciling bastion host")
+	klog.V(2).Info("Reconciling bastion host")
 
 	subnets := status.Network.Subnets
 	if len(subnets.FilterPrivate()) == 0 {
-		glog.V(2).Info("No private subnets available, skipping bastion host")
+		klog.V(2).Info("No private subnets available, skipping bastion host")
 		return nil
 	} else if len(subnets.FilterPublic()) == 0 {
 		return errors.New("failed to reconcile bastion host, no public subnets are available")
@@ -55,7 +55,7 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 			return err
 		}
 
-		glog.V(2).Infof("Created new bastion host: %+v", instance)
+		klog.V(2).Infof("Created new bastion host: %+v", instance)
 
 	} else if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 
 	instance.DeepCopyInto(&status.Bastion)
 
-	glog.V(2).Info("Reconcile bastion completed successfully")
+	klog.V(2).Info("Reconcile bastion completed successfully")
 	return nil
 }
 
@@ -74,7 +74,7 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 	instance, err := s.describeBastionInstance(clusterName, status)
 	if err != nil {
 		if IsNotFound(err) {
-			glog.V(2).Info("bastion instance does not exist")
+			klog.V(2).Info("bastion instance does not exist")
 			return nil
 		}
 		return errors.Wrap(err, "unable to describe bastion instance")

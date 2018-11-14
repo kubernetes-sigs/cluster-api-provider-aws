@@ -805,6 +805,14 @@
   revision = "7338e4bfd6915369a1375890db1bbda0158c9863"
 
 [[projects]]
+  digest = "1:4f5eb833037cc0ba0bf8fe9cae6be9df62c19dd1c869415275c708daa8ccfda5"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = ""
+  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:3549d4a059bbefb2b7683a048827ae8c3cc28da3f60c3837b9e4e408f976313c"
   name = "k8s.io/kube-openapi"
@@ -929,7 +937,6 @@
     "github.com/aws/aws-sdk-go/service/sts/stsiface",
     "github.com/awslabs/goformation/cloudformation",
     "github.com/emicklei/go-restful",
-    "github.com/golang/glog",
     "github.com/golang/mock/gomock",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
@@ -955,6 +962,7 @@
     "k8s.io/cluster-bootstrap/token/api",
     "k8s.io/cluster-bootstrap/token/util",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/klog",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",

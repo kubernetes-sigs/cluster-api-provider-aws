@@ -18,20 +18,20 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 )
 
 func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
-	glog.V(2).Infof("Reconciling NAT gateways")
+	klog.V(2).Infof("Reconciling NAT gateways")
 
 	if len(subnets.FilterPrivate()) == 0 {
-		glog.V(2).Infof("No private subnets available, skipping NAT gateways")
+		klog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
 	} else if len(subnets.FilterPublic()) == 0 {
-		glog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		klog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		return nil
 	}
 
@@ -62,10 +62,10 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 
 func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
 	if len(subnets.FilterPrivate()) == 0 {
-		glog.V(2).Infof("No private subnets available, skipping NAT gateways")
+		klog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
 	} else if len(subnets.FilterPublic()) == 0 {
-		glog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		klog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		return nil
 	}
 
@@ -135,14 +135,14 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 
-	glog.Infof("Created NAT gateway %q for subnet ID %q, waiting for it to become available...", *out.NatGateway.NatGatewayId, subnetID)
+	klog.Infof("Created NAT gateway %q for subnet ID %q, waiting for it to become available...", *out.NatGateway.NatGatewayId, subnetID)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
 	if err := s.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
 	}
 
-	glog.Infof("NAT gateway %q for subnet ID %q is now available", *out.NatGateway.NatGatewayId, subnetID)
+	klog.Infof("NAT gateway %q for subnet ID %q is now available", *out.NatGateway.NatGatewayId, subnetID)
 	return out.NatGateway, nil
 }
 
@@ -188,7 +188,7 @@ func (s *Service) deleteNatGateway(id string) error {
 		return errors.Wrapf(err, "failed to wait for NAT gateway deletion %q", id)
 	}
 
-	glog.Infof("Deleted NAT gateway %q", id)
+	klog.Infof("Deleted NAT gateway %q", id)
 	return nil
 }
 

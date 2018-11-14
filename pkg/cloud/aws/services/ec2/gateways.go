@@ -18,13 +18,13 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Network) error {
-	glog.V(2).Infof("Reconciling internet gateways")
+	klog.V(2).Infof("Reconciling internet gateways")
 
 	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
 	if IsNotFound(err) {
@@ -59,7 +59,7 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 			return errors.Wrapf(err, "failed to detach internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		glog.Infof("detached internet gateway %q from VPC %q", *ig.InternetGatewayId, in.VPC.ID)
+		klog.Infof("detached internet gateway %q from VPC %q", *ig.InternetGatewayId, in.VPC.ID)
 
 		deleteReq := &ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
@@ -69,7 +69,7 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 			return errors.Wrapf(err, "failed to delete internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		glog.Infof("Deleted internet gateway %q", in.VPC.ID)
+		klog.Infof("Deleted internet gateway %q", in.VPC.ID)
 	}
 	return nil
 }
@@ -85,7 +85,7 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 
-	glog.Infof("created internet gateway %q", vpc.ID)
+	klog.Infof("created internet gateway %q", vpc.ID)
 
 	_, err = s.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
@@ -95,7 +95,7 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
 	}
 
-	glog.Infof("attached internet gateway %q to VPC %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
+	klog.Infof("attached internet gateway %q to VPC %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
 	return ig.InternetGateway, nil
 }
 

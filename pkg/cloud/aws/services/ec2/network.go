@@ -14,13 +14,13 @@
 package ec2
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network) (err error) {
-	glog.V(2).Info("Reconciling network")
+	klog.V(2).Info("Reconciling network")
 
 	// VPC.
 	if err := s.reconcileVPC(clusterName, &network.VPC); err != nil {
@@ -52,13 +52,13 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 		return err
 	}
 
-	glog.V(2).Info("Reconcile network completed successfully")
+	klog.V(2).Info("Reconcile network completed successfully")
 	return nil
 }
 
 // DeleteNetwork deletes the network of the given cluster.
 func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (err error) {
-	glog.V(2).Info("Deleting network")
+	klog.V(2).Info("Deleting network")
 
 	// Security groups.
 	if err := s.deleteSecurityGroups(clusterName, network); err != nil {
@@ -95,6 +95,6 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 		return err
 	}
 
-	glog.V(2).Info("Delete network completed successfully")
+	klog.V(2).Info("Delete network completed successfully")
 	return nil
 }

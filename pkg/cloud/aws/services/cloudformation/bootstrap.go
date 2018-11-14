@@ -19,8 +19,8 @@ import (
 	"path"
 
 	"github.com/awslabs/goformation/cloudformation"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
@@ -337,7 +337,7 @@ func (s *Service) ReconcileBootstrapStack(stackName string, accountID string) er
 
 	if err := s.createStack(stackName, string(yaml)); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
-			glog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
+			klog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
 			updateErr := s.updateStack(stackName, string(yaml))
 			if updateErr != nil {
 				code, ok := awserrors.Code(errors.Cause(updateErr))
