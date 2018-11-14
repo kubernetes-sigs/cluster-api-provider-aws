@@ -18,8 +18,8 @@ package main
 
 import (
 	"flag"
-	"os"
 
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
@@ -31,7 +31,6 @@ import (
 	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
@@ -39,20 +38,16 @@ func main() {
 	cfg := config.GetConfigOrDie()
 
 	flag.Parse()
-	log := logf.Log.WithName("aws-controller-manager")
-	logf.SetLogger(logf.ZapLogger(false))
-	entryLog := log.WithName("entrypoint")
 
 	// Setup a Manager
 	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
-		entryLog.Error(err, "unable to set up overall controller manager")
-		os.Exit(1)
+		klog.Fatalf("Failed to set up overall controller manager: %v", err)
 	}
 
 	cs, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		panic(err)
+		klog.Fatalf("Failed to create client from configuration: %v", err)
 	}
 
 	// Initialize event recorder.
@@ -72,11 +67,11 @@ func main() {
 	common.RegisterClusterProvisioner("aws", clusterActuator)
 
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		panic(err)
+		klog.Fatal(err)
 	}
 
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
-		panic(err)
+		klog.Fatal(err)
 	}
 
 	capimachine.AddWithActuator(mgr, machineActuator)
@@ -84,7 +79,6 @@ func main() {
 	capicluster.AddWithActuator(mgr, clusterActuator)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
-		entryLog.Error(err, "unable to run manager")
-		os.Exit(1)
+		klog.Fatalf("Failed to run manager: %v", err)
 	}
 }
