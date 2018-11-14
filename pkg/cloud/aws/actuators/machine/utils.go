@@ -193,10 +193,7 @@ func ProviderConfigFromMachine(machine *clusterv1.Machine) (*providerconfigv1.AW
 // ProviderStatusFromMachine gets the machine provider status from the specified machine.
 func ProviderStatusFromMachine(codec codec, m *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
 	status := &providerconfigv1.AWSMachineProviderStatus{}
-	var err error
-	if m.Status.ProviderStatus != nil {
-		err = codec.DecodeProviderStatus(m.Status.ProviderStatus, status)
-	}
+	err := codec.DecodeProviderStatus(m.Status.ProviderStatus, status)
 	return status, err
 }
 

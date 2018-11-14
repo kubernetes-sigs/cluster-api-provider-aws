@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
+	machineutils "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 )
 
@@ -34,19 +35,6 @@ const (
 func TestCart(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Machine Suite")
-}
-
-func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) {
-	_, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Create(secret)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = wait.Poll(framework.PollInterval, framework.PoolTimeout, func() (bool, error) {
-		if _, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Get(secret.Name, metav1.GetOptions{}); err != nil {
-			return false, nil
-		}
-		return true, nil
-	})
-	Expect(err).NotTo(HaveOccurred())
 }
 
 var _ = framework.SigKubeDescribe("Machines", func() {
@@ -95,17 +83,24 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 	// of the same cluster-api stack. Once the machine, resp. machineset objects
 	// are defined through CRD, we can relax the restriction.
 	Context("AWS actuator", func() {
-		It("Can create AWS instances", func() {
+		var (
+			acw           *awsClientWrapper
+			awsClient     awsclient.Client
+			awsCredSecret *apiv1.Secret
+			cluster       *clusterv1alpha1.Cluster
+			clusterID     string
+		)
 
-			awsCredSecret := utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, testNamespace.Name)
+		BeforeEach(func() {
+			awsCredSecret = utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, testNamespace.Name)
 			createSecretAndWait(f, awsCredSecret)
 
-			clusterID := framework.ClusterID
+			clusterID = framework.ClusterID
 			if clusterID == "" {
 				clusterID = "cluster-" + string(uuid.NewUUID())
 			}
 
-			cluster := &clusterv1alpha1.Cluster{
+			cluster = &clusterv1alpha1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterID,
 					Namespace: testNamespace.Name,
@@ -122,21 +117,24 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 					},
 				},
 			}
-
 			f.CreateClusterAndWait(cluster)
 
+			var err error
+			awsClient, err = awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
+			Expect(err).NotTo(HaveOccurred())
+			acw = &awsClientWrapper{client: awsClient}
+
+		})
+
+		It("Can create AWS instances", func() {
 			// Create/delete a single machine, test instance is provisioned/terminated
 			testMachineProviderConfig, err := utils.TestingMachineProviderConfig(awsCredSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderConfig)
-			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
-			Expect(err).NotTo(HaveOccurred())
-			acw := &awsClientWrapper{client: awsClient}
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
 
-			var subnetID string
-			{
+			By("Checking subnet", func() {
 				describeSubnetsInput := &ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -157,34 +155,47 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(describeSubnetsResult.Subnets)).
 					To(Equal(1), "Test criteria not met. Only one Subnet should match the given Tag.")
-				subnetID = *describeSubnetsResult.Subnets[0].SubnetId
-			}
-			subnet, err := acw.GetSubnet(testMachine)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(subnet).To(Equal(subnetID))
+				subnetID := *describeSubnetsResult.Subnets[0].SubnetId
+				subnet, err := acw.GetSubnet(testMachine)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(subnet).To(Equal(subnetID))
+			})
 
-			availabilityZone, err := acw.GetAvailabilityZone(testMachine)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(availabilityZone).To(Equal("us-east-1a"))
+			By("Checking availability zone", func() {
+				availabilityZone, err := acw.GetAvailabilityZone(testMachine)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(availabilityZone).To(Equal("us-east-1a"))
+			})
 
-			securityGroups, err := acw.GetSecurityGroups(testMachine)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(securityGroups).To(Equal([]string{fmt.Sprintf("%s-default", clusterID)}))
+			By("Checking security groups", func() {
+				securityGroups, err := acw.GetSecurityGroups(testMachine)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(securityGroups).To(Equal([]string{fmt.Sprintf("%s-default", clusterID)}))
+			})
 
-			iamRole, err := acw.GetIAMRole(testMachine)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(iamRole).To(Equal(""))
+			By("Checking IAM role", func() {
+				iamRole, err := acw.GetIAMRole(testMachine)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(iamRole).To(Equal(""))
+			})
 
-			tags, err := acw.GetTags(testMachine)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(tags).To(Equal(map[string]string{
-				fmt.Sprintf("kubernetes.io/cluster/%s", clusterID): "owned",
-				"openshift-node-group-config":                      "node-config-master",
-				"sub-host-type":                                    "default",
-				"host-type":                                        "master",
-				"Name":                                             testMachine.Name,
-				"clusterid":                                        clusterID,
-			}))
+			By("Checking tags", func() {
+				tags, err := acw.GetTags(testMachine)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tags).To(Equal(map[string]string{
+					fmt.Sprintf("kubernetes.io/cluster/%s", clusterID): "owned",
+					"openshift-node-group-config":                      "node-config-master",
+					"sub-host-type":                                    "default",
+					"host-type":                                        "master",
+					"Name":                                             testMachine.Name,
+					"clusterid":                                        clusterID,
+				}))
+			})
+
+			By("Checking machine status", func() {
+				condition := getMachineCondition(f, testMachine)
+				Expect(condition.Reason).To(Equal(machineutils.MachineCreationSucceeded))
+			})
 
 			f.DeleteMachineAndWait(testMachine, acw)
 		})
@@ -209,34 +220,6 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			// 4. check all worker nodes has compute role and corresponding machines
 			//    are linked to them
 
-			awsCredSecret := utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, testNamespace.Name)
-
-			clusterID := framework.ClusterID
-			if clusterID == "" {
-				clusterID = "cluster-" + string(uuid.NewUUID())
-			}
-
-			cluster := &clusterv1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      clusterID,
-					Namespace: testNamespace.Name,
-				},
-				Spec: clusterv1alpha1.ClusterSpec{
-					ClusterNetwork: clusterv1alpha1.ClusterNetworkingConfig{
-						Services: clusterv1alpha1.NetworkRanges{
-							CIDRBlocks: []string{"10.0.0.1/24"},
-						},
-						Pods: clusterv1alpha1.NetworkRanges{
-							CIDRBlocks: []string{"10.0.0.1/24"},
-						},
-						ServiceDomain: "example.com",
-					},
-				},
-			}
-
-			createSecretAndWait(f, awsCredSecret)
-			f.CreateClusterAndWait(cluster)
-
 			// Create master machine and verify the master node is ready
 			masterUserDataSecret, err := manifests.MasterMachineUserDataSecret(
 				"masteruserdatasecret",
@@ -249,9 +232,6 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			masterMachineProviderConfig, err := utils.MasterMachineProviderConfig(awsCredSecret.Name, masterUserDataSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			masterMachine := manifests.MasterMachine(cluster.Name, cluster.Namespace, masterMachineProviderConfig)
-			awsClient, err := awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
-			Expect(err).NotTo(HaveOccurred())
-			acw := &awsClientWrapper{client: awsClient}
 			f.CreateMachineAndWait(masterMachine, acw)
 			machinesToDelete.AddMachine(masterMachine, f, acw)
 
