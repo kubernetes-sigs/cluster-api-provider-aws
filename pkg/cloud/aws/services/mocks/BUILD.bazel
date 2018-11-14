@@ -1,4 +1,5 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
 go_library(
     name = "go_default_library",
     srcs = [
@@ -18,6 +19,7 @@ go_library(
 )
 
 load("//build:go_mock.bzl", "go_mock")
+
 go_mock(
     name = "go_mock_interfaces",
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/mocks",
