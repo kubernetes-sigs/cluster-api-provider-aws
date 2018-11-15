@@ -111,10 +111,19 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 			{ID: aws.String("sg-08b1ffd32874d59a2")}, // aws-actuator_infra_k8s
 		},
 		PublicIP: aws.Bool(true),
-		LoadBalancerNames: []string{
-			"cluster-con",
-			"cluster-ext",
-			"cluster-int",
+		LoadBalancers: []providerconfigv1.LoadBalancerReference{
+			{
+				Name: "cluster-con",
+				Type: providerconfigv1.ClassicLoadBalancerType,
+			},
+			{
+				Name: "cluster-ext",
+				Type: providerconfigv1.ClassicLoadBalancerType,
+			},
+			{
+				Name: "cluster-int",
+				Type: providerconfigv1.ClassicLoadBalancerType,
+			},
 		},
 	}
 

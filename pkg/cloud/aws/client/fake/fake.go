@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 )
@@ -95,6 +96,21 @@ func (c *awsClient) TerminateInstances(input *ec2.TerminateInstancesInput) (*ec2
 func (c *awsClient) RegisterInstancesWithLoadBalancer(input *elb.RegisterInstancesWithLoadBalancerInput) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
 	// Feel free to extend the returned values
 	return &elb.RegisterInstancesWithLoadBalancerOutput{}, nil
+}
+
+func (c *awsClient) ELBv2DescribeLoadBalancers(*elbv2.DescribeLoadBalancersInput) (*elbv2.DescribeLoadBalancersOutput, error) {
+	// Feel free to extend the returned values
+	return &elbv2.DescribeLoadBalancersOutput{}, nil
+}
+
+func (c *awsClient) ELBv2DescribeTargetGroups(*elbv2.DescribeTargetGroupsInput) (*elbv2.DescribeTargetGroupsOutput, error) {
+	// Feel free to extend the returned values
+	return &elbv2.DescribeTargetGroupsOutput{}, nil
+}
+
+func (c *awsClient) ELBv2RegisterTargets(*elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error) {
+	// Feel free to extend the returned values
+	return &elbv2.RegisterTargetsOutput{}, nil
 }
 
 // NewClient creates our client wrapper object for the actual AWS clients we use.

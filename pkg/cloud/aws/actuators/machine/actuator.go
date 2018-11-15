@@ -19,6 +19,7 @@ package machine
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -27,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	errorutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -36,6 +38,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
@@ -547,6 +550,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	err = a.UpdateLoadBalancers(client, machineProviderConfig, newestInstance)
 	if err != nil {
+		glog.Errorf("error updating load balancers: %v", err)
 		return err
 	}
 
@@ -614,12 +618,48 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clus
 
 // UpdateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
 func (a *Actuator) UpdateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance) error {
-	if len(providerConfig.LoadBalancerNames) == 0 {
+	if len(providerConfig.LoadBalancers) == 0 {
+		glog.V(4).Infof("Instance %q has no load balancers configured. Skipping", *instance.InstanceId)
 		return nil
 	}
+	errs := []error{}
+	classicLoadBalancerNames := []string{}
+	networkLoadBalancerNames := []string{}
+	for _, loadBalancerRef := range providerConfig.LoadBalancers {
+		switch loadBalancerRef.Type {
+		case providerconfigv1.NetworkLoadBalancerType:
+			networkLoadBalancerNames = append(networkLoadBalancerNames, loadBalancerRef.Name)
+		case providerconfigv1.ClassicLoadBalancerType:
+			classicLoadBalancerNames = append(classicLoadBalancerNames, loadBalancerRef.Name)
+		}
+	}
+
+	var err error
+	if len(classicLoadBalancerNames) > 0 {
+		err := a.registerWithClassicLoadBalancers(client, classicLoadBalancerNames, instance)
+		if err != nil {
+			glog.Errorf("failed to register classic load balancers: %v", err)
+			errs = append(errs, err)
+		}
+	}
+	if len(networkLoadBalancerNames) > 0 {
+		err = a.registerWithNetworkLoadBalancers(client, networkLoadBalancerNames, instance)
+		if err != nil {
+			glog.Errorf("failed to register network load balancers: %v", err)
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return errorutil.NewAggregate(errs)
+	}
+	return nil
+}
+
+func (a *Actuator) registerWithClassicLoadBalancers(client awsclient.Client, names []string, instance *ec2.Instance) error {
+	glog.V(4).Infof("Updating classic load balancer registration for %q", *instance.InstanceId)
 	elbInstance := &elb.Instance{InstanceId: instance.InstanceId}
 	var errs []error
-	for _, elbName := range providerConfig.LoadBalancerNames {
+	for _, elbName := range names {
 		req := &elb.RegisterInstancesWithLoadBalancerInput{
 			Instances:        []*elb.Instance{elbInstance},
 			LoadBalancerName: aws.String(elbName),
@@ -631,7 +671,73 @@ func (a *Actuator) UpdateLoadBalancers(client awsclient.Client, providerConfig *
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("failed to register instances with elbs: %v", errs)
+		return errorutil.NewAggregate(errs)
+	}
+	return nil
+}
+
+func (a *Actuator) registerWithNetworkLoadBalancers(client awsclient.Client, names []string, instance *ec2.Instance) error {
+	glog.V(4).Infof("Updating network load balancer registration for %q", *instance.InstanceId)
+	lbNames := make([]*string, len(names))
+	for i, name := range names {
+		lbNames[i] = aws.String(name)
+	}
+	lbsRequest := &elbv2.DescribeLoadBalancersInput{
+		Names: lbNames,
+	}
+	lbsResponse, err := client.ELBv2DescribeLoadBalancers(lbsRequest)
+	if err != nil {
+		glog.Errorf("failed to describe load balancers %v: %v", names, err)
+		return err
+	}
+	// Use a map for target groups to get unique target group entries across load balancers
+	targetGroups := map[string]*elbv2.TargetGroup{}
+	for _, loadBalancer := range lbsResponse.LoadBalancers {
+		glog.V(4).Infof("retrieving target groups for load balancer %q", *loadBalancer.LoadBalancerName)
+		targetGroupsInput := &elbv2.DescribeTargetGroupsInput{
+			LoadBalancerArn: loadBalancer.LoadBalancerArn,
+		}
+		targetGroupsOutput, err := client.ELBv2DescribeTargetGroups(targetGroupsInput)
+		if err != nil {
+			glog.Errorf("failed to retrieve load balancer target groups for %q: %v", *loadBalancer.LoadBalancerName, err)
+			return err
+		}
+		for _, targetGroup := range targetGroupsOutput.TargetGroups {
+			targetGroups[*targetGroup.TargetGroupArn] = targetGroup
+		}
+	}
+	if glog.V(4) {
+		targetGroupArns := make([]string, 0, len(targetGroups))
+		for arn := range targetGroups {
+			targetGroupArns = append(targetGroupArns, fmt.Sprintf("%q", arn))
+		}
+		glog.Infof("registering instance %q with target groups: %v", *instance.InstanceId, strings.Join(targetGroupArns, ","))
+	}
+	errs := []error{}
+	for _, targetGroup := range targetGroups {
+		var target *elbv2.TargetDescription
+		switch *targetGroup.TargetType {
+		case elbv2.TargetTypeEnumInstance:
+			target = &elbv2.TargetDescription{
+				Id: instance.InstanceId,
+			}
+		case elbv2.TargetTypeEnumIp:
+			target = &elbv2.TargetDescription{
+				Id: instance.PrivateIpAddress,
+			}
+		}
+		registerTargetsInput := &elbv2.RegisterTargetsInput{
+			TargetGroupArn: targetGroup.TargetGroupArn,
+			Targets:        []*elbv2.TargetDescription{target},
+		}
+		_, err := client.ELBv2RegisterTargets(registerTargetsInput)
+		if err != nil {
+			glog.Errorf("failed to register instance %q with target group %q: %v", *instance.InstanceId, *targetGroup.TargetGroupArn, err)
+			errs = append(errs, fmt.Errorf("%s: %v", *targetGroup.TargetGroupArn, err))
+		}
+	}
+	if len(errs) > 0 {
+		return errorutil.NewAggregate(errs)
 	}
 	return nil
 }

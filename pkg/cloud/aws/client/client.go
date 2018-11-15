@@ -29,6 +29,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
+	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
 )
 
 //go:generate mockgen -source=./client.go -destination=./mock/client_generated.go -package=mock
@@ -54,11 +56,15 @@ type Client interface {
 	TerminateInstances(*ec2.TerminateInstancesInput) (*ec2.TerminateInstancesOutput, error)
 
 	RegisterInstancesWithLoadBalancer(*elb.RegisterInstancesWithLoadBalancerInput) (*elb.RegisterInstancesWithLoadBalancerOutput, error)
+	ELBv2DescribeLoadBalancers(*elbv2.DescribeLoadBalancersInput) (*elbv2.DescribeLoadBalancersOutput, error)
+	ELBv2DescribeTargetGroups(*elbv2.DescribeTargetGroupsInput) (*elbv2.DescribeTargetGroupsOutput, error)
+	ELBv2RegisterTargets(*elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error)
 }
 
 type awsClient struct {
-	ec2Client ec2iface.EC2API
-	elbClient elbiface.ELBAPI
+	ec2Client   ec2iface.EC2API
+	elbClient   elbiface.ELBAPI
+	elbv2Client elbv2iface.ELBV2API
 }
 
 func (c *awsClient) DescribeImages(input *ec2.DescribeImagesInput) (*ec2.DescribeImagesOutput, error) {
@@ -91,6 +97,18 @@ func (c *awsClient) TerminateInstances(input *ec2.TerminateInstancesInput) (*ec2
 
 func (c *awsClient) RegisterInstancesWithLoadBalancer(input *elb.RegisterInstancesWithLoadBalancerInput) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
 	return c.elbClient.RegisterInstancesWithLoadBalancer(input)
+}
+
+func (c *awsClient) ELBv2DescribeLoadBalancers(input *elbv2.DescribeLoadBalancersInput) (*elbv2.DescribeLoadBalancersOutput, error) {
+	return c.elbv2Client.DescribeLoadBalancers(input)
+}
+
+func (c *awsClient) ELBv2DescribeTargetGroups(input *elbv2.DescribeTargetGroupsInput) (*elbv2.DescribeTargetGroupsOutput, error) {
+	return c.elbv2Client.DescribeTargetGroups(input)
+}
+
+func (c *awsClient) ELBv2RegisterTargets(input *elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error) {
+	return c.elbv2Client.RegisterTargets(input)
 }
 
 // NewClient creates our client wrapper object for the actual AWS clients we use.
@@ -127,7 +145,8 @@ func NewClient(kubeClient kubernetes.Interface, secretName, namespace, region st
 	}
 
 	return &awsClient{
-		ec2Client: ec2.New(s),
-		elbClient: elb.New(s),
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
 	}, nil
 }

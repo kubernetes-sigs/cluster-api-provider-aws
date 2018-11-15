@@ -7,8 +7,8 @@ if [ "$IS_CONTAINER" != "" ]; then
 else
   docker run --rm \
     --env IS_CONTAINER=TRUE \
-    --volume "${PWD}:/go/src/github.com/openshift/${REPO_NAME}:z" \
-    --workdir "/go/src/github.com/openshift/${REPO_NAME}" \
+    --volume "${PWD}:/go/src/sigs.k8s.io/${REPO_NAME}:z" \
+    --workdir "/go/src/sigs.k8s.io/${REPO_NAME}" \
     openshift/origin-release:golang-1.10 \
     ./hack/go-lint.sh "${@}"
 fi
