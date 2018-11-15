@@ -55,12 +55,12 @@ func main() {
 
 	// Initialize cluster actuator.
 	clusterActuator := cluster.NewActuator(cluster.ActuatorParams{
-		ClustersGetter: cs.ClusterV1alpha1(),
+		Client: cs.ClusterV1alpha1(),
 	})
 
 	// Initialize machine actuator.
 	machineActuator := machine.NewActuator(machine.ActuatorParams{
-		MachinesGetter: cs.ClusterV1alpha1(),
+		Client: cs.ClusterV1alpha1(),
 	})
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)

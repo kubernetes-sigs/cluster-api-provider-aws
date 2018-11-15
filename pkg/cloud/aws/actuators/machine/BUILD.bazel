@@ -12,6 +12,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/cloud/aws/actuators:go_default_library",
         "//pkg/cloud/aws/services:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/deployer:go_default_library",

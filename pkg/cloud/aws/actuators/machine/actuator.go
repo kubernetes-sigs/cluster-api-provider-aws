@@ -15,7 +15,6 @@ package machine
 
 // should not need to import the ec2 sdk here
 import (
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,8 +24,8 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
-	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/tokens"
@@ -39,78 +38,34 @@ import (
 type Actuator struct {
 	*deployer.Deployer
 
-	machinesGetter client.MachinesGetter
-	servicesGetter services.Getter
+	client client.ClusterV1alpha1Interface
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	MachinesGetter client.MachinesGetter
-	ServicesGetter services.Getter
+	Client client.ClusterV1alpha1Interface
 }
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
 	res := &Actuator{
-		machinesGetter: params.MachinesGetter,
-		servicesGetter: params.ServicesGetter,
+		client: params.Client,
 	}
 
-	if res.servicesGetter == nil {
-		res.servicesGetter = services.NewSDKGetter()
-	}
-
-	res.Deployer = deployer.New(res.servicesGetter)
+	res.Deployer = deployer.New(services.NewSDKGetter())
 	return res
-}
-
-func (a *Actuator) ec2(clusterConfig *v1alpha1.AWSClusterProviderConfig) service.EC2MachineInterface {
-	return a.servicesGetter.EC2(a.servicesGetter.Session(clusterConfig))
-}
-
-func (a *Actuator) elb(clusterConfig *v1alpha1.AWSClusterProviderConfig) service.ELBInterface {
-	return a.servicesGetter.ELB(a.servicesGetter.Session(clusterConfig))
-}
-
-func (a *Actuator) machineProviderConfig(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderConfig, error) {
-	return v1alpha1.MachineConfigFromProviderConfig(machine.Spec.ProviderConfig)
-}
-
-func (a *Actuator) machineProviderStatus(machine *clusterv1.Machine) (*v1alpha1.AWSMachineProviderStatus, error) {
-	return v1alpha1.MachineStatusFromProviderStatus(machine.Status.ProviderStatus)
-}
-
-func (a *Actuator) clusterProviderStatus(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderStatus, error) {
-	return v1alpha1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
-}
-
-func (a *Actuator) clusterProviderConfig(cluster *clusterv1.Cluster) (*v1alpha1.AWSClusterProviderConfig, error) {
-	return v1alpha1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
 }
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
 
-	status, err := a.machineProviderStatus(machine)
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine provider status")
+		return err
 	}
 
-	clusterStatus, err := a.clusterProviderStatus(cluster)
-	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider status")
-	}
-
-	clusterConfig, err := a.clusterProviderConfig(cluster)
-	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider config")
-	}
-
-	config, err := a.machineProviderConfig(machine)
-	if err != nil {
-		return errors.Wrap(err, "failed to get machine config")
-	}
+	defer scope.Close()
 
 	controlPlaneURL, err := a.GetIP(cluster, nil)
 	if err != nil {
@@ -143,7 +98,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		}
 	}
 
-	i, err := a.ec2(clusterConfig).CreateOrGetMachine(machine, status, config, clusterStatus, clusterConfig, cluster, bootstrapToken)
+	i, err := scope.EC2.CreateOrGetMachine(machine, scope.MachineStatus, scope.MachineConfig, scope.ClusterStatus, scope.ClusterConfig, cluster, bootstrapToken)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
 			klog.Errorf("network not ready to launch instances yet: %s", err)
@@ -155,8 +110,8 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to create or get machine")
 	}
 
-	status.InstanceID = &i.ID
-	status.InstanceState = aws.String(string(i.State))
+	scope.MachineStatus.InstanceID = &i.ID
+	scope.MachineStatus.InstanceState = aws.String(string(i.State))
 
 	if machine.Annotations == nil {
 		machine.Annotations = map[string]string{}
@@ -164,32 +119,16 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
-	if err := a.reconcileLBAttachment(cluster, machine, i); err != nil {
+	if err := a.reconcileLBAttachment(scope, machine, i); err != nil {
 		return errors.Wrap(err, "failed to reconcile LB attachment")
-	}
-
-	if err := a.updateMachine(machine); err != nil {
-		klog.Errorf("failed to update machine %q in namespace %q trying to set annotation: %v", machine.Name, machine.Namespace, err)
-		return &controllerError.RequeueAfterError{
-			RequeueAfter: time.Minute,
-		}
-	}
-
-	if err := a.storeMachineStatus(machine, status); err != nil {
-		klog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
 	}
 
 	return nil
 }
 
-func (a *Actuator) reconcileLBAttachment(c *clusterv1.Cluster, m *clusterv1.Machine, i *v1alpha1.Instance) error {
-	clusterConfig, err := a.clusterProviderConfig(c)
-	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider config")
-	}
-
+func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clusterv1.Machine, i *v1alpha1.Instance) error {
 	if m.ObjectMeta.Labels["set"] == "controlplane" {
-		if err := a.elb(clusterConfig).RegisterInstanceWithAPIServerELB(c.Name, i.ID); err != nil {
+		if err := scope.ELB.RegisterInstanceWithAPIServerELB(scope.ClusterConfig.Name, i.ID); err != nil {
 			return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 		}
 	}
@@ -201,19 +140,14 @@ func (a *Actuator) reconcileLBAttachment(c *clusterv1.Cluster, m *clusterv1.Mach
 func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
 
-	status, err := a.machineProviderStatus(machine)
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine provider status")
+		return err
 	}
 
-	clusterConfig, err := a.clusterProviderConfig(cluster)
-	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider config")
-	}
+	defer scope.Close()
 
-	ec2svc := a.ec2(clusterConfig)
-
-	instance, err := ec2svc.InstanceIfExists(status.InstanceID)
+	instance, err := scope.EC2.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -233,7 +167,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		klog.Infof("instance %q is shutting down or already terminated", machine.Name)
 		return nil
 	default:
-		if err := ec2svc.TerminateInstance(aws.StringValue(status.InstanceID)); err != nil {
+		if err := scope.EC2.TerminateInstance(aws.StringValue(scope.MachineStatus.InstanceID)); err != nil {
 			return errors.Wrap(err, "failed to terminate instance")
 		}
 	}
@@ -248,30 +182,15 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
 
-	// Get the updated config. We're going to compare parts of this to the
-	// current Tags and Security Groups that AWS is aware of.
-	config, err := a.machineProviderConfig(machine)
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
-		return errors.Wrap(err, "failed to get machine config")
+		return err
 	}
 
-	// Get the new status from the provided machine object.
-	// We need this in case any of it has changed, and we also require the
-	// instanceID for various AWS queries.
-	status, err := a.machineProviderStatus(machine)
-	if err != nil {
-		return errors.Wrap(err, "failed to get machine status")
-	}
-
-	clusterConfig, err := a.clusterProviderConfig(cluster)
-	if err != nil {
-		return errors.Wrap(err, "failed to get cluster provider config")
-	}
-
-	ec2svc := a.ec2(clusterConfig)
+	defer scope.Close()
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := ec2svc.InstanceIfExists(status.InstanceID)
+	instanceDescription, err := scope.EC2.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -282,11 +201,11 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// TODO: Implement immutable state check.
 
 	// Ensure that the security groups are correct.
-	securityGroupsChanged, err := a.ensureSecurityGroups(
-		ec2svc,
+	_, err = a.ensureSecurityGroups(
+		scope.EC2,
 		machine,
-		*status.InstanceID,
-		config.AdditionalSecurityGroups,
+		*scope.MachineStatus.InstanceID,
+		scope.MachineConfig.AdditionalSecurityGroups,
 		instanceDescription.SecurityGroupIDs,
 	)
 	if err != nil {
@@ -294,19 +213,9 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	// Ensure that the tags are correct.
-	tagsChanged, err := a.ensureTags(ec2svc, machine, status.InstanceID, config.AdditionalTags)
+	_, err = a.ensureTags(scope.EC2, machine, scope.MachineStatus.InstanceID, scope.MachineConfig.AdditionalTags)
 	if err != nil {
 		return errors.Wrap(err, "failed to ensure tags")
-	}
-
-	if securityGroupsChanged || tagsChanged {
-		if err := a.updateMachine(machine); err != nil {
-			klog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		}
-	} else {
-		if err := a.storeMachineStatus(machine, status); err != nil {
-			klog.Errorf("failed to store provider status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		}
 	}
 
 	return nil
@@ -316,22 +225,19 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	klog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
 
-	status, err := a.machineProviderStatus(machine)
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
 		return false, err
 	}
 
-	clusterConfig, err := a.clusterProviderConfig(cluster)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to get cluster provider config")
-	}
+	defer scope.Close()
 
 	// TODO worry about pointers. instance if exists returns *any* instance
-	if status.InstanceID == nil {
+	if scope.MachineStatus.InstanceID == nil {
 		return false, nil
 	}
 
-	instance, err := a.ec2(clusterConfig).InstanceIfExists(status.InstanceID)
+	instance, err := scope.EC2.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return false, err
 	}
@@ -344,41 +250,16 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning:
-		klog.Infof("Machine %v is running", status.InstanceID)
+		klog.Infof("Machine %v is running", scope.MachineStatus.InstanceID)
 	case v1alpha1.InstanceStatePending:
-		klog.Infof("Machine %v is pending", status.InstanceID)
+		klog.Infof("Machine %v is pending", scope.MachineStatus.InstanceID)
 	default:
 		return false, nil
 	}
 
-	if err := a.reconcileLBAttachment(cluster, machine, instance); err != nil {
+	if err := a.reconcileLBAttachment(scope, machine, instance); err != nil {
 		return true, err
 	}
 
 	return true, nil
-}
-
-func (a *Actuator) updateMachine(machine *clusterv1.Machine) error {
-	machinesClient := a.machinesGetter.Machines(machine.Namespace)
-	if _, err := machinesClient.Update(machine); err != nil {
-		return fmt.Errorf("failed to update machine: %v", err)
-	}
-	return nil
-}
-
-func (a *Actuator) storeMachineStatus(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus) error {
-	machinesClient := a.machinesGetter.Machines(machine.Namespace)
-
-	ext, err := v1alpha1.EncodeMachineStatus(status)
-	if err != nil {
-		return fmt.Errorf("failed to encode machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-	}
-
-	machine.Status.ProviderStatus = ext
-
-	if _, err := machinesClient.UpdateStatus(machine); err != nil {
-		return fmt.Errorf("failed to update machine status for machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-	}
-
-	return nil
 }
