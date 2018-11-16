@@ -37,9 +37,9 @@ HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
 cat >/tmp/kubeadm-node.yaml <<EOF
 ---
 apiVersion: kubeadm.k8s.io/v1alpha3
-kind: NodeConfiguration
+kind: JoinConfiguration
 token: {{.BootstrapToken}}
-discoveryTokenAPIServers: 
+discoveryTokenAPIServers:
 - "{{.ELBAddress}}:6443"
 discoveryFile: /tmp/cluster-info.yaml
 nodeRegistration:
