@@ -28,7 +28,7 @@ func New(servicesGetter service.Getter) *Deployer {
 	return &Deployer{servicesGetter}
 }
 
-// Deployer satisfies the ProviderDeployer(https://github.com/kubernetes-sigs/cluster-api/blob/master/cmd/clusterctl/clusterdeployer/clusterdeployer.go) inteface.
+// Deployer satisfies the ProviderDeployer(https://github.com/kubernetes-sigs/cluster-api/blob/master/cmd/clusterctl/clusterdeployer/clusterdeployer.go) interface.
 type Deployer struct {
 	servicesGetter service.Getter
 }
@@ -72,7 +72,7 @@ func (d *Deployer) GetKubeConfig(cluster *clusterv1.Cluster, _ *clusterv1.Machin
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode CA Cert")
 	} else if cert == nil {
-		return "", errors.New("certificate not found in status")
+		return "", errors.New("certificate not found in config")
 	}
 
 	key, err := certificates.DecodePrivateKeyPEM(config.CAPrivateKey)
