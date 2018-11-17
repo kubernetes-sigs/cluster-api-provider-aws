@@ -212,13 +212,6 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return errors.Wrap(err, "failed to get cluster provider config")
 	}
 
-	// status.InstanceID is nil, so don't do this
-	if status.InstanceID == nil {
-		// Instance was never created
-		klog.Infof("Machine %v does not exist", machine.Name)
-		return nil
-	}
-
 	ec2svc := a.ec2(clusterConfig)
 
 	instance, err := ec2svc.InstanceIfExists(status.InstanceID)
