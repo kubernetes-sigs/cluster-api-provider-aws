@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
@@ -115,13 +116,13 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, error) {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
-			s.filterVPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
+			filter.EC2.VPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
 		},
 	}
 
 	if id == "" {
 		// Try to find a previously created and tagged VPC
-		input.Filters = []*ec2.Filter{s.filterCluster(clusterName)}
+		input.Filters = []*ec2.Filter{filter.EC2.Cluster(clusterName)}
 	} else {
 		input.VpcIds = []*string{aws.String(id)}
 	}

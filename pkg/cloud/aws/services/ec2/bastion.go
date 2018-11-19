@@ -23,6 +23,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
@@ -94,9 +95,9 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			s.filterAWSProviderRole(tags.ValueBastionRole),
-			s.filterCluster(clusterName),
-			s.filterInstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+			filter.EC2.ProviderRole(tags.ValueBastionRole),
+			filter.EC2.Cluster(clusterName),
+			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
 	}
 

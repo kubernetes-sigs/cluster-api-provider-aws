@@ -8,7 +8,6 @@ go_library(
         "bastion.go",
         "console.go",
         "eips.go",
-        "filters.go",
         "gateways.go",
         "instances.go",
         "natgateways.go",
@@ -24,6 +23,7 @@ go_library(
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/converters:go_default_library",
+        "//pkg/cloud/aws/filter:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/userdata:go_default_library",
         "//pkg/cloud/aws/services/wait:go_default_library",

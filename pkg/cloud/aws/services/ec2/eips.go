@@ -16,6 +16,7 @@ package ec2
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -71,19 +72,19 @@ func (s *Service) allocateAddress(clusterName string, role string) (string, erro
 }
 
 func (s *Service) describeAddresses(clusterName string, role string) (*ec2.DescribeAddressesOutput, error) {
-	filters := []*ec2.Filter{s.filterCluster(clusterName)}
+	x := []*ec2.Filter{filter.EC2.Cluster(clusterName)}
 	if role != "" {
-		filters = append(filters, s.filterAWSProviderRole(role))
+		x = append(x, filter.EC2.ProviderRole(role))
 	}
 
 	return s.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
-		Filters: filters,
+		Filters: x,
 	})
 }
 
 func (s *Service) releaseAddresses(clusterName string) error {
 	out, err := s.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
-		Filters: []*ec2.Filter{s.filterCluster(clusterName)},
+		Filters: []*ec2.Filter{filter.EC2.Cluster(clusterName)},
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to describe elastic IPs %q", err)
