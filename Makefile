@@ -168,6 +168,7 @@ reset-bazel: ## Deep cleaning for bazel
 generate: dep-ensure ## Run go generate
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
+	cp -Rf bazel-genfiles/pkg/* pkg/
 
 lint: dep-ensure ## Lint codebase
 	@echo If you have genereated new mocks, run make copy-genmocks before linting
