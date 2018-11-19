@@ -16,6 +16,8 @@ package ec2
 import (
 	"encoding/base64"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -93,12 +95,12 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		IAMProfile: config.IAMInstanceProfile,
 	}
 
-	input.Tags = s.buildTags(
-		cluster.Name,
-		ResourceLifecycleOwned,
-		machine.Name,
-		machine.ObjectMeta.Labels["set"],
-		nil)
+	input.Tags = tags.Build(tags.BuildParams{
+		ClusterName: cluster.Name,
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Name:        aws.String(machine.Name),
+		Role:        aws.String(machine.ObjectMeta.Labels["set"]),
+	})
 
 	// Pick image from the machine configuration, or use a default one.
 	if config.AMI.ID != nil {
@@ -326,7 +328,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 		klog.V(2).Infof("Attempting to create tags on resource %q", *resourceID)
 
 		// Convert our create map into an array of *ec2.Tag
-		createTagsInput := mapToTags(create)
+		createTagsInput := converters.MapToTags(create)
 
 		// Create the CreateTags input.
 		input := &ec2.CreateTagsInput{
@@ -345,7 +347,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 		klog.V(2).Infof("Attempting to delete tags on resource %q", *resourceID)
 
 		// Convert our remove map into an array of *ec2.Tag
-		removeTagsInput := mapToTags(remove)
+		removeTagsInput := converters.MapToTags(remove)
 
 		// Create the DeleteTags input
 		input := &ec2.DeleteTagsInput{

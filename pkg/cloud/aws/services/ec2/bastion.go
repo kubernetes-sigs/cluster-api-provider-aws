@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 const (
@@ -93,7 +94,7 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			s.filterAWSProviderRole(TagValueBastionRole),
+			s.filterAWSProviderRole(tags.ValueBastionRole),
 			s.filterCluster(clusterName),
 			s.filterInstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
@@ -119,7 +120,6 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 
 func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
 	name := fmt.Sprintf("%s-bastion", clusterName)
-	tags := s.buildTags(clusterName, ResourceLifecycleOwned, name, TagValueBastionRole, nil)
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
 	i := &v1alpha1.Instance{
@@ -131,7 +131,12 @@ func (s *Service) getDefaultBastion(clusterName string, region string, network v
 		SecurityGroupIDs: []string{
 			network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID,
 		},
-		Tags: tags,
+		Tags: tags.Build(tags.BuildParams{
+			ClusterName: clusterName,
+			Lifecycle:   tags.ResourceLifecycleOwned,
+			Name:        aws.String(name),
+			Role:        aws.String(tags.ValueBastionRole),
+		}),
 	}
 
 	return i

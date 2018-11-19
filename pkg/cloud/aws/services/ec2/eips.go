@@ -16,6 +16,8 @@ package ec2
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -49,7 +51,19 @@ func (s *Service) allocateAddress(clusterName string, role string) (string, erro
 	}
 
 	name := fmt.Sprintf("%s-eip-%s", clusterName, role)
-	if err := s.createTags(clusterName, *out.AllocationId, ResourceLifecycleOwned, name, role, nil); err != nil {
+
+	applyTagsParams := &tags.ApplyParams{
+		EC2Client: s.EC2,
+		BuildParams: tags.BuildParams{
+			ClusterName: clusterName,
+			ResourceID:  *out.AllocationId,
+			Lifecycle:   tags.ResourceLifecycleOwned,
+			Name:        aws.String(name),
+			Role:        aws.String(role),
+		},
+	}
+
+	if err := tags.Apply(applyTagsParams); err != nil {
 		return "", errors.Wrapf(err, "failed to tag elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 

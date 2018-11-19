@@ -22,6 +22,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
@@ -116,7 +117,7 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 }
 
 func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.getOrAllocateAddress(clusterName, TagValueAPIServerRole)
+	ip, err := s.getOrAllocateAddress(clusterName, tags.ValueAPIServerRole)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}
@@ -131,7 +132,19 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 	}
 
 	name := fmt.Sprintf("%s-nat", clusterName)
-	if err := s.createTags(clusterName, *out.NatGateway.NatGatewayId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
+
+	applyTagsParams := &tags.ApplyParams{
+		EC2Client: s.EC2,
+		BuildParams: tags.BuildParams{
+			ClusterName: clusterName,
+			ResourceID:  *out.NatGateway.NatGatewayId,
+			Lifecycle:   tags.ResourceLifecycleOwned,
+			Name:        aws.String(name),
+			Role:        aws.String(tags.ValueCommonRole),
+		},
+	}
+
+	if err := tags.Apply(applyTagsParams); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 

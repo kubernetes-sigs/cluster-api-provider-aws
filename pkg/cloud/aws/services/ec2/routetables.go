@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 const (
@@ -149,13 +150,26 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 	})
 
 	suffix := "private"
-	role := TagValueCommonRole
+	role := tags.ValueCommonRole
 	if isPublic {
 		suffix = "public"
-		role = TagValueBastionRole
+		role = tags.ValueBastionRole
 	}
+
 	name := fmt.Sprintf("%s-rt-%s", clusterName, suffix)
-	if err := s.createTags(clusterName, *out.RouteTable.RouteTableId, ResourceLifecycleOwned, name, role, nil); err != nil {
+
+	applyTagsParams := &tags.ApplyParams{
+		EC2Client: s.EC2,
+		BuildParams: tags.BuildParams{
+			ClusterName: clusterName,
+			ResourceID:  *out.RouteTable.RouteTableId,
+			Lifecycle:   tags.ResourceLifecycleOwned,
+			Name:        aws.String(name),
+			Role:        aws.String(role),
+		},
+	}
+
+	if err := tags.Apply(applyTagsParams); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag route table %q", *out.RouteTable.RouteTableId)
 	}
 
