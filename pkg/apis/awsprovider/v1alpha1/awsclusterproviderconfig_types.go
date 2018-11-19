@@ -40,7 +40,7 @@ type AWSClusterProviderConfig struct {
 	CACertificate []byte `json:"caCertificate,omitempty"`
 
 	// CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control plane nodes.
-	CAPrivateKey []byte `json:"caKey,omitemptuy"`
+	CAPrivateKey []byte `json:"caKey,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
