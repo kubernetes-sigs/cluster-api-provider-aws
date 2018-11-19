@@ -168,6 +168,10 @@ reset-bazel: ## Deep cleaning for bazel
 generate: dep-ensure ## Run go generate
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
+	bazel build //pkg/cloud/aws/services/mocks:go_mock_interfaces \
+		//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library \
+		//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library
+	cp -Rf bazel-genfiles/pkg/* pkg/
 
 lint: dep-ensure ## Lint codebase
 	@echo If you have genereated new mocks, run make copy-genmocks before linting
