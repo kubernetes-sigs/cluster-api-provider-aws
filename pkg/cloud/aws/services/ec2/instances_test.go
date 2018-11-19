@@ -24,6 +24,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 )
@@ -52,7 +53,7 @@ func TestInstanceIfExists(t *testing.T) {
 							},
 						},
 					})).
-					Return(nil, ec2svc.NewNotFound(errors.New("not found")))
+					Return(nil, awserrors.NewNotFound(errors.New("not found")))
 			},
 			check: func(instance *v1alpha1.Instance, err error) {
 				if err != nil {

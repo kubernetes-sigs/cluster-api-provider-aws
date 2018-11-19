@@ -16,11 +16,14 @@ package ec2
 import (
 	"encoding/base64"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -39,7 +42,7 @@ func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.
 
 	out, err := s.EC2.DescribeInstances(input)
 	switch {
-	case IsNotFound(err):
+	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
 		return nil, errors.Wrap(err, "failed to describe instances by tags")
@@ -50,7 +53,7 @@ func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.
 	// match
 	for _, res := range out.Reservations {
 		for _, inst := range res.Instances {
-			return fromSDKTypeToInstance(inst), nil
+			return converters.SDKToInstance(inst), nil
 		}
 	}
 
@@ -68,14 +71,14 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 
 	out, err := s.EC2.DescribeInstances(input)
 	switch {
-	case IsNotFound(err):
+	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
 		return nil, errors.Wrapf(err, "failed to describe instance: %q", *instanceID)
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
-		return fromSDKTypeToInstance(out.Reservations[0].Instances[0]), nil
+		return converters.SDKToInstance(out.Reservations[0].Instances[0]), nil
 	}
 
 	return nil, nil
@@ -110,7 +113,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	} else {
 		sns := clusterStatus.Network.Subnets.FilterPrivate()
 		if len(sns) == 0 {
-			return nil, NewFailedDependency(
+			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available", machine.Name),
 			)
 		}
@@ -121,7 +124,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	if machine.ObjectMeta.Labels["set"] == "controlplane" {
 
 		if clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
-			return nil, NewFailedDependency(
+			return nil, awserrors.NewFailedDependency(
 				errors.New("failed to run controlplane, security group not available"),
 			)
 		}
@@ -224,7 +227,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 		klog.V(2).Infof("Looking up machine %q by id %q", machine.Name, *status.InstanceID)
 
 		instance, err := s.InstanceIfExists(status.InstanceID)
-		if err != nil && !IsNotFound(err) {
+		if err != nil && !awserrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", machine.Name, *status.InstanceID)
 		} else if err == nil && instance != nil {
 			return instance, nil
@@ -233,7 +236,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 
 	klog.V(2).Infof("Looking up machine %q by tags", machine.Name)
 	instance, err := s.InstanceByTags(machine, cluster)
-	if err != nil && !IsNotFound(err) {
+	if err != nil && !awserrors.IsNotFound(err) {
 		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", machine.Name)
 	} else if err == nil && instance != nil {
 		return instance, nil
@@ -291,7 +294,7 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 
 	s.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
 
-	return fromSDKTypeToInstance(out.Instances[0]), nil
+	return converters.SDKToInstance(out.Instances[0]), nil
 }
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
@@ -357,35 +360,4 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 	}
 
 	return nil
-}
-
-// fromSDKTypeToInstance takes a ec2.Instance and returns our v1.alpha1.Instance
-// type. EC2 types are wrapped or converted to our own types here.
-func fromSDKTypeToInstance(v *ec2.Instance) *v1alpha1.Instance {
-	i := &v1alpha1.Instance{
-		ID:           aws.StringValue(v.InstanceId),
-		State:        v1alpha1.InstanceState(*v.State.Name),
-		Type:         aws.StringValue(v.InstanceType),
-		SubnetID:     aws.StringValue(v.SubnetId),
-		ImageID:      aws.StringValue(v.ImageId),
-		KeyName:      v.KeyName,
-		PrivateIP:    v.PrivateIpAddress,
-		PublicIP:     v.PublicIpAddress,
-		ENASupport:   v.EnaSupport,
-		EBSOptimized: v.EbsOptimized,
-	}
-
-	for _, sg := range v.SecurityGroups {
-		i.SecurityGroupIDs = append(i.SecurityGroupIDs, *sg.GroupId)
-	}
-
-	// TODO: Handle returned IAM instance profile, since we are currently
-	// using a string representing the name, but the InstanceProfile returned
-	// from the sdk only returns ARN and ID.
-
-	if len(v.Tags) > 0 {
-		i.Tags = tagsToMap(v.Tags)
-	}
-
-	return i
 }

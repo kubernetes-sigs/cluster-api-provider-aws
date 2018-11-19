@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 )
 
@@ -93,8 +94,8 @@ func (s *Service) releaseAddresses(clusterName string) error {
 		}
 
 		retryableErrors := []string{
-			errorAuthFailure,
-			errorInUseIPAddress,
+			awserrors.AuthFailure,
+			awserrors.InUseIPAddress,
 		}
 
 		err := wait.WaitForWithRetryable(wait.NewBackoff(), delete, retryableErrors)

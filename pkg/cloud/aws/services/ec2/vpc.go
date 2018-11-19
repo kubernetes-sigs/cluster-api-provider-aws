@@ -32,7 +32,7 @@ func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
 	klog.V(2).Infof("Reconciling VPC")
 
 	vpc, err := s.describeVPC(clusterName, in.ID)
-	if IsNotFound(err) {
+	if awserrors.IsNotFound(err) {
 		// Create a new vpc.
 		vpc, err = s.createVPC(clusterName, in)
 		if err != nil {
@@ -115,7 +115,7 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 
 	out, err := s.EC2.DescribeVpcs(input)
 	if err != nil {
-		if IsNotFound(err) {
+		if awserrors.IsNotFound(err) {
 			return nil, err
 		}
 
@@ -123,15 +123,15 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 	}
 
 	if len(out.Vpcs) == 0 {
-		return nil, NewNotFound(errors.Errorf("could not find vpc %q", id))
+		return nil, awserrors.NewNotFound(errors.Errorf("could not find vpc %q", id))
 	} else if len(out.Vpcs) > 1 {
-		return nil, NewConflict(errors.Errorf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
+		return nil, awserrors.NewConflict(errors.Errorf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
 	}
 
 	switch *out.Vpcs[0].State {
 	case ec2.VpcStateAvailable, ec2.VpcStatePending:
 	default:
-		return nil, NewNotFound(errors.Errorf("could not find available or pending vpc"))
+		return nil, awserrors.NewNotFound(errors.Errorf("could not find available or pending vpc"))
 	}
 
 	return &v1alpha1.VPC{

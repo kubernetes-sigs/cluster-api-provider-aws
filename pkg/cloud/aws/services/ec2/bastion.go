@@ -22,6 +22,8 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 )
 
@@ -49,7 +51,7 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance(clusterName, status)
-	if IsNotFound(err) {
+	if awserrors.IsNotFound(err) {
 		instance, err = s.runInstance(spec)
 		if err != nil {
 			return err
@@ -73,7 +75,7 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterProviderStatus) error {
 	instance, err := s.describeBastionInstance(clusterName, status)
 	if err != nil {
-		if IsNotFound(err) {
+		if awserrors.IsNotFound(err) {
 			klog.V(2).Info("bastion instance does not exist")
 			return nil
 		}
@@ -107,12 +109,12 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 	for _, res := range out.Reservations {
 		for _, instance := range res.Instances {
 			if aws.StringValue(instance.State.Name) != ec2.InstanceStateNameTerminated {
-				return fromSDKTypeToInstance(instance), nil
+				return converters.SDKToInstance(instance), nil
 			}
 		}
 	}
 
-	return nil, NewNotFound(errors.New("bastion host not found"))
+	return nil, awserrors.NewNotFound(errors.New("bastion host not found"))
 }
 
 func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
