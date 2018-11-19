@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 )
 
 func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.Network) error {
@@ -98,7 +99,7 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 	for _, sg := range network.SecurityGroups {
 		current := sg.IngressRules
 
-		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); isIgnorableSecurityGroupError(err) != nil {
+		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); awserrors.IsIgnorableSecurityGroupError(err) != nil {
 			return err
 		}
 
@@ -110,7 +111,7 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 			GroupId: aws.String(sg.ID),
 		}
 
-		if _, err := s.EC2.DeleteSecurityGroup(input); isIgnorableSecurityGroupError(err) != nil {
+		if _, err := s.EC2.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
 			return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
 		}
 

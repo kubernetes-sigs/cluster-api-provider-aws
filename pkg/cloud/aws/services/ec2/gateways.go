@@ -21,13 +21,14 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 )
 
 func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Network) error {
 	klog.V(2).Infof("Reconciling internet gateways")
 
 	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
-	if IsNotFound(err) {
+	if awserrors.IsNotFound(err) {
 		ig, err := s.createInternetGateway(clusterName, &in.VPC)
 		if err != nil {
 			return nil
@@ -43,7 +44,7 @@ func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Net
 
 func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Network) error {
 	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
-	if IsNotFound(err) {
+	if awserrors.IsNotFound(err) {
 		return nil
 	} else if err != nil {
 		return err
@@ -112,7 +113,7 @@ func (s *Service) describeVpcInternetGateways(clusterName string, vpc *v1alpha1.
 	}
 
 	if len(out.InternetGateways) == 0 {
-		return nil, NewNotFound(errors.Errorf("no nat gateways found in vpc %q", vpc.ID))
+		return nil, awserrors.NewNotFound(errors.Errorf("no nat gateways found in vpc %q", vpc.ID))
 	}
 
 	return out.InternetGateways, nil

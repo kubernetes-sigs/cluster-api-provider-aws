@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/tokens"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -145,8 +145,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	i, err := a.ec2(clusterConfig).CreateOrGetMachine(machine, status, config, clusterStatus, clusterConfig, cluster, bootstrapToken)
 	if err != nil {
-
-		if ec2svc.IsFailedDependency(errors.Cause(err)) {
+		if awserrors.IsFailedDependency(errors.Cause(err)) {
 			klog.Errorf("network not ready to launch instances yet: %s", err)
 			return &controllerError.RequeueAfterError{
 				RequeueAfter: time.Minute,
