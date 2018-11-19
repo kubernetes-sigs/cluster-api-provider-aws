@@ -175,7 +175,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
-	return s.runInstance(input)
+	return s.RunInstance(input)
 }
 
 // TerminateInstance terminates an EC2 instance.
@@ -242,7 +242,7 @@ func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha
 	return s.CreateInstance(machine, config, clusterStatus, clusterConfig, cluster, bootstrapToken)
 }
 
-func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+func (s *Service) RunInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),

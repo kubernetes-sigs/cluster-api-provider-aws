@@ -50,7 +50,7 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance(clusterName, status)
 	if IsNotFound(err) {
-		instance, err = s.runInstance(spec)
+		instance, err = s.RunInstance(spec)
 		if err != nil {
 			return err
 		}

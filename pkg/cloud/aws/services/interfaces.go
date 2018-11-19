@@ -15,6 +15,7 @@ package services
 
 import (
 	"github.com/aws/aws-sdk-go/aws/session"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
@@ -58,6 +59,7 @@ type EC2ClusterInterface interface {
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
 type EC2MachineInterface interface {
+	RunInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error)
 	InstanceIfExists(instanceID *string) (*providerv1.Instance, error)
 	TerminateInstance(instanceID string) error
 	DeleteBastion(instanceID string, status *providerv1.AWSClusterProviderStatus) error
