@@ -135,7 +135,7 @@ func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(vpcID),
 			filter.EC2.Cluster(clusterName),
-			filter.EC2.SubnetsStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 		},
 	})
 

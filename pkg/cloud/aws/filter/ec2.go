@@ -133,8 +133,8 @@ func (ec2Filters) VPCStates(states ...string) *ec2.Filter {
 	}
 }
 
-// SubnetsStates returns a filter based on the list of states passed in.
-func (ec2Filters) SubnetsStates(states ...string) *ec2.Filter {
+// SubnetStates returns a filter based on the list of states passed in.
+func (ec2Filters) SubnetStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
 		Values: aws.StringSlice(states),
