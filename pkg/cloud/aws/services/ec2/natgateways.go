@@ -95,7 +95,7 @@ func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets
 func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.NatGateway, error) {
 	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
 		Filter: []*ec2.Filter{
-			filter.EC2.Vpc(vpcID),
+			filter.EC2.VPC(vpcID),
 			filter.EC2.NATGatewayStates(ec2.NatGatewayStatePending, ec2.NatGatewayStateAvailable),
 		},
 	}

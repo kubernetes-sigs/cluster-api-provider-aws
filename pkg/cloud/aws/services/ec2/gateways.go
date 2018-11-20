@@ -117,7 +117,7 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 func (s *Service) describeVpcInternetGateways(clusterName string, vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
 	out, err := s.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.VpcAttachment(vpc.ID),
+			filter.EC2.VPCAttachment(vpc.ID),
 			filter.EC2.Cluster(clusterName),
 		},
 	})

@@ -127,7 +127,7 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string) (map[string]*v1alpha1.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.Vpc(vpcID),
+			filter.EC2.VPC(vpcID),
 			filter.EC2.Cluster(clusterName),
 		},
 	}

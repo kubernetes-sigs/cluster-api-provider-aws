@@ -133,7 +133,7 @@ func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) e
 func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1.Subnets, error) {
 	out, err := s.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.Vpc(vpcID),
+			filter.EC2.VPC(vpcID),
 			filter.EC2.Cluster(clusterName),
 			filter.EC2.SubnetsStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 		},

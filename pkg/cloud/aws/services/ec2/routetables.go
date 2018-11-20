@@ -132,7 +132,7 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*ec2.RouteTable, error) {
 	out, err := s.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.Vpc(vpcID),
+			filter.EC2.VPC(vpcID),
 			filter.EC2.Cluster(clusterName),
 		},
 	})

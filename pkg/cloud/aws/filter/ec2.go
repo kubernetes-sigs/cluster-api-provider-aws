@@ -35,7 +35,7 @@ var (
 
 type ec2Filters struct{}
 
-// Returns an ec2Filters filter using the Cluster API per-cluster tag
+// Cluster returns a filter based on the cluster name.
 func (ec2Filters) Cluster(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
@@ -43,7 +43,7 @@ func (ec2Filters) Cluster(clusterName string) *ec2.Filter {
 	}
 }
 
-// Returns an ec2Filters filter for name
+// Name returns a filter based on the resource name.
 func (ec2Filters) Name(name string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("tag:Name"),
@@ -51,7 +51,7 @@ func (ec2Filters) Name(name string) *ec2.Filter {
 	}
 }
 
-// Returns an ec2Filters filter using the Cluster API per-cluster tag where
+// ClusterOwned returns a filter using the Cluster API per-cluster tag where
 // the resource is owned
 func (ec2Filters) ClusterOwned(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
@@ -60,8 +60,8 @@ func (ec2Filters) ClusterOwned(clusterName string) *ec2.Filter {
 	}
 }
 
-// Returns an ec2Filters filter using the Cluster API per-cluster tag where
-// the resource is shared
+// ClusterShared returns a filter using the Cluster API per-cluster tag where
+// the resource is shared.
 func (ec2Filters) ClusterShared(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(fmt.Sprintf("tag:%s", tags.ClusterKey(clusterName))),
@@ -69,7 +69,7 @@ func (ec2Filters) ClusterShared(clusterName string) *ec2.Filter {
 	}
 }
 
-// Returns an ec2Filters filter using cluster-api-provider-aws managed tag
+// ProviderManaged returns a filter using cluster-api-provider-aws managed tag.
 func (ec2Filters) ProviderManaged() *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
@@ -77,7 +77,7 @@ func (ec2Filters) ProviderManaged() *ec2.Filter {
 	}
 }
 
-// Returns an ec2Filters filter using cluster-api-provider-aws role tag
+// ProviderRole returns a filter using cluster-api-provider-aws role tag.
 func (ec2Filters) ProviderRole(role string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(fmt.Sprintf("tag:%s", TagNameAWSClusterAPIRole)),
@@ -85,23 +85,23 @@ func (ec2Filters) ProviderRole(role string) *ec2.Filter {
 	}
 }
 
-// Returns an ec2Filters filter for the specified VPC ID
-func (ec2Filters) Vpc(vpcID string) *ec2.Filter {
+// VPC returns a filter based on the id of the VPC.
+func (ec2Filters) VPC(vpcID string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameVpcID),
 		Values: aws.StringSlice([]string{vpcID}),
 	}
 }
 
-// Returns an ec2Filters filter for the specified VPC ID
-func (ec2Filters) VpcAttachment(vpcID string) *ec2.Filter {
+// VPCAttachment returns a filter based on the vpc id attached to the resource.
+func (ec2Filters) VPCAttachment(vpcID string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameVpcAttachment),
 		Values: aws.StringSlice([]string{vpcID}),
 	}
 }
 
-// Returns an ec2Filters filter for the state to be available
+// Available returns a filter based on the state being available.
 func (ec2Filters) Available() *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameState),
@@ -109,6 +109,7 @@ func (ec2Filters) Available() *ec2.Filter {
 	}
 }
 
+// NATGatewayStates returns a filter based on the list of states passed in.
 func (ec2Filters) NATGatewayStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
@@ -116,6 +117,7 @@ func (ec2Filters) NATGatewayStates(states ...string) *ec2.Filter {
 	}
 }
 
+// InstanceStates returns a filter based on the list of states passed in.
 func (ec2Filters) InstanceStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("instance-state-name"),
@@ -123,6 +125,7 @@ func (ec2Filters) InstanceStates(states ...string) *ec2.Filter {
 	}
 }
 
+// VPCStates returns a filter based on the list of states passed in.
 func (ec2Filters) VPCStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
@@ -130,15 +133,10 @@ func (ec2Filters) VPCStates(states ...string) *ec2.Filter {
 	}
 }
 
+// SubnetsStates returns a filter based on the list of states passed in.
 func (ec2Filters) SubnetsStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
 		Values: aws.StringSlice(states),
 	}
 }
-
-// // Add additional cluster tag filters, to match on our tags
-// func (ec2Filters) addFilterTags(clusterName string, filters []*ec2.Filter) []*ec2.Filter {
-// 	filters = append(filters, filters.EC2.Cluster(clusterName))
-// 	return filters
-// }
