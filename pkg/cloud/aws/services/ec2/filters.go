@@ -16,6 +16,8 @@ package ec2
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
@@ -31,7 +33,7 @@ const (
 func (s *Service) filterCluster(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
-		Values: aws.StringSlice([]string{s.clusterTagKey(clusterName)}),
+		Values: aws.StringSlice([]string{tags.ClusterKey(clusterName)}),
 	}
 }
 
@@ -47,8 +49,8 @@ func (s *Service) filterName(name string) *ec2.Filter {
 // the resource is owned
 func (s *Service) filterClusterOwned(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", s.clusterTagKey(clusterName))),
-		Values: aws.StringSlice([]string{string(ResourceLifecycleOwned)}),
+		Name:   aws.String(fmt.Sprintf("tag:%s", tags.ClusterKey(clusterName))),
+		Values: aws.StringSlice([]string{string(tags.ResourceLifecycleOwned)}),
 	}
 }
 
@@ -56,8 +58,8 @@ func (s *Service) filterClusterOwned(clusterName string) *ec2.Filter {
 // the resource is shared
 func (s *Service) filterClusterShared(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", s.clusterTagKey(clusterName))),
-		Values: aws.StringSlice([]string{string(ResourceLifecycleShared)}),
+		Name:   aws.String(fmt.Sprintf("tag:%s", tags.ClusterKey(clusterName))),
+		Values: aws.StringSlice([]string{string(tags.ResourceLifecycleShared)}),
 	}
 }
 
@@ -65,14 +67,14 @@ func (s *Service) filterClusterShared(clusterName string) *ec2.Filter {
 func (s *Service) filterAWSProviderManaged() *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
-		Values: aws.StringSlice([]string{TagNameAWSProviderManaged}),
+		Values: aws.StringSlice([]string{tags.NameAWSProviderManaged}),
 	}
 }
 
 // Returns an EC2 filter using cluster-api-provider-aws role tag
 func (s *Service) filterAWSProviderRole(role string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", TagNameAWSClusterAPIRole)),
+		Name:   aws.String(fmt.Sprintf("tag:%s", tags.NameAWSClusterAPIRole)),
 		Values: aws.StringSlice([]string{role}),
 	}
 }

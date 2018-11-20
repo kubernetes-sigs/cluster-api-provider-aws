@@ -22,6 +22,7 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Network) error {
@@ -82,7 +83,19 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 	}
 
 	name := fmt.Sprintf("%s-igw", clusterName)
-	if err := s.createTags(clusterName, *ig.InternetGateway.InternetGatewayId, ResourceLifecycleOwned, name, TagValueCommonRole, nil); err != nil {
+
+	applyTagsParams := &tags.ApplyParams{
+		EC2Client: s.EC2,
+		BuildParams: tags.BuildParams{
+			ClusterName: clusterName,
+			ResourceID:  *ig.InternetGateway.InternetGatewayId,
+			Lifecycle:   tags.ResourceLifecycleOwned,
+			Name:        aws.String(name),
+			Role:        aws.String(tags.ValueCommonRole),
+		},
+	}
+
+	if err := tags.Apply(applyTagsParams); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 

@@ -16,6 +16,9 @@ package ec2
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -277,12 +280,16 @@ func (s *Service) getDefaultSecurityGroup(clusterName string, vpcID string, role
 	name := s.getSecurityGroupName(clusterName, role)
 
 	// TODO: reconcile v1alpha1.SecurityGroupRoles with tag roles
-	tags := s.buildTags(clusterName, ResourceLifecycleOwned, name, string(role), nil)
 
 	return &ec2.SecurityGroup{
 		GroupName: aws.String(name),
 		VpcId:     aws.String(vpcID),
-		Tags:      mapToTags(tags),
+		Tags: converters.MapToTags(tags.Build(tags.BuildParams{
+			ClusterName: clusterName,
+			Lifecycle:   tags.ResourceLifecycleOwned,
+			Name:        aws.String(name),
+			Role:        aws.String(string(role)),
+		})),
 	}
 }
 
