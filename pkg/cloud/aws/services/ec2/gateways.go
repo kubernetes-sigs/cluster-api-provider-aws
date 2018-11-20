@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
@@ -116,8 +117,8 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 func (s *Service) describeVpcInternetGateways(clusterName string, vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
 	out, err := s.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
-			s.filterVpcAttachment(vpc.ID),
-			s.filterCluster(clusterName),
+			filter.EC2.VPCAttachment(vpc.ID),
+			filter.EC2.Cluster(clusterName),
 		},
 	})
 

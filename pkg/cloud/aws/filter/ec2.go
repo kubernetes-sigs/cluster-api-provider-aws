@@ -11,15 +11,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ec2
+package filter
 
 import (
 	"fmt"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 const (
@@ -29,110 +28,115 @@ const (
 	filterNameVpcAttachment = "attachment.vpc-id"
 )
 
-// Returns an EC2 filter using the Cluster API per-cluster tag
-func (s *Service) filterCluster(clusterName string) *ec2.Filter {
+var (
+	// EC2 exposes the ec2 sdk related filters.
+	EC2 = new(ec2Filters)
+)
+
+type ec2Filters struct{}
+
+// Cluster returns a filter based on the cluster name.
+func (ec2Filters) Cluster(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
 		Values: aws.StringSlice([]string{tags.ClusterKey(clusterName)}),
 	}
 }
 
-// Returns an EC2 filter for name
-func (s *Service) filterName(name string) *ec2.Filter {
+// Name returns a filter based on the resource name.
+func (ec2Filters) Name(name string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("tag:Name"),
 		Values: aws.StringSlice([]string{name}),
 	}
 }
 
-// Returns an EC2 filter using the Cluster API per-cluster tag where
+// ClusterOwned returns a filter using the Cluster API per-cluster tag where
 // the resource is owned
-func (s *Service) filterClusterOwned(clusterName string) *ec2.Filter {
+func (ec2Filters) ClusterOwned(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(fmt.Sprintf("tag:%s", tags.ClusterKey(clusterName))),
 		Values: aws.StringSlice([]string{string(tags.ResourceLifecycleOwned)}),
 	}
 }
 
-// Returns an EC2 filter using the Cluster API per-cluster tag where
-// the resource is shared
-func (s *Service) filterClusterShared(clusterName string) *ec2.Filter {
+// ClusterShared returns a filter using the Cluster API per-cluster tag where
+// the resource is shared.
+func (ec2Filters) ClusterShared(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(fmt.Sprintf("tag:%s", tags.ClusterKey(clusterName))),
 		Values: aws.StringSlice([]string{string(tags.ResourceLifecycleShared)}),
 	}
 }
 
-// Returns an EC2 filter using cluster-api-provider-aws managed tag
-func (s *Service) filterAWSProviderManaged() *ec2.Filter {
+// ProviderManaged returns a filter using cluster-api-provider-aws managed tag.
+func (ec2Filters) ProviderManaged() *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
-		Values: aws.StringSlice([]string{tags.NameAWSProviderManaged}),
+		Values: aws.StringSlice([]string{TagNameAWSProviderManaged}),
 	}
 }
 
-// Returns an EC2 filter using cluster-api-provider-aws role tag
-func (s *Service) filterAWSProviderRole(role string) *ec2.Filter {
+// ProviderRole returns a filter using cluster-api-provider-aws role tag.
+func (ec2Filters) ProviderRole(role string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", tags.NameAWSClusterAPIRole)),
+		Name:   aws.String(fmt.Sprintf("tag:%s", TagNameAWSClusterAPIRole)),
 		Values: aws.StringSlice([]string{role}),
 	}
 }
 
-// Returns an EC2 filter for the specified VPC ID
-func (s *Service) filterVpc(vpcID string) *ec2.Filter {
+// VPC returns a filter based on the id of the VPC.
+func (ec2Filters) VPC(vpcID string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameVpcID),
 		Values: aws.StringSlice([]string{vpcID}),
 	}
 }
 
-// Returns an EC2 filter for the specified VPC ID
-func (s *Service) filterVpcAttachment(vpcID string) *ec2.Filter {
+// VPCAttachment returns a filter based on the vpc id attached to the resource.
+func (ec2Filters) VPCAttachment(vpcID string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameVpcAttachment),
 		Values: aws.StringSlice([]string{vpcID}),
 	}
 }
 
-// Returns an EC2 filter for the state to be available
-func (s *Service) filterAvailable() *ec2.Filter {
+// Available returns a filter based on the state being available.
+func (ec2Filters) Available() *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameState),
 		Values: aws.StringSlice([]string{"available"}),
 	}
 }
 
-func (s *Service) filterNATGatewayStates(states ...string) *ec2.Filter {
+// NATGatewayStates returns a filter based on the list of states passed in.
+func (ec2Filters) NATGatewayStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
 		Values: aws.StringSlice(states),
 	}
 }
 
-func (s *Service) filterInstanceStates(states ...string) *ec2.Filter {
+// InstanceStates returns a filter based on the list of states passed in.
+func (ec2Filters) InstanceStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("instance-state-name"),
 		Values: aws.StringSlice(states),
 	}
 }
 
-func (s *Service) filterVPCStates(states ...string) *ec2.Filter {
+// VPCStates returns a filter based on the list of states passed in.
+func (ec2Filters) VPCStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
 		Values: aws.StringSlice(states),
 	}
 }
 
-func (s *Service) filterSubnetsStates(states ...string) *ec2.Filter {
+// SubnetsStates returns a filter based on the list of states passed in.
+func (ec2Filters) SubnetsStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
 		Values: aws.StringSlice(states),
 	}
-}
-
-// Add additional cluster tag filters, to match on our tags
-func (s *Service) addFilterTags(clusterName string, filters []*ec2.Filter) []*ec2.Filter {
-	filters = append(filters, s.filterCluster(clusterName))
-	return filters
 }

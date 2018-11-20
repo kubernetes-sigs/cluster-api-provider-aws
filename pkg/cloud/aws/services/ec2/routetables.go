@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
@@ -131,8 +132,8 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*ec2.RouteTable, error) {
 	out, err := s.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
-			s.filterVpc(vpcID),
-			s.filterCluster(clusterName),
+			filter.EC2.VPC(vpcID),
+			filter.EC2.Cluster(clusterName),
 		},
 	})
 

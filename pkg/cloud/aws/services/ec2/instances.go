@@ -16,6 +16,7 @@ package ec2
 import (
 	"encoding/base64"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
@@ -36,9 +37,9 @@ func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			s.filterClusterOwned(cluster.Name),
-			s.filterName(machine.Name),
-			s.filterInstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+			filter.EC2.ClusterOwned(cluster.Name),
+			filter.EC2.Name(machine.Name),
+			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
 	}
 
@@ -68,7 +69,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{instanceID},
-		Filters:     []*ec2.Filter{s.filterInstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning)},
+		Filters:     []*ec2.Filter{filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning)},
 	}
 
 	out, err := s.EC2.DescribeInstances(input)

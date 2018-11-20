@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -126,8 +127,8 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string) (map[string]*v1alpha1.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
-			s.filterVpc(vpcID),
-			s.filterCluster(clusterName),
+			filter.EC2.VPC(vpcID),
+			filter.EC2.Cluster(clusterName),
 		},
 	}
 

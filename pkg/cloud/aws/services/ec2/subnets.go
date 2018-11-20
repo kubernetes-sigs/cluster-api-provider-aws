@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
@@ -132,9 +133,9 @@ func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) e
 func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1.Subnets, error) {
 	out, err := s.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
-			s.filterVpc(vpcID),
-			s.filterCluster(clusterName),
-			s.filterSubnetsStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+			filter.EC2.VPC(vpcID),
+			filter.EC2.Cluster(clusterName),
+			filter.EC2.SubnetsStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 		},
 	})
 
