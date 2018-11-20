@@ -248,6 +248,20 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 				ToPort:                2380,
 				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
 			},
+			{
+				Description:           "bgp (calico)",
+				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:              179,
+				ToPort:                179,
+				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+			},
+			{
+				Description:           "bgp (calico)",
+				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:              179,
+				ToPort:                179,
+				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupNode].ID),
+			},
 		}, nil
 
 	case v1alpha1.SecurityGroupNode:
@@ -266,6 +280,20 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 				FromPort:              10250,
 				ToPort:                10250,
 				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+			},
+			{
+				Description:           "bgp (calico)",
+				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:              179,
+				ToPort:                179,
+				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+			},
+			{
+				Description:           "bgp (calico)",
+				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:              179,
+				ToPort:                179,
+				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupNode].ID),
 			},
 		}, nil
 	}

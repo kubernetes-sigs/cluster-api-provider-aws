@@ -21,6 +21,8 @@
   - [Generating cluster manifests](#generating-cluster-manifests)
   - [Starting Cluster API](#starting-cluster-api)
 - [Troubleshooting](#troubleshooting)
+  - [Hanging at "Creating bootstrap cluster"](#hanging-at-creating-bootstrap-cluster)
+  - [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-aren't-being-created)
 
 <!-- /TOC -->
 
@@ -32,6 +34,9 @@
 - [Minikube][minikube] version v0.30.0 or later
 - [kubectl][kubectl]
 - [kustomize][kustomize]
+- make
+- gettext (with `envsubst` in your PATH)
+- bazel
 
 ### Optional
 
@@ -40,12 +45,10 @@
 - [jq][jq]
 - [PowerShell AWS Tools][aws_powershell]
 - [Go](https://golang.org/dl/)
-- make
-- gettext
 
 ## Prerequisites
 
-Get the latest [clusterctl release](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can use `go get sigs.k8s.io/cluster-api/provider-aws/...`.
+Get the latest [release of `clusterctl` and `clusterawsadm`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can use `go get sigs.k8s.io/cluster-api-provider-aws/...` – the trailing `...` will ask for both `clusterctl` and `clusterawsadm` to be built.
 
 Before launching clusterctl, you need to define a few environment variables (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). You thus need an AWS user with sufficient permissions:
 
@@ -54,9 +57,10 @@ Before launching clusterctl, you need to define a few environment variables (`AW
 
 ### Installing clusterawsadm
 
-`clusterawsadm`, is a helper utlity that users might choose to use to quickly setup prerequisites.
+`clusterawsadm`, is a helper utlity that users might choose to use to quickly setup prerequisites. It can be installed as per the previous section, by either downloading a release or using `go get` to build it.
 
-> NOTE: This command requires to have a working AWS environment.
+> NOTE: The `clusterawsadm` command requires to have a working AWS environment.
+
 
 ### Bootstrapping AWS Identity and Access Management with CloudFormation
 
@@ -144,6 +148,11 @@ Minikube needs to be installed on your local machine, as this is what will be us
 
 [Instructions for setting up minikube][minikube] are available on the Kubernetes website.
 
+**NOTE**
+> `minikube start` is NOT idempotent, and running it twice will likely damage your `minikube`.
+> Since `clusterctl` runs `minikube start`, it is important to run `minikube delete` prior to `clusterctl create`.
+> See "troubleshooting" below for more on how to recover from running `clusterctl create` with an already running `minikube`.
+
 #### Customizing for Cluster API
 
 At present, the Cluster API provider runs minikube to create a new instance,
@@ -153,6 +162,12 @@ so we configure Minikube as follows:
 ```bash
 minikube config set kubernetes-version v1.12.1
 minikube config set bootstrapper kubeadm
+```
+
+If you already had a running `minikube`, be sure to remove it:
+
+```
+minikube delete
 ```
 
 ### Setting up the environment
@@ -217,8 +232,10 @@ cluster manifests.
 make manifests
 ```
 
-Then edit `cmd/clusterctl/examples/aws/out/cluster.yaml` and `cmd/clusterctl/examples/aws/out/machine.yaml` for AWS
-region and any other customisations you want to make.
+Then edit `cmd/clusterctl/examples/aws/out/cluster.yaml` and `cmd/clusterctl/examples/aws/out/machine.yaml`. Ensure that the `keyName` is set to the `cluster-api-provider-aws.sigs.k8s.io` we set up above. This is also an opportunity to edit the AWS
+region and any apply other customisations you want to make.
+
+> Note: The generated manifests may refer to a keypair named `default`, which differs from the keypair created in this guide. That can be overridden by setting the `SSH_KEY_NAME` env var before running `make manifests`.
 
 ### Starting Cluster API
 
@@ -265,6 +282,25 @@ I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provi
 The created minikube cluster is ephemeral and should be deleted on cluster creation success. During the cluster creation, the minikube configuration is written to `minikube.kubeconfig` in the directory you launched the `clusterctl` command.
 
 ## Troubleshooting
+
+## Hanging at "creating bootstrap cluster"
+
+`minikube logs -f` will tail the logs for the bootstrap cluster's bootstrap. If you see a message like the following:
+
+```
+Oct 30 16:52:13 minikube kubelet[3055]: E1030 16:52:13.023286    3055 pod_workers.go:186] Error syncing pod 9037f4a5-dc63-11e8-9de5-0800270170d7 ("kube-proxy-qj7x5_kube-system(9037f4a5-dc63-11e8-9de5-0800270170d7)"), skipping: failed to "StartContainer" for "kube-proxy" with ErrImagePull: "rpc error: code = Unknown desc = failed to register layer: Error processing tar file(exit status 1): operation not supported"
+```
+
+Then it will be necessary to run these commands to recover:
+
+```
+minikube delete
+sudo rm -rf ~/.minikube
+```
+
+Be sure to re-configure minikube as described in the [Customizing for Cluster API](#customizing-for-cluster-api) section.
+
+## Bootstrap running, but resources aren't being created
 
 Controller logs can be tailed using [`kubectl`][kubectl]:
 

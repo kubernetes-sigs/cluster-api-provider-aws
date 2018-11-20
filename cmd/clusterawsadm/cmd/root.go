@@ -50,10 +50,6 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if err := flag.Set("v", "2"); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 
 	// Honor glog flags for verbosity control
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
