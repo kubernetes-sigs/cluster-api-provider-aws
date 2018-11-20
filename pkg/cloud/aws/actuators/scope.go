@@ -47,17 +47,17 @@ func NewScope(input ScopeParams) (*Scope, error) {
 
 	clusterConfig, err := v1alpha1.ClusterConfigFromProviderConfig(input.Cluster.Spec.ProviderConfig)
 	if err != nil {
-		return nil, errors.Errorf("failed to load cluster provider config: %v", err)
+		return nil, err
 	}
 
 	clusterStatus, err := v1alpha1.ClusterStatusFromProviderStatus(input.Cluster.Status.ProviderStatus)
 	if err != nil {
-		return nil, errors.Errorf("failed to load cluster provider status: %v", err)
+		return nil, err
 	}
 
 	session, err := session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region))
 	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
+		return nil, errors.WithStack(err)
 	}
 
 	// TODO(vincepri): this was probably a temporary hack to pass down the region, it should be revisited.
@@ -91,11 +91,8 @@ func (s *Scope) storeClusterConfig() error {
 
 	s.Cluster.Spec.ProviderConfig.Value = ext
 
-	if _, err := s.ClusterClient.Update(s.Cluster); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = s.ClusterClient.Update(s.Cluster)
+	return errors.WithStack(err)
 }
 
 func (s *Scope) storeClusterStatus() error {
@@ -106,11 +103,8 @@ func (s *Scope) storeClusterStatus() error {
 
 	s.Cluster.Status.ProviderStatus = ext
 
-	if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = s.ClusterClient.UpdateStatus(s.Cluster)
+	return errors.WithStack(err)
 }
 
 // Close closes the current scope persisting the cluster configuration and status.
@@ -134,6 +128,7 @@ type MachineScope struct {
 	MachineStatus *v1alpha1.AWSMachineProviderStatus
 }
 
+// Close will store the machine and machine status or log a failure.
 func (m *MachineScope) Close() {
 	defer m.Scope.Close()
 
@@ -154,11 +149,8 @@ func (m *MachineScope) storeMachineStatus() error {
 
 	m.Machine.Status.ProviderStatus = ext
 
-	if _, err := m.MachineClient.UpdateStatus(m.Machine); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = m.MachineClient.UpdateStatus(m.Machine)
+	return errors.WithStack(err)
 }
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
@@ -178,12 +170,12 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 	machineConfig, err := v1alpha1.MachineConfigFromProviderConfig(params.Machine.Spec.ProviderConfig)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get machine config")
+		return nil, err
 	}
 
 	machineStatus, err := v1alpha1.MachineStatusFromProviderStatus(params.Machine.Status.ProviderStatus)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get machine provider status")
+		return nil, err
 	}
 
 	return &MachineScope{

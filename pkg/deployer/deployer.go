@@ -17,6 +17,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
@@ -33,6 +34,10 @@ type Deployer struct {
 	servicesGetter service.Getter
 }
 
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
 // GetIP returns the IP of a machine, but this is going away.
 func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
 	if cluster.Status.ProviderStatus != nil {
@@ -40,7 +45,11 @@ func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (stri
 		// Load provider status.
 		status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
 		if err != nil {
-			return "", errors.Errorf("failed to load cluster provider status: %v", err)
+			klog.Error(err)
+			if errst, ok := err.(stackTracer); ok {
+				klog.Errorf("%+v", errst)
+			}
+			return "", err
 		}
 
 		if status.Network.APIServerELB.DNSName != "" {
@@ -51,12 +60,24 @@ func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (stri
 	// Load provider config.
 	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
 	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider config: %v", err)
+		klog.Error(err)
+		if errst, ok := err.(stackTracer); ok {
+			klog.Errorf("%+v", errst)
+		}
+		return "", err
 	}
 
 	sess := d.servicesGetter.Session(config)
 	elb := d.servicesGetter.ELB(sess)
-	return elb.GetAPIServerDNSName(cluster.Name)
+	name, err := elb.GetAPIServerDNSName(cluster.Name)
+	if err != nil {
+		klog.Error(err)
+		if errst, ok := err.(stackTracer); ok {
+			klog.Errorf("%+v", errst)
+		}
+		return "", err
+	}
+	return name, nil
 }
 
 // GetKubeConfig returns the kubeconfig after the bootstrap process is complete.

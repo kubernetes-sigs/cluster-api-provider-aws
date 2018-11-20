@@ -25,6 +25,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -50,7 +51,7 @@ func ClusterConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*
 		return &config, nil
 	}
 	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &config, nil
 }
@@ -63,7 +64,7 @@ func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClust
 
 	status := new(AWSClusterProviderStatus)
 	if err := yaml.Unmarshal(extension.Raw, status); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return status, nil
@@ -73,7 +74,7 @@ func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClust
 func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSMachineProviderConfig, error) {
 	var config AWSMachineProviderConfig
 	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &config, nil
 }
@@ -86,7 +87,7 @@ func MachineStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSMachi
 
 	status := new(AWSMachineProviderStatus)
 	if err := yaml.Unmarshal(extension.Raw, status); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return status, nil
@@ -103,7 +104,7 @@ func EncodeMachineStatus(status *AWSMachineProviderStatus) (*runtime.RawExtensio
 
 	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
 	if rawBytes, err = json.Marshal(status); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return &runtime.RawExtension{
@@ -122,7 +123,7 @@ func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtensio
 
 	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
 	if rawBytes, err = json.Marshal(status); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return &runtime.RawExtension{
@@ -141,7 +142,7 @@ func EncodeClusterConfig(status *AWSClusterProviderConfig) (*runtime.RawExtensio
 
 	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
 	if rawBytes, err = json.Marshal(status); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return &runtime.RawExtension{

@@ -47,12 +47,20 @@ func NewActuator(params ActuatorParams) *Actuator {
 	return res
 }
 
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	klog.Infof("Reconciling cluster %v", cluster.Name)
 
 	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client})
 	if err != nil {
+		klog.Error(err)
+		if errst, ok := err.(stackTracer); ok {
+			klog.Errorf("%+v", errst)
+		}
 		return err
 	}
 
