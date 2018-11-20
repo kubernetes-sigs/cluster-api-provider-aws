@@ -29,6 +29,7 @@ const (
 )
 
 var (
+	// EC2 exposes the ec2 sdk related filters.
 	EC2 = new(ec2Filters)
 )
 
