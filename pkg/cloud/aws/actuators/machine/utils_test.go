@@ -1,14 +1,15 @@
 package machine
 
 import (
+	"reflect"
+	"testing"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"reflect"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func init() {
@@ -113,7 +114,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 
 	client := fake.NewFakeClient(machineClass)
 	for _, tc := range testCases {
-		decodedProviderConfig, err := ProviderConfigFromMachine(client, tc.machine)
+		decodedProviderConfig, err := ProviderConfigFromMachine(client, tc.machine, codec)
 		if err != nil {
 			t.Error(err)
 		}

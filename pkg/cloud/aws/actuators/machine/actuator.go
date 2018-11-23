@@ -37,7 +37,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -62,8 +61,9 @@ type Actuator struct {
 	kubeClient       kubernetes.Interface
 	client           client.Client
 	awsClientBuilder awsclient.AwsClientBuilderFuncType
-	codec            codec
-	eventRecorder    record.EventRecorder
+
+	codec         *providerconfigv1.AWSProviderConfigCodec
+	eventRecorder record.EventRecorder
 }
 
 // ActuatorParams holds parameter information for Actuator
@@ -71,14 +71,8 @@ type ActuatorParams struct {
 	KubeClient       kubernetes.Interface
 	Client           client.Client
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
-	Codec            codec
+	Codec            *providerconfigv1.AWSProviderConfigCodec
 	EventRecorder    record.EventRecorder
-}
-
-type codec interface {
-	DecodeProviderConfig(*clusterv1.ProviderConfig, runtime.Object) error
-	DecodeProviderStatus(*runtime.RawExtension, runtime.Object) error
-	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
 }
 
 // NewActuator returns a new AWS Actuator
@@ -126,7 +120,7 @@ func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, m
 }
 
 func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, networkAddresses []corev1.NodeAddress) error {
-	awsStatusRaw, err := EncodeProviderStatus(a.codec, awsStatus)
+	awsStatusRaw, err := a.codec.EncodeProviderStatus(awsStatus)
 	if err != nil {
 		glog.Errorf("error encoding AWS provider status: %v", err)
 		return err
@@ -137,11 +131,13 @@ func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *pr
 	if networkAddresses != nil {
 		machineCopy.Status.Addresses = networkAddresses
 	}
-	oldAWSStatus, err := ProviderStatusFromMachine(a.codec, machine)
-	if err != nil {
+
+	oldAWSStatus := &providerconfigv1.AWSMachineProviderStatus{}
+	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, oldAWSStatus); err != nil {
 		glog.Errorf("error updating machine status: %v", err)
 		return err
 	}
+
 	// TODO(vikasc): Revisit to compare complete machine status objects
 	if !equality.Semantic.DeepEqual(awsStatus, oldAWSStatus) || !equality.Semantic.DeepEqual(machine.Status.Addresses, machineCopy.Status.Addresses) {
 		glog.Infof("machine status has changed, updating")
@@ -164,16 +160,15 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 
 	glog.Info("updating machine conditions")
 
-	awsStatus, err := ProviderStatusFromMachine(a.codec, machine)
-	if err != nil {
+	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
+	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, awsStatus); err != nil {
 		glog.Errorf("error decoding machine provider status: %v", err)
 		return err
 	}
 
 	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, conditionType, corev1.ConditionTrue, reason, msg, UpdateConditionIfReasonOrMessageChange)
 
-	err = a.updateMachineStatus(machine, awsStatus, nil)
-	if err != nil {
+	if err := a.updateMachineStatus(machine, awsStatus, nil); err != nil {
 		return err
 	}
 
@@ -182,7 +177,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine)
+	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
 	}
@@ -246,7 +241,7 @@ func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, m
 
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine)
+	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
 	}
@@ -287,7 +282,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Info("updating machine")
 
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine)
+	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), noEventAction)
 	}
@@ -390,7 +385,7 @@ func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *clusterv1.Machi
 }
 
 func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clusterv1.Machine) ([]*ec2.Instance, error) {
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine)
+	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		glog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return nil, err
@@ -455,11 +450,12 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	glog.Info("updating status")
 
 	// Starting with a fresh status as we assume full control of it here.
-	awsStatus, err := ProviderStatusFromMachine(a.codec, machine)
-	if err != nil {
+	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
+	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, awsStatus); err != nil {
 		glog.Errorf("error decoding machine provider status: %v", err)
 		return err
 	}
+
 	// Save this, we need to check if it changed later.
 	networkAddresses := []corev1.NodeAddress{}
 
@@ -505,8 +501,7 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	// 	awsStatus.LastELBSync = nil
 	// }
 
-	err = a.updateMachineStatus(machine, awsStatus, networkAddresses)
-	if err != nil {
+	if err := a.updateMachineStatus(machine, awsStatus, networkAddresses); err != nil {
 		return err
 	}
 

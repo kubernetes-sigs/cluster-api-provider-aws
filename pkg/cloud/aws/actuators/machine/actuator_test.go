@@ -239,9 +239,10 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error creating codec: %v", err)
 			}
-			machineStatus, err := ProviderStatusFromMachine(codec, &updatedMachine)
-			if err != nil {
-				t.Fatalf("error getting machineStatus: %v", err)
+
+			machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
+			if err := codec.DecodeProviderStatus(updatedMachine.Status.ProviderStatus, machineStatus); err != nil {
+				t.Fatalf("error decoding machine provider status: %v", err)
 			}
 
 			if tc.createErrorExpected {

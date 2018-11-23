@@ -27,6 +27,7 @@ package v1alpha1
 import (
 	"bytes"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -103,7 +104,7 @@ func (codec *AWSProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*r
 	return &runtime.RawExtension{Raw: buf.Bytes()}, nil
 }
 
-// DecodeProviderStatus serialises the provider status
+// DecodeProviderStatus deserialises the provider status
 func (codec *AWSProviderConfigCodec) DecodeProviderStatus(providerStatus *runtime.RawExtension, out runtime.Object) error {
 	if providerStatus != nil {
 		_, _, err := codec.decoder.Decode(providerStatus.Raw, nil, out)
