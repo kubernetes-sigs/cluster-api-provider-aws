@@ -10,6 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/record"
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
@@ -206,6 +207,8 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 					return mockAWSClient, nil
 				},
 				Codec: codec,
+				// use empty recorder dropping any event recorded
+				EventRecorder: &record.FakeRecorder{},
 			}
 
 			actuator, err := NewActuator(params)
@@ -409,6 +412,8 @@ func TestAvailabiltyZone(t *testing.T) {
 					return mockAWSClient, nil
 				},
 				Codec: codec,
+				// use empty recorder dropping any event recorded
+				EventRecorder: &record.FakeRecorder{},
 			}
 
 			actuator, err := NewActuator(params)
