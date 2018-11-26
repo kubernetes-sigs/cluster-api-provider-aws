@@ -121,7 +121,7 @@ func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) e
 			SubnetId: aws.String(sn.ID),
 		}
 
-		if _, err := s.EC2.DeleteSubnet(input); err != nil {
+		if _, err := s.scope.EC2.DeleteSubnet(input); err != nil {
 			return errors.Wrapf(err, "failed to delete subnet %q", sn.ID)
 		}
 
@@ -131,7 +131,7 @@ func (s *Service) deleteSubnets(clusterName string, network *v1alpha1.Network) e
 }
 
 func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1.Subnets, error) {
-	out, err := s.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
+	out, err := s.scope.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(vpcID),
 			filter.EC2.Cluster(clusterName),
@@ -160,7 +160,7 @@ func (s *Service) describeVpcSubnets(clusterName string, vpcID string) (v1alpha1
 func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 	mapPublicIP := sn.IsPublic
 
-	out, err := s.EC2.CreateSubnet(&ec2.CreateSubnetInput{
+	out, err := s.scope.EC2.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(sn.VpcID),
 		CidrBlock:        aws.String(sn.CidrBlock),
 		AvailabilityZone: aws.String(sn.AvailabilityZone),
@@ -171,7 +171,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 	}
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
-	if err := s.EC2.WaitUntilSubnetAvailable(wReq); err != nil {
+	if err := s.scope.EC2.WaitUntilSubnetAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
@@ -184,7 +184,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 	name := fmt.Sprintf("%s-subnet-%s", clusterName, suffix)
 
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.EC2,
+		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
 			ClusterName: clusterName,
 			ResourceID:  *out.Subnet.SubnetId,
@@ -206,7 +206,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 			SubnetId: out.Subnet.SubnetId,
 		}
 
-		if _, err := s.EC2.ModifySubnetAttribute(attReq); err != nil {
+		if _, err := s.scope.EC2.ModifySubnetAttribute(attReq); err != nil {
 			return nil, errors.Wrapf(err, "failed to set subnet %q attributes", *out.Subnet.SubnetId)
 		}
 	}
@@ -224,7 +224,7 @@ func (s *Service) createSubnet(clusterName string, sn *v1alpha1.Subnet) (*v1alph
 }
 
 func (s *Service) deleteSubnet(sn *v1alpha1.Subnet) error {
-	_, err := s.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
+	_, err := s.scope.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
 		SubnetId: aws.String(sn.ID),
 	})
 

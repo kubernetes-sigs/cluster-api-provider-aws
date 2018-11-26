@@ -43,7 +43,7 @@ func (s *Service) getOrAllocateAddress(clusterName string, role string) (string,
 }
 
 func (s *Service) allocateAddress(clusterName string, role string) (string, error) {
-	out, err := s.EC2.AllocateAddress(&ec2.AllocateAddressInput{
+	out, err := s.scope.EC2.AllocateAddress(&ec2.AllocateAddressInput{
 		Domain: aws.String("vpc"),
 	})
 
@@ -54,7 +54,7 @@ func (s *Service) allocateAddress(clusterName string, role string) (string, erro
 	name := fmt.Sprintf("%s-eip-%s", clusterName, role)
 
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.EC2,
+		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
 			ClusterName: clusterName,
 			ResourceID:  *out.AllocationId,
@@ -77,13 +77,13 @@ func (s *Service) describeAddresses(clusterName string, role string) (*ec2.Descr
 		x = append(x, filter.EC2.ProviderRole(role))
 	}
 
-	return s.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
+	return s.scope.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: x,
 	})
 }
 
 func (s *Service) releaseAddresses(clusterName string) error {
-	out, err := s.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
+	out, err := s.scope.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{filter.EC2.Cluster(clusterName)},
 	})
 	if err != nil {
@@ -100,7 +100,7 @@ func (s *Service) releaseAddresses(clusterName string) error {
 		}
 
 		delete := func() (bool, error) {
-			_, err := s.EC2.ReleaseAddress(releaseAddressInput)
+			_, err := s.scope.EC2.ReleaseAddress(releaseAddressInput)
 			if err != nil {
 				return false, err
 			}

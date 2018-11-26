@@ -26,7 +26,7 @@ const (
 )
 
 func (s *Service) getRegion() string {
-	switch x := s.EC2.(type) {
+	switch x := s.scope.EC2.(type) {
 	case *ec2.EC2:
 		return *x.Config.Region
 	default:
@@ -35,7 +35,7 @@ func (s *Service) getRegion() string {
 }
 
 func (s *Service) getAvailableZones() ([]string, error) {
-	out, err := s.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
+	out, err := s.scope.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{filter.EC2.Available()},
 	})
 

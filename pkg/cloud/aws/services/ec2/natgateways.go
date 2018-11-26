@@ -102,7 +102,7 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 
 	gateways := make(map[string]*ec2.NatGateway)
 
-	err := s.EC2.DescribeNatGatewaysPages(describeNatGatewayInput,
+	err := s.scope.EC2.DescribeNatGatewaysPages(describeNatGatewayInput,
 		func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool {
 			for _, r := range page.NatGateways {
 				gateways[*r.SubnetId] = r
@@ -123,7 +123,7 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}
 
-	out, err := s.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
+	out, err := s.scope.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
 		SubnetId:     aws.String(subnetID),
 		AllocationId: aws.String(ip),
 	})
@@ -135,7 +135,7 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 	name := fmt.Sprintf("%s-nat", clusterName)
 
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.EC2,
+		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
 			ClusterName: clusterName,
 			ResourceID:  *out.NatGateway.NatGatewayId,
@@ -152,7 +152,7 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 	klog.Infof("Created NAT gateway %q for subnet ID %q, waiting for it to become available...", *out.NatGateway.NatGatewayId, subnetID)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
-	if err := s.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
+	if err := s.scope.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
 	}
 
@@ -161,7 +161,7 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 }
 
 func (s *Service) deleteNatGateway(id string) error {
-	_, err := s.EC2.DeleteNatGateway(&ec2.DeleteNatGatewayInput{
+	_, err := s.scope.EC2.DeleteNatGateway(&ec2.DeleteNatGatewayInput{
 		NatGatewayId: aws.String(id),
 	})
 
@@ -174,7 +174,7 @@ func (s *Service) deleteNatGateway(id string) error {
 	}
 
 	check := func() (done bool, err error) {
-		out, err := s.EC2.DescribeNatGateways(describeInput)
+		out, err := s.scope.EC2.DescribeNatGateways(describeInput)
 		if err != nil {
 			return false, err
 		}

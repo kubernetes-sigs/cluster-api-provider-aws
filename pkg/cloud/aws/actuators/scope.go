@@ -21,36 +21,30 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
-	elbsvc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
 // ScopeParams defines the input parameters used to create a new Scope.
 type ScopeParams struct {
+	AWSClients
 	Cluster *clusterv1.Cluster
 	Client  client.ClusterV1alpha1Interface
 }
 
 // NewScope creates a new Scope from the supplied parameters.
 // This is meant to be called for each different actuator iteration.
-func NewScope(input ScopeParams) (*Scope, error) {
-	if input.Cluster == nil {
+func NewScope(params ScopeParams) (*Scope, error) {
+	if params.Cluster == nil {
 		return nil, errors.New("failed to generate new scope from nil cluster")
 	}
 
-	if input.Cluster.Namespace == "" {
-		return nil, errors.New("failed to generate new scope from cluster with empty namespace")
-	}
-
-	clusterConfig, err := v1alpha1.ClusterConfigFromProviderConfig(input.Cluster.Spec.ProviderConfig)
+	clusterConfig, err := v1alpha1.ClusterConfigFromProviderConfig(params.Cluster.Spec.ProviderConfig)
 	if err != nil {
 		return nil, errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
-	clusterStatus, err := v1alpha1.ClusterStatusFromProviderStatus(input.Cluster.Status.ProviderStatus)
+	clusterStatus, err := v1alpha1.ClusterStatusFromProviderStatus(params.Cluster.Status.ProviderStatus)
 	if err != nil {
 		return nil, errors.Errorf("failed to load cluster provider status: %v", err)
 	}
@@ -60,27 +54,38 @@ func NewScope(input ScopeParams) (*Scope, error) {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	if params.AWSClients.EC2 == nil {
+		params.AWSClients.EC2 = ec2.New(session)
+	}
+
+	if params.AWSClients.ELB == nil {
+		params.AWSClients.ELB = elb.New(session)
+	}
+
 	// TODO(vincepri): this was probably a temporary hack to pass down the region, it should be revisited.
 	clusterStatus.Region = clusterConfig.Region
 
+	var clusterClient client.ClusterInterface
+	if params.Client != nil {
+		clusterClient = params.Client.Clusters(params.Cluster.Namespace)
+	}
+
 	return &Scope{
-		Cluster:       input.Cluster,
-		ClusterClient: input.Client.Clusters(input.Cluster.Namespace),
+		AWSClients:    params.AWSClients,
+		Cluster:       params.Cluster,
+		ClusterClient: clusterClient,
 		ClusterConfig: clusterConfig,
 		ClusterStatus: clusterStatus,
-		EC2:           ec2svc.NewService(ec2.New(session)),
-		ELB:           elbsvc.NewService(elb.New(session)),
 	}, nil
 }
 
 // Scope defines the basic context for an actuator to operate upon.
 type Scope struct {
+	AWSClients
 	Cluster       *clusterv1.Cluster
 	ClusterClient client.ClusterInterface
 	ClusterConfig *v1alpha1.AWSClusterProviderConfig
 	ClusterStatus *v1alpha1.AWSClusterProviderStatus
-	EC2           services.EC2Interface
-	ELB           services.ELBInterface
 }
 
 func (s *Scope) storeClusterConfig() error {
@@ -115,6 +120,10 @@ func (s *Scope) storeClusterStatus() error {
 
 // Close closes the current scope persisting the cluster configuration and status.
 func (s *Scope) Close() {
+	if s.ClusterClient == nil {
+		return
+	}
+
 	if err := s.storeClusterConfig(); err != nil {
 		klog.Errorf("[scope] failed to store provider config for cluster %q in namespace %q: %v", s.Cluster.Name, s.Cluster.Namespace, err)
 	}
@@ -136,6 +145,10 @@ type MachineScope struct {
 
 func (m *MachineScope) Close() {
 	defer m.Scope.Close()
+
+	if m.MachineClient == nil {
+		return
+	}
 
 	if _, err := m.MachineClient.Update(m.Machine); err != nil {
 		klog.Errorf("[machinescope] failed to update machine: %v", err)
@@ -186,10 +199,15 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.Wrap(err, "failed to get machine provider status")
 	}
 
+	var machineClient client.MachineInterface
+	if params.Client != nil {
+		machineClient = params.Client.Machines(params.Cluster.Namespace)
+	}
+
 	return &MachineScope{
 		Scope:         scope,
 		Machine:       params.Machine,
-		MachineClient: params.Client.Machines(params.Cluster.Namespace),
+		MachineClient: machineClient,
 		MachineConfig: machineConfig,
 		MachineStatus: machineStatus,
 	}, nil

@@ -25,8 +25,9 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/tokens"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -36,7 +37,7 @@ import (
 
 // Actuator is responsible for performing machine reconciliation.
 type Actuator struct {
-	*deployer.Deployer
+	deployer.Deployer
 
 	client client.ClusterV1alpha1Interface
 }
@@ -48,12 +49,9 @@ type ActuatorParams struct {
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
-	res := &Actuator{
+	return &Actuator{
 		client: params.Client,
 	}
-
-	res.Deployer = deployer.New(services.NewSDKGetter())
-	return res
 }
 
 // Create creates a machine and is invoked by the machine controller.
@@ -66,6 +64,8 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	defer scope.Close()
+
+	ec2svc := ec2.NewService(scope.Scope)
 
 	controlPlaneURL, err := a.GetIP(cluster, nil)
 	if err != nil {
@@ -98,7 +98,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		}
 	}
 
-	i, err := scope.EC2.CreateOrGetMachine(machine, scope.MachineStatus, scope.MachineConfig, scope.ClusterStatus, scope.ClusterConfig, cluster, bootstrapToken)
+	i, err := ec2svc.CreateOrGetMachine(machine, scope.MachineStatus, scope.MachineConfig, scope.ClusterStatus, scope.ClusterConfig, cluster, bootstrapToken)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
 			klog.Errorf("network not ready to launch instances yet: %s", err)
@@ -127,8 +127,9 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 }
 
 func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clusterv1.Machine, i *v1alpha1.Instance) error {
+	elbsvc := elb.NewService(scope.Scope)
 	if m.ObjectMeta.Labels["set"] == "controlplane" {
-		if err := scope.ELB.RegisterInstanceWithAPIServerELB(scope.ClusterConfig.Name, i.ID); err != nil {
+		if err := elbsvc.RegisterInstanceWithAPIServerELB(scope.ClusterConfig.Name, i.ID); err != nil {
 			return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 		}
 	}
@@ -147,7 +148,9 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	defer scope.Close()
 
-	instance, err := scope.EC2.InstanceIfExists(scope.MachineStatus.InstanceID)
+	ec2svc := ec2.NewService(scope.Scope)
+
+	instance, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -167,7 +170,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		klog.Infof("instance %q is shutting down or already terminated", machine.Name)
 		return nil
 	default:
-		if err := scope.EC2.TerminateInstance(aws.StringValue(scope.MachineStatus.InstanceID)); err != nil {
+		if err := ec2svc.TerminateInstance(aws.StringValue(scope.MachineStatus.InstanceID)); err != nil {
 			return errors.Wrap(err, "failed to terminate instance")
 		}
 	}
@@ -189,8 +192,10 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	defer scope.Close()
 
+	ec2svc := ec2.NewService(scope.Scope)
+
 	// Get the current instance description from AWS.
-	instanceDescription, err := scope.EC2.InstanceIfExists(scope.MachineStatus.InstanceID)
+	instanceDescription, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -202,7 +207,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	// Ensure that the security groups are correct.
 	_, err = a.ensureSecurityGroups(
-		scope.EC2,
+		ec2svc,
 		machine,
 		*scope.MachineStatus.InstanceID,
 		scope.MachineConfig.AdditionalSecurityGroups,
@@ -213,7 +218,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	}
 
 	// Ensure that the tags are correct.
-	_, err = a.ensureTags(scope.EC2, machine, scope.MachineStatus.InstanceID, scope.MachineConfig.AdditionalTags)
+	_, err = a.ensureTags(ec2svc, machine, scope.MachineStatus.InstanceID, scope.MachineConfig.AdditionalTags)
 	if err != nil {
 		return errors.Wrap(err, "failed to ensure tags")
 	}
@@ -232,12 +237,14 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	defer scope.Close()
 
+	ec2svc := ec2.NewService(scope.Scope)
+
 	// TODO worry about pointers. instance if exists returns *any* instance
 	if scope.MachineStatus.InstanceID == nil {
 		return false, nil
 	}
 
-	instance, err := scope.EC2.InstanceIfExists(scope.MachineStatus.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return false, err
 	}

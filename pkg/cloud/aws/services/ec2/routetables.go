@@ -113,14 +113,14 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 				continue
 			}
 
-			if _, err := s.EC2.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{AssociationId: as.RouteTableAssociationId}); err != nil {
+			if _, err := s.scope.EC2.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{AssociationId: as.RouteTableAssociationId}); err != nil {
 				return errors.Wrapf(err, "failed to disassociate route table %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
 			}
 
 			klog.Infof("Deleted association between route table %q and subnet %q", *rt.RouteTableId, *as.SubnetId)
 		}
 
-		if _, err := s.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
+		if _, err := s.scope.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
 			return errors.Wrapf(err, "failed to delete route table %q", *rt.RouteTableId)
 		}
 
@@ -130,7 +130,7 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 }
 
 func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*ec2.RouteTable, error) {
-	out, err := s.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+	out, err := s.scope.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(vpcID),
 			filter.EC2.Cluster(clusterName),
@@ -146,7 +146,7 @@ func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*e
 
 // TODO: dedup some of the public/private logic shared with createSubnet
 func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.VPC, routes []*ec2.Route, isPublic bool) (*v1alpha1.RouteTable, error) {
-	out, err := s.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
+	out, err := s.scope.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(vpc.ID),
 	})
 
@@ -160,7 +160,7 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 	name := fmt.Sprintf("%s-rt-%s", clusterName, suffix)
 
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.EC2,
+		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
 			ClusterName: clusterName,
 			ResourceID:  *out.RouteTable.RouteTableId,
@@ -179,7 +179,7 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 	}
 
 	for _, route := range routes {
-		_, err := s.EC2.CreateRoute(&ec2.CreateRouteInput{
+		_, err := s.scope.EC2.CreateRoute(&ec2.CreateRouteInput{
 			RouteTableId:                out.RouteTable.RouteTableId,
 			DestinationCidrBlock:        route.DestinationCidrBlock,
 			DestinationIpv6CidrBlock:    route.DestinationIpv6CidrBlock,
@@ -203,7 +203,7 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 }
 
 func (s *Service) associateRouteTable(rt *v1alpha1.RouteTable, subnetID string) error {
-	_, err := s.EC2.AssociateRouteTable(&ec2.AssociateRouteTableInput{
+	_, err := s.scope.EC2.AssociateRouteTable(&ec2.AssociateRouteTableInput{
 		RouteTableId: aws.String(rt.ID),
 		SubnetId:     aws.String(subnetID),
 	})

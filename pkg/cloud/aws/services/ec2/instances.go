@@ -43,7 +43,7 @@ func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.
 		},
 	}
 
-	out, err := s.EC2.DescribeInstances(input)
+	out, err := s.scope.EC2.DescribeInstances(input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, nil
@@ -72,7 +72,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 		Filters:     []*ec2.Filter{filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning)},
 	}
 
-	out, err := s.EC2.DescribeInstances(input)
+	out, err := s.scope.EC2.DescribeInstances(input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, nil
@@ -193,7 +193,7 @@ func (s *Service) TerminateInstance(instanceID string) error {
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
-	if _, err := s.EC2.TerminateInstances(input); err != nil {
+	if _, err := s.scope.EC2.TerminateInstances(input); err != nil {
 		return errors.Wrapf(err, "failed to terminate instance with id %q", instanceID)
 	}
 
@@ -214,7 +214,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
-	if err := s.EC2.WaitUntilInstanceTerminated(input); err != nil {
+	if err := s.scope.EC2.WaitUntilInstanceTerminated(input); err != nil {
 		return errors.Wrapf(err, "failed to wait for instance %q termination", instanceID)
 	}
 
@@ -286,7 +286,7 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 		input.TagSpecifications = append(input.TagSpecifications, spec)
 	}
 
-	out, err := s.EC2.RunInstances(input)
+	out, err := s.scope.EC2.RunInstances(input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to run instance: %v", i)
 	}
@@ -295,7 +295,7 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 		return nil, errors.Errorf("no instance returned for reservation %v", out.GoString())
 	}
 
-	s.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
+	s.scope.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
 
 	return converters.SDKToInstance(out.Instances[0]), nil
 }
@@ -310,7 +310,7 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) 
 		Groups:     aws.StringSlice(ids),
 	}
 
-	if _, err := s.EC2.ModifyInstanceAttribute(input); err != nil {
+	if _, err := s.scope.EC2.ModifyInstanceAttribute(input); err != nil {
 		return errors.Wrapf(err, "failed to modify instance %q security groups", instanceID)
 	}
 
@@ -338,7 +338,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 		}
 
 		// Create/Update tags in AWS.
-		if _, err := s.EC2.CreateTags(input); err != nil {
+		if _, err := s.scope.EC2.CreateTags(input); err != nil {
 			return errors.Wrapf(err, "failed to create tags for resource %q: %+v", *resourceID, create)
 		}
 	}
@@ -357,7 +357,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 		}
 
 		// Delete tags in AWS.
-		if _, err := s.EC2.DeleteTags(input); err != nil {
+		if _, err := s.scope.EC2.DeleteTags(input); err != nil {
 			return errors.Wrapf(err, "failed to delete tags for resource %q: %v", *resourceID, remove)
 		}
 	}
