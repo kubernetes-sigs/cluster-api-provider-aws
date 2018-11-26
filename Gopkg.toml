@@ -53,3 +53,11 @@ required = [
 name = "gopkg.in/fsnotify.v1"
 source = "https://github.com/fsnotify/fsnotify.git"
 version="v1.4.7"
+
+[prune]
+  go-tests = true
+  unused-packages = true
+
+  [[prune.project]]
+  name = "sigs.k8s.io/cluster-api"
+  unused-packages = false
