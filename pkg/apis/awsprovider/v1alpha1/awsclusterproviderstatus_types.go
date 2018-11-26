@@ -30,7 +30,6 @@ type AWSClusterProviderStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Region  string   `json:"region,omitempty"`
 	Network Network  `json:"network,omitempty"`
 	Bastion Instance `json:"bastion,omitempty"`
 }

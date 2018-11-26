@@ -34,10 +34,10 @@ const (
 )
 
 // ReconcileBastion ensures a bastion is created for the cluster
-func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1.AWSClusterProviderStatus) error {
+func (s *Service) ReconcileBastion() error {
 	klog.V(2).Info("Reconciling bastion host")
 
-	subnets := status.Network.Subnets
+	subnets := s.scope.Network().Subnets
 	if len(subnets.FilterPrivate()) == 0 {
 		klog.V(2).Info("No private subnets available, skipping bastion host")
 		return nil
@@ -45,14 +45,10 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 		return errors.New("failed to reconcile bastion host, no public subnets are available")
 	}
 
-	if keyName == "" {
-		keyName = defaultSSHKeyName
-	}
-
-	spec := s.getDefaultBastion(clusterName, status.Region, status.Network, keyName)
+	spec := s.getDefaultBastion()
 
 	// Describe bastion instance, if any.
-	instance, err := s.describeBastionInstance(clusterName, status)
+	instance, err := s.describeBastionInstance()
 	if awserrors.IsNotFound(err) {
 		instance, err = s.runInstance(spec)
 		if err != nil {
@@ -67,15 +63,14 @@ func (s *Service) ReconcileBastion(clusterName, keyName string, status *v1alpha1
 
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
-	instance.DeepCopyInto(&status.Bastion)
-
+	instance.DeepCopyInto(&s.scope.ClusterStatus.Bastion)
 	klog.V(2).Info("Reconcile bastion completed successfully")
 	return nil
 }
 
 // DeleteBastion deletes the Bastion instance
-func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterProviderStatus) error {
-	instance, err := s.describeBastionInstance(clusterName, status)
+func (s *Service) DeleteBastion() error {
+	instance, err := s.describeBastionInstance()
 	if err != nil {
 		if awserrors.IsNotFound(err) {
 			klog.V(2).Info("bastion instance does not exist")
@@ -84,19 +79,18 @@ func (s *Service) DeleteBastion(clusterName string, status *v1alpha1.AWSClusterP
 		return errors.Wrap(err, "unable to describe bastion instance")
 	}
 
-	err = s.TerminateInstanceAndWait(instance.ID)
-	if err != nil {
+	if err := s.TerminateInstanceAndWait(instance.ID); err != nil {
 		return errors.Wrap(err, "unable to delete bastion instance")
 	}
 
 	return nil
 }
 
-func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.AWSClusterProviderStatus) (*v1alpha1.Instance, error) {
+func (s *Service) describeBastionInstance() (*v1alpha1.Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.ProviderRole(tags.ValueBastionRole),
-			filter.EC2.Cluster(clusterName),
+			filter.EC2.Cluster(s.scope.Name()),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
 	}
@@ -119,21 +113,26 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 	return nil, awserrors.NewNotFound(errors.New("bastion host not found"))
 }
 
-func (s *Service) getDefaultBastion(clusterName string, region string, network v1alpha1.Network, keyName string) *v1alpha1.Instance {
-	name := fmt.Sprintf("%s-bastion", clusterName)
+func (s *Service) getDefaultBastion() *v1alpha1.Instance {
+	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
+
+	keyName := defaultSSHKeyName
+	if s.scope.ClusterConfig.SSHKeyName != "" {
+		keyName = s.scope.ClusterConfig.SSHKeyName
+	}
 
 	i := &v1alpha1.Instance{
 		Type:     "t2.micro",
-		SubnetID: network.Subnets.FilterPublic()[0].ID,
-		ImageID:  s.defaultBastionAMILookup(region),
+		SubnetID: s.scope.Network().Subnets.FilterPublic()[0].ID,
+		ImageID:  s.defaultBastionAMILookup(s.scope.ClusterConfig.Region),
 		KeyName:  aws.String(keyName),
 		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
 		SecurityGroupIDs: []string{
-			network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID,
+			s.scope.Network().SecurityGroups[v1alpha1.SecurityGroupBastion].ID,
 		},
 		Tags: tags.Build(tags.BuildParams{
-			ClusterName: clusterName,
+			ClusterName: s.scope.Name(),
 			Lifecycle:   tags.ResourceLifecycleOwned,
 			Name:        aws.String(name),
 			Role:        aws.String(tags.ValueBastionRole),

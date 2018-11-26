@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "clients.go",
         "getters.go",
+        "machine_scope.go",
         "scope.go",
     ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators",

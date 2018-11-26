@@ -65,15 +65,15 @@ func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg
 }
 
 // DeleteBastion mocks base method
-func (m *MockEC2Interface) DeleteBastion(arg0 string, arg1 *v1alpha1.AWSClusterProviderStatus) error {
-	ret := m.ctrl.Call(m, "DeleteBastion", arg0, arg1)
+func (m *MockEC2Interface) DeleteBastion() error {
+	ret := m.ctrl.Call(m, "DeleteBastion")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteBastion indicates an expected call of DeleteBastion
-func (mr *MockEC2InterfaceMockRecorder) DeleteBastion(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBastion", reflect.TypeOf((*MockEC2Interface)(nil).DeleteBastion), arg0, arg1)
+func (mr *MockEC2InterfaceMockRecorder) DeleteBastion() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBastion", reflect.TypeOf((*MockEC2Interface)(nil).DeleteBastion))
 }
 
 // DeleteNetwork mocks base method
@@ -102,15 +102,15 @@ func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomo
 }
 
 // ReconcileBastion mocks base method
-func (m *MockEC2Interface) ReconcileBastion(arg0, arg1 string, arg2 *v1alpha1.AWSClusterProviderStatus) error {
-	ret := m.ctrl.Call(m, "ReconcileBastion", arg0, arg1, arg2)
+func (m *MockEC2Interface) ReconcileBastion() error {
+	ret := m.ctrl.Call(m, "ReconcileBastion")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ReconcileBastion indicates an expected call of ReconcileBastion
-func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion(arg0, arg1, arg2 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileBastion", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileBastion), arg0, arg1, arg2)
+func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileBastion", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileBastion))
 }
 
 // ReconcileNetwork mocks base method

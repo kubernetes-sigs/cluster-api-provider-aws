@@ -76,7 +76,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
-	if err := ec2svc.ReconcileBastion(cluster.Name, scope.ClusterConfig.SSHKeyName, scope.ClusterStatus); err != nil {
+	if err := ec2svc.ReconcileBastion(); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
@@ -105,7 +105,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 		return errors.Errorf("unable to delete load balancers: %v", err)
 	}
 
-	if err := ec2svc.DeleteBastion(cluster.Name, scope.ClusterStatus); err != nil {
+	if err := ec2svc.DeleteBastion(); err != nil {
 		return errors.Errorf("unable to delete bastion: %v", err)
 	}
 
