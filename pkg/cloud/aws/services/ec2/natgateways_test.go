@@ -20,7 +20,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const (
@@ -34,7 +37,7 @@ func TestReconcileNatGateways(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  []*v1alpha1.Subnet
-		expect func(m *mock_ec2iface.MockEC2API)
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create no NAT gateway",
@@ -47,8 +50,8 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().CreateNatGateway(gomock.Any()).Times(0)
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.CreateNatGateway(gomock.Any()).Times(0)
 			},
 		},
 		{
@@ -62,12 +65,9 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         true,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-
-				m.EXPECT().
-					DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).Times(0)
-
-				m.EXPECT().CreateNatGateway(gomock.Any()).Times(0)
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).Times(0)
+				m.CreateNatGateway(gomock.Any()).Times(0)
 			},
 		},
 		{
@@ -88,55 +88,48 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 
-				m.EXPECT().
-					DescribeNatGatewaysPages(
-						gomock.Eq(&ec2.DescribeNatGatewaysInput{
-							Filter: []*ec2.Filter{
-								{
-									Name:   aws.String("vpc-id"),
-									Values: []*string{aws.String(subnetsVPCID)},
-								},
-								{
-									Name:   aws.String("state"),
-									Values: []*string{aws.String("pending"), aws.String("available")},
-								},
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
 							},
-						}),
-						gomock.Any()).Return(nil)
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
 
-				m.EXPECT().
-					DescribeAddresses(gomock.Any()).
+				m.DescribeAddresses(gomock.Any()).
 					Return(&ec2.DescribeAddressesOutput{}, nil)
 
-				m.EXPECT().
-					AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
+				m.AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
 					Return(&ec2.AllocateAddressOutput{
 						AllocationId: aws.String(ElasticIPAllocationID),
 					}, nil)
 
-				m.EXPECT().
-					CreateNatGateway(&ec2.CreateNatGatewayInput{
-						AllocationId: aws.String(ElasticIPAllocationID),
-						SubnetId:     aws.String("subnet-1"),
-					}).Return(&ec2.CreateNatGatewayOutput{
+				m.CreateNatGateway(&ec2.CreateNatGatewayInput{
+					AllocationId: aws.String(ElasticIPAllocationID),
+					SubnetId:     aws.String("subnet-1"),
+				}).Return(&ec2.CreateNatGatewayOutput{
 					NatGateway: &ec2.NatGateway{
 						NatGatewayId: aws.String("natgateway"),
 					},
 				}, nil)
 
-				m.EXPECT().
-					WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
-						NatGatewayIds: []*string{aws.String("natgateway")},
-					}).Return(nil)
+				m.WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []*string{aws.String("natgateway")},
+				}).Return(nil)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 			},
 		},
@@ -165,23 +158,21 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         true,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-
-				m.EXPECT().
-					DescribeNatGatewaysPages(
-						gomock.Eq(&ec2.DescribeNatGatewaysInput{
-							Filter: []*ec2.Filter{
-								{
-									Name:   aws.String("vpc-id"),
-									Values: []*string{aws.String(subnetsVPCID)},
-								},
-								{
-									Name:   aws.String("state"),
-									Values: []*string{aws.String("pending"), aws.String("available")},
-								},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
 							},
-						}),
-						gomock.Any()).Do(func(_, y interface{}) {
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Do(func(_, y interface{}) {
 					funct := y.(func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool)
 					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
 						NatGatewayId: aws.String("gateway"),
@@ -189,37 +180,31 @@ func TestReconcileNatGateways(t *testing.T) {
 					}}}, true)
 				}).Return(nil)
 
-				m.EXPECT().
-					DescribeAddresses(gomock.Any()).
+				m.DescribeAddresses(gomock.Any()).
 					Return(&ec2.DescribeAddressesOutput{}, nil)
 
-				m.EXPECT().
-					AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
+				m.AllocateAddress(&ec2.AllocateAddressInput{Domain: aws.String("vpc")}).
 					Return(&ec2.AllocateAddressOutput{
 						AllocationId: aws.String(ElasticIPAllocationID),
 					}, nil)
 
-				m.EXPECT().
-					CreateNatGateway(&ec2.CreateNatGatewayInput{
-						AllocationId: aws.String(ElasticIPAllocationID),
-						SubnetId:     aws.String("subnet-3"),
-					}).Return(&ec2.CreateNatGatewayOutput{
+				m.CreateNatGateway(&ec2.CreateNatGatewayInput{
+					AllocationId: aws.String(ElasticIPAllocationID),
+					SubnetId:     aws.String("subnet-3"),
+				}).Return(&ec2.CreateNatGatewayOutput{
 					NatGateway: &ec2.NatGateway{
 						NatGatewayId: aws.String("natgateway"),
 					},
 				}, nil)
 
-				m.EXPECT().
-					WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
-						NatGatewayIds: []*string{aws.String("natgateway")},
-					}).Return(nil)
+				m.WaitUntilNatGatewayAvailable(&ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []*string{aws.String("natgateway")},
+				}).Return(nil)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 			},
 		},
@@ -241,23 +226,21 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-
-				m.EXPECT().
-					DescribeNatGatewaysPages(
-						gomock.Eq(&ec2.DescribeNatGatewaysInput{
-							Filter: []*ec2.Filter{
-								{
-									Name:   aws.String("vpc-id"),
-									Values: []*string{aws.String(subnetsVPCID)},
-								},
-								{
-									Name:   aws.String("state"),
-									Values: []*string{aws.String("pending"), aws.String("available")},
-								},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
 							},
-						}),
-						gomock.Any()).Do(func(_, y interface{}) {
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Do(func(_, y interface{}) {
 					funct := y.(func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool)
 					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
 						NatGatewayId: aws.String("gateway"),
@@ -265,11 +248,9 @@ func TestReconcileNatGateways(t *testing.T) {
 					}}}, true)
 				}).Return(nil)
 
-				m.EXPECT().DescribeAddresses(gomock.Any()).Times(0)
-
-				m.EXPECT().AllocateAddress(gomock.Any()).Times(0)
-
-				m.EXPECT().CreateNatGateway(gomock.Any()).Times(0)
+				m.DescribeAddresses(gomock.Any()).Times(0)
+				m.AllocateAddress(gomock.Any()).Times(0)
+				m.CreateNatGateway(gomock.Any()).Times(0)
 			},
 		},
 		{
@@ -290,9 +271,8 @@ func TestReconcileNatGateways(t *testing.T) {
 					IsPublic:         false,
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeNatGatewaysPages(gomock.Any(), gomock.Any()).
 					Return(nil).
 					Times(1)
 			},
@@ -302,9 +282,23 @@ func TestReconcileNatGateways(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			s := NewService(ec2Mock)
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
 			if err := s.reconcileNatGateways("test-cluster", tc.input, &v1alpha1.VPC{ID: subnetsVPCID}); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}

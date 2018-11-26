@@ -21,7 +21,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestReconcileVPC(t *testing.T) {
@@ -32,25 +35,24 @@ func TestReconcileVPC(t *testing.T) {
 		name   string
 		input  *v1alpha1.VPC
 		output *v1alpha1.VPC
-		expect func(m *mock_ec2iface.MockEC2API)
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name:   "vpc exists",
 			input:  &v1alpha1.VPC{ID: "vpc-exists"},
 			output: &v1alpha1.VPC{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
-						VpcIds: []*string{
-							aws.String("vpc-exists"),
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+					VpcIds: []*string{
+						aws.String("vpc-exists"),
+					},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
 						},
-						Filters: []*ec2.Filter{
-							{
-								Name:   aws.String("state"),
-								Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
-							},
-						},
-					})).
+					},
+				})).
 					Return(&ec2.DescribeVpcsOutput{
 						Vpcs: []*ec2.Vpc{
 							{
@@ -66,23 +68,21 @@ func TestReconcileVPC(t *testing.T) {
 			name:   "vpc does not exist",
 			input:  &v1alpha1.VPC{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
 			output: &v1alpha1.VPC{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
-						VpcIds: []*string{
-							aws.String("vpc-new"),
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+					VpcIds: []*string{
+						aws.String("vpc-new"),
+					},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
 						},
-						Filters: []*ec2.Filter{
-							{
-								Name:   aws.String("state"),
-								Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
-							},
-						},
-					})).
+					},
+				})).
 					Return(&ec2.DescribeVpcsOutput{}, nil)
 
-				m.EXPECT().
-					CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
+				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
 					Return(&ec2.CreateVpcOutput{
 						Vpc: &ec2.Vpc{
 							State:     aws.String("available"),
@@ -91,14 +91,12 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					}, nil)
 
-				m.EXPECT().
-					WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
-						VpcIds: []*string{aws.String("vpc-new")},
-					})).
+				m.WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
+					VpcIds: []*string{aws.String("vpc-new")},
+				})).
 					Return(nil)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 			},
 		},
@@ -107,9 +105,23 @@ func TestReconcileVPC(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			s := NewService(ec2Mock)
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
 			if err := s.reconcileVPC("test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}

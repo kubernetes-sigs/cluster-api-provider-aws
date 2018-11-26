@@ -59,20 +59,20 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 		CidrBlock: aws.String(v.CidrBlock),
 	}
 
-	out, err := s.EC2.CreateVpc(input)
+	out, err := s.scope.EC2.CreateVpc(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create vpc")
 	}
 
 	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
-	if err := s.EC2.WaitUntilVpcAvailable(wReq); err != nil {
+	if err := s.scope.EC2.WaitUntilVpcAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
 	name := fmt.Sprintf("%s-vpc", clusterName)
 
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.EC2,
+		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
 			ClusterName: clusterName,
 			ResourceID:  *out.Vpc.VpcId,
@@ -100,7 +100,7 @@ func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
 		VpcId: aws.String(v.ID),
 	}
 
-	_, err := s.EC2.DeleteVpc(input)
+	_, err := s.scope.EC2.DeleteVpc(input)
 	if err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); code != "InvalidVpcID.NotFound" && ok {
@@ -127,7 +127,7 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 		input.VpcIds = []*string{aws.String(id)}
 	}
 
-	out, err := s.EC2.DescribeVpcs(input)
+	out, err := s.scope.EC2.DescribeVpcs(input)
 	if err != nil {
 		if awserrors.IsNotFound(err) {
 			return nil, err

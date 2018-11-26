@@ -101,7 +101,7 @@ func (s *Service) describeBastionInstance(clusterName string, status *v1alpha1.A
 		},
 	}
 
-	out, err := s.EC2.DescribeInstances(input)
+	out, err := s.scope.EC2.DescribeInstances(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to describe bastion host")
 	}

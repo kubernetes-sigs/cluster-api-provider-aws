@@ -22,7 +22,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestReconcileRouteTables(t *testing.T) {
@@ -32,7 +35,7 @@ func TestReconcileRouteTables(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *v1alpha1.Network
-		expect func(m *mock_ec2iface.MockEC2API)
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		err    error
 	}{
 		{
@@ -58,56 +61,47 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				privateRouteTable := m.EXPECT().
-					CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
+				privateRouteTable := m.CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
 					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				m.EXPECT().
-					CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
-						NatGatewayId:         aws.String("nat-01"),
-						DestinationCidrBlock: aws.String("0.0.0.0/0"),
-						RouteTableId:         aws.String("rt-1"),
-					})).
+				m.CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
+					NatGatewayId:         aws.String("nat-01"),
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					RouteTableId:         aws.String("rt-1"),
+				})).
 					After(privateRouteTable)
 
-				m.EXPECT().
-					AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
-						RouteTableId: aws.String("rt-1"),
-						SubnetId:     aws.String("subnet-routetables-private"),
-					})).
+				m.AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
+					RouteTableId: aws.String("rt-1"),
+					SubnetId:     aws.String("subnet-routetables-private"),
+				})).
 					Return(&ec2.AssociateRouteTableOutput{}, nil).
 					After(privateRouteTable)
 
-				publicRouteTable := m.EXPECT().
-					CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
+				publicRouteTable := m.CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
 					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-2")}}, nil)
 
-				m.EXPECT().
-					CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
-						GatewayId:            aws.String("igw-01"),
-						DestinationCidrBlock: aws.String("0.0.0.0/0"),
-						RouteTableId:         aws.String("rt-2"),
-					})).
+				m.CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
+					GatewayId:            aws.String("igw-01"),
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					RouteTableId:         aws.String("rt-2"),
+				})).
 					After(publicRouteTable)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				m.EXPECT().
-					AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
-						RouteTableId: aws.String("rt-2"),
-						SubnetId:     aws.String("subnet-routetables-public"),
-					})).
+				m.AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
+					RouteTableId: aws.String("rt-2"),
+					SubnetId:     aws.String("subnet-routetables-public"),
+				})).
 					Return(&ec2.AssociateRouteTableOutput{}, nil).
 					After(publicRouteTable)
 			},
@@ -135,9 +129,8 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 			},
 			err: errors.New(`no nat gateways available in "us-east-1a"`),
@@ -147,9 +140,23 @@ func TestReconcileRouteTables(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			s := NewService(ec2Mock)
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
 			if err := s.reconcileRouteTables("test-cluster", tc.input); err != nil && tc.err != nil {
 				if !strings.Contains(err.Error(), tc.err.Error()) {
 					t.Fatalf("was expecting error to look like '%v', but got '%v'", tc.err, err)

@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ec2_test
+package ec2
 
 import (
 	"testing"
@@ -24,9 +24,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
-	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -36,23 +37,22 @@ func TestInstanceIfExists(t *testing.T) {
 	testCases := []struct {
 		name       string
 		instanceID string
-		expect     func(m *mock_ec2iface.MockEC2API)
+		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		check      func(instance *v1alpha1.Instance, err error)
 	}{
 		{
 			name:       "does not exist",
 			instanceID: "hello",
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
-						InstanceIds: []*string{aws.String("hello")},
-						Filters: []*ec2.Filter{
-							{
-								Name:   aws.String("instance-state-name"),
-								Values: []*string{aws.String("pending"), aws.String("running")},
-							},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+					InstanceIds: []*string{aws.String("hello")},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("instance-state-name"),
+							Values: []*string{aws.String("pending"), aws.String("running")},
 						},
-					})).
+					},
+				})).
 					Return(nil, awserrors.NewNotFound(errors.New("not found")))
 			},
 			check: func(instance *v1alpha1.Instance, err error) {
@@ -68,17 +68,16 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "instance exists",
 			instanceID: "id-1",
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
-						InstanceIds: []*string{aws.String("id-1")},
-						Filters: []*ec2.Filter{
-							{
-								Name:   aws.String("instance-state-name"),
-								Values: []*string{aws.String("pending"), aws.String("running")},
-							},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+					InstanceIds: []*string{aws.String("id-1")},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("instance-state-name"),
+							Values: []*string{aws.String("pending"), aws.String("running")},
 						},
-					})).
+					},
+				})).
 					Return(&ec2.DescribeInstancesOutput{
 						Reservations: []*ec2.Reservation{
 							{
@@ -115,17 +114,16 @@ func TestInstanceIfExists(t *testing.T) {
 		{
 			name:       "error describing instances",
 			instanceID: "one",
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeInstances(&ec2.DescribeInstancesInput{
-						InstanceIds: []*string{aws.String("one")},
-						Filters: []*ec2.Filter{
-							{
-								Name:   aws.String("instance-state-name"),
-								Values: []*string{aws.String("pending"), aws.String("running")},
-							},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeInstances(&ec2.DescribeInstancesInput{
+					InstanceIds: []*string{aws.String("one")},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("instance-state-name"),
+							Values: []*string{aws.String("pending"), aws.String("running")},
 						},
-					}).
+					},
+				}).
 					Return(nil, errors.New("some unknown error"))
 			},
 			check: func(i *v1alpha1.Instance, err error) {
@@ -139,8 +137,23 @@ func TestInstanceIfExists(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
-			s := ec2svc.NewService(ec2Mock)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
 			instance, err := s.InstanceIfExists(&tc.instanceID)
 			tc.check(instance, err)
 		})
@@ -156,17 +169,16 @@ func TestTerminateInstance(t *testing.T) {
 	testCases := []struct {
 		name       string
 		instanceID string
-		expect     func(m *mock_ec2iface.MockEC2API)
+		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		check      func(err error)
 	}{
 		{
 			name:       "instance exists",
 			instanceID: "i-exist",
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
-						InstanceIds: []*string{aws.String("i-exist")},
-					})).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
+					InstanceIds: []*string{aws.String("i-exist")},
+				})).
 					Return(&ec2.TerminateInstancesOutput{}, nil)
 			},
 			check: func(err error) {
@@ -178,11 +190,10 @@ func TestTerminateInstance(t *testing.T) {
 		{
 			name:       "instance does not exist",
 			instanceID: "i-donotexist",
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
-						InstanceIds: []*string{aws.String("i-donotexist")},
-					})).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.TerminateInstances(gomock.Eq(&ec2.TerminateInstancesInput{
+					InstanceIds: []*string{aws.String("i-donotexist")},
+				})).
 					Return(&ec2.TerminateInstancesOutput{}, instanceNotFoundError)
 			},
 			check: func(err error) {
@@ -196,9 +207,24 @@ func TestTerminateInstance(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
-			s := ec2svc.NewService(ec2Mock)
-			err := s.TerminateInstance(tc.instanceID)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
+			err = s.TerminateInstance(tc.instanceID)
 			tc.check(err)
 		})
 	}
@@ -212,7 +238,7 @@ func TestCreateInstance(t *testing.T) {
 		clusterStatus *v1alpha1.AWSClusterProviderStatus
 		clusterConfig *v1alpha1.AWSClusterProviderConfig
 		cluster       clusterv1.Cluster
-		expect        func(m *mock_ec2iface.MockEC2API)
+		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		check         func(instance *v1alpha1.Instance, err error)
 	}{
 		{
@@ -266,9 +292,8 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					// TODO: Restore these parameters, but with the tags as well
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -283,8 +308,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.EXPECT().
-					WaitUntilInstanceRunning(gomock.Any()).
+				m.WaitUntilInstanceRunning(gomock.Any()).
 					Return(nil)
 			},
 			check: func(instance *v1alpha1.Instance, err error) {
@@ -300,8 +324,23 @@ func TestCreateInstance(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
-			s := ec2svc.NewService(ec2Mock)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
 			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus, tc.clusterConfig, &tc.cluster, "")
 			tc.check(instance, err)
 		})

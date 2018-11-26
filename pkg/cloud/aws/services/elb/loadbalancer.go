@@ -98,8 +98,7 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 		LoadBalancerName: aws.String(loadBalancer),
 	}
 
-	_, err := s.ELB.RegisterInstancesWithLoadBalancer(input)
-
+	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
 	if err != nil {
 		return err
 	}
@@ -114,8 +113,7 @@ func (s *Service) RegisterInstanceWithAPIServerELB(clusterName string, instanceI
 		LoadBalancerName: aws.String(GenerateELBName(clusterName, TagValueAPIServerRole)),
 	}
 
-	_, err := s.ELB.RegisterInstancesWithLoadBalancer(input)
-
+	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
 	if err != nil {
 		return err
 	}
@@ -176,7 +174,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 		})
 	}
 
-	out, err := s.ELB.CreateLoadBalancer(input)
+	out, err := s.scope.ELB.CreateLoadBalancer(input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create classic load balancer: %v", spec)
 	}
@@ -193,7 +191,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 			},
 		}
 
-		if _, err := s.ELB.ConfigureHealthCheck(hc); err != nil {
+		if _, err := s.scope.ELB.ConfigureHealthCheck(hc); err != nil {
 			return nil, errors.Wrapf(err, "failed to configure health check for classic load balancer: %v", spec)
 		}
 	}
@@ -210,7 +208,7 @@ func (s *Service) deleteClassicELB(name string) error {
 		LoadBalancerName: aws.String(name),
 	}
 
-	if _, err := s.ELB.DeleteLoadBalancer(input); err != nil {
+	if _, err := s.scope.ELB.DeleteLoadBalancer(input); err != nil {
 		return err
 	}
 	return nil
@@ -226,7 +224,7 @@ func (s *Service) deleteClassicELBAndWait(name string) error {
 	}
 
 	checkForELBDeletion := func() (done bool, err error) {
-		out, err := s.ELB.DescribeLoadBalancers(input)
+		out, err := s.scope.ELB.DescribeLoadBalancers(input)
 
 		// ELB already deleted.
 		if len(out.LoadBalancerDescriptions) == 0 {
@@ -257,7 +255,7 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
 
-	out, err := s.ELB.DescribeLoadBalancers(input)
+	out, err := s.scope.ELB.DescribeLoadBalancers(input)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {

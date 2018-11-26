@@ -14,19 +14,19 @@
 package elb
 
 import (
-	"github.com/aws/aws-sdk-go/service/elb/elbiface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
-	ELB elbiface.ELBAPI
+	scope *actuators.Scope
 }
 
 // NewService returns a new service given the api clients.
-func NewService(elb elbiface.ELBAPI) *Service {
+func NewService(scope *actuators.Scope) *Service {
 	return &Service{
-		ELB: elb,
+		scope: scope,
 	}
 }

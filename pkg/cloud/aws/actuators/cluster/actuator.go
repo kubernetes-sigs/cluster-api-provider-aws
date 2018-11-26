@@ -17,8 +17,9 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -27,7 +28,7 @@ import (
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
-	*deployer.Deployer
+	deployer.Deployer
 
 	client client.ClusterV1alpha1Interface
 }
@@ -43,7 +44,6 @@ func NewActuator(params ActuatorParams) *Actuator {
 		client: params.Client,
 	}
 
-	res.Deployer = deployer.New(services.NewSDKGetter())
 	return res
 }
 
@@ -58,6 +58,9 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	defer scope.Close()
 
+	ec2svc := ec2.NewService(scope)
+	elbsvc := elb.NewService(scope)
+
 	// Store some config parameters in the status.
 	if len(scope.ClusterConfig.CACertificate) == 0 {
 		caCert, caKey, err := certificates.NewCertificateAuthority()
@@ -69,15 +72,15 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		scope.ClusterConfig.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
 	}
 
-	if err := scope.EC2.ReconcileNetwork(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	if err := ec2svc.ReconcileNetwork(cluster.Name, &scope.ClusterStatus.Network); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
-	if err := scope.EC2.ReconcileBastion(cluster.Name, scope.ClusterConfig.SSHKeyName, scope.ClusterStatus); err != nil {
+	if err := ec2svc.ReconcileBastion(cluster.Name, scope.ClusterConfig.SSHKeyName, scope.ClusterStatus); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
-	if err := scope.ELB.ReconcileLoadbalancers(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	if err := elbsvc.ReconcileLoadbalancers(cluster.Name, &scope.ClusterStatus.Network); err != nil {
 		return errors.Errorf("unable to reconcile load balancers: %v", err)
 	}
 
@@ -95,15 +98,18 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 
 	defer scope.Close()
 
-	if err := scope.ELB.DeleteLoadbalancers(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	ec2svc := ec2.NewService(scope)
+	elbsvc := elb.NewService(scope)
+
+	if err := elbsvc.DeleteLoadbalancers(cluster.Name, &scope.ClusterStatus.Network); err != nil {
 		return errors.Errorf("unable to delete load balancers: %v", err)
 	}
 
-	if err := scope.EC2.DeleteBastion(cluster.Name, scope.ClusterStatus); err != nil {
+	if err := ec2svc.DeleteBastion(cluster.Name, scope.ClusterStatus); err != nil {
 		return errors.Errorf("unable to delete bastion: %v", err)
 	}
 
-	if err := scope.EC2.DeleteNetwork(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	if err := ec2svc.DeleteNetwork(cluster.Name, &scope.ClusterStatus.Network); err != nil {
 		klog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: 5 * 1000 * 1000 * 1000,

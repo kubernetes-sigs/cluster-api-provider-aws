@@ -17,16 +17,34 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface" //nolint
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	//nolint
 )
 
 func TestNewService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 	elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
-	svc := NewService(elbMock)
-	if svc == nil {
+
+	scope, err := actuators.NewScope(actuators.ScopeParams{
+		Cluster: &clusterv1.Cluster{},
+		AWSClients: actuators.AWSClients{
+			EC2: ec2Mock,
+			ELB: elbMock,
+		},
+	})
+
+	if err != nil {
+		t.Fatalf("Failed to create test context: %v", err)
+	}
+
+	s := NewService(scope)
+	if s == nil {
 		t.Fatalf("Service shouldn't be nil")
 	}
 }

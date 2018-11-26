@@ -115,7 +115,7 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 			GroupId: aws.String(sg.ID),
 		}
 
-		if _, err := s.EC2.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+		if _, err := s.scope.EC2.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
 			return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
 		}
 
@@ -132,7 +132,7 @@ func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string)
 		},
 	}
 
-	out, err := s.EC2.DescribeSecurityGroups(input)
+	out, err := s.scope.EC2.DescribeSecurityGroups(input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to describe security groups in vpc %q", vpcID)
 	}
@@ -155,7 +155,7 @@ func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string)
 }
 
 func (s *Service) createSecurityGroup(clusterName string, role v1alpha1.SecurityGroupRole, input *ec2.SecurityGroup) error {
-	out, err := s.EC2.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
+	out, err := s.scope.EC2.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 		VpcId:       input.VpcId,
 		GroupName:   input.GroupName,
 		Description: aws.String(fmt.Sprintf("Kubernetes cluster %s: %s", clusterName, role)),
@@ -169,7 +169,7 @@ func (s *Service) createSecurityGroup(clusterName string, role v1alpha1.Security
 	input.GroupId = out.GroupId
 
 	// Tag the security group.
-	if _, err := s.EC2.CreateTags(&ec2.CreateTagsInput{Resources: []*string{out.GroupId}, Tags: input.Tags}); err != nil {
+	if _, err := s.scope.EC2.CreateTags(&ec2.CreateTagsInput{Resources: []*string{out.GroupId}, Tags: input.Tags}); err != nil {
 		return errors.Wrapf(err, "failed to tag security group %q in vpc %q", *input.GroupName, *input.VpcId)
 	}
 
@@ -182,7 +182,7 @@ func (s *Service) authorizeSecurityGroupIngressRules(groupID string, rules v1alp
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))
 	}
 
-	if _, err := s.EC2.AuthorizeSecurityGroupIngress(input); err != nil {
+	if _, err := s.scope.EC2.AuthorizeSecurityGroupIngress(input); err != nil {
 		return errors.Wrapf(err, "failed to authorize security group %q ingress rules: %v", groupID, rules)
 	}
 
@@ -195,7 +195,7 @@ func (s *Service) revokeSecurityGroupIngressRules(groupID string, rules v1alpha1
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))
 	}
 
-	if _, err := s.EC2.RevokeSecurityGroupIngress(input); err != nil {
+	if _, err := s.scope.EC2.RevokeSecurityGroupIngress(input); err != nil {
 		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", groupID, rules)
 	}
 

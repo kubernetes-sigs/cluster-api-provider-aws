@@ -22,6 +22,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/cloud/aws/actuators:go_default_library",
         "//pkg/cloud/aws/converters:go_default_library",
         "//pkg/cloud/aws/filter:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
@@ -30,7 +31,6 @@ go_library(
         "//pkg/cloud/aws/tags:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/service/ec2/ec2iface:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
@@ -50,8 +50,10 @@ go_test(
     embed = [":go_default_library"],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/cloud/aws/actuators:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library",
+        "//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
         "//vendor/github.com/golang/mock/gomock:go_default_library",

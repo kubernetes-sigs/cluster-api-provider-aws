@@ -20,7 +20,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const (
@@ -34,7 +37,7 @@ func TestReconcileSubnets(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *v1alpha1.Network
-		expect func(m *mock_ec2iface.MockEC2API)
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create public with defaults",
@@ -49,9 +52,8 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeAvailabilityZones(gomock.AssignableToTypeOf(&ec2.DescribeAvailabilityZonesInput{})).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeAvailabilityZones(gomock.AssignableToTypeOf(&ec2.DescribeAvailabilityZonesInput{})).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []*ec2.AvailabilityZone{
 							{
@@ -61,23 +63,22 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.EXPECT().
-					DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{
-								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
-							},
-							{
-								Name:   aws.String("tag-key"),
-								Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
-							},
-							{
-								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
-							},
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
 						},
-					})).
+						{
+							Name:   aws.String("tag-key"),
+							Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
+						},
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+					},
+				})).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{
 							{
@@ -90,12 +91,11 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.EXPECT().
-					CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
-						VpcId:            aws.String(subnetsVPCID),
-						CidrBlock:        aws.String(defaultPublicSubnetCidr),
-						AvailabilityZone: aws.String("us-east-1a"),
-					})).
+				m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String(defaultPublicSubnetCidr),
+					AvailabilityZone: aws.String("us-east-1a"),
+				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
 							VpcId:               aws.String(subnetsVPCID),
@@ -106,20 +106,17 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}, nil)
 
-				m.EXPECT().
-					WaitUntilSubnetAvailable(gomock.Any())
+				m.WaitUntilSubnetAvailable(gomock.Any())
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				m.EXPECT().
-					ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
-						MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
-							Value: aws.Bool(true),
-						},
-						SubnetId: aws.String("subnet-2"),
-					}).
+				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil)
 
 			},
@@ -141,32 +138,30 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				describeCall := m.EXPECT().
-					DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{
-								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
-							},
-							{
-								Name:   aws.String("tag-key"),
-								Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
-							},
-							{
-								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
-							},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
 						},
-					})).
+						{
+							Name:   aws.String("tag-key"),
+							Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
+						},
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+					},
+				})).
 					Return(&ec2.DescribeSubnetsOutput{}, nil)
 
-				firstSubnet := m.EXPECT().
-					CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
-						VpcId:            aws.String(subnetsVPCID),
-						CidrBlock:        aws.String("10.1.0.0/16"),
-						AvailabilityZone: aws.String("us-east-1a"),
-					})).
+				firstSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String("10.1.0.0/16"),
+					AvailabilityZone: aws.String("us-east-1a"),
+				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
 							VpcId:               aws.String(subnetsVPCID),
@@ -178,20 +173,17 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(describeCall)
 
-				m.EXPECT().
-					WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(firstSubnet)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				secondSubnet := m.EXPECT().
-					CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
-						VpcId:            aws.String(subnetsVPCID),
-						CidrBlock:        aws.String("10.2.0.0/16"),
-						AvailabilityZone: aws.String("us-east-1b"),
-					})).
+				secondSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String("10.2.0.0/16"),
+					AvailabilityZone: aws.String("us-east-1b"),
+				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
 							VpcId:               aws.String(subnetsVPCID),
@@ -203,20 +195,17 @@ func TestReconcileSubnets(t *testing.T) {
 					}, nil).
 					After(firstSubnet)
 
-				m.EXPECT().
-					WaitUntilSubnetAvailable(gomock.Any()).
+				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(secondSubnet)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
 
-				m.EXPECT().
-					ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
-						MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
-							Value: aws.Bool(true),
-						},
-						SubnetId: aws.String("subnet-2"),
-					}).
+				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
 
@@ -227,9 +216,23 @@ func TestReconcileSubnets(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			s := NewService(ec2Mock)
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
 			if err := s.reconcileSubnets("test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}

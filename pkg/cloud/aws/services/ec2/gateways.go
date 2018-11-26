@@ -58,7 +58,7 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 			VpcId:             aws.String(in.VPC.ID),
 		}
 
-		if _, err := s.EC2.DetachInternetGateway(detachReq); err != nil {
+		if _, err := s.scope.EC2.DetachInternetGateway(detachReq); err != nil {
 			return errors.Wrapf(err, "failed to detach internet gateway %q", *ig.InternetGatewayId)
 		}
 
@@ -68,7 +68,7 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 			InternetGatewayId: ig.InternetGatewayId,
 		}
 
-		if _, err = s.EC2.DeleteInternetGateway(deleteReq); err != nil {
+		if _, err = s.scope.EC2.DeleteInternetGateway(deleteReq); err != nil {
 			return errors.Wrapf(err, "failed to delete internet gateway %q", *ig.InternetGatewayId)
 		}
 
@@ -78,7 +78,7 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 }
 
 func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
-	ig, err := s.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
+	ig, err := s.scope.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
@@ -86,7 +86,7 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 	name := fmt.Sprintf("%s-igw", clusterName)
 
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.EC2,
+		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
 			ClusterName: clusterName,
 			ResourceID:  *ig.InternetGateway.InternetGatewayId,
@@ -102,7 +102,7 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 
 	klog.Infof("created internet gateway %q", vpc.ID)
 
-	_, err = s.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
+	_, err = s.scope.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
 		VpcId:             aws.String(vpc.ID),
 	})
@@ -115,7 +115,7 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 }
 
 func (s *Service) describeVpcInternetGateways(clusterName string, vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
-	out, err := s.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
+	out, err := s.scope.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPCAttachment(vpc.ID),
 			filter.EC2.Cluster(clusterName),

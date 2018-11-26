@@ -18,45 +18,42 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
-	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-// New returns a new deployer.
-func New(servicesGetter service.Getter) *Deployer {
-	return &Deployer{servicesGetter}
-}
-
 // Deployer satisfies the ProviderDeployer(https://github.com/kubernetes-sigs/cluster-api/blob/master/cmd/clusterctl/clusterdeployer/clusterdeployer.go) interface.
 type Deployer struct {
-	servicesGetter service.Getter
+	scopeGetter actuators.ScopeGetter
+}
+
+// Params is used to create a new deployer.
+type Params struct {
+	ScopeGetter actuators.ScopeGetter
+}
+
+// New returns a new Deployer.
+func New(params Params) *Deployer {
+	return &Deployer{
+		scopeGetter: params.ScopeGetter,
+	}
 }
 
 // GetIP returns the IP of a machine, but this is going away.
 func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
-	if cluster.Status.ProviderStatus != nil {
-
-		// Load provider status.
-		status, err := providerv1.ClusterStatusFromProviderStatus(cluster.Status.ProviderStatus)
-		if err != nil {
-			return "", errors.Errorf("failed to load cluster provider status: %v", err)
-		}
-
-		if status.Network.APIServerELB.DNSName != "" {
-			return status.Network.APIServerELB.DNSName, nil
-		}
-	}
-
-	// Load provider config.
-	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
+	scope, err := d.scopeGetter.GetScope(actuators.ScopeParams{Cluster: cluster})
 	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider config: %v", err)
+		return "", err
 	}
 
-	sess := d.servicesGetter.Session(config)
-	elb := d.servicesGetter.ELB(sess)
-	return elb.GetAPIServerDNSName(cluster.Name)
+	if scope.ClusterStatus != nil && scope.ClusterStatus.Network.APIServerELB.DNSName != "" {
+		return scope.ClusterStatus.Network.APIServerELB.DNSName, nil
+	}
+
+	elbsvc := elb.NewService(scope)
+	return elbsvc.GetAPIServerDNSName(cluster.Name)
 }
 
 // GetKubeConfig returns the kubeconfig after the bootstrap process is complete.

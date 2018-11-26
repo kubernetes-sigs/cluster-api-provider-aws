@@ -28,7 +28,7 @@ func (s *Service) GetConsoleOutput(instanceID string) (string, error) {
 		Latest:     aws.Bool(true),
 	}
 
-	out, err := s.EC2.GetConsoleOutput(input)
+	out, err := s.scope.EC2.GetConsoleOutput(input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get console output for instance %q", instanceID)
 	}

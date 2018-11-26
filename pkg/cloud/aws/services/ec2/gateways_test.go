@@ -20,7 +20,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface" //nolint
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestReconcileInternetGateways(t *testing.T) {
@@ -30,7 +33,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *v1alpha1.Network
-		expect func(m *mock_ec2iface.MockEC2API)
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "has igw",
@@ -39,9 +42,8 @@ func TestReconcileInternetGateways(t *testing.T) {
 					ID: "vpc-gateways",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
 					Return(&ec2.DescribeInternetGatewaysOutput{
 						InternetGateways: []*ec2.InternetGateway{
 							{
@@ -64,26 +66,22 @@ func TestReconcileInternetGateways(t *testing.T) {
 					ID: "vpc-gateways",
 				},
 			},
-			expect: func(m *mock_ec2iface.MockEC2API) {
-				m.EXPECT().
-					DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
 					Return(&ec2.DescribeInternetGatewaysOutput{}, nil)
 
-				m.EXPECT().
-					CreateInternetGateway(gomock.AssignableToTypeOf(&ec2.CreateInternetGatewayInput{})).
+				m.CreateInternetGateway(gomock.AssignableToTypeOf(&ec2.CreateInternetGatewayInput{})).
 					Return(&ec2.CreateInternetGatewayOutput{
 						InternetGateway: &ec2.InternetGateway{InternetGatewayId: aws.String("igw-1")},
 					}, nil)
 
-				m.EXPECT().
-					CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				m.EXPECT().
-					AttachInternetGateway(gomock.Eq(&ec2.AttachInternetGatewayInput{
-						InternetGatewayId: aws.String("igw-1"),
-						VpcId:             aws.String("vpc-gateways"),
-					})).
+				m.AttachInternetGateway(gomock.Eq(&ec2.AttachInternetGatewayInput{
+					InternetGatewayId: aws.String("igw-1"),
+					VpcId:             aws.String("vpc-gateways"),
+				})).
 					Return(&ec2.AttachInternetGatewayOutput{}, nil)
 
 			},
@@ -93,9 +91,23 @@ func TestReconcileInternetGateways(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			tc.expect(ec2Mock)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			s := NewService(ec2Mock)
+			scope, err := actuators.NewScope(actuators.ScopeParams{
+				Cluster: &clusterv1.Cluster{},
+				AWSClients: actuators.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
 			if err := s.reconcileInternetGateways("test-cluster", tc.input); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
