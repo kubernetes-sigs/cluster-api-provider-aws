@@ -107,7 +107,7 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	if config.AMI.ID != nil {
 		input.ImageID = *config.AMI.ID
 	} else {
-		input.ImageID = s.defaultAMILookup(clusterStatus.Region)
+		input.ImageID = s.defaultAMILookup(clusterConfig.Region)
 	}
 
 	// Pick subnet from the machine configuration, or default to the first private available.
