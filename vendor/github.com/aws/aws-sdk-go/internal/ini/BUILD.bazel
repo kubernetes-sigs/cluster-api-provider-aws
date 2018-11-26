@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
@@ -30,23 +30,4 @@ go_library(
     importpath = "github.com/aws/aws-sdk-go/internal/ini",
     visibility = ["//vendor/github.com/aws/aws-sdk-go:__subpackages__"],
     deps = ["//vendor/github.com/aws/aws-sdk-go/aws/awserr:go_default_library"],
-)
-
-go_test(
-    name = "go_default_test",
-    srcs = [
-        "bench_test.go",
-        "ini_lexer_test.go",
-        "ini_parser_test.go",
-        "literal_tokens_test.go",
-        "number_helper_test.go",
-        "op_tokens_test.go",
-        "parse_stack_test.go",
-        "sep_tokens_test.go",
-        "skipper_test.go",
-        "value_util_test.go",
-        "walker_test.go",
-    ],
-    data = glob(["testdata/**"]),
-    embed = [":go_default_library"],
 )
