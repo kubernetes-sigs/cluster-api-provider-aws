@@ -28,7 +28,7 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 	}
 
 	// Subnets.
-	if err := s.reconcileSubnets(clusterName, network); err != nil {
+	if err := s.reconcileSubnets(); err != nil {
 		return err
 	}
 
@@ -86,7 +86,7 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	}
 
 	// Subnets.
-	if err := s.deleteSubnets(clusterName, network); err != nil {
+	if err := s.deleteSubnets(); err != nil {
 		return err
 	}
 
