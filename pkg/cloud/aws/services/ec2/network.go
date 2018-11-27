@@ -48,7 +48,7 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 	}
 
 	// Security groups.
-	if err := s.reconcileSecurityGroups(clusterName, network); err != nil {
+	if err := s.reconcileSecurityGroups(); err != nil {
 		return err
 	}
 
@@ -61,7 +61,7 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	klog.V(2).Info("Deleting network")
 
 	// Security groups.
-	if err := s.deleteSecurityGroups(clusterName, network); err != nil {
+	if err := s.deleteSecurityGroups(); err != nil {
 		return err
 	}
 
