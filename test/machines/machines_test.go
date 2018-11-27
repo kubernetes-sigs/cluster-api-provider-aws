@@ -84,7 +84,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 	// are defined through CRD, we can relax the restriction.
 	Context("AWS actuator", func() {
 		var (
-			acw           *awsClientWrapper
+			acw           *machineutils.AwsClientWrapper
 			awsClient     awsclient.Client
 			awsCredSecret *apiv1.Secret
 			cluster       *clusterv1alpha1.Cluster
@@ -122,7 +122,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			var err error
 			awsClient, err = awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
 			Expect(err).NotTo(HaveOccurred())
-			acw = &awsClientWrapper{client: awsClient}
+			acw = machineutils.NewAwsClientWrapper(awsClient)
 
 		})
 
