@@ -29,15 +29,15 @@ const (
 	anyIPv4CidrBlock = "0.0.0.0/0"
 )
 
-func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network) error {
+func (s *Service) reconcileRouteTables() error {
 	klog.V(2).Infof("Reconciling routing tables")
 
-	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet(clusterName, in.VPC.ID)
+	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet()
 	if err != nil {
 		return err
 	}
 
-	for _, sn := range in.Subnets {
+	for _, sn := range s.scope.Subnets() {
 		if igw, ok := subnetRouteMap[sn.ID]; ok {
 			klog.V(2).Infof("Subnet %q is already associated with route table %q", sn.ID, *igw.RouteTableId)
 			// TODO(vincepri): if the route table ids are both non-empty and they don't match, replace the association.
@@ -49,13 +49,13 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 		// create a new table with the appropriate default routes and associate it to the subnet.
 		var routes []*ec2.Route
 		if sn.IsPublic {
-			if in.InternetGatewayID == nil {
-				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", in.VPC.ID)
+			if s.scope.Network().InternetGatewayID == nil {
+				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
 			}
 
-			routes = s.getDefaultPublicRoutes(*in.InternetGatewayID)
+			routes = s.getDefaultPublicRoutes()
 		} else {
-			natGatewayID, err := s.getNatGatewayForSubnet(in.Subnets, sn)
+			natGatewayID, err := s.getNatGatewayForSubnet(sn)
 			if err != nil {
 				return err
 			}
@@ -63,7 +63,7 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 			routes = s.getDefaultPrivateRoutes(natGatewayID)
 		}
 
-		rt, err := s.createRouteTableWithRoutes(clusterName, &in.VPC, routes, sn.IsPublic)
+		rt, err := s.createRouteTableWithRoutes(routes, sn.IsPublic)
 		if err != nil {
 			return err
 		}
@@ -79,8 +79,8 @@ func (s *Service) reconcileRouteTables(clusterName string, in *v1alpha1.Network)
 	return nil
 }
 
-func (s *Service) describeVpcRouteTablesBySubnet(clusterName string, vpcID string) (map[string]*ec2.RouteTable, error) {
-	rts, err := s.describeVpcRouteTables(clusterName, vpcID)
+func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, error) {
+	rts, err := s.describeVpcRouteTables()
 	if err != nil {
 		return nil, err
 	}
@@ -101,10 +101,10 @@ func (s *Service) describeVpcRouteTablesBySubnet(clusterName string, vpcID strin
 	return res, nil
 }
 
-func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) error {
-	rts, err := s.describeVpcRouteTables(clusterName, in.VPC.ID)
+func (s *Service) deleteRouteTables() error {
+	rts, err := s.describeVpcRouteTables()
 	if err != nil {
-		return errors.Wrapf(err, "failed to describe route tables in vpc %q", in.VPC.ID)
+		return errors.Wrapf(err, "failed to describe route tables in vpc %q", s.scope.VPC().ID)
 	}
 
 	for _, rt := range rts {
@@ -129,25 +129,25 @@ func (s *Service) deleteRouteTables(clusterName string, in *v1alpha1.Network) er
 	return nil
 }
 
-func (s *Service) describeVpcRouteTables(clusterName string, vpcID string) ([]*ec2.RouteTable, error) {
+func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 	out, err := s.scope.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.VPC(vpcID),
-			filter.EC2.Cluster(clusterName),
+			filter.EC2.VPC(s.scope.VPC().ID),
+			filter.EC2.Cluster(s.scope.Name()),
 		},
 	})
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe route tables in vpc %q", vpcID)
+		return nil, errors.Wrapf(err, "failed to describe route tables in vpc %q", s.scope.VPC().ID)
 	}
 
 	return out.RouteTables, nil
 }
 
 // TODO: dedup some of the public/private logic shared with createSubnet
-func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.VPC, routes []*ec2.Route, isPublic bool) (*v1alpha1.RouteTable, error) {
+func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool) (*v1alpha1.RouteTable, error) {
 	out, err := s.scope.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
-		VpcId: aws.String(vpc.ID),
+		VpcId: aws.String(s.scope.VPC().ID),
 	})
 
 	suffix := "private"
@@ -157,12 +157,12 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 		role = tags.ValueBastionRole
 	}
 
-	name := fmt.Sprintf("%s-rt-%s", clusterName, suffix)
+	name := fmt.Sprintf("%s-rt-%s", s.scope.Name(), suffix)
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
-			ClusterName: clusterName,
+			ClusterName: s.scope.Name(),
 			ResourceID:  *out.RouteTable.RouteTableId,
 			Lifecycle:   tags.ResourceLifecycleOwned,
 			Name:        aws.String(name),
@@ -175,7 +175,7 @@ func (s *Service) createRouteTableWithRoutes(clusterName string, vpc *v1alpha1.V
 	}
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", vpc.ID)
+		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", s.scope.VPC().ID)
 	}
 
 	for _, route := range routes {
@@ -224,11 +224,11 @@ func (s *Service) getDefaultPrivateRoutes(natGatewayID string) []*ec2.Route {
 	}
 }
 
-func (s *Service) getDefaultPublicRoutes(internetGatewayID string) []*ec2.Route {
+func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
 	return []*ec2.Route{
 		{
 			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
-			GatewayId:            aws.String(internetGatewayID),
+			GatewayId:            aws.String(*s.scope.Network().InternetGatewayID),
 		},
 	}
 }
