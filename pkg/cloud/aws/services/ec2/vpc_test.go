@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
@@ -108,7 +109,9 @@ func TestReconcileVPC(t *testing.T) {
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			scope, err := actuators.NewScope(actuators.ScopeParams{
-				Cluster: &clusterv1.Cluster{},
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
@@ -119,10 +122,16 @@ func TestReconcileVPC(t *testing.T) {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
+			scope.ClusterStatus = &v1alpha1.AWSClusterProviderStatus{
+				Network: v1alpha1.Network{
+					VPC: *tc.input,
+				},
+			}
+
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
-			if err := s.reconcileVPC("test-cluster", tc.input); err != nil {
+			if err := s.reconcileVPC(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 

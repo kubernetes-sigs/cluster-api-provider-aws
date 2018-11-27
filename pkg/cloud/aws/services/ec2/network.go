@@ -15,15 +15,14 @@ package ec2
 
 import (
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // ReconcileNetwork reconciles the network of the given cluster.
-func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network) (err error) {
+func (s *Service) ReconcileNetwork() (err error) {
 	klog.V(2).Info("Reconciling network")
 
 	// VPC.
-	if err := s.reconcileVPC(clusterName, &network.VPC); err != nil {
+	if err := s.reconcileVPC(); err != nil {
 		return err
 	}
 
@@ -57,7 +56,7 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 }
 
 // DeleteNetwork deletes the network of the given cluster.
-func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (err error) {
+func (s *Service) DeleteNetwork() (err error) {
 	klog.V(2).Info("Deleting network")
 
 	// Security groups.
@@ -91,7 +90,7 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	}
 
 	// VPC.
-	if err := s.deleteVPC(&network.VPC); err != nil {
+	if err := s.deleteVPC(); err != nil {
 		return err
 	}
 
