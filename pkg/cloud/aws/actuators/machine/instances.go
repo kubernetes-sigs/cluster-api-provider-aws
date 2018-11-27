@@ -3,6 +3,7 @@ package machine
 import (
 	"encoding/base64"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/golang/glog"
@@ -261,4 +262,35 @@ func launchInstance(machine *clusterv1.Machine, machineProviderConfig *providerc
 	}
 
 	return runResult.Instances[0], nil
+}
+
+type instanceList []*ec2.Instance
+
+func (il instanceList) Len() int {
+	return len(il)
+}
+
+func (il instanceList) Swap(i, j int) {
+	il[i], il[j] = il[j], il[i]
+}
+
+func (il instanceList) Less(i, j int) bool {
+	if il[i].LaunchTime == nil && il[j].LaunchTime == nil {
+		return false
+	}
+	if il[i].LaunchTime != nil && il[j].LaunchTime == nil {
+		return false
+	}
+	if il[i].LaunchTime == nil && il[j].LaunchTime != nil {
+		return true
+	}
+	return (*il[i].LaunchTime).After(*il[j].LaunchTime)
+}
+
+// sortInstances will sort a list of instance based on an instace launch time
+// from the newest to the oldest.
+// This function should only be called with running instances, not those which are stopped or
+// terminated.
+func sortInstances(instances []*ec2.Instance) {
+	sort.Sort(instanceList(instances))
 }

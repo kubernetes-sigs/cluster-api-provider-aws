@@ -301,19 +301,20 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		glog.Errorf("attempted to update machine but no instances found")
 		return fmt.Errorf("attempted to update machine but no instances found")
 	}
-	newestInstance, terminateInstances := SortInstances(instances)
+
+	glog.Info("instance found")
 
 	// In very unusual circumstances, there could be more than one machine running matching this
 	// machine name and cluster ID. In this scenario we will keep the newest, and delete all others.
-	glog.Info("instance found")
-
+	sortInstances(instances)
 	if len(instances) > 1 {
-		err = TerminateInstances(client, terminateInstances)
+		err = TerminateInstances(client, instances[1:])
 		if err != nil {
 			return err
 		}
-
 	}
+
+	newestInstance := instances[0]
 
 	err = a.UpdateLoadBalancers(client, machineProviderConfig, newestInstance)
 	if err != nil {

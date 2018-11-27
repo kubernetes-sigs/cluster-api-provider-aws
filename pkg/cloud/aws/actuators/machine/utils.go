@@ -35,50 +35,6 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-// SortInstances will examine the given slice of instances and return the current active instance for
-// the machine, as well as a slice of all other instances which the caller may want to terminate. The
-// active instance is calculated as the most recently launched instance.
-// This function should only be called with running instances, not those which are stopped or
-// terminated.
-func SortInstances(instances []*ec2.Instance) (*ec2.Instance, []*ec2.Instance) {
-	if len(instances) == 0 {
-		return nil, []*ec2.Instance{}
-	}
-	var newestInstance *ec2.Instance
-	inactiveInstances := make([]*ec2.Instance, 0, len(instances)-1)
-	for _, i := range instances {
-		if newestInstance == nil {
-			newestInstance = i
-			continue
-		}
-		tempInstance := chooseNewest(newestInstance, i)
-		if *tempInstance.InstanceId != *newestInstance.InstanceId {
-			inactiveInstances = append(inactiveInstances, newestInstance)
-		} else {
-			inactiveInstances = append(inactiveInstances, i)
-		}
-		newestInstance = tempInstance
-	}
-	return newestInstance, inactiveInstances
-}
-
-func chooseNewest(instance1, instance2 *ec2.Instance) *ec2.Instance {
-	if instance1.LaunchTime == nil && instance2.LaunchTime == nil {
-		// No idea what to do here, should not be possible, just return the first.
-		return instance1
-	}
-	if instance1.LaunchTime != nil && instance2.LaunchTime == nil {
-		return instance1
-	}
-	if instance1.LaunchTime == nil && instance2.LaunchTime != nil {
-		return instance2
-	}
-	if (*instance1.LaunchTime).After(*instance2.LaunchTime) {
-		return instance1
-	}
-	return instance2
-}
-
 // GetRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
 // the most recently launched will be returned. If no instance exists, an error will be returned.
 func GetRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*ec2.Instance, error) {
@@ -90,8 +46,8 @@ func GetRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*e
 		return nil, fmt.Errorf("no instance found for machine: %s", machine.Name)
 	}
 
-	instance, _ := SortInstances(instances)
-	return instance, nil
+	sortInstances(instances)
+	return instances[0], nil
 }
 
 // GetRunningInstances returns all running instances that have a tag matching our machine name,
