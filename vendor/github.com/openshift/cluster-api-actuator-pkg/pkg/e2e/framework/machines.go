@@ -14,18 +14,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+
+	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
 )
 
-type CloudProviderClient interface {
-	// Get running instances (of a given cloud provider) managed by the machine object
-	GetRunningInstances(machine *clusterv1alpha1.Machine) ([]interface{}, error)
-	// Get running instance public DNS name
-	GetPublicDNSName(machine *clusterv1alpha1.Machine) (string, error)
-	// Get private IP
-	GetPrivateIP(machine *clusterv1alpha1.Machine) (string, error)
-}
-
-func (f *Framework) DeleteMachineAndWait(machine *clusterv1alpha1.Machine, client CloudProviderClient) {
+func (f *Framework) DeleteMachineAndWait(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Deleting %q machine", machine.Name))
 	err := f.CAPIClient.ClusterV1alpha1().Machines(machine.Namespace).Delete(machine.Name, &metav1.DeleteOptions{})
 	f.IgnoreNotFoundErr(err)
@@ -63,7 +56,7 @@ func (f *Framework) DeleteMachineAndWait(machine *clusterv1alpha1.Machine, clien
 	}
 }
 
-func (f *Framework) waitForMachineToRun(machine *clusterv1alpha1.Machine, client CloudProviderClient) {
+func (f *Framework) waitForMachineToRun(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Waiting for %q machine", machine.Name))
 	// Verify machine has been deployed
 	err := wait.Poll(PollInterval, TimeoutPoolMachineRunningInterval, func() (bool, error) {
@@ -96,7 +89,7 @@ func (f *Framework) waitForMachineToRun(machine *clusterv1alpha1.Machine, client
 	f.ErrNotExpected(err)
 }
 
-func (f *Framework) waitForMachineToTerminate(machine *clusterv1alpha1.Machine, client CloudProviderClient) error {
+func (f *Framework) waitForMachineToTerminate(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) error {
 	f.By("Verify machine's underlying instance is not running")
 	err := wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
 		glog.V(2).Info("Waiting for instance to terminate")
@@ -133,7 +126,7 @@ func (f *Framework) waitForMachineToTerminate(machine *clusterv1alpha1.Machine, 
 	return nil
 }
 
-func (f *Framework) CreateMachineAndWait(machine *clusterv1alpha1.Machine, client CloudProviderClient) {
+func (f *Framework) CreateMachineAndWait(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Creating %q machine", machine.Name))
 	err := wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
 		_, err := f.CAPIClient.ClusterV1alpha1().Machines(machine.Namespace).Create(machine)
@@ -148,7 +141,7 @@ func (f *Framework) CreateMachineAndWait(machine *clusterv1alpha1.Machine, clien
 	f.waitForMachineToRun(machine, client)
 }
 
-func (f *Framework) CreateMachineSetAndWait(machineset *clusterv1alpha1.MachineSet, client CloudProviderClient) {
+func (f *Framework) CreateMachineSetAndWait(machineset *clusterv1alpha1.MachineSet, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Creating %q machineset", machineset.Name))
 	err := wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
 		_, err := f.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Create(machineset)
@@ -181,7 +174,7 @@ func (f *Framework) CreateMachineSetAndWait(machineset *clusterv1alpha1.MachineS
 	}
 }
 
-func (f *Framework) DeleteMachineSetAndWait(machineset *clusterv1alpha1.MachineSet, client CloudProviderClient) error {
+func (f *Framework) DeleteMachineSetAndWait(machineset *clusterv1alpha1.MachineSet, client types.CloudProviderClient) error {
 	f.By(fmt.Sprintf("Get all %q machineset's machines", machineset.Name))
 	machines, err := f.CAPIClient.ClusterV1alpha1().Machines(machineset.Namespace).List(metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(machineset.Spec.Selector.MatchLabels).String(),
@@ -272,7 +265,7 @@ func ReadKubeconfigFromServer(sshConfig *SSHConfig) (string, error) {
 	return b.String(), nil
 }
 
-func (f *Framework) GetMasterMachineRestConfig(masterMachine *clusterv1alpha1.Machine, client CloudProviderClient) (*rest.Config, error) {
+func (f *Framework) GetMasterMachineRestConfig(masterMachine *clusterv1alpha1.Machine, client types.CloudProviderClient) (*rest.Config, error) {
 	var masterPublicDNSName string
 	err := wait.Poll(PollInterval, TimeoutPoolMachineRunningInterval, func() (bool, error) {
 		var err error
@@ -322,13 +315,13 @@ func (f *Framework) GetMasterMachineRestConfig(masterMachine *clusterv1alpha1.Ma
 type machineToDelete struct {
 	machine   *clusterv1alpha1.Machine
 	framework *Framework
-	client    CloudProviderClient
+	client    types.CloudProviderClient
 }
 
 type machinesetToDelete struct {
 	machineset *clusterv1alpha1.MachineSet
 	framework  *Framework
-	client     CloudProviderClient
+	client     types.CloudProviderClient
 }
 
 type MachinesToDelete struct {
@@ -343,11 +336,11 @@ func InitMachinesToDelete() *MachinesToDelete {
 	}
 }
 
-func (m *MachinesToDelete) AddMachine(machine *clusterv1alpha1.Machine, framework *Framework, client CloudProviderClient) {
+func (m *MachinesToDelete) AddMachine(machine *clusterv1alpha1.Machine, framework *Framework, client types.CloudProviderClient) {
 	m.machines = append([]machineToDelete{{machine: machine, framework: framework, client: client}}, m.machines...)
 }
 
-func (m *MachinesToDelete) AddMachineSet(machineset *clusterv1alpha1.MachineSet, framework *Framework, client CloudProviderClient) {
+func (m *MachinesToDelete) AddMachineSet(machineset *clusterv1alpha1.MachineSet, framework *Framework, client types.CloudProviderClient) {
 	m.machinesets = append([]machinesetToDelete{{machineset: machineset, framework: framework, client: client}}, m.machinesets...)
 }
 

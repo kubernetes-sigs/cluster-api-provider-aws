@@ -48,7 +48,7 @@ vendor:
 	patch -p1 < 0002-Sort-machines-before-syncing.patch
 
 .PHONY: generate
-generate: 
+generate:
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: test
@@ -83,6 +83,10 @@ unit: # Run unit test
 .PHONY: integration
 integration: ## Run integration test
 	$(DOCKER_CMD) go test -v sigs.k8s.io/cluster-api-provider-aws/test/integration
+
+.PHONY: build-e2e
+build-e2e:
+	go test -c -o bin/e2e.test sigs.k8s.io/cluster-api-provider-aws/test/machines
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e test

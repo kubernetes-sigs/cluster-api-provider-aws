@@ -17,9 +17,7 @@ limitations under the License.
 package machine
 
 import (
-	"encoding/base64"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -35,10 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/elbv2"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
@@ -80,21 +75,6 @@ type codec interface {
 	DecodeProviderConfig(*clusterv1.ProviderConfig, runtime.Object) error
 	DecodeProviderStatus(*runtime.RawExtension, runtime.Object) error
 	EncodeProviderStatus(runtime.Object) (*runtime.RawExtension, error)
-}
-
-// Scan machine tags, and return a deduped tags list
-func removeDuplicatedTags(tags []*ec2.Tag) []*ec2.Tag {
-	m := make(map[string]bool)
-	result := []*ec2.Tag{}
-
-	// look for duplicates
-	for _, entry := range tags {
-		if _, value := m[*entry.Key]; !value {
-			m[*entry.Key] = true
-			result = append(result, entry)
-		}
-	}
-	return result
 }
 
 // NewActuator returns a new AWS Actuator
@@ -178,99 +158,6 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 	return nil
 }
 
-// removeStoppedMachine removes all instances of a specific machine that are in a stopped state.
-func (a *Actuator) removeStoppedMachine(machine *clusterv1.Machine, client awsclient.Client) error {
-	instances, err := GetStoppedInstances(machine, client)
-	if err != nil {
-		glog.Errorf("error getting stopped instances: %v", err)
-		return fmt.Errorf("error getting stopped instances: %v", err)
-	}
-
-	if len(instances) == 0 {
-		glog.Infof("no stopped instances found for machine %v", machine.Name)
-		return nil
-	}
-
-	return TerminateInstances(client, instances)
-}
-
-func buildEC2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {
-	filters := make([]*ec2.Filter, len(inputFilters))
-	for i, f := range inputFilters {
-		values := make([]*string, len(f.Values))
-		for j, v := range f.Values {
-			values[j] = aws.String(v)
-		}
-		filters[i] = &ec2.Filter{
-			Name:   aws.String(f.Name),
-			Values: values,
-		}
-	}
-	return filters
-}
-
-func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference, client awsclient.Client) ([]*string, error) {
-	var securityGroupIDs []*string
-	for _, g := range securityGroups {
-		// ID has priority
-		if g.ID != nil {
-			securityGroupIDs = append(securityGroupIDs, g.ID)
-		} else if g.Filters != nil {
-			glog.Info("Describing security groups based on filters")
-			// Get groups based on filters
-			describeSecurityGroupsRequest := ec2.DescribeSecurityGroupsInput{
-				Filters: buildEC2Filters(g.Filters),
-			}
-			describeSecurityGroupsResult, err := client.DescribeSecurityGroups(&describeSecurityGroupsRequest)
-			if err != nil {
-				glog.Errorf("error describing security groups: %v", err)
-				return nil, fmt.Errorf("error describing security groups: %v", err)
-			}
-			for _, g := range describeSecurityGroupsResult.SecurityGroups {
-				groupID := *g.GroupId
-				securityGroupIDs = append(securityGroupIDs, &groupID)
-			}
-		}
-	}
-
-	if len(securityGroups) == 0 {
-		glog.Info("No security group found")
-	}
-
-	return securityGroupIDs, nil
-}
-
-func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone string, client awsclient.Client) ([]*string, error) {
-	var subnetIDs []*string
-	// ID has priority
-	if subnet.ID != nil {
-		subnetIDs = append(subnetIDs, subnet.ID)
-	} else {
-		var filters []providerconfigv1.Filter
-		if availabilityZone != "" {
-			filters = append(filters, providerconfigv1.Filter{Name: "availabilityZone", Values: []string{availabilityZone}})
-		}
-		filters = append(filters, subnet.Filters...)
-		glog.Info("Describing subnets based on filters")
-		describeSubnetRequest := ec2.DescribeSubnetsInput{
-			Filters: buildEC2Filters(filters),
-		}
-		describeSubnetResult, err := client.DescribeSubnets(&describeSubnetRequest)
-		if err != nil {
-			glog.Errorf("error describing subnetes: %v", err)
-			return nil, fmt.Errorf("error describing subnets: %v", err)
-		}
-		for _, n := range describeSubnetResult.Subnets {
-			subnetID := *n.SubnetId
-			subnetIDs = append(subnetIDs, &subnetID)
-		}
-	}
-	if len(subnetIDs) == 0 {
-		return nil, fmt.Errorf("no subnet IDs were found")
-	}
-	return subnetIDs, nil
-}
-
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := ProviderConfigFromMachine(machine)
@@ -292,99 +179,11 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	// We explicitly do NOT want to remove stopped masters.
 	if !IsMaster(machine) {
 		// Prevent having a lot of stopped nodes sitting around.
-		err = a.removeStoppedMachine(machine, client)
+		err = removeStoppedMachine(machine, client)
 		if err != nil {
 			glog.Errorf("unable to remove stopped machines: %v", err)
 			return nil, fmt.Errorf("unable to remove stopped nodes: %v", err)
 		}
-	}
-
-	// Get AMI to use
-	var amiID *string
-	if machineProviderConfig.AMI.ID != nil {
-		amiID = machineProviderConfig.AMI.ID
-		glog.Infof("Using AMI %s", *amiID)
-	} else if len(machineProviderConfig.AMI.Filters) > 0 {
-		glog.Info("Describing AMI based on filters")
-		describeImagesRequest := ec2.DescribeImagesInput{
-			Filters: buildEC2Filters(machineProviderConfig.AMI.Filters),
-		}
-		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
-		if err != nil {
-			glog.Errorf("error describing AMI: %v", err)
-			return nil, fmt.Errorf("error describing AMI: %v", err)
-		}
-		if len(describeAMIResult.Images) < 1 {
-			glog.Errorf("no image for given filters not found")
-			return nil, fmt.Errorf("no image for given filters not found")
-		}
-		latestImage := describeAMIResult.Images[0]
-		latestTime, err := time.Parse(time.RFC3339, *latestImage.CreationDate)
-		if err != nil {
-			glog.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
-			return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
-		}
-		for _, image := range describeAMIResult.Images[1:] {
-			imageTime, err := time.Parse(time.RFC3339, *image.CreationDate)
-			if err != nil {
-				glog.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
-				return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
-			}
-			if latestTime.Before(imageTime) {
-				latestImage = image
-				latestTime = imageTime
-			}
-		}
-		amiID = latestImage.ImageId
-	} else {
-		return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
-	}
-
-	securityGroupsIDs, err := getSecurityGroupsIDs(machineProviderConfig.SecurityGroups, client)
-	if err != nil {
-		return nil, fmt.Errorf("error getting security groups IDs: %v,", err)
-	}
-	subnetIDs, err := getSubnetIDs(machineProviderConfig.Subnet, machineProviderConfig.Placement.AvailabilityZone, client)
-	if err != nil {
-		return nil, fmt.Errorf("error getting subnet IDs: %v,", err)
-	}
-	if len(subnetIDs) > 1 {
-		glog.Warningf("More than one subnet id returned, only first one will be used")
-	}
-
-	// build list of networkInterfaces (just 1 for now)
-	var networkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{
-		{
-			DeviceIndex:              aws.Int64(machineProviderConfig.DeviceIndex),
-			AssociatePublicIpAddress: machineProviderConfig.PublicIP,
-			SubnetId:                 subnetIDs[0],
-			Groups:                   securityGroupsIDs,
-		},
-	}
-
-	clusterID, ok := getClusterID(machine)
-	if !ok {
-		glog.Errorf("unable to get cluster ID for machine: %q", machine.Name)
-		return nil, err
-	}
-	// Add tags to the created machine
-	rawTagList := []*ec2.Tag{}
-	for _, tag := range machineProviderConfig.Tags {
-		rawTagList = append(rawTagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
-	}
-	rawTagList = append(rawTagList, []*ec2.Tag{
-		{Key: aws.String("clusterid"), Value: aws.String(clusterID)},
-		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
-		{Key: aws.String("Name"), Value: aws.String(machine.Name)},
-	}...)
-	tagList := removeDuplicatedTags(rawTagList)
-	tagInstance := &ec2.TagSpecification{
-		ResourceType: aws.String("instance"),
-		Tags:         tagList,
-	}
-	tagVolume := &ec2.TagSpecification{
-		ResourceType: aws.String("volume"),
-		Tags:         []*ec2.Tag{{Key: aws.String("clusterid"), Value: aws.String(clusterID)}},
 	}
 
 	userData := []byte{}
@@ -401,50 +200,14 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 
-	userDataEnc := base64.StdEncoding.EncodeToString(userData)
-
-	var iamInstanceProfile *ec2.IamInstanceProfileSpecification
-	if machineProviderConfig.IAMInstanceProfile != nil && machineProviderConfig.IAMInstanceProfile.ID != nil {
-		iamInstanceProfile = &ec2.IamInstanceProfileSpecification{
-			Name: aws.String(*machineProviderConfig.IAMInstanceProfile.ID),
-		}
-	}
-
-	var placement *ec2.Placement
-	if machineProviderConfig.Placement.AvailabilityZone != "" && machineProviderConfig.Subnet.ID == nil {
-		placement = &ec2.Placement{
-			AvailabilityZone: aws.String(machineProviderConfig.Placement.AvailabilityZone),
-		}
-	}
-
-	inputConfig := ec2.RunInstancesInput{
-		ImageId:      amiID,
-		InstanceType: aws.String(machineProviderConfig.InstanceType),
-		// Only a single instance of the AWS instance allowed
-		MinCount:           aws.Int64(1),
-		MaxCount:           aws.Int64(1),
-		KeyName:            machineProviderConfig.KeyName,
-		IamInstanceProfile: iamInstanceProfile,
-		TagSpecifications:  []*ec2.TagSpecification{tagInstance, tagVolume},
-		NetworkInterfaces:  networkInterfaces,
-		UserData:           &userDataEnc,
-		Placement:          placement,
-	}
-
-	runResult, err := client.RunInstances(&inputConfig)
+	instance, err := launchInstance(machine, machineProviderConfig, userData, client)
 	if err != nil {
-		glog.Errorf("error creating EC2 instance: %v", err)
-		return nil, fmt.Errorf("error creating EC2 instance: %v", err)
+		retErr := fmt.Errorf("error launching instance: %v", err)
+		glog.Error(retErr)
+		return nil, retErr
 	}
 
-	if runResult == nil || len(runResult.Instances) != 1 {
-		glog.Errorf("unexpected reservation creating instances: %v", runResult)
-		return nil, fmt.Errorf("unexpected reservation creating instance")
-	}
-
-	instance := runResult.Instances[0]
-
-	err = a.UpdateLoadBalancers(client, machineProviderConfig, instance)
+	err = a.updateLoadBalancers(client, machineProviderConfig, instance)
 
 	return instance, err
 }
@@ -478,7 +241,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
-	instances, err := GetRunningInstances(machine, client)
+	instances, err := getRunningInstances(machine, client)
 	if err != nil {
 		glog.Errorf("error getting running instances: %v", err)
 		return err
@@ -488,7 +251,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil
 	}
 
-	return TerminateInstances(client, instances)
+	return terminateInstances(client, instances)
 }
 
 // Update attempts to sync machine state with an existing instance. Today this just updates status
@@ -515,7 +278,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return fmt.Errorf("unable to obtain EC2 client: %v", err)
 	}
 
-	instances, err := GetRunningInstances(machine, client)
+	instances, err := getRunningInstances(machine, client)
 	if err != nil {
 		glog.Errorf("error getting running instances: %v", err)
 		return err
@@ -534,21 +297,22 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		glog.Errorf("attempted to update machine but no instances found")
 		return fmt.Errorf("attempted to update machine but no instances found")
 	}
-	newestInstance, terminateInstances := SortInstances(instances)
+
+	glog.Info("instance found")
 
 	// In very unusual circumstances, there could be more than one machine running matching this
 	// machine name and cluster ID. In this scenario we will keep the newest, and delete all others.
-	glog.Info("instance found")
-
+	sortInstances(instances)
 	if len(instances) > 1 {
-		err = TerminateInstances(client, terminateInstances)
+		err = terminateInstances(client, instances[1:])
 		if err != nil {
 			return err
 		}
-
 	}
 
-	err = a.UpdateLoadBalancers(client, machineProviderConfig, newestInstance)
+	newestInstance := instances[0]
+
+	err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance)
 	if err != nil {
 		glog.Errorf("error updating load balancers: %v", err)
 		return err
@@ -613,11 +377,11 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clus
 		return nil, fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
-	return GetRunningInstances(machine, client)
+	return getRunningInstances(machine, client)
 }
 
-// UpdateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
-func (a *Actuator) UpdateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance) error {
+// updateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
+func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance) error {
 	if len(providerConfig.LoadBalancers) == 0 {
 		glog.V(4).Infof("Instance %q has no load balancers configured. Skipping", *instance.InstanceId)
 		return nil
@@ -636,104 +400,17 @@ func (a *Actuator) UpdateLoadBalancers(client awsclient.Client, providerConfig *
 
 	var err error
 	if len(classicLoadBalancerNames) > 0 {
-		err := a.registerWithClassicLoadBalancers(client, classicLoadBalancerNames, instance)
+		err := registerWithClassicLoadBalancers(client, classicLoadBalancerNames, instance)
 		if err != nil {
 			glog.Errorf("failed to register classic load balancers: %v", err)
 			errs = append(errs, err)
 		}
 	}
 	if len(networkLoadBalancerNames) > 0 {
-		err = a.registerWithNetworkLoadBalancers(client, networkLoadBalancerNames, instance)
+		err = registerWithNetworkLoadBalancers(client, networkLoadBalancerNames, instance)
 		if err != nil {
 			glog.Errorf("failed to register network load balancers: %v", err)
 			errs = append(errs, err)
-		}
-	}
-	if len(errs) > 0 {
-		return errorutil.NewAggregate(errs)
-	}
-	return nil
-}
-
-func (a *Actuator) registerWithClassicLoadBalancers(client awsclient.Client, names []string, instance *ec2.Instance) error {
-	glog.V(4).Infof("Updating classic load balancer registration for %q", *instance.InstanceId)
-	elbInstance := &elb.Instance{InstanceId: instance.InstanceId}
-	var errs []error
-	for _, elbName := range names {
-		req := &elb.RegisterInstancesWithLoadBalancerInput{
-			Instances:        []*elb.Instance{elbInstance},
-			LoadBalancerName: aws.String(elbName),
-		}
-		_, err := client.RegisterInstancesWithLoadBalancer(req)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("%s: %v", elbName, err))
-		}
-	}
-
-	if len(errs) > 0 {
-		return errorutil.NewAggregate(errs)
-	}
-	return nil
-}
-
-func (a *Actuator) registerWithNetworkLoadBalancers(client awsclient.Client, names []string, instance *ec2.Instance) error {
-	glog.V(4).Infof("Updating network load balancer registration for %q", *instance.InstanceId)
-	lbNames := make([]*string, len(names))
-	for i, name := range names {
-		lbNames[i] = aws.String(name)
-	}
-	lbsRequest := &elbv2.DescribeLoadBalancersInput{
-		Names: lbNames,
-	}
-	lbsResponse, err := client.ELBv2DescribeLoadBalancers(lbsRequest)
-	if err != nil {
-		glog.Errorf("failed to describe load balancers %v: %v", names, err)
-		return err
-	}
-	// Use a map for target groups to get unique target group entries across load balancers
-	targetGroups := map[string]*elbv2.TargetGroup{}
-	for _, loadBalancer := range lbsResponse.LoadBalancers {
-		glog.V(4).Infof("retrieving target groups for load balancer %q", *loadBalancer.LoadBalancerName)
-		targetGroupsInput := &elbv2.DescribeTargetGroupsInput{
-			LoadBalancerArn: loadBalancer.LoadBalancerArn,
-		}
-		targetGroupsOutput, err := client.ELBv2DescribeTargetGroups(targetGroupsInput)
-		if err != nil {
-			glog.Errorf("failed to retrieve load balancer target groups for %q: %v", *loadBalancer.LoadBalancerName, err)
-			return err
-		}
-		for _, targetGroup := range targetGroupsOutput.TargetGroups {
-			targetGroups[*targetGroup.TargetGroupArn] = targetGroup
-		}
-	}
-	if glog.V(4) {
-		targetGroupArns := make([]string, 0, len(targetGroups))
-		for arn := range targetGroups {
-			targetGroupArns = append(targetGroupArns, fmt.Sprintf("%q", arn))
-		}
-		glog.Infof("registering instance %q with target groups: %v", *instance.InstanceId, strings.Join(targetGroupArns, ","))
-	}
-	errs := []error{}
-	for _, targetGroup := range targetGroups {
-		var target *elbv2.TargetDescription
-		switch *targetGroup.TargetType {
-		case elbv2.TargetTypeEnumInstance:
-			target = &elbv2.TargetDescription{
-				Id: instance.InstanceId,
-			}
-		case elbv2.TargetTypeEnumIp:
-			target = &elbv2.TargetDescription{
-				Id: instance.PrivateIpAddress,
-			}
-		}
-		registerTargetsInput := &elbv2.RegisterTargetsInput{
-			TargetGroupArn: targetGroup.TargetGroupArn,
-			Targets:        []*elbv2.TargetDescription{target},
-		}
-		_, err := client.ELBv2RegisterTargets(registerTargetsInput)
-		if err != nil {
-			glog.Errorf("failed to register instance %q with target group %q: %v", *instance.InstanceId, *targetGroup.TargetGroupArn, err)
-			errs = append(errs, fmt.Errorf("%s: %v", *targetGroup.TargetGroupArn, err))
 		}
 	}
 	if len(errs) > 0 {
