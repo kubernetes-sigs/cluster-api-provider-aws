@@ -271,6 +271,48 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone
 	return subnetIDs, nil
 }
 
+func getAMI(AMI providerconfigv1.AWSResourceReference, client awsclient.Client) (*string, error) {
+	if AMI.ID != nil {
+		amiID := AMI.ID
+		glog.Infof("Using AMI %s", *amiID)
+		return amiID, nil
+	}
+	if len(AMI.Filters) > 0 {
+		glog.Info("Describing AMI based on filters")
+		describeImagesRequest := ec2.DescribeImagesInput{
+			Filters: buildEC2Filters(AMI.Filters),
+		}
+		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
+		if err != nil {
+			glog.Errorf("error describing AMI: %v", err)
+			return nil, fmt.Errorf("error describing AMI: %v", err)
+		}
+		if len(describeAMIResult.Images) < 1 {
+			glog.Errorf("no image for given filters not found")
+			return nil, fmt.Errorf("no image for given filters not found")
+		}
+		latestImage := describeAMIResult.Images[0]
+		latestTime, err := time.Parse(time.RFC3339, *latestImage.CreationDate)
+		if err != nil {
+			glog.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
+			return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
+		}
+		for _, image := range describeAMIResult.Images[1:] {
+			imageTime, err := time.Parse(time.RFC3339, *image.CreationDate)
+			if err != nil {
+				glog.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
+				return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
+			}
+			if latestTime.Before(imageTime) {
+				latestImage = image
+				latestTime = imageTime
+			}
+		}
+		return latestImage.ImageId, nil
+	}
+	return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
+}
+
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := ProviderConfigFromMachine(machine)
@@ -299,45 +341,9 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 
-	// Get AMI to use
-	var amiID *string
-	if machineProviderConfig.AMI.ID != nil {
-		amiID = machineProviderConfig.AMI.ID
-		glog.Infof("Using AMI %s", *amiID)
-	} else if len(machineProviderConfig.AMI.Filters) > 0 {
-		glog.Info("Describing AMI based on filters")
-		describeImagesRequest := ec2.DescribeImagesInput{
-			Filters: buildEC2Filters(machineProviderConfig.AMI.Filters),
-		}
-		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
-		if err != nil {
-			glog.Errorf("error describing AMI: %v", err)
-			return nil, fmt.Errorf("error describing AMI: %v", err)
-		}
-		if len(describeAMIResult.Images) < 1 {
-			glog.Errorf("no image for given filters not found")
-			return nil, fmt.Errorf("no image for given filters not found")
-		}
-		latestImage := describeAMIResult.Images[0]
-		latestTime, err := time.Parse(time.RFC3339, *latestImage.CreationDate)
-		if err != nil {
-			glog.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
-			return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
-		}
-		for _, image := range describeAMIResult.Images[1:] {
-			imageTime, err := time.Parse(time.RFC3339, *image.CreationDate)
-			if err != nil {
-				glog.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
-				return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
-			}
-			if latestTime.Before(imageTime) {
-				latestImage = image
-				latestTime = imageTime
-			}
-		}
-		amiID = latestImage.ImageId
-	} else {
-		return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
+	amiID, err := getAMI(machineProviderConfig.AMI, client)
+	if err != nil {
+		return nil, fmt.Errorf("error getting AMI: %v,", err)
 	}
 
 	securityGroupsIDs, err := getSecurityGroupsIDs(machineProviderConfig.SecurityGroups, client)
