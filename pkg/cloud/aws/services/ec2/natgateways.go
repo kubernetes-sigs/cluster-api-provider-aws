@@ -118,7 +118,7 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 }
 
 func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.getOrAllocateAddress(clusterName, tags.ValueAPIServerRole)
+	ip, err := s.getOrAllocateAddress(tags.ValueAPIServerRole)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}

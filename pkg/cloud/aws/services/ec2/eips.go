@@ -27,8 +27,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 )
 
-func (s *Service) getOrAllocateAddress(clusterName string, role string) (string, error) {
-	out, err := s.describeAddresses(clusterName, role)
+func (s *Service) getOrAllocateAddress(role string) (string, error) {
+	out, err := s.describeAddresses(role)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to query addresses")
 	}
@@ -39,10 +39,10 @@ func (s *Service) getOrAllocateAddress(clusterName string, role string) (string,
 			return aws.StringValue(address.AllocationId), nil
 		}
 	}
-	return s.allocateAddress(clusterName, role)
+	return s.allocateAddress(role)
 }
 
-func (s *Service) allocateAddress(clusterName string, role string) (string, error) {
+func (s *Service) allocateAddress(role string) (string, error) {
 	out, err := s.scope.EC2.AllocateAddress(&ec2.AllocateAddressInput{
 		Domain: aws.String("vpc"),
 	})
@@ -51,12 +51,12 @@ func (s *Service) allocateAddress(clusterName string, role string) (string, erro
 		return "", errors.Wrap(err, "failed to create Elastic IP address")
 	}
 
-	name := fmt.Sprintf("%s-eip-%s", clusterName, role)
+	name := fmt.Sprintf("%s-eip-%s", s.scope.Name(), role)
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
-			ClusterName: clusterName,
+			ClusterName: s.scope.Name(),
 			ResourceID:  *out.AllocationId,
 			Lifecycle:   tags.ResourceLifecycleOwned,
 			Name:        aws.String(name),
@@ -71,8 +71,8 @@ func (s *Service) allocateAddress(clusterName string, role string) (string, erro
 	return aws.StringValue(out.AllocationId), nil
 }
 
-func (s *Service) describeAddresses(clusterName string, role string) (*ec2.DescribeAddressesOutput, error) {
-	x := []*ec2.Filter{filter.EC2.Cluster(clusterName)}
+func (s *Service) describeAddresses(role string) (*ec2.DescribeAddressesOutput, error) {
+	x := []*ec2.Filter{filter.EC2.Cluster(s.scope.Name())}
 	if role != "" {
 		x = append(x, filter.EC2.ProviderRole(role))
 	}
@@ -82,10 +82,11 @@ func (s *Service) describeAddresses(clusterName string, role string) (*ec2.Descr
 	})
 }
 
-func (s *Service) releaseAddresses(clusterName string) error {
+func (s *Service) releaseAddresses() error {
 	out, err := s.scope.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
-		Filters: []*ec2.Filter{filter.EC2.Cluster(clusterName)},
+		Filters: []*ec2.Filter{filter.EC2.Cluster(s.scope.Name())},
 	})
+
 	if err != nil {
 		return errors.Wrapf(err, "failed to describe elastic IPs %q", err)
 	}
