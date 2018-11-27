@@ -72,7 +72,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		scope.ClusterConfig.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
 	}
 
-	if err := ec2svc.ReconcileNetwork(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	if err := ec2svc.ReconcileNetwork(); err != nil {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
@@ -109,7 +109,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 		return errors.Errorf("unable to delete bastion: %v", err)
 	}
 
-	if err := ec2svc.DeleteNetwork(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	if err := ec2svc.DeleteNetwork(); err != nil {
 		klog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: 5 * 1000 * 1000 * 1000,

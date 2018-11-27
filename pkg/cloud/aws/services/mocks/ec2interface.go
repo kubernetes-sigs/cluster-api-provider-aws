@@ -77,15 +77,15 @@ func (mr *MockEC2InterfaceMockRecorder) DeleteBastion() *gomock.Call {
 }
 
 // DeleteNetwork mocks base method
-func (m *MockEC2Interface) DeleteNetwork(arg0 string, arg1 *v1alpha1.Network) error {
-	ret := m.ctrl.Call(m, "DeleteNetwork", arg0, arg1)
+func (m *MockEC2Interface) DeleteNetwork() error {
+	ret := m.ctrl.Call(m, "DeleteNetwork")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteNetwork indicates an expected call of DeleteNetwork
-func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockEC2Interface)(nil).DeleteNetwork), arg0, arg1)
+func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockEC2Interface)(nil).DeleteNetwork))
 }
 
 // InstanceIfExists mocks base method
@@ -114,15 +114,15 @@ func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion() *gomock.Call {
 }
 
 // ReconcileNetwork mocks base method
-func (m *MockEC2Interface) ReconcileNetwork(arg0 string, arg1 *v1alpha1.Network) error {
-	ret := m.ctrl.Call(m, "ReconcileNetwork", arg0, arg1)
+func (m *MockEC2Interface) ReconcileNetwork() error {
+	ret := m.ctrl.Call(m, "ReconcileNetwork")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ReconcileNetwork indicates an expected call of ReconcileNetwork
-func (mr *MockEC2InterfaceMockRecorder) ReconcileNetwork(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileNetwork", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileNetwork), arg0, arg1)
+func (mr *MockEC2InterfaceMockRecorder) ReconcileNetwork() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileNetwork", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileNetwork))
 }
 
 // TerminateInstance mocks base method

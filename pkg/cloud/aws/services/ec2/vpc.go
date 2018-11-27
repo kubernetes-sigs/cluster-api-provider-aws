@@ -30,13 +30,13 @@ const (
 	defaultVpcCidr = "10.0.0.0/16"
 )
 
-func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
+func (s *Service) reconcileVPC() error {
 	klog.V(2).Infof("Reconciling VPC")
 
-	vpc, err := s.describeVPC(clusterName, in.ID)
+	vpc, err := s.describeVPC()
 	if awserrors.IsNotFound(err) {
 		// Create a new vpc.
-		vpc, err = s.createVPC(clusterName, in)
+		vpc, err = s.createVPC()
 		if err != nil {
 			return errors.Wrap(err, "failed to create new vpc")
 		}
@@ -45,18 +45,18 @@ func (s *Service) reconcileVPC(clusterName string, in *v1alpha1.VPC) error {
 		return errors.Wrap(err, "failed to describe VPCs")
 	}
 
-	vpc.DeepCopyInto(in)
-	klog.V(2).Infof("Working on VPC %q", in.ID)
+	vpc.DeepCopyInto(s.scope.VPC())
+	klog.V(2).Infof("Working on VPC %q", vpc.ID)
 	return nil
 }
 
-func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC, error) {
-	if v.CidrBlock == "" {
-		v.CidrBlock = defaultVpcCidr
+func (s *Service) createVPC() (*v1alpha1.VPC, error) {
+	if s.scope.VPC().CidrBlock == "" {
+		s.scope.VPC().CidrBlock = defaultVpcCidr
 	}
 
 	input := &ec2.CreateVpcInput{
-		CidrBlock: aws.String(v.CidrBlock),
+		CidrBlock: aws.String(s.scope.VPC().CidrBlock),
 	}
 
 	out, err := s.scope.EC2.CreateVpc(input)
@@ -69,12 +69,12 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
-	name := fmt.Sprintf("%s-vpc", clusterName)
+	name := fmt.Sprintf("%s-vpc", s.scope.Name())
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
-			ClusterName: clusterName,
+			ClusterName: s.scope.Name(),
 			ResourceID:  *out.Vpc.VpcId,
 			Lifecycle:   tags.ResourceLifecycleOwned,
 			Name:        aws.String(name),
@@ -94,37 +94,37 @@ func (s *Service) createVPC(clusterName string, v *v1alpha1.VPC) (*v1alpha1.VPC,
 	}, nil
 }
 
-func (s *Service) deleteVPC(v *v1alpha1.VPC) error {
+func (s *Service) deleteVPC() error {
 	// TODO(johanneswuerbach): ensure that the VPC is owned by this cluster before deleting
 	input := &ec2.DeleteVpcInput{
-		VpcId: aws.String(v.ID),
+		VpcId: aws.String(s.scope.VPC().ID),
 	}
 
 	_, err := s.scope.EC2.DeleteVpc(input)
 	if err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); code != "InvalidVpcID.NotFound" && ok {
-			return errors.Wrapf(err, "failed to delete vpc %q", v.ID)
+			return errors.Wrapf(err, "failed to delete vpc %q", s.scope.VPC().ID)
 		}
 		return err
 	}
 
-	klog.V(2).Infof("Deleted VPC %q", v.ID)
+	klog.V(2).Infof("Deleted VPC %q", s.scope.VPC().ID)
 	return nil
 }
 
-func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, error) {
+func (s *Service) describeVPC() (*v1alpha1.VPC, error) {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
 		},
 	}
 
-	if id == "" {
+	if s.scope.VPC().ID == "" {
 		// Try to find a previously created and tagged VPC
-		input.Filters = []*ec2.Filter{filter.EC2.Cluster(clusterName)}
+		input.Filters = []*ec2.Filter{filter.EC2.Cluster(s.scope.Name())}
 	} else {
-		input.VpcIds = []*string{aws.String(id)}
+		input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
 	}
 
 	out, err := s.scope.EC2.DescribeVpcs(input)
@@ -137,7 +137,7 @@ func (s *Service) describeVPC(clusterName string, id string) (*v1alpha1.VPC, err
 	}
 
 	if len(out.Vpcs) == 0 {
-		return nil, awserrors.NewNotFound(errors.Errorf("could not find vpc %q", id))
+		return nil, awserrors.NewNotFound(errors.Errorf("could not find vpc %q", s.scope.VPC().ID))
 	} else if len(out.Vpcs) > 1 {
 		return nil, awserrors.NewConflict(errors.Errorf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
 	}

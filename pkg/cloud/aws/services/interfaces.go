@@ -50,9 +50,9 @@ type EC2Interface interface {
 // EC2ClusterInterface encapsulates the methods exposed to the cluster
 // actuator
 type EC2ClusterInterface interface {
-	ReconcileNetwork(clusterName string, network *providerv1.Network) error
+	ReconcileNetwork() error
 	ReconcileBastion() error
-	DeleteNetwork(clusterName string, network *providerv1.Network) error
+	DeleteNetwork() error
 	DeleteBastion() error
 }
 
