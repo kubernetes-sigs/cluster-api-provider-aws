@@ -90,6 +90,21 @@ func (s *Scope) Network() *v1alpha1.Network {
 	return &s.ClusterStatus.Network
 }
 
+// Network returns the cluster VPC.
+func (s *Scope) VPC() *v1alpha1.VPC {
+	return &s.ClusterStatus.Network.VPC
+}
+
+// Network returns the cluster subnets.
+func (s *Scope) Subnets() v1alpha1.Subnets {
+	return s.ClusterStatus.Network.Subnets
+}
+
+// Network returns the cluster security groups as a map, it creates the map if empty.
+func (s *Scope) SecurityGroups() map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup {
+	return s.ClusterStatus.Network.SecurityGroups
+}
+
 // Name returns the cluster name.
 func (s *Scope) Name() string {
 	return s.Cluster.Name

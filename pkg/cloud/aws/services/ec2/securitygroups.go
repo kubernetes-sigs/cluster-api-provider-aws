@@ -28,14 +28,14 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 )
 
-func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.Network) error {
+func (s *Service) reconcileSecurityGroups() error {
 	klog.V(2).Infof("Reconciling security groups")
 
-	if network.SecurityGroups == nil {
-		network.SecurityGroups = make(map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup)
+	if s.scope.Network().SecurityGroups == nil {
+		s.scope.Network().SecurityGroups = make(map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup)
 	}
 
-	sgs, err := s.describeSecurityGroupsByName(clusterName, network.VPC.ID)
+	sgs, err := s.describeSecurityGroupsByName()
 	if err != nil {
 		return err
 	}
@@ -49,30 +49,30 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 
 	// First iteration makes sure that the security group are valid and fully created.
 	for _, role := range roles {
-		sg := s.getDefaultSecurityGroup(clusterName, network.VPC.ID, role)
+		sg := s.getDefaultSecurityGroup(role)
 
 		if existing, ok := sgs[*sg.GroupName]; !ok {
-			if err := s.createSecurityGroup(clusterName, role, sg); err != nil {
+			if err := s.createSecurityGroup(role, sg); err != nil {
 				return err
 			}
 
-			network.SecurityGroups[role] = &v1alpha1.SecurityGroup{
+			s.scope.SecurityGroups()[role] = &v1alpha1.SecurityGroup{
 				ID:   *sg.GroupId,
 				Name: *sg.GroupName,
 			}
 		} else {
 			// TODO(vincepri): validate / update security group if necessary.
-			network.SecurityGroups[role] = existing
+			s.scope.SecurityGroups()[role] = existing
 		}
 
-		klog.V(2).Infof("Security group for role %q: %v", role, network.SecurityGroups[role])
+		klog.V(2).Infof("Security group for role %q: %v", role, s.scope.SecurityGroups()[role])
 	}
 
 	// Second iteration creates or updates all permissions on the security group to match
 	// the specified ingress rules.
-	for role, sg := range network.SecurityGroups {
+	for role, sg := range s.scope.SecurityGroups() {
 		current := sg.IngressRules
-		want, err := s.getSecurityGroupIngressRules(role, network)
+		want, err := s.getSecurityGroupIngressRules(role)
 		if err != nil {
 			return err
 		}
@@ -99,8 +99,8 @@ func (s *Service) reconcileSecurityGroups(clusterName string, network *v1alpha1.
 	return nil
 }
 
-func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Network) error {
-	for _, sg := range network.SecurityGroups {
+func (s *Service) deleteSecurityGroups() error {
+	for _, sg := range s.scope.SecurityGroups() {
 		current := sg.IngressRules
 
 		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); awserrors.IsIgnorableSecurityGroupError(err) != nil {
@@ -110,7 +110,7 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 		klog.V(2).Infof("Revoked ingress rules %v from security group %q", current, sg.ID)
 	}
 
-	for _, sg := range network.SecurityGroups {
+	for _, sg := range s.scope.SecurityGroups() {
 		input := &ec2.DeleteSecurityGroupInput{
 			GroupId: aws.String(sg.ID),
 		}
@@ -121,20 +121,21 @@ func (s *Service) deleteSecurityGroups(clusterName string, network *v1alpha1.Net
 
 		klog.V(2).Infof("Deleted security group security group %q", sg.ID)
 	}
+
 	return nil
 }
 
-func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string) (map[string]*v1alpha1.SecurityGroup, error) {
+func (s *Service) describeSecurityGroupsByName() (map[string]*v1alpha1.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.VPC(vpcID),
-			filter.EC2.Cluster(clusterName),
+			filter.EC2.VPC(s.scope.Network().VPC.ID),
+			filter.EC2.Cluster(s.scope.Name()),
 		},
 	}
 
 	out, err := s.scope.EC2.DescribeSecurityGroups(input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe security groups in vpc %q", vpcID)
+		return nil, errors.Wrapf(err, "failed to describe security groups in vpc %q", s.scope.Network().VPC.ID)
 	}
 
 	res := make(map[string]*v1alpha1.SecurityGroup, len(out.SecurityGroups))
@@ -154,11 +155,11 @@ func (s *Service) describeSecurityGroupsByName(clusterName string, vpcID string)
 	return res, nil
 }
 
-func (s *Service) createSecurityGroup(clusterName string, role v1alpha1.SecurityGroupRole, input *ec2.SecurityGroup) error {
+func (s *Service) createSecurityGroup(role v1alpha1.SecurityGroupRole, input *ec2.SecurityGroup) error {
 	out, err := s.scope.EC2.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 		VpcId:       input.VpcId,
 		GroupName:   input.GroupName,
-		Description: aws.String(fmt.Sprintf("Kubernetes cluster %s: %s", clusterName, role)),
+		Description: aws.String(fmt.Sprintf("Kubernetes cluster %s: %s", s.scope.Name(), role)),
 	})
 
 	if err != nil {
@@ -176,27 +177,27 @@ func (s *Service) createSecurityGroup(clusterName string, role v1alpha1.Security
 	return nil
 }
 
-func (s *Service) authorizeSecurityGroupIngressRules(groupID string, rules v1alpha1.IngressRules) error {
-	input := &ec2.AuthorizeSecurityGroupIngressInput{GroupId: aws.String(groupID)}
+func (s *Service) authorizeSecurityGroupIngressRules(id string, rules v1alpha1.IngressRules) error {
+	input := &ec2.AuthorizeSecurityGroupIngressInput{GroupId: aws.String(id)}
 	for _, rule := range rules {
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))
 	}
 
 	if _, err := s.scope.EC2.AuthorizeSecurityGroupIngress(input); err != nil {
-		return errors.Wrapf(err, "failed to authorize security group %q ingress rules: %v", groupID, rules)
+		return errors.Wrapf(err, "failed to authorize security group %q ingress rules: %v", id, rules)
 	}
 
 	return nil
 }
 
-func (s *Service) revokeSecurityGroupIngressRules(groupID string, rules v1alpha1.IngressRules) error {
-	input := &ec2.RevokeSecurityGroupIngressInput{GroupId: aws.String(groupID)}
+func (s *Service) revokeSecurityGroupIngressRules(id string, rules v1alpha1.IngressRules) error {
+	input := &ec2.RevokeSecurityGroupIngressInput{GroupId: aws.String(id)}
 	for _, rule := range rules {
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(rule))
 	}
 
 	if _, err := s.scope.EC2.RevokeSecurityGroupIngress(input); err != nil {
-		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", groupID, rules)
+		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", id, rules)
 	}
 
 	return nil
@@ -212,7 +213,7 @@ func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) *v1alpha1.
 	}
 }
 
-func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, network *v1alpha1.Network) (v1alpha1.IngressRules, error) {
+func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) (v1alpha1.IngressRules, error) {
 	switch role {
 	case v1alpha1.SecurityGroupBastion:
 		return v1alpha1.IngressRules{
@@ -226,7 +227,7 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 		}, nil
 	case v1alpha1.SecurityGroupControlPlane:
 		return v1alpha1.IngressRules{
-			s.defaultSSHIngressRule(network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID),
+			s.defaultSSHIngressRule(s.scope.SecurityGroups()[v1alpha1.SecurityGroupBastion].ID),
 			{
 				Description: "Kubernetes API",
 				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
@@ -239,34 +240,34 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
 				FromPort:              2379,
 				ToPort:                2379,
-				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 			{
 				Description:           "etcd peer",
 				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
 				FromPort:              2380,
 				ToPort:                2380,
-				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 			{
 				Description:           "bgp (calico)",
 				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
 				FromPort:              179,
 				ToPort:                179,
-				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 			{
 				Description:           "bgp (calico)",
 				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
 				FromPort:              179,
 				ToPort:                179,
-				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupNode].ID),
+				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID),
 			},
 		}, nil
 
 	case v1alpha1.SecurityGroupNode:
 		return v1alpha1.IngressRules{
-			s.defaultSSHIngressRule(network.SecurityGroups[v1alpha1.SecurityGroupBastion].ID),
+			s.defaultSSHIngressRule(s.scope.SecurityGroups()[v1alpha1.SecurityGroupBastion].ID),
 			{
 				Description: "Node Port Services",
 				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
@@ -279,21 +280,21 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole, 
 				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
 				FromPort:              10250,
 				ToPort:                10250,
-				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 			{
 				Description:           "bgp (calico)",
 				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
 				FromPort:              179,
 				ToPort:                179,
-				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID),
+				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
 			},
 			{
 				Description:           "bgp (calico)",
 				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
 				FromPort:              179,
 				ToPort:                179,
-				SourceSecurityGroupID: aws.String(network.SecurityGroups[v1alpha1.SecurityGroupNode].ID),
+				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID),
 			},
 		}, nil
 	}
@@ -305,16 +306,15 @@ func (s *Service) getSecurityGroupName(clusterName string, role v1alpha1.Securit
 	return fmt.Sprintf("%s-%v", clusterName, role)
 }
 
-func (s *Service) getDefaultSecurityGroup(clusterName string, vpcID string, role v1alpha1.SecurityGroupRole) *ec2.SecurityGroup {
-	name := s.getSecurityGroupName(clusterName, role)
+func (s *Service) getDefaultSecurityGroup(role v1alpha1.SecurityGroupRole) *ec2.SecurityGroup {
+	name := s.getSecurityGroupName(s.scope.Name(), role)
 
 	// TODO: reconcile v1alpha1.SecurityGroupRoles with tag roles
-
 	return &ec2.SecurityGroup{
 		GroupName: aws.String(name),
-		VpcId:     aws.String(vpcID),
+		VpcId:     aws.String(s.scope.VPC().ID),
 		Tags: converters.MapToTags(tags.Build(tags.BuildParams{
-			ClusterName: clusterName,
+			ClusterName: s.scope.Name(),
 			Lifecycle:   tags.ResourceLifecycleOwned,
 			Name:        aws.String(name),
 			Role:        aws.String(string(role)),
