@@ -43,7 +43,7 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 	}
 
 	// Routing tables.
-	if err := s.reconcileRouteTables(clusterName, network); err != nil {
+	if err := s.reconcileRouteTables(); err != nil {
 		return err
 	}
 
@@ -66,7 +66,7 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	}
 
 	// Routing tables.
-	if err := s.deleteRouteTables(clusterName, network); err != nil {
+	if err := s.deleteRouteTables(); err != nil {
 		return err
 	}
 

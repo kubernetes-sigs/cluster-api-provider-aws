@@ -206,13 +206,13 @@ func (s *Service) deleteNatGateway(id string) error {
 	return nil
 }
 
-func (s *Service) getNatGatewayForSubnet(subnets v1alpha1.Subnets, sn *v1alpha1.Subnet) (string, error) {
+func (s *Service) getNatGatewayForSubnet(sn *v1alpha1.Subnet) (string, error) {
 	if sn.IsPublic {
 		return "", errors.Errorf("cannot get NAT gateway for a public subnet, got id %q", sn.ID)
 	}
 
 	azGateways := make(map[string][]string)
-	for _, psn := range subnets.FilterPublic() {
+	for _, psn := range s.scope.Subnets().FilterPublic() {
 		if psn.NatGatewayID == nil {
 			continue
 		}
