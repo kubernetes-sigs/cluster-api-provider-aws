@@ -33,12 +33,12 @@ func (s *Service) ReconcileNetwork(clusterName string, network *v1alpha1.Network
 	}
 
 	// Internet Gateways.
-	if err := s.reconcileInternetGateways(clusterName, network); err != nil {
+	if err := s.reconcileInternetGateways(); err != nil {
 		return err
 	}
 
 	// NAT Gateways.
-	if err := s.reconcileNatGateways(clusterName, network.Subnets, &network.VPC); err != nil {
+	if err := s.reconcileNatGateways(); err != nil {
 		return err
 	}
 
@@ -71,7 +71,7 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	}
 
 	// NAT Gateways.
-	if err := s.deleteNatGateways(clusterName, network.Subnets, &network.VPC); err != nil {
+	if err := s.deleteNatGateways(); err != nil {
 		return err
 	}
 
@@ -81,7 +81,7 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	}
 
 	// Internet Gateways.
-	if err := s.deleteInternetGateways(clusterName, network); err != nil {
+	if err := s.deleteInternetGateways(); err != nil {
 		return err
 	}
 

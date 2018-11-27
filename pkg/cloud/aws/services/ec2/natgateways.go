@@ -26,23 +26,23 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
-func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
+func (s *Service) reconcileNatGateways() error {
 	klog.V(2).Infof("Reconciling NAT gateways")
 
-	if len(subnets.FilterPrivate()) == 0 {
+	if len(s.scope.Subnets().FilterPrivate()) == 0 {
 		klog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
-	} else if len(subnets.FilterPublic()) == 0 {
+	} else if len(s.scope.Subnets().FilterPublic()) == 0 {
 		klog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		return nil
 	}
 
-	existing, err := s.describeNatGatewaysBySubnet(vpc.ID)
+	existing, err := s.describeNatGatewaysBySubnet()
 	if err != nil {
 		return err
 	}
 
-	for _, sn := range subnets.FilterPublic() {
+	for _, sn := range s.scope.Subnets().FilterPublic() {
 		if sn.ID == "" {
 			continue
 		}
@@ -51,7 +51,7 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 			continue
 		}
 
-		ng, err := s.createNatGateway(clusterName, sn.ID)
+		ng, err := s.createNatGateway(sn.ID)
 		if err != nil {
 			return err
 		}
@@ -62,21 +62,21 @@ func (s *Service) reconcileNatGateways(clusterName string, subnets v1alpha1.Subn
 	return nil
 }
 
-func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets, vpc *v1alpha1.VPC) error {
-	if len(subnets.FilterPrivate()) == 0 {
+func (s *Service) deleteNatGateways() error {
+	if len(s.scope.Subnets().FilterPrivate()) == 0 {
 		klog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
-	} else if len(subnets.FilterPublic()) == 0 {
+	} else if len(s.scope.Subnets().FilterPublic()) == 0 {
 		klog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		return nil
 	}
 
-	existing, err := s.describeNatGatewaysBySubnet(vpc.ID)
+	existing, err := s.describeNatGatewaysBySubnet()
 	if err != nil {
 		return err
 	}
 
-	for _, sn := range subnets.FilterPublic() {
+	for _, sn := range s.scope.Subnets().FilterPublic() {
 		if sn.ID == "" {
 			continue
 		}
@@ -92,10 +92,10 @@ func (s *Service) deleteNatGateways(clusterName string, subnets v1alpha1.Subnets
 	return nil
 }
 
-func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.NatGateway, error) {
+func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, error) {
 	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
 		Filter: []*ec2.Filter{
-			filter.EC2.VPC(vpcID),
+			filter.EC2.VPC(s.scope.VPC().ID),
 			filter.EC2.NATGatewayStates(ec2.NatGatewayStatePending, ec2.NatGatewayStateAvailable),
 		},
 	}
@@ -111,13 +111,13 @@ func (s *Service) describeNatGatewaysBySubnet(vpcID string) (map[string]*ec2.Nat
 		})
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe NAT gateways with VPC ID %q", vpcID)
+		return nil, errors.Wrapf(err, "failed to describe NAT gateways with VPC ID %q", s.scope.VPC().ID)
 	}
 
 	return gateways, nil
 }
 
-func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.NatGateway, error) {
+func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	ip, err := s.getOrAllocateAddress(tags.ValueAPIServerRole)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
@@ -132,12 +132,12 @@ func (s *Service) createNatGateway(clusterName string, subnetID string) (*ec2.Na
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 
-	name := fmt.Sprintf("%s-nat", clusterName)
+	name := fmt.Sprintf("%s-nat", s.scope.Name())
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
-			ClusterName: clusterName,
+			ClusterName: s.scope.Name(),
 			ResourceID:  *out.NatGateway.NatGatewayId,
 			Lifecycle:   tags.ResourceLifecycleOwned,
 			Name:        aws.String(name),
