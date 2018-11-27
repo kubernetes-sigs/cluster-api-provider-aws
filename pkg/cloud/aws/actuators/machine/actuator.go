@@ -17,7 +17,6 @@ limitations under the License.
 package machine
 
 import (
-	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -191,58 +190,6 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 
-	amiID, err := getAMI(machineProviderConfig.AMI, client)
-	if err != nil {
-		return nil, fmt.Errorf("error getting AMI: %v,", err)
-	}
-
-	securityGroupsIDs, err := getSecurityGroupsIDs(machineProviderConfig.SecurityGroups, client)
-	if err != nil {
-		return nil, fmt.Errorf("error getting security groups IDs: %v,", err)
-	}
-	subnetIDs, err := getSubnetIDs(machineProviderConfig.Subnet, machineProviderConfig.Placement.AvailabilityZone, client)
-	if err != nil {
-		return nil, fmt.Errorf("error getting subnet IDs: %v,", err)
-	}
-	if len(subnetIDs) > 1 {
-		glog.Warningf("More than one subnet id returned, only first one will be used")
-	}
-
-	// build list of networkInterfaces (just 1 for now)
-	var networkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{
-		{
-			DeviceIndex:              aws.Int64(machineProviderConfig.DeviceIndex),
-			AssociatePublicIpAddress: machineProviderConfig.PublicIP,
-			SubnetId:                 subnetIDs[0],
-			Groups:                   securityGroupsIDs,
-		},
-	}
-
-	clusterID, ok := getClusterID(machine)
-	if !ok {
-		glog.Errorf("unable to get cluster ID for machine: %q", machine.Name)
-		return nil, err
-	}
-	// Add tags to the created machine
-	rawTagList := []*ec2.Tag{}
-	for _, tag := range machineProviderConfig.Tags {
-		rawTagList = append(rawTagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
-	}
-	rawTagList = append(rawTagList, []*ec2.Tag{
-		{Key: aws.String("clusterid"), Value: aws.String(clusterID)},
-		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
-		{Key: aws.String("Name"), Value: aws.String(machine.Name)},
-	}...)
-	tagList := removeDuplicatedTags(rawTagList)
-	tagInstance := &ec2.TagSpecification{
-		ResourceType: aws.String("instance"),
-		Tags:         tagList,
-	}
-	tagVolume := &ec2.TagSpecification{
-		ResourceType: aws.String("volume"),
-		Tags:         []*ec2.Tag{{Key: aws.String("clusterid"), Value: aws.String(clusterID)}},
-	}
-
 	userData := []byte{}
 	if machineProviderConfig.UserDataSecret != nil {
 		userDataSecret, err := a.kubeClient.CoreV1().Secrets(machine.Namespace).Get(machineProviderConfig.UserDataSecret.Name, metav1.GetOptions{})
@@ -257,48 +204,12 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 
-	userDataEnc := base64.StdEncoding.EncodeToString(userData)
-
-	var iamInstanceProfile *ec2.IamInstanceProfileSpecification
-	if machineProviderConfig.IAMInstanceProfile != nil && machineProviderConfig.IAMInstanceProfile.ID != nil {
-		iamInstanceProfile = &ec2.IamInstanceProfileSpecification{
-			Name: aws.String(*machineProviderConfig.IAMInstanceProfile.ID),
-		}
-	}
-
-	var placement *ec2.Placement
-	if machineProviderConfig.Placement.AvailabilityZone != "" && machineProviderConfig.Subnet.ID == nil {
-		placement = &ec2.Placement{
-			AvailabilityZone: aws.String(machineProviderConfig.Placement.AvailabilityZone),
-		}
-	}
-
-	inputConfig := ec2.RunInstancesInput{
-		ImageId:      amiID,
-		InstanceType: aws.String(machineProviderConfig.InstanceType),
-		// Only a single instance of the AWS instance allowed
-		MinCount:           aws.Int64(1),
-		MaxCount:           aws.Int64(1),
-		KeyName:            machineProviderConfig.KeyName,
-		IamInstanceProfile: iamInstanceProfile,
-		TagSpecifications:  []*ec2.TagSpecification{tagInstance, tagVolume},
-		NetworkInterfaces:  networkInterfaces,
-		UserData:           &userDataEnc,
-		Placement:          placement,
-	}
-
-	runResult, err := client.RunInstances(&inputConfig)
+	instance, err := launchInstance(machine, machineProviderConfig, userData, client)
 	if err != nil {
-		glog.Errorf("error creating EC2 instance: %v", err)
-		return nil, fmt.Errorf("error creating EC2 instance: %v", err)
+		retErr := fmt.Errorf("error launching instance: %v", err)
+		glog.Error(retErr)
+		return nil, retErr
 	}
-
-	if runResult == nil || len(runResult.Instances) != 1 {
-		glog.Errorf("unexpected reservation creating instances: %v", runResult)
-		return nil, fmt.Errorf("unexpected reservation creating instance")
-	}
-
-	instance := runResult.Instances[0]
 
 	err = a.UpdateLoadBalancers(client, machineProviderConfig, instance)
 
