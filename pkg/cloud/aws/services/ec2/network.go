@@ -76,7 +76,7 @@ func (s *Service) DeleteNetwork(clusterName string, network *v1alpha1.Network) (
 	}
 
 	// EIPs.
-	if err := s.releaseAddresses(clusterName); err != nil {
+	if err := s.releaseAddresses(); err != nil {
 		return err
 	}
 
