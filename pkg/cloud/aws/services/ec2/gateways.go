@@ -20,18 +20,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
-func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Network) error {
+func (s *Service) reconcileInternetGateways() error {
 	klog.V(2).Infof("Reconciling internet gateways")
 
-	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
+	igs, err := s.describeVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
-		ig, err := s.createInternetGateway(clusterName, &in.VPC)
+		ig, err := s.createInternetGateway()
 		if err != nil {
 			return nil
 		}
@@ -40,12 +39,12 @@ func (s *Service) reconcileInternetGateways(clusterName string, in *v1alpha1.Net
 		return err
 	}
 
-	in.InternetGatewayID = igs[0].InternetGatewayId
+	s.scope.Network().InternetGatewayID = igs[0].InternetGatewayId
 	return nil
 }
 
-func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Network) error {
-	igs, err := s.describeVpcInternetGateways(clusterName, &in.VPC)
+func (s *Service) deleteInternetGateways() error {
+	igs, err := s.describeVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
 		return nil
 	} else if err != nil {
@@ -55,14 +54,14 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 	for _, ig := range igs {
 		detachReq := &ec2.DetachInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
-			VpcId:             aws.String(in.VPC.ID),
+			VpcId:             aws.String(s.scope.VPC().ID),
 		}
 
 		if _, err := s.scope.EC2.DetachInternetGateway(detachReq); err != nil {
 			return errors.Wrapf(err, "failed to detach internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		klog.Infof("detached internet gateway %q from VPC %q", *ig.InternetGatewayId, in.VPC.ID)
+		klog.Infof("detached internet gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 
 		deleteReq := &ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
@@ -72,23 +71,23 @@ func (s *Service) deleteInternetGateways(clusterName string, in *v1alpha1.Networ
 			return errors.Wrapf(err, "failed to delete internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		klog.Infof("Deleted internet gateway %q", in.VPC.ID)
+		klog.Infof("Deleted internet gateway %q", s.scope.VPC().ID)
 	}
 	return nil
 }
 
-func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (*ec2.InternetGateway, error) {
+func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 	ig, err := s.scope.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
 
-	name := fmt.Sprintf("%s-igw", clusterName)
+	name := fmt.Sprintf("%s-igw", s.scope.Name())
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client: s.scope.EC2,
 		BuildParams: tags.BuildParams{
-			ClusterName: clusterName,
+			ClusterName: s.scope.Name(),
 			ResourceID:  *ig.InternetGateway.InternetGatewayId,
 			Lifecycle:   tags.ResourceLifecycleOwned,
 			Name:        aws.String(name),
@@ -100,34 +99,34 @@ func (s *Service) createInternetGateway(clusterName string, vpc *v1alpha1.VPC) (
 		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 
-	klog.Infof("created internet gateway %q", vpc.ID)
+	klog.Infof("created internet gateway %q", s.scope.VPC().ID)
 
 	_, err = s.scope.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
-		VpcId:             aws.String(vpc.ID),
+		VpcId:             aws.String(s.scope.VPC().ID),
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
+		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	}
 
-	klog.Infof("attached internet gateway %q to VPC %q", *ig.InternetGateway.InternetGatewayId, vpc.ID)
+	klog.Infof("attached internet gateway %q to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	return ig.InternetGateway, nil
 }
 
-func (s *Service) describeVpcInternetGateways(clusterName string, vpc *v1alpha1.VPC) ([]*ec2.InternetGateway, error) {
+func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) {
 	out, err := s.scope.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.VPCAttachment(vpc.ID),
-			filter.EC2.Cluster(clusterName),
+			filter.EC2.VPCAttachment(s.scope.VPC().ID),
+			filter.EC2.Cluster(s.scope.Name()),
 		},
 	})
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe nat gateways in vpc %q", vpc.ID)
+		return nil, errors.Wrapf(err, "failed to describe nat gateways in vpc %q", s.scope.VPC().ID)
 	}
 
 	if len(out.InternetGateways) == 0 {
-		return nil, awserrors.NewNotFound(errors.Errorf("no nat gateways found in vpc %q", vpc.ID))
+		return nil, awserrors.NewNotFound(errors.Errorf("no nat gateways found in vpc %q", s.scope.VPC().ID))
 	}
 
 	return out.InternetGateways, nil
