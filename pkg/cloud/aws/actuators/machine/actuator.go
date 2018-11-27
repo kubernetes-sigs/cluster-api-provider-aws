@@ -207,7 +207,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil, retErr
 	}
 
-	err = a.UpdateLoadBalancers(client, machineProviderConfig, instance)
+	err = a.updateLoadBalancers(client, machineProviderConfig, instance)
 
 	return instance, err
 }
@@ -241,7 +241,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
-	instances, err := GetRunningInstances(machine, client)
+	instances, err := getRunningInstances(machine, client)
 	if err != nil {
 		glog.Errorf("error getting running instances: %v", err)
 		return err
@@ -251,7 +251,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil
 	}
 
-	return TerminateInstances(client, instances)
+	return terminateInstances(client, instances)
 }
 
 // Update attempts to sync machine state with an existing instance. Today this just updates status
@@ -278,7 +278,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return fmt.Errorf("unable to obtain EC2 client: %v", err)
 	}
 
-	instances, err := GetRunningInstances(machine, client)
+	instances, err := getRunningInstances(machine, client)
 	if err != nil {
 		glog.Errorf("error getting running instances: %v", err)
 		return err
@@ -304,7 +304,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	// machine name and cluster ID. In this scenario we will keep the newest, and delete all others.
 	sortInstances(instances)
 	if len(instances) > 1 {
-		err = TerminateInstances(client, instances[1:])
+		err = terminateInstances(client, instances[1:])
 		if err != nil {
 			return err
 		}
@@ -312,7 +312,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	newestInstance := instances[0]
 
-	err = a.UpdateLoadBalancers(client, machineProviderConfig, newestInstance)
+	err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance)
 	if err != nil {
 		glog.Errorf("error updating load balancers: %v", err)
 		return err
@@ -377,11 +377,11 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clus
 		return nil, fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
-	return GetRunningInstances(machine, client)
+	return getRunningInstances(machine, client)
 }
 
-// UpdateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
-func (a *Actuator) UpdateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance) error {
+// updateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
+func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance) error {
 	if len(providerConfig.LoadBalancers) == 0 {
 		glog.V(4).Infof("Instance %q has no load balancers configured. Skipping", *instance.InstanceId)
 		return nil

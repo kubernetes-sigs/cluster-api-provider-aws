@@ -34,7 +34,7 @@ func removeDuplicatedTags(tags []*ec2.Tag) []*ec2.Tag {
 
 // removeStoppedMachine removes all instances of a specific machine that are in a stopped state.
 func removeStoppedMachine(machine *clusterv1.Machine, client awsclient.Client) error {
-	instances, err := GetStoppedInstances(machine, client)
+	instances, err := getStoppedInstances(machine, client)
 	if err != nil {
 		glog.Errorf("error getting stopped instances: %v", err)
 		return fmt.Errorf("error getting stopped instances: %v", err)
@@ -45,7 +45,7 @@ func removeStoppedMachine(machine *clusterv1.Machine, client awsclient.Client) e
 		return nil
 	}
 
-	return TerminateInstances(client, instances)
+	return terminateInstances(client, instances)
 }
 
 func buildEC2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {

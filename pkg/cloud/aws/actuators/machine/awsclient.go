@@ -24,7 +24,7 @@ func NewAwsClientWrapper(client awsclient.Client) *AwsClientWrapper {
 
 // GetRunningInstances gets running instances (of a given cloud provider) managed by the machine object
 func (client *AwsClientWrapper) GetRunningInstances(machine *clusterv1alpha1.Machine) ([]interface{}, error) {
-	runningInstances, err := GetRunningInstances(machine, client.client)
+	runningInstances, err := getRunningInstances(machine, client.client)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (client *AwsClientWrapper) GetRunningInstances(machine *clusterv1alpha1.Mac
 
 // GetPublicDNSName gets running instance public DNS name
 func (client *AwsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := GetRunningInstance(machine, client.client)
+	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +53,7 @@ func (client *AwsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machin
 
 // GetPrivateIP gets private IP
 func (client *AwsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := GetRunningInstance(machine, client.client)
+	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
@@ -67,7 +67,7 @@ func (client *AwsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (
 
 // GetSecurityGroups gets security groups
 func (client *AwsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machine) ([]string, error) {
-	instance, err := GetRunningInstance(machine, client.client)
+	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (client *AwsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machi
 
 // GetIAMRole gets IAM role
 func (client *AwsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := GetRunningInstance(machine, client.client)
+	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +94,7 @@ func (client *AwsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (st
 
 // GetTags gets tags
 func (client *AwsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[string]string, error) {
-	instance, err := GetRunningInstance(machine, client.client)
+	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (client *AwsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[s
 
 // GetSubnet gets subnet
 func (client *AwsClientWrapper) GetSubnet(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := GetRunningInstance(machine, client.client)
+	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}
@@ -119,7 +119,7 @@ func (client *AwsClientWrapper) GetSubnet(machine *clusterv1alpha1.Machine) (str
 
 // GetAvailabilityZone gets availability zone
 func (client *AwsClientWrapper) GetAvailabilityZone(machine *clusterv1alpha1.Machine) (string, error) {
-	instance, err := GetRunningInstance(machine, client.client)
+	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
 	}

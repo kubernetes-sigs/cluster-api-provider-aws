@@ -35,10 +35,10 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-// GetRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
+// getRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
 // the most recently launched will be returned. If no instance exists, an error will be returned.
-func GetRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*ec2.Instance, error) {
-	instances, err := GetRunningInstances(machine, client)
+func getRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*ec2.Instance, error) {
+	instances, err := getRunningInstances(machine, client)
 	if err != nil {
 		return nil, err
 	}
@@ -50,23 +50,23 @@ func GetRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*e
 	return instances[0], nil
 }
 
-// GetRunningInstances returns all running instances that have a tag matching our machine name,
+// getRunningInstances returns all running instances that have a tag matching our machine name,
 // and cluster ID.
-func GetRunningInstances(machine *clusterv1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
+func getRunningInstances(machine *clusterv1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
 	runningInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameRunning), aws.String(ec2.InstanceStateNamePending)}
-	return GetInstances(machine, client, runningInstanceStateFilter)
+	return getInstances(machine, client, runningInstanceStateFilter)
 }
 
-// GetStoppedInstances returns all stopped instances that have a tag matching our machine name,
+// getStoppedInstances returns all stopped instances that have a tag matching our machine name,
 // and cluster ID.
-func GetStoppedInstances(machine *clusterv1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
+func getStoppedInstances(machine *clusterv1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
 	stoppedInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameStopped), aws.String(ec2.InstanceStateNameStopping)}
-	return GetInstances(machine, client, stoppedInstanceStateFilter)
+	return getInstances(machine, client, stoppedInstanceStateFilter)
 }
 
-// GetInstances returns all instances that have a tag matching our machine name,
+// getInstances returns all instances that have a tag matching our machine name,
 // and cluster ID.
-func GetInstances(machine *clusterv1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {
+func getInstances(machine *clusterv1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {
 
 	machineName := machine.Name
 
@@ -113,8 +113,8 @@ func GetInstances(machine *clusterv1.Machine, client awsclient.Client, instanceS
 	return instances, nil
 }
 
-// TerminateInstances terminates all provided instances with a single EC2 request.
-func TerminateInstances(client awsclient.Client, instances []*ec2.Instance) error {
+// terminateInstances terminates all provided instances with a single EC2 request.
+func terminateInstances(client awsclient.Client, instances []*ec2.Instance) error {
 	instanceIDs := []*string{}
 	// Cleanup all older instances:
 	for _, instance := range instances {
