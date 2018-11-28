@@ -80,7 +80,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return errors.Errorf("unable to reconcile network: %v", err)
 	}
 
-	if err := elbsvc.ReconcileLoadbalancers(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	if err := elbsvc.ReconcileLoadbalancers(); err != nil {
 		return errors.Errorf("unable to reconcile load balancers: %v", err)
 	}
 
@@ -101,7 +101,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	ec2svc := ec2.NewService(scope)
 	elbsvc := elb.NewService(scope)
 
-	if err := elbsvc.DeleteLoadbalancers(cluster.Name, &scope.ClusterStatus.Network); err != nil {
+	if err := elbsvc.DeleteLoadbalancers(); err != nil {
 		return errors.Errorf("unable to delete load balancers: %v", err)
 	}
 

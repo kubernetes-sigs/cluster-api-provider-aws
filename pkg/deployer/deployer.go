@@ -53,7 +53,7 @@ func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (stri
 	}
 
 	elbsvc := elb.NewService(scope)
-	return elbsvc.GetAPIServerDNSName(cluster.Name)
+	return elbsvc.GetAPIServerDNSName()
 }
 
 // GetKubeConfig returns the kubeconfig after the bootstrap process is complete.
