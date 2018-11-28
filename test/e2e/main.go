@@ -64,5 +64,19 @@ func runSuite() error {
 	}
 	glog.Info("PASS: ExpectOneClusterObject")
 
+	glog.Info("RUN: ExpectAllMachinesLinkedToANode")
+	if err := testConfig.ExpectAllMachinesLinkedToANode(); err != nil {
+		glog.Errorf("FAIL: ExpectAllMachinesLinkedToANode: %v", err)
+		return err
+	}
+	glog.Info("PASS: ExpectAllMachinesLinkedToANode")
+
+	glog.Info("RUN: ExpectNewNodeWhenDeletingMachine")
+	if err := testConfig.ExpectNewNodeWhenDeletingMachine(); err != nil {
+		glog.Errorf("FAIL: ExpectNewNodeWhenDeletingMachine: %v", err)
+		return err
+	}
+	glog.Info("PASS: ExpectNewNodeWhenDeletingMachine")
+
 	return nil
 }
