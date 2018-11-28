@@ -93,6 +93,7 @@ go_library(
         "syscall_solaris_amd64.go",
         "syscall_unix.go",
         "syscall_unix_gc.go",
+        "syscall_unix_gc_ppc64x.go",
         "timestruct.go",
         "xattr_bsd.go",
         "zerrors_darwin_386.go",

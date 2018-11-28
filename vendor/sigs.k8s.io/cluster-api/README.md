@@ -38,10 +38,12 @@ are also sponsored by SIG-cluster-lifecycle:
   * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
   * AWS/Openshift, https://github.com/openshift/cluster-operator
   * Azure, https://github.com/platform9/azure-provider
-  * DigitalOcean, https://github.com/kubermatic/cluster-api-provider-digitalocean
+  * DigitalOcean, https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean
   * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
   * vSphere, https://github.com/kubernetes-sigs/cluster-api-provider-vsphere
+  * Tencent Cloud, https://github.com/TencentCloud/cluster-api-provider-tencent
+  * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
 
 ## API Adoption
 
@@ -49,6 +51,7 @@ Following are the implementations managed by third-parties adopting the standard
 
   * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
   * Kubermatic machine-controller, https://github.com/kubermatic/machine-controller/tree/master
+  * Machine API Operator, https://github.com/openshift/machine-api-operator/tree/master
 
 ## Getting Started
 ### Prerequisites

@@ -7,6 +7,7 @@ go_library(
         "fake_cluster.go",
         "fake_cluster_client.go",
         "fake_machine.go",
+        "fake_machineclass.go",
         "fake_machinedeployment.go",
         "fake_machineset.go",
     ],

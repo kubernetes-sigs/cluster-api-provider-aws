@@ -6,6 +6,7 @@ go_library(
         "cluster.go",
         "expansion_generated.go",
         "machine.go",
+        "machineclass.go",
         "machinedeployment.go",
         "machineset.go",
     ],
