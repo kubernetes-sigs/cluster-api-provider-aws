@@ -161,8 +161,6 @@ spec:
               - cidrBlock
               type: object
           type: object
-        region:
-          type: string
   version: v1alpha1
 status:
   acceptedNames:

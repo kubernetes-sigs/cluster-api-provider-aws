@@ -28,7 +28,7 @@ import (
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
-	deployer.Deployer
+	*deployer.Deployer
 
 	client client.ClusterV1alpha1Interface
 }
@@ -40,11 +40,10 @@ type ActuatorParams struct {
 
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) *Actuator {
-	res := &Actuator{
-		client: params.Client,
+	return &Actuator{
+		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
+		client:   params.Client,
 	}
-
-	return res
 }
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
