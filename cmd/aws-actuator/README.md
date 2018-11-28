@@ -5,7 +5,7 @@ The command allows to directly interact with the aws actuator.
 ## To build the `aws-actuator` binary:
 
 ```sh
-go build -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
+$ make aws-actuator
 ```
 
 ## Prerequisities
@@ -103,7 +103,7 @@ $ cat examples/worker-user-data.sh | base64
 5. Create the worker node by running:
 
 ```sh
-./bin/aws-actuator create -m examples/worker-machine.yaml -c examples/cluster.yaml -u examples/worker-userdata.yaml --environment-id UNIQUE_ID
+$ ./bin/aws-actuator create -m examples/worker-machine.yaml -c examples/cluster.yaml -u examples/worker-userdata.yaml --environment-id UNIQUE_ID
 ```
 
 After some time the kubernetes cluster with the control plane (master node) and the worker node gets provisioned
@@ -117,94 +117,95 @@ It's assumed both `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are set.
 It takes some time before the worker node joins the cluster (~3 minutes).
 
 ```sh
-$ ./bin/aws-actuator bootstrap --manifests examples --environment-id UNIQUE_ID
-INFO[0000] Reading cluster manifest from examples/cluster.yaml
-INFO[0000] Reading master machine manifest from examples/master-machine.yaml
-INFO[0000] Reading master user data manifest from examples/master-userdata.yaml
-INFO[0000] Creating master machine                      
-DEBU[0000] Describing AMI based on filters               bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
-DEBU[0007] Describing security groups based on filters   bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
-DEBU[0007] Describing subnets based on filters           bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
-WARN[0008] More than one subnet id returned, only first one will be used  bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
-INFO[0009] Master machine created with ipv4: 10.0.102.217, InstanceId: i-0eea29823ae5d50e8
-INFO[0014] Waiting for master machine PublicDNS         
-DEBU[0014] checking if machine exists                    bootstrap=create-master-machine machine=test/jchaloup-cama-aws-actuator-testing-machine-master
-INFO[0014] PublicDnsName: ec2-34-207-227-3.compute-1.amazonaws.com
-
-INFO[0019] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0150] Unable to pull kubeconfig: exit status 255, ssh: connect to host ec2-34-207-227-3.compute-1.amazonaws.com port 22: Connection timed out
-
-INFO[0154] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0158] Unable to pull kubeconfig: exit status 1, Warning: Permanently added 'ec2-34-207-227-3.compute-1.amazonaws.com,34.207.227.3' (ECDSA) to the list of known hosts.
-cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0159] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0162] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0164] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0167] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0169] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0172] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0174] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0177] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0179] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0182] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0184] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0187] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0189] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0191] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0194] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0197] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0199] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0202] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0204] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0207] Unable to pull kubeconfig: exit status 1, cat: /etc/kubernetes/admin.conf: No such file or directory
-
-INFO[0209] Pulling kubeconfig from ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0212] Running kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://ec2-34-207-227-3.compute-1.amazonaws.com:8443
-INFO[0217] Waiting for all nodes to come up             
-INFO[0222] Waiting for all nodes to come up             
-INFO[0227] Waiting for all nodes to come up             
-INFO[0232] Waiting for all nodes to come up             
-INFO[0237] Waiting for all nodes to come up             
-INFO[0242] Waiting for all nodes to come up             
-INFO[0248] Is node "ip-10-0-102-217.ec2.internal" ready?: true
-
-INFO[0248] Deploying cluster-api stack                  
-INFO[0248] Deploying aws credentials                    
-INFO[0248] Creating "test" namespace...                 
-INFO[0248] Creating "test/aws-credentials-secret" secret...
-INFO[0254] Deploying cluster-api server                 
-INFO[0271] Deploying cluster-api controllers            
-INFO[0277] Deploying cluster resource                   
-INFO[0277] Creating "test/tb-asg-35" cluster...         
-INFO[0277] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
-INFO[0282] Deploying cluster resource                   
-INFO[0282] Creating "test/tb-asg-35" cluster...         
-INFO[0282] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
-INFO[0287] Deploying cluster resource                   
-INFO[0287] Creating "test/tb-asg-35" cluster...         
-INFO[0287] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
-INFO[0292] Deploying cluster resource                   
-INFO[0292] Creating "test/tb-asg-35" cluster...         
-INFO[0292] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
-INFO[0297] Deploying cluster resource                   
-INFO[0297] Creating "test/tb-asg-35" cluster...         
-INFO[0297] Unable to deploy cluster manifest: unable to create cluster: an error on the server ("service unavailable") has prevented the request from succeeding (post clusters.cluster.k8s.io)
-INFO[0302] Deploying cluster resource                   
-INFO[0302] Creating "test/tb-asg-35" cluster...         
-INFO[0302] Reading worker user data manifest from examples/worker-userdata.yaml
-INFO[0302] Generating worker machine set user data for master listening at 10.0.102.217
-INFO[0302] Creating "test/aws-actuator-node-user-data-secret" secret...
-INFO[0302] Reading worker machine manifest from examples/worker-machineset.yaml
-INFO[0307] Deploying worker machineset                  
-INFO[0307] Creating "test/jchaloup-cama-default-worker-machineset" machineset...
+$ ./bin/aws-actuator bootstrap --logtostderr --environment-id UNIQUE_ID --master-machine-private-key AWS_MACHINE_PRIVATE_KEY -v 3
+I1126 00:27:50.704676   13319 main.go:280] Creating master machine
+I1126 00:27:52.525208   13319 actuator.go:188] no stopped instances found for machine UNIQUE_ID-master-machine-b9aee4
+I1126 00:27:52.525248   13319 actuator.go:306] Describing AMI based on filters
+I1126 00:27:54.523474   13319 actuator.go:217] Describing security groups based on filters
+I1126 00:27:54.978100   13319 actuator.go:252] Describing subnets based on filters
+E1126 00:27:56.524317   13319 main.go:284] <nil>
+I1126 00:27:56.524363   13319 main.go:289] Master machine created with ipv4: 10.0.101.124, InstanceId: i-0a2f757591c6c7fab
+I1126 00:28:01.524596   13319 main.go:294] Waiting for master machine PublicDNS
+I1126 00:28:01.524638   13319 actuator.go:581] checking if machine exists
+I1126 00:28:01.947078   13319 main.go:301] PublicDnsName: ec2-34-200-235-67.compute-1.amazonaws.com
+I1126 00:28:01.948117   13319 main.go:331] Collecting master kubeconfig
+I1126 00:28:12.268962   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:22.074665   13319 machines.go:301] Unable to pull kubeconfig: failed to dial: dial tcp 34.200.235.67:22: connect: connection timed out
+I1126 00:30:22.268985   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:25.343047   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:30:27.269053   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:28.890164   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:30:32.269160   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:34.130056   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:30:37.269024   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:38.923598   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:30:42.269020   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:43.873202   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:30:47.269133   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:49.110626   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:30:52.269046   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:54.229656   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:30:57.269052   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:30:59.099948   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:02.269091   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:04.182657   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:07.269189   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:09.290235   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:12.269123   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:14.151180   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:17.269023   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:19.373448   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:22.269634   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:24.905696   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:27.269061   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:28.999498   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:32.269036   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:34.325456   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:37.268993   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:39.242166   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:42.269179   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:44.257477   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:47.269127   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:49.276483   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:52.269210   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:54.394890   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:31:57.269117   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:31:59.209442   13319 machines.go:301] Unable to pull kubeconfig: failed to collect kubeconfig: Process exited with status 1, cat: /root/.kube/config: No such file or directory
+I1126 00:32:02.269029   13319 machines.go:293] Pulling kubeconfig from ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:32:03.969797   13319 machines.go:311] Master running on https://ec2-34-200-235-67.compute-1.amazonaws.com:8443
+I1126 00:32:03.982206   13319 main.go:361] Waiting for all nodes to come up
+I1126 00:32:09.451771   13319 machines.go:222] unable to list nodes: Get https://ec2-34-200-235-67.compute-1.amazonaws.com:8443/api/v1/nodes: x509: certificate has expired or is not yet valid
+I1126 00:32:14.365702   13319 machines.go:222] unable to list nodes: Get https://ec2-34-200-235-67.compute-1.amazonaws.com:8443/api/v1/nodes: x509: certificate has expired or is not yet valid
+I1126 00:32:19.383442   13319 machines.go:222] unable to list nodes: Get https://ec2-34-200-235-67.compute-1.amazonaws.com:8443/api/v1/nodes: x509: certificate has expired or is not yet valid
+I1126 00:32:24.400808   13319 machines.go:222] unable to list nodes: Get https://ec2-34-200-235-67.compute-1.amazonaws.com:8443/api/v1/nodes: x509: certificate has expired or is not yet valid
+I1126 00:32:29.274112   13319 machines.go:222] unable to list nodes: Get https://ec2-34-200-235-67.compute-1.amazonaws.com:8443/api/v1/nodes: x509: certificate has expired or is not yet valid
+I1126 00:32:34.536479   13319 machines.go:222] unable to list nodes: Get https://ec2-34-200-235-67.compute-1.amazonaws.com:8443/api/v1/nodes: x509: certificate has expired or is not yet valid
+I1126 00:32:39.349722   13319 machines.go:222] unable to list nodes: Get https://ec2-34-200-235-67.compute-1.amazonaws.com:8443/api/v1/nodes: x509: certificate has expired or is not yet valid
+I1126 00:32:44.786880   13319 machines.go:239] Node "ip-10-0-101-124.ec2.internal" is ready
+I1126 00:32:44.786916   13319 main.go:367] Creating "test" namespace
+I1126 00:32:44.981447   13319 main.go:358] Deploying cluster API stack components
+I1126 00:32:44.981463   13319 main.go:358] Deploying cluster CRD manifest
+I1126 00:32:50.206519   13319 framework.go:302] create.err: <nil>
+I1126 00:32:50.408804   13319 framework.go:311] get.err: <nil>
+I1126 00:32:50.408827   13319 main.go:358] Deploying machine CRD manifest
+I1126 00:32:55.632340   13319 framework.go:302] create.err: <nil>
+I1126 00:32:55.751620   13319 framework.go:311] get.err: <nil>
+I1126 00:32:55.752952   13319 main.go:358] Deploying machineset CRD manifest
+I1126 00:33:00.957146   13319 framework.go:302] create.err: <nil>
+I1126 00:33:01.162107   13319 framework.go:311] get.err: <nil>
+I1126 00:33:01.162204   13319 main.go:358] Deploying machinedeployment CRD manifest
+I1126 00:33:06.383504   13319 framework.go:302] create.err: <nil>
+I1126 00:33:06.589079   13319 framework.go:311] get.err: <nil>
+I1126 00:33:06.589126   13319 main.go:358] Deploying cluster role
+I1126 00:33:06.947393   13319 main.go:358] Deploying controller manager
+I1126 00:33:07.239718   13319 main.go:358] Deploying machine controller
+I1126 00:33:07.412079   13319 main.go:358] Waiting until cluster objects can be listed
+I1126 00:33:12.636542   13319 main.go:358] Cluster API stack deployed
+I1126 00:33:12.636656   13319 main.go:358] Creating "UNIQUE_ID" cluster
+gI1126 00:33:33.622648   13319 main.go:358] Creating "UNIQUE_ID-worker-machineset-861404" machineset
+I1126 00:33:43.973580   13319 main.go:358] Verify machineset's underlying instances is running
+I1126 00:33:44.099488   13319 main.go:358] Waiting for "UNIQUE_ID-worker-machineset-861404-qh6sx" machine
+I1126 00:33:50.459899   13319 main.go:358] Verify machine's underlying instance is running
+I1126 00:33:55.460140   13319 machines.go:80] Waiting for instance to come up
+I1126 00:33:57.176449   13319 machines.go:88] Machine is running
 ```
