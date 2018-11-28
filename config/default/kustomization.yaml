@@ -18,9 +18,13 @@ namePrefix: migration-
 # YAML string, with resources separated by document
 # markers ("---").
 resources:
+- ../crds/machine.crd.yaml
+- ../crds/machineset.crd.yaml
+- ../crds/machinedeployment.crd.yaml
+- ../crds/cluster.crd.yaml
 - ../rbac/rbac_role.yaml
 - ../rbac/rbac_role_binding.yaml
-- ../manager/manager.yaml
+- ../controllers/deployment.yaml
 
-patches:
-- manager_image_patch.yaml
+#patches:
+#- manager_image_patch.yaml
