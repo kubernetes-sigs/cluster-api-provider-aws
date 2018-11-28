@@ -16,6 +16,8 @@ package ec2
 import (
 	"encoding/base64"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 
@@ -28,17 +30,16 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.Cluster) (*v1alpha1.Instance, error) {
-	klog.V(2).Infof("Looking for existing instance for machine %q in cluster %q", machine.Name, cluster.Name)
+func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Instance, error) {
+	klog.V(2).Infof("Looking for existing instance for machine %q in cluster %q", machine.Name(), s.scope.Name())
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.ClusterOwned(cluster.Name),
-			filter.EC2.Name(machine.Name),
+			filter.EC2.ClusterOwned(s.scope.Name()),
+			filter.EC2.Name(machine.Name()),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
 	}
@@ -64,11 +65,11 @@ func (s *Service) InstanceByTags(machine *clusterv1.Machine, cluster *clusterv1.
 }
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, error) {
-	klog.V(2).Infof("Looking for instance %q", *instanceID)
+func (s *Service) InstanceIfExists(id string) (*v1alpha1.Instance, error) {
+	klog.V(2).Infof("Looking for instance %q", id)
 
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{instanceID},
+		InstanceIds: []*string{aws.String(id)},
 		Filters:     []*ec2.Filter{filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning)},
 	}
 
@@ -77,7 +78,7 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
-		return nil, errors.Wrapf(err, "failed to describe instance: %q", *instanceID)
+		return nil, errors.Wrapf(err, "failed to describe instance: %q", id)
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
@@ -87,67 +88,67 @@ func (s *Service) InstanceIfExists(instanceID *string) (*v1alpha1.Instance, erro
 	return nil, nil
 }
 
-// CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, clusterConfig *v1alpha1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*v1alpha1.Instance, error) {
-	klog.V(2).Infof("Creating a new instance for machine %q", machine.Name)
+// createInstance runs an ec2 instance.
+func (s *Service) createInstance(machine *actuators.MachineScope, token string) (*v1alpha1.Instance, error) {
+	klog.V(2).Infof("Creating a new instance for machine %q", machine.Name())
 
 	input := &v1alpha1.Instance{
-		Type:       config.InstanceType,
-		IAMProfile: config.IAMInstanceProfile,
+		Type:       machine.MachineConfig.InstanceType,
+		IAMProfile: machine.MachineConfig.IAMInstanceProfile,
 	}
 
 	input.Tags = tags.Build(tags.BuildParams{
-		ClusterName: cluster.Name,
+		ClusterName: s.scope.Name(),
 		Lifecycle:   tags.ResourceLifecycleOwned,
-		Name:        aws.String(machine.Name),
-		Role:        aws.String(machine.ObjectMeta.Labels["set"]),
+		Name:        aws.String(machine.Name()),
+		Role:        aws.String(machine.Role()),
 	})
 
 	// Pick image from the machine configuration, or use a default one.
-	if config.AMI.ID != nil {
-		input.ImageID = *config.AMI.ID
+	if machine.MachineConfig.AMI.ID != nil {
+		input.ImageID = *machine.MachineConfig.AMI.ID
 	} else {
-		input.ImageID = s.defaultAMILookup(clusterConfig.Region)
+		input.ImageID = s.defaultAMILookup(machine.Region())
 	}
 
 	// Pick subnet from the machine configuration, or default to the first private available.
-	if config.Subnet != nil && config.Subnet.ID != nil {
-		input.SubnetID = *config.Subnet.ID
+	if machine.MachineConfig.Subnet != nil && machine.MachineConfig.Subnet.ID != nil {
+		input.SubnetID = *machine.MachineConfig.Subnet.ID
 	} else {
-		sns := clusterStatus.Network.Subnets.FilterPrivate()
+		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available", machine.Name),
+				errors.Errorf("failed to run machine %q, no subnets available", machine.Name()),
 			)
 		}
 		input.SubnetID = sns[0].ID
 	}
 
 	// apply values based on the role of the machine
-	if machine.ObjectMeta.Labels["set"] == "controlplane" {
+	if machine.Role() == "controlplane" {
 
-		if clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane] == nil {
+		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
 			return nil, awserrors.NewFailedDependency(
 				errors.New("failed to run controlplane, security group not available"),
 			)
 		}
 
-		if len(clusterConfig.CACertificate) == 0 {
+		if len(s.scope.ClusterConfig.CACertificate) == 0 {
 			return nil, errors.New("failed to run controlplane, missing CACertificate")
 		}
-		if len(clusterConfig.CAPrivateKey) == 0 {
+		if len(s.scope.ClusterConfig.CAPrivateKey) == 0 {
 			return nil, errors.New("failed to run controlplane, missing CAPrivateKey")
 		}
 
 		userData, err := userdata.NewControlPlane(&userdata.ControlPlaneInput{
-			CACert:            string(clusterConfig.CACertificate),
-			CAKey:             string(clusterConfig.CAPrivateKey),
-			ELBAddress:        clusterStatus.Network.APIServerELB.DNSName,
-			ClusterName:       cluster.Name,
-			PodSubnet:         cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
-			ServiceSubnet:     cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
-			ServiceDomain:     cluster.Spec.ClusterNetwork.ServiceDomain,
-			KubernetesVersion: machine.Spec.Versions.ControlPlane,
+			CACert:            string(s.scope.ClusterConfig.CACertificate),
+			CAKey:             string(s.scope.ClusterConfig.CAPrivateKey),
+			ELBAddress:        s.scope.Network().APIServerELB.DNSName,
+			ClusterName:       s.scope.Name(),
+			PodSubnet:         s.scope.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
+			ServiceSubnet:     s.scope.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
+			ServiceDomain:     s.scope.Cluster.Spec.ClusterNetwork.ServiceDomain,
+			KubernetesVersion: machine.Machine.Spec.Versions.ControlPlane,
 		})
 
 		if err != nil {
@@ -155,16 +156,16 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 		}
 
 		input.UserData = aws.String(userData)
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID)
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID)
 	}
 
-	if machine.ObjectMeta.Labels["set"] == "node" {
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, clusterStatus.Network.SecurityGroups[v1alpha1.SecurityGroupNode].ID)
+	if machine.Role() == "node" {
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
 		userData, err := userdata.NewNode(&userdata.NodeInput{
-			CACert:         string(clusterConfig.CACertificate),
-			BootstrapToken: bootstrapToken,
-			ELBAddress:     clusterStatus.Network.APIServerELB.DNSName,
+			CACert:         string(s.scope.ClusterConfig.CACertificate),
+			BootstrapToken: token,
+			ELBAddress:     s.scope.Network().APIServerELB.DNSName,
 		})
 
 		if err != nil {
@@ -175,8 +176,8 @@ func (s *Service) CreateInstance(machine *clusterv1.Machine, config *v1alpha1.AW
 	}
 
 	// Pick SSH key, if any.
-	if config.KeyName != "" {
-		input.KeyName = aws.String(config.KeyName)
+	if machine.MachineConfig.KeyName != "" {
+		input.KeyName = aws.String(machine.MachineConfig.KeyName)
 	} else {
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
@@ -222,30 +223,30 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *clusterv1.Machine, status *v1alpha1.AWSMachineProviderStatus, config *v1alpha1.AWSMachineProviderConfig, clusterStatus *v1alpha1.AWSClusterProviderStatus, clusterConfig *v1alpha1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*v1alpha1.Instance, error) {
-	klog.V(2).Infof("Attempting to create or get machine %q", machine.Name)
+func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, token string) (*v1alpha1.Instance, error) {
+	klog.V(2).Infof("Attempting to create or get machine %q", machine.Name())
 
 	// instance id exists, try to get it
-	if status.InstanceID != nil {
-		klog.V(2).Infof("Looking up machine %q by id %q", machine.Name, *status.InstanceID)
+	if machine.MachineStatus.InstanceID != nil {
+		klog.V(2).Infof("Looking up machine %q by id %q", machine.Name(), *machine.MachineStatus.InstanceID)
 
-		instance, err := s.InstanceIfExists(status.InstanceID)
+		instance, err := s.InstanceIfExists(*machine.MachineStatus.InstanceID)
 		if err != nil && !awserrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", machine.Name, *status.InstanceID)
+			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", machine.Name(), *machine.MachineStatus.InstanceID)
 		} else if err == nil && instance != nil {
 			return instance, nil
 		}
 	}
 
-	klog.V(2).Infof("Looking up machine %q by tags", machine.Name)
-	instance, err := s.InstanceByTags(machine, cluster)
+	klog.V(2).Infof("Looking up machine %q by tags", machine.Name())
+	instance, err := s.InstanceByTags(machine)
 	if err != nil && !awserrors.IsNotFound(err) {
-		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", machine.Name)
+		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", machine.Name())
 	} else if err == nil && instance != nil {
 		return instance, nil
 	}
 
-	return s.CreateInstance(machine, config, clusterStatus, clusterConfig, cluster, bootstrapToken)
+	return s.createInstance(machine, token)
 }
 
 func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {

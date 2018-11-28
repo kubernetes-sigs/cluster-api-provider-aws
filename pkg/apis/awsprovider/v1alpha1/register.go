@@ -44,11 +44,10 @@ var (
 // ClusterConfigFromProviderConfig unmarshals a provider config into an AWS Cluster type
 func ClusterConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSClusterProviderConfig, error) {
 	var config AWSClusterProviderConfig
-	// TODO(chuckha) is this the right behavior? Should this be an error?
-	// if the value is nil then the providerconfig should be nil.
 	if providerConfig.Value == nil {
 		return &config, nil
 	}
+
 	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
 		return nil, err
 	}
@@ -72,6 +71,10 @@ func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClust
 // MachineConfigFromProviderConfig unmarshals a provider config into an AWS machine type
 func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSMachineProviderConfig, error) {
 	var config AWSMachineProviderConfig
+	if providerConfig.Value == nil {
+		return &config, nil
+	}
+
 	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
 		return nil, err
 	}

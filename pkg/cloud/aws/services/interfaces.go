@@ -16,7 +16,7 @@ package services
 import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
 // Getter is a unified interfaces that includes all the getters.
@@ -59,10 +59,10 @@ type EC2ClusterInterface interface {
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
 type EC2MachineInterface interface {
-	InstanceIfExists(instanceID *string) (*providerv1.Instance, error)
-	TerminateInstance(instanceID string) error
-	CreateOrGetMachine(machine *clusterv1.Machine, status *providerv1.AWSMachineProviderStatus, config *providerv1.AWSMachineProviderConfig, clusterStatus *providerv1.AWSClusterProviderStatus, clusterConfig *providerv1.AWSClusterProviderConfig, cluster *clusterv1.Cluster, bootstrapToken string) (*providerv1.Instance, error)
-	UpdateInstanceSecurityGroups(instanceID string, securityGroups []string) error
+	InstanceIfExists(id string) (*providerv1.Instance, error)
+	TerminateInstance(id string) error
+	CreateOrGetMachine(machine *actuators.MachineScope, token string) (*providerv1.Instance, error)
+	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
 }
 

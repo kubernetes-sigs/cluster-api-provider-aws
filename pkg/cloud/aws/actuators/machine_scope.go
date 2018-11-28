@@ -71,6 +71,26 @@ type MachineScope struct {
 	MachineStatus *v1alpha1.AWSMachineProviderStatus
 }
 
+// Name returns the machine name.
+func (m *MachineScope) Name() string {
+	return m.Machine.Name
+}
+
+// Namespace returns the machine namespace.
+func (m *MachineScope) Namespace() string {
+	return m.Machine.Namespace
+}
+
+// Name returns the machine role from the labels.
+func (m *MachineScope) Role() string {
+	return m.Machine.Labels["set"]
+}
+
+// Region returns the machine region.
+func (m *MachineScope) Region() string {
+	return m.Scope.Region()
+}
+
 func (m *MachineScope) storeMachineStatus() error {
 	ext, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
 	if err != nil {

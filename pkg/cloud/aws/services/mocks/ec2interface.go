@@ -25,7 +25,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
-	v1alpha10 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	actuators "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
 // MockEC2Interface is a mock of EC2Interface interface
@@ -52,16 +52,16 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateOrGetMachine mocks base method
-func (m *MockEC2Interface) CreateOrGetMachine(arg0 *v1alpha10.Machine, arg1 *v1alpha1.AWSMachineProviderStatus, arg2 *v1alpha1.AWSMachineProviderConfig, arg3 *v1alpha1.AWSClusterProviderStatus, arg4 *v1alpha1.AWSClusterProviderConfig, arg5 *v1alpha10.Cluster, arg6 string) (*v1alpha1.Instance, error) {
-	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+func (m *MockEC2Interface) CreateOrGetMachine(arg0 *actuators.MachineScope, arg1 string) (*v1alpha1.Instance, error) {
+	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateOrGetMachine indicates an expected call of CreateOrGetMachine
-func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+func (mr *MockEC2InterfaceMockRecorder) CreateOrGetMachine(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateOrGetMachine", reflect.TypeOf((*MockEC2Interface)(nil).CreateOrGetMachine), arg0, arg1)
 }
 
 // DeleteBastion mocks base method
@@ -89,7 +89,7 @@ func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork() *gomock.Call {
 }
 
 // InstanceIfExists mocks base method
-func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1alpha1.Instance, error) {
+func (m *MockEC2Interface) InstanceIfExists(arg0 string) (*v1alpha1.Instance, error) {
 	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
 	ret1, _ := ret[1].(error)
