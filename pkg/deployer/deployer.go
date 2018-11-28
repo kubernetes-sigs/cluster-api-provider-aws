@@ -60,7 +60,7 @@ func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (stri
 func (d *Deployer) GetKubeConfig(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
 
 	// Load provider config.
-	config, err := providerv1.ClusterConfigFromProviderConfig(cluster.Spec.ProviderConfig)
+	config, err := providerv1.ClusterConfigFromProviderSpec(cluster.Spec.ProviderSpec)
 	if err != nil {
 		return "", errors.Errorf("failed to load cluster provider status: %v", err)
 	}

@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: awsclusterproviderconfigs.awsprovider.k8s.io
+  name: awsclusterproviderspecs.awsprovider.k8s.io
 spec:
   group: awsprovider.k8s.io
   names:
-    kind: AWSClusterProviderConfig
-    plural: awsclusterproviderconfigs
+    kind: AWSClusterProviderSpec
+    plural: awsclusterproviderspecs
   scope: Namespaced
   validation:
     openAPIV3Schema:

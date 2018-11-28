@@ -234,9 +234,9 @@ func TestCreateInstance(t *testing.T) {
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
-		machineConfig *v1alpha1.AWSMachineProviderConfig
+		machineConfig *v1alpha1.AWSMachineProviderSpec
 		clusterStatus *v1alpha1.AWSClusterProviderStatus
-		clusterConfig *v1alpha1.AWSClusterProviderConfig
+		clusterConfig *v1alpha1.AWSClusterProviderSpec
 		cluster       clusterv1.Cluster
 		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		check         func(instance *v1alpha1.Instance, err error)
@@ -248,7 +248,7 @@ func TestCreateInstance(t *testing.T) {
 					Labels: map[string]string{"set": "node"},
 				},
 			},
-			machineConfig: &v1alpha1.AWSMachineProviderConfig{
+			machineConfig: &v1alpha1.AWSMachineProviderSpec{
 				AMI: v1alpha1.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
@@ -275,7 +275,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			clusterConfig: &v1alpha1.AWSClusterProviderConfig{},
+			clusterConfig: &v1alpha1.AWSClusterProviderSpec{},
 			cluster: clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test1",

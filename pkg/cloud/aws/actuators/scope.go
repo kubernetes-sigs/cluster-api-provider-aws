@@ -39,7 +39,7 @@ func NewScope(params ScopeParams) (*Scope, error) {
 		return nil, errors.New("failed to generate new scope from nil cluster")
 	}
 
-	clusterConfig, err := v1alpha1.ClusterConfigFromProviderConfig(params.Cluster.Spec.ProviderConfig)
+	clusterConfig, err := v1alpha1.ClusterConfigFromProviderSpec(params.Cluster.Spec.ProviderSpec)
 	if err != nil {
 		return nil, errors.Errorf("failed to load cluster provider config: %v", err)
 	}
@@ -81,7 +81,7 @@ type Scope struct {
 	AWSClients
 	Cluster       *clusterv1.Cluster
 	ClusterClient client.ClusterInterface
-	ClusterConfig *v1alpha1.AWSClusterProviderConfig
+	ClusterConfig *v1alpha1.AWSClusterProviderSpec
 	ClusterStatus *v1alpha1.AWSClusterProviderStatus
 }
 
@@ -126,7 +126,7 @@ func (s *Scope) storeClusterConfig() error {
 		return err
 	}
 
-	s.Cluster.Spec.ProviderConfig.Value = ext
+	s.Cluster.Spec.ProviderSpec.Value = ext
 
 	if _, err := s.ClusterClient.Update(s.Cluster); err != nil {
 		return err

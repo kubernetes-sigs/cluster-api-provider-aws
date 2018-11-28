@@ -28,7 +28,7 @@ type Getter interface {
 
 // SDKSessionGetter has a single method that returns an AWS session.
 type SDKSessionGetter interface {
-	Session(*providerv1.AWSClusterProviderConfig) *session.Session
+	Session(*providerv1.AWSClusterProviderSpec) *session.Session
 }
 
 // EC2Getter has a single method that returns an EC2 service interface.

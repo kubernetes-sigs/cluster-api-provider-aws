@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: awsmachineproviderconfigs.awsprovider.k8s.io
+  name: awsmachineproviderspecs.awsprovider.k8s.io
 spec:
   group: awsprovider.k8s.io
   names:
-    kind: AWSMachineProviderConfig
-    plural: awsmachineproviderconfigs
+    kind: AWSMachineProviderSpec
+    plural: awsmachineproviderspecs
   scope: Namespaced
   validation:
     openAPIV3Schema:

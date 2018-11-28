@@ -50,8 +50,8 @@ func TestGetIP(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test", Namespace: "default"},
 				Spec: clusterv1.ClusterSpec{
-					ProviderConfig: clusterv1.ProviderConfig{
-						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{}),
+					ProviderSpec: clusterv1.ProviderSpec{
+						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderSpec{}),
 					},
 				},
 				Status: clusterv1.ClusterStatus{
@@ -77,8 +77,8 @@ func TestGetIP(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test", Namespace: "default"},
 				Spec: clusterv1.ClusterSpec{
-					ProviderConfig: clusterv1.ProviderConfig{
-						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{}),
+					ProviderSpec: clusterv1.ProviderSpec{
+						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderSpec{}),
 					},
 				},
 			},
@@ -101,8 +101,8 @@ func TestGetIP(t *testing.T) {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", ClusterName: "test", Namespace: "default"},
 				Spec: clusterv1.ClusterSpec{
-					ProviderConfig: clusterv1.ProviderConfig{
-						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{}),
+					ProviderSpec: clusterv1.ProviderSpec{
+						Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderSpec{}),
 					},
 				},
 				Status: clusterv1.ClusterStatus{

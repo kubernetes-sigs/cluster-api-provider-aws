@@ -37,7 +37,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, err
 	}
 
-	machineConfig, err := v1alpha1.MachineConfigFromProviderConfig(params.Machine.Spec.ProviderConfig)
+	machineConfig, err := v1alpha1.MachineConfigFromProviderSpec(params.Machine.Spec.ProviderSpec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get machine config")
 	}
@@ -67,7 +67,7 @@ type MachineScope struct {
 
 	Machine       *clusterv1.Machine
 	MachineClient client.MachineInterface
-	MachineConfig *v1alpha1.AWSMachineProviderConfig
+	MachineConfig *v1alpha1.AWSMachineProviderSpec
 	MachineStatus *v1alpha1.AWSMachineProviderStatus
 }
 

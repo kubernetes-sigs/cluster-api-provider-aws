@@ -23,10 +23,10 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSClusterProviderConfig is the providerConfig for AWS in the cluster
+// AWSClusterProviderSpec is the providerConfig for AWS in the cluster
 // object
 // +k8s:openapi-gen=true
-type AWSClusterProviderConfig struct {
+type AWSClusterProviderSpec struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -46,5 +46,5 @@ type AWSClusterProviderConfig struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 func init() {
-	SchemeBuilder.Register(&AWSClusterProviderConfig{})
+	SchemeBuilder.Register(&AWSClusterProviderSpec{})
 }
