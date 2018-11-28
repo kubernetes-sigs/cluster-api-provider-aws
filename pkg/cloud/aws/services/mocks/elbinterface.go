@@ -24,7 +24,6 @@ package mocks
 import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // MockELBInterface is a mock of ELBInterface interface
@@ -51,50 +50,50 @@ func (m *MockELBInterface) EXPECT() *MockELBInterfaceMockRecorder {
 }
 
 // DeleteLoadbalancers mocks base method
-func (m *MockELBInterface) DeleteLoadbalancers(arg0 string, arg1 *v1alpha1.Network) error {
-	ret := m.ctrl.Call(m, "DeleteLoadbalancers", arg0, arg1)
+func (m *MockELBInterface) DeleteLoadbalancers() error {
+	ret := m.ctrl.Call(m, "DeleteLoadbalancers")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteLoadbalancers indicates an expected call of DeleteLoadbalancers
-func (mr *MockELBInterfaceMockRecorder) DeleteLoadbalancers(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).DeleteLoadbalancers), arg0, arg1)
+func (mr *MockELBInterfaceMockRecorder) DeleteLoadbalancers() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).DeleteLoadbalancers))
 }
 
 // GetAPIServerDNSName mocks base method
-func (m *MockELBInterface) GetAPIServerDNSName(arg0 string) (string, error) {
-	ret := m.ctrl.Call(m, "GetAPIServerDNSName", arg0)
+func (m *MockELBInterface) GetAPIServerDNSName() (string, error) {
+	ret := m.ctrl.Call(m, "GetAPIServerDNSName")
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAPIServerDNSName indicates an expected call of GetAPIServerDNSName
-func (mr *MockELBInterfaceMockRecorder) GetAPIServerDNSName(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIServerDNSName", reflect.TypeOf((*MockELBInterface)(nil).GetAPIServerDNSName), arg0)
+func (mr *MockELBInterfaceMockRecorder) GetAPIServerDNSName() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIServerDNSName", reflect.TypeOf((*MockELBInterface)(nil).GetAPIServerDNSName))
 }
 
 // ReconcileLoadbalancers mocks base method
-func (m *MockELBInterface) ReconcileLoadbalancers(arg0 string, arg1 *v1alpha1.Network) error {
-	ret := m.ctrl.Call(m, "ReconcileLoadbalancers", arg0, arg1)
+func (m *MockELBInterface) ReconcileLoadbalancers() error {
+	ret := m.ctrl.Call(m, "ReconcileLoadbalancers")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ReconcileLoadbalancers indicates an expected call of ReconcileLoadbalancers
-func (mr *MockELBInterfaceMockRecorder) ReconcileLoadbalancers(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).ReconcileLoadbalancers), arg0, arg1)
+func (mr *MockELBInterfaceMockRecorder) ReconcileLoadbalancers() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).ReconcileLoadbalancers))
 }
 
 // RegisterInstanceWithAPIServerELB mocks base method
-func (m *MockELBInterface) RegisterInstanceWithAPIServerELB(arg0, arg1 string) error {
-	ret := m.ctrl.Call(m, "RegisterInstanceWithAPIServerELB", arg0, arg1)
+func (m *MockELBInterface) RegisterInstanceWithAPIServerELB(arg0 string) error {
+	ret := m.ctrl.Call(m, "RegisterInstanceWithAPIServerELB", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterInstanceWithAPIServerELB indicates an expected call of RegisterInstanceWithAPIServerELB
-func (mr *MockELBInterfaceMockRecorder) RegisterInstanceWithAPIServerELB(arg0, arg1 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstanceWithAPIServerELB", reflect.TypeOf((*MockELBInterface)(nil).RegisterInstanceWithAPIServerELB), arg0, arg1)
+func (mr *MockELBInterfaceMockRecorder) RegisterInstanceWithAPIServerELB(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstanceWithAPIServerELB", reflect.TypeOf((*MockELBInterface)(nil).RegisterInstanceWithAPIServerELB), arg0)
 }

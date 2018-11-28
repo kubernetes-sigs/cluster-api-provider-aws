@@ -29,11 +29,11 @@ import (
 )
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
-func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.Network) error {
+func (s *Service) ReconcileLoadbalancers() error {
 	klog.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
-	spec := s.getAPIServerClassicELBSpec(clusterName, network)
+	spec := s.getAPIServerClassicELBSpec()
 
 	// Describe or create.
 	apiELB, err := s.describeClassicELB(spec.Name)
@@ -49,16 +49,14 @@ func (s *Service) ReconcileLoadbalancers(clusterName string, network *v1alpha1.N
 	}
 
 	// TODO(vincepri): check if anything has changed and reconcile as necessary.
-
-	apiELB.DeepCopyInto(&network.APIServerELB)
-
+	apiELB.DeepCopyInto(&s.scope.Network().APIServerELB)
 	klog.V(2).Info("Reconcile load balancers completed successfully")
 	return nil
 }
 
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
-func (s *Service) GetAPIServerDNSName(clusterName string) (string, error) {
-	apiELB, err := s.describeClassicELB(GenerateELBName(clusterName, TagValueAPIServerRole))
+func (s *Service) GetAPIServerDNSName() (string, error) {
+	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), TagValueAPIServerRole))
 
 	if err != nil {
 		return "", err
@@ -68,11 +66,11 @@ func (s *Service) GetAPIServerDNSName(clusterName string) (string, error) {
 }
 
 // DeleteLoadbalancers deletes the load balancers for the given cluster.
-func (s *Service) DeleteLoadbalancers(clusterName string, network *v1alpha1.Network) error {
-	klog.V(2).Info("Delete load balancers")
+func (s *Service) DeleteLoadbalancers() error {
+	klog.V(2).Info("Deleting load balancers")
 
 	// Get default api server spec.
-	spec := s.getAPIServerClassicELBSpec(clusterName, network)
+	spec := s.getAPIServerClassicELBSpec()
 
 	// Describe or create.
 	apiELB, err := s.describeClassicELB(spec.Name)
@@ -107,10 +105,10 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 }
 
 // RegisterInstanceWithAPIServerELB registers an instance with a classic ELB
-func (s *Service) RegisterInstanceWithAPIServerELB(clusterName string, instanceID string) error {
+func (s *Service) RegisterInstanceWithAPIServerELB(instanceID string) error {
 	input := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
-		LoadBalancerName: aws.String(GenerateELBName(clusterName, TagValueAPIServerRole)),
+		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), TagValueAPIServerRole)),
 	}
 
 	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
@@ -126,9 +124,9 @@ func GenerateELBName(clusterName string, elbName string) string {
 	return fmt.Sprintf("%s-%s", clusterName, elbName)
 }
 
-func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alpha1.Network) *v1alpha1.ClassicELB {
+func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 	res := &v1alpha1.ClassicELB{
-		Name:   GenerateELBName(clusterName, TagValueAPIServerRole),
+		Name:   GenerateELBName(s.scope.Name(), TagValueAPIServerRole),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
 		Listeners: []*v1alpha1.ClassicELBListener{
 			{
@@ -145,11 +143,11 @@ func (s *Service) getAPIServerClassicELBSpec(clusterName string, network *v1alph
 			HealthyThreshold:   5,
 			UnhealthyThreshold: 3,
 		},
-		SecurityGroupIDs: []string{network.SecurityGroups[v1alpha1.SecurityGroupControlPlane].ID},
-		Tags:             s.buildTags(clusterName, ResourceLifecycleOwned, "", TagValueAPIServerRole, nil),
+		SecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
+		Tags:             s.buildTags(s.scope.Name(), ResourceLifecycleOwned, "", TagValueAPIServerRole, nil),
 	}
 
-	for _, sn := range network.Subnets.FilterPublic() {
+	for _, sn := range s.scope.Subnets().FilterPublic() {
 		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
 	}
 

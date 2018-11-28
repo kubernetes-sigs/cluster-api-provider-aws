@@ -129,7 +129,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clusterv1.Machine, i *v1alpha1.Instance) error {
 	elbsvc := elb.NewService(scope.Scope)
 	if m.ObjectMeta.Labels["set"] == "controlplane" {
-		if err := elbsvc.RegisterInstanceWithAPIServerELB(scope.ClusterConfig.Name, i.ID); err != nil {
+		if err := elbsvc.RegisterInstanceWithAPIServerELB(i.ID); err != nil {
 			return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 		}
 	}
