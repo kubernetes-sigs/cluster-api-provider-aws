@@ -98,7 +98,7 @@ func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		}
 	}
 
-	i, err := ec2svc.CreateOrGetMachine(machine, scope.MachineStatus, scope.MachineConfig, scope.ClusterStatus, scope.ClusterConfig, cluster, bootstrapToken)
+	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
 			klog.Errorf("network not ready to launch instances yet: %s", err)
@@ -150,7 +150,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 	ec2svc := ec2.NewService(scope.Scope)
 
-	instance, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -195,7 +195,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 	ec2svc := ec2.NewService(scope.Scope)
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
+	instanceDescription, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get instance")
 	}
@@ -244,7 +244,7 @@ func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 		return false, nil
 	}
 
-	instance, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
 		return false, err
 	}

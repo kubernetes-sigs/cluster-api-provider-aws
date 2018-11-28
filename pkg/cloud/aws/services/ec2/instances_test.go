@@ -154,7 +154,7 @@ func TestInstanceIfExists(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
-			instance, err := s.InstanceIfExists(&tc.instanceID)
+			instance, err := s.InstanceIfExists(tc.instanceID)
 			tc.check(instance, err)
 		})
 	}
@@ -326,13 +326,17 @@ func TestCreateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := actuators.NewScope(actuators.ScopeParams{
-				Cluster: &clusterv1.Cluster{},
+			scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+				Cluster: &tc.cluster,
+				Machine: &clusterv1.Machine{},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
 			})
+
+			scope.Scope.ClusterConfig = tc.clusterConfig
+			scope.Scope.ClusterStatus = tc.clusterStatus
 
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -340,8 +344,8 @@ func TestCreateInstance(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
-			instance, err := s.CreateInstance(&tc.machine, tc.machineConfig, tc.clusterStatus, tc.clusterConfig, &tc.cluster, "")
+			s := NewService(scope.Scope)
+			instance, err := s.createInstance(scope, "token")
 			tc.check(instance, err)
 		})
 	}

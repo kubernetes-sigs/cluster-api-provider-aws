@@ -40,6 +40,7 @@ go_mock(
     ],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/cloud/aws/actuators:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
     ],
 )
