@@ -15,8 +15,7 @@ package machine
 
 // should not need to import the ec2 sdk here
 import (
-	"time"
-
+	"context"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -33,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"time"
 )
 
 // Actuator is responsible for performing machine reconciliation.
@@ -56,7 +56,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 }
 
 // Create creates a machine and is invoked by the machine controller.
-func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
@@ -139,7 +139,7 @@ func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clust
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
-func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
@@ -183,7 +183,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 // Update updates a machine and is invoked by the Machine Controller.
 // If the Update attempts to mutate any immutable state, the method will error
 // and no updates will be performed.
-func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
@@ -228,7 +228,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 }
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller
-func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	klog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
