@@ -26,13 +26,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/ghodss/yaml"
+	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/types"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // getRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
@@ -138,9 +140,33 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 
 // ProviderConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func ProviderConfigFromMachine(machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderConfig, error) {
+	var providerConfig runtime.RawExtension
+
+	if machine.Spec.ProviderConfig.Value == nil && machine.Spec.ProviderConfig.ValueFrom == nil {
+		return nil, fmt.Errorf("unable to find machine provider config: neither Spec.ProviderConfig.Value nor Spec.ProviderConfig.ValueFrom set")
+	}
+
+	// If no machine.Spec.ProviderConfig.Value then we lookup for machineClass
+	if machine.Spec.ProviderConfig.Value != nil {
+		providerConfig = *machine.Spec.ProviderConfig.Value
+	} else {
+		if machine.Spec.ProviderConfig.ValueFrom.MachineClass == nil {
+			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderConfig.ValueFrom")
+		}
+		machineClass := &clusterv1.MachineClass{}
+		key := types.NamespacedName{
+			Namespace: machine.Spec.ProviderConfig.ValueFrom.MachineClass.Namespace,
+			Name:      machine.Spec.ProviderConfig.ValueFrom.MachineClass.Name,
+		}
+		if err := client.Get(context.Background(), key, machineClass); err != nil {
+			return nil, err
+		}
+		providerConfig = machineClass.ProviderConfig
+	}
+
 	var config providerconfigv1.AWSMachineProviderConfig
-	if err := yaml.Unmarshal(machine.Spec.ProviderConfig.Value.Raw, &config); err != nil {
+	if err := yaml.Unmarshal(providerConfig.Raw, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil
