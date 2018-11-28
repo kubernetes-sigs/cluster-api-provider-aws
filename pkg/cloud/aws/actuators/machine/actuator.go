@@ -89,7 +89,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 }
 
 // Create runs a new EC2 instance
-func (a *Actuator) Create(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Info("creating machine")
 	instance, err := a.CreateMachine(cluster, machine)
 	if err != nil {
@@ -213,7 +213,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 }
 
 // Delete deletes a machine and updates its finalizer
-func (a *Actuator) Delete(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Info("deleting machine")
 	if err := a.DeleteMachine(cluster, machine); err != nil {
 		glog.Errorf("error deleting machine: %v", err)
@@ -257,7 +257,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 // Update attempts to sync machine state with an existing instance. Today this just updates status
 // for details that may have changed. (IPs and hostnames) We do not currently support making any
 // changes to actual machines in AWS. Instead these will be replaced via MachineDeployments.
-func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Info("updating machine")
 
 	machineProviderConfig, err := ProviderConfigFromMachine(machine)
@@ -324,7 +324,7 @@ func (a *Actuator) Update(cluster *clusterv1.Cluster, machine *clusterv1.Machine
 
 // Exists determines if the given machine currently exists. For AWS we query for instances in
 // running state, with a matching name tag, to determine a match.
-func (a *Actuator) Exists(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
 	glog.Info("checking if machine exists")
 
 	instances, err := a.getMachineInstances(cluster, machine)

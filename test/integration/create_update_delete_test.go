@@ -12,6 +12,7 @@ import (
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
+	"golang.org/x/net/context"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -118,12 +119,12 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 	}
 
 	// Create a machine
-	if err := actuator.Create(cluster, machine); err != nil {
+	if err := actuator.Create(context.TODO(), cluster, machine); err != nil {
 		t.Errorf("Unable to create instance for machine: %v", err)
 	}
 
 	// Get the machine
-	if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
+	if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
 		t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
 	} else {
 		t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
@@ -132,19 +133,19 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 	// TODO(jchaloup): Wait until the machine is ready
 
 	// Update a machine
-	if err := actuator.Update(cluster, machine); err != nil {
+	if err := actuator.Update(context.TODO(), cluster, machine); err != nil {
 		t.Errorf("Unable to create instance for machine: %v", err)
 	}
 
 	// Get the machine
-	if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
+	if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
 		t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
 	} else {
 		t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
 	}
 
 	// Delete a machine
-	if err := actuator.Delete(cluster, machine); err != nil {
+	if err := actuator.Delete(context.TODO(), cluster, machine); err != nil {
 		t.Errorf("Unable to delete instance for machine: %v", err)
 	}
 }

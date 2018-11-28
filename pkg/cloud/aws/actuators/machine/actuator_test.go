@@ -219,7 +219,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.createErrorExpected)
 
 			// Create the machine
-			createErr := actuator.Create(cluster, machine)
+			createErr := actuator.Create(context.TODO(), cluster, machine)
 
 			// Get updated machine object from the cluster client
 			key := types.NamespacedName{
@@ -250,7 +250,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			}
 			if !tc.createErrorExpected {
 				// Get the machine
-				if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
+				if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
 					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
 				} else {
 					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
@@ -259,19 +259,19 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 				// TODO(jchaloup): Wait until the machine is ready
 
 				// Update a machine
-				if err := actuator.Update(cluster, machine); err != nil {
+				if err := actuator.Update(context.TODO(), cluster, machine); err != nil {
 					t.Errorf("Unable to create instance for machine: %v", err)
 				}
 
 				// Get the machine
-				if exists, err := actuator.Exists(cluster, machine); err != nil || !exists {
+				if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
 					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
 				} else {
 					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
 				}
 
 				// Delete a machine
-				if err := actuator.Delete(cluster, machine); err != nil {
+				if err := actuator.Delete(context.TODO(), cluster, machine); err != nil {
 					t.Errorf("Unable to delete instance for machine: %v", err)
 				}
 			}
@@ -422,7 +422,7 @@ func TestAvailabiltyZone(t *testing.T) {
 			mockRegisterInstancesWithLoadBalancer(mockAWSClient, false)
 			mockDescribeSubnets(mockAWSClient)
 
-			actuator.Create(cluster, machine)
+			actuator.Create(context.TODO(), cluster, machine)
 		})
 	}
 }
