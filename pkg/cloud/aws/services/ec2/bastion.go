@@ -50,7 +50,7 @@ func (s *Service) ReconcileBastion() error {
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance()
 	if awserrors.IsNotFound(err) {
-		instance, err = s.runInstance(spec)
+		instance, err = s.runInstance("bastion", spec)
 		if err != nil {
 			return err
 		}

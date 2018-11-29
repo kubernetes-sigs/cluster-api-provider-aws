@@ -8,10 +8,6 @@ go_library(
     deps = [
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
-        "//vendor/k8s.io/client-go/kubernetes/typed/core/v1:go_default_library",
         "//vendor/k8s.io/client-go/tools/record:go_default_library",
-        "//vendor/k8s.io/klog:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme:go_default_library",
     ],
 )

@@ -16,6 +16,8 @@ package ec2
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -87,6 +89,7 @@ func (s *Service) createVPC() (*v1alpha1.VPC, error) {
 	}
 
 	klog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
+	record.Eventf(s.scope.Cluster, "CreatedVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 
 	return &v1alpha1.VPC{
 		ID:        *out.Vpc.VpcId,
@@ -110,6 +113,7 @@ func (s *Service) deleteVPC() error {
 	}
 
 	klog.V(2).Infof("Deleted VPC %q", s.scope.VPC().ID)
+	record.Eventf(s.scope.Cluster, "DeletedVPC", "Deleted managed VPC %q", s.scope.VPC().ID)
 	return nil
 }
 
