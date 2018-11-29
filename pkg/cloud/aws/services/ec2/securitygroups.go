@@ -72,18 +72,10 @@ func (s *Service) reconcileSecurityGroups() error {
 	// the specified ingress rules.
 	for role, sg := range s.scope.SecurityGroups() {
 		current := sg.IngressRules
+
 		want, err := s.getSecurityGroupIngressRules(role)
 		if err != nil {
 			return err
-		}
-
-		toAuthorize := want.Difference(current)
-		if len(toAuthorize) > 0 {
-			if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
-				return err
-			}
-
-			klog.V(2).Infof("Authorized ingress rules %v in security group %q", toAuthorize, sg)
 		}
 
 		toRevoke := current.Difference(want)
@@ -93,6 +85,15 @@ func (s *Service) reconcileSecurityGroups() error {
 			}
 
 			klog.V(2).Infof("Revoked ingress rules %v from security group %q", toRevoke, sg)
+		}
+
+		toAuthorize := want.Difference(current)
+		if len(toAuthorize) > 0 {
+			if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
+				return err
+			}
+
+			klog.V(2).Infof("Authorized ingress rules %v in security group %q", toAuthorize, sg)
 		}
 	}
 
@@ -205,11 +206,11 @@ func (s *Service) revokeSecurityGroupIngressRules(id string, rules v1alpha1.Ingr
 
 func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) *v1alpha1.IngressRule {
 	return &v1alpha1.IngressRule{
-		Description:           "SSH",
-		Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-		FromPort:              22,
-		ToPort:                22,
-		SourceSecurityGroupID: aws.String(sourceSecurityGroupID),
+		Description:            "SSH",
+		Protocol:               v1alpha1.SecurityGroupProtocolTCP,
+		FromPort:               22,
+		ToPort:                 22,
+		SourceSecurityGroupIDs: []string{sourceSecurityGroupID},
 	}
 }
 
@@ -236,32 +237,28 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 				CidrBlocks:  []string{anyIPv4CidrBlock},
 			},
 			{
-				Description:           "etcd",
-				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:              2379,
-				ToPort:                2379,
-				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
+				Description:            "etcd",
+				Protocol:               v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:               2379,
+				ToPort:                 2379,
+				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
 			},
 			{
-				Description:           "etcd peer",
-				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:              2380,
-				ToPort:                2380,
-				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
+				Description:            "etcd peer",
+				Protocol:               v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:               2380,
+				ToPort:                 2380,
+				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
 			},
 			{
-				Description:           "bgp (calico)",
-				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:              179,
-				ToPort:                179,
-				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
-			},
-			{
-				Description:           "bgp (calico)",
-				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:              179,
-				ToPort:                179,
-				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID),
+				Description: "bgp (calico)",
+				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:    179,
+				ToPort:      179,
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+				},
 			},
 		}, nil
 
@@ -276,25 +273,21 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 				CidrBlocks:  []string{anyIPv4CidrBlock},
 			},
 			{
-				Description:           "Kubelet API",
-				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:              10250,
-				ToPort:                10250,
-				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
+				Description:            "Kubelet API",
+				Protocol:               v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:               10250,
+				ToPort:                 10250,
+				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
 			},
 			{
-				Description:           "bgp (calico)",
-				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:              179,
-				ToPort:                179,
-				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID),
-			},
-			{
-				Description:           "bgp (calico)",
-				Protocol:              v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:              179,
-				ToPort:                179,
-				SourceSecurityGroupID: aws.String(s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID),
+				Description: "bgp (calico)",
+				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:    179,
+				ToPort:      179,
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+				},
 			},
 		}, nil
 	}
@@ -336,10 +329,10 @@ func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
 		})
 	}
 
-	if i.SourceSecurityGroupID != nil {
+	for _, groupID := range i.SourceSecurityGroupIDs {
 		res.UserIdGroupPairs = append(res.UserIdGroupPairs, &ec2.UserIdGroupPair{
 			Description: aws.String(i.Description),
-			GroupId:     aws.String(*i.SourceSecurityGroupID),
+			GroupId:     aws.String(groupID),
 		})
 	}
 
@@ -370,7 +363,7 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
 			res.Description = *pair.Description
 		}
 
-		res.SourceSecurityGroupID = pair.GroupId
+		res.SourceSecurityGroupIDs = append(res.SourceSecurityGroupIDs, *pair.GroupId)
 	}
 
 	return res
