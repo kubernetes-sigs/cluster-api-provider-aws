@@ -11,7 +11,6 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/pkg/controller/machinedeployment",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/golang/glog:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/equality:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
@@ -21,6 +20,7 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/util/rand:go_default_library",
         "//vendor/k8s.io/client-go/util/integer:go_default_library",
         "//vendor/k8s.io/client-go/util/retry:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/common:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machinedeployment/util:go_default_library",

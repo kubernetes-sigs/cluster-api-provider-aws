@@ -12,6 +12,10 @@ spec:
     plural: machinedeployments
   scope: Namespaced
   subresources:
+    scale:
+      labelSelectorPath: .status.labelSelector
+      specReplicasPath: .spec.replicas
+      statusReplicasPath: .status.replicas
     status: {}
   validation:
     openAPIV3Schema:
@@ -60,7 +64,7 @@ spec:
                       type: object
                     metadata:
                       type: object
-                    providerConfig:
+                    providerSpec:
                       properties:
                         value:
                           type: object
@@ -87,7 +91,7 @@ spec:
                       - kubelet
                       type: object
                   required:
-                  - providerConfig
+                  - providerSpec
                   type: object
               type: object
           required:

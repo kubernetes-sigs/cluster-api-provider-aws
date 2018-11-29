@@ -41,9 +41,9 @@ var (
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
 
-// ClusterConfigFromProviderConfig unmarshals a provider config into an AWS Cluster type
-func ClusterConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSClusterProviderConfig, error) {
-	var config AWSClusterProviderConfig
+// ClusterConfigFromProviderSpec unmarshals a provider config into an AWS Cluster type
+func ClusterConfigFromProviderSpec(providerConfig clusterv1.ProviderSpec) (*AWSClusterProviderSpec, error) {
+	var config AWSClusterProviderSpec
 	if providerConfig.Value == nil {
 		return &config, nil
 	}
@@ -68,9 +68,9 @@ func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClust
 	return status, nil
 }
 
-// MachineConfigFromProviderConfig unmarshals a provider config into an AWS machine type
-func MachineConfigFromProviderConfig(providerConfig clusterv1.ProviderConfig) (*AWSMachineProviderConfig, error) {
-	var config AWSMachineProviderConfig
+// MachineConfigFromProviderSpec unmarshals a provider config into an AWS machine type
+func MachineConfigFromProviderSpec(providerConfig clusterv1.ProviderSpec) (*AWSMachineProviderSpec, error) {
+	var config AWSMachineProviderSpec
 	if providerConfig.Value == nil {
 		return &config, nil
 	}
@@ -134,7 +134,7 @@ func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtensio
 }
 
 // EncodeClusterConfig marshals the cluster config.
-func EncodeClusterConfig(status *AWSClusterProviderConfig) (*runtime.RawExtension, error) {
+func EncodeClusterConfig(status *AWSClusterProviderSpec) (*runtime.RawExtension, error) {
 	if status == nil {
 		return &runtime.RawExtension{}, nil
 	}

@@ -8,6 +8,7 @@ go_library(
         "doc.go",
         "generated_expansion.go",
         "machine.go",
+        "machineclass.go",
         "machinedeployment.go",
         "machineset.go",
     ],

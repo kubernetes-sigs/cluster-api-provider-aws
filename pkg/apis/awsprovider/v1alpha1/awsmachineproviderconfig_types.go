@@ -23,13 +23,13 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSMachineProviderConfig is the type that will be embedded in a Machine.Spec.ProviderConfig field
+// AWSMachineProviderSpec is the type that will be embedded in a Machine.Spec.ProviderSpec field
 // for an AWS instance. It is used by the AWS machine actuator to create a single machine instance,
 // using the RunInstances call (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html)
 // Required parameters such as region that are not specified by this configuration, will be defaulted
 // by the actuator.
 // +k8s:openapi-gen=true
-type AWSMachineProviderConfig struct {
+type AWSMachineProviderSpec struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -77,5 +77,5 @@ type AWSMachineProviderConfig struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 func init() {
-	SchemeBuilder.Register(&AWSMachineProviderConfig{})
+	SchemeBuilder.Register(&AWSMachineProviderSpec{})
 }

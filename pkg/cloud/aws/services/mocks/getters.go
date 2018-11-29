@@ -30,7 +30,7 @@ type SDKGetter struct {
 }
 
 // Session returns a nil session.
-func (*SDKGetter) Session(clusterConfig *v1alpha1.AWSClusterProviderConfig) *session.Session {
+func (*SDKGetter) Session(clusterConfig *v1alpha1.AWSClusterProviderSpec) *session.Session {
 	return nil
 }
 

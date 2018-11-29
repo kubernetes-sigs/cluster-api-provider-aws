@@ -9,5 +9,8 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/gobuffalo/envy",
     importpath = "github.com/gobuffalo/envy",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/github.com/joho/godotenv:go_default_library"],
+    deps = [
+        "//vendor/github.com/joho/godotenv:go_default_library",
+        "//vendor/github.com/rogpeppe/go-internal/modfile:go_default_library",
+    ],
 )

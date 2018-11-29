@@ -25,27 +25,27 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func TestClusterConfigFromProviderConfigNoError(t *testing.T) {
+func TestClusterConfigFromProviderSpecNoError(t *testing.T) {
 	testcases := []struct {
 		name     string
-		input    clusterv1.ProviderConfig
-		expected providerv1.AWSClusterProviderConfig
+		input    clusterv1.ProviderSpec
+		expected providerv1.AWSClusterProviderSpec
 	}{
 		{
-			name: "ProviderConfig.Value is nil should return an empty AWSClusterProviderConfig",
-			input: clusterv1.ProviderConfig{
+			name: "ProviderSpec.Value is nil should return an empty AWSClusterProviderSpec",
+			input: clusterv1.ProviderSpec{
 				Value: nil,
 			},
-			expected: providerv1.AWSClusterProviderConfig{},
+			expected: providerv1.AWSClusterProviderSpec{},
 		},
 		{
-			name: "ProviderConfig actually has data",
-			input: clusterv1.ProviderConfig{
-				Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderConfig{
+			name: "ProviderSpec actually has data",
+			input: clusterv1.ProviderSpec{
+				Value: cloudtest.RuntimeRawExtension(t, &providerv1.AWSClusterProviderSpec{
 					Region: "us-west-1",
 				}),
 			},
-			expected: providerv1.AWSClusterProviderConfig{
+			expected: providerv1.AWSClusterProviderSpec{
 				Region: "us-west-1",
 			},
 		},
@@ -53,7 +53,7 @@ func TestClusterConfigFromProviderConfigNoError(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := providerv1.ClusterConfigFromProviderConfig(tc.input)
+			actual, err := providerv1.ClusterConfigFromProviderSpec(tc.input)
 			if err != nil {
 				t.Fatalf("did not expect an error but got: %v", err)
 			}

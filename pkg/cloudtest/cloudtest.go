@@ -25,7 +25,7 @@ import (
 
 // RuntimeRawExtension takes anything and turns it into a *runtime.RawExtension.
 // This is helpful for creating clusterv1.Cluster/Machine objects that need
-// a specific AWSClusterProviderConfig or Status.
+// a specific AWSClusterProviderSpec or Status.
 func RuntimeRawExtension(t *testing.T, p interface{}) *runtime.RawExtension {
 	t.Helper()
 	out, err := json.Marshal(p)

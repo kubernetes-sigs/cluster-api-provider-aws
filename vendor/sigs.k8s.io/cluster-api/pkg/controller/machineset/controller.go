@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -106,7 +106,7 @@ func (r *ReconcileMachineSet) MachineSetToMachines(o handler.MapObject) []reconc
 	key := client.ObjectKey{Namespace: o.Meta.GetNamespace(), Name: o.Meta.GetName()}
 	err := r.Client.Get(context.Background(), key, m)
 	if err != nil {
-		glog.Errorf("Unable to retrieve Machine %v from store: %v", key, err)
+		klog.Errorf("Unable to retrieve Machine %v from store: %v", key, err)
 		return nil
 	}
 
@@ -118,7 +118,7 @@ func (r *ReconcileMachineSet) MachineSetToMachines(o handler.MapObject) []reconc
 
 	mss := r.getMachineSetsForMachine(m)
 	if len(mss) == 0 {
-		glog.V(4).Infof("Found no machine set for machine: %v", m.Name)
+		klog.V(4).Infof("Found no machine set for machine: %v", m.Name)
 		return nil
 	}
 
@@ -149,7 +149,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
-	glog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
+	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
 	allMachines := &clusterv1alpha1.MachineList{}
 
 	err = r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines)
@@ -167,7 +167,7 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 		// Attempt to adopt machine if it meets previous conditions and it has no controller ref.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(machineSet, machine); err != nil {
-				glog.Warningf("failed to adopt machine %v into machineset %v. %v", machine.Name, machineSet.Name, err)
+				klog.Warningf("failed to adopt machine %v into machineset %v. %v", machine.Name, machineSet.Name, err)
 				continue
 			}
 		}
@@ -219,16 +219,16 @@ func (c *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 
 	if diff < 0 {
 		diff *= -1
-		glog.Infof("Too few replicas for %v %s/%s, need %d, creating %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		klog.Infof("Too few replicas for %v %s/%s, need %d, creating %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		var machineList []*clusterv1alpha1.Machine
 		var errstrings []string
 		for i := 0; i < diff; i++ {
-			glog.Infof("creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )", i+1, diff, *(ms.Spec.Replicas), len(machines))
+			klog.Infof("creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )", i+1, diff, *(ms.Spec.Replicas), len(machines))
 			machine := c.createMachine(ms)
 			err := c.Client.Create(context.Background(), machine)
 			if err != nil {
-				glog.Errorf("unable to create a machine = %s, due to %v", machine.Name, err)
+				klog.Errorf("unable to create a machine = %s, due to %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
 				continue
 			}
@@ -240,10 +240,10 @@ func (c *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		}
 		return c.waitForMachineCreation(machineList)
 	} else if diff > 0 {
-		glog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
+		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d", controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
 		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDelete(machines, diff)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
 
 		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)
@@ -254,7 +254,7 @@ func (c *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 				defer wg.Done()
 				err := c.Client.Delete(context.Background(), targetMachine)
 				if err != nil {
-					glog.Errorf("unable to delete a machine = %s, due to %v", targetMachine.Name, err)
+					klog.Errorf("unable to delete a machine = %s, due to %v", targetMachine.Name, err)
 					errCh <- err
 				}
 			}(machine)
@@ -298,7 +298,10 @@ func (c *ReconcileMachineSet) createMachine(machineSet *clusterv1alpha1.MachineS
 func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clusterv1alpha1.Machine) bool {
 	// Ignore inactive machines.
 	if metav1.GetControllerOf(machine) != nil && !metav1.IsControlledBy(machine, machineSet) {
-		glog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
+		klog.V(4).Infof("%s not controlled by %v", machine.Name, machineSet.Name)
+		return true
+	}
+	if machine.ObjectMeta.DeletionTimestamp != nil {
 		return true
 	}
 	if !hasMatchingLabels(machineSet, machine) {
@@ -318,16 +321,10 @@ func (c *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet
 	ownerRefs = append(ownerRefs, newRef)
 	machine.ObjectMeta.SetOwnerReferences(ownerRefs)
 	if err := c.Client.Update(context.Background(), machine); err != nil {
-		glog.Warningf("Failed to update machine owner reference. %v", err)
+		klog.Warningf("Failed to update machine owner reference. %v", err)
 		return err
 	}
 	return nil
-}
-
-func getMachinesToDelete(filteredMachines []*clusterv1alpha1.Machine, diff int) []*clusterv1alpha1.Machine {
-	// TODO: Define machines deletion policies.
-	// see: https://github.com/kubernetes/kube-deploy/issues/625
-	return filteredMachines[:diff]
 }
 
 func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alpha1.Machine) error {
@@ -336,7 +333,7 @@ func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alp
 			err := c.Client.Get(context.Background(),
 				client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name},
 				&clusterv1alpha1.Machine{})
-			glog.Error(err)
+			klog.Error(err)
 			if err == nil {
 				return true, nil
 			}
@@ -346,7 +343,7 @@ func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alp
 			return false, err
 		})
 		if pollErr != nil {
-			glog.Error(pollErr)
+			klog.Error(pollErr)
 			return fmt.Errorf("failed waiting for machine object to be created. %v", pollErr)
 		}
 	}
@@ -366,7 +363,7 @@ func (c *ReconcileMachineSet) waitForMachineDeletion(machineList []*clusterv1alp
 			return false, err
 		})
 		if pollErr != nil {
-			glog.Error(pollErr)
+			klog.Error(pollErr)
 			return fmt.Errorf("failed waiting for machine object to be deleted. %v", pollErr)
 		}
 	}
