@@ -124,6 +124,18 @@ func (s *Service) createInstance(machine *actuators.MachineScope, token string) 
 		input.SubnetID = sns[0].ID
 	}
 
+	if len(s.scope.ClusterConfig.CACertificate) == 0 {
+		return nil, awserrors.NewFailedDependency(
+			errors.New("failed to run controlplane, missing CACertificate"),
+		)
+	}
+
+	if s.scope.Network().APIServerELB.DNSName == "" {
+		return nil, awserrors.NewFailedDependency(
+			errors.New("failed to run controlplane, APIServer ELB not available"),
+		)
+	}
+
 	// apply values based on the role of the machine
 	if machine.Role() == "controlplane" {
 
@@ -133,11 +145,10 @@ func (s *Service) createInstance(machine *actuators.MachineScope, token string) 
 			)
 		}
 
-		if len(s.scope.ClusterConfig.CACertificate) == 0 {
-			return nil, errors.New("failed to run controlplane, missing CACertificate")
-		}
 		if len(s.scope.ClusterConfig.CAPrivateKey) == 0 {
-			return nil, errors.New("failed to run controlplane, missing CAPrivateKey")
+			return nil, awserrors.NewFailedDependency(
+				errors.New("failed to run controlplane, missing CAPrivateKey"),
+			)
 		}
 
 		userData, err := userdata.NewControlPlane(&userdata.ControlPlaneInput{

@@ -273,9 +273,15 @@ func TestCreateInstance(t *testing.T) {
 							ID: "2",
 						},
 					},
+					APIServerELB: v1alpha1.ClassicELB{
+						DNSName: "test-apiserver.us-east-1.aws",
+					},
 				},
 			},
-			clusterConfig: &v1alpha1.AWSClusterProviderSpec{},
+			clusterConfig: &v1alpha1.AWSClusterProviderSpec{
+				CACertificate: []byte("x"),
+				CAPrivateKey:  []byte("y"),
+			},
 			cluster: clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test1",
