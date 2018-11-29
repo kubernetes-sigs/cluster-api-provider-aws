@@ -16,6 +16,7 @@ package v1alpha1
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -294,7 +295,7 @@ type IngressRule struct {
 	CidrBlocks []string `json:"cidrBlocks"`
 
 	// The security group id to allow access from. Cannot be specified with CidrBlocks.
-	SourceSecurityGroupID *string `json:"sourceSecurityGroupId"`
+	SourceSecurityGroupIDs []string `json:"sourceSecurityGroupIds"`
 }
 
 // String returns a string representation of the ingress rule.
@@ -310,6 +311,10 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 	for _, x := range i {
 		found := false
 		for _, y := range o {
+			sort.Strings(x.CidrBlocks)
+			sort.Strings(y.CidrBlocks)
+			sort.Strings(x.SourceSecurityGroupIDs)
+			sort.Strings(y.SourceSecurityGroupIDs)
 			if reflect.DeepEqual(x, y) {
 				found = true
 				break

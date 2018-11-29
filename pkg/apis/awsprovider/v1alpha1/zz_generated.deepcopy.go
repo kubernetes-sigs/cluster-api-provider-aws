@@ -339,10 +339,10 @@ func (in *IngressRule) DeepCopyInto(out *IngressRule) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.SourceSecurityGroupID != nil {
-		in, out := &in.SourceSecurityGroupID, &out.SourceSecurityGroupID
-		*out = new(string)
-		**out = **in
+	if in.SourceSecurityGroupIDs != nil {
+		in, out := &in.SourceSecurityGroupIDs, &out.SourceSecurityGroupIDs
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	return
 }
