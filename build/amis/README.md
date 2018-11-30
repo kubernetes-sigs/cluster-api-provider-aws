@@ -22,7 +22,7 @@ The following variables can be overriden when building images using the `-var` o
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| kubernetes_version | 1.12.0-00 | Kubernetes Version to install |
+| kubernetes_version | 1.13.0-00 | Kubernetes Version to install |
 | kubernetes_cni_version | 0.6.0-00 | CNI Version to install |
 
 For example, to build all images for use with Kubernetes 1.11.3 for build version 1:
@@ -103,13 +103,23 @@ To build the Ubuntu, CentOS, and Amazon Linux 2 AMIs:
 packer build -var-file base-images-us-east-1.json packer.json
 ```
 
-By default images are copied to all available AWS regions. The list can be obtained running:
+The output of this command is a list of created AMIs. To format them you can
+copy the output and pipe it through this to get a desired table:
+
+```
+echo 'us-fake-1: ami-123
+us-fake-2: ami-234' | column -t | sed 's/^/| /g' | sed 's/: //g' | sed 's/ami/| ami/g' | sed 's/$/ |/g'
+```
+
+
+By default images are copied to all available AWS regions. The list of all
+available regions can be obtained running:
 
 ```sh
 aws ec2 describe-regions --query "Regions[].{Name:RegionName}" --output text | paste -sd "," -
 ```
 
-To limit the regions, provide the `ami_regions` variable as a comma-delimited list of AWS regions. 
+To limit the regions, provide the `ami_regions` variable as a comma-delimited list of AWS regions.
 
 For example, to build all images in us-east-1 and copy only to us-west-2:
 
@@ -121,9 +131,49 @@ packer build -var-file base-images-us-east-1.json -var ami_regions='us-west-2'
 
 Connect remotely to an instance created from the image and run the Node Conformance tests using the following commands:
 
+### Initialize a CNI
+
+As root:
+
+(copied from [containernetworking/cni](https://github.com/containernetworking/cni#how-do-i-use-cni))
+
+```sh
+mkdir -p /etc/cni/net.d
+wget -q https://github.com/containernetworking/cni/releases/download/v0.6.0/cni-amd64-v0.6.0.tgz
+tar -xzf cni-amd64-v0.6.0.tgz --directory /etc/cni/net.d
+cat >/etc/cni/net.d/10-mynet.conf <<EOF
+{
+    "cniVersion": "0.2.0",
+    "name": "mynet",
+    "type": "bridge",
+    "bridge": "cni0",
+    "isGateway": true,
+    "ipMasq": true,
+    "ipam": {
+        "type": "host-local",
+        "subnet": "10.22.0.0/16",
+        "routes": [
+            { "dst": "0.0.0.0/0" }
+        ]
+    }
+}
+EOF
+cat >/etc/cni/net.d/99-loopback.conf <<EOF
+{
+    "cniVersion": "0.2.0",
+    "name": "lo",
+    "type": "loopback"
+}
+EOF
+```
+
+### Run the e2e node conformance tests
+
+As a non-root user:
+
 ```sh
 wget https://dl.k8s.io/$(< /etc/kubernetes_community_ami_version)/kubernetes-test.tar.gz
 tar -zxvf kubernetes-test.tar.gz kubernetes/platforms/linux/amd64
 cd kubernetes/platforms/linux/amd64
-sudo ./ginkgo --nodes=8 --flakeAttempts=2 --focus="\[Conformance\]" --skip="\[Flaky\]|\[Serial\]|\[sig-network\]|Container Lifecycle Hook" ./e2e_node.test -- --k8s-bin-dir=/usr/bin
+sudo ./ginkgo --nodes=8 --flakeAttempts=2 --focus="\[Conformance\]" --skip="\[Flaky\]|\[Serial\]|\[sig-network\]|Container Lifecycle Hook" ./e2e_node.test -- --k8s-bin-dir=/usr/bin --container-runtime=remote --container-runtime-endpoint unix:///var/run/containerd/containerd.sock --container-runtime-process-name /usr/local/bin/containerd --container-runtime-pid-file= --kubelet-flags="--cgroups-per-qos=true --cgroup-root=/ --runtime-cgroups=/system.slice/containerd.service" --extra-log="{\"name\": \"containerd.log\", \"journalctl\": [\"-u\", \"containerd\"]}"
 ```

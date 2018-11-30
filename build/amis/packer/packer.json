@@ -3,14 +3,13 @@
     "aws_access_key": "",
     "aws_secret_key": "",
     "build_timestamp": "{{timestamp}}",
-    "kubernetes_version": "1.12.0-00",
+    "kubernetes_version": "1.13.0-00",
     "kubernetes_cni_version": "0.6.0-00",
     "existing_ansible_ssh_args": "{{env `ANSIBLE_SSH_ARGS`}}",
     "ami_groups": "all",
     "ami_regions": "ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2"
   },
-  "builders": [
-    {
+  "builders": [{
       "name": "ubuntu-1804",
       "type": "amazon-ebs",
       "instance_type": "t2.small",
@@ -78,8 +77,7 @@
       }
     }
   ],
-  "provisioners": [
-    {
+  "provisioners": [{
       "type": "shell",
       "inline": [
         "sudo apt-get -qqy update && sudo apt-get install -qqy python python-pip"
