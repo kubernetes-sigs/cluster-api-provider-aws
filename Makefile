@@ -147,8 +147,15 @@ manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for
 	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> cmd/clusterctl/examples/aws/out/provider-components.yaml
 
 .PHONY: manifests-dev
-manifests-dev: ## Push development manifest
+manifests-dev: dep-ensure dep-install binaries-dev ## Builds development manifests
 	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) $(MAKE) manifests
+
+# TODO(vincepri): This should move to rebuild Bazel binaries once every
+# make target uses Bazel bins to run operations.
+.PHONY: binaries-dev
+binaries-dev: ## Builds and installs the binaries on the local GOPATH
+	go get -v ./...
+	go install -v ./...
 
 .PHONY: create-cluster
 create-cluster: ## Create a Kubernetes cluster on AWS using examples
