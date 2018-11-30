@@ -36,14 +36,16 @@ HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
 
 cat >/tmp/kubeadm-node.yaml <<EOF
 ---
-apiVersion: kubeadm.k8s.io/v1alpha3
+apiVersion: kubeadm.k8s.io/v1beta1
 kind: JoinConfiguration
-token: {{.BootstrapToken}}
-discoveryTokenAPIServers:
-- "{{.ELBAddress}}:6443"
-discoveryFile: /tmp/cluster-info.yaml
+discovery:
+  bootstrapToken:
+    token: "{{.BootstrapToken}}"
+    apiServerEndpoint: "{{.ELBAddress}}:6443"
+  file:
+    kubeConfigPath: /tmp/cluster-info.yaml
 nodeRegistration:
-  name: ${HOSTNAME}
+  name: "${HOSTNAME}"
   criSocket: /var/run/containerd/containerd.sock
   kubeletExtraArgs:
     cloud-provider: aws

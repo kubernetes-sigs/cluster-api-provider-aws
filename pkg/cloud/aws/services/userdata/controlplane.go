@@ -26,13 +26,14 @@ HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
 
 cat >/tmp/kubeadm.yaml <<EOF
 ---
-apiVersion: kubeadm.k8s.io/v1alpha3
+apiVersion: kubeadm.k8s.io/v1beta1
 kind: ClusterConfiguration
-apiServerCertSANs:
-  - "$PRIVATE_IP"
-  - "{{.ELBAddress}}"
-apiServerExtraArgs:
-  cloud-provider: aws
+apiServer:
+  certSANs:
+    - "$PRIVATE_IP"
+    - "{{.ELBAddress}}"
+  extraArgs:
+    cloud-provider: aws
 controlPlaneEndpoint: "{{.ELBAddress}}:6443"
 clusterName: "{{.ClusterName}}"
 networking:
@@ -41,7 +42,7 @@ networking:
   serviceSubnet: "{{.ServiceSubnet}}"
 kubernetesVersion: "{{.KubernetesVersion}}"
 ---
-apiVersion: kubeadm.k8s.io/v1alpha3
+apiVersion: kubeadm.k8s.io/v1beta1
 kind: InitConfiguration
 nodeRegistration:
   name: ${HOSTNAME}
