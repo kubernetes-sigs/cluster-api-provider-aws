@@ -150,6 +150,8 @@ manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for
 manifests-dev: dep-ensure dep-install binaries-dev ## Builds development manifests
 	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) $(MAKE) manifests
 
+# TODO(vincepri): This should move to rebuild Bazel binaries once every
+# make target uses Bazel bins to run operations.
 .PHONY: binaries-dev
 binaries-dev: ## Builds and installs the binaries on the local GOPATH
 	go get -v ./...
