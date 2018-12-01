@@ -16,6 +16,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -o verbose
 
 export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 source "${KUBE_ROOT}/hack/lib/init.sh"
@@ -31,7 +32,7 @@ cp -a "${KUBE_ROOT}" "${_tmp_kuberoot}/.."
 cd "${_tmp_kuberoot}"
 GOPATH="${_tmp_gopath}" PATH="${_tmp_gopath}/bin:${PATH}" "${KUBE_ROOT}/hack/update-bazel.sh"
 
-diff=$(diff -Naupr -x '_output' "${KUBE_ROOT}" "${_tmp_kuberoot}" || true)
+diff=$(diff -Naupr --exclude=".git" --exclude="bazel-*" -x '_output' "${KUBE_ROOT}" "${_tmp_kuberoot}" || true)
 
 if [[ -n "${diff}" ]]; then
   echo "${diff}" >&2
