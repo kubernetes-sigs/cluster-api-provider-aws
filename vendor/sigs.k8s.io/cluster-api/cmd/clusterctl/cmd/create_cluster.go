@@ -20,15 +20,14 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
@@ -68,16 +67,16 @@ var createClusterCmd = &cobra.Command{
 }
 
 func RunCreate(co *CreateOptions) error {
-	c, err := parseClusterYaml(co.Cluster)
+	c, err := util.ParseClusterYaml(co.Cluster)
 	if err != nil {
 		return err
 	}
-	m, err := parseMachinesYaml(co.Machine)
+	m, err := util.ParseMachinesYaml(co.Machine)
 	if err != nil {
 		return err
 	}
 
-	var bootstrapProvider clusterdeployer.ClusterProvisioner
+	var bootstrapProvider bootstrap.ClusterProvisioner
 	if co.ExistingClusterKubeconfigPath != "" {
 		bootstrapProvider, err = existing.NewExistingCluster(co.ExistingClusterKubeconfigPath)
 		if err != nil {
@@ -131,43 +130,9 @@ func init() {
 	createClusterCmd.Flags().StringSliceVarP(&co.MiniKube, "minikube", "", []string{}, "Minikube options")
 	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
-	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
+	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "e", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
 
 	createCmd.AddCommand(createClusterCmd)
-}
-
-func parseClusterYaml(file string) (*clusterv1.Cluster, error) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	cluster := &clusterv1.Cluster{}
-	err = yaml.Unmarshal(bytes, cluster)
-	if err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
-}
-
-func parseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	list := &clusterv1.MachineList{}
-	err = yaml.Unmarshal(bytes, &list)
-	if err != nil {
-		return nil, err
-	}
-
-	if list == nil {
-		return []*clusterv1.Machine{}, nil
-	}
-
-	return util.MachineP(list.Items), nil
 }
 
 func getProvider(name string) (clusterdeployer.ProviderDeployer, error) {

@@ -25,6 +25,7 @@ import (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+/// [MachineClass]
 // MachineClass can be used to templatize and re-use provider configuration
 // across multiple Machines / MachineSets / MachineDeployments.
 // +k8s:openapi-gen=true
@@ -61,4 +62,17 @@ type MachineClass struct {
 	// A link to the MachineTemplate that will be used to create provider
 	// specific configuration for Machines of this class.
 	// MachineTemplate corev1.ObjectReference `json:machineTemplate`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MachineClassList contains a list of MachineClasses
+type MachineClassList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []MachineClass `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&MachineClass{}, &MachineClassList{})
 }

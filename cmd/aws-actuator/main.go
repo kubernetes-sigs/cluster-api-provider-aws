@@ -49,6 +49,7 @@ import (
 
 	"text/template"
 
+	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -158,7 +159,7 @@ func existsCommand() *cobra.Command {
 			}
 
 			actuator := createActuator(machine, awsCredentials, userData)
-			exists, err := actuator.Exists(cluster, machine)
+			exists, err := actuator.Exists(context.TODO(), cluster, machine)
 			if err != nil {
 				return err
 			}

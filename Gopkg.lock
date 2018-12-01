@@ -939,8 +939,7 @@
   revision = "72693cb1fadd73ae2742f6fe29af77d1aecdd8cd"
 
 [[projects]]
-  branch = "master"
-  digest = "1:f2e661134ed439e5c591a9d6f81ec67f110ab1b8a57420ce7a66da4413615daf"
+  digest = "1:e99adef47e9f7029c5fa2f0ba03e78a32194cf24ada000a6b8753d6f8cde02cc"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "pkg/apis",
@@ -954,7 +953,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "fa906f36843b065c5294501efe7d78ebd85c3c04"
+  revision = "0734939e05aeb64ab198e3feeee8b4e90ee5cbb2"
 
 [[projects]]
   digest = "1:ca3f51201a90f3a23bf35938ee910d2fb3095ece453cf56c8b723e935c194ebd"
@@ -1017,6 +1016,14 @@
   ]
   pruneopts = "T"
   revision = "5818a3a284a11812aaed11d5ca0bcadec2c50e83"
+
+[[projects]]
+  digest = "1:7719608fe0b52a4ece56c2dde37bedd95b938677d1ab0f84b8a7852e4c59f849"
+  name = "sigs.k8s.io/yaml"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
+  version = "v1.1.0"
 
 [solve-meta]
   analyzer-name = "dep"
