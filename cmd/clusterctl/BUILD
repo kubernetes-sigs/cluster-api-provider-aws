@@ -10,6 +10,7 @@ go_library(
         "//vendor/k8s.io/klog:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/cmd:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/common:go_default_library",
+        "//cmd/versioninfo:go_default_library"
     ],
 )
 
@@ -18,4 +19,11 @@ go_binary(
     embed = [":go_default_library"],
     pure = "on",
     visibility = ["//visibility:public"],
+    x_defs = {
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitBranch": "{GIT_BRANCH}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.ReleaseTag": "{RELEASE_TAG}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.BuildTime": "{BUILD_TIME}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitCommit": "{GIT_COMMIT}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitTreeState": "{GIT_TREE_STATE}",
+    },
 )

@@ -9,5 +9,6 @@ go_library(
         "//cmd/clusterawsadm/cmd/alpha:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
+        "//cmd/versioninfo:go_default_library"
     ],
 )
