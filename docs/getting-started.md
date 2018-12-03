@@ -281,6 +281,9 @@ I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provi
 
 The created minikube cluster is ephemeral and should be deleted on cluster creation success. During the cluster creation, the minikube configuration is written to `minikube.kubeconfig` in the directory you launched the `clusterctl` command.
 
+For a more in-depth look into what `clusterctl` is doing during this create
+step, please see the [clusterctl document](/docs/clusterctl.md).
+
 ## Troubleshooting
 
 ## Hanging at "creating bootstrap cluster"
