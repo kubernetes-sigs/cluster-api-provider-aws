@@ -19,7 +19,7 @@ var (
 	GitCommit string
 	// GitMajor is the major version of the release
 	GitMajor string
-	// GitMinor is the minor verison of the release
+	// GitMinor is the minor version of the release
 	GitMinor string
 )
 
