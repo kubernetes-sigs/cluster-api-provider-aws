@@ -26,6 +26,11 @@ envfile
 minikube.kubeconfig
 kubeconfig
 
+# binaries
+manager
+clusterctl
+clusterawsadm
+
 # Example and binary output directory
 /out
 
