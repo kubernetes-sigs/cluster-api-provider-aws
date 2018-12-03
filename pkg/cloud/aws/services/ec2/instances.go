@@ -194,7 +194,13 @@ func (s *Service) createInstance(machine *actuators.MachineScope, token string) 
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
-	return s.runInstance(machine.Role(), input)
+	out, err := s.runInstance(machine.Role(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
+	return out, nil
 }
 
 // TerminateInstance terminates an EC2 instance.
@@ -310,8 +316,6 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 	}
 
 	s.scope.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
-
-	record.Eventf(s.scope.Cluster, "CreatedInstance", "Created new %s instance %q", role, *out.Instances[0].InstanceId)
 	return converters.SDKToInstance(out.Instances[0]), nil
 }
 
