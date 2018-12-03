@@ -29,11 +29,11 @@ func VersionCmd() *cobra.Command { // nolint
 		Use:   "version",
 		Short: "Print version of this binary",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Git Branch: %s\n", GitBranch)
-			fmt.Printf("Git commit: %s\n", GitCommit)
-			fmt.Printf("Release tag: %s\n", ReleaseTag)
-			fmt.Printf("Git tree state: %s\n", GitTreeState)
-			fmt.Printf("Git version: Major:%q, Minor:%q", GitMajor, GitMinor)
+			fmt.Printf("Git Branch: %q\n", GitBranch)
+			fmt.Printf("Git commit: %q\n", GitCommit)
+			fmt.Printf("Release tag: %q\n", ReleaseTag)
+			fmt.Printf("Git tree state: %q\n", GitTreeState)
+			fmt.Printf("Git version: Major:%q, Minor:%q\n", GitMajor, GitMinor)
 		},
 	}
 }
