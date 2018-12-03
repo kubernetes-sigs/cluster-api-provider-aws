@@ -45,6 +45,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/record"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 
@@ -746,6 +747,8 @@ func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, us
 		Client:           fakeClient,
 		KubeClient:       fakeKubeClient,
 		AwsClientBuilder: awsclient.NewClient,
+		// use empty recorder dropping any event recorded
+		EventRecorder: &record.FakeRecorder{},
 	}
 
 	actuator, _ := machineactuator.NewActuator(params)

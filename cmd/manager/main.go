@@ -68,8 +68,8 @@ func main() {
 	glog.Fatal(mgr.Start(signals.SetupSignalHandler()))
 }
 
-func initActuator(m manager.Manager) {
-	config := m.GetConfig()
+func initActuator(mgr manager.Manager) {
+	config := mgr.GetConfig()
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -82,10 +82,11 @@ func initActuator(m manager.Manager) {
 	}
 
 	params := machineactuator.ActuatorParams{
-		Client:           m.GetClient(),
+		Client:           mgr.GetClient(),
 		KubeClient:       kubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 		Codec:            codec,
+		EventRecorder:    mgr.GetRecorder("aws-controller"),
 	}
 
 	machineactuator.MachineActuator, err = machineactuator.NewActuator(params)

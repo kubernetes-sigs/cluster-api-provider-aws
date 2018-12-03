@@ -28,10 +28,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/record"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
+	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 
@@ -61,6 +63,7 @@ type Actuator struct {
 	client           client.Client
 	awsClientBuilder awsclient.AwsClientBuilderFuncType
 	codec            codec
+	eventRecorder    record.EventRecorder
 }
 
 // ActuatorParams holds parameter information for Actuator
@@ -69,6 +72,7 @@ type ActuatorParams struct {
 	Client           client.Client
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
 	Codec            codec
+	EventRecorder    record.EventRecorder
 }
 
 type codec interface {
@@ -84,8 +88,26 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 		client:           params.Client,
 		awsClientBuilder: params.AwsClientBuilder,
 		codec:            params.Codec,
+		eventRecorder:    params.EventRecorder,
 	}
 	return actuator, nil
+}
+
+const (
+	createEventAction = "Create"
+	deleteEventAction = "Delete"
+	noEventAction     = ""
+)
+
+// Set corresponding event based on error. It also returns the original error
+// for convenience, so callers can do "return handleMachineError(...)".
+func (a *Actuator) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
+	if eventAction != noEventAction {
+		a.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
+	}
+
+	glog.Errorf("Machine error: %v", err.Message)
+	return err
 }
 
 // Create runs a new EC2 instance
@@ -162,8 +184,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine)
 	if err != nil {
-		glog.Errorf("error decoding MachineProviderConfig: %v", err)
-		return nil, err
+		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
 	}
 
 	credentialsSecretName := ""
@@ -173,7 +194,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, machineProviderConfig.Placement.Region)
 	if err != nil {
 		glog.Errorf("unable to obtain AWS client: %v", err)
-		return nil, fmt.Errorf("unable to obtain AWS client: %v", err)
+		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error creating aws services: %v", err), createEventAction)
 	}
 
 	// We explicitly do NOT want to remove stopped masters.
@@ -190,8 +211,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	if machineProviderConfig.UserDataSecret != nil {
 		userDataSecret, err := a.kubeClient.CoreV1().Secrets(machine.Namespace).Get(machineProviderConfig.UserDataSecret.Name, metav1.GetOptions{})
 		if err != nil {
-			glog.Errorf("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err)
-			return nil, err
+			return nil, a.handleMachineError(machine, apierrors.CreateMachine("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
 		}
 		if data, exists := userDataSecret.Data[userDataSecretKey]; exists {
 			userData = data
@@ -202,14 +222,16 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 
 	instance, err := launchInstance(machine, machineProviderConfig, userData, client)
 	if err != nil {
-		retErr := fmt.Errorf("error launching instance: %v", err)
-		glog.Error(retErr)
-		return nil, retErr
+		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error launching instance: %v", err), createEventAction)
 	}
 
 	err = a.updateLoadBalancers(client, machineProviderConfig, instance)
+	if err != nil {
+		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error updating load balancers: %v", err), createEventAction)
+	}
 
-	return instance, err
+	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
+	return instance, nil
 }
 
 // Delete deletes a machine and updates its finalizer
@@ -226,8 +248,7 @@ func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, m
 func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine)
 	if err != nil {
-		glog.Errorf("error decoding MachineProviderConfig: %v", err)
-		return err
+		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
 	}
 
 	region := machineProviderConfig.Placement.Region
@@ -251,7 +272,13 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		return nil
 	}
 
-	return terminateInstances(client, instances)
+	err = terminateInstances(client, instances)
+	if err != nil {
+		return a.handleMachineError(machine, apierrors.DeleteMachine(err.Error()), noEventAction)
+	}
+	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted Machine %v", machine.Name)
+
+	return nil
 }
 
 // Update attempts to sync machine state with an existing instance. Today this just updates status
@@ -262,8 +289,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 
 	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine)
 	if err != nil {
-		glog.Errorf("error decoding MachineProviderConfig: %v", err)
-		return err
+		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), noEventAction)
 	}
 
 	region := machineProviderConfig.Placement.Region
@@ -289,11 +315,14 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	// but instance could be deleted between the two calls.
 	if len(instances) == 0 {
 		glog.Warningf("attempted to update machine but no instances found")
+
+		a.handleMachineError(machine, apierrors.CreateMachine("no instance found, reason unknown"), noEventAction)
+
 		// Update status to clear out machine details.
-		err := a.updateStatus(machine, nil)
-		if err != nil {
+		if err := a.updateStatus(machine, nil); err != nil {
 			return err
 		}
+
 		glog.Errorf("attempted to update machine but no instances found")
 		return fmt.Errorf("attempted to update machine but no instances found")
 	}
@@ -306,6 +335,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	if len(instances) > 1 {
 		err = terminateInstances(client, instances[1:])
 		if err != nil {
+			glog.Errorf("Unable to remove redundant instances: %v", err)
 			return err
 		}
 	}
@@ -314,7 +344,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 
 	err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance)
 	if err != nil {
-		glog.Errorf("error updating load balancers: %v", err)
+		a.handleMachineError(machine, apierrors.CreateMachine("error updating load balancers: %v", err), noEventAction)
 		return err
 	}
 
