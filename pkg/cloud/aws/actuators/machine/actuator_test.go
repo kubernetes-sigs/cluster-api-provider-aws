@@ -1,6 +1,7 @@
 package machine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
-	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 

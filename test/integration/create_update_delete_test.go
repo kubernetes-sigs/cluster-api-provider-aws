@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,7 +13,6 @@ import (
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
-	"golang.org/x/net/context"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

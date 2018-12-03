@@ -22,6 +22,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -49,7 +50,6 @@ import (
 
 	"text/template"
 
-	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )

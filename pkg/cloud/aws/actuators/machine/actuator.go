@@ -17,11 +17,11 @@ limitations under the License.
 package machine
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/golang/glog"
-	"golang.org/x/net/context"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
