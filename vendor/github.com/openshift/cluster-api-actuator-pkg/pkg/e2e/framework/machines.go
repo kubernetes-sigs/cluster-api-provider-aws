@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -14,8 +15,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
-	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
 )
 
 func (f *Framework) DeleteMachineAndWait(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) {
