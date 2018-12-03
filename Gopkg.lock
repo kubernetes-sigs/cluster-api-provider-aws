@@ -64,6 +64,8 @@
     "service/ec2/ec2iface",
     "service/elb",
     "service/elb/elbiface",
+    "service/elbv2",
+    "service/elbv2/elbv2iface",
     "service/sts",
   ]
   pruneopts = "T"
@@ -381,14 +383,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:96c659c9844f8716fbd5d363af8d80f405b52a984db0d88cf6517b14233988c8"
+  digest = "1:689b3b1987d5248b956837dedfd7da013efc1ff6c662f8a22cd9088afa290cc4"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/framework",
     "pkg/manifests",
+    "pkg/types",
   ]
   pruneopts = "T"
-  revision = "7a158e52e0e85180ad5b29847f8a30c19bb3ff6c"
+  revision = "95150a82b5ae6ef9244f19dff48625f7f2c6f0e1"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
@@ -1036,6 +1039,8 @@
     "github.com/aws/aws-sdk-go/service/ec2/ec2iface",
     "github.com/aws/aws-sdk-go/service/elb",
     "github.com/aws/aws-sdk-go/service/elb/elbiface",
+    "github.com/aws/aws-sdk-go/service/elbv2",
+    "github.com/aws/aws-sdk-go/service/elbv2/elbv2iface",
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
@@ -1045,6 +1050,7 @@
     "github.com/onsi/gomega",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
     "github.com/prometheus/common/log",
     "github.com/spf13/cobra",
     "github.com/stretchr/testify/assert",
@@ -1058,6 +1064,7 @@
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/apimachinery/pkg/util/errors",
     "k8s.io/apimachinery/pkg/util/uuid",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/kubernetes",
