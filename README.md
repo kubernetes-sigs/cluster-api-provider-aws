@@ -91,14 +91,24 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     $ kubectl apply -f examples/addons.yaml
     ```
 
-    Deploy the components:
+    Deploy CRDs:
 
     ```sh
-    $ kubectl apply -f examples/cluster-api-server.yaml
-    $ kubectl apply -f examples/provider-components.yml
+    $ kubectl apply -f config/crd/machine.crd.yaml
+    $ kubectl apply -f config/crd/machineset.crd.yaml
+    $ kubectl apply -f config/crd/machinedeployment.crd.yaml
+    $ kubectl apply -f config/crd/cluster.crd.yaml
     ```
 
-    Deploy the cluster manigest:
+    Deploy machine API controllers:
+
+    ```sh
+    $ kubectl apply -f config/rbac/rbac_role.yaml
+    $ kubectl apply -f config/rbac/rbac_role_binding.yaml
+    $ kubectl apply -f config/controllers/deployment.yaml
+    ```
+
+    Deploy the cluster manifest:
     ```sh
     $ kubectl apply -f examples/cluster.yaml
     ```

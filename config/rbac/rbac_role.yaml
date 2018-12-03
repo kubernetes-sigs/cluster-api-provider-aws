@@ -2,12 +2,19 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: manager-role
+  name: cluster-api-manager-role
 rules:
 - apiGroups:
-  - apps
+  - cluster.k8s.io
   resources:
-  - deployments
+  - clusters
+  - clusters/status
+  - machines
+  - machines/status
+  - machinesets
+  - machinesets/status
+  - machinedeployments
+  - machinedeployments/status
   verbs:
   - get
   - list
@@ -17,9 +24,9 @@ rules:
   - patch
   - delete
 - apiGroups:
-  - awsproviderconfig.k8s.io
+  - ""
   resources:
-  - awsmachineproviderconfigs
+  - nodes
   verbs:
   - get
   - list
@@ -28,3 +35,10 @@ rules:
   - update
   - patch
   - delete
+
+- apiGroups:
+  - healthchecking.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
