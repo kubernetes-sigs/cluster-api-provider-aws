@@ -88,8 +88,8 @@ integration: ## Run integration test
 build-e2e:
 	go test -c -o bin/e2e.test sigs.k8s.io/cluster-api-provider-aws/test/machines
 
-.PHONY: test-e2e
-test-e2e: ## Run e2e test
+.PHONY: k8s-e2e
+k8s-e2e: ## Run k8s specific e2e test
 	# KUBECONFIG and SSH_PK dirs needs to be mounted inside a container if tests are run in containers
 	go test -timeout 20m -v sigs.k8s.io/cluster-api-provider-aws/test/machines -kubeconfig $${KUBECONFIG:-~/.kube/config} -ssh-key $${SSH_PK:-~/.ssh/id_rsa} -actuator-image $${ACTUATOR_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1} -cluster-id $${ENVIRONMENT_ID:-""} -ginkgo.v
 
