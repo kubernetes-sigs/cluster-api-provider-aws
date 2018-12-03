@@ -39,6 +39,7 @@ func (s *Service) getOrAllocateAddress(role string) (string, error) {
 			return aws.StringValue(address.AllocationId), nil
 		}
 	}
+
 	return s.allocateAddress(role)
 }
 

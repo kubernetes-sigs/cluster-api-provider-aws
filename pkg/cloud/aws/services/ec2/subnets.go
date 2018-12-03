@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 const (
@@ -213,6 +214,8 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 	klog.V(2).Infof("Created new subnet %q in VPC %q with cidr %q and availability zone %q",
 		*out.Subnet.SubnetId, *out.Subnet.VpcId, *out.Subnet.CidrBlock, *out.Subnet.AvailabilityZone)
 
+	record.Eventf(s.scope.Cluster, "CreatedSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
+
 	return &v1alpha1.Subnet{
 		ID:               *out.Subnet.SubnetId,
 		VpcID:            *out.Subnet.VpcId,
@@ -232,5 +235,6 @@ func (s *Service) deleteSubnet(id string) error {
 	}
 
 	klog.V(2).Infof("Deleted subnet %q in vpc %q", id, s.scope.VPC().ID)
+	record.Eventf(s.scope.Cluster, "DeletedSubnet", "Deleted managed Subnet %q", id)
 	return nil
 }

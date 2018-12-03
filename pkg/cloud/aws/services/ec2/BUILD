@@ -29,6 +29,7 @@ go_library(
         "//pkg/cloud/aws/services/userdata:go_default_library",
         "//pkg/cloud/aws/services/wait:go_default_library",
         "//pkg/cloud/aws/tags:go_default_library",
+        "//pkg/record:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",

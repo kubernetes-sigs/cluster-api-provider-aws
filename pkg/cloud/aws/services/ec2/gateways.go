@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 func (s *Service) reconcileInternetGateways() error {
@@ -61,7 +62,7 @@ func (s *Service) deleteInternetGateways() error {
 			return errors.Wrapf(err, "failed to detach internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		klog.Infof("detached internet gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
+		klog.Infof("Detached internet gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 
 		deleteReq := &ec2.DeleteInternetGatewayInput{
 			InternetGatewayId: ig.InternetGatewayId,
@@ -71,8 +72,10 @@ func (s *Service) deleteInternetGateways() error {
 			return errors.Wrapf(err, "failed to delete internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		klog.Infof("Deleted internet gateway %q", s.scope.VPC().ID)
+		klog.Infof("Deleted internet gateway %q in VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
+		record.Eventf(s.scope.Cluster, "DeletedInternetGateway", "Deleted Internet Gateway %q previously attached to VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 	}
+
 	return nil
 }
 
@@ -110,6 +113,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 	}
 
 	klog.Infof("attached internet gateway %q to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
+	record.Eventf(s.scope.Cluster, "CreatedInternetGateway", "Created new Internet Gateway %q attached to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	return ig.InternetGateway, nil
 }
 

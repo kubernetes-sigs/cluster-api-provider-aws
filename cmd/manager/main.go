@@ -61,7 +61,7 @@ func main() {
 	}
 
 	// Initialize event recorder.
-	record.Init(cs)
+	record.InitFromRecorder(mgr.GetRecorder("aws-controller"))
 
 	// Initialize cluster actuator.
 	clusterActuator := cluster.NewActuator(cluster.ActuatorParams{
@@ -85,7 +85,6 @@ func main() {
 	}
 
 	capimachine.AddWithActuator(mgr, machineActuator)
-
 	capicluster.AddWithActuator(mgr, clusterActuator)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {

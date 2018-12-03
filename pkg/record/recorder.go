@@ -22,15 +22,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	clusterapiclientsetscheme "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
-)
-
-const (
-	defaultRecorderSource = "cluster-api-aws-provider"
 )
 
 var (
@@ -42,19 +34,11 @@ func init() {
 	defaultRecorder = new(record.FakeRecorder)
 }
 
-// Init initializes the global default recorder. It can only be called once. Subsequent calls are considered noops.
-func Init(kubeClient *clientset.Clientset) {
+// InitFromRecorder initializes the global default recorder. It can only be called once.
+// Subsequent calls are considered noops.
+func InitFromRecorder(recorder record.EventRecorder) {
 	initOnce.Do(func() {
-		scheme := runtime.NewScheme()
-		if err := corev1.AddToScheme(scheme); err != nil {
-			klog.Fatal(err)
-		}
-		clusterapiclientsetscheme.AddToScheme(scheme)
-
-		broadcaster := record.NewBroadcaster()
-		broadcaster.StartLogging(klog.Infof)
-		broadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeClient.RESTClient()).Events("")})
-		defaultRecorder = broadcaster.NewRecorder(scheme, corev1.EventSource{Component: defaultRecorderSource})
+		defaultRecorder = recorder
 	})
 }
 
@@ -65,7 +49,7 @@ func Event(object runtime.Object, reason, message string) {
 
 // Eventf is just like Event, but with Sprintf for the message field.
 func Eventf(object runtime.Object, reason, message string, args ...interface{}) {
-	defaultRecorder.Eventf(object, corev1.EventTypeNormal, strings.Title(reason), message, args)
+	defaultRecorder.Eventf(object, corev1.EventTypeNormal, strings.Title(reason), message, args...)
 }
 
 // Event constructs a warning event from the given information and puts it in the queue for sending.
@@ -75,5 +59,5 @@ func Warn(object runtime.Object, reason, message string) {
 
 // Eventf is just like Event, but with Sprintf for the message field.
 func Warnf(object runtime.Object, reason, message string, args ...interface{}) {
-	defaultRecorder.Eventf(object, corev1.EventTypeWarning, strings.Title(reason), message, args)
+	defaultRecorder.Eventf(object, corev1.EventTypeWarning, strings.Title(reason), message, args...)
 }

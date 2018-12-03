@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 func (s *Service) reconcileNatGateways() error {
@@ -157,6 +158,7 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	}
 
 	klog.Infof("NAT gateway %q for subnet ID %q is now available", *out.NatGateway.NatGatewayId, subnetID)
+	record.Eventf(s.scope.Cluster, "CreatedNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 	return out.NatGateway, nil
 }
 
@@ -203,6 +205,7 @@ func (s *Service) deleteNatGateway(id string) error {
 	}
 
 	klog.Infof("Deleted NAT gateway %q", id)
+	record.Eventf(s.scope.Cluster, "DeletedNATGateway", "Deleted NAT Gateway %q", id)
 	return nil
 }
 

@@ -17,6 +17,7 @@ import (
 	"encoding/base64"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
@@ -193,7 +194,13 @@ func (s *Service) createInstance(machine *actuators.MachineScope, token string) 
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
-	return s.runInstance(input)
+	out, err := s.runInstance(machine.Role(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
+	return out, nil
 }
 
 // TerminateInstance terminates an EC2 instance.
@@ -210,6 +217,7 @@ func (s *Service) TerminateInstance(instanceID string) error {
 	}
 
 	klog.V(2).Infof("Terminated instance with id %q", instanceID)
+	record.Eventf(s.scope.Cluster, "DeletedInstance", "Terminated instance %q", instanceID)
 	return nil
 }
 
@@ -260,7 +268,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, token stri
 	return s.createInstance(machine, token)
 }
 
-func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
@@ -308,7 +316,6 @@ func (s *Service) runInstance(i *v1alpha1.Instance) (*v1alpha1.Instance, error) 
 	}
 
 	s.scope.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
-
 	return converters.SDKToInstance(out.Instances[0]), nil
 }
 
