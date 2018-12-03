@@ -17,6 +17,10 @@ var (
 	GitTreeState string
 	// GitCommit is the git commit at which this binary binary was built
 	GitCommit string
+	// GitMajor is the major version of the release
+	GitMajor string
+	// GitMinor is the minor verison of the release
+	GitMinor string
 )
 
 // VersionCmd is the version command for the binary
@@ -28,8 +32,8 @@ func VersionCmd() *cobra.Command { // nolint
 			fmt.Printf("Git Branch: %s\n", GitBranch)
 			fmt.Printf("Git commit: %s\n", GitCommit)
 			fmt.Printf("Release tag: %s\n", ReleaseTag)
-			fmt.Printf("Build time: %s\n", BuildTime)
 			fmt.Printf("Git tree state: %s\n", GitTreeState)
+			fmt.Printf("Git version: Major:%q, Minor:%q", GitMajor, GitMinor)
 		},
 	}
 }

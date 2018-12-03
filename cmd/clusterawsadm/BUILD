@@ -15,9 +15,10 @@ go_binary(
     visibility = ["//visibility:public"],
     x_defs = {
         "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitBranch": "{GIT_BRANCH}",
-        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.ReleaseTag": "{RELEASE_TAG}",
-        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.BuildTime": "{BUILD_TIME}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.ReleaseTag": "{GIT_VERSION}",
         "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitCommit": "{GIT_COMMIT}",
         "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitTreeState": "{GIT_TREE_STATE}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitMajor": "{GIT_MAJOR}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitMinor": "{GIT_MINOR}",
     },
 )
