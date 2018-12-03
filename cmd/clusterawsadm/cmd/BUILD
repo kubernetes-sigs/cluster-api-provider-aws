@@ -7,8 +7,8 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cmd/clusterawsadm/cmd/alpha:go_default_library",
+        "//cmd/versioninfo:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
         "//vendor/github.com/spf13/pflag:go_default_library",
-        "//cmd/versioninfo:go_default_library"
     ],
 )
