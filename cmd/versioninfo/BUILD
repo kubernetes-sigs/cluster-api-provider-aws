@@ -10,7 +10,6 @@ go_library(
     ],
 )
 
-
 go_test(
     name = "go_default_test",
     srcs = ["versioninfo_test.go"],
