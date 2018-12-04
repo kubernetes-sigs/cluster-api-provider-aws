@@ -178,10 +178,10 @@ kind-reset: ## Destroys the "capa" kind cluster.
 	kind delete cluster --name=capa
 
 kind-create-cluster: kind ## Invokes `clusterctl create cluster ...` using the kind "capa" cluster as bootstrap.
-	clusterctl create cluster -v 3 --provider aws -e $(kind get kubeconfig-path --name=capa) -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
+	clusterctl create cluster -v 3 --provider aws -e $(shell kind get kubeconfig-path --name=capa) -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 kind-delete-cluster: kind ## Invokes `clusterctl delete cluster ...` using the kind "capa" cluster as bootstrap.
-	clusterctl delete cluster -e $(kind get kubeconfig-path) --cluster test1 --cluster-namespace default --kubeconfig ./kubeconfig -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+	clusterctl delete cluster -e $(shell kind get kubeconfig-path --name=capa) --cluster test1 --cluster-namespace default --kubeconfig ./kubeconfig -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
 
 ifneq ($(FASTBUILD),y)
 
