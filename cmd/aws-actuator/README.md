@@ -32,7 +32,7 @@ echo "Ahoj" > /tmp/test
 ```
 
 ```sh
-$ ./bin/aws-actuator create -m examples/machine-with-user-data.yaml -c examples/cluster.yaml -u examples/userdata.yml --environment-id UNIQUE_ID
+$ ./bin/aws-actuator create --logtostderr -m examples/machine-with-user-data.yaml -c examples/cluster.yaml -u examples/userdata.yml --environment-id UNIQUE_ID
 DEBU[0000] Describing AMI ami-a9acbbd6                   example=create-machine machine=test/aws-actuator-testing-machine
 Machine creation was successful! InstanceID: i-027681ebf9a842183
 ```
@@ -42,7 +42,7 @@ Once the aws instance is created you can run `$ cat /tmp/test` to verify it cont
 ## Test if aws instance exists based on machine manifest
 
 ```sh
-$ ./bin/aws-actuator exists -m examples/machine-with-user-data.yaml -c examples/cluster.yaml --environment-id UNIQUE_ID
+$ ./bin/aws-actuator exists --logtostderr -m examples/machine-with-user-data.yaml -c examples/cluster.yaml --environment-id UNIQUE_ID
 DEBU[0000] checking if machine exists                    example=create-machine machine=test/aws-actuator-testing-machine
 DEBU[0000] instance exists as "i-027681ebf9a842183"      example=create-machine machine=test/aws-actuator-testing-machine
 Underlying machine's instance exists.
@@ -51,7 +51,7 @@ Underlying machine's instance exists.
 ## Delete aws instance based on machine manifest
 
 ```sh
-$ ./bin/aws-actuator delete -m examples/machine-with-user-data.yaml -c examples/cluster.yaml --environment-id UNIQUE_ID
+$ ./bin/aws-actuator delete --logtostderr -m examples/machine-with-user-data.yaml -c examples/cluster.yaml --environment-id UNIQUE_ID
 WARN[0000] cleaning up extraneous instance for machine   example=create-machine instanceID=i-027681ebf9a842183 launchTime="2018-08-18 15:50:54 +0000 UTC" machine=test/aws-actuator-testing-machine state=running
 INFO[0000] terminating instance                          example=create-machine instanceID=i-027681ebf9a842183 machine=test/aws-actuator-testing-machine
 Machine delete operation was successful.
@@ -62,7 +62,7 @@ Machine delete operation was successful.
 1. Bootstrap the control plane
 
 ```sh
-./bin/aws-actuator create -m examples/master-machine.yaml -c examples/cluster.yaml -u examples/master-userdata.yaml --environment-id UNIQUE_ID
+./bin/aws-actuator create --logtostderr -m examples/master-machine.yaml -c examples/cluster.yaml -u examples/master-userdata.yaml --environment-id UNIQUE_ID
 ```
 
 By default networking is enabled on the master machine. You can
@@ -103,7 +103,7 @@ $ cat examples/worker-user-data.sh | base64
 5. Create the worker node by running:
 
 ```sh
-$ ./bin/aws-actuator create -m examples/worker-machine.yaml -c examples/cluster.yaml -u examples/worker-userdata.yaml --environment-id UNIQUE_ID
+$ ./bin/aws-actuator create --logtostderr -m examples/worker-machine.yaml -c examples/cluster.yaml -u examples/worker-userdata.yaml --environment-id UNIQUE_ID
 ```
 
 After some time the kubernetes cluster with the control plane (master node) and the worker node gets provisioned

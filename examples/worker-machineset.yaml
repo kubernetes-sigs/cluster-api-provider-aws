@@ -23,7 +23,7 @@ spec:
           node-role.kubernetes.io/compute: ""
       providerConfig:
         value:
-          apiVersion: aws.cluster.k8s.io/v1alpha1
+          apiVersion: awsproviderconfig.k8s.io/v1alpha1
           kind: AWSMachineProviderConfig
           ami:
             filters:
