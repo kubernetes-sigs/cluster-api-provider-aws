@@ -10,7 +10,6 @@ import (
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	machineutils "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 )
 
 func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) {
@@ -33,7 +32,8 @@ func getMachineProviderStatus(f *framework.Framework, machine *clusterv1alpha1.M
 	codec, err := providerconfigv1.NewCodec()
 	Expect(err).NotTo(HaveOccurred())
 
-	machineProviderStatus, err := machineutils.ProviderStatusFromMachine(codec, machine)
+	machineProviderStatus := &providerconfigv1.AWSMachineProviderStatus{}
+	err = codec.DecodeProviderStatus(machine.Status.ProviderStatus, machineProviderStatus)
 	Expect(err).NotTo(HaveOccurred())
 
 	return machineProviderStatus

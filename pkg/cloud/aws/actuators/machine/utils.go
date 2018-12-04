@@ -19,16 +19,14 @@ package machine
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/ghodss/yaml"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -140,7 +138,7 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 
 // ProviderConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	var providerConfig runtime.RawExtension
 
 	if machine.Spec.ProviderConfig.Value == nil && machine.Spec.ProviderConfig.ValueFrom == nil {
@@ -166,22 +164,10 @@ func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine)
 	}
 
 	var config providerconfigv1.AWSMachineProviderConfig
-	if err := yaml.Unmarshal(providerConfig.Raw, &config); err != nil {
+	if err := codec.DecodeProviderConfig(&clusterv1.ProviderConfig{Value: &providerConfig}, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil
-}
-
-// ProviderStatusFromMachine gets the machine provider status from the specified machine.
-func ProviderStatusFromMachine(codec codec, m *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
-	status := &providerconfigv1.AWSMachineProviderStatus{}
-	err := codec.DecodeProviderStatus(m.Status.ProviderStatus, status)
-	return status, err
-}
-
-// EncodeProviderStatus encodes the machine status into RawExtension
-func EncodeProviderStatus(codec codec, awsStatus *providerconfigv1.AWSMachineProviderStatus) (*runtime.RawExtension, error) {
-	return codec.EncodeProviderStatus(awsStatus)
 }
 
 // IsMaster returns true if the machine is part of a cluster's control plane
