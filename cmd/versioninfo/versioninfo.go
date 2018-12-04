@@ -9,8 +9,10 @@ import (
 var (
 	// GitBranch is the branch from which this binary was built
 	GitBranch string
-	// ReleaseTag is the git tag from which this binary is released
-	ReleaseTag string
+	// GitReleaseTag is the git tag from which this binary is released
+	GitReleaseTag string
+	// GitReleaseCommit is the commit corresponding to the GitReleaseTag
+	GitReleaseCommit string
 	// BuildTime is the time at which this binary was built
 	BuildTime string
 	// GitTreeState indicates if the git tree, from which this binary was built, was clean or dirty
@@ -21,19 +23,49 @@ var (
 	GitMajor string
 	// GitMinor is the minor version of the release
 	GitMinor string
+
+	printLongHand bool
 )
+
+func isRepoAtRelease() bool {
+	return GitTreeState == "clean" && GitReleaseCommit == GitCommit
+}
+
+func printShortDirtyVersionInfo() {
+	fmt.Printf("Version Info: GitReleaseTag: %q, MajorVersion: %q, MinorVersion:%q, GitReleaseCommit:%q, GitTreeState:%q\n",
+		GitReleaseTag, GitMajor, GitMinor, GitReleaseCommit, GitTreeState)
+}
+
+func printShortCleanVersionInfo() {
+	fmt.Printf("Version Info: GitReleaseTag: %q, MajorVersion: %q, MinorVersion:%q\n",
+		GitReleaseTag, GitMajor, GitMinor)
+}
+
+func printVerboseVersionInfo() {
+	fmt.Println("Version Info:")
+	fmt.Printf("GitReleaseTag: %q, Major: %q, Minor: %q, GitRelaseCommit: %q\n", GitReleaseTag, GitMajor, GitMinor, GitReleaseCommit)
+	fmt.Printf("Git Branch: %q\n", GitBranch)
+	fmt.Printf("Git commit: %q\n", GitCommit)
+	fmt.Printf("Git tree state: %q\n", GitTreeState)
+}
 
 // VersionCmd is the version command for the binary
 func VersionCmd() *cobra.Command { // nolint
-	return &cobra.Command{
+	vc := &cobra.Command{
 		Use:   "version",
 		Short: "Print version of this binary",
+		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Git Branch: %q\n", GitBranch)
-			fmt.Printf("Git commit: %q\n", GitCommit)
-			fmt.Printf("Release tag: %q\n", ReleaseTag)
-			fmt.Printf("Git tree state: %q\n", GitTreeState)
-			fmt.Printf("Git version: Major:%q, Minor:%q\n", GitMajor, GitMinor)
+			if printLongHand {
+				printVerboseVersionInfo()
+			} else if isRepoAtRelease() {
+				printShortCleanVersionInfo()
+			} else {
+				printShortDirtyVersionInfo()
+			}
 		},
 	}
+	vc.Flags().BoolVarP(&printLongHand, "long", "l", false, "Print longhand version info")
+
+	return vc
 }
