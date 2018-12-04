@@ -66,6 +66,9 @@ if GIT_VERSION=$(git describe --tags --abbrev=14 2>/dev/null); then
     fi
 fi
 
+GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2)
+GIT_RELEASE_TAG=$(git describe --abbrev=0 --tags)
+GIT_RELEASE_COMMIT=$(git rev-list -n 1  ${GIT_RELEASE_TAG} | head -c 14)
 
 cat <<EOF
 STABLE_DOCKER_REPO ${DOCKER_REPO_OVERRIDE:-gcr.io/cluster-api}
@@ -74,4 +77,7 @@ GIT_TREE_STATE ${GIT_TREE_STATE-}
 GIT_MAJOR ${GIT_MAJOR-}
 GIT_MINOR ${GIT_MINOR-}
 GIT_VERSION ${GIT_VERSION-}
+GIT_BRANCH ${GIT_BRANCH-}
+GIT_RELEASE_TAG ${GIT_RELEASE_TAG-}
+GIT_RELEASE_COMMIT ${GIT_RELEASE_COMMIT-}
 EOF

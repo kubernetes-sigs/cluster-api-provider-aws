@@ -71,11 +71,11 @@ manager: generate  ## Build manager binary.
 
 .PHONY: clusterctl
 clusterctl: generate ## Build clusterctl binary.
-	bazel build //cmd/clusterctl $(BAZEL_ARGS)
+	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterctl $(BAZEL_ARGS)
 
 .PHONY: clusterawsadm
 clusterawsadm: dep-ensure ## Build clusterawsadm binary.
-	bazel build //cmd/clusterawsadm $(BAZEL_ARGS)
+	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterawsadm $(BAZEL_ARGS)
 
 .PHONY: cluster-api-dev-helper
 cluster-api-dev-helper: dep-ensure ## Build cluster-api-dev-helper binary

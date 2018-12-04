@@ -13,4 +13,13 @@ go_binary(
     embed = [":go_default_library"],
     pure = "on",
     visibility = ["//visibility:public"],
+    x_defs = {
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitBranch": "{GIT_BRANCH}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitReleaseTag": "{GIT_RELEASE_TAG}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitReleaseCommit": "{GIT_RELEASE_COMMIT}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitCommit": "{GIT_COMMIT}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitTreeState": "{GIT_TREE_STATE}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitMajor": "{GIT_MAJOR}",
+        "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitMinor": "{GIT_MINOR}",
+    },
 )
