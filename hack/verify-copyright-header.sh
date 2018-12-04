@@ -13,14 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+IFS=$'\n'
 year=$(date +'%Y')
 
+files_without_header=()
+
 GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2)
-newly_added_files=($(git diff origin/master ${GIT_BRANCH} --name-only --diff-filter=A))
+newly_added_files=($(git diff origin/master ${GIT_BRANCH} --name-only --diff-filter=A | grep -v vendor/))
 
 if [ -n "$newly_added_files" ]
 then
-    for naf in $newly_added_files; do
+    for naf in ${newly_added_files[@]}; do
         files_without_header+=$(grep -L "Copyright $year" $naf)
     done
 
