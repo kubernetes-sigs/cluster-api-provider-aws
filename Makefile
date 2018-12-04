@@ -125,6 +125,10 @@ clean: ## Remove all generated files
 	rm -f minikube.kubeconfig
 	rm -f bazel-*
 
+.PHONY: reset-bazel
+reset-bazel: ## Deep cleaning for bazel
+	bazel clean --expunge
+
 cmd/clusterctl/examples/aws/out:
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
@@ -159,19 +163,31 @@ binaries-dev: ## Builds and installs the binaries on the local GOPATH
 
 .PHONY: create-cluster
 create-cluster: ## Create a Kubernetes cluster on AWS using examples
-	clusterctl create cluster -v 4 --provider aws -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
+	clusterctl create cluster -v 3 --provider aws -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 lint-full: dep-ensure ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
 
-.PHONY: generate lint
+## Define kind dependencies here.
+## NOTE: The following targets are mainly used for development purposes.
+
+kind: ## Create a kind cluster named "capa".
+	kind get clusters | grep capa || kind create cluster --name=capa
+
+kind-reset: ## Destroys the "capa" kind cluster.
+	kind delete cluster --name=capa
+
+kind-create-cluster: kind ## Invokes `clusterctl create cluster ...` using the kind "capa" cluster as bootstrap.
+	clusterctl create cluster -v 3 --provider aws -e $(kind get kubeconfig-path --name=capa) -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
+
+kind-delete-cluster: kind ## Invokes `clusterctl delete cluster ...` using the kind "capa" cluster as bootstrap.
+	clusterctl delete cluster -e $(kind get kubeconfig-path) --cluster test1 --cluster-namespace default --kubeconfig ./kubeconfig -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+
 ifneq ($(FASTBUILD),y)
 
 ## Define slow dependency targets here
 
-reset-bazel: ## Deep cleaning for bazel
-	bazel clean --expunge
-
+.PHONY: generate
 generate: dep-ensure ## Run go generate
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
@@ -180,6 +196,7 @@ generate: dep-ensure ## Run go generate
 		//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library
 	cp -Rf bazel-genfiles/pkg/* pkg/
 
+.PHONY: lint
 lint: dep-ensure ## Lint codebase
 	@echo If you have genereated new mocks, run make copy-genmocks before linting
 	bazel run //:lint $(BAZEL_ARGS)
@@ -188,9 +205,11 @@ else
 
 ## Add skips for slow depedency targets here
 
+.PHONY: generate
 generate:
 	@echo FASTBUILD is set: Skipping generate
 
+.PHONY: lint
 lint:
 	@echo FASTBUILD is set: Skipping lint
 
