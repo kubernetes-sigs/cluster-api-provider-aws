@@ -16,22 +16,6 @@ package userdata
 const (
 	nodeBashScript = `{{.Header}}
 
-certificate=$(echo '{{.CACert}}' | base64 -w0)
-
-cat >/tmp/cluster-info.yaml <<EOF
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: ${certificate}
-    server: https://{{.ELBAddress}}:6443
-  name: ""
-contexts: []
-current-context: ""
-kind: Config
-preferences: {}
-users: []
-EOF
-
 HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
 
 cat >/tmp/kubeadm-node.yaml <<EOF
@@ -42,8 +26,8 @@ discovery:
   bootstrapToken:
     token: "{{.BootstrapToken}}"
     apiServerEndpoint: "{{.ELBAddress}}:6443"
-  file:
-    kubeConfigPath: /tmp/cluster-info.yaml
+    caCertHashes:
+      - "{{.CACertHash}}"
 nodeRegistration:
   name: "${HOSTNAME}"
   criSocket: /var/run/containerd/containerd.sock
@@ -59,7 +43,7 @@ kubeadm join --config /tmp/kubeadm-node.yaml
 type NodeInput struct {
 	baseUserData
 
-	CACert         string
+	CACertHash     string
 	BootstrapToken string
 	ELBAddress     string
 }
