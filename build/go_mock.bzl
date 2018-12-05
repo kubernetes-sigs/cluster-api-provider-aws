@@ -24,7 +24,7 @@ ASM_SHIM = "//build/asm_shim"
 ASM_SHIM_LIB = "%s:go_default_library" % ASM_SHIM
 TEXTFLAG_SHIM = "%s:textflag.h" % ASM_SHIM
 SDK_INCLUDE_DIR = "$$GOROOT/pkg/include"
-BOILERPLATE = "//hack:boilerplate.go.txt"
+BOILERPLATE = "//hack:boilerplate/boilerplate.go.txt"
 GO_FLAGS = "CGO_ENABLED=0"
 
 def _qualified_genfile(label):
@@ -62,7 +62,7 @@ mkdir -p {generated_package} && \\
 mkdir -p {sdk_include_dir} && \\
 cp {textflag_shim} {sdk_include_dir} && \\
 cd {source_package} && \\
-cat {boilerplate} > {qualified_out} && \\
+cat {boilerplate} | sed "s/YEAR/$$(date +%Y)/g" > {qualified_out} && \\
 echo "\n\n" >> {qualified_out} && \\
 {go_flags} {mockgen} -package={code_package} {qualified_package} {interface} \\
     >> {qualified_out}
