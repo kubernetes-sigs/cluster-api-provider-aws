@@ -16,21 +16,19 @@ package ec2
 import (
 	"encoding/base64"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -90,7 +88,7 @@ func (s *Service) InstanceIfExists(id string) (*v1alpha1.Instance, error) {
 }
 
 // createInstance runs an ec2 instance.
-func (s *Service) createInstance(machine *actuators.MachineScope, token string) (*v1alpha1.Instance, error) {
+func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
 	klog.V(2).Infof("Creating a new instance for machine %q", machine.Name())
 
 	input := &v1alpha1.Instance{
@@ -174,9 +172,14 @@ func (s *Service) createInstance(machine *actuators.MachineScope, token string) 
 	if machine.Role() == "node" {
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
+		caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CACertificate)
+		if err != nil {
+			return input, err
+		}
+
 		userData, err := userdata.NewNode(&userdata.NodeInput{
-			CACert:         string(s.scope.ClusterConfig.CACertificate),
-			BootstrapToken: token,
+			CACertHash:     caCertHash,
+			BootstrapToken: bootstrapToken,
 			ELBAddress:     s.scope.Network().APIServerELB.DNSName,
 		})
 
@@ -242,7 +245,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, token string) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
 	klog.V(2).Infof("Attempting to create or get machine %q", machine.Name())
 
 	// instance id exists, try to get it
@@ -265,7 +268,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, token stri
 		return instance, nil
 	}
 
-	return s.createInstance(machine, token)
+	return s.createInstance(machine, bootstrapToken)
 }
 
 func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {

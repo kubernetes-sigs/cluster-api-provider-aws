@@ -16,13 +16,16 @@ package certificates
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"math"
 	"math/big"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -221,4 +224,15 @@ func DecodePrivateKeyPEM(encoded []byte) (*rsa.PrivateKey, error) {
 	}
 
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}
+
+// GenerateCertificateHash returns the encoded sha256 hash for the certificate provided
+func GenerateCertificateHash(encoded []byte) (string, error) {
+	cert, err := DecodeCertPEM(encoded)
+	if err != nil || cert == nil {
+		return "", errors.Errorf("failed to parse PEM block containing the public key")
+	}
+
+	certHash := sha256.Sum256(cert.RawSubjectPublicKeyInfo)
+	return "sha256:" + strings.ToLower(hex.EncodeToString(certHash[:])), nil
 }
