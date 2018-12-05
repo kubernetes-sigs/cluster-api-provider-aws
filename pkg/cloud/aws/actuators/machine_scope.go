@@ -107,8 +107,6 @@ func (m *MachineScope) storeMachineStatus() error {
 }
 
 func (m *MachineScope) Close() {
-	defer m.Scope.Close()
-
 	if m.MachineClient == nil {
 		return
 	}

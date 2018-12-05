@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -136,14 +137,20 @@ func (s *Scope) storeClusterConfig() error {
 }
 
 func (s *Scope) storeClusterStatus() error {
+	// Retrieve the latest cluster version.
+	latestCluster, err := s.ClusterClient.Get(s.Name(), metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
 	ext, err := v1alpha1.EncodeClusterStatus(s.ClusterStatus)
 	if err != nil {
 		return err
 	}
 
-	s.Cluster.Status.ProviderStatus = ext
+	latestCluster.Status.ProviderStatus = ext
 
-	if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
+	if _, err := s.ClusterClient.UpdateStatus(latestCluster); err != nil {
 		return err
 	}
 
