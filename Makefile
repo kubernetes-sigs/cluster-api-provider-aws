@@ -155,7 +155,7 @@ manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for
 
 .PHONY: manifests-dev
 manifests-dev: dep-ensure dep-install binaries-dev ## Builds development manifests
-	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) $(MAKE) manifests
+	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) MANAGER_IMAGE_PULL_POLICY="Always" $(MAKE) manifests
 
 # TODO(vincepri): This should move to rebuild Bazel binaries once every
 # make target uses Bazel bins to run operations.
@@ -175,7 +175,7 @@ lint-full: dep-ensure ## Run slower linters to detect possible issues
 ## NOTE: The following targets are mainly used for development purposes.
 
 kind: ## Create a kind cluster named "capa".
-	kind get clusters | grep capa || kind create cluster --name=capa
+	kind get clusters | grep -e "^capa$$" || kind create cluster --name=capa
 
 kind-reset: ## Destroys the "capa" kind cluster.
 	kind delete cluster --name=capa

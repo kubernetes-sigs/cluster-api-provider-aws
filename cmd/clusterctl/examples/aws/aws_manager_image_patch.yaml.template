@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       - image: ${MANAGER_IMAGE}
-        imagePullPolicy: ${IMAGE_PULL_POLICY:-Always}
+        imagePullPolicy: ${MANAGER_IMAGE_PULL_POLICY}
         name: manager

@@ -15,7 +15,7 @@ genrule(
         "ENVSUBST=$(location @com_github_a8m_envsubst//cmd/envsubst:envsubst)",
         # "MANAGER_IMAGE=$$(cat $(location //cmd/manager:manager-amd64.digest))",
         # TODO(EKF): This is a hack. Figure out why the above digest line doesn't work.
-        "IMAGE_PULL_POLICY=Never",
+        "MANAGER_IMAGE_PULL_POLICY=Never",
         "MANAGER_IMAGE=bazel/cmd/manager:manager-amd64",
         "OUTPUT_DIR=$(@D)/out",
         "DIR=.",
