@@ -21,6 +21,9 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${OUTPUT_DIR:-${DIR}/out}
 ENVSUBST=${ENVSUBST:-envsubst}
 
+# Cluster name.
+export CLUSTER_NAME="test1"
+
 # Manager image.
 export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.0.2}"
 export MANAGER_IMAGE_PULL_POLICY=${MANAGER_IMAGE_PULL_POLICY:-IfNotPresent}
