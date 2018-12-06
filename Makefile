@@ -90,9 +90,12 @@ release-binaries: ## Build release binaries
 	install bazel-bin/cmd/clusterctl/darwin_amd64_pure_stripped/clusterctl out/clusterctl-darwin-amd64
 	install bazel-bin/cmd/clusterctl/linux_amd64_pure_stripped/clusterctl out/clusterctl-linux-amd64
 
-.PHONY: test
-test: generate ## Run tests
+.PHONY: test verify
+test: generate verify ## Run tests
 	bazel test --nosandbox_debug //pkg/... //cmd/... $(BAZEL_ARGS)
+
+verify:
+	./hack/verify_boilerplate.py
 
 .PHONY: copy-genmocks
 copy-genmocks: ## Copies generated mocks into the repository

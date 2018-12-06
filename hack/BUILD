@@ -6,6 +6,6 @@ filegroup(
 )
 
 exports_files(glob([
-    "*.txt",
+    "boilerplate/*.txt",
     "*.sh",
 ]))
