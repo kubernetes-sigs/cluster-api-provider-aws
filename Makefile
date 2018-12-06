@@ -175,7 +175,7 @@ lint-full: dep-ensure ## Run slower linters to detect possible issues
 ## NOTE: The following targets are mainly used for development purposes.
 
 kind: ## Create a kind cluster named "capa".
-	kind get clusters | grep capa || kind create cluster --name=capa
+	kind get clusters | grep -e "^capa$$" || kind create cluster --name=capa
 
 kind-reset: ## Destroys the "capa" kind cluster.
 	kind delete cluster --name=capa
