@@ -114,7 +114,26 @@ func EncodeMachineStatus(status *AWSMachineProviderStatus) (*runtime.RawExtensio
 	}, nil
 }
 
-// EncodeClusterStatus marshals the cluster status
+// EncodeMachineSpec marshals the machine provider spec.
+func EncodeMachineSpec(spec *AWSMachineProviderSpec) (*runtime.RawExtension, error) {
+	if spec == nil {
+		return &runtime.RawExtension{}, nil
+	}
+
+	var rawBytes []byte
+	var err error
+
+	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
+	if rawBytes, err = json.Marshal(spec); err != nil {
+		return nil, err
+	}
+
+	return &runtime.RawExtension{
+		Raw: rawBytes,
+	}, nil
+}
+
+// EncodeClusterStatus marshals the cluster status.
 func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtension, error) {
 	if status == nil {
 		return &runtime.RawExtension{}, nil
@@ -133,9 +152,9 @@ func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtensio
 	}, nil
 }
 
-// EncodeClusterConfig marshals the cluster config.
-func EncodeClusterConfig(status *AWSClusterProviderSpec) (*runtime.RawExtension, error) {
-	if status == nil {
+// EncodeClusterSpec marshals the cluster provider spec.
+func EncodeClusterSpec(spec *AWSClusterProviderSpec) (*runtime.RawExtension, error) {
+	if spec == nil {
 		return &runtime.RawExtension{}, nil
 	}
 
@@ -143,7 +162,7 @@ func EncodeClusterConfig(status *AWSClusterProviderSpec) (*runtime.RawExtension,
 	var err error
 
 	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
-	if rawBytes, err = json.Marshal(status); err != nil {
+	if rawBytes, err = json.Marshal(spec); err != nil {
 		return nil, err
 	}
 

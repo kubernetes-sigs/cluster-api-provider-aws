@@ -94,19 +94,24 @@ func (m *MachineScope) Region() string {
 	return m.Scope.Region()
 }
 
-func (m *MachineScope) storeMachineStatus() error {
+func (m *MachineScope) storeMachineSpec(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
+	ext, err := v1alpha1.EncodeMachineSpec(m.MachineConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	machine.Spec.ProviderSpec.Value = ext
+	return m.MachineClient.Update(machine)
+}
+
+func (m *MachineScope) storeMachineStatus(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
 	ext, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	m.Machine.Status.ProviderStatus = ext
-
-	if _, err := m.MachineClient.UpdateStatus(m.Machine); err != nil {
-		return err
-	}
-
-	return nil
+	machine.Status.ProviderStatus = ext
+	return m.MachineClient.UpdateStatus(machine)
 }
 
 func (m *MachineScope) Close() {
@@ -114,11 +119,13 @@ func (m *MachineScope) Close() {
 		return
 	}
 
-	if _, err := m.MachineClient.Update(m.Machine); err != nil {
-		klog.Errorf("[machinescope] failed to update machine: %v", err)
+	latestMachine, err := m.storeMachineSpec(m.Machine)
+	if err != nil {
+		klog.Errorf("[machinescope] failed to update machine %q in namespace %q: %v", m.Machine.Name, m.Machine.Namespace, err)
 	}
 
-	if err := m.storeMachineStatus(); err != nil {
+	_, err = m.storeMachineStatus(latestMachine)
+	if err != nil {
 		klog.Errorf("[machinescope] failed to store provider status for machine %q in namespace %q: %v", m.Machine.Name, m.Machine.Namespace, err)
 	}
 }
