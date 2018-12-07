@@ -22,7 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -124,40 +123,24 @@ func (s *Scope) Region() string {
 	return s.ClusterConfig.Region
 }
 
-func (s *Scope) storeClusterConfig() error {
-	ext, err := v1alpha1.EncodeClusterConfig(s.ClusterConfig)
+func (s *Scope) storeClusterConfig(cluster *clusterv1.Cluster) (*clusterv1.Cluster, error) {
+	ext, err := v1alpha1.EncodeClusterSpec(s.ClusterConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	s.Cluster.Spec.ProviderSpec.Value = ext
-
-	if _, err := s.ClusterClient.Update(s.Cluster); err != nil {
-		return err
-	}
-
-	return nil
+	cluster.Spec.ProviderSpec.Value = ext
+	return s.ClusterClient.Update(cluster)
 }
 
-func (s *Scope) storeClusterStatus() error {
-	// Retrieve the latest cluster version.
-	latestCluster, err := s.ClusterClient.Get(s.Name(), metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
+func (s *Scope) storeClusterStatus(cluster *clusterv1.Cluster) (*clusterv1.Cluster, error) {
 	ext, err := v1alpha1.EncodeClusterStatus(s.ClusterStatus)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	latestCluster.Status.ProviderStatus = ext
-
-	if _, err := s.ClusterClient.UpdateStatus(latestCluster); err != nil {
-		return err
-	}
-
-	return nil
+	cluster.Status.ProviderStatus = ext
+	return s.ClusterClient.UpdateStatus(cluster)
 }
 
 // Close closes the current scope persisting the cluster configuration and status.
@@ -166,11 +149,13 @@ func (s *Scope) Close() {
 		return
 	}
 
-	if err := s.storeClusterConfig(); err != nil {
+	latestCluster, err := s.storeClusterConfig(s.Cluster)
+	if err != nil {
 		klog.Errorf("[scope] failed to store provider config for cluster %q in namespace %q: %v", s.Cluster.Name, s.Cluster.Namespace, err)
 	}
 
-	if err := s.storeClusterStatus(); err != nil {
+	_, err = s.storeClusterStatus(latestCluster)
+	if err != nil {
 		klog.Errorf("[scope] failed to store provider status for cluster %q in namespace %q: %v", s.Cluster.Name, s.Cluster.Namespace, err)
 	}
 }
