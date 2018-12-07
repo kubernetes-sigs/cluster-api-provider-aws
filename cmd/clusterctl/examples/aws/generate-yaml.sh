@@ -25,7 +25,7 @@ ENVSUBST=${ENVSUBST:-envsubst}
 export CLUSTER_NAME="test1"
 
 # Manager image.
-export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.0.2}"
+export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.0.3}"
 export MANAGER_IMAGE_PULL_POLICY=${MANAGER_IMAGE_PULL_POLICY:-IfNotPresent}
 
 # Machine settings.
