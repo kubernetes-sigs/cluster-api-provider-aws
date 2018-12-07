@@ -15,10 +15,6 @@ import (
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
-	apiv1 "k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -29,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -37,129 +32,6 @@ import (
 func init() {
 	// Add types to scheme
 	clusterv1.AddToScheme(scheme.Scheme)
-}
-
-const (
-	controllerLogName = "awsMachine"
-
-	defaultNamespace         = "default"
-	defaultAvailabilityZone  = "us-east-1a"
-	region                   = "us-east-1"
-	awsCredentialsSecretName = "aws-credentials-secret"
-	userDataSecretName       = "aws-actuator-user-data-secret"
-
-	keyName   = "aws-actuator-key-name"
-	clusterID = "aws-actuator-cluster"
-)
-
-const userDataBlob = `#cloud-config
-write_files:
-- path: /root/node_bootstrap/node_settings.yaml
-  owner: 'root:root'
-  permissions: '0640'
-  content: |
-    node_config_name: node-config-master
-runcmd:
-- [ cat, /root/node_bootstrap/node_settings.yaml]
-`
-
-func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
-	awsCredentialsSecret := utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, defaultNamespace)
-
-	userDataSecret := &apiv1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      userDataSecretName,
-			Namespace: defaultNamespace,
-		},
-		Data: map[string][]byte{
-			userDataSecretKey: []byte(userDataBlob),
-		},
-	}
-
-	machinePc := &providerconfigv1.AWSMachineProviderConfig{
-		AMI: providerconfigv1.AWSResourceReference{
-			ID: aws.String("ami-a9acbbd6"),
-		},
-		CredentialsSecret: &corev1.LocalObjectReference{
-			Name: awsCredentialsSecretName,
-		},
-		InstanceType: "m4.xlarge",
-		Placement: providerconfigv1.Placement{
-			Region:           region,
-			AvailabilityZone: defaultAvailabilityZone,
-		},
-		Subnet: providerconfigv1.AWSResourceReference{
-			ID: aws.String("subnet-0e56b13a64ff8a941"),
-		},
-		IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
-			ID: aws.String("openshift_master_launch_instances"),
-		},
-		KeyName: aws.String(keyName),
-		UserDataSecret: &corev1.LocalObjectReference{
-			Name: userDataSecretName,
-		},
-		Tags: []providerconfigv1.TagSpecification{
-			{Name: "openshift-node-group-config", Value: "node-config-master"},
-			{Name: "host-type", Value: "master"},
-			{Name: "sub-host-type", Value: "default"},
-		},
-		SecurityGroups: []providerconfigv1.AWSResourceReference{
-			{ID: aws.String("sg-00868b02fbe29de17")}, // aws-actuator
-			{ID: aws.String("sg-0a4658991dc5eb40a")}, // aws-actuator_master
-			{ID: aws.String("sg-009a70e28fa4ba84e")}, // aws-actuator_master_k8s
-			{ID: aws.String("sg-07323d56fb932c84c")}, // aws-actuator_infra
-			{ID: aws.String("sg-08b1ffd32874d59a2")}, // aws-actuator_infra_k8s
-		},
-		PublicIP: aws.Bool(true),
-		LoadBalancers: []providerconfigv1.LoadBalancerReference{
-			{
-				Name: "cluster-con",
-				Type: providerconfigv1.ClassicLoadBalancerType,
-			},
-			{
-				Name: "cluster-ext",
-				Type: providerconfigv1.ClassicLoadBalancerType,
-			},
-			{
-				Name: "cluster-int",
-				Type: providerconfigv1.ClassicLoadBalancerType,
-			},
-		},
-	}
-
-	codec, err := providerconfigv1.NewCodec()
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed creating codec: %v", err)
-	}
-	config, err := codec.EncodeProviderConfig(machinePc)
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("encodeToProviderConfig failed: %v", err)
-	}
-
-	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "aws-actuator-testing-machine",
-			Namespace: defaultNamespace,
-			Labels: map[string]string{
-				providerconfigv1.ClusterIDLabel:   clusterID,
-				providerconfigv1.MachineRoleLabel: "infra",
-				providerconfigv1.MachineTypeLabel: "master",
-			},
-		},
-
-		Spec: clusterv1.MachineSpec{
-			ProviderConfig: *config,
-		},
-	}
-
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterID,
-			Namespace: defaultNamespace,
-		},
-	}
-
-	return machine, cluster, awsCredentialsSecret, userDataSecret, nil
 }
 
 func TestCreateAndDeleteMachine(t *testing.T) {
@@ -187,7 +59,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 			// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
 			// cluster client for updating machine statues
 			// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterID)
+			machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -376,7 +248,7 @@ func TestAvailabiltyZone(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterID)
+			machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
 			if err != nil {
 				t.Fatal(err)
 			}
