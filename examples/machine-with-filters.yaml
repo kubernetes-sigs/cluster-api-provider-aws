@@ -12,10 +12,19 @@ metadata:
 spec:
   providerConfig:
     value:
-      apiVersion: aws.cluster.k8s.io/v1alpha1
+      apiVersion: awsproviderconfig.k8s.io/v1alpha1
       kind: AWSMachineProviderConfig
       ami:
-        id: ami-0518e1ac70d8a3389
+        filters:
+        - name: "image_stage"
+          values:
+          - "base"
+        - name: operating_system
+          values:
+          - "rhel"
+        - name: ready
+          values:
+          - "yes"
       instanceType: m4.large
       placement:
         region: eu-west-1
