@@ -55,7 +55,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client})
 	if err != nil {
-		return err
+		return errors.Errorf("failed to create scope: %+v", err)
 	}
 
 	defer scope.Close()
@@ -75,15 +75,15 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	}
 
 	if err := ec2svc.ReconcileNetwork(); err != nil {
-		return errors.Errorf("unable to reconcile network: %v", err)
+		return errors.Errorf("unable to reconcile network: %+v", err)
 	}
 
 	if err := ec2svc.ReconcileBastion(); err != nil {
-		return errors.Errorf("unable to reconcile network: %v", err)
+		return errors.Errorf("unable to reconcile network: %+v", err)
 	}
 
 	if err := elbsvc.ReconcileLoadbalancers(); err != nil {
-		return errors.Errorf("unable to reconcile load balancers: %v", err)
+		return errors.Errorf("unable to reconcile load balancers: %+v", err)
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 
 	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client})
 	if err != nil {
-		return err
+		return errors.Errorf("failed to create scope: %+v", err)
 	}
 
 	defer scope.Close()
@@ -104,11 +104,11 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	elbsvc := elb.NewService(scope)
 
 	if err := elbsvc.DeleteLoadbalancers(); err != nil {
-		return errors.Errorf("unable to delete load balancers: %v", err)
+		return errors.Errorf("unable to delete load balancers: %+v", err)
 	}
 
 	if err := ec2svc.DeleteBastion(); err != nil {
-		return errors.Errorf("unable to delete bastion: %v", err)
+		return errors.Errorf("unable to delete bastion: %+v", err)
 	}
 
 	if err := ec2svc.DeleteNetwork(); err != nil {
