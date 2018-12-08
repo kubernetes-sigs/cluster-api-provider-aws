@@ -65,7 +65,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
-		return err
+		return errors.Errorf("failed to create scope: %+v", err)
 	}
 
 	defer scope.Close()
@@ -74,14 +74,14 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	controlPlaneURL, err := a.GetIP(cluster, nil)
 	if err != nil {
-		return errors.Wrap(err, "failed to retrieve controlplane url during machine creation")
+		return errors.Errorf("failed to retrieve controlplane url during machine creation: %+v", err)
 	}
 
 	var bootstrapToken string
 	if machine.ObjectMeta.Labels["set"] == "node" {
 		kubeConfig, err := a.GetKubeConfig(cluster, nil)
 		if err != nil {
-			return errors.Wrap(err, "failed to retrieve kubeconfig during machine creation")
+			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
 		}
 
 		clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
@@ -89,30 +89,30 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		})
 
 		if err != nil {
-			return errors.Wrap(err, "failed to retrieve kubeconfig during machine creation")
+			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
 		}
 
 		coreClient, err := corev1.NewForConfig(clientConfig)
 		if err != nil {
-			return errors.Wrap(err, "failed to initialize new corev1 client")
+			return errors.Errorf("failed to initialize new corev1 client: %+v", err)
 		}
 
 		bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
 		if err != nil {
-			return errors.Wrap(err, "failed to create new bootstrap token")
+			return errors.Errorf("failed to create new bootstrap token: %+v", err)
 		}
 	}
 
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
-			klog.Errorf("network not ready to launch instances yet: %s", err)
+			klog.Errorf("network not ready to launch instances yet: %+v", err)
 			return &controllerError.RequeueAfterError{
 				RequeueAfter: time.Minute,
 			}
 		}
 
-		return errors.Wrap(err, "failed to create or get machine")
+		return errors.Errorf("failed to create or get machine: %+v", err)
 	}
 
 	scope.MachineStatus.InstanceID = &i.ID
@@ -125,7 +125,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	machine.Annotations["cluster-api-provider-aws"] = "true"
 
 	if err := a.reconcileLBAttachment(scope, machine, i); err != nil {
-		return errors.Wrap(err, "failed to reconcile LB attachment")
+		return errors.Errorf("failed to reconcile LB attachment: %+v", err)
 	}
 
 	return nil
@@ -148,7 +148,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
-		return err
+		return errors.Errorf("failed to create scope: %+v", err)
 	}
 
 	defer scope.Close()
@@ -157,7 +157,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get instance")
+		return errors.Errorf("failed to get instance: %+v", err)
 	}
 
 	if instance == nil {
@@ -176,7 +176,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return nil
 	default:
 		if err := ec2svc.TerminateInstance(aws.StringValue(scope.MachineStatus.InstanceID)); err != nil {
-			return errors.Wrap(err, "failed to terminate instance")
+			return errors.Errorf("failed to terminate instance: %+v", err)
 		}
 	}
 
@@ -192,7 +192,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
-		return err
+		return errors.Errorf("failed to create scope: %+v", err)
 	}
 
 	defer scope.Close()
@@ -202,7 +202,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// Get the current instance description from AWS.
 	instanceDescription, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
-		return errors.Wrap(err, "failed to get instance")
+		return errors.Errorf("failed to get instance: %+v", err)
 	}
 
 	// We can now compare the various AWS state to the state we were passed.
@@ -219,13 +219,13 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 		instanceDescription.SecurityGroupIDs,
 	)
 	if err != nil {
-		return errors.Wrap(err, "failed to ensure security groups")
+		return errors.Errorf("failed to apply security groups: %+v", err)
 	}
 
 	// Ensure that the tags are correct.
 	_, err = a.ensureTags(ec2svc, machine, scope.MachineStatus.InstanceID, scope.MachineConfig.AdditionalTags)
 	if err != nil {
-		return errors.Wrap(err, "failed to ensure tags")
+		return errors.Errorf("failed to ensure tags: %+v", err)
 	}
 
 	return nil
@@ -237,7 +237,7 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
 	if err != nil {
-		return false, err
+		return false, errors.Errorf("failed to create scope: %+v", err)
 	}
 
 	defer scope.Close()
@@ -251,14 +251,14 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
-		return false, err
+		return false, errors.Errorf("failed to retrieve instance: %+v", err)
 	}
 
 	if instance == nil {
 		return false, nil
 	}
 
-	klog.Infof("Found an instance: %v", instance)
+	klog.Infof("Found instance for machine %q: %v", machine.Name, instance)
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning:
