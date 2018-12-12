@@ -143,7 +143,7 @@ func NewSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 }
 
 // NewKubeconfig creates a new Kubeconfig where endpoint is the ELB endpoint.
-func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
+func NewKubeconfig(clusterName, endpoint string, caCert *x509.Certificate, caKey *rsa.PrivateKey) (*api.Config, error) {
 	cfg := &Config{
 		CommonName:   "kubernetes-admin",
 		Organization: []string{"system:masters"},
@@ -160,8 +160,6 @@ func NewKubeconfig(endpoint string, caCert *x509.Certificate, caKey *rsa.Private
 		return nil, errors.Wrap(err, "unable to sign certificate")
 	}
 
-	// TODO: make this configurable.
-	clusterName := "test1"
 	userName := "kubernetes-admin"
 	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
 

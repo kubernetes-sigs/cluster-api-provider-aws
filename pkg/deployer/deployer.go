@@ -90,7 +90,7 @@ func (d *Deployer) GetKubeConfig(cluster *clusterv1.Cluster, _ *clusterv1.Machin
 
 	server := fmt.Sprintf("https://%s:6443", dnsName)
 
-	cfg, err := certificates.NewKubeconfig(server, cert, key)
+	cfg, err := certificates.NewKubeconfig(cluster.Name, server, cert, key)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate a kubeconfig")
 	}
