@@ -18,12 +18,3 @@ genrule(
     outs = ["aws_provider.yaml"],
     visibility = ["//visibility:public"],
 )
-
-genrule(
-    name = "cluster-api-yaml",
-    cmd = "$(location @io_k8s_sigs_kustomize//:kustomize) build vendor/sigs.k8s.io/cluster-api/config/default > $@",
-    srcs = ["//:cluster-api-kustomize-yaml"],
-    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
-    outs = ["cluster_api.yaml"],
-    visibility = ["//visibility:public"],
-)
