@@ -34,6 +34,143 @@ func init() {
 	clusterv1.AddToScheme(scheme.Scheme)
 }
 
+func TestMachineEvents(t *testing.T) {
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
+
+	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	machineInvalidProviderConfig := machine.DeepCopy()
+	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
+	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
+
+	const (
+		noError            = ""
+		awsServiceError    = "error creating aws service"
+		launcInstanceError = "error launching instance"
+		lbError            = "error updating load balancers"
+	)
+
+	cases := []struct {
+		name      string
+		machine   *clusterv1.Machine
+		error     string
+		operation func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		event     string
+	}{
+		{
+			name:    "Create machine event failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate InvalidConfiguration",
+		},
+		{
+			name:    "Create machine event failed (error creating aws service)",
+			machine: machine,
+			error:   awsServiceError,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate CreateError",
+		},
+		{
+			name:    "Create machine event failed (error launching instance)",
+			machine: machine,
+			error:   launcInstanceError,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate CreateError",
+		},
+		{
+			name:    "Create machine event failed (error updating load balancers)",
+			machine: machine,
+			error:   lbError,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate CreateError",
+		},
+		{
+			name:    "Create machine event succeed",
+			machine: machine,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Normal Created Created Machine aws-actuator-testing-machine",
+		},
+		{
+			name:    "Delete machine event failed",
+			machine: machineInvalidProviderConfig,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.DeleteMachine(cluster, machine)
+			},
+			event: "Warning FailedDelete InvalidConfiguration",
+		},
+		{
+			name:    "Delete machine event succeed",
+			machine: machine,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.DeleteMachine(cluster, machine)
+			},
+			event: "Normal Deleted Deleted Machine aws-actuator-testing-machine",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			mockCtrl := gomock.NewController(t)
+			mockAWSClient := mockaws.NewMockClient(mockCtrl)
+
+			eventsChannel := make(chan string, 1)
+
+			params := ActuatorParams{
+				Client:     fake.NewFakeClient(tc.machine),
+				KubeClient: kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret),
+				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+					if tc.error == awsServiceError {
+						return nil, fmt.Errorf(awsServiceError)
+					}
+					return mockAWSClient, nil
+				},
+				Codec: codec,
+				// use fake recorder and store an event into one item long buffer for subsequent check
+				EventRecorder: &record.FakeRecorder{
+					Events: eventsChannel,
+				},
+			}
+
+			mockRunInstances(mockAWSClient, tc.error == launcInstanceError)
+			mockDescribeInstances(mockAWSClient, false)
+			mockTerminateInstances(mockAWSClient)
+			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.error == lbError)
+
+			actuator, err := NewActuator(params)
+			if err != nil {
+				t.Fatalf("Could not create AWS machine actuator: %v", err)
+			}
+
+			tc.operation(actuator, cluster, tc.machine)
+			select {
+			case event := <-eventsChannel:
+				if event != tc.event {
+					t.Errorf("Expected %q event, got %q", tc.event, event)
+				}
+			default:
+				t.Errorf("Expected %q event, got none", tc.event)
+			}
+		})
+	}
+}
+
 func TestCreateAndDeleteMachine(t *testing.T) {
 	cases := []struct {
 		name                string
@@ -212,6 +349,7 @@ func mockTerminateInstances(mockAWSClient *mockaws.MockClient) {
 
 func mockRegisterInstancesWithLoadBalancer(mockAWSClient *mockaws.MockClient, createError bool) {
 	if createError {
+		mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, fmt.Errorf("error")).AnyTimes()
 		return
 	}
 	// RegisterInstancesWithLoadBalancer should be called for every load balancer name in the machine
