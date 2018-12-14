@@ -94,6 +94,22 @@ spec:
           - replicas
           type: object
   version: v1alpha1
+  additionalPrinterColumns:
+  - JSONPath: .spec.replicas
+    description: Desired Replicas
+    name: Desired
+    type: integer
+  - JSONPath: .status.replicas
+    description: Current Replicas
+    name: Current
+    type: integer
+  - JSONPath: .status.readyReplicas
+    description: Ready Replicas
+    name: Ready
+    type: integer
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
 status:
   acceptedNames:
     kind: ""
