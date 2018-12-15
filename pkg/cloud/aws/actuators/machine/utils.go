@@ -178,25 +178,6 @@ func IsMaster(machine *clusterv1.Machine) bool {
 	return false
 }
 
-// IsInfra returns true if the machine is part of a cluster's infra plane
-func IsInfra(machine *clusterv1.Machine) bool {
-	if machineRole, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineRoleLabel]; exists && machineRole == "infra" {
-		return true
-	}
-	return false
-}
-
-// StringPtrsEqual safely returns true if the value for each string pointer is equal, or both are nil.
-func StringPtrsEqual(s1, s2 *string) bool {
-	if s1 == s2 {
-		return true
-	}
-	if s1 == nil || s2 == nil {
-		return false
-	}
-	return *s1 == *s2
-}
-
 // UpdateConditionCheck tests whether a condition should be updated from the
 // old condition to the new condition. Returns true if the condition should
 // be updated.
