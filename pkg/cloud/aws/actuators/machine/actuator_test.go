@@ -57,11 +57,16 @@ func TestMachineEvents(t *testing.T) {
 	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
 
 	cases := []struct {
-		name      string
-		machine   *clusterv1.Machine
-		error     string
-		operation func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
-		event     string
+		name                    string
+		machine                 *clusterv1.Machine
+		error                   string
+		operation               func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		event                   string
+		describeInstancesOutput *ec2.DescribeInstancesOutput
+		describeInstancesErr    error
+		runInstancesErr         error
+		terminateInstancesErr   error
+		lbErr                   error
 	}{
 		{
 			name:    "Create machine event failed (invalid configuration)",
@@ -81,9 +86,9 @@ func TestMachineEvents(t *testing.T) {
 			event: "Warning FailedCreate CreateError",
 		},
 		{
-			name:    "Create machine event failed (error launching instance)",
-			machine: machine,
-			error:   launchInstanceError,
+			name:            "Create machine event failed (error launching instance)",
+			machine:         machine,
+			runInstancesErr: fmt.Errorf("error"),
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
@@ -92,7 +97,7 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Create machine event failed (error updating load balancers)",
 			machine: machine,
-			error:   lbError,
+			lbErr:   fmt.Errorf("error"),
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
@@ -148,10 +153,17 @@ func TestMachineEvents(t *testing.T) {
 				},
 			}
 
-			mockRunInstances(mockAWSClient, tc.error == launchInstanceError)
-			mockDescribeInstances(mockAWSClient, false)
+			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
+			if tc.describeInstancesOutput == nil {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.describeInstancesErr).AnyTimes()
+			} else {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
+			}
+
 			mockTerminateInstances(mockAWSClient)
 			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.error == lbError)
+			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
+			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
 
 			actuator, err := NewActuator(params)
 			if err != nil {
@@ -406,29 +418,6 @@ func TestActuator(t *testing.T) {
 			}
 		})
 	}
-}
-
-func mockRunInstances(mockAWSClient *mockaws.MockClient, genError bool) {
-	var err error
-
-	if genError {
-		err = errors.New("requested RunInstances error")
-	}
-
-	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(
-		&ec2.Reservation{
-			Instances: []*ec2.Instance{
-				{
-					ImageId:    aws.String("ami-a9acbbd6"),
-					InstanceId: aws.String("i-02fcb933c5da7085c"),
-					State: &ec2.InstanceState{
-						Name: aws.String("Running"),
-						Code: aws.Int64(16),
-					},
-					LaunchTime: aws.Time(time.Now()),
-				},
-			},
-		}, err)
 }
 
 func mockDescribeInstances(mockAWSClient *mockaws.MockClient, genError bool) {
