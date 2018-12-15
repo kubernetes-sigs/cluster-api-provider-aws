@@ -56,6 +56,9 @@ func TestMachineEvents(t *testing.T) {
 	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
 	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
 
+	workerMachine := machine.DeepCopy()
+	workerMachine.Labels[providerconfigv1.MachineTypeLabel] = "worker"
+
 	cases := []struct {
 		name                    string
 		machine                 *clusterv1.Machine
@@ -106,6 +109,14 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Create machine event succeed",
 			machine: machine,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Normal Created Created Machine aws-actuator-testing-machine",
+		},
+		{
+			name:    "Create worker machine event succeed",
+			machine: workerMachine,
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
@@ -164,6 +175,9 @@ func TestMachineEvents(t *testing.T) {
 			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.error == lbError)
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
 			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), tc.lbErr)
+			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			actuator, err := NewActuator(params)
 			if err != nil {
@@ -216,6 +230,14 @@ func TestActuator(t *testing.T) {
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
 	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
+
+	machineNoClusterID := machine.DeepCopy()
+	delete(machineNoClusterID.Labels, providerconfigv1.ClusterIDLabel)
+
+	pendingInstance := stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c")
+	pendingInstance.State = &ec2.InstanceState{
+		Name: aws.String(ec2.InstanceStateNamePending),
+	}
 
 	cases := []struct {
 		name                    string
@@ -341,6 +363,45 @@ func TestActuator(t *testing.T) {
 			},
 		},
 		{
+			name: "Update machine status fails (instance pending)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{
+							pendingInstance,
+						},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Update machine failed (two running instances, error terminating one)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{
+							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
+						},
+					},
+				},
+			},
+			terminateInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:    "Update machine with failure (cluster ID missing)",
+			machine: machineNoClusterID,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
 			name:  "Update machine failed (error updating load balancers)",
 			lbErr: fmt.Errorf("error"),
 			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
@@ -350,6 +411,20 @@ func TestActuator(t *testing.T) {
 		{
 			name:                 "Describe machine fails (error getting running instance)",
 			describeInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name:    "Describe machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name:  "Describe machine failed (error creating aws service)",
+			error: awsServiceError,
 			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
@@ -371,6 +446,67 @@ func TestActuator(t *testing.T) {
 			name: "Describe machine succeeds",
 			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name:    "Exists machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Exists(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Exists machine fails (no running instance)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Exists(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:    "Delete machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:  "Delete machine failed (error creating aws service)",
+			error: awsServiceError,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:                 "Delete machine failed (error getting running instances)",
+			describeInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Delete machine failed (no running instances)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Delete machine failed (error terminating instances)",
+			terminateInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
 			},
 		},
 	}
@@ -410,6 +546,9 @@ func TestActuator(t *testing.T) {
 
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
 			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), tc.lbErr).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			if tc.machine == nil {
 				tc.operation(fakeClient, actuator, cluster, machine)
@@ -500,6 +639,9 @@ func TestAvailabiltyZone(t *testing.T) {
 			if err = codec.DecodeProviderConfig(&machine.Spec.ProviderConfig, machinePc); err != nil {
 				t.Fatal(err)
 			}
+
+			// no load balancers tested
+			machinePc.LoadBalancers = nil
 
 			machinePc.Placement.AvailabilityZone = tc.availabilityZone
 			if tc.subnet == "" {

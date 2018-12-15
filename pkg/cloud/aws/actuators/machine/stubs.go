@@ -88,6 +88,10 @@ func stubProviderConfig() *providerconfigv1.AWSMachineProviderConfig {
 				Name: "cluster-int",
 				Type: providerconfigv1.ClassicLoadBalancerType,
 			},
+			{
+				Name: "cluster-net-lb",
+				Type: providerconfigv1.NetworkLoadBalancerType,
+			},
 		},
 	}
 }
