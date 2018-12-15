@@ -6,9 +6,12 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elbv2"
+
 	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -198,4 +201,30 @@ func stubPCAMI(ami providerconfigv1.AWSResourceReference) *providerconfigv1.AWSM
 	pc := stubProviderConfig()
 	pc.AMI = ami
 	return pc
+}
+
+func stubDescribeLoadBalancersOutput() *elbv2.DescribeLoadBalancersOutput {
+	return &elbv2.DescribeLoadBalancersOutput{
+		LoadBalancers: []*elbv2.LoadBalancer{
+			{
+				LoadBalancerName: aws.String("lbname"),
+				LoadBalancerArn:  aws.String("lbarn"),
+			},
+		},
+	}
+}
+
+func stubDescribeTargetGroupsOutput() *elbv2.DescribeTargetGroupsOutput {
+	return &elbv2.DescribeTargetGroupsOutput{
+		TargetGroups: []*elbv2.TargetGroup{
+			{
+				TargetType:     aws.String(elbv2.TargetTypeEnumInstance),
+				TargetGroupArn: aws.String("arn1"),
+			},
+			{
+				TargetType:     aws.String(elbv2.TargetTypeEnumIp),
+				TargetGroupArn: aws.String("arn2"),
+			},
+		},
+	}
 }
