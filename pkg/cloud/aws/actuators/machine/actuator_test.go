@@ -177,6 +177,30 @@ func TestActuator(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
+
+	getMachineStatus := func(objectClient client.Client, machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
+		// Get updated machine object from the cluster client
+		key := types.NamespacedName{
+			Namespace: machine.Namespace,
+			Name:      machine.Name,
+		}
+		updatedMachine := clusterv1.Machine{}
+		err := objectClient.Get(context.Background(), client.ObjectKey(key), &updatedMachine)
+		if err != nil {
+			return nil, fmt.Errorf("unable to retrieve machine: %v", err)
+		}
+
+		machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
+		if err := codec.DecodeProviderStatus(updatedMachine.Status.ProviderStatus, machineStatus); err != nil {
+			return nil, fmt.Errorf("error decoding machine provider status: %v", err)
+		}
+		return machineStatus, nil
+	}
+
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
 	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
@@ -185,7 +209,7 @@ func TestActuator(t *testing.T) {
 		name                    string
 		machine                 *clusterv1.Machine
 		error                   string
-		operation               func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		operation               func(client client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
 		describeInstancesOutput *ec2.DescribeInstancesOutput
 		runInstancesErr         error
 		describeInstancesErr    error
@@ -193,30 +217,85 @@ func TestActuator(t *testing.T) {
 		lbErr                   error
 	}{
 		{
-			name:    "Update with success",
+			name:    "Create machine with success",
 			machine: machine,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				createErr := actuator.Create(context.TODO(), cluster, machine)
+				assert.NoError(t, createErr)
+
+				machineStatus, err := getMachineStatus(objectClient, machine)
+				if err != nil {
+					t.Fatalf("Unable to get machine status: %v", err)
+				}
+
+				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationSucceeded)
+
+				// Get the machine
+				if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
+					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
+				} else {
+					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
+				}
+
+				// Update a machine
+				if err := actuator.Update(context.TODO(), cluster, machine); err != nil {
+					t.Errorf("Unable to create instance for machine: %v", err)
+				}
+
+				// Get the machine
+				if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
+					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
+				} else {
+					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
+				}
+
+				// Delete a machine
+				if err := actuator.Delete(context.TODO(), cluster, machine); err != nil {
+					t.Errorf("Unable to delete instance for machine: %v", err)
+				}
+			},
+		},
+		{
+			name:            "Create machine with failure",
+			machine:         machine,
+			runInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				createErr := actuator.Create(context.TODO(), cluster, machine)
+				assert.Error(t, createErr)
+
+				machineStatus, err := getMachineStatus(objectClient, machine)
+				if err != nil {
+					t.Fatalf("Unable to get machine status: %v", err)
+				}
+
+				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationFailed)
+			},
+		},
+		{
+			name:    "Update machine with success",
+			machine: machine,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:    "Update machine failed (invalid configuration)",
 			machine: machineInvalidProviderConfig,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:  "Update machine failed (error creating aws service)",
 			error: awsServiceError,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:                 "Update machine failed (error getting running instances)",
 			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
@@ -229,7 +308,7 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
@@ -245,21 +324,21 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:  "Update machine failed (error updating load balancers)",
 			lbErr: fmt.Errorf("error"),
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:                 "Describe machine fails (error getting running instance)",
 			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
@@ -272,21 +351,16 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
 		{
 			name: "Describe machine succeeds",
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
-	}
-
-	codec, err := providerconfigv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
 	}
 
 	for _, tc := range cases {
@@ -326,131 +400,9 @@ func TestActuator(t *testing.T) {
 			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
 
 			if tc.machine == nil {
-				tc.operation(actuator, cluster, machine)
+				tc.operation(fakeClient, actuator, cluster, machine)
 			} else {
-				tc.operation(actuator, cluster, tc.machine)
-			}
-
-		})
-	}
-}
-
-func TestCreateAndDeleteMachine(t *testing.T) {
-	cases := []struct {
-		name                string
-		createErrorExpected bool
-	}{
-		{
-			name:                "machine creation succeeds",
-			createErrorExpected: false,
-		},
-		{
-			name:                "machine creation fails",
-			createErrorExpected: true,
-		},
-	}
-
-	codec, err := providerconfigv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			// kube client is needed to fetch aws credentials:
-			// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
-			// cluster client for updating machine statues
-			// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
-			//fakeClient := fake.NewSimpleClientset(machine)
-
-			fakeClient := fake.NewFakeClient(machine)
-
-			mockCtrl := gomock.NewController(t)
-			mockAWSClient := mockaws.NewMockClient(mockCtrl)
-
-			params := ActuatorParams{
-				Client:     fakeClient,
-				KubeClient: fakeKubeClient,
-				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
-					return mockAWSClient, nil
-				},
-				Codec: codec,
-				// use empty recorder dropping any event recorded
-				EventRecorder: &record.FakeRecorder{},
-			}
-
-			actuator, err := NewActuator(params)
-			if err != nil {
-				t.Fatalf("Could not create AWS machine actuator: %v", err)
-			}
-
-			mockRunInstances(mockAWSClient, tc.createErrorExpected)
-			mockDescribeInstances(mockAWSClient, tc.createErrorExpected)
-			mockTerminateInstances(mockAWSClient)
-			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.createErrorExpected)
-
-			// Create the machine
-			createErr := actuator.Create(context.TODO(), cluster, machine)
-
-			// Get updated machine object from the cluster client
-			key := types.NamespacedName{
-				Namespace: machine.Namespace,
-				Name:      machine.Name,
-			}
-			updatedMachine := clusterv1.Machine{}
-			err = fakeClient.Get(context.Background(), client.ObjectKey(key), &updatedMachine)
-			if err != nil {
-				t.Fatalf("Unable to retrieve machine: %v", err)
-			}
-
-			codec, err := providerconfigv1.NewCodec()
-			if err != nil {
-				t.Fatalf("error creating codec: %v", err)
-			}
-
-			machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
-			if err := codec.DecodeProviderStatus(updatedMachine.Status.ProviderStatus, machineStatus); err != nil {
-				t.Fatalf("error decoding machine provider status: %v", err)
-			}
-
-			if tc.createErrorExpected {
-				assert.Error(t, createErr)
-				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationFailed)
-			} else {
-				assert.NoError(t, createErr)
-				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationSucceeded)
-			}
-			if !tc.createErrorExpected {
-				// Get the machine
-				if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
-					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
-				} else {
-					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
-				}
-
-				// TODO(jchaloup): Wait until the machine is ready
-
-				// Update a machine
-				if err := actuator.Update(context.TODO(), cluster, machine); err != nil {
-					t.Errorf("Unable to create instance for machine: %v", err)
-				}
-
-				// Get the machine
-				if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
-					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
-				} else {
-					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
-				}
-
-				// Delete a machine
-				if err := actuator.Delete(context.TODO(), cluster, machine); err != nil {
-					t.Errorf("Unable to delete instance for machine: %v", err)
-				}
+				tc.operation(fakeClient, actuator, cluster, tc.machine)
 			}
 		})
 	}
