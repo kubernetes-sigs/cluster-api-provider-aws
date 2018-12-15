@@ -34,6 +34,13 @@ func init() {
 	clusterv1.AddToScheme(scheme.Scheme)
 }
 
+const (
+	noError             = ""
+	awsServiceError     = "error creating aws service"
+	launchInstanceError = "error launching instance"
+	lbError             = "error updating load balancers"
+)
+
 func TestMachineEvents(t *testing.T) {
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
@@ -48,13 +55,6 @@ func TestMachineEvents(t *testing.T) {
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
 	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
-
-	const (
-		noError            = ""
-		awsServiceError    = "error creating aws service"
-		launcInstanceError = "error launching instance"
-		lbError            = "error updating load balancers"
-	)
 
 	cases := []struct {
 		name      string
@@ -83,7 +83,7 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Create machine event failed (error launching instance)",
 			machine: machine,
-			error:   launcInstanceError,
+			error:   launchInstanceError,
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
@@ -148,7 +148,7 @@ func TestMachineEvents(t *testing.T) {
 				},
 			}
 
-			mockRunInstances(mockAWSClient, tc.error == launcInstanceError)
+			mockRunInstances(mockAWSClient, tc.error == launchInstanceError)
 			mockDescribeInstances(mockAWSClient, false)
 			mockTerminateInstances(mockAWSClient)
 			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.error == lbError)
@@ -167,6 +167,170 @@ func TestMachineEvents(t *testing.T) {
 			default:
 				t.Errorf("Expected %q event, got none", tc.event)
 			}
+		})
+	}
+}
+
+func TestActuator(t *testing.T) {
+	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	machineInvalidProviderConfig := machine.DeepCopy()
+	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
+	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
+
+	cases := []struct {
+		name                    string
+		machine                 *clusterv1.Machine
+		error                   string
+		operation               func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		describeInstancesOutput *ec2.DescribeInstancesOutput
+		runInstancesErr         error
+		describeInstancesErr    error
+		terminateInstancesErr   error
+		lbErr                   error
+	}{
+		{
+			name:    "Update with success",
+			machine: machine,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:    "Update machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:  "Update machine failed (error creating aws service)",
+			error: awsServiceError,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:                 "Update machine failed (error getting running instances)",
+			describeInstancesErr: fmt.Errorf("error"),
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Update machine failed (no running instances)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Update machine succeeds (two running instances)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{
+							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
+						},
+					},
+				},
+			},
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:  "Update machine failed (error updating load balancers)",
+			lbErr: fmt.Errorf("error"),
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:                 "Describe machine fails (error getting running instance)",
+			describeInstancesErr: fmt.Errorf("error"),
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name: "Describe machine fails (no running instance)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name: "Describe machine succeeds",
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+	}
+
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fakeClient := fake.NewFakeClient(machine)
+			mockCtrl := gomock.NewController(t)
+			mockAWSClient := mockaws.NewMockClient(mockCtrl)
+
+			params := ActuatorParams{
+				Client:     fakeClient,
+				KubeClient: kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret),
+				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+					if tc.error == awsServiceError {
+						return nil, fmt.Errorf(awsServiceError)
+					}
+					return mockAWSClient, nil
+				},
+				Codec: codec,
+				// use empty recorder dropping any event recorded
+				EventRecorder: &record.FakeRecorder{},
+			}
+
+			actuator, err := NewActuator(params)
+			if err != nil {
+				t.Fatalf("Could not create AWS machine actuator: %v", err)
+			}
+
+			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
+
+			if tc.describeInstancesOutput == nil {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.describeInstancesErr).AnyTimes()
+			} else {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
+			}
+
+			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
+			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
+
+			if tc.machine == nil {
+				tc.operation(actuator, cluster, machine)
+			} else {
+				tc.operation(actuator, cluster, tc.machine)
+			}
+
 		})
 	}
 }

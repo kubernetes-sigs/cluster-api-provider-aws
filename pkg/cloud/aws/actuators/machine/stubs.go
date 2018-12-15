@@ -228,3 +228,39 @@ func stubDescribeTargetGroupsOutput() *elbv2.DescribeTargetGroupsOutput {
 		},
 	}
 }
+
+func stubReservation(imageID, instanceID string) *ec2.Reservation {
+	return &ec2.Reservation{
+		Instances: []*ec2.Instance{
+			{
+				ImageId:    aws.String(imageID),
+				InstanceId: aws.String(instanceID),
+				State: &ec2.InstanceState{
+					Name: aws.String("Running"),
+					Code: aws.Int64(16),
+				},
+				LaunchTime: aws.Time(time.Now()),
+			},
+		},
+	}
+}
+
+func stubDescribeInstancesOutput(imageID, instanceID string) *ec2.DescribeInstancesOutput {
+	return &ec2.DescribeInstancesOutput{
+		Reservations: []*ec2.Reservation{
+			{
+				Instances: []*ec2.Instance{
+					{
+						ImageId:    aws.String(imageID),
+						InstanceId: aws.String(instanceID),
+						State: &ec2.InstanceState{
+							Name: aws.String("Running"),
+							Code: aws.Int64(16),
+						},
+						LaunchTime: aws.Time(time.Now()),
+					},
+				},
+			},
+		},
+	}
+}
