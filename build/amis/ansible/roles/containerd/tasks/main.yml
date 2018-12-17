@@ -42,3 +42,8 @@
     daemon_reload: yes
     enabled: True
     state: started
+
+- name: delete tarball
+  file:
+    path: /tmp/containerd.tar.gz
+    state: absent
