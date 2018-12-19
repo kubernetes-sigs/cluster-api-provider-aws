@@ -15,10 +15,6 @@ import (
 
 	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
-	apiv1 "k8s.io/api/core/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -29,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -40,227 +35,241 @@ func init() {
 }
 
 const (
-	controllerLogName = "awsMachine"
-
-	defaultNamespace         = "default"
-	defaultAvailabilityZone  = "us-east-1a"
-	region                   = "us-east-1"
-	awsCredentialsSecretName = "aws-credentials-secret"
-	userDataSecretName       = "aws-actuator-user-data-secret"
-
-	keyName   = "aws-actuator-key-name"
-	clusterID = "aws-actuator-cluster"
+	noError             = ""
+	awsServiceError     = "error creating aws service"
+	launchInstanceError = "error launching instance"
+	lbError             = "error updating load balancers"
 )
 
-const userDataBlob = `#cloud-config
-write_files:
-- path: /root/node_bootstrap/node_settings.yaml
-  owner: 'root:root'
-  permissions: '0640'
-  content: |
-    node_config_name: node-config-master
-runcmd:
-- [ cat, /root/node_bootstrap/node_settings.yaml]
-`
-
-func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
-	awsCredentialsSecret := utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, defaultNamespace)
-
-	userDataSecret := &apiv1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      userDataSecretName,
-			Namespace: defaultNamespace,
-		},
-		Data: map[string][]byte{
-			userDataSecretKey: []byte(userDataBlob),
-		},
-	}
-
-	machinePc := &providerconfigv1.AWSMachineProviderConfig{
-		AMI: providerconfigv1.AWSResourceReference{
-			ID: aws.String("ami-a9acbbd6"),
-		},
-		CredentialsSecret: &corev1.LocalObjectReference{
-			Name: awsCredentialsSecretName,
-		},
-		InstanceType: "m4.xlarge",
-		Placement: providerconfigv1.Placement{
-			Region:           region,
-			AvailabilityZone: defaultAvailabilityZone,
-		},
-		Subnet: providerconfigv1.AWSResourceReference{
-			ID: aws.String("subnet-0e56b13a64ff8a941"),
-		},
-		IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
-			ID: aws.String("openshift_master_launch_instances"),
-		},
-		KeyName: aws.String(keyName),
-		UserDataSecret: &corev1.LocalObjectReference{
-			Name: userDataSecretName,
-		},
-		Tags: []providerconfigv1.TagSpecification{
-			{Name: "openshift-node-group-config", Value: "node-config-master"},
-			{Name: "host-type", Value: "master"},
-			{Name: "sub-host-type", Value: "default"},
-		},
-		SecurityGroups: []providerconfigv1.AWSResourceReference{
-			{ID: aws.String("sg-00868b02fbe29de17")}, // aws-actuator
-			{ID: aws.String("sg-0a4658991dc5eb40a")}, // aws-actuator_master
-			{ID: aws.String("sg-009a70e28fa4ba84e")}, // aws-actuator_master_k8s
-			{ID: aws.String("sg-07323d56fb932c84c")}, // aws-actuator_infra
-			{ID: aws.String("sg-08b1ffd32874d59a2")}, // aws-actuator_infra_k8s
-		},
-		PublicIP: aws.Bool(true),
-		LoadBalancers: []providerconfigv1.LoadBalancerReference{
-			{
-				Name: "cluster-con",
-				Type: providerconfigv1.ClassicLoadBalancerType,
-			},
-			{
-				Name: "cluster-ext",
-				Type: providerconfigv1.ClassicLoadBalancerType,
-			},
-			{
-				Name: "cluster-int",
-				Type: providerconfigv1.ClassicLoadBalancerType,
-			},
-		},
-	}
-
-	codec, err := providerconfigv1.NewCodec()
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed creating codec: %v", err)
-	}
-	config, err := codec.EncodeProviderConfig(machinePc)
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("encodeToProviderConfig failed: %v", err)
-	}
-
-	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "aws-actuator-testing-machine",
-			Namespace: defaultNamespace,
-			Labels: map[string]string{
-				providerconfigv1.ClusterIDLabel:   clusterID,
-				providerconfigv1.MachineRoleLabel: "infra",
-				providerconfigv1.MachineTypeLabel: "master",
-			},
-		},
-
-		Spec: clusterv1.MachineSpec{
-			ProviderConfig: *config,
-		},
-	}
-
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterID,
-			Namespace: defaultNamespace,
-		},
-	}
-
-	return machine, cluster, awsCredentialsSecret, userDataSecret, nil
-}
-
-func TestCreateAndDeleteMachine(t *testing.T) {
-	cases := []struct {
-		name                string
-		createErrorExpected bool
-	}{
-		{
-			name:                "machine creation succeeds",
-			createErrorExpected: false,
-		},
-		{
-			name:                "machine creation fails",
-			createErrorExpected: true,
-		},
-	}
-
+func TestMachineEvents(t *testing.T) {
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
 		t.Fatalf("unable to build codec: %v", err)
 	}
+
+	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	machineInvalidProviderConfig := machine.DeepCopy()
+	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
+	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
+
+	workerMachine := machine.DeepCopy()
+	workerMachine.Labels[providerconfigv1.MachineTypeLabel] = "worker"
+
+	cases := []struct {
+		name                    string
+		machine                 *clusterv1.Machine
+		error                   string
+		operation               func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		event                   string
+		describeInstancesOutput *ec2.DescribeInstancesOutput
+		describeInstancesErr    error
+		runInstancesErr         error
+		terminateInstancesErr   error
+		lbErr                   error
+	}{
+		{
+			name:    "Create machine event failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate InvalidConfiguration",
+		},
+		{
+			name:    "Create machine event failed (error creating aws service)",
+			machine: machine,
+			error:   awsServiceError,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate CreateError",
+		},
+		{
+			name:            "Create machine event failed (error launching instance)",
+			machine:         machine,
+			runInstancesErr: fmt.Errorf("error"),
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate CreateError",
+		},
+		{
+			name:    "Create machine event failed (error updating load balancers)",
+			machine: machine,
+			lbErr:   fmt.Errorf("error"),
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Warning FailedCreate CreateError",
+		},
+		{
+			name:    "Create machine event succeed",
+			machine: machine,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Normal Created Created Machine aws-actuator-testing-machine",
+		},
+		{
+			name:    "Create worker machine event succeed",
+			machine: workerMachine,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.CreateMachine(cluster, machine)
+			},
+			event: "Normal Created Created Machine aws-actuator-testing-machine",
+		},
+		{
+			name:    "Delete machine event failed",
+			machine: machineInvalidProviderConfig,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.DeleteMachine(cluster, machine)
+			},
+			event: "Warning FailedDelete InvalidConfiguration",
+		},
+		{
+			name:    "Delete machine event succeed",
+			machine: machine,
+			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.DeleteMachine(cluster, machine)
+			},
+			event: "Normal Deleted Deleted Machine aws-actuator-testing-machine",
+		},
+	}
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			// kube client is needed to fetch aws credentials:
-			// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
-			// cluster client for updating machine statues
-			// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterID)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
-			//fakeClient := fake.NewSimpleClientset(machine)
-
-			fakeClient := fake.NewFakeClient(machine)
 
 			mockCtrl := gomock.NewController(t)
 			mockAWSClient := mockaws.NewMockClient(mockCtrl)
 
+			eventsChannel := make(chan string, 1)
+
 			params := ActuatorParams{
-				Client:     fakeClient,
-				KubeClient: fakeKubeClient,
+				Client:     fake.NewFakeClient(tc.machine),
+				KubeClient: kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret),
 				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+					if tc.error == awsServiceError {
+						return nil, fmt.Errorf(awsServiceError)
+					}
 					return mockAWSClient, nil
 				},
 				Codec: codec,
-				// use empty recorder dropping any event recorded
-				EventRecorder: &record.FakeRecorder{},
+				// use fake recorder and store an event into one item long buffer for subsequent check
+				EventRecorder: &record.FakeRecorder{
+					Events: eventsChannel,
+				},
 			}
+
+			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
+			if tc.describeInstancesOutput == nil {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.describeInstancesErr).AnyTimes()
+			} else {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
+			}
+
+			mockTerminateInstances(mockAWSClient)
+			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.error == lbError)
+			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
+			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), tc.lbErr)
+			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
 
 			actuator, err := NewActuator(params)
 			if err != nil {
 				t.Fatalf("Could not create AWS machine actuator: %v", err)
 			}
 
-			mockRunInstances(mockAWSClient, tc.createErrorExpected)
-			mockDescribeInstances(mockAWSClient, tc.createErrorExpected)
-			mockTerminateInstances(mockAWSClient)
-			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.createErrorExpected)
-
-			// Create the machine
-			createErr := actuator.Create(context.TODO(), cluster, machine)
-
-			// Get updated machine object from the cluster client
-			key := types.NamespacedName{
-				Namespace: machine.Namespace,
-				Name:      machine.Name,
+			tc.operation(actuator, cluster, tc.machine)
+			select {
+			case event := <-eventsChannel:
+				if event != tc.event {
+					t.Errorf("Expected %q event, got %q", tc.event, event)
+				}
+			default:
+				t.Errorf("Expected %q event, got none", tc.event)
 			}
-			updatedMachine := clusterv1.Machine{}
-			err = fakeClient.Get(context.Background(), client.ObjectKey(key), &updatedMachine)
-			if err != nil {
-				t.Fatalf("Unable to retrieve machine: %v", err)
-			}
+		})
+	}
+}
 
-			codec, err := providerconfigv1.NewCodec()
-			if err != nil {
-				t.Fatalf("error creating codec: %v", err)
-			}
+func TestActuator(t *testing.T) {
+	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
-			if err := codec.DecodeProviderStatus(updatedMachine.Status.ProviderStatus, machineStatus); err != nil {
-				t.Fatalf("error decoding machine provider status: %v", err)
-			}
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
 
-			if tc.createErrorExpected {
-				assert.Error(t, createErr)
-				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationFailed)
-			} else {
+	getMachineStatus := func(objectClient client.Client, machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
+		// Get updated machine object from the cluster client
+		key := types.NamespacedName{
+			Namespace: machine.Namespace,
+			Name:      machine.Name,
+		}
+		updatedMachine := clusterv1.Machine{}
+		err := objectClient.Get(context.Background(), client.ObjectKey(key), &updatedMachine)
+		if err != nil {
+			return nil, fmt.Errorf("unable to retrieve machine: %v", err)
+		}
+
+		machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
+		if err := codec.DecodeProviderStatus(updatedMachine.Status.ProviderStatus, machineStatus); err != nil {
+			return nil, fmt.Errorf("error decoding machine provider status: %v", err)
+		}
+		return machineStatus, nil
+	}
+
+	machineInvalidProviderConfig := machine.DeepCopy()
+	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
+	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
+
+	machineNoClusterID := machine.DeepCopy()
+	delete(machineNoClusterID.Labels, providerconfigv1.ClusterIDLabel)
+
+	pendingInstance := stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c")
+	pendingInstance.State = &ec2.InstanceState{
+		Name: aws.String(ec2.InstanceStateNamePending),
+	}
+
+	cases := []struct {
+		name                    string
+		machine                 *clusterv1.Machine
+		error                   string
+		operation               func(client client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		describeInstancesOutput *ec2.DescribeInstancesOutput
+		runInstancesErr         error
+		describeInstancesErr    error
+		terminateInstancesErr   error
+		lbErr                   error
+	}{
+		{
+			name:    "Create machine with success",
+			machine: machine,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				createErr := actuator.Create(context.TODO(), cluster, machine)
 				assert.NoError(t, createErr)
+
+				machineStatus, err := getMachineStatus(objectClient, machine)
+				if err != nil {
+					t.Fatalf("Unable to get machine status: %v", err)
+				}
+
 				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationSucceeded)
-			}
-			if !tc.createErrorExpected {
+
 				// Get the machine
 				if exists, err := actuator.Exists(context.TODO(), cluster, machine); err != nil || !exists {
 					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
 				} else {
 					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
 				}
-
-				// TODO(jchaloup): Wait until the machine is ready
 
 				// Update a machine
 				if err := actuator.Update(context.TODO(), cluster, machine); err != nil {
@@ -278,32 +287,276 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 				if err := actuator.Delete(context.TODO(), cluster, machine); err != nil {
 					t.Errorf("Unable to delete instance for machine: %v", err)
 				}
+			},
+		},
+		{
+			name:            "Create machine with failure",
+			machine:         machine,
+			runInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				createErr := actuator.Create(context.TODO(), cluster, machine)
+				assert.Error(t, createErr)
+
+				machineStatus, err := getMachineStatus(objectClient, machine)
+				if err != nil {
+					t.Fatalf("Unable to get machine status: %v", err)
+				}
+
+				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationFailed)
+			},
+		},
+		{
+			name:    "Update machine with success",
+			machine: machine,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:    "Update machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:  "Update machine failed (error creating aws service)",
+			error: awsServiceError,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:                 "Update machine failed (error getting running instances)",
+			describeInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Update machine failed (no running instances)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Update machine succeeds (two running instances)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{
+							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
+						},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Update machine status fails (instance pending)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{
+							pendingInstance,
+						},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Update machine failed (two running instances, error terminating one)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{
+							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
+						},
+					},
+				},
+			},
+			terminateInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:    "Update machine with failure (cluster ID missing)",
+			machine: machineNoClusterID,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:  "Update machine failed (error updating load balancers)",
+			lbErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Update(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:                 "Describe machine fails (error getting running instance)",
+			describeInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name:    "Describe machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name:  "Describe machine failed (error creating aws service)",
+			error: awsServiceError,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name: "Describe machine fails (no running instance)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name: "Describe machine succeeds",
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Describe(cluster, machine)
+			},
+		},
+		{
+			name:    "Exists machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Exists(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Exists machine fails (no running instance)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Exists(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:    "Delete machine failed (invalid configuration)",
+			machine: machineInvalidProviderConfig,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:  "Delete machine failed (error creating aws service)",
+			error: awsServiceError,
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name:                 "Delete machine failed (error getting running instances)",
+			describeInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Delete machine failed (no running instances)",
+			describeInstancesOutput: &ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{},
+					},
+				},
+			},
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+		{
+			name: "Delete machine failed (error terminating instances)",
+			terminateInstancesErr: fmt.Errorf("error"),
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+				actuator.Delete(context.TODO(), cluster, machine)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fakeClient := fake.NewFakeClient(machine)
+			mockCtrl := gomock.NewController(t)
+			mockAWSClient := mockaws.NewMockClient(mockCtrl)
+
+			params := ActuatorParams{
+				Client:     fakeClient,
+				KubeClient: kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret),
+				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+					if tc.error == awsServiceError {
+						return nil, fmt.Errorf(awsServiceError)
+					}
+					return mockAWSClient, nil
+				},
+				Codec: codec,
+				// use empty recorder dropping any event recorded
+				EventRecorder: &record.FakeRecorder{},
+			}
+
+			actuator, err := NewActuator(params)
+			if err != nil {
+				t.Fatalf("Could not create AWS machine actuator: %v", err)
+			}
+
+			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
+
+			if tc.describeInstancesOutput == nil {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.describeInstancesErr).AnyTimes()
+			} else {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
+			}
+
+			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
+			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), tc.lbErr).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
+
+			if tc.machine == nil {
+				tc.operation(fakeClient, actuator, cluster, machine)
+			} else {
+				tc.operation(fakeClient, actuator, cluster, tc.machine)
 			}
 		})
 	}
-}
-
-func mockRunInstances(mockAWSClient *mockaws.MockClient, genError bool) {
-	var err error
-
-	if genError {
-		err = errors.New("requested RunInstances error")
-	}
-
-	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(
-		&ec2.Reservation{
-			Instances: []*ec2.Instance{
-				{
-					ImageId:    aws.String("ami-a9acbbd6"),
-					InstanceId: aws.String("i-02fcb933c5da7085c"),
-					State: &ec2.InstanceState{
-						Name: aws.String("Running"),
-						Code: aws.Int64(16),
-					},
-					LaunchTime: aws.Time(time.Now()),
-				},
-			},
-		}, err)
 }
 
 func mockDescribeInstances(mockAWSClient *mockaws.MockClient, genError bool) {
@@ -340,6 +593,7 @@ func mockTerminateInstances(mockAWSClient *mockaws.MockClient) {
 
 func mockRegisterInstancesWithLoadBalancer(mockAWSClient *mockaws.MockClient, createError bool) {
 	if createError {
+		mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, fmt.Errorf("error")).AnyTimes()
 		return
 	}
 	// RegisterInstancesWithLoadBalancer should be called for every load balancer name in the machine
@@ -376,7 +630,7 @@ func TestAvailabiltyZone(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := testMachineAPIResources(clusterID)
+			machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -385,6 +639,9 @@ func TestAvailabiltyZone(t *testing.T) {
 			if err = codec.DecodeProviderConfig(&machine.Spec.ProviderConfig, machinePc); err != nil {
 				t.Fatal(err)
 			}
+
+			// no load balancers tested
+			machinePc.LoadBalancers = nil
 
 			machinePc.Placement.AvailabilityZone = tc.availabilityZone
 			if tc.subnet == "" {
