@@ -11,7 +11,7 @@ import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 
 	"github.com/golang/mock/gomock"
-	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 )
 
 func TestRemoveDuplicatedTags(t *testing.T) {

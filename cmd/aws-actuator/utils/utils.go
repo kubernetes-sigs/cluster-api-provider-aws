@@ -3,7 +3,7 @@ package utils
 import (
 	"github.com/golang/glog"
 
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	apiv1 "k8s.io/api/core/v1"
