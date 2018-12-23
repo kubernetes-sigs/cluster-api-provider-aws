@@ -136,9 +136,9 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 	return nil
 }
 
-// ProviderConfigFromMachine gets the machine provider config MachineSetSpec from the
+// providerConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	var providerSpecRawExtention runtime.RawExtension
 
 	// TODO(jchaloup): Remove providerConfig once all consumers migrate to providerSpec
