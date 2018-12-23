@@ -23,14 +23,13 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/golang/glog"
-
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -128,6 +127,11 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 	// Add machineTemplateHash label to selector.
 	newMSSelector := dutil.CloneSelectorAndAddLabel(&d.Spec.Selector, dutil.DefaultMachineDeploymentUniqueLabelKey, machineTemplateSpecHash)
 
+	minReadySeconds := int32(0)
+	if d.Spec.MinReadySeconds != nil {
+		minReadySeconds = *d.Spec.MinReadySeconds
+	}
+
 	// Create new MachineSet
 	newMS := clusterv1alpha1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -139,7 +143,7 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		},
 		Spec: clusterv1alpha1.MachineSetSpec{
 			Replicas:        new(int32),
-			MinReadySeconds: *d.Spec.MinReadySeconds,
+			MinReadySeconds: minReadySeconds,
 			Selector:        *newMSSelector,
 			Template:        newMSTemplate,
 		},
@@ -183,12 +187,12 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 
 		return nil, err
 	case err != nil:
-		glog.V(4).Infof("Failed to create new machine set %q: %v", newMS.Name, err)
+		klog.V(4).Infof("Failed to create new machine set %q: %v", newMS.Name, err)
 		return nil, err
 	}
 
 	if !alreadyExists {
-		glog.V(4).Infof("Created new machine set %q", createdMS.Name)
+		klog.V(4).Infof("Created new machine set %q", createdMS.Name)
 	}
 	err = r.updateMachineDeployment(d, func(innerDeployment *clusterv1alpha1.MachineDeployment) {
 		dutil.SetDeploymentRevision(d, newRevision)
@@ -270,7 +274,7 @@ func (r *ReconcileMachineDeployment) scale(deployment *clusterv1alpha1.MachineDe
 		for i := range allMSs {
 			ms := allMSs[i]
 			if ms.Spec.Replicas == nil {
-				glog.Errorf("spec replicas for machine set %v is nil, this is unexpected.", ms.Name)
+				klog.Errorf("spec replicas for machine set %v is nil, this is unexpected.", ms.Name)
 				continue
 			}
 
@@ -385,7 +389,7 @@ func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha
 	return scaled, err
 }
 
-// cleanupDeployment is responsible for cleaning up a deployment ie. retains all but the latest N old machine sets
+// cleanupDeployment is responsible for cleaning up a deployment i.e. retains all but the latest N old machine sets
 // where N=d.Spec.RevisionHistoryLimit. Old machine sets are older versions of the machinetemplate of a deployment kept
 // around by default 1) for historical reasons and 2) for the ability to rollback a deployment.
 func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1.MachineSet, deployment *clusterv1alpha1.MachineDeployment) error {
@@ -405,7 +409,7 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 	}
 
 	sort.Sort(dutil.MachineSetsByCreationTimestamp(cleanableMSes))
-	glog.V(4).Infof("Looking to cleanup old machine sets for deployment %q", deployment.Name)
+	klog.V(4).Infof("Looking to cleanup old machine sets for deployment %q", deployment.Name)
 
 	for i := int32(0); i < diff; i++ {
 		ms := cleanableMSes[i]
@@ -416,7 +420,7 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 		if ms.Status.Replicas != 0 || *(ms.Spec.Replicas) != 0 || ms.Generation > ms.Status.ObservedGeneration || ms.DeletionTimestamp != nil {
 			continue
 		}
-		glog.V(4).Infof("Trying to cleanup machine set %q for deployment %q", ms.Name, deployment.Name)
+		klog.V(4).Infof("Trying to cleanup machine set %q for deployment %q", ms.Name, deployment.Name)
 		if err := r.Delete(context.Background(), ms); err != nil && !errors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.
@@ -469,6 +473,8 @@ func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployme
 		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
 			return err
 		}
+
+		clusterv1alpha1.PopulateDefaultsMachineDeployment(d)
 		// Apply modifications
 		modify(d)
 		// Update the machineDeployment

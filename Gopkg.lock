@@ -292,14 +292,6 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:8262e3107286b0c69c68baa93b252901620bd3bfbc21ea8fdee02223f7a7d727"
-  name = "github.com/kubernetes-incubator/apiserver-builder"
-  packages = ["pkg/controller"]
-  pruneopts = "T"
-  revision = "83b2c178a8f935a738cebbf41aa5b8af1f19162d"
-  version = "v0.2-alpha.0"
-
-[[projects]]
   digest = "1:3804a3a02964db8e6db3e5e7960ac1c1a9b12835642dd4f4ac4e56c749ec73eb"
   name = "github.com/markbates/inflect"
   packages = ["."]
@@ -934,6 +926,14 @@
   revision = "7338e4bfd6915369a1375890db1bbda0158c9863"
 
 [[projects]]
+  digest = "1:7a3ef99d492d30157b8e933624a8f0292b4cee5934c23269f7640c8030eb83cd"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:152cd19bedf58a86d6b8b9ca42a428e4f16a9415f81e248a800b6a46c77dc486"
   name = "k8s.io/kube-openapi"
@@ -942,7 +942,8 @@
   revision = "72693cb1fadd73ae2742f6fe29af77d1aecdd8cd"
 
 [[projects]]
-  digest = "1:e99adef47e9f7029c5fa2f0ba03e78a32194cf24ada000a6b8753d6f8cde02cc"
+  branch = "master"
+  digest = "1:7dcbe4d792c3e524fd0e08722294b4553eefb2609a708a4470d1abcd87aa12a6"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "pkg/apis",
@@ -953,10 +954,11 @@
     "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
     "pkg/controller/error",
     "pkg/controller/machine",
+    "pkg/errors",
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "0734939e05aeb64ab198e3feeee8b4e90ee5cbb2"
+  revision = "cba244b06de7d29777036551e6b32817878d1fcd"
 
 [[projects]]
   digest = "1:ca3f51201a90f3a23bf35938ee910d2fb3095ece453cf56c8b723e935c194ebd"
@@ -1045,7 +1047,6 @@
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
     "github.com/golang/mock/gomock",
-    "github.com/kubernetes-incubator/apiserver-builder/pkg/controller",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
@@ -1053,8 +1054,10 @@
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
     "github.com/prometheus/common/log",
     "github.com/spf13/cobra",
+    "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
     "golang.org/x/net/context",
+    "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/equality",
@@ -1071,13 +1074,14 @@
     "k8s.io/client-go/kubernetes/fake",
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/tools/record",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1",
-    "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset",
     "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
     "sigs.k8s.io/cluster-api/pkg/controller/error",
     "sigs.k8s.io/cluster-api/pkg/controller/machine",
+    "sigs.k8s.io/cluster-api/pkg/errors",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/client/fake",

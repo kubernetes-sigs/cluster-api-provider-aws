@@ -23,8 +23,9 @@ required = [
   version = "v1.15.5"
 
 [[override]]
-name = "sigs.k8s.io/cluster-api"
-revision = "0734939e05aeb64ab198e3feeee8b4e90ee5cbb2"
+  name = "sigs.k8s.io/cluster-api"
+  branch = "master"
+  #revision = "0734939e05aeb64ab198e3feeee8b4e90ee5cbb2"
 
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
