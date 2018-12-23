@@ -44,10 +44,14 @@ func TestMachineEvents(t *testing.T) {
 		t.Fatalf("unable to build codec: %v", err)
 	}
 
-	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cluster := stubCluster()
+	awsCredentialsSecret := stubAwsCredentialsSecret()
+	userDataSecret := stubUserDataSecret()
 
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
@@ -194,10 +198,14 @@ func TestMachineEvents(t *testing.T) {
 }
 
 func TestActuator(t *testing.T) {
-	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cluster := stubCluster()
+	awsCredentialsSecret := stubAwsCredentialsSecret()
+	userDataSecret := stubUserDataSecret()
 
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
@@ -623,9 +631,14 @@ func TestAvailabiltyZone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to build codec: %v", err)
 	}
+
+	cluster := stubCluster()
+	awsCredentialsSecret := stubAwsCredentialsSecret()
+	userDataSecret := stubUserDataSecret()
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+			machine, err := stubMachine()
 			if err != nil {
 				t.Fatal(err)
 			}

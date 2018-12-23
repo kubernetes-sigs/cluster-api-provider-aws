@@ -91,7 +91,7 @@ func TestBuildEC2Filters(t *testing.T) {
 }
 
 func TestRemoveStoppedMachine(t *testing.T) {
-	machine, _, err := stubMachine()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Errorf("Unable to build test machine manifest: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestRemoveStoppedMachine(t *testing.T) {
 }
 
 func TestRunningInstance(t *testing.T) {
-	machine, _, err := stubMachine()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestRunningInstance(t *testing.T) {
 }
 
 func TestLaunchInstance(t *testing.T) {
-	machine, _, err := stubMachine()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}

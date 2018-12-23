@@ -96,16 +96,16 @@ func stubProviderConfig() *providerconfigv1.AWSMachineProviderConfig {
 	}
 }
 
-func stubMachine() (*clusterv1.Machine, *providerconfigv1.AWSMachineProviderConfig, error) {
+func stubMachine() (*clusterv1.Machine, error) {
 	machinePc := stubProviderConfig()
 
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed creating codec: %v", err)
+		return nil, fmt.Errorf("failed creating codec: %v", err)
 	}
 	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
-		return nil, nil, fmt.Errorf("encodeToProviderConfig failed: %v", err)
+		return nil, fmt.Errorf("encodeToProviderConfig failed: %v", err)
 	}
 
 	machine := &clusterv1.Machine{
@@ -124,13 +124,20 @@ func stubMachine() (*clusterv1.Machine, *providerconfigv1.AWSMachineProviderConf
 		},
 	}
 
-	return machine, machinePc, nil
+	return machine, nil
 }
 
-func stubMachineAPIResources() (*clusterv1.Machine, *clusterv1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
-	awsCredentialsSecret := utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, defaultNamespace)
+func stubCluster() *clusterv1.Cluster {
+	return &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterID,
+			Namespace: defaultNamespace,
+		},
+	}
+}
 
-	userDataSecret := &apiv1.Secret{
+func stubUserDataSecret() *corev1.Secret {
+	return &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      userDataSecretName,
 			Namespace: defaultNamespace,
@@ -139,20 +146,10 @@ func stubMachineAPIResources() (*clusterv1.Machine, *clusterv1.Cluster, *apiv1.S
 			userDataSecretKey: []byte(userDataBlob),
 		},
 	}
+}
 
-	machine, _, err := stubMachine()
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterID,
-			Namespace: defaultNamespace,
-		},
-	}
-
-	return machine, cluster, awsCredentialsSecret, userDataSecret, nil
+func stubAwsCredentialsSecret() *corev1.Secret {
+	return utils.GenerateAwsCredentialsSecretFromEnv(awsCredentialsSecretName, defaultNamespace)
 }
 
 func stubInstance(imageID, instanceID string) *ec2.Instance {
