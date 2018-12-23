@@ -157,7 +157,7 @@ func TestRemoveStoppedMachine(t *testing.T) {
 	}
 }
 
-func TestRunningInstace(t *testing.T) {
+func TestRunningInstance(t *testing.T) {
 	machine, _, err := stubMachine()
 	if err != nil {
 		t.Fatalf("Unable to build test machine manifest: %v", err)

@@ -9,8 +9,8 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 

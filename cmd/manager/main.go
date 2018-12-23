@@ -18,9 +18,9 @@ import (
 
 	"github.com/golang/glog"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"

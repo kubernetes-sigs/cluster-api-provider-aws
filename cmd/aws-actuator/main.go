@@ -55,7 +55,7 @@ import (
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator/utils"
-	awsclientwrapper "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
+	awsclientwrapper "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	testutils "sigs.k8s.io/cluster-api-provider-aws/test/utils"
 )
 
