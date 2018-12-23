@@ -159,7 +159,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 		return err
 	}
 
-	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, conditionType, corev1.ConditionTrue, reason, msg, UpdateConditionIfReasonOrMessageChange)
+	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, conditionType, corev1.ConditionTrue, reason, msg, updateConditionIfReasonOrMessageChange)
 
 	if err := a.updateMachineStatus(machine, awsStatus, nil); err != nil {
 		return err
@@ -487,7 +487,7 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	}
 	glog.Info("finished calculating AWS status")
 
-	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", UpdateConditionIfReasonOrMessageChange)
+	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", updateConditionIfReasonOrMessageChange)
 	// TODO(jchaloup): do we really need to update tis?
 	// origInstanceID := awsStatus.InstanceID
 	// if !StringPtrsEqual(origInstanceID, awsStatus.InstanceID) {
