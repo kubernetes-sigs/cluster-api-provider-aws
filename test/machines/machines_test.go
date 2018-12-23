@@ -2,6 +2,7 @@ package machines
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -120,7 +121,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			f.CreateClusterAndWait(cluster)
 
 			var err error
-			awsClient, err = awsclient.NewClient(f.KubeClient, awsCredSecret.Name, awsCredSecret.Namespace, region)
+			awsClient, err = awsclient.NewClientFromKeys(os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"), region)
 			Expect(err).NotTo(HaveOccurred())
 			acw = machineutils.NewAwsClientWrapper(awsClient)
 

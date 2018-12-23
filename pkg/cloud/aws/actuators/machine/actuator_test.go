@@ -10,10 +10,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
-
-	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -149,9 +146,8 @@ func TestMachineEvents(t *testing.T) {
 			eventsChannel := make(chan string, 1)
 
 			params := ActuatorParams{
-				Client:     fake.NewFakeClient(tc.machine),
-				KubeClient: kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret),
-				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+				Client: fake.NewFakeClient(tc.machine, awsCredentialsSecret, userDataSecret),
+				AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
 					if tc.error == awsServiceError {
 						return nil, fmt.Errorf(awsServiceError)
 					}
@@ -513,14 +509,13 @@ func TestActuator(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fakeClient := fake.NewFakeClient(machine)
+			fakeClient := fake.NewFakeClient(machine, awsCredentialsSecret, userDataSecret)
 			mockCtrl := gomock.NewController(t)
 			mockAWSClient := mockaws.NewMockClient(mockCtrl)
 
 			params := ActuatorParams{
-				Client:     fakeClient,
-				KubeClient: kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret),
-				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+				Client: fakeClient,
+				AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
 					if tc.error == awsServiceError {
 						return nil, fmt.Errorf(awsServiceError)
 					}
@@ -656,17 +651,14 @@ func TestAvailabiltyZone(t *testing.T) {
 			}
 			machine.Spec.ProviderSpec = *config
 
-			fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
-
-			fakeClient := fake.NewFakeClient(machine)
+			fakeClient := fake.NewFakeClient(machine, awsCredentialsSecret, userDataSecret)
 
 			mockCtrl := gomock.NewController(t)
 			mockAWSClient := mockaws.NewMockClient(mockCtrl)
 
 			params := ActuatorParams{
-				Client:     fakeClient,
-				KubeClient: fakeKubeClient,
-				AwsClientBuilder: func(kubeClient kubernetes.Interface, secretName, namespace, region string) (awsclient.Client, error) {
+				Client: fakeClient,
+				AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
 					return mockAWSClient, nil
 				},
 				Codec: codec,

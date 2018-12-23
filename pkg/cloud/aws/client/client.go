@@ -17,10 +17,11 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -43,7 +44,7 @@ const (
 )
 
 // AwsClientBuilderFuncType is function type for building aws client
-type AwsClientBuilderFuncType func(kubeClient kubernetes.Interface, secretName, namespace, region string) (Client, error)
+type AwsClientBuilderFuncType func(client client.Client, secretName, namespace, region string) (Client, error)
 
 // Client is a wrapper object for actual AWS SDK clients to allow for easier testing.
 type Client interface {
@@ -115,12 +116,12 @@ func (c *awsClient) ELBv2RegisterTargets(input *elbv2.RegisterTargetsInput) (*el
 // For authentication the underlying clients will use either the cluster AWS credentials
 // secret if defined (i.e. in the root cluster),
 // otherwise the IAM profile of the master where the actuator will run. (target clusters)
-func NewClient(kubeClient kubernetes.Interface, secretName, namespace, region string) (Client, error) {
+func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
 	awsConfig := &aws.Config{Region: aws.String(region)}
 
 	if secretName != "" {
-		secret, err := kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
-		if err != nil {
+		var secret corev1.Secret
+		if err := ctrlRuntimeClient.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: secretName}, &secret); err != nil {
 			return nil, err
 		}
 		accessKeyID, ok := secret.Data[AwsCredsSecretIDKey]
@@ -139,6 +140,30 @@ func NewClient(kubeClient kubernetes.Interface, secretName, namespace, region st
 	}
 
 	// Otherwise default to relying on the IAM role of the masters where the actuator is running:
+	s, err := session.NewSession(awsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &awsClient{
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
+	}, nil
+}
+
+// NewClientFromKeys creates our client wrapper object for the actual AWS clients we use.
+// For authentication the underlying clients will use AWS credentials.
+func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error) {
+	awsConfig := &aws.Config{
+		Region: aws.String(region),
+		Credentials: credentials.NewStaticCredentials(
+			accessKey,
+			secretAccessKey,
+			"",
+		),
+	}
+
 	s, err := session.NewSession(awsConfig)
 	if err != nil {
 		return nil, err

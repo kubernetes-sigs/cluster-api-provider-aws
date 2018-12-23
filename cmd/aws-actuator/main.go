@@ -44,7 +44,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kubernetesfake "k8s.io/client-go/kubernetes/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"k8s.io/client-go/kubernetes/scheme"
 
@@ -319,8 +319,8 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			objList := []runtime.Object{awsCredentialsSecret}
-			fakeKubeClient := kubernetesfake.NewSimpleClientset(objList...)
-			awsClient, err := awsclient.NewClient(fakeKubeClient, awsCredentialsSecret.Name, awsCredentialsSecret.Namespace, region)
+			fakeClient := fake.NewFakeClient(objList...)
+			awsClient, err := awsclient.NewClient(fakeClient, awsCredentialsSecret.Name, awsCredentialsSecret.Namespace, region)
 			if err != nil {
 				glog.Errorf("Unable to create aws client: %v", err)
 				return err

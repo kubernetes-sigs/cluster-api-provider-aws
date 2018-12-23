@@ -11,8 +11,6 @@ import (
 	//"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	kubernetesfake "k8s.io/client-go/kubernetes/fake"
-
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -104,12 +102,10 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
-	fakeClient := fake.NewFakeClient(machine)
+	fakeClient := fake.NewFakeClient(machine, awsCredentialsSecret, userDataSecret)
 
 	params := machineactuator.ActuatorParams{
 		Client:           fakeClient,
-		KubeClient:       fakeKubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 	}
 

@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -58,9 +57,8 @@ var MachineActuator *Actuator
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
 type Actuator struct {
-	kubeClient       kubernetes.Interface
-	client           client.Client
 	awsClientBuilder awsclient.AwsClientBuilderFuncType
+	client           client.Client
 
 	codec         *providerconfigv1.AWSProviderConfigCodec
 	eventRecorder record.EventRecorder
@@ -68,7 +66,6 @@ type Actuator struct {
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
-	KubeClient       kubernetes.Interface
 	Client           client.Client
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
 	Codec            *providerconfigv1.AWSProviderConfigCodec
@@ -78,7 +75,6 @@ type ActuatorParams struct {
 // NewActuator returns a new AWS Actuator
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	actuator := &Actuator{
-		kubeClient:       params.KubeClient,
 		client:           params.Client,
 		awsClientBuilder: params.AwsClientBuilder,
 		codec:            params.Codec,
@@ -186,7 +182,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	if machineProviderConfig.CredentialsSecret != nil {
 		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
 	}
-	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, machineProviderConfig.Placement.Region)
+	awsClient, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, machineProviderConfig.Placement.Region)
 	if err != nil {
 		glog.Errorf("unable to obtain AWS client: %v", err)
 		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error creating aws services: %v", err), createEventAction)
@@ -195,7 +191,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	// We explicitly do NOT want to remove stopped masters.
 	if !IsMaster(machine) {
 		// Prevent having a lot of stopped nodes sitting around.
-		err = removeStoppedMachine(machine, client)
+		err = removeStoppedMachine(machine, awsClient)
 		if err != nil {
 			glog.Errorf("unable to remove stopped machines: %v", err)
 			return nil, fmt.Errorf("unable to remove stopped nodes: %v", err)
@@ -204,7 +200,8 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 
 	userData := []byte{}
 	if machineProviderConfig.UserDataSecret != nil {
-		userDataSecret, err := a.kubeClient.CoreV1().Secrets(machine.Namespace).Get(machineProviderConfig.UserDataSecret.Name, metav1.GetOptions{})
+		var userDataSecret corev1.Secret
+		err := a.client.Get(context.Background(), client.ObjectKey{Namespace: machine.Namespace, Name: machineProviderConfig.UserDataSecret.Name}, &userDataSecret)
 		if err != nil {
 			return nil, a.handleMachineError(machine, apierrors.CreateMachine("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
 		}
@@ -215,12 +212,12 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 		}
 	}
 
-	instance, err := launchInstance(machine, machineProviderConfig, userData, client)
+	instance, err := launchInstance(machine, machineProviderConfig, userData, awsClient)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error launching instance: %v", err), createEventAction)
 	}
 
-	err = a.updateLoadBalancers(client, machineProviderConfig, instance)
+	err = a.updateLoadBalancers(awsClient, machineProviderConfig, instance)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error updating load balancers: %v", err), createEventAction)
 	}
@@ -251,7 +248,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	if machineProviderConfig.CredentialsSecret != nil {
 		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
 	}
-	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
+	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
 		glog.Errorf("error getting EC2 client: %v", err)
 		return fmt.Errorf("error getting EC2 client: %v", err)
@@ -293,7 +290,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	if machineProviderConfig.CredentialsSecret != nil {
 		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
 	}
-	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
+	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
 		glog.Errorf("error getting EC2 client: %v", err)
 		return fmt.Errorf("unable to obtain EC2 client: %v", err)
@@ -396,7 +393,7 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clus
 	if machineProviderConfig.CredentialsSecret != nil {
 		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
 	}
-	client, err := a.awsClientBuilder(a.kubeClient, credentialsSecretName, machine.Namespace, region)
+	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
 		glog.Errorf("error getting EC2 client: %v", err)
 		return nil, fmt.Errorf("error getting EC2 client: %v", err)
