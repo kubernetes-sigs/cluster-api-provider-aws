@@ -644,7 +644,7 @@ func TestAvailabiltyZone(t *testing.T) {
 				placement = &ec2.Placement{AvailabilityZone: aws.String(tc.availabilityZone)}
 			}
 
-			mockAWSClient.EXPECT().RunInstances(Placement(placement)).Return(
+			mockAWSClient.EXPECT().RunInstances(placementMatcher{placement}).Return(
 				&ec2.Reservation{
 					Instances: []*ec2.Instance{
 						{
@@ -711,5 +711,3 @@ func (m placementMatcher) Matches(input interface{}) bool {
 func (m placementMatcher) String() string {
 	return fmt.Sprintf("is placement: %#v", m.placement)
 }
-
-func Placement(placement *ec2.Placement) gomock.Matcher { return placementMatcher{placement} }
