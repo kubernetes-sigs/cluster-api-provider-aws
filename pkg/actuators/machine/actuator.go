@@ -52,9 +52,6 @@ const (
 	MachineCreationFailed = "MachineCreationFailed"
 )
 
-// MachineActuator is a variable used to include the actuator into the machine controller
-var MachineActuator *Actuator
-
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
 type Actuator struct {
 	awsClientBuilder awsclient.AwsClientBuilderFuncType

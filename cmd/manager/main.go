@@ -15,6 +15,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/golang/glog"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -22,8 +23,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
+	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
@@ -55,9 +56,12 @@ func main() {
 		glog.Fatal(err)
 	}
 
-	initActuator(mgr)
-	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
+	machineActuator, err := initActuator(mgr)
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	if err := machine.AddWithActuator(mgr, machineActuator); err != nil {
 		glog.Fatal(err)
 	}
 
@@ -67,10 +71,10 @@ func main() {
 	glog.Fatal(mgr.Start(signals.SetupSignalHandler()))
 }
 
-func initActuator(mgr manager.Manager) {
+func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
-		glog.Fatal(err)
+		return nil, fmt.Errorf("unable to create codec: %v", err)
 	}
 
 	params := machineactuator.ActuatorParams{
@@ -80,8 +84,10 @@ func initActuator(mgr manager.Manager) {
 		EventRecorder:    mgr.GetRecorder("aws-controller"),
 	}
 
-	machineactuator.MachineActuator, err = machineactuator.NewActuator(params)
+	actuator, err := machineactuator.NewActuator(params)
 	if err != nil {
-		glog.Fatalf("Could not create AWS machine actuator: %v", err)
+		return nil, fmt.Errorf("could not create AWS machine actuator: %v", err)
 	}
+
+	return actuator, nil
 }
