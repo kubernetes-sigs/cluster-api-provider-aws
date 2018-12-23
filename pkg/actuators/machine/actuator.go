@@ -186,7 +186,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 
 	// We explicitly do NOT want to remove stopped masters.
-	if !IsMaster(machine) {
+	if !isMaster(machine) {
 		// Prevent having a lot of stopped nodes sitting around.
 		err = removeStoppedMachine(machine, awsClient)
 		if err != nil {

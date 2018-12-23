@@ -180,8 +180,8 @@ func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 	return &config, nil
 }
 
-// IsMaster returns true if the machine is part of a cluster's control plane
-func IsMaster(machine *clusterv1.Machine) bool {
+// isMaster returns true if the machine is part of a cluster's control plane
+func isMaster(machine *clusterv1.Machine) bool {
 	if machineType, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineTypeLabel]; exists && machineType == "master" {
 		return true
 	}
