@@ -19,6 +19,7 @@ package machine
 // should not need to import the ec2 sdk here
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -78,29 +79,19 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	var bootstrapToken string
-	if machine.ObjectMeta.Labels["set"] == "node" {
-		kubeConfig, err := a.GetKubeConfig(cluster, nil)
+	switch machine.ObjectMeta.Labels["set"] {
+	case "node":
+		bootstrapToken, err = a.getWorkerNodeToken(cluster, controlPlaneURL)
 		if err != nil {
-			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+			klog.Errorf("failed to retrieve token to create machine %q: %v", machine.Name, err)
+			return err
 		}
-
-		clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
-			return clientcmd.Load([]byte(kubeConfig))
-		})
-
-		if err != nil {
-			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
-		}
-
-		coreClient, err := corev1.NewForConfig(clientConfig)
-		if err != nil {
-			return errors.Errorf("failed to initialize new corev1 client: %+v", err)
-		}
-
-		bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
-		if err != nil {
-			return errors.Errorf("failed to create new bootstrap token: %+v", err)
-		}
+	case "control-plane":
+		// TODO:
+	default:
+		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping creation", machine.ObjectMeta.Labels["set"], machine.Name)
+		klog.Errorf(errMsg)
+		return errors.Errorf(errMsg)
 	}
 
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
@@ -129,6 +120,34 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	return nil
+}
+
+func (a *Actuator) getWorkerNodeToken(cluster *clusterv1.Cluster, controlPlaneURL string) (string, error) {
+	var bootstrapToken string
+	kubeConfig, err := a.GetKubeConfig(cluster, nil)
+	if err != nil {
+		return bootstrapToken, errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+	}
+
+	clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
+		return clientcmd.Load([]byte(kubeConfig))
+	})
+
+	if err != nil {
+		return bootstrapToken, errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+	}
+
+	coreClient, err := corev1.NewForConfig(clientConfig)
+	if err != nil {
+		return bootstrapToken, errors.Errorf("failed to initialize new corev1 client: %+v", err)
+	}
+
+	bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
+	if err != nil {
+		return bootstrapToken, errors.Errorf("failed to create new bootstrap token: %+v", err)
+	}
+
+	return bootstrapToken, nil
 }
 
 func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clusterv1.Machine, i *v1alpha1.Instance) error {
