@@ -20,7 +20,6 @@ import (
 	"github.com/golang/glog"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
@@ -48,10 +47,6 @@ func main() {
 	glog.Info("Registering Components.")
 
 	// Setup Scheme for all resources
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		glog.Fatal(err)
-	}
-
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
 		glog.Fatal(err)
 	}
