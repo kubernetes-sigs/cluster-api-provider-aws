@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -142,41 +143,56 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		)
 	}
 
-	// apply values based on the role of the machine
-	if machine.Role() == "controlplane" {
+	// capture current control plane status
+	controlPlaneStatus := machine.ClusterControlPlaneStatus()
+	controlPlaneNodeCount := controlPlaneStatus.ControlPlaneNodeCount
 
+	// apply values based on the role of the machine
+	switch machine.Role() {
+	case "controlplane":
 		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
 			return nil, awserrors.NewFailedDependency(
 				errors.New("failed to run controlplane, security group not available"),
 			)
 		}
 
-		if len(s.scope.ClusterConfig.CAPrivateKey) == 0 {
-			return nil, awserrors.NewFailedDependency(
-				errors.New("failed to run controlplane, missing CAPrivateKey"),
-			)
-		}
+		var userData string
+		var err error
 
-		userData, err := userdata.NewControlPlane(&userdata.ControlPlaneInput{
-			CACert:            string(s.scope.ClusterConfig.CACertificate),
-			CAKey:             string(s.scope.ClusterConfig.CAPrivateKey),
-			ELBAddress:        s.scope.Network().APIServerELB.DNSName,
-			ClusterName:       s.scope.Name(),
-			PodSubnet:         s.scope.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
-			ServiceSubnet:     s.scope.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
-			ServiceDomain:     s.scope.Cluster.Spec.ClusterNetwork.ServiceDomain,
-			KubernetesVersion: machine.Machine.Spec.Versions.ControlPlane,
-		})
+		if controlPlaneNodeCount > 1 {
+			// TODO: WIP controlplane node join:
+			// get kubeadm node join token
+			// prepare userdata with kubeadm join https://kubernetes.io/docs/setup/independent/high-availability/
 
-		if err != nil {
-			return input, err
+			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
+		} else {
+			klog.V(2).Infof("Machine %q is the first control plane node for cluster %q", machine.Name(), s.scope.Name())
+			if len(s.scope.ClusterConfig.CAPrivateKey) == 0 {
+				return nil, awserrors.NewFailedDependency(
+					errors.New("failed to run controlplane, missing CAPrivateKey"),
+				)
+			}
+
+			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{
+				CACert:            string(s.scope.ClusterConfig.CACertificate),
+				CAKey:             string(s.scope.ClusterConfig.CAPrivateKey),
+				ELBAddress:        s.scope.Network().APIServerELB.DNSName,
+				ClusterName:       s.scope.Name(),
+				PodSubnet:         s.scope.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
+				ServiceSubnet:     s.scope.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
+				ServiceDomain:     s.scope.Cluster.Spec.ClusterNetwork.ServiceDomain,
+				KubernetesVersion: machine.Machine.Spec.Versions.ControlPlane,
+			})
+
+			if err != nil {
+				return input, err
+			}
 		}
 
 		input.UserData = aws.String(userData)
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID)
-	}
-
-	if machine.Role() == "node" {
+		controlPlaneNodeCount++
+	case "node":
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
 		caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CACertificate)
@@ -195,6 +211,11 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		input.UserData = aws.String(userData)
+
+	default:
+		errMsg := fmt.Sprintf("Unknown node role %q", machine.Role())
+		klog.Error(errMsg)
+		return nil, fmt.Errorf(errMsg)
 	}
 
 	// Pick SSH key, if any.
@@ -209,6 +230,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		return nil, err
 	}
 
+	controlPlaneStatus.ControlPlaneNodeCount = controlPlaneNodeCount
 	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
 	return out, nil
 }

@@ -88,22 +88,27 @@ type Scope struct {
 	ClusterStatus *v1alpha1.AWSClusterProviderStatus
 }
 
+// ClusterControlPlaneStatus returns the cluster controlplane status object.
+func (s *Scope) ClusterControlPlaneStatus() *v1alpha1.ClusterControlPlaneStatus {
+	return &s.ClusterStatus.ControlPlaneStatus
+}
+
 // Network returns the cluster network object.
 func (s *Scope) Network() *v1alpha1.Network {
 	return &s.ClusterStatus.Network
 }
 
-// Network returns the cluster VPC.
+// VPC returns the cluster VPC.
 func (s *Scope) VPC() *v1alpha1.VPC {
 	return &s.ClusterStatus.Network.VPC
 }
 
-// Network returns the cluster subnets.
+// Subnets returns the cluster subnets.
 func (s *Scope) Subnets() v1alpha1.Subnets {
 	return s.ClusterStatus.Network.Subnets
 }
 
-// Network returns the cluster security groups as a map, it creates the map if empty.
+// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 func (s *Scope) SecurityGroups() map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup {
 	return s.ClusterStatus.Network.SecurityGroups
 }

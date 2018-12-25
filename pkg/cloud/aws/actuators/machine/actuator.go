@@ -86,10 +86,11 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 			klog.Errorf("failed to retrieve token to create machine %q: %v", machine.Name, err)
 			return err
 		}
-	case "control-plane":
-		// TODO:
+	case "controlplane":
+		// Nothing special for a controlplane node. Just log and move on.
+		klog.Infof("Attempting to add machine %q as a controlplane node in cluster %q", machine.Name, cluster.Name)
 	default:
-		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping creation", machine.ObjectMeta.Labels["set"], machine.Name)
+		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", machine.ObjectMeta.Labels["set"], machine.Name)
 		klog.Errorf(errMsg)
 		return errors.Errorf(errMsg)
 	}

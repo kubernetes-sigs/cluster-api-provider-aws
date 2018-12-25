@@ -30,8 +30,9 @@ type AWSClusterProviderStatus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Network Network  `json:"network,omitempty"`
-	Bastion Instance `json:"bastion,omitempty"`
+	Network            Network                   `json:"network,omitempty"`
+	Bastion            Instance                  `json:"bastion,omitempty"`
+	ControlPlaneStatus ClusterControlPlaneStatus `json:"clusterControlPlaneStatus,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
