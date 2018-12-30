@@ -114,6 +114,7 @@ func (m *MachineScope) storeMachineStatus(machine *clusterv1.Machine) (*clusterv
 	return m.MachineClient.UpdateStatus(machine)
 }
 
+// Close the MachineScope by updating the machine spec, machine status and cluster status.
 func (m *MachineScope) Close() {
 	if m.MachineClient == nil {
 		return
@@ -127,5 +128,11 @@ func (m *MachineScope) Close() {
 	_, err = m.storeMachineStatus(latestMachine)
 	if err != nil {
 		klog.Errorf("[machinescope] failed to store provider status for machine %q in namespace %q: %v", m.Machine.Name, m.Machine.Namespace, err)
+	}
+
+	// control plane node count is a status of the cluster. update that incase a new control plane node was created.
+	_, err = m.Scope.storeClusterStatus(m.Cluster)
+	if err != nil {
+		klog.Errorf("[machinescope] failed to store cluster status for cluster %q in namespace %q: %v", m.Scope.Name(), m.Cluster.Namespace, err)
 	}
 }

@@ -144,8 +144,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	}
 
 	// capture current control plane status
-	controlPlaneStatus := machine.ClusterControlPlaneStatus()
-	controlPlaneNodeCount := controlPlaneStatus.ControlPlaneNodeCount
+	controlPlaneNodeCount := machine.ClusterControlPlaneStatus().ControlPlaneNodeCount
 
 	// apply values based on the role of the machine
 	switch machine.Role() {
@@ -191,7 +190,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 		input.UserData = aws.String(userData)
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID)
-		controlPlaneNodeCount++
 	case "node":
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
@@ -230,7 +228,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		return nil, err
 	}
 
-	controlPlaneStatus.ControlPlaneNodeCount = controlPlaneNodeCount
 	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
 	return out, nil
 }
