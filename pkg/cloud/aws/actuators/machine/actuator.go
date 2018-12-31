@@ -95,7 +95,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf(errMsg)
 	}
 
-	klog.Infof("ControlPlaneNodeCount=%d", scope.ClusterControlPlaneStatus().ControlPlaneNodeCount)
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
@@ -107,7 +106,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 		return errors.Errorf("failed to create or get machine: %+v", err)
 	}
-	klog.Infof("ControlPlaneNodeCount=%d", scope.ClusterControlPlaneStatus().ControlPlaneNodeCount)
 
 	scope.MachineStatus.InstanceID = &i.ID
 	scope.MachineStatus.InstanceState = aws.String(string(i.State))
