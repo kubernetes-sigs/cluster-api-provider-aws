@@ -79,7 +79,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	var bootstrapToken string
-	controlPlaneNodeCount := scope.ClusterControlPlaneStatus().ControlPlaneNodeCount
 	switch machine.ObjectMeta.Labels["set"] {
 	case "node":
 		bootstrapToken, err = a.getWorkerNodeToken(cluster, controlPlaneURL)
@@ -90,13 +89,13 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	case "controlplane":
 		// Nothing special for a controlplane node. Just log and move on.
 		klog.Infof("Attempting to add machine %q as a controlplane node in cluster %q", machine.Name, cluster.Name)
-		controlPlaneNodeCount++
 	default:
 		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", machine.ObjectMeta.Labels["set"], machine.Name)
 		klog.Errorf(errMsg)
 		return errors.Errorf(errMsg)
 	}
 
+	klog.Infof("ControlPlaneNodeCount=%d", scope.ClusterControlPlaneStatus().ControlPlaneNodeCount)
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
@@ -108,6 +107,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 		return errors.Errorf("failed to create or get machine: %+v", err)
 	}
+	klog.Infof("ControlPlaneNodeCount=%d", scope.ClusterControlPlaneStatus().ControlPlaneNodeCount)
 
 	scope.MachineStatus.InstanceID = &i.ID
 	scope.MachineStatus.InstanceState = aws.String(string(i.State))
@@ -121,7 +121,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if err := a.reconcileLBAttachment(scope, machine, i); err != nil {
 		return errors.Errorf("failed to reconcile LB attachment: %+v", err)
 	}
-	scope.ClusterControlPlaneStatus().ControlPlaneNodeCount = controlPlaneNodeCount
 
 	return nil
 }

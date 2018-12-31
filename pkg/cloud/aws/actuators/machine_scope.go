@@ -131,8 +131,5 @@ func (m *MachineScope) Close() {
 	}
 
 	// control plane node count is a status of the cluster. update that incase a new control plane node was created.
-	_, err = m.Scope.storeClusterStatus(m.Cluster)
-	if err != nil {
-		klog.Errorf("[machinescope] failed to store cluster status for cluster %q in namespace %q: %v", m.Scope.Name(), m.Cluster.Namespace, err)
-	}
+	m.Scope.Close()
 }
