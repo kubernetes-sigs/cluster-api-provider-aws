@@ -20,8 +20,10 @@ import (
 	"fmt"
 	"time"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -59,7 +61,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
 func (s *Service) GetAPIServerDNSName() (string, error) {
-	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), TagValueAPIServerRole))
+	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), tags.ValueAPIServerRole))
 
 	if err != nil {
 		return "", err
@@ -111,7 +113,7 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 func (s *Service) RegisterInstanceWithAPIServerELB(instanceID string) error {
 	input := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
-		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), TagValueAPIServerRole)),
+		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), tags.ValueAPIServerRole)),
 	}
 
 	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
@@ -128,8 +130,9 @@ func GenerateELBName(clusterName string, elbName string) string {
 }
 
 func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
+
 	res := &v1alpha1.ClassicELB{
-		Name:   GenerateELBName(s.scope.Name(), TagValueAPIServerRole),
+		Name:   GenerateELBName(s.scope.Name(), tags.ValueAPIServerRole),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
 		Listeners: []*v1alpha1.ClassicELBListener{
 			{
@@ -147,8 +150,13 @@ func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 			UnhealthyThreshold: 3,
 		},
 		SecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
-		Tags:             s.buildTags(s.scope.Name(), ResourceLifecycleOwned, "", TagValueAPIServerRole, nil),
 	}
+
+	res.Tags = tags.Build(tags.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Role:        aws.String(tags.ValueAPIServerRole),
+	})
 
 	for _, sn := range s.scope.Subnets().FilterPublic() {
 		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
@@ -163,7 +171,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 		Subnets:          aws.StringSlice(spec.SubnetIDs),
 		SecurityGroups:   aws.StringSlice(spec.SecurityGroupIDs),
 		Scheme:           aws.String(string(spec.Scheme)),
-		Tags:             mapToTags(spec.Tags),
+		Tags:             converters.MapToELBTags(spec.Tags),
 	}
 
 	for _, ln := range spec.Listeners {
