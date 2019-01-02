@@ -191,7 +191,7 @@ ifneq ($(FASTBUILD),y)
 ## Define slow dependency targets here
 
 .PHONY: generate
-generate: dep-ensure ## Run go generate
+generate: gazelle dep-ensure ## Run go generate
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
 	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:go_mock_interfaces \
