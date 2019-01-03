@@ -124,10 +124,9 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 }
 
 func (a *Actuator) getWorkerNodeToken(cluster *clusterv1.Cluster, controlPlaneURL string) (string, error) {
-	var bootstrapToken string
 	kubeConfig, err := a.GetKubeConfig(cluster, nil)
 	if err != nil {
-		return bootstrapToken, errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+		return "", errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
 	}
 
 	clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
@@ -135,17 +134,17 @@ func (a *Actuator) getWorkerNodeToken(cluster *clusterv1.Cluster, controlPlaneUR
 	})
 
 	if err != nil {
-		return bootstrapToken, errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+		return "", errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
 	}
 
 	coreClient, err := corev1.NewForConfig(clientConfig)
 	if err != nil {
-		return bootstrapToken, errors.Errorf("failed to initialize new corev1 client: %+v", err)
+		return "", errors.Errorf("failed to initialize new corev1 client: %+v", err)
 	}
 
-	bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
+	bootstrapToken, err := tokens.NewBootstrap(coreClient, 10*time.Minute)
 	if err != nil {
-		return bootstrapToken, errors.Errorf("failed to create new bootstrap token: %+v", err)
+		return "", errors.Errorf("failed to create new bootstrap token: %+v", err)
 	}
 
 	return bootstrapToken, nil
