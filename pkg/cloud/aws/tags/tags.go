@@ -51,6 +51,15 @@ func Apply(params *ApplyParams) error {
 	return errors.Wrapf(err, "failed to tag resource %q in cluster %q", params.ResourceID, params.ClusterName)
 }
 
+// Ensure applies the tags if the current tags differ from the params.
+func Ensure(current Map, params *ApplyParams) error {
+	want := Build(params.BuildParams)
+	if !current.Equals(want) {
+		return Apply(params)
+	}
+	return nil
+}
+
 // BuildParams is used to build tags around an aws resource.
 type BuildParams struct {
 	// Lifecycle determines the resource lifecycle.
@@ -72,12 +81,12 @@ type BuildParams struct {
 
 	// Any additional tags to be added to the resource.
 	// +optional
-	Additional map[string]string
+	Additional Map
 }
 
 // Build builds tags including the cluster tag and returns them in map form.
-func Build(params BuildParams) map[string]string {
-	tags := make(map[string]string)
+func Build(params BuildParams) Map {
+	tags := make(Map)
 	for k, v := range params.Additional {
 		tags[k] = v
 	}

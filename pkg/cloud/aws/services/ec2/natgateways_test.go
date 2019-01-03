@@ -206,10 +206,7 @@ func TestReconcileNatGateways(t *testing.T) {
 				}).Return(nil)
 
 				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
+					Return(nil, nil).Times(3)
 			},
 		},
 		{
@@ -249,6 +246,24 @@ func TestReconcileNatGateways(t *testing.T) {
 					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
 						NatGatewayId: aws.String("gateway"),
 						SubnetId:     aws.String("subnet-1"),
+						Tags: []*ec2.Tag{
+							{
+								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
+								Value: aws.String("true"),
+							},
+							{
+								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+								Value: aws.String("common"),
+							},
+							{
+								Key:   aws.String("Name"),
+								Value: aws.String("test-cluster-nat"),
+							},
+							{
+								Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+								Value: aws.String("owned"),
+							},
+						},
 					}}}, true)
 				}).Return(nil)
 
