@@ -632,6 +632,7 @@ func (in *MachineSpec) DeepCopyInto(out *MachineSpec) {
 		}
 	}
 	in.ProviderSpec.DeepCopyInto(&out.ProviderSpec)
+	in.ProviderConfig.DeepCopyInto(&out.ProviderConfig)
 	out.Versions = in.Versions
 	if in.ConfigSource != nil {
 		in, out := &in.ConfigSource, &out.ConfigSource

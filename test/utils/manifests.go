@@ -25,7 +25,7 @@ func GenerateAwsCredentialsSecretFromEnv(secretName, namespace string) *apiv1.Se
 	}
 }
 
-func TestingMachineProviderConfig(awsCredentialsSecretName string, clusterID string) (clusterv1alpha1.ProviderConfig, error) {
+func TestingMachineProviderConfig(awsCredentialsSecretName string, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
 	publicIP := true
 	machinePc := &providerconfigv1.AWSMachineProviderConfig{
 		AMI: providerconfigv1.AWSResourceReference{
@@ -89,16 +89,16 @@ func TestingMachineProviderConfig(awsCredentialsSecretName string, clusterID str
 
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
-		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("failed creating codec: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
 	}
 	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
-		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
 	}
 	return *config, nil
 }
 
-func MasterMachineProviderConfig(awsCredentialsSecretName, masterUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderConfig, error) {
+func MasterMachineProviderConfig(awsCredentialsSecretName, masterUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
 	publicIP := true
 	machinePc := &providerconfigv1.AWSMachineProviderConfig{
 		AMI: providerconfigv1.AWSResourceReference{
@@ -151,16 +151,16 @@ func MasterMachineProviderConfig(awsCredentialsSecretName, masterUserDataSecretN
 
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
-		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("failed creating codec: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
 	}
 	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
-		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
 	}
 	return *config, nil
 }
 
-func WorkerMachineSetProviderConfig(awsCredentialsSecretName, workerUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderConfig, error) {
+func WorkerMachineSetProviderConfig(awsCredentialsSecretName, workerUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
 	publicIP := true
 	machinePc := &providerconfigv1.AWSMachineProviderConfig{
 		AMI: providerconfigv1.AWSResourceReference{
@@ -213,11 +213,11 @@ func WorkerMachineSetProviderConfig(awsCredentialsSecretName, workerUserDataSecr
 
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
-		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("failed creating codec: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
 	}
 	config, err := codec.EncodeProviderConfig(machinePc)
 	if err != nil {
-		return clusterv1alpha1.ProviderConfig{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
 	}
 	return *config, nil
 }

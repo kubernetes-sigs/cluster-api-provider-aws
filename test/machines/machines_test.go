@@ -59,7 +59,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 		_, err = f.KubeClient.CoreV1().Namespaces().Create(testNamespace)
 		Expect(err).NotTo(HaveOccurred())
 
-		f.DeployClusterAPIStack(testNamespace.Name, f.ActuatorImage, "")
+		f.DeployClusterAPIStack(testNamespace.Name, "")
 	})
 
 	AfterEach(func() {
@@ -67,7 +67,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 		machinesToDelete.Delete()
 
 		if testNamespace != nil {
-			f.DestroyClusterAPIStack(testNamespace.Name, f.ActuatorImage, "")
+			f.DestroyClusterAPIStack(testNamespace.Name, "")
 			log.Infof(testNamespace.Name+": %#v", testNamespace)
 			By(fmt.Sprintf("Destroying %q namespace", testNamespace.Name))
 			f.KubeClient.CoreV1().Namespaces().Delete(testNamespace.Name, &metav1.DeleteOptions{})
@@ -243,8 +243,12 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			dnsName, err := acw.GetPublicDNSName(masterMachine)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = f.UploadDockerImageToInstance(f.ActuatorImage, dnsName)
+			err = f.UploadDockerImageToInstance(f.MachineControllerImage, dnsName)
 			Expect(err).NotTo(HaveOccurred())
+			if f.MachineManagerImage != f.MachineControllerImage {
+				err = f.UploadDockerImageToInstance(f.MachineManagerImage, dnsName)
+				Expect(err).NotTo(HaveOccurred())
+			}
 
 			// Deploy the cluster API stack inside the master machine
 			sshConfig, err := framework.DefaultSSHConfig()
@@ -255,7 +259,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			_, err = clusterFramework.KubeClient.CoreV1().Namespaces().Create(testNamespace)
 			Expect(err).NotTo(HaveOccurred())
 
-			clusterFramework.DeployClusterAPIStack(testNamespace.Name, f.ActuatorImage, "")
+			clusterFramework.DeployClusterAPIStack(testNamespace.Name, "")
 
 			By("Deploy worker nodes through machineset")
 			masterPrivateIP, err := acw.GetPrivateIP(masterMachine)

@@ -120,7 +120,7 @@ func stubMachine() (*clusterv1.Machine, *providerconfigv1.AWSMachineProviderConf
 		},
 
 		Spec: clusterv1.MachineSpec{
-			ProviderConfig: *config,
+			ProviderSpec: *config,
 		},
 	}
 

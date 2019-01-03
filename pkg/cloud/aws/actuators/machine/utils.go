@@ -139,32 +139,42 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 // ProviderConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
 func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
-	var providerConfig runtime.RawExtension
+	var providerSpecRawExtention runtime.RawExtension
 
-	if machine.Spec.ProviderConfig.Value == nil && machine.Spec.ProviderConfig.ValueFrom == nil {
+	// TODO(jchaloup): Remove providerConfig once all consumers migrate to providerSpec
+	providerSpec := machine.Spec.ProviderConfig
+	// providerSpec has higher priority over providerConfig
+	if machine.Spec.ProviderSpec.Value != nil || machine.Spec.ProviderSpec.ValueFrom != nil {
+		providerSpec = machine.Spec.ProviderSpec
+		glog.Infof("Falling to default providerSpec\n")
+	} else {
+		glog.Infof("Falling to providerConfig\n")
+	}
+
+	if providerSpec.Value == nil && providerSpec.ValueFrom == nil {
 		return nil, fmt.Errorf("unable to find machine provider config: neither Spec.ProviderConfig.Value nor Spec.ProviderConfig.ValueFrom set")
 	}
 
-	// If no machine.Spec.ProviderConfig.Value then we lookup for machineClass
-	if machine.Spec.ProviderConfig.Value != nil {
-		providerConfig = *machine.Spec.ProviderConfig.Value
+	// If no providerSpec.Value then we lookup for machineClass
+	if providerSpec.Value != nil {
+		providerSpecRawExtention = *providerSpec.Value
 	} else {
-		if machine.Spec.ProviderConfig.ValueFrom.MachineClass == nil {
+		if providerSpec.ValueFrom.MachineClass == nil {
 			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderConfig.ValueFrom")
 		}
 		machineClass := &clusterv1.MachineClass{}
 		key := types.NamespacedName{
-			Namespace: machine.Spec.ProviderConfig.ValueFrom.MachineClass.Namespace,
-			Name:      machine.Spec.ProviderConfig.ValueFrom.MachineClass.Name,
+			Namespace: providerSpec.ValueFrom.MachineClass.Namespace,
+			Name:      providerSpec.ValueFrom.MachineClass.Name,
 		}
 		if err := client.Get(context.Background(), key, machineClass); err != nil {
 			return nil, err
 		}
-		providerConfig = machineClass.ProviderConfig
+		providerSpecRawExtention = machineClass.ProviderSpec
 	}
 
 	var config providerconfigv1.AWSMachineProviderConfig
-	if err := codec.DecodeProviderConfig(&clusterv1.ProviderConfig{Value: &providerConfig}, &config); err != nil {
+	if err := codec.DecodeProviderConfig(&clusterv1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil

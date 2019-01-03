@@ -74,9 +74,9 @@ func NewCodec() (*AWSProviderConfigCodec, error) {
 }
 
 // DecodeProviderConfig deserialises an object from the provider config
-func (codec *AWSProviderConfigCodec) DecodeProviderConfig(providerConfig *clusterv1.ProviderConfig, out runtime.Object) error {
-	if providerConfig.Value != nil {
-		_, _, err := codec.decoder.Decode(providerConfig.Value.Raw, nil, out)
+func (codec *AWSProviderConfigCodec) DecodeProviderConfig(providerSpec *clusterv1.ProviderSpec, out runtime.Object) error {
+	if providerSpec.Value != nil {
+		_, _, err := codec.decoder.Decode(providerSpec.Value.Raw, nil, out)
 		if err != nil {
 			return fmt.Errorf("decoding failure: %v", err)
 		}
@@ -85,12 +85,12 @@ func (codec *AWSProviderConfigCodec) DecodeProviderConfig(providerConfig *cluste
 }
 
 // EncodeProviderConfig serialises an object to the provider config
-func (codec *AWSProviderConfigCodec) EncodeProviderConfig(in runtime.Object) (*clusterv1.ProviderConfig, error) {
+func (codec *AWSProviderConfigCodec) EncodeProviderConfig(in runtime.Object) (*clusterv1.ProviderSpec, error) {
 	var buf bytes.Buffer
 	if err := codec.encoder.Encode(in, &buf); err != nil {
 		return nil, fmt.Errorf("encoding failed: %v", err)
 	}
-	return &clusterv1.ProviderConfig{
+	return &clusterv1.ProviderSpec{
 		Value: &runtime.RawExtension{Raw: buf.Bytes()},
 	}, nil
 }
