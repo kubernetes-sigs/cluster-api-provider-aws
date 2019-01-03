@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorImage, actuatorPrivateKey string) {
+func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorPrivateKey string) {
 
 	f.By("Deploying cluster API stack components")
 
@@ -66,7 +66,7 @@ func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorImage, ac
 	f.ErrNotExpected(err)
 
 	f.By("Deploying machine API controllers")
-	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, actuatorPrivateKey)
+	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, f.MachineControllerImage, f.MachineManagerImage, f.NodelinkControllerImage, actuatorPrivateKey)
 	_, err = f.KubeClient.AppsV1().Deployments(deploymentManifest.Namespace).Create(deploymentManifest)
 	f.ErrNotExpected(err)
 
@@ -85,10 +85,10 @@ func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorImage, ac
 	f.By("Cluster API stack deployed")
 }
 
-func (f *Framework) DestroyClusterAPIStack(clusterAPINamespace, actuatorImage, actuatorPrivateKey string) {
+func (f *Framework) DestroyClusterAPIStack(clusterAPINamespace, actuatorPrivateKey string) {
 
 	f.By("Deleting machine API controllers")
-	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage, actuatorPrivateKey)
+	deploymentManifest := manifests.ClusterAPIControllersDeployment(clusterAPINamespace, f.MachineControllerImage, f.MachineManagerImage, f.NodelinkControllerImage, actuatorPrivateKey)
 	err := WaitUntilDeleted(func() error {
 		return f.KubeClient.AppsV1().Deployments(deploymentManifest.Namespace).Delete(deploymentManifest.Name, &metav1.DeleteOptions{})
 	}, func() error {

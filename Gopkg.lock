@@ -374,8 +374,7 @@
   version = "v1.4.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:689b3b1987d5248b956837dedfd7da013efc1ff6c662f8a22cd9088afa290cc4"
+  digest = "1:8a5594cfb48c87f2e1d54ac443bc466c98e74484e4da43647f995836788a94ad"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/framework",
@@ -383,7 +382,7 @@
     "pkg/types",
   ]
   pruneopts = "T"
-  revision = "95150a82b5ae6ef9244f19dff48625f7f2c6f0e1"
+  revision = "6983d93876009e8c004dfe7868c1dece4a9d1137"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"

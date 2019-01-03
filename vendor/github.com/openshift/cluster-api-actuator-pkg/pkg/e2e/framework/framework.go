@@ -52,7 +52,9 @@ var sshkey string
 // Default ssh user
 var sshuser string
 
-var actuatorImage string
+var machineControllerImage string
+var machineManagerImage string
+var nodelinkControllerImage string
 
 var libvirtURI string
 var libvirtPK string
@@ -62,7 +64,10 @@ func init() {
 	flag.StringVar(&ClusterID, "cluster-id", "", "cluster ID")
 	flag.StringVar(&sshkey, "ssh-key", "", "Path to private ssh to connect to instances (e.g. to download kubeconfig or copy docker images)")
 	flag.StringVar(&sshuser, "ssh-user", "ec2-user", "Ssh user to connect to instances")
-	flag.StringVar(&actuatorImage, "actuator-image", "gcr.io/k8s-cluster-api/machine-controller:0.0.1", "Actuator image to run")
+	flag.StringVar(&machineControllerImage, "machine-controller-image", "gcr.io/k8s-cluster-api/machine-controller:0.0.1", "Machine controller (actuator) image to run")
+	flag.StringVar(&machineManagerImage, "machine-manager-image", "gcr.io/k8s-cluster-api/machine-controller:0.0.1", "Machine manager image to run")
+	flag.StringVar(&nodelinkControllerImage, "nodelink-controller-image", "gcr.io/k8s-cluster-api/machine-controller:0.0.1", "Nodelink controller image to run")
+
 	// libvirt specific flags
 	flag.StringVar(&libvirtURI, "libvirt-uri", "", "Libvirt URI to connect to libvirt from within machine controller container")
 	flag.StringVar(&libvirtPK, "libvirt-pk", "", "Private key to connect to qemu+ssh libvirt uri")
@@ -93,7 +98,10 @@ type Framework struct {
 	LibvirtURI string
 	LibvirtPK  string
 
-	ActuatorImage  string
+	MachineControllerImage  string
+	MachineManagerImage     string
+	NodelinkControllerImage string
+
 	ErrNotExpected ErrNotExpectedFnc
 	By             ByFnc
 }
@@ -116,7 +124,9 @@ func NewFramework() (*Framework, error) {
 		LibvirtURI: libvirtURI,
 		LibvirtPK:  libvirtPK,
 
-		ActuatorImage: actuatorImage,
+		MachineControllerImage:  machineControllerImage,
+		MachineManagerImage:     machineManagerImage,
+		NodelinkControllerImage: nodelinkControllerImage,
 	}
 
 	f.ErrNotExpected = f.DefaultErrNotExpected
@@ -139,11 +149,13 @@ func DefaultSSHConfig() (*SSHConfig, error) {
 
 func NewFrameworkFromConfig(config *rest.Config, sshConfig *SSHConfig) (*Framework, error) {
 	f := &Framework{
-		RestConfig:    config,
-		SSH:           sshConfig,
-		ActuatorImage: actuatorImage,
-		LibvirtURI:    libvirtURI,
-		LibvirtPK:     libvirtPK,
+		RestConfig: config,
+		SSH:        sshConfig,
+		MachineControllerImage:  machineControllerImage,
+		MachineManagerImage:     machineManagerImage,
+		NodelinkControllerImage: nodelinkControllerImage,
+		LibvirtURI:              libvirtURI,
+		LibvirtPK:               libvirtPK,
 	}
 
 	f.ErrNotExpected = f.DefaultErrNotExpected
