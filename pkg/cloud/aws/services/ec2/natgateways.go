@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
@@ -51,7 +52,17 @@ func (s *Service) reconcileNatGateways() error {
 			continue
 		}
 
-		if _, ok := existing[sn.ID]; ok {
+		if ngw, ok := existing[sn.ID]; ok {
+			// Make sure tags are up to date.
+			err := tags.Ensure(converters.TagsToMap(ngw.Tags), &tags.ApplyParams{
+				EC2Client:   s.scope.EC2,
+				BuildParams: s.getNatGatewayTagParams(*ngw.NatGatewayId),
+			})
+
+			if err != nil {
+				return errors.Wrapf(err, "failed to tag nat gateway %q", *ngw.NatGatewayId)
+			}
+
 			continue
 		}
 
@@ -121,6 +132,18 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, err
 	return gateways, nil
 }
 
+func (s *Service) getNatGatewayTagParams(id string) tags.BuildParams {
+	name := fmt.Sprintf("%s-nat", s.scope.Name())
+
+	return tags.BuildParams{
+		ClusterName: s.scope.Name(),
+		ResourceID:  id,
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Name:        aws.String(name),
+		Role:        aws.String(tags.ValueCommonRole),
+	}
+}
+
 func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	ip, err := s.getOrAllocateAddress(tags.ValueAPIServerRole)
 	if err != nil {
@@ -136,17 +159,9 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 
-	name := fmt.Sprintf("%s-nat", s.scope.Name())
-
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.scope.EC2,
-		BuildParams: tags.BuildParams{
-			ClusterName: s.scope.Name(),
-			ResourceID:  *out.NatGateway.NatGatewayId,
-			Lifecycle:   tags.ResourceLifecycleOwned,
-			Name:        aws.String(name),
-			Role:        aws.String(tags.ValueCommonRole),
-		},
+		EC2Client:   s.scope.EC2,
+		BuildParams: s.getNatGatewayTagParams(*out.NatGateway.NatGatewayId),
 	}
 
 	if err := tags.Apply(applyTagsParams); err != nil {

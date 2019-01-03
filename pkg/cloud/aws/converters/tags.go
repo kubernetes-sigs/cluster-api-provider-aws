@@ -20,13 +20,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
-// TagsToMap converts a []*ec2.Tag into a map[string]string.
-func TagsToMap(src []*ec2.Tag) map[string]string {
-	// Create an array of exactly the length we require to hopefully avoid some
-	// allocations while looping.
-	tags := make(map[string]string, len(src))
+// TagsToMap converts a []*ec2.Tag into a tags.Map.
+func TagsToMap(src []*ec2.Tag) tags.Map {
+	tags := make(tags.Map, len(src))
 
 	for _, t := range src {
 		tags[*t.Key] = *t.Value
@@ -35,10 +34,8 @@ func TagsToMap(src []*ec2.Tag) map[string]string {
 	return tags
 }
 
-// MapToTags converts a map[string]string to a []*ec2.Tag
-func MapToTags(src map[string]string) []*ec2.Tag {
-	// Create an array of exactly the length we require to hopefully avoid some
-	// allocations while looping.
+// MapToTags converts a tags.Map to a []*ec2.Tag
+func MapToTags(src tags.Map) []*ec2.Tag {
 	tags := make([]*ec2.Tag, 0, len(src))
 
 	for k, v := range src {
@@ -53,9 +50,9 @@ func MapToTags(src map[string]string) []*ec2.Tag {
 	return tags
 }
 
-// ELBTagsToMap converts a []*elb.Tag into a map[string]string.
-func ELBTagsToMap(src []*elb.Tag) map[string]string {
-	tags := make(map[string]string, len(src))
+// ELBTagsToMap converts a []*elb.Tag into a tags.Map.
+func ELBTagsToMap(src []*elb.Tag) tags.Map {
+	tags := make(tags.Map, len(src))
 
 	for _, t := range src {
 		tags[*t.Key] = *t.Value
@@ -64,8 +61,8 @@ func ELBTagsToMap(src []*elb.Tag) map[string]string {
 	return tags
 }
 
-// MapToELBTags converts a map[string]string to a []*elb.Tag
-func MapToELBTags(src map[string]string) []*elb.Tag {
+// MapToELBTags converts a tags.Map to a []*elb.Tag
+func MapToELBTags(src tags.Map) []*elb.Tag {
 	tags := make([]*elb.Tag, 0, len(src))
 
 	for k, v := range src {

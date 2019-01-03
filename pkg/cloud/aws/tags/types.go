@@ -16,6 +16,31 @@ limitations under the License.
 
 package tags
 
+import "reflect"
+
+// Map defines a map of tags.
+type Map map[string]string
+
+// Equals returns true if the maps are equal.
+func (m Map) Equals(other Map) bool {
+	return reflect.DeepEqual(m, other)
+}
+
+// Difference returns the difference between this map and the other map.
+// Items are considered equals if key and value are equals.
+func (m Map) Difference(other Map) Map {
+	res := make(Map, len(m))
+
+	for key, value := range m {
+		if otherValue, ok := other[key]; ok && value == otherValue {
+			continue
+		}
+		res[key] = value
+	}
+
+	return res
+}
+
 // ResourceLifecycle configures the lifecycle of a resource
 type ResourceLifecycle string
 
