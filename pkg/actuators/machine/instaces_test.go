@@ -90,6 +90,70 @@ func TestBuildEC2Filters(t *testing.T) {
 	}
 }
 
+func TestGetBlockDeviceMappings(t *testing.T) {
+	rootDeviceName := "/dev/sda1"
+	volumeSize := int64(16384)
+	volumeType := "ssd"
+	mockCtrl := gomock.NewController(t)
+	mockAWSClient := mockaws.NewMockClient(mockCtrl)
+	mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(&ec2.DescribeImagesOutput{
+		Images: []*ec2.Image{
+			{
+				CreationDate:   aws.String(time.RFC3339),
+				ImageId:        aws.String("ami-1111"),
+				RootDeviceName: &rootDeviceName,
+			},
+		},
+	}, nil).AnyTimes()
+
+	testCases := []struct {
+		description  string
+		blockDevices []providerconfigv1.BlockDeviceMappingSpec
+		expected     []*ec2.BlockDeviceMapping
+	}{
+		{
+			description:  "When it gets an empty blockDevices list",
+			blockDevices: []providerconfigv1.BlockDeviceMappingSpec{},
+			expected:     []*ec2.BlockDeviceMapping{},
+		},
+		{
+			description: "When it gets one blockDevice",
+			blockDevices: []providerconfigv1.BlockDeviceMappingSpec{
+				{
+					DeviceName: &rootDeviceName,
+					EBS: &providerconfigv1.EBSBlockDeviceSpec{
+						VolumeSize: &volumeSize,
+						VolumeType: &volumeType,
+					},
+					NoDevice:    nil,
+					VirtualName: nil,
+				},
+			},
+			expected: []*ec2.BlockDeviceMapping{
+				{
+					DeviceName: &rootDeviceName,
+					Ebs: &ec2.EbsBlockDevice{
+						VolumeSize: &volumeSize,
+						VolumeType: &volumeType,
+					},
+					NoDevice:    nil,
+					VirtualName: nil,
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		got, err := getBlockDeviceMappings(tc.blockDevices, "existing-AMI", mockAWSClient)
+		if err != nil {
+			t.Errorf("error when calling getBlockDeviceMappings: %v", err)
+		}
+		if !reflect.DeepEqual(got, tc.expected) {
+			t.Errorf("Case: %s. Got: %v, expected: %v", tc.description, got, tc.expected)
+		}
+	}
+}
+
 func TestRemoveStoppedMachine(t *testing.T) {
 	machine, err := stubMachine()
 	if err != nil {

@@ -167,6 +167,43 @@ func getAMI(AMI providerconfigv1.AWSResourceReference, client awsclient.Client) 
 	return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
 }
 
+func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
+	if len(blockDeviceMappings) == 0 {
+		return []*ec2.BlockDeviceMapping{}, nil
+	}
+
+	// Get image object to get the RootDeviceName
+	describeImagesRequest := ec2.DescribeImagesInput{
+		ImageIds: []*string{&AMI},
+	}
+	describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
+	if err != nil {
+		glog.Errorf("error describing AMI: %v", err)
+		return nil, fmt.Errorf("error describing AMI: %v", err)
+	}
+	if len(describeAMIResult.Images) < 1 {
+		glog.Errorf("no image for given AMI was found")
+		return nil, fmt.Errorf("no image for given AMI not found")
+	}
+	deviceName := describeAMIResult.Images[0].RootDeviceName
+
+	// Only support one blockDeviceMapping
+	volumeSize := blockDeviceMappings[0].EBS.VolumeSize
+	volumeType := blockDeviceMappings[0].EBS.VolumeType
+	blockDeviceMapping := ec2.BlockDeviceMapping{
+		DeviceName: deviceName,
+		Ebs: &ec2.EbsBlockDevice{
+			VolumeSize: volumeSize,
+			VolumeType: volumeType,
+		},
+	}
+	if *volumeType == "io1" {
+		blockDeviceMapping.Ebs.Iops = blockDeviceMappings[0].EBS.Iops
+	}
+
+	return []*ec2.BlockDeviceMapping{&blockDeviceMapping}, nil
+}
+
 func launchInstance(machine *clusterv1.Machine, machineProviderConfig *providerconfigv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
 	amiID, err := getAMI(machineProviderConfig.AMI, client)
 	if err != nil {
@@ -193,6 +230,11 @@ func launchInstance(machine *clusterv1.Machine, machineProviderConfig *providerc
 			SubnetId:                 subnetIDs[0],
 			Groups:                   securityGroupsIDs,
 		},
+	}
+
+	blockDeviceMappings, err := getBlockDeviceMappings(machineProviderConfig.BlockDevices, *amiID, client)
+	if err != nil {
+		return nil, fmt.Errorf("error getting blockDeviceMappings: %v,", err)
 	}
 
 	clusterID, ok := getClusterID(machine)
@@ -250,6 +292,9 @@ func launchInstance(machine *clusterv1.Machine, machineProviderConfig *providerc
 		Placement:          placement,
 	}
 
+	if len(blockDeviceMappings) > 0 {
+		inputConfig.BlockDeviceMappings = blockDeviceMappings
+	}
 	runResult, err := client.RunInstances(&inputConfig)
 	if err != nil {
 		glog.Errorf("error creating EC2 instance: %v", err)
