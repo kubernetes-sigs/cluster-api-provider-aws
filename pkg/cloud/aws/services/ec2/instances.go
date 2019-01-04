@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
@@ -33,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -91,6 +93,44 @@ func (s *Service) InstanceIfExists(id string) (*v1alpha1.Instance, error) {
 	return nil, nil
 }
 
+func (s *Service) getControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
+	var cpm []*clusterv1.Machine
+	for _, m := range machineList.Items {
+		klog.V(2).Infof("Candidate: %q", m.Name)
+		if m.Spec.Versions.ControlPlane != "" {
+			klog.V(2).Infof("is controlplane machine")
+			cpm = append(cpm, m.DeepCopy())
+		}
+	}
+	return cpm
+}
+
+func isMachinesSame(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
+	klog.V(2).Infof("m1: Name: %q Namespace: %q Cluster: %q", m1.Name, m1.Namespace, m1.ClusterName)
+	klog.V(2).Infof("m2: Name: %q Namespace: %q Cluster: %q", m2.Name, m2.Namespace, m2.ClusterName)
+	return m1.Name == m2.Name && m1.Namespace == m2.Namespace && m1.ClusterName == m2.ClusterName
+}
+
+func (s *Service) isControlPlaneNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine) bool {
+	join := true
+	klog.V(2).Infof("Determining if machine %q/%q/%q should init/join the controlplane", newMachine.Name, newMachine.Namespace, newMachine.ClusterName)
+	klog.V(2).Infof("len(controlPlaneMachines)=%d", len(controlPlaneMachines))
+	for _, m := range controlPlaneMachines {
+		klog.V(2).Infof("controlplane machine: %q in namespace %q in cluster %q", m.Name, m.Namespace, m.ClusterName)
+	}
+
+	// join = false, if:
+	//		1. len(controlPlaneMachines) == 1 && controlPlaneMachines[0] == newMachine
+	// 		2. if none of the controlPlaneMachines exist
+
+	if len(controlPlaneMachines) == 1 && isMachinesSame(controlPlaneMachines[0], newMachine) {
+		join = false
+	}
+
+	klog.V(2).Infof("Machine %q/%q/%q should join the controlplane: %t", newMachine.Name, newMachine.Namespace, newMachine.ClusterName, join)
+	return join
+}
+
 // createInstance runs an ec2 instance.
 func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
 	klog.V(2).Infof("Creating a new instance for machine %q", machine.Name())
@@ -143,9 +183,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		)
 	}
 
-	// capture current control plane status
-	controlPlaneNodeCount := machine.ClusterControlPlaneStatus().ControlPlaneNodeCount
-
 	// apply values based on the role of the machine
 	switch machine.Role() {
 	case "controlplane":
@@ -157,8 +194,16 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 		var userData string
 		var err error
+		clusterMachines, err := machine.MachineClient.List(v1.ListOptions{})
+		if err != nil {
+			return nil, awserrors.NewFailedDependency(
+				errors.New(fmt.Sprintf("Failed to get machinesList for cluster %q: %v", s.scope.Name(), err)),
+			)
+		}
+		controlPlaneMachines := s.getControlPlaneMachines(clusterMachines)
+		isNodeJoin := s.isControlPlaneNodeJoin(controlPlaneMachines, machine.Machine)
 
-		if controlPlaneNodeCount > 1 {
+		if isNodeJoin {
 			// TODO: WIP controlplane node join:
 			// get kubeadm node join token
 			// prepare userdata with kubeadm join https://kubernetes.io/docs/setup/independent/high-availability/
@@ -187,7 +232,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				return input, err
 			}
 		}
-		controlPlaneNodeCount++
 
 		input.UserData = aws.String(userData)
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID)
@@ -228,7 +272,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	if err != nil {
 		return nil, err
 	}
-	machine.ClusterControlPlaneStatus().ControlPlaneNodeCount = controlPlaneNodeCount
 
 	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
 	return out, nil

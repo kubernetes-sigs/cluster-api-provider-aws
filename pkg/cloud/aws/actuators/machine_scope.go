@@ -129,7 +129,4 @@ func (m *MachineScope) Close() {
 	if err != nil {
 		klog.Errorf("[machinescope] failed to store provider status for machine %q in namespace %q: %v", m.Machine.Name, m.Machine.Namespace, err)
 	}
-
-	// control plane node count is a status of the cluster. update that incase a new control plane node was created.
-	m.Scope.Close()
 }
