@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/golang/glog"
 	kappsapi "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -59,7 +60,7 @@ func (tc *testConfig) ExpectOneClusterObject() error {
 }
 
 func (tc *testConfig) ExpectAllMachinesLinkedToANode() error {
-	machineAnnotationKey := "machine"
+	machineAnnotationKey := "cluster.k8s.io/machine"
 	listOptions := client.ListOptions{
 		Namespace: namespace,
 	}

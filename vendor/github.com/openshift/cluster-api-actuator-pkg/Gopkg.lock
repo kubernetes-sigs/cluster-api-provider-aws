@@ -753,6 +753,14 @@
   revision = "4242d8e6c5dba56827bb7bcf14ad11cda38f3991"
 
 [[projects]]
+  digest = "1:4f5eb833037cc0ba0bf8fe9cae6be9df62c19dd1c869415275c708daa8ccfda5"
+  name = "k8s.io/klog"
+  packages = ["."]
+  pruneopts = ""
+  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
+  version = "v0.1.0"
+
+[[projects]]
   branch = "master"
   digest = "1:bb17aab96138a89eb0550fbf135a9812f6be8bc9805080e36c9efe50f607261e"
   name = "k8s.io/kube-openapi"
@@ -761,7 +769,8 @@
   revision = "5d05df014ac640f14b5e777958248251c2ef5e86"
 
 [[projects]]
-  digest = "1:e421451f5d6a27697b1e6ce6f7b7b0e088841c556757ead74834d23ea9995226"
+  branch = "master"
+  digest = "1:c3f06fd90052ca9c02f7288e32bbaaaa75241cbca3d551a646e912975eb956ec"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "pkg/apis/cluster/common",
@@ -771,7 +780,7 @@
     "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
   ]
   pruneopts = ""
-  revision = "0734939e05aeb64ab198e3feeee8b4e90ee5cbb2"
+  revision = "cba244b06de7d29777036551e6b32817878d1fcd"
 
 [[projects]]
   digest = "1:6cad2468c5831529b860a01f09032f6ff38202bc4f76332ef7ad74a993e4aa5a"

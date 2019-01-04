@@ -60,7 +60,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 			Namespace: "openshift-cluster-api",
 			Name:      "testClass",
 		},
-		ProviderConfig: *encodedProviderConfig.Value,
+		ProviderSpec: *encodedProviderConfig.Value,
 	}
 
 	testCases := []struct {
@@ -79,7 +79,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 					Kind: "Machine",
 				},
 				Spec: clusterv1.MachineSpec{
-					ProviderConfig: *encodedProviderConfig,
+					ProviderSpec: *encodedProviderConfig,
 				},
 			},
 		},
@@ -96,8 +96,8 @@ func TestProviderConfigFromMachine(t *testing.T) {
 					Kind: "Machine",
 				},
 				Spec: clusterv1.MachineSpec{
-					ProviderConfig: clusterv1.ProviderConfig{
-						ValueFrom: &clusterv1.ProviderConfigSource{
+					ProviderSpec: clusterv1.ProviderSpec{
+						ValueFrom: &clusterv1.ProviderSpecSource{
 							MachineClass: &clusterv1.MachineClassRef{
 								ObjectReference: &corev1.ObjectReference{
 									Kind:      "MachineClass",

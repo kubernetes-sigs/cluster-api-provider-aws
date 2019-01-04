@@ -48,7 +48,5 @@ required = [
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"
-  #branch = "master"
-  # Due to breaking change: https://github.com/kubernetes-sigs/cluster-api/pull/548
-  # TODO(jchaloup): bump to newer after the KubeCon is over
-  revision = "0734939e05aeb64ab198e3feeee8b4e90ee5cbb2"
+  branch = "master"
+

@@ -93,7 +93,7 @@ func ClusterCRDManifest() *v1beta1.CustomResourceDefinition {
 										},
 									},
 								},
-								"providerConfig": {
+								"providerSpec": {
 									Type: "object",
 									Properties: map[string]v1beta1.JSONSchemaProps{
 										"value": {
@@ -195,7 +195,7 @@ func MachineCRDManifest() *v1beta1.CustomResourceDefinition {
 						"spec": {
 							Type: "object",
 							Required: []string{
-								"providerConfig",
+								"providerSpec",
 							},
 							Properties: map[string]v1beta1.JSONSchemaProps{
 								"versions": {
@@ -218,7 +218,7 @@ func MachineCRDManifest() *v1beta1.CustomResourceDefinition {
 								"metadata": {
 									Type: "object",
 								},
-								"providerConfig": {
+								"providerSpec": {
 									Type: "object",
 									Properties: map[string]v1beta1.JSONSchemaProps{
 										"value": {
@@ -392,7 +392,7 @@ func MachineSetCRDManifest() *v1beta1.CustomResourceDefinition {
 										"spec": {
 											Type: "object",
 											Required: []string{
-												"providerConfig",
+												"providerSpec",
 											},
 											Properties: map[string]v1beta1.JSONSchemaProps{
 												"configSource": {
@@ -401,7 +401,7 @@ func MachineSetCRDManifest() *v1beta1.CustomResourceDefinition {
 												"metadata": {
 													Type: "object",
 												},
-												"providerConfig": {
+												"providerSpec": {
 													Type: "object",
 													Properties: map[string]v1beta1.JSONSchemaProps{
 														"value": {
@@ -535,7 +535,7 @@ func MachineDeploymentCRDManifest() *v1beta1.CustomResourceDefinition {
 										"spec": {
 											Type: "object",
 											Required: []string{
-												"providerConfig",
+												"providerSpec",
 											},
 											Properties: map[string]v1beta1.JSONSchemaProps{
 												"versions": {
@@ -558,7 +558,7 @@ func MachineDeploymentCRDManifest() *v1beta1.CustomResourceDefinition {
 												"metadata": {
 													Type: "object",
 												},
-												"providerConfig": {
+												"providerSpec": {
 													Type: "object",
 													Properties: map[string]v1beta1.JSONSchemaProps{
 														"valueFrom": {
@@ -715,7 +715,7 @@ func ClusterRoleBinding(clusterAPINamespace string) *rbacv1.ClusterRoleBinding {
 	}
 }
 
-func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, ActuatorPrivateKey string) *appsv1.Deployment {
+func ClusterAPIControllersDeployment(clusterAPINamespace, machineControllerImage, machineManagerImage, nodelinkControllerImage, ActuatorPrivateKey string) *appsv1.Deployment {
 	var replicas int32 = 1
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -765,7 +765,7 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 					Containers: []apiv1.Container{
 						{
 							Name:  fmt.Sprintf("machine-controller"),
-							Image: actuatorImage,
+							Image: machineControllerImage,
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "config",
@@ -809,7 +809,7 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 						{
 							Name: "nodelink-controller",
 							// TODO(jchaloup): use other than the latest tag
-							Image: "openshift/origin-machine-api-operator:latest",
+							Image: nodelinkControllerImage,
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "config",
@@ -834,7 +834,7 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 						},
 						{
 							Name:  "manager",
-							Image: actuatorImage,
+							Image: machineManagerImage,
 							Command: []string{
 								"/manager",
 							},
@@ -902,7 +902,7 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, actuatorImage string, 
 	return deployment
 }
 
-func TestingMachine(clusterID string, namespace string, providerConfig clusterv1alpha1.ProviderConfig) *clusterv1alpha1.Machine {
+func TestingMachine(clusterID string, namespace string, providerSpec clusterv1alpha1.ProviderSpec) *clusterv1alpha1.Machine {
 	randomUUID := string(uuid.NewUUID())
 	machine := &clusterv1alpha1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -919,7 +919,7 @@ func TestingMachine(clusterID string, namespace string, providerConfig clusterv1
 					"node-role.kubernetes.io/compute": "",
 				},
 			},
-			ProviderConfig: providerConfig,
+			ProviderSpec: providerSpec,
 			Versions: clusterv1alpha1.MachineVersionInfo{
 				Kubelet:      "1.10.1",
 				ControlPlane: "1.10.1",
@@ -930,7 +930,7 @@ func TestingMachine(clusterID string, namespace string, providerConfig clusterv1
 	return machine
 }
 
-func MasterMachine(clusterID, namespace string, providerConfig clusterv1alpha1.ProviderConfig) *clusterv1alpha1.Machine {
+func MasterMachine(clusterID, namespace string, providerSpec clusterv1alpha1.ProviderSpec) *clusterv1alpha1.Machine {
 	randomUUID := string(uuid.NewUUID())
 	machine := &clusterv1alpha1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -942,7 +942,7 @@ func MasterMachine(clusterID, namespace string, providerConfig clusterv1alpha1.P
 			},
 		},
 		Spec: clusterv1alpha1.MachineSpec{
-			ProviderConfig: providerConfig,
+			ProviderSpec: providerSpec,
 			Versions: clusterv1alpha1.MachineVersionInfo{
 				Kubelet:      "1.10.1",
 				ControlPlane: "1.10.1",
@@ -1003,7 +1003,7 @@ func WorkerMachineUserDataSecret(secretName, namespace, masterIP string) (*apiv1
 	}, nil
 }
 
-func WorkerMachineSet(clusterID, namespace string, providerConfig clusterv1alpha1.ProviderConfig) *clusterv1alpha1.MachineSet {
+func WorkerMachineSet(clusterID, namespace string, providerSpec clusterv1alpha1.ProviderSpec) *clusterv1alpha1.MachineSet {
 	var replicas int32 = 1
 	randomUUID := string(uuid.NewUUID())
 	return &clusterv1alpha1.MachineSet{
@@ -1037,7 +1037,7 @@ func WorkerMachineSet(clusterID, namespace string, providerConfig clusterv1alpha
 							"node-role.kubernetes.io/compute": "",
 						},
 					},
-					ProviderConfig: providerConfig,
+					ProviderSpec: providerSpec,
 					Versions: clusterv1alpha1.MachineVersionInfo{
 						Kubelet:      "1.10.1",
 						ControlPlane: "1.10.1",

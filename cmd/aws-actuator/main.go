@@ -355,6 +355,10 @@ func bootstrapCommand() *cobra.Command {
 				glog.Info(msg)
 			}
 
+			clusterFramework.MachineControllerImage = "openshift/origin-aws-machine-controllers:v4.0.0"
+			clusterFramework.MachineManagerImage = "openshift/origin-aws-machine-controllers:v4.0.0"
+			clusterFramework.NodelinkControllerImage = "registry.svc.ci.openshift.org/openshift/origin-v4.0-2019-01-03-031244@sha256:152c0a4ea7cda1731e45af87e33909421dcde7a8fcf4e973cd098a8bae892c50"
+
 			glog.Info("Waiting for all nodes to come up")
 			err = clusterFramework.WaitForNodesToGetReady(1)
 			if err != nil {
@@ -366,7 +370,7 @@ func bootstrapCommand() *cobra.Command {
 				return err
 			}
 
-			clusterFramework.DeployClusterAPIStack(testNamespace.Name, "openshift/origin-aws-machine-controllers:v4.0.0", "")
+			clusterFramework.DeployClusterAPIStack(testNamespace.Name, "")
 			clusterFramework.CreateClusterAndWait(testCluster)
 			createSecretAndWait(clusterFramework, awsCredentialsSecret)
 

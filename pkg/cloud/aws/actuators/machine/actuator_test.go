@@ -53,8 +53,8 @@ func TestMachineEvents(t *testing.T) {
 	}
 
 	machineInvalidProviderConfig := machine.DeepCopy()
-	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
-	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
+	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
+	machineInvalidProviderConfig.Spec.ProviderSpec.ValueFrom = nil
 
 	workerMachine := machine.DeepCopy()
 	workerMachine.Labels[providerconfigv1.MachineTypeLabel] = "worker"
@@ -228,8 +228,8 @@ func TestActuator(t *testing.T) {
 	}
 
 	machineInvalidProviderConfig := machine.DeepCopy()
-	machineInvalidProviderConfig.Spec.ProviderConfig.Value = nil
-	machineInvalidProviderConfig.Spec.ProviderConfig.ValueFrom = nil
+	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
+	machineInvalidProviderConfig.Spec.ProviderSpec.ValueFrom = nil
 
 	machineNoClusterID := machine.DeepCopy()
 	delete(machineNoClusterID.Labels, providerconfigv1.ClusterIDLabel)
@@ -636,7 +636,7 @@ func TestAvailabiltyZone(t *testing.T) {
 			}
 
 			machinePc := &providerconfigv1.AWSMachineProviderConfig{}
-			if err = codec.DecodeProviderConfig(&machine.Spec.ProviderConfig, machinePc); err != nil {
+			if err = codec.DecodeProviderConfig(&machine.Spec.ProviderSpec, machinePc); err != nil {
 				t.Fatal(err)
 			}
 
@@ -654,7 +654,7 @@ func TestAvailabiltyZone(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			machine.Spec.ProviderConfig = *config
+			machine.Spec.ProviderSpec = *config
 
 			fakeKubeClient := kubernetesfake.NewSimpleClientset(awsCredentialsSecret, userDataSecret)
 
