@@ -24,6 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -60,6 +61,51 @@ func NewActuator(params ActuatorParams) *Actuator {
 	}
 }
 
+func (a *Actuator) getClusterMachines(ms *actuators.MachineScope, cluster *clusterv1.Cluster) (*clusterv1.MachineList, error) {
+	clusterMachines, err := ms.MachineClient.List(v1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get machinesList for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
+	}
+	return clusterMachines, nil
+}
+
+func (a *Actuator) getControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
+	var cpm []*clusterv1.Machine
+	for _, m := range machineList.Items {
+		if m.Spec.Versions.ControlPlane != "" {
+			cpm = append(cpm, m.DeepCopy())
+		}
+	}
+	return cpm
+}
+
+func isMachinesSame(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
+	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
+}
+
+func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine) (join bool, err error) {
+	err = nil
+	switch newMachine.ObjectMeta.Labels["set"] {
+	case "node":
+		join = true
+	case "controlplane":
+		join = true
+		// join = false, if:
+		//		1. len(controlPlaneMachines) == 1 && controlPlaneMachines[0] == newMachine
+		if len(controlPlaneMachines) == 1 && isMachinesSame(controlPlaneMachines[0], newMachine) {
+			join = false
+		}
+		// 		TODO: ashish-amarnath 2. if none of the controlPlaneMachines exist
+
+		klog.V(2).Infof("Machine %q should join the controlplane: %t", newMachine.Name, join)
+	default:
+		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", newMachine.ObjectMeta.Labels["set"], newMachine.Name)
+		klog.Errorf(errMsg)
+		err = errors.Errorf(errMsg)
+	}
+	return
+}
+
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
@@ -78,21 +124,23 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("failed to retrieve controlplane url during machine creation: %+v", err)
 	}
 
-	var bootstrapToken string
-	switch machine.ObjectMeta.Labels["set"] {
-	case "node":
-		bootstrapToken, err = a.getWorkerNodeToken(cluster, controlPlaneURL)
+	clusterMachines, err := a.getClusterMachines(scope, cluster)
+	if err != nil {
+		return errors.Errorf("failed to retrieve machines for cluster %q: %v", cluster.Name, err)
+	}
+	controlPlaneMachines := a.getControlPlaneMachines(clusterMachines)
+	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine)
+	if err != nil {
+		return errors.Errorf("Failed to determine whther machine %q should join cluster %q: %v", machine.Name, cluster.Name, err)
+	}
+
+	bootstrapToken := ""
+	if isNodeJoin {
+		bootstrapToken, err = a.getNodeJoinToken(cluster, controlPlaneURL)
 		if err != nil {
 			klog.Errorf("failed to retrieve token to create machine %q: %v", machine.Name, err)
 			return err
 		}
-	case "controlplane":
-		// Nothing special for a controlplane node. Just log and move on.
-		klog.Infof("Attempting to add machine %q as a controlplane node in cluster %q", machine.Name, cluster.Name)
-	default:
-		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", machine.ObjectMeta.Labels["set"], machine.Name)
-		klog.Errorf(errMsg)
-		return errors.Errorf(errMsg)
 	}
 
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
@@ -123,7 +171,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
-func (a *Actuator) getWorkerNodeToken(cluster *clusterv1.Cluster, controlPlaneURL string) (string, error) {
+func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster, controlPlaneURL string) (string, error) {
 	kubeConfig, err := a.GetKubeConfig(cluster, nil)
 	if err != nil {
 		return "", errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)

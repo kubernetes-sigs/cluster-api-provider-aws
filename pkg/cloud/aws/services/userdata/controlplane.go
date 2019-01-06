@@ -56,6 +56,31 @@ EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
 `
+
+	controlPlaneJoinBashScript = `{{.Header}}
+
+HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
+
+cat >/tmp/kubeadm-controlplane-join-config.yaml <<EOF
+---
+apiVersion: kubeadm.k8s.io/v1beta1
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    token: "{{.BootstrapToken}}"
+    apiServerEndpoint: "{{.ELBAddress}}:6443"
+    caCertHashes:
+      - "{{.CACertHash}}"
+nodeRegistration:
+  name: "${HOSTNAME}"
+  criSocket: /var/run/containerd/containerd.sock
+  kubeletExtraArgs:
+    cloud-provider: aws
+controlPlane:
+EOF
+
+kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --experimental-control-plane --v 10
+  `
 )
 
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
@@ -72,8 +97,26 @@ type ControlPlaneInput struct {
 	KubernetesVersion string
 }
 
+// TODO ashish-amarnath: incomplete
+// https://github.com/kubernetes/kubernetes/blob/8d9ac261c4b49759179856d0a9db3ad4dc09e575/cmd/kubeadm/app/apis/kubeadm/types.go#L315:6
+
+// ContolPlaneJoinInput defines context to generate controlplane instance user data for controlplane node join.
+type ContolPlaneJoinInput struct {
+	baseUserData
+
+	CACertHash     string
+	BootstrapToken string
+	ELBAddress     string
+}
+
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = defaultHeader
 	return generate("controlplane", controlPlaneBashScript, input)
+}
+
+// JoinControlPlane returns the user data string to be used on a new contrplplane instance.
+func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
+	input.Header = defaultHeader
+	return generate("controlplane", controlPlaneJoinBashScript, input)
 }
