@@ -51,14 +51,6 @@ spec:
           required:
           - id
           type: object
-        clusterControlPlaneStatus:
-          properties:
-            controlPlaneNodeCount:
-              format: int64
-              type: integer
-          required:
-          - controlPlaneNodeCount
-          type: object
         kind:
           type: string
         metadata:

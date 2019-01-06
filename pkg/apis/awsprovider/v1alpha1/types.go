@@ -102,12 +102,6 @@ type Network struct {
 	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`
 }
 
-// ClusterControlPlane encapsulates control-plane status for the cluster
-type ClusterControlPlane struct {
-	// ControlPlaneNodeCount is the count of the number of control-plane nodes in the cluster.
-	NodeCount int `json:"nodeCount"`
-}
-
 // VPC defines an AWS vpc.
 type VPC struct {
 	ID        string            `json:"id"`

@@ -88,11 +88,6 @@ type Scope struct {
 	ClusterStatus *v1alpha1.AWSClusterProviderStatus
 }
 
-// ControlPlane returns the cluster controlplane status object.
-func (s *Scope) ControlPlane() *v1alpha1.ClusterControlPlane {
-	return &s.ClusterStatus.ControlPlane
-}
-
 // Network returns the cluster network object.
 func (s *Scope) Network() *v1alpha1.Network {
 	return &s.ClusterStatus.Network
