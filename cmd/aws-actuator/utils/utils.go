@@ -8,7 +8,6 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kubernetesfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
@@ -17,15 +16,14 @@ import (
 
 // CreateActuator creates actuator with fake clientsets
 func CreateActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, userData *apiv1.Secret) *machineactuator.Actuator {
-	objList := []runtime.Object{}
+	objList := []runtime.Object{machine}
 	if awsCredentials != nil {
 		objList = append(objList, awsCredentials)
 	}
 	if userData != nil {
 		objList = append(objList, userData)
 	}
-	fakeClient := fake.NewFakeClient(machine)
-	fakeKubeClient := kubernetesfake.NewSimpleClientset(objList...)
+	fakeClient := fake.NewFakeClient(objList...)
 
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
@@ -34,7 +32,6 @@ func CreateActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, us
 
 	params := machineactuator.ActuatorParams{
 		Client:           fakeClient,
-		KubeClient:       fakeKubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 		Codec:            codec,
 		// use empty recorder dropping any event recorded

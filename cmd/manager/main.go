@@ -17,7 +17,6 @@ import (
 	"flag"
 
 	"github.com/golang/glog"
-	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -69,13 +68,6 @@ func main() {
 }
 
 func initActuator(mgr manager.Manager) {
-	config := mgr.GetConfig()
-
-	kubeClient, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		glog.Fatalf("Could not create kubernetes client to talk to the apiserver: %v", err)
-	}
-
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
 		glog.Fatal(err)
@@ -83,7 +75,6 @@ func initActuator(mgr manager.Manager) {
 
 	params := machineactuator.ActuatorParams{
 		Client:           mgr.GetClient(),
-		KubeClient:       kubeClient,
 		AwsClientBuilder: awsclient.NewClient,
 		Codec:            codec,
 		EventRecorder:    mgr.GetRecorder("aws-controller"),
