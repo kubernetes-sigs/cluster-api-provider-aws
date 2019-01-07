@@ -167,6 +167,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 			// incomplete: https://github.com/kubernetes/kubernetes/blob/8d9ac261c4b49759179856d0a9db3ad4dc09e575/cmd/kubeadm/app/apis/kubeadm/types.go#L315:6
 			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
+				CACert:         string(s.scope.ClusterConfig.CACertificate),
+				CAKey:          string(s.scope.ClusterConfig.CAPrivateKey),
 				CACertHash:     caCertHash,
 				BootstrapToken: bootstrapToken,
 				ELBAddress:     s.scope.Network().APIServerELB.DNSName,

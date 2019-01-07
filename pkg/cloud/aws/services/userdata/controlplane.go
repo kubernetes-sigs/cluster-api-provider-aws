@@ -84,9 +84,11 @@ nodeRegistration:
     cloud-provider: aws
 controlPlane:
   localAPIEndpoint:
-    advertiseAddress: "{{.ELBAddress}}:6443"
+    advertiseAddress: "${PRIVATE_IP}"
+    bindPort: "6443"
 EOF
 
+kubeadm init phase certs --v 10
 kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
 `
 )
@@ -113,6 +115,8 @@ type ContolPlaneJoinInput struct {
 	baseUserData
 
 	CACertHash     string
+	CACert         string
+	CAKey          string
 	BootstrapToken string
 	ELBAddress     string
 }

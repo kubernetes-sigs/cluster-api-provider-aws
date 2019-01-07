@@ -114,7 +114,7 @@ func (m *MachineScope) storeMachineStatus(machine *clusterv1.Machine) (*clusterv
 	return m.MachineClient.UpdateStatus(machine)
 }
 
-// Close the MachineScope by updating the machine spec, machine status and cluster status.
+// Close the MachineScope by updating the machine spec, machine status.
 func (m *MachineScope) Close() {
 	if m.MachineClient == nil {
 		return
