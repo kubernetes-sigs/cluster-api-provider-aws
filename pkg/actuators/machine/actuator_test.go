@@ -652,7 +652,6 @@ func TestAvailabiltyZone(t *testing.T) {
 							InstanceId: aws.String("i-02fcb933c5da7085c"),
 							State: &ec2.InstanceState{
 								Name: aws.String("Running"),
-								Code: aws.Int64(16),
 							},
 							LaunchTime: aws.Time(time.Now()),
 						},
@@ -679,12 +678,7 @@ func TestAvailabiltyZone(t *testing.T) {
 				}, nil).AnyTimes()
 
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil)
-
-			// RegisterInstancesWithLoadBalancer should be called for every load balancer name in the machine
-			// spec for create and for update (3 * 2 = 6)
-			for i := 0; i < 6; i++ {
-				mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any())
-			}
+			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).AnyTimes()
 
 			mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(&ec2.DescribeSubnetsOutput{}, nil)
 

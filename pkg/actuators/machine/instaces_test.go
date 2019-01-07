@@ -93,7 +93,7 @@ func TestBuildEC2Filters(t *testing.T) {
 func TestRemoveStoppedMachine(t *testing.T) {
 	machine, err := stubMachine()
 	if err != nil {
-		t.Errorf("Unable to build test machine manifest: %v", err)
+		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}
 
 	cases := []struct {

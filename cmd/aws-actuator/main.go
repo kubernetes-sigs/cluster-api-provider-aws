@@ -120,13 +120,16 @@ func createCommand() *cobra.Command {
 				cmd.Flag("userdata").Value.String(),
 			)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create read resources: %v", err)
 			}
 
-			actuator := createActuator(machine, awsCredentials, userData)
+			actuator, err := createActuator(machine, awsCredentials, userData)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
 			result, err := actuator.CreateMachine(cluster, machine)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create machine: %v", err)
 			}
 			fmt.Printf("Machine creation was successful! InstanceID: %s\n", *result.InstanceId)
 			return nil
@@ -155,11 +158,18 @@ func deleteCommand() *cobra.Command {
 				return err
 			}
 
-			actuator := createActuator(machine, awsCredentials, userData)
-			err = actuator.DeleteMachine(cluster, machine)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create read resources: %v", err)
 			}
+
+			actuator, err := createActuator(machine, awsCredentials, userData)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
+			if err = actuator.DeleteMachine(cluster, machine); err != nil {
+				return fmt.Errorf("unable to delete machine: %v", err)
+			}
+
 			fmt.Printf("Machine delete operation was successful.\n")
 			return nil
 		},
@@ -184,13 +194,16 @@ func existsCommand() *cobra.Command {
 				cmd.Flag("userdata").Value.String(),
 			)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create read resources: %v", err)
 			}
 
-			actuator := createActuator(machine, awsCredentials, userData)
+			actuator, err := createActuator(machine, awsCredentials, userData)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
 			exists, err := actuator.Exists(context.TODO(), cluster, machine)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to check if machine exists: %v", err)
 			}
 			if exists {
 				fmt.Printf("Underlying machine's instance exists.\n")
@@ -266,11 +279,14 @@ func bootstrapCommand() *cobra.Command {
 
 			glog.Infof("Creating master machine")
 
-			actuator := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret)
+			actuator, err := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
 			result, err := actuator.CreateMachine(testCluster, masterMachine)
 			if err != nil {
-				glog.Error(err)
-				return err
+				glog.Errorf("unable to create machine: %v", err)
+				return fmt.Errorf("unable to create machine: %v", err)
 			}
 
 			glog.Infof("Master machine created with ipv4: %v, InstanceId: %v", *result.PrivateIpAddress, *result.InstanceId)

@@ -9,8 +9,6 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/golang/glog"
-
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,22 +52,19 @@ func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*c
 }
 
 func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *clusterv1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
-	var err error
 	machine, err := readMachineManifest(manifestParams, machineLoc)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
 	cluster := &clusterv1.Cluster{}
-	{
-		bytes, err := ioutil.ReadFile(clusterLoc)
-		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
-		}
+	bytes, err := ioutil.ReadFile(clusterLoc)
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
+	}
 
-		if err = yaml.Unmarshal(bytes, &cluster); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
-		}
+	if err := yaml.Unmarshal(bytes, &cluster); err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
 	}
 
 	var awsCredentialsSecret *apiv1.Secret
@@ -115,7 +110,7 @@ func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) error {
 }
 
 // CreateActuator creates actuator with fake clientsets
-func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, userData *apiv1.Secret) *machineactuator.Actuator {
+func createActuator(machine *clusterv1.Machine, awsCredentials, userData *apiv1.Secret) (*machineactuator.Actuator, error) {
 	objList := []runtime.Object{machine}
 	if awsCredentials != nil {
 		objList = append(objList, awsCredentials)
@@ -127,7 +122,7 @@ func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, us
 
 	codec, err := v1alpha1.NewCodec()
 	if err != nil {
-		glog.Fatal(err)
+		return nil, err
 	}
 
 	params := machineactuator.ActuatorParams{
@@ -140,9 +135,9 @@ func createActuator(machine *clusterv1.Machine, awsCredentials *apiv1.Secret, us
 
 	actuator, err := machineactuator.NewActuator(params)
 	if err != nil {
-		glog.Error(err)
+		return nil, err
 	}
-	return actuator
+	return actuator, nil
 }
 
 func cmdRun(binaryPath string, args ...string) ([]byte, error) {
