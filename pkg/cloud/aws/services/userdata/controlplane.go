@@ -59,6 +59,12 @@ kubeadm init --config /tmp/kubeadm.yaml
 
 	controlPlaneJoinBashScript = `{{.Header}}
 
+mkdir -p /etc/kubernetes/pki
+
+echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
+echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
+
+PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
 
 cat >/tmp/kubeadm-controlplane-join-config.yaml <<EOF
@@ -77,10 +83,12 @@ nodeRegistration:
   kubeletExtraArgs:
     cloud-provider: aws
 controlPlane:
+  localAPIEndpoint:
+    advertiseAddress: "{{.ELBAddress}}:6443"
 EOF
 
-kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --experimental-control-plane --v 10
-  `
+kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
+`
 )
 
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
