@@ -68,18 +68,22 @@ check-install: ## Checks that you've installed this repository correctly
 .PHONY: manager
 manager: generate  ## Build manager binary.
 	bazel build //cmd/manager $(BAZEL_ARGS)
+	install bazel-bin/cmd/manager/*/manager $(shell go env GOPATH)/bin/aws-manager
 
 .PHONY: clusterctl
 clusterctl: generate ## Build clusterctl binary.
 	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterctl $(BAZEL_ARGS)
+	install bazel-bin/cmd/clusterctl/*/clusterctl $(shell go env GOPATH)/bin/clusterctl
 
 .PHONY: clusterawsadm
 clusterawsadm: dep-ensure ## Build clusterawsadm binary.
 	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterawsadm $(BAZEL_ARGS)
+	install bazel-bin/cmd/clusterawsadm/*/clusterawsadm $(shell go env GOPATH)/bin/clusterawsadm
 
 .PHONY: cluster-api-dev-helper
 cluster-api-dev-helper: dep-ensure ## Build cluster-api-dev-helper binary
 	bazel build //hack/cluster-api-dev-helper $(BAZEL_ARGS)
+	install bazel-bin/hack/cluster-api-dev-helper/*/cluster-api-dev-helper $(shell go env GOPATH)/bin/cluster-api-dev-helper
 
 .PHONY: release-binaries
 release-binaries: ## Build release binaries
