@@ -99,7 +99,8 @@ k8s-e2e: ## Run k8s specific e2e test
 		-machine-manager-image $${ACTUATOR_IMAGE:-gcr.io/k8s-cluster-api/aws-machine-controller:0.0.1} \
 		-nodelink-controller-image $$(docker run registry.svc.ci.openshift.org/openshift/origin-release:v4.0 image machine-api-operator) \
 		-cluster-id $${ENVIRONMENT_ID:-""} \
-		-ginkgo.v
+		-ginkgo.v \
+		-args -v 5 -logtostderr true
 
 .PHONY: test-e2e
 validate-e2e: ## Run e2e validation/gating test
