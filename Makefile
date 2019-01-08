@@ -144,11 +144,11 @@ cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out ## 
 
 .PHONY: examples
 examples: ## Generate example output
-	$(MAKE) cmd/clusterctl/examples/aws/out IMAGE=${MANAGER_IMAGE}
+	$(MAKE) cmd/clusterctl/examples/aws/out MANAGER_IMAGE=${MANAGER_IMAGE}
 
 .PHONY: examples-dev
 examples-dev: ## Generate example output with developer image
-	$(MAKE) cmd/clusterctl/examples/aws/out IMAGE=${DEV_MANAGER_IMAGE}
+	$(MAKE) cmd/clusterctl/examples/aws/out MANAGER_IMAGE=${DEV_MANAGER_IMAGE}
 
 .PHONY: manifests
 manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for clusterctl
