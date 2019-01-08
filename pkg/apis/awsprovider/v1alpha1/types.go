@@ -259,10 +259,17 @@ var (
 
 // SecurityGroup defines an AWS security group.
 type SecurityGroup struct {
-	ID   string `json:"id"`
+	// ID is a unique identifier.
+	ID string `json:"id"`
+
+	// Name is the security group name.
 	Name string `json:"name"`
 
+	// IngressRules is the inbound rules associated with the security group.
 	IngressRules IngressRules `json:"ingressRule"`
+
+	// Tags is a map of tags associated with the security group.
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the security group.
