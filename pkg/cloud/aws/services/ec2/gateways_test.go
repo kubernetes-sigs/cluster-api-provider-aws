@@ -61,6 +61,9 @@ func TestReconcileInternetGateways(t *testing.T) {
 							},
 						},
 					}, nil)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
 			},
 		},
 		{

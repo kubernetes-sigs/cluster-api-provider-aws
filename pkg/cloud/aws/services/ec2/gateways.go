@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
@@ -43,7 +44,19 @@ func (s *Service) reconcileInternetGateways() error {
 		return err
 	}
 
-	s.scope.Network().InternetGatewayID = igs[0].InternetGatewayId
+	gateway := igs[0]
+
+	// Make sure tags are up to date.
+	err = tags.Ensure(converters.TagsToMap(gateway.Tags), &tags.ApplyParams{
+		EC2Client:   s.scope.EC2,
+		BuildParams: s.getGatewayTagParams(*gateway.InternetGatewayId),
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to tag internet gateway %q", *gateway.InternetGatewayId)
+	}
+
+	s.scope.Network().InternetGatewayID = gateway.InternetGatewayId
 	return nil
 }
 
@@ -88,29 +101,12 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
 
-	name := fmt.Sprintf("%s-igw", s.scope.Name())
-
-	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.scope.EC2,
-		BuildParams: tags.BuildParams{
-			ClusterName: s.scope.Name(),
-			ResourceID:  *ig.InternetGateway.InternetGatewayId,
-			Lifecycle:   tags.ResourceLifecycleOwned,
-			Name:        aws.String(name),
-			Role:        aws.String(tags.ValueCommonRole),
-		},
-	}
-
-	if err := tags.Apply(applyTagsParams); err != nil {
-		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
-	}
-
-	klog.Infof("created internet gateway %q", s.scope.VPC().ID)
-
+	klog.Infof("Created internet gateway %q", s.scope.VPC().ID)
 	_, err = s.scope.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
 		VpcId:             aws.String(s.scope.VPC().ID),
 	})
+
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	}
@@ -137,4 +133,16 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	}
 
 	return out.InternetGateways, nil
+}
+
+func (s *Service) getGatewayTagParams(id string) tags.BuildParams {
+	name := fmt.Sprintf("%s-igw", s.scope.Name())
+
+	return tags.BuildParams{
+		ClusterName: s.scope.Name(),
+		ResourceID:  id,
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Name:        aws.String(name),
+		Role:        aws.String(tags.ValueCommonRole),
+	}
 }
