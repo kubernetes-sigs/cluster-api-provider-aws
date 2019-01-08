@@ -143,7 +143,12 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		}
 	}
 
-	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
+	kubeConfig, err := a.GetKubeConfig(cluster, nil)
+	if err != nil {
+		return errors.Errorf("failed to retrieve kubeconfig to pass into machine creation: %+v", err)
+	}
+
+	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken, kubeConfig)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
 			klog.Errorf("network not ready to launch instances yet: %+v", err)

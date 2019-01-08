@@ -55,6 +55,9 @@ nodeRegistration:
 EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
+
+tar -cvzf /etc/kubernetes/pki.tar.gz /etc/kubernetes/pki/*
+kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf create secret generic kubeadm-certs --from-file=/etc/kubernetes/pki.tar.gz
 `
 
 	controlPlaneJoinBashScript = `{{.Header}}
@@ -63,6 +66,8 @@ mkdir -p /etc/kubernetes/pki
 
 echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
 echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
+
+echo '{{.KubeConfig}}' > /etc/kubernetes/admin.conf
 
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
@@ -85,10 +90,13 @@ nodeRegistration:
 controlPlane:
   localAPIEndpoint:
     advertiseAddress: "${PRIVATE_IP}"
-    bindPort: "6443"
+    bindPort: 6443
 EOF
 
-kubeadm init phase certs --v 10
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system get secrets kubeadm-certs -ojson | jq '.data."pki.tar.gz"' -r | base64 --decode > /etc/kubernetes/pki.tar.gz
+cd / 
+tar -xvf /etc/kubernetes/pki.tar.gz
+
 kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
 `
 )
@@ -119,6 +127,7 @@ type ContolPlaneJoinInput struct {
 	CAKey          string
 	BootstrapToken string
 	ELBAddress     string
+	KubeConfig     string
 }
 
 // NewControlPlane returns the user data string to be used on a controlplane instance.
