@@ -11,7 +11,7 @@ import (
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 
 	"github.com/golang/mock/gomock"
-	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 )
 
 func TestRemoveDuplicatedTags(t *testing.T) {
@@ -91,9 +91,9 @@ func TestBuildEC2Filters(t *testing.T) {
 }
 
 func TestRemoveStoppedMachine(t *testing.T) {
-	machine, _, err := stubMachine()
+	machine, err := stubMachine()
 	if err != nil {
-		t.Errorf("Unable to build test machine manifest: %v", err)
+		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}
 
 	cases := []struct {
@@ -157,8 +157,8 @@ func TestRemoveStoppedMachine(t *testing.T) {
 	}
 }
 
-func TestRunningInstace(t *testing.T) {
-	machine, _, err := stubMachine()
+func TestRunningInstance(t *testing.T) {
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}
@@ -187,7 +187,7 @@ func TestRunningInstace(t *testing.T) {
 }
 
 func TestLaunchInstance(t *testing.T) {
-	machine, _, err := stubMachine()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}

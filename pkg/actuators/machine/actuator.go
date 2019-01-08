@@ -36,7 +36,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -51,9 +51,6 @@ const (
 	// MachineCreationFailed indicates that machine creation failed
 	MachineCreationFailed = "MachineCreationFailed"
 )
-
-// MachineActuator is a variable used to include the actuator into the machine controller
-var MachineActuator *Actuator
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
 type Actuator struct {
@@ -162,7 +159,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 		return err
 	}
 
-	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, conditionType, corev1.ConditionTrue, reason, msg, UpdateConditionIfReasonOrMessageChange)
+	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, conditionType, corev1.ConditionTrue, reason, msg, updateConditionIfReasonOrMessageChange)
 
 	if err := a.updateMachineStatus(machine, awsStatus, nil); err != nil {
 		return err
@@ -173,7 +170,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
 	}
@@ -189,7 +186,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	}
 
 	// We explicitly do NOT want to remove stopped masters.
-	if !IsMaster(machine) {
+	if !isMaster(machine) {
 		// Prevent having a lot of stopped nodes sitting around.
 		err = removeStoppedMachine(machine, awsClient)
 		if err != nil {
@@ -238,7 +235,7 @@ func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, m
 
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
 	}
@@ -279,7 +276,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	glog.Info("updating machine")
 
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), noEventAction)
 	}
@@ -382,7 +379,7 @@ func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *clusterv1.Machi
 }
 
 func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clusterv1.Machine) ([]*ec2.Instance, error) {
-	machineProviderConfig, err := ProviderConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		glog.Errorf("error decoding MachineProviderConfig: %v", err)
 		return nil, err
@@ -490,7 +487,7 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	}
 	glog.Info("finished calculating AWS status")
 
-	awsStatus.Conditions = SetAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", UpdateConditionIfReasonOrMessageChange)
+	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", updateConditionIfReasonOrMessageChange)
 	// TODO(jchaloup): do we really need to update tis?
 	// origInstanceID := awsStatus.InstanceID
 	// if !StringPtrsEqual(origInstanceID, awsStatus.InstanceID) {

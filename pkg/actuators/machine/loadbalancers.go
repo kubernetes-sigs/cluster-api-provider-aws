@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
 func registerWithClassicLoadBalancers(client awsclient.Client, names []string, instance *ec2.Instance) error {

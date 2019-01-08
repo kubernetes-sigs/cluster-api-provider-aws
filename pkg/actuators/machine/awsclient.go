@@ -5,7 +5,7 @@ import (
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
 
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 

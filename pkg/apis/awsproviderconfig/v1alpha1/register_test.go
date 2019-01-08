@@ -1,11 +1,15 @@
 package v1alpha1
 
 import (
-	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+
+	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestEncodeAndDecodeProviderStatus(t *testing.T) {
@@ -43,10 +47,22 @@ func TestEncodeAndDecodeProviderStatus(t *testing.T) {
 		t.Error(err)
 	}
 
-	providerStatusDecoded := &AWSMachineProviderStatus{}
-	codec.DecodeProviderStatus(providerStatusEncoded, providerStatusDecoded)
-	if !reflect.DeepEqual(providerStatus, providerStatusDecoded) {
-		t.Errorf("failed EncodeProviderStatus/DecodeProviderStatus. Expected: %+v, got: %+v", providerStatus, providerStatusDecoded)
+	// without deep copy
+	{
+		providerStatusDecoded := &AWSMachineProviderStatus{}
+		codec.DecodeProviderStatus(providerStatusEncoded, providerStatusDecoded)
+		if !reflect.DeepEqual(providerStatus, providerStatusDecoded) {
+			t.Errorf("failed EncodeProviderStatus/DecodeProviderStatus. Expected: %+v, got: %+v", providerStatus, providerStatusDecoded)
+		}
+	}
+
+	// with deep copy
+	{
+		providerStatusDecoded := &AWSMachineProviderStatus{}
+		codec.DecodeProviderStatus(providerStatusEncoded.DeepCopy(), providerStatusDecoded)
+		if !reflect.DeepEqual(providerStatus, providerStatusDecoded) {
+			t.Errorf("failed EncodeProviderStatus/DecodeProviderStatus. Expected: %+v, got: %+v", providerStatus, providerStatusDecoded)
+		}
 	}
 }
 
@@ -124,16 +140,43 @@ func TestEncodeAndDecodeProviderConfig(t *testing.T) {
 			},
 		},
 		PublicIP: &publicIP,
+		IAMInstanceProfile: &AWSResourceReference{
+			ID: aws.String("IAMInstanceProfile"),
+		},
+		UserDataSecret: &corev1.LocalObjectReference{
+			Name: "userSecret",
+		},
+		KeyName: aws.String("sshkeyname"),
+		LoadBalancers: []LoadBalancerReference{
+			{
+				Name: "balancer",
+				Type: ClassicLoadBalancerType,
+			},
+		},
 	}
 
 	providerConfigEncoded, err := codec.EncodeProviderConfig(providerConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	providerConfigDecoded := &AWSMachineProviderConfig{}
-	codec.DecodeProviderConfig(providerConfigEncoded, providerConfigDecoded)
 
-	if !reflect.DeepEqual(providerConfig, providerConfigDecoded) {
-		t.Errorf("failed EncodeProviderConfig/DecodeProviderConfig. Expected: %+v, got: %+v", providerConfig, providerConfigDecoded)
+	// Without deep copy
+	{
+		providerConfigDecoded := &AWSMachineProviderConfig{}
+		codec.DecodeProviderConfig(providerConfigEncoded, providerConfigDecoded)
+
+		if !reflect.DeepEqual(providerConfig, providerConfigDecoded) {
+			t.Errorf("failed EncodeProviderConfig/DecodeProviderConfig. Expected: %+v, got: %+v", providerConfig, providerConfigDecoded)
+		}
+	}
+
+	// With deep copy
+	{
+		providerConfigDecoded := &AWSMachineProviderConfig{}
+		codec.DecodeProviderConfig(providerConfigEncoded, providerConfigDecoded)
+
+		if !reflect.DeepEqual(providerConfig.DeepCopy(), providerConfigDecoded) {
+			t.Errorf("failed EncodeProviderConfig/DecodeProviderConfig. Expected: %+v, got: %+v", providerConfig, providerConfigDecoded)
+		}
 	}
 }

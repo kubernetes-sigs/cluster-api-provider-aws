@@ -21,57 +21,80 @@ package main
 // or creds in ~/.aws/credentials
 
 import (
-	"bytes"
 	"context"
+	goflag "flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/user"
 	"time"
 
-	flag "github.com/spf13/pflag"
-
-	goflag "flag"
-
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
-	"github.com/ghodss/yaml"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"k8s.io/client-go/kubernetes/scheme"
-
-	"text/template"
-
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator/utils"
-	awsclientwrapper "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
+	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	testutils "sigs.k8s.io/cluster-api-provider-aws/test/utils"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const (
-	instanceIDAnnotation     = "cluster-operator.openshift.io/aws-instance-id"
-	ami                      = "ami-03f6257a"
 	region                   = "us-east-1"
-	size                     = "t1.micro"
 	awsCredentialsSecretName = "aws-credentials-secret"
-
-	pollInterval           = 5 * time.Second
-	timeoutPoolAWSInterval = 10 * time.Minute
+	pollInterval             = 5 * time.Second
+	timeoutPoolAWSInterval   = 10 * time.Minute
 )
+
+func init() {
+	// Add types to scheme
+	clusterv1.AddToScheme(scheme.Scheme)
+
+	rootCmd.PersistentFlags().StringP("machine", "m", "", "Machine manifest")
+	rootCmd.PersistentFlags().StringP("cluster", "c", "", "Cluster manifest")
+	rootCmd.PersistentFlags().StringP("aws-credentials", "a", "", "Secret manifest with aws credentials")
+	rootCmd.PersistentFlags().StringP("userdata", "u", "", "User data manifest")
+	cUser, err := user.Current()
+	if err != nil {
+		rootCmd.PersistentFlags().StringP("environment-id", "p", "", "Directory with bootstrapping manifests")
+	} else {
+		rootCmd.PersistentFlags().StringP("environment-id", "p", cUser.Username, "Machine prefix, by default set to the current user")
+	}
+
+	rootCmd.AddCommand(createCommand())
+
+	rootCmd.AddCommand(deleteCommand())
+
+	rootCmd.AddCommand(existsCommand())
+
+	rootCmd.AddCommand(bootstrapCommand())
+
+	flag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+
+	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
+	flag.CommandLine.Parse([]string{})
+}
 
 func usage() {
 	fmt.Printf("Usage: %s\n\n", os.Args[0])
+}
+
+func checkFlags(cmd *cobra.Command) error {
+	if cmd.Flag("cluster").Value.String() == "" {
+		return fmt.Errorf("--%v/-%v flag is required", cmd.Flag("cluster").Name, cmd.Flag("cluster").Shorthand)
+	}
+	if cmd.Flag("machine").Value.String() == "" {
+		return fmt.Errorf("--%v/-%v flag is required", cmd.Flag("machine").Name, cmd.Flag("machine").Shorthand)
+	}
+	return nil
 }
 
 var rootCmd = &cobra.Command{
@@ -97,13 +120,16 @@ func createCommand() *cobra.Command {
 				cmd.Flag("userdata").Value.String(),
 			)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create read resources: %v", err)
 			}
 
-			actuator := utils.CreateActuator(machine, awsCredentials, userData)
+			actuator, err := createActuator(machine, awsCredentials, userData)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
 			result, err := actuator.CreateMachine(cluster, machine)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create machine: %v", err)
 			}
 			fmt.Printf("Machine creation was successful! InstanceID: %s\n", *result.InstanceId)
 			return nil
@@ -132,11 +158,18 @@ func deleteCommand() *cobra.Command {
 				return err
 			}
 
-			actuator := utils.CreateActuator(machine, awsCredentials, userData)
-			err = actuator.DeleteMachine(cluster, machine)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create read resources: %v", err)
 			}
+
+			actuator, err := createActuator(machine, awsCredentials, userData)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
+			if err = actuator.DeleteMachine(cluster, machine); err != nil {
+				return fmt.Errorf("unable to delete machine: %v", err)
+			}
+
 			fmt.Printf("Machine delete operation was successful.\n")
 			return nil
 		},
@@ -161,13 +194,16 @@ func existsCommand() *cobra.Command {
 				cmd.Flag("userdata").Value.String(),
 			)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to create read resources: %v", err)
 			}
 
-			actuator := utils.CreateActuator(machine, awsCredentials, userData)
+			actuator, err := createActuator(machine, awsCredentials, userData)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
 			exists, err := actuator.Exists(context.TODO(), cluster, machine)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to check if machine exists: %v", err)
 			}
 			if exists {
 				fmt.Printf("Underlying machine's instance exists.\n")
@@ -177,43 +213,6 @@ func existsCommand() *cobra.Command {
 			return nil
 		},
 	}
-}
-
-func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*clusterv1.Machine, error) {
-	machine := &clusterv1.Machine{}
-	manifestBytes, err := ioutil.ReadFile(manifestLoc)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read %v: %v", manifestLoc, err)
-	}
-
-	t, err := template.New("machineuserdata").Parse(string(manifestBytes))
-	if err != nil {
-		return nil, err
-	}
-	var buf bytes.Buffer
-	err = t.Execute(&buf, *manifestParams)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = yaml.Unmarshal(buf.Bytes(), &machine); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal %v: %v", manifestLoc, err)
-	}
-
-	return machine, nil
-}
-
-func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) error {
-	_, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Create(secret)
-	if err != nil {
-		return err
-	}
-
-	err = wait.Poll(framework.PollInterval, framework.PoolTimeout, func() (bool, error) {
-		_, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Get(secret.Name, metav1.GetOptions{})
-		return err == nil, nil
-	})
-	return err
 }
 
 func bootstrapCommand() *cobra.Command {
@@ -280,11 +279,14 @@ func bootstrapCommand() *cobra.Command {
 
 			glog.Infof("Creating master machine")
 
-			actuator := utils.CreateActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret)
+			actuator, err := createActuator(masterMachine, awsCredentialsSecret, masterUserDataSecret)
+			if err != nil {
+				return fmt.Errorf("unable to create actuator: %v", err)
+			}
 			result, err := actuator.CreateMachine(testCluster, masterMachine)
 			if err != nil {
-				glog.Error(err)
-				return err
+				glog.Errorf("unable to create machine: %v", err)
+				return fmt.Errorf("unable to create machine: %v", err)
 			}
 
 			glog.Infof("Master machine created with ipv4: %v, InstanceId: %v", *result.PrivateIpAddress, *result.InstanceId)
@@ -326,7 +328,7 @@ func bootstrapCommand() *cobra.Command {
 				return err
 			}
 
-			acw := awsclientwrapper.NewAwsClientWrapper(awsClient)
+			acw := machineactuator.NewAwsClientWrapper(awsClient)
 			glog.Infof("Collecting master kubeconfig")
 			restConfig, err := f.GetMasterMachineRestConfig(masterMachine, acw)
 			if err != nil {
@@ -394,102 +396,6 @@ func bootstrapCommand() *cobra.Command {
 	cmd.PersistentFlags().StringP("manifests", "", "", "Directory with bootstrapping manifests")
 	cmd.PersistentFlags().StringP("master-machine-private-key", "", "", "Private key file of the master machine to pull kubeconfig")
 	return cmd
-}
-
-func cmdRun(binaryPath string, args ...string) ([]byte, error) {
-	cmd := exec.Command(binaryPath, args...)
-	return cmd.CombinedOutput()
-}
-
-func init() {
-	// Add types to scheme
-	clusterv1.AddToScheme(scheme.Scheme)
-
-	rootCmd.PersistentFlags().StringP("machine", "m", "", "Machine manifest")
-	rootCmd.PersistentFlags().StringP("cluster", "c", "", "Cluster manifest")
-	rootCmd.PersistentFlags().StringP("aws-credentials", "a", "", "Secret manifest with aws credentials")
-	rootCmd.PersistentFlags().StringP("userdata", "u", "", "User data manifest")
-	cUser, err := user.Current()
-	if err != nil {
-		rootCmd.PersistentFlags().StringP("environment-id", "p", "", "Directory with bootstrapping manifests")
-	} else {
-		rootCmd.PersistentFlags().StringP("environment-id", "p", cUser.Username, "Machine prefix, by default set to the current user")
-	}
-
-	rootCmd.AddCommand(createCommand())
-
-	rootCmd.AddCommand(deleteCommand())
-
-	rootCmd.AddCommand(existsCommand())
-
-	rootCmd.AddCommand(bootstrapCommand())
-
-	flag.CommandLine.AddGoFlagSet(goflag.CommandLine)
-
-	// the following line exists to make glog happy, for more information, see: https://github.com/kubernetes/kubernetes/issues/17162
-	flag.CommandLine.Parse([]string{})
-}
-
-type manifestParams struct {
-	ClusterID string
-}
-
-func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *clusterv1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
-	var err error
-	machine, err := readMachineManifest(manifestParams, machineLoc)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	cluster := &clusterv1.Cluster{}
-	{
-		bytes, err := ioutil.ReadFile(clusterLoc)
-		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
-		}
-
-		if err = yaml.Unmarshal(bytes, &cluster); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
-		}
-	}
-
-	var awsCredentialsSecret *apiv1.Secret
-	if awsCredentialSecretLoc != "" {
-		awsCredentialsSecret = &apiv1.Secret{}
-		bytes, err := ioutil.ReadFile(awsCredentialSecretLoc)
-		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("aws credentials manifest %q: %v", awsCredentialSecretLoc, err)
-		}
-
-		if err = yaml.Unmarshal(bytes, &awsCredentialsSecret); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("aws credentials manifest %q: %v", awsCredentialSecretLoc, err)
-		}
-	}
-
-	var userDataSecret *apiv1.Secret
-	if userDataLoc != "" {
-		userDataSecret = &apiv1.Secret{}
-		bytes, err := ioutil.ReadFile(userDataLoc)
-		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("user data manifest %q: %v", userDataLoc, err)
-		}
-
-		if err = yaml.Unmarshal(bytes, &userDataSecret); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("user data manifest %q: %v", userDataLoc, err)
-		}
-	}
-
-	return cluster, machine, awsCredentialsSecret, userDataSecret, nil
-}
-
-func checkFlags(cmd *cobra.Command) error {
-	if cmd.Flag("cluster").Value.String() == "" {
-		return fmt.Errorf("--%v/-%v flag is required", cmd.Flag("cluster").Name, cmd.Flag("cluster").Shorthand)
-	}
-	if cmd.Flag("machine").Value.String() == "" {
-		return fmt.Errorf("--%v/-%v flag is required", cmd.Flag("machine").Name, cmd.Flag("machine").Shorthand)
-	}
-	return nil
 }
 
 func main() {

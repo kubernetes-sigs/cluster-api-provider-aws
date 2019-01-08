@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 )
 
 func TestRegisterWithNetworkLoadBalancers(t *testing.T) {

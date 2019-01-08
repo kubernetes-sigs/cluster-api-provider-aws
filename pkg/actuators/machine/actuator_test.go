@@ -2,7 +2,6 @@ package machine
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -15,8 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
-	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -35,7 +34,6 @@ const (
 	noError             = ""
 	awsServiceError     = "error creating aws service"
 	launchInstanceError = "error launching instance"
-	lbError             = "error updating load balancers"
 )
 
 func TestMachineEvents(t *testing.T) {
@@ -44,10 +42,14 @@ func TestMachineEvents(t *testing.T) {
 		t.Fatalf("unable to build codec: %v", err)
 	}
 
-	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cluster := stubCluster()
+	awsCredentialsSecret := stubAwsCredentialsSecret()
+	userDataSecret := stubUserDataSecret()
 
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
@@ -67,6 +69,7 @@ func TestMachineEvents(t *testing.T) {
 		runInstancesErr         error
 		terminateInstancesErr   error
 		lbErr                   error
+		regInstancesWithLbErr   error
 	}{
 		{
 			name:    "Create machine event failed (invalid configuration)",
@@ -167,8 +170,8 @@ func TestMachineEvents(t *testing.T) {
 				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
 			}
 
-			mockTerminateInstances(mockAWSClient)
-			mockRegisterInstancesWithLoadBalancer(mockAWSClient, tc.error == lbError)
+			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil)
+			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
 			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
 			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), tc.lbErr)
@@ -194,10 +197,14 @@ func TestMachineEvents(t *testing.T) {
 }
 
 func TestActuator(t *testing.T) {
-	machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cluster := stubCluster()
+	awsCredentialsSecret := stubAwsCredentialsSecret()
+	userDataSecret := stubUserDataSecret()
 
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
@@ -554,50 +561,6 @@ func TestActuator(t *testing.T) {
 	}
 }
 
-func mockDescribeInstances(mockAWSClient *mockaws.MockClient, genError bool) {
-	var err error
-
-	if genError {
-		err = errors.New("requested RunInstances error")
-	}
-
-	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(
-		&ec2.DescribeInstancesOutput{
-			Reservations: []*ec2.Reservation{
-				{
-					Instances: []*ec2.Instance{
-						{
-							ImageId:    aws.String("ami-a9acbbd6"),
-							InstanceId: aws.String("i-02fcb933c5da7085c"),
-							State: &ec2.InstanceState{
-								Name: aws.String("Running"),
-								Code: aws.Int64(16),
-							},
-							LaunchTime: aws.Time(time.Now()),
-						},
-					},
-				},
-			},
-		}, err).AnyTimes()
-}
-
-func mockTerminateInstances(mockAWSClient *mockaws.MockClient) {
-	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(
-		&ec2.TerminateInstancesOutput{}, nil)
-}
-
-func mockRegisterInstancesWithLoadBalancer(mockAWSClient *mockaws.MockClient, createError bool) {
-	if createError {
-		mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, fmt.Errorf("error")).AnyTimes()
-		return
-	}
-	// RegisterInstancesWithLoadBalancer should be called for every load balancer name in the machine
-	// spec for create and for update (3 * 2 = 6)
-	for i := 0; i < 6; i++ {
-		mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any())
-	}
-}
-
 func TestAvailabiltyZone(t *testing.T) {
 	cases := []struct {
 		name             string
@@ -623,9 +586,14 @@ func TestAvailabiltyZone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to build codec: %v", err)
 	}
+
+	cluster := stubCluster()
+	awsCredentialsSecret := stubAwsCredentialsSecret()
+	userDataSecret := stubUserDataSecret()
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			machine, cluster, awsCredentialsSecret, userDataSecret, err := stubMachineAPIResources()
+			machine, err := stubMachine()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -671,41 +639,52 @@ func TestAvailabiltyZone(t *testing.T) {
 				t.Fatalf("Could not create AWS machine actuator: %v", err)
 			}
 
-			mockRunInstancesForPlacement(mockAWSClient, tc.availabilityZone, tc.subnet)
-			mockDescribeInstances(mockAWSClient, false)
-			mockTerminateInstances(mockAWSClient)
-			mockRegisterInstancesWithLoadBalancer(mockAWSClient, false)
-			mockDescribeSubnets(mockAWSClient)
+			var placement *ec2.Placement
+			if tc.availabilityZone != "" && tc.subnet == "" {
+				placement = &ec2.Placement{AvailabilityZone: aws.String(tc.availabilityZone)}
+			}
+
+			mockAWSClient.EXPECT().RunInstances(placementMatcher{placement}).Return(
+				&ec2.Reservation{
+					Instances: []*ec2.Instance{
+						{
+							ImageId:    aws.String("ami-a9acbbd6"),
+							InstanceId: aws.String("i-02fcb933c5da7085c"),
+							State: &ec2.InstanceState{
+								Name: aws.String("Running"),
+							},
+							LaunchTime: aws.Time(time.Now()),
+						},
+					},
+				}, nil)
+
+			mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(
+				&ec2.DescribeInstancesOutput{
+					Reservations: []*ec2.Reservation{
+						{
+							Instances: []*ec2.Instance{
+								{
+									ImageId:    aws.String("ami-a9acbbd6"),
+									InstanceId: aws.String("i-02fcb933c5da7085c"),
+									State: &ec2.InstanceState{
+										Name: aws.String("Running"),
+										Code: aws.Int64(16),
+									},
+									LaunchTime: aws.Time(time.Now()),
+								},
+							},
+						},
+					},
+				}, nil).AnyTimes()
+
+			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil)
+			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).AnyTimes()
+
+			mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(&ec2.DescribeSubnetsOutput{}, nil)
 
 			actuator.Create(context.TODO(), cluster, machine)
 		})
 	}
-}
-
-func mockDescribeSubnets(mockAWSClient *mockaws.MockClient) {
-	mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(&ec2.DescribeSubnetsOutput{}, nil)
-}
-
-func mockRunInstancesForPlacement(mockAWSClient *mockaws.MockClient, availabilityZone, subnet string) {
-	var placement *ec2.Placement
-	if availabilityZone != "" && subnet == "" {
-		placement = &ec2.Placement{AvailabilityZone: aws.String(availabilityZone)}
-	}
-
-	mockAWSClient.EXPECT().RunInstances(Placement(placement)).Return(
-		&ec2.Reservation{
-			Instances: []*ec2.Instance{
-				{
-					ImageId:    aws.String("ami-a9acbbd6"),
-					InstanceId: aws.String("i-02fcb933c5da7085c"),
-					State: &ec2.InstanceState{
-						Name: aws.String("Running"),
-						Code: aws.Int64(16),
-					},
-					LaunchTime: aws.Time(time.Now()),
-				},
-			},
-		}, nil)
 }
 
 type placementMatcher struct {
@@ -726,5 +705,3 @@ func (m placementMatcher) Matches(input interface{}) bool {
 func (m placementMatcher) String() string {
 	return fmt.Sprintf("is placement: %#v", m.placement)
 }
-
-func Placement(placement *ec2.Placement) gomock.Matcher { return placementMatcher{placement} }

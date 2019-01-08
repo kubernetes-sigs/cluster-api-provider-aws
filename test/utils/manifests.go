@@ -7,7 +7,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 

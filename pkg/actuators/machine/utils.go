@@ -30,7 +30,7 @@ import (
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -136,9 +136,9 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 	return nil
 }
 
-// ProviderConfigFromMachine gets the machine provider config MachineSetSpec from the
+// providerConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	var providerSpecRawExtention runtime.RawExtension
 
 	// TODO(jchaloup): Remove providerConfig once all consumers migrate to providerSpec
@@ -180,33 +180,33 @@ func ProviderConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 	return &config, nil
 }
 
-// IsMaster returns true if the machine is part of a cluster's control plane
-func IsMaster(machine *clusterv1.Machine) bool {
+// isMaster returns true if the machine is part of a cluster's control plane
+func isMaster(machine *clusterv1.Machine) bool {
 	if machineType, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineTypeLabel]; exists && machineType == "master" {
 		return true
 	}
 	return false
 }
 
-// UpdateConditionCheck tests whether a condition should be updated from the
+// updateConditionCheck tests whether a condition should be updated from the
 // old condition to the new condition. Returns true if the condition should
 // be updated.
-type UpdateConditionCheck func(oldReason, oldMessage, newReason, newMessage string) bool
+type updateConditionCheck func(oldReason, oldMessage, newReason, newMessage string) bool
 
-// UpdateConditionAlways returns true. The condition will always be updated.
-func UpdateConditionAlways(_, _, _, _ string) bool {
+// updateConditionAlways returns true. The condition will always be updated.
+func updateConditionAlways(_, _, _, _ string) bool {
 	return true
 }
 
-// UpdateConditionNever return false. The condition will never be updated,
+// updateConditionNever return false. The condition will never be updated,
 // unless there is a change in the status of the condition.
-func UpdateConditionNever(_, _, _, _ string) bool {
+func updateConditionNever(_, _, _, _ string) bool {
 	return false
 }
 
-// UpdateConditionIfReasonOrMessageChange returns true if there is a change
+// updateConditionIfReasonOrMessageChange returns true if there is a change
 // in the reason or the message of the condition.
-func UpdateConditionIfReasonOrMessageChange(oldReason, oldMessage, newReason, newMessage string) bool {
+func updateConditionIfReasonOrMessageChange(oldReason, oldMessage, newReason, newMessage string) bool {
 	return oldReason != newReason ||
 		oldMessage != newMessage
 }
@@ -214,7 +214,7 @@ func UpdateConditionIfReasonOrMessageChange(oldReason, oldMessage, newReason, ne
 func shouldUpdateCondition(
 	oldStatus corev1.ConditionStatus, oldReason, oldMessage string,
 	newStatus corev1.ConditionStatus, newReason, newMessage string,
-	updateConditionCheck UpdateConditionCheck,
+	updateConditionCheck updateConditionCheck,
 ) bool {
 	if oldStatus != newStatus {
 		return true
@@ -222,7 +222,7 @@ func shouldUpdateCondition(
 	return updateConditionCheck(oldReason, oldMessage, newReason, newMessage)
 }
 
-// SetAWSMachineProviderCondition sets the condition for the machine and
+// setAWSMachineProviderCondition sets the condition for the machine and
 // returns the new slice of conditions.
 // If the machine does not already have a condition with the specified type,
 // a condition will be added to the slice if and only if the specified
@@ -231,16 +231,16 @@ func shouldUpdateCondition(
 // the condition will be updated if either of the following are true.
 // 1) Requested status is different than existing status.
 // 2) The updateConditionCheck function returns true.
-func SetAWSMachineProviderCondition(
+func setAWSMachineProviderCondition(
 	conditions []providerconfigv1.AWSMachineProviderCondition,
 	conditionType providerconfigv1.AWSMachineProviderConditionType,
 	status corev1.ConditionStatus,
 	reason string,
 	message string,
-	updateConditionCheck UpdateConditionCheck,
+	updateConditionCheck updateConditionCheck,
 ) []providerconfigv1.AWSMachineProviderCondition {
 	now := metav1.Now()
-	existingCondition := FindAWSMachineProviderCondition(conditions, conditionType)
+	existingCondition := findAWSMachineProviderCondition(conditions, conditionType)
 	if existingCondition == nil {
 		if status == corev1.ConditionTrue {
 			conditions = append(
@@ -273,9 +273,9 @@ func SetAWSMachineProviderCondition(
 	return conditions
 }
 
-// FindAWSMachineProviderCondition finds in the machine the condition that has the
+// findAWSMachineProviderCondition finds in the machine the condition that has the
 // specified condition type. If none exists, then returns nil.
-func FindAWSMachineProviderCondition(conditions []providerconfigv1.AWSMachineProviderCondition, conditionType providerconfigv1.AWSMachineProviderConditionType) *providerconfigv1.AWSMachineProviderCondition {
+func findAWSMachineProviderCondition(conditions []providerconfigv1.AWSMachineProviderCondition, conditionType providerconfigv1.AWSMachineProviderConditionType) *providerconfigv1.AWSMachineProviderCondition {
 	for i, condition := range conditions {
 		if condition.Type == conditionType {
 			return &conditions[i]

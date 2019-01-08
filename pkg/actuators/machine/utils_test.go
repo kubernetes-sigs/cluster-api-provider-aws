@@ -114,7 +114,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 
 	client := fake.NewFakeClient(machineClass)
 	for _, tc := range testCases {
-		decodedProviderConfig, err := ProviderConfigFromMachine(client, tc.machine, codec)
+		decodedProviderConfig, err := providerConfigFromMachine(client, tc.machine, codec)
 		if err != nil {
 			t.Error(err)
 		}

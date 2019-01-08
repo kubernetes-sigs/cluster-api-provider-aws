@@ -5,21 +5,17 @@ import (
 	"testing"
 	"time"
 
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
-	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 )
 
 func TestAwsClient(t *testing.T) {
-	machine, machinePC, err := stubMachine()
+	machine, err := stubMachine()
 	if err != nil {
 		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}
-
-	machinePC.AMI = providerconfigv1.AWSResourceReference{}
 
 	cases := []struct {
 		name   string
