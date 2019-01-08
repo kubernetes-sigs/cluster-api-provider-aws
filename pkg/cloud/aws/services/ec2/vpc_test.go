@@ -63,6 +63,24 @@ func TestReconcileVPC(t *testing.T) {
 								State:     aws.String("available"),
 								VpcId:     aws.String("vpc-exists"),
 								CidrBlock: aws.String("10.0.0.0/8"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-vpc"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
+										Value: aws.String("true"),
+									},
+								},
 							},
 						},
 					}, nil)

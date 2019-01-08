@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
@@ -50,6 +51,16 @@ func (s *Service) reconcileVPC() error {
 		return errors.Wrap(err, "failed to describe VPCs")
 	}
 
+	// Make sure tags are up to date.
+	err = tags.Ensure(vpc.Tags, &tags.ApplyParams{
+		EC2Client:   s.scope.EC2,
+		BuildParams: s.getVPCTagParams(vpc.ID),
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "failed to tag vpc %q", vpc.ID)
+	}
+
 	vpc.DeepCopyInto(s.scope.VPC())
 	klog.V(2).Infof("Working on VPC %q", vpc.ID)
 	return nil
@@ -72,23 +83,6 @@ func (s *Service) createVPC() (*v1alpha1.VPC, error) {
 	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
 	if err := s.scope.EC2.WaitUntilVpcAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
-	}
-
-	name := fmt.Sprintf("%s-vpc", s.scope.Name())
-
-	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.scope.EC2,
-		BuildParams: tags.BuildParams{
-			ClusterName: s.scope.Name(),
-			ResourceID:  *out.Vpc.VpcId,
-			Lifecycle:   tags.ResourceLifecycleOwned,
-			Name:        aws.String(name),
-			Role:        aws.String(tags.ValueCommonRole),
-		},
-	}
-
-	if err := tags.Apply(applyTagsParams); err != nil {
-		return nil, errors.Wrapf(err, "failed to tag vpc %q", *out.Vpc.VpcId)
 	}
 
 	klog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
@@ -158,5 +152,18 @@ func (s *Service) describeVPC() (*v1alpha1.VPC, error) {
 	return &v1alpha1.VPC{
 		ID:        *out.Vpcs[0].VpcId,
 		CidrBlock: *out.Vpcs[0].CidrBlock,
+		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),
 	}, nil
+}
+
+func (s *Service) getVPCTagParams(id string) tags.BuildParams {
+	name := fmt.Sprintf("%s-vpc", s.scope.Name())
+
+	return tags.BuildParams{
+		ClusterName: s.scope.Name(),
+		ResourceID:  id,
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Name:        aws.String(name),
+		Role:        aws.String(tags.ValueCommonRole),
+	}
 }
