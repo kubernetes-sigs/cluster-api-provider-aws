@@ -106,11 +106,15 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		Role:        aws.String(machine.Role()),
 	})
 
+	var err error
 	// Pick image from the machine configuration, or use a default one.
 	if machine.MachineConfig.AMI.ID != nil {
 		input.ImageID = *machine.MachineConfig.AMI.ID
 	} else {
-		input.ImageID = s.defaultAMILookup(machine.Region())
+		input.ImageID, err = s.defaultAMILookup("ubuntu", "18.04", machine.Machine.Spec.Versions.Kubelet)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Pick subnet from the machine configuration, or default to the first private available.

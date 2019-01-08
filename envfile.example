@@ -3,6 +3,3 @@ export AWS_REGION=us-west-2
 export AWS_ACCESS_KEY_ID=""
 export AWS_SECRET_ACCESS_KEY=""
 export SSH_KEY_NAME=""
-
-# use a dev image instead of the released image
-export MANAGER_IMAGE=""
