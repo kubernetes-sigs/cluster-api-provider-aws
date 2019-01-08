@@ -53,8 +53,9 @@ func (s *Service) reconcileSecurityGroups() error {
 	// First iteration makes sure that the security group are valid and fully created.
 	for _, role := range roles {
 		sg := s.getDefaultSecurityGroup(role)
+		existing, ok := sgs[*sg.GroupName]
 
-		if existing, ok := sgs[*sg.GroupName]; !ok {
+		if !ok {
 			if err := s.createSecurityGroup(role, sg); err != nil {
 				return err
 			}
@@ -63,12 +64,22 @@ func (s *Service) reconcileSecurityGroups() error {
 				ID:   *sg.GroupId,
 				Name: *sg.GroupName,
 			}
-		} else {
-			// TODO(vincepri): validate / update security group if necessary.
-			s.scope.SecurityGroups()[role] = existing
+			klog.V(2).Infof("Security group for role %q: %v", role, s.scope.SecurityGroups()[role])
+			continue
 		}
 
-		klog.V(2).Infof("Security group for role %q: %v", role, s.scope.SecurityGroups()[role])
+		// TODO(vincepri): validate / update security group if necessary.
+		s.scope.SecurityGroups()[role] = existing
+
+		// Make sure tags are up to date.
+		err := tags.Ensure(existing.Tags, &tags.ApplyParams{
+			EC2Client:   s.scope.EC2,
+			BuildParams: s.getSecurityGroupTagParams(existing.Name, role),
+		})
+
+		if err != nil {
+			return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
+		}
 	}
 
 	// Second iteration creates or updates all permissions on the security group to match
@@ -147,6 +158,7 @@ func (s *Service) describeSecurityGroupsByName() (map[string]*v1alpha1.SecurityG
 		sg := &v1alpha1.SecurityGroup{
 			ID:   *ec2sg.GroupId,
 			Name: *ec2sg.GroupName,
+			Tags: converters.TagsToMap(ec2sg.Tags),
 		}
 
 		for _, ec2rule := range ec2sg.IpPermissions {
@@ -305,16 +317,19 @@ func (s *Service) getSecurityGroupName(clusterName string, role v1alpha1.Securit
 func (s *Service) getDefaultSecurityGroup(role v1alpha1.SecurityGroupRole) *ec2.SecurityGroup {
 	name := s.getSecurityGroupName(s.scope.Name(), role)
 
-	// TODO: reconcile v1alpha1.SecurityGroupRoles with tag roles
 	return &ec2.SecurityGroup{
 		GroupName: aws.String(name),
 		VpcId:     aws.String(s.scope.VPC().ID),
-		Tags: converters.MapToTags(tags.Build(tags.BuildParams{
-			ClusterName: s.scope.Name(),
-			Lifecycle:   tags.ResourceLifecycleOwned,
-			Name:        aws.String(name),
-			Role:        aws.String(string(role)),
-		})),
+		Tags:      converters.MapToTags(tags.Build(s.getSecurityGroupTagParams(name, role))),
+	}
+}
+
+func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityGroupRole) tags.BuildParams {
+	return tags.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Name:        aws.String(name),
+		Role:        aws.String(string(role)),
 	}
 }
 
