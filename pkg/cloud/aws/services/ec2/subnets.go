@@ -17,7 +17,9 @@ limitations under the License.
 package ec2
 
 import (
-	"fmt"
+	"strings"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -89,6 +91,17 @@ LoopExisting:
 			// Two subnets are defined equal to each other if their id is equal
 			// or if they are in the same vpc and the cidr block is the same.
 			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.VpcID == exsn.VpcID && sn.CidrBlock == exsn.CidrBlock) {
+
+				// Make sure tags are up to date.
+				err = tags.Ensure(exsn.Tags, &tags.ApplyParams{
+					EC2Client:   s.scope.EC2,
+					BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic),
+				})
+
+				if err != nil {
+					return errors.Wrapf(err, "failed to ensure tags on subnet %q", exsn.ID)
+				}
+
 				// TODO(vincepri): check if subnet needs to be updated.
 				exsn.DeepCopyInto(sn)
 				continue LoopExisting
@@ -154,6 +167,7 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
 			IsPublic:         *ec2sn.MapPublicIpOnLaunch,
+			Tags:             converters.TagsToMap(ec2sn.Tags),
 		})
 	}
 
@@ -161,8 +175,6 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 }
 
 func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
-	mapPublicIP := sn.IsPublic
-
 	out, err := s.scope.EC2.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(sn.VpcID),
 		CidrBlock:        aws.String(sn.CidrBlock),
@@ -178,30 +190,16 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
-	suffix := "private"
-	role := tags.ValueCommonRole
-	if mapPublicIP {
-		suffix = "public"
-		role = tags.ValueBastionRole
-	}
-	name := fmt.Sprintf("%s-subnet-%s", s.scope.Name(), suffix)
-
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.scope.EC2,
-		BuildParams: tags.BuildParams{
-			ClusterName: s.scope.Name(),
-			ResourceID:  *out.Subnet.SubnetId,
-			Lifecycle:   tags.ResourceLifecycleOwned,
-			Name:        aws.String(name),
-			Role:        aws.String(role),
-		},
+		EC2Client:   s.scope.EC2,
+		BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic),
 	}
 
 	if err := tags.Apply(applyTagsParams); err != nil {
 		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
 	}
 
-	if mapPublicIP {
+	if sn.IsPublic {
 		attReq := &ec2.ModifySubnetAttributeInput{
 			MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 				Value: aws.Bool(true),
@@ -224,7 +222,7 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 		VpcID:            *out.Subnet.VpcId,
 		AvailabilityZone: *out.Subnet.AvailabilityZone,
 		CidrBlock:        *out.Subnet.CidrBlock,
-		IsPublic:         mapPublicIP,
+		IsPublic:         sn.IsPublic,
 	}, nil
 }
 
@@ -240,4 +238,24 @@ func (s *Service) deleteSubnet(id string) error {
 	klog.V(2).Infof("Deleted subnet %q in vpc %q", id, s.scope.VPC().ID)
 	record.Eventf(s.scope.Cluster, "DeletedSubnet", "Deleted managed Subnet %q", id)
 	return nil
+}
+
+func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
+	var name strings.Builder
+
+	name.WriteString(s.scope.Name())
+	name.WriteString("-subnet-")
+	if public {
+		name.WriteString("public")
+	} else {
+		name.WriteString("private")
+	}
+
+	return tags.BuildParams{
+		ClusterName: s.scope.Name(),
+		ResourceID:  id,
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Name:        aws.String(name.String()),
+		Role:        aws.String(tags.ValueCommonRole),
+	}
 }

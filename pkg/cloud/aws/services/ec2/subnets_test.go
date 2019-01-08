@@ -91,6 +91,24 @@ func TestReconcileSubnets(t *testing.T) {
 								AvailabilityZone:    aws.String("us-east-1a"),
 								CidrBlock:           aws.String("10.0.10.0/24"),
 								MapPublicIpOnLaunch: aws.Bool(false),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
+										Value: aws.String("true"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-subnet-private"),
+									},
+								},
 							},
 						},
 					}, nil)
