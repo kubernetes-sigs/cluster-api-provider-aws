@@ -104,9 +104,9 @@ type Network struct {
 
 // VPC defines an AWS vpc.
 type VPC struct {
-	ID string `json:"id"`
-
-	CidrBlock string `json:"cidrBlock"`
+	ID        string            `json:"id"`
+	CidrBlock string            `json:"cidrBlock"`
+	Tags      map[string]string `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the VPC.
