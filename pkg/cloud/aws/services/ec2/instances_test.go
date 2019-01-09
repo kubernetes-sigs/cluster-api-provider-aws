@@ -302,6 +302,15 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(gomock.Any()).
 					Return(&ec2.Reservation{
