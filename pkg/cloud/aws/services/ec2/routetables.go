@@ -17,13 +17,14 @@ limitations under the License.
 package ec2
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
@@ -45,6 +46,17 @@ func (s *Service) reconcileRouteTables() error {
 			klog.V(2).Infof("Subnet %q is already associated with route table %q", sn.ID, *igw.RouteTableId)
 			// TODO(vincepri): if the route table ids are both non-empty and they don't match, replace the association.
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
+
+			// Make sure tags are up to date.
+			err := tags.Ensure(converters.TagsToMap(igw.Tags), &tags.ApplyParams{
+				EC2Client:   s.scope.EC2,
+				BuildParams: s.getRouteTableTagParams(*igw.RouteTableId, sn.IsPublic),
+			})
+
+			if err != nil {
+				return errors.Wrapf(err, "failed to ensure tags on route table %q", *igw.RouteTableId)
+			}
+
 			continue
 		}
 
@@ -147,30 +159,14 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 	return out.RouteTables, nil
 }
 
-// TODO: dedup some of the public/private logic shared with createSubnet
 func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool) (*v1alpha1.RouteTable, error) {
 	out, err := s.scope.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(s.scope.VPC().ID),
 	})
 
-	suffix := "private"
-	role := tags.ValueCommonRole
-	if isPublic {
-		suffix = "public"
-		role = tags.ValueBastionRole
-	}
-
-	name := fmt.Sprintf("%s-rt-%s", s.scope.Name(), suffix)
-
 	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.scope.EC2,
-		BuildParams: tags.BuildParams{
-			ClusterName: s.scope.Name(),
-			ResourceID:  *out.RouteTable.RouteTableId,
-			Lifecycle:   tags.ResourceLifecycleOwned,
-			Name:        aws.String(name),
-			Role:        aws.String(role),
-		},
+		EC2Client:   s.scope.EC2,
+		BuildParams: s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic),
 	}
 
 	if err := tags.Apply(applyTagsParams); err != nil {
@@ -233,5 +229,25 @@ func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
 			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
 			GatewayId:            aws.String(*s.scope.Network().InternetGatewayID),
 		},
+	}
+}
+
+func (s *Service) getRouteTableTagParams(id string, public bool) tags.BuildParams {
+	var name strings.Builder
+
+	name.WriteString(s.scope.Name())
+	name.WriteString("-rt-")
+	if public {
+		name.WriteString("public")
+	} else {
+		name.WriteString("private")
+	}
+
+	return tags.BuildParams{
+		ClusterName: s.scope.Name(),
+		ResourceID:  id,
+		Lifecycle:   tags.ResourceLifecycleOwned,
+		Name:        aws.String(name.String()),
+		Role:        aws.String(tags.ValueCommonRole),
 	}
 }
