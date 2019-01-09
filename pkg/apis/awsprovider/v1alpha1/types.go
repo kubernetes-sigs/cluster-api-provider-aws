@@ -118,12 +118,13 @@ func (v *VPC) String() string {
 type Subnet struct {
 	ID string `json:"id"`
 
-	VpcID            string  `json:"vpcId"`
-	AvailabilityZone string  `json:"availabilityZone"`
-	CidrBlock        string  `json:"cidrBlock"`
-	IsPublic         bool    `json:"public"`
-	RouteTableID     *string `json:"routeTableId"`
-	NatGatewayID     *string `json:"natGatewayId"`
+	VpcID            string            `json:"vpcId"`
+	AvailabilityZone string            `json:"availabilityZone"`
+	CidrBlock        string            `json:"cidrBlock"`
+	IsPublic         bool              `json:"public"`
+	RouteTableID     *string           `json:"routeTableId"`
+	NatGatewayID     *string           `json:"natGatewayId"`
+	Tags             map[string]string `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the subnet.
