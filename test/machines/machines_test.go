@@ -201,6 +201,37 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			f.DeleteMachineAndWait(testMachine, acw)
 		})
 
+		It("Can create EBS volumes", func() {
+			testMachineProviderSpec, err := utils.TestingMachineProviderSpecWithEBS(awsCredSecret.Name, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderSpec)
+			f.CreateMachineAndWait(testMachine, acw)
+			machinesToDelete.AddMachine(testMachine, f, acw)
+
+			volumes, err := acw.GetVolumes(testMachine)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Checking EBS volume mount", func() {
+				Expect(volumes).To(HaveKey("/dev/sda1"))
+			})
+
+			By("Checking EBS volume size", func() {
+				Expect(volumes["/dev/sda1"]["size"].(int64)).To(Equal(int64(142)))
+			})
+
+			By("Checking EBS volume type", func() {
+				Expect(volumes["/dev/sda1"]["type"].(string)).To(Equal("gp2"))
+			})
+
+			By("Checking only root volume get's modified", func() {
+				for dev, volume := range volumes {
+					if dev != "/dev/sda1" {
+						Expect(volume["size"].(int64)).ToNot(Equal(int64(142)))
+					}
+				}
+			})
+		})
+
 		It("Can deploy compute nodes through machineset", func() {
 			// Any controller linking kubernetes node with its machine
 			// needs to run inside the cluster where the node is registered.

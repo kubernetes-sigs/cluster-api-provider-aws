@@ -113,6 +113,22 @@ func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceS
 	return instances, nil
 }
 
+func getVolume(client awsclient.Client, volumeID string) (*ec2.Volume, error) {
+	request := &ec2.DescribeVolumesInput{
+		VolumeIds: []*string{&volumeID},
+	}
+	result, err := client.DescribeVolumes(request)
+	if err != nil {
+		return &ec2.Volume{}, err
+	}
+
+	if len(result.Volumes) != 1 {
+		return &ec2.Volume{}, fmt.Errorf("unable to get volume ID: %q", volumeID)
+	}
+
+	return result.Volumes[0], nil
+}
+
 // terminateInstances terminates all provided instances with a single EC2 request.
 func terminateInstances(client awsclient.Client, instances []*ec2.Instance) error {
 	instanceIDs := []*string{}

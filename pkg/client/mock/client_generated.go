@@ -139,6 +139,19 @@ func (mr *MockClientMockRecorder) TerminateInstances(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateInstances", reflect.TypeOf((*MockClient)(nil).TerminateInstances), arg0)
 }
 
+// DescribeVolumes mocks base method
+func (m *MockClient) DescribeVolumes(arg0 *ec2.DescribeVolumesInput) (*ec2.DescribeVolumesOutput, error) {
+	ret := m.ctrl.Call(m, "DescribeVolumes", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeVolumesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeVolumes indicates an expected call of DescribeVolumes
+func (mr *MockClientMockRecorder) DescribeVolumes(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVolumes", reflect.TypeOf((*MockClient)(nil).DescribeVolumes), arg0)
+}
+
 // RegisterInstancesWithLoadBalancer mocks base method
 func (m *MockClient) RegisterInstancesWithLoadBalancer(arg0 *elb.RegisterInstancesWithLoadBalancerInput) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
 	ret := m.ctrl.Call(m, "RegisterInstancesWithLoadBalancer", arg0)

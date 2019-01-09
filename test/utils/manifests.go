@@ -25,9 +25,9 @@ func GenerateAwsCredentialsSecretFromEnv(secretName, namespace string) *apiv1.Se
 	}
 }
 
-func TestingMachineProviderSpec(awsCredentialsSecretName string, clusterID string) (machinev1beta1.ProviderSpec, error) {
+func testingAWSMachineProviderSpec(awsCredentialsSecretName string, clusterID string) *providerconfigv1.AWSMachineProviderConfig {
 	publicIP := true
-	machinePc := &providerconfigv1.AWSMachineProviderConfig{
+	return &providerconfigv1.AWSMachineProviderConfig{
 		AMI: providerconfigv1.AWSResourceReference{
 			Filters: []providerconfigv1.Filter{
 				{
@@ -86,7 +86,33 @@ func TestingMachineProviderSpec(awsCredentialsSecretName string, clusterID strin
 		},
 		PublicIP: &publicIP,
 	}
+}
 
+func TestingMachineProviderSpec(awsCredentialsSecretName string, clusterID string) (machinev1beta1.ProviderSpec, error) {
+	machinePc := testingAWSMachineProviderSpec(awsCredentialsSecretName, clusterID)
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		return machinev1beta1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
+	}
+	config, err := codec.EncodeProviderSpec(machinePc)
+	if err != nil {
+		return machinev1beta1.ProviderSpec{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
+	}
+	return *config, nil
+}
+
+func TestingMachineProviderSpecWithEBS(awsCredentialsSecretName string, clusterID string) (machinev1beta1.ProviderSpec, error) {
+	volumeSize := int64(142)
+	volumeType := "gp2"
+	machinePc := testingAWSMachineProviderSpec(awsCredentialsSecretName, clusterID)
+	machinePc.BlockDevices = []providerconfigv1.BlockDeviceMappingSpec{
+		{
+			EBS: &providerconfigv1.EBSBlockDeviceSpec{
+				VolumeSize: &volumeSize,
+				VolumeType: &volumeType,
+			},
+		},
+	}
 	codec, err := providerconfigv1.NewCodec()
 	if err != nil {
 		return machinev1beta1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
