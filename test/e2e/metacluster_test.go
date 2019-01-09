@@ -17,6 +17,8 @@ limitations under the License.
 package e2e_test
 
 import (
+	"flag"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -36,6 +38,45 @@ const (
 	controllerName      = "aws-provider-controller-manager"
 )
 
+const testClusterAndMachine = `apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  name: test1
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: "cluster.local"
+  providerSpec:
+    value:
+      apiVersion: "awsprovider/v1alpha1"
+      kind: "AWSClusterProviderSpec"
+      region: "us-east-1"
+      sshKeyName: "default"
+---
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: aws-controlplane-0
+  labels:
+    set: controlplane
+spec:
+  versions:
+    kubelet: v1.13.0
+    controlPlane: v1.13.0
+  providerSpec:
+    value:
+      apiVersion: awsprovider/v1alpha1
+      kind: AWSMachineProviderSpec
+      instanceType: "t2.medium"
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      keyName: "default"
+`
+
+var clusterCtlBinary = flag.String("clusterCtlBinary", "clusterctl", "Path to the clusterctl binary")
+
 var _ = Describe("Metacluster", func() {
 	var (
 		cluster kind.Cluster
@@ -47,7 +88,7 @@ var _ = Describe("Metacluster", func() {
 	}, kindTimeout)
 
 	AfterEach(func() {
-		cluster.Teardown()
+		// cluster.Teardown()
 	})
 
 	Describe("manager container", func() {
@@ -61,6 +102,16 @@ var _ = Describe("Metacluster", func() {
 				2*time.Minute, 5*time.Second,
 			).Should(haveReplicas(1))
 		})
+
+		It("Should create a cluster", func() {
+			cmd := cluster.GetKubectlCommand(
+				"create",
+				"-f", "-",
+			)
+			cmd.Stdin = strings.NewReader(testClusterAndMachine)
+			cluster.Run(cmd)
+		})
+
 	})
 })
 

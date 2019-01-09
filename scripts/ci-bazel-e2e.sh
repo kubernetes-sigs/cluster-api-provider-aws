@@ -19,6 +19,8 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
 
+export AWS_CONFIG_FILE=/etc/aws-cred/credentials
+
 cd $REPO_ROOT
 bazel test --define='gotags=integration' --test_output all //test/e2e/...
 bazel_status=$?

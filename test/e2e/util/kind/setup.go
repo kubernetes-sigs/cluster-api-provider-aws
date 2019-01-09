@@ -55,7 +55,7 @@ func (c *Cluster) Setup() {
 	c.tmpDir, err = ioutil.TempDir("", "kind-home")
 	gomega.Expect(err).To(gomega.BeNil())
 
-	c.run(exec.Command(*kindBinary, "create", "cluster"))
+	c.Run(exec.Command(*kindBinary, "create", "cluster"))
 	path := c.runWithOutput(exec.Command(*kindBinary, "get", "kubeconfig-path"))
 	c.kubepath = strings.TrimSpace(string(path))
 	fmt.Fprintf(ginkgo.GinkgoWriter, "kubeconfig path: %q\n", c.kubepath)
@@ -75,24 +75,32 @@ func (c *Cluster) loadImage() {
 	// Pipe the tar file into the kind container then docker-load it
 	cmd := exec.Command("docker", "exec", "--interactive", kindContainerName, "docker", "load")
 	cmd.Stdin = file
-	c.run(cmd)
+	c.Run(cmd)
 }
 
 // Teardown attempts to delete the KIND cluster
 func (c *Cluster) Teardown() {
-	c.run(exec.Command(*kindBinary, "delete", "cluster"))
+	c.Run(exec.Command(*kindBinary, "delete", "cluster"))
 	os.RemoveAll(c.tmpDir)
 }
 
 // applyYAML takes the provided awsProviderYAML and clusterAPIYAML and applies them to a cluster given by the kubeconfig path kubeConfig.
 func (c *Cluster) applyYAML() {
-	c.run(exec.Command(
-		*kubectlBinary,
+	c.Run(c.GetKubectlCommand(
 		"create",
-		"--kubeconfig="+c.kubepath,
 		"-f", *awsProviderYAML,
 		"-f", *clusterAPIYAML,
 	))
+}
+
+// GetKubectlCommand returns a Cmd with the kubectl binary and kubeconfig already set
+func (c *Cluster) GetKubectlCommand(args ...string) *exec.Cmd {
+	return exec.Command(
+		*kubectlBinary,
+		append(
+			[]string{"--kubeconfig=" + c.kubepath}, args...,
+		)...,
+	)
 }
 
 // KubeConfig returns an absolute path to the Kube Config
@@ -108,11 +116,11 @@ func (c *Cluster) KubeClient() kubernetes.Interface {
 func (c *Cluster) runWithOutput(cmd *exec.Cmd) []byte {
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
-	c.run(cmd)
+	c.Run(cmd)
 	return stdout.Bytes()
 }
 
-func (c *Cluster) run(cmd *exec.Cmd) {
+func (c *Cluster) Run(cmd *exec.Cmd) {
 	errPipe, err := cmd.StderrPipe()
 	gomega.ExpectWithOffset(1, err).To(gomega.BeNil())
 
