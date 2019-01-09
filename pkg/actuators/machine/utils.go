@@ -141,18 +141,9 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	var providerSpecRawExtention runtime.RawExtension
 
-	// TODO(jchaloup): Remove providerConfig once all consumers migrate to providerSpec
-	providerSpec := machine.Spec.ProviderConfig
-	// providerSpec has higher priority over providerConfig
-	if machine.Spec.ProviderSpec.Value != nil || machine.Spec.ProviderSpec.ValueFrom != nil {
-		providerSpec = machine.Spec.ProviderSpec
-		glog.Infof("Falling to default providerSpec\n")
-	} else {
-		glog.Infof("Falling to providerConfig\n")
-	}
-
+	providerSpec := machine.Spec.ProviderSpec
 	if providerSpec.Value == nil && providerSpec.ValueFrom == nil {
-		return nil, fmt.Errorf("unable to find machine provider config: neither Spec.ProviderConfig.Value nor Spec.ProviderConfig.ValueFrom set")
+		return nil, fmt.Errorf("unable to find machine provider config: neither Spec.ProviderSpec.Value nor Spec.ProviderSpec.ValueFrom set")
 	}
 
 	// If no providerSpec.Value then we lookup for machineClass
@@ -160,7 +151,7 @@ func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 		providerSpecRawExtention = *providerSpec.Value
 	} else {
 		if providerSpec.ValueFrom.MachineClass == nil {
-			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderConfig.ValueFrom")
+			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderSpec.ValueFrom")
 		}
 		machineClass := &clusterv1.MachineClass{}
 		key := types.NamespacedName{

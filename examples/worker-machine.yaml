@@ -8,7 +8,7 @@ metadata:
   labels:
     sigs.k8s.io/cluster-api-cluster: tb-asg-35
 spec:
-  providerConfig:
+  providerSpec:
     value:
       apiVersion: awsproviderconfig.k8s.io/v1alpha1
       kind: AWSMachineProviderConfig

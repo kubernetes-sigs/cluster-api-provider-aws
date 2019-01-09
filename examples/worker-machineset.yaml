@@ -21,7 +21,7 @@ spec:
       metadata:
         labels:
           node-role.kubernetes.io/compute: ""
-      providerConfig:
+      providerSpec:
         value:
           apiVersion: awsproviderconfig.k8s.io/v1alpha1
           kind: AWSMachineProviderConfig
