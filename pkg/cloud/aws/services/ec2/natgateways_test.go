@@ -19,6 +19,8 @@ package ec2
 import (
 	"testing"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
@@ -40,15 +42,14 @@ func TestReconcileNatGateways(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  []*v1alpha1.Subnet
+		input  []*v1alpha1.SubnetSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create no NAT gateway",
-			input: []*v1alpha1.Subnet{
+			input: []*v1alpha1.SubnetSpec{
 				{
 					ID:               "subnet-1",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         false,
@@ -60,10 +61,9 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "no private subnet exists, should create no NAT gateway",
-			input: []*v1alpha1.Subnet{
+			input: []*v1alpha1.SubnetSpec{
 				{
 					ID:               "subnet-1",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
@@ -76,17 +76,15 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet exists, should create 1 NAT gateway",
-			input: []*v1alpha1.Subnet{
+			input: []*v1alpha1.SubnetSpec{
 				{
 					ID:               "subnet-1",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 				},
 				{
 					ID:               "subnet-2",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.12.0/24",
 					IsPublic:         false,
@@ -139,24 +137,21 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "two public & 1 private subnet, and one NAT gateway exists",
-			input: []*v1alpha1.Subnet{
+			input: []*v1alpha1.SubnetSpec{
 				{
 					ID:               "subnet-1",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 				},
 				{
 					ID:               "subnet-2",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.12.0/24",
 					IsPublic:         false,
 				},
 				{
 					ID:               "subnet-3",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1b",
 					CidrBlock:        "10.0.13.0/24",
 					IsPublic:         true,
@@ -211,17 +206,15 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet, and one NAT gateway exists",
-			input: []*v1alpha1.Subnet{
+			input: []*v1alpha1.SubnetSpec{
 				{
 					ID:               "subnet-1",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 				},
 				{
 					ID:               "subnet-2",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.12.0/24",
 					IsPublic:         false,
@@ -273,18 +266,16 @@ func TestReconcileNatGateways(t *testing.T) {
 			},
 		},
 		{
-			name: "public & private subnet declared, but doesn't exist yet",
-			input: []*v1alpha1.Subnet{
+			name: "public & private subnet declared, but don't exist yet",
+			input: []*v1alpha1.SubnetSpec{
 				{
 					ID:               "",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 				},
 				{
 					ID:               "",
-					VpcID:            subnetsVPCID,
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.12.0/24",
 					IsPublic:         false,
@@ -313,10 +304,13 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			})
 
-			scope.ClusterStatus = &v1alpha1.AWSClusterProviderStatus{
-				Network: v1alpha1.Network{
-					VPC: v1alpha1.VPC{
+			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha1.NetworkSpec{
+					VPC: v1alpha1.VPCSpec{
 						ID: subnetsVPCID,
+						Tags: tags.Map{
+							tags.NameAWSProviderManaged: "true",
+						},
 					},
 					Subnets: tc.input,
 				},

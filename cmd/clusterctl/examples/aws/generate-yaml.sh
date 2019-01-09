@@ -22,7 +22,7 @@ OUTPUT_DIR=${OUTPUT_DIR:-${DIR}/out}
 ENVSUBST=${ENVSUBST:-envsubst}
 
 # Cluster name.
-export CLUSTER_NAME="test1"
+export CLUSTER_NAME="${CLUSTER_NAME:-test1}"
 
 # Manager image.
 export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.0.3}"
@@ -32,9 +32,11 @@ export MANAGER_IMAGE_PULL_POLICY=${MANAGER_IMAGE_PULL_POLICY:-IfNotPresent}
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
+export VPC_ID="${VPC_ID:-}"
 
 # Templates.
 CLUSTER_TEMPLATE_FILE=${DIR}/cluster.yaml.template
+CLUSTER_NETWORKSPEC_TEMPLATE_FILE=${DIR}/cluster-network-spec.yaml.template
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
@@ -84,8 +86,13 @@ fi
 
 mkdir -p ${OUTPUT_DIR}
 
-$ENVSUBST < $CLUSTER_TEMPLATE_FILE > "${CLUSTER_GENERATED_FILE}"
-echo "Done generating ${CLUSTER_GENERATED_FILE}"
+if [ -z "$VPC_ID" ]; then
+  $ENVSUBST < $CLUSTER_TEMPLATE_FILE > "${CLUSTER_GENERATED_FILE}"
+  echo "Done generating ${CLUSTER_GENERATED_FILE}"
+else
+  $ENVSUBST < $CLUSTER_NETWORKSPEC_TEMPLATE_FILE > "${CLUSTER_GENERATED_FILE}"
+  echo "Done generating ${CLUSTER_GENERATED_FILE}"
+fi
 
 $ENVSUBST < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
 echo "Done generating ${MACHINES_GENERATED_FILE}"

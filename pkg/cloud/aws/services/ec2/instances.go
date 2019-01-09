@@ -40,6 +40,7 @@ func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Ins
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
+			filter.EC2.VPC(s.scope.VPC().ID),
 			filter.EC2.ClusterOwned(s.scope.Name()),
 			filter.EC2.Name(machine.Name()),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
@@ -72,7 +73,10 @@ func (s *Service) InstanceIfExists(id string) (*v1alpha1.Instance, error) {
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{aws.String(id)},
-		Filters:     []*ec2.Filter{filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning)},
+		Filters: []*ec2.Filter{
+			filter.EC2.VPC(s.scope.VPC().ID),
+			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+		},
 	}
 
 	out, err := s.scope.EC2.DescribeInstances(input)

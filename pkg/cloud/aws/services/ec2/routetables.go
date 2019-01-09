@@ -34,6 +34,11 @@ const (
 )
 
 func (s *Service) reconcileRouteTables() error {
+	if s.scope.VPC().IsProvided() {
+		klog.V(4).Info("Skipping routing tables reconcile in unmanaged mode")
+		return nil
+	}
+
 	klog.V(2).Infof("Reconciling routing tables")
 
 	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet()
@@ -64,7 +69,7 @@ func (s *Service) reconcileRouteTables() error {
 		// create a new table with the appropriate default routes and associate it to the subnet.
 		var routes []*ec2.Route
 		if sn.IsPublic {
-			if s.scope.Network().InternetGatewayID == nil {
+			if s.scope.VPC().InternetGatewayID == nil {
 				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
 			}
 
@@ -117,6 +122,11 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 }
 
 func (s *Service) deleteRouteTables() error {
+	if s.scope.VPC().IsProvided() {
+		klog.V(4).Info("Skipping routing tables deletion in unmanaged mode")
+		return nil
+	}
+
 	rts, err := s.describeVpcRouteTables()
 	if err != nil {
 		return errors.Wrapf(err, "failed to describe route tables in vpc %q", s.scope.VPC().ID)
@@ -227,7 +237,7 @@ func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
 	return []*ec2.Route{
 		{
 			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
-			GatewayId:            aws.String(*s.scope.Network().InternetGatewayID),
+			GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
 		},
 	}
 }

@@ -51,6 +51,10 @@ func TestInstanceIfExists(t *testing.T) {
 					InstanceIds: []*string{aws.String("hello")},
 					Filters: []*ec2.Filter{
 						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String("test-vpc")},
+						},
+						{
 							Name:   aws.String("instance-state-name"),
 							Values: []*string{aws.String("pending"), aws.String("running")},
 						},
@@ -75,6 +79,10 @@ func TestInstanceIfExists(t *testing.T) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("id-1")},
 					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String("test-vpc")},
+						},
 						{
 							Name:   aws.String("instance-state-name"),
 							Values: []*string{aws.String("pending"), aws.String("running")},
@@ -122,6 +130,10 @@ func TestInstanceIfExists(t *testing.T) {
 					InstanceIds: []*string{aws.String("one")},
 					Filters: []*ec2.Filter{
 						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String("test-vpc")},
+						},
+						{
 							Name:   aws.String("instance-state-name"),
 							Values: []*string{aws.String("pending"), aws.String("running")},
 						},
@@ -149,6 +161,14 @@ func TestInstanceIfExists(t *testing.T) {
 					ELB: elbMock,
 				},
 			})
+
+			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha1.NetworkSpec{
+					VPC: v1alpha1.VPCSpec{
+						ID: "test-vpc",
+					},
+				},
+			}
 
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -284,15 +304,6 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			},
 			clusterStatus: &v1alpha1.AWSClusterProviderStatus{
 				Network: v1alpha1.Network{
-					Subnets: v1alpha1.Subnets{
-						&v1alpha1.Subnet{
-							ID:       "subnet-1",
-							IsPublic: false,
-						},
-						&v1alpha1.Subnet{
-							IsPublic: false,
-						},
-					},
 					SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
 						v1alpha1.SecurityGroupControlPlane: {
 							ID: "1",
@@ -307,6 +318,17 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				},
 			},
 			clusterConfig: &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha1.NetworkSpec{
+					Subnets: v1alpha1.Subnets{
+						&v1alpha1.SubnetSpec{
+							ID:       "subnet-1",
+							IsPublic: false,
+						},
+						&v1alpha1.SubnetSpec{
+							IsPublic: false,
+						},
+					},
+				},
 				CAKeyPair: v1alpha1.KeyPair{
 					Cert: testCaCert,
 					Key:  []byte("y"),

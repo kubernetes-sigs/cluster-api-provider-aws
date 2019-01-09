@@ -32,6 +32,11 @@ import (
 )
 
 func (s *Service) reconcileNatGateways() error {
+	if s.scope.VPC().IsProvided() {
+		klog.V(4).Info("Skipping NAT gateway reconcile in unmanaged mode")
+		return nil
+	}
+
 	klog.V(2).Infof("Reconciling NAT gateways")
 
 	if len(s.scope.Subnets().FilterPrivate()) == 0 {
@@ -78,6 +83,11 @@ func (s *Service) reconcileNatGateways() error {
 }
 
 func (s *Service) deleteNatGateways() error {
+	if s.scope.VPC().IsProvided() {
+		klog.V(4).Info("Skipping NAT gateway deletion in unmanaged mode")
+		return nil
+	}
+
 	if len(s.scope.Subnets().FilterPrivate()) == 0 {
 		klog.V(2).Infof("No private subnets available, skipping NAT gateways")
 		return nil
@@ -227,7 +237,7 @@ func (s *Service) deleteNatGateway(id string) error {
 	return nil
 }
 
-func (s *Service) getNatGatewayForSubnet(sn *v1alpha1.Subnet) (string, error) {
+func (s *Service) getNatGatewayForSubnet(sn *v1alpha1.SubnetSpec) (string, error) {
 	if sn.IsPublic {
 		return "", errors.Errorf("cannot get NAT gateway for a public subnet, got id %q", sn.ID)
 	}

@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -38,26 +39,27 @@ func TestReconcileRouteTables(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha1.Network
+		input  *v1alpha1.NetworkSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		err    error
 	}{
 		{
 			name: "no routes existing, single private and single public, same AZ",
-			input: &v1alpha1.Network{
-				InternetGatewayID: aws.String("igw-01"),
-				VPC: v1alpha1.VPC{
-					ID: "vpc-routetables",
+			input: &v1alpha1.NetworkSpec{
+				VPC: v1alpha1.VPCSpec{
+					ID:                "vpc-routetables",
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: tags.Map{
+						tags.NameAWSProviderManaged: "true",
+					},
 				},
 				Subnets: v1alpha1.Subnets{
-					&v1alpha1.Subnet{
-						VpcID:            "vpc-routetables",
+					&v1alpha1.SubnetSpec{
 						ID:               "subnet-routetables-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&v1alpha1.Subnet{
-						VpcID:            "vpc-routetables",
+					&v1alpha1.SubnetSpec{
 						ID:               "subnet-routetables-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),
@@ -112,20 +114,21 @@ func TestReconcileRouteTables(t *testing.T) {
 		},
 		{
 			name: "subnets in different availability zones, returns error",
-			input: &v1alpha1.Network{
-				InternetGatewayID: aws.String("igw-01"),
-				VPC: v1alpha1.VPC{
-					ID: "vpc-routetables",
+			input: &v1alpha1.NetworkSpec{
+				VPC: v1alpha1.VPCSpec{
+					InternetGatewayID: aws.String("igw-01"),
+					ID:                "vpc-routetables",
+					Tags: tags.Map{
+						tags.NameAWSProviderManaged: "true",
+					},
 				},
 				Subnets: v1alpha1.Subnets{
-					&v1alpha1.Subnet{
-						VpcID:            "vpc-routetables",
+					&v1alpha1.SubnetSpec{
 						ID:               "subnet-routetables-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&v1alpha1.Subnet{
-						VpcID:            "vpc-routetables",
+					&v1alpha1.SubnetSpec{
 						ID:               "subnet-routetables-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),
@@ -160,8 +163,8 @@ func TestReconcileRouteTables(t *testing.T) {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
-			scope.ClusterStatus = &v1alpha1.AWSClusterProviderStatus{
-				Network: *tc.input,
+			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: *tc.input,
 			}
 
 			tc.expect(ec2Mock.EXPECT())

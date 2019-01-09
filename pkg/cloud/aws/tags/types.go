@@ -16,7 +16,10 @@ limitations under the License.
 
 package tags
 
-import "reflect"
+import (
+	"path"
+	"reflect"
+)
 
 // Map defines a map of tags.
 type Map map[string]string
@@ -24,6 +27,18 @@ type Map map[string]string
 // Equals returns true if the maps are equal.
 func (m Map) Equals(other Map) bool {
 	return reflect.DeepEqual(m, other)
+}
+
+// HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster.
+func (m Map) HasOwned(cluster string) bool {
+	value, ok := m[path.Join(NameKubernetesClusterPrefix, cluster)]
+	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
+}
+
+// HasManaged returns true if the map contains NameAWSProviderManaged key set to true.
+func (m Map) HasManaged() bool {
+	value, ok := m[NameAWSProviderManaged]
+	return ok && value == "true"
 }
 
 // Difference returns the difference between this map and the other map.

@@ -70,6 +70,7 @@ func TestGetIP(t *testing.T) {
 						{
 							Scheme:  aws.String("internet-facing"),
 							DNSName: aws.String("something"),
+							VPCId:   aws.String("test-vpc"),
 						},
 					},
 				}, nil)
@@ -99,6 +100,7 @@ func TestGetIP(t *testing.T) {
 						{
 							Scheme:  aws.String("internet-facing"),
 							DNSName: aws.String("dunno"),
+							VPCId:   aws.String("test-vpc"),
 						},
 					},
 				}, nil)
