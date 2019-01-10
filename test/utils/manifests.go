@@ -25,7 +25,7 @@ func GenerateAwsCredentialsSecretFromEnv(secretName, namespace string) *apiv1.Se
 	}
 }
 
-func TestingMachineProviderConfig(awsCredentialsSecretName string, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
+func TestingMachineProviderSpec(awsCredentialsSecretName string, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
 	publicIP := true
 	machinePc := &providerconfigv1.AWSMachineProviderConfig{
 		AMI: providerconfigv1.AWSResourceReference{
@@ -98,7 +98,7 @@ func TestingMachineProviderConfig(awsCredentialsSecretName string, clusterID str
 	return *config, nil
 }
 
-func MasterMachineProviderConfig(awsCredentialsSecretName, masterUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
+func MasterMachineProviderSpec(awsCredentialsSecretName, masterUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
 	publicIP := true
 	machinePc := &providerconfigv1.AWSMachineProviderConfig{
 		AMI: providerconfigv1.AWSResourceReference{
@@ -160,7 +160,7 @@ func MasterMachineProviderConfig(awsCredentialsSecretName, masterUserDataSecretN
 	return *config, nil
 }
 
-func WorkerMachineSetProviderConfig(awsCredentialsSecretName, workerUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
+func WorkerMachineSetProviderSpec(awsCredentialsSecretName, workerUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
 	publicIP := true
 	machinePc := &providerconfigv1.AWSMachineProviderConfig{
 		AMI: providerconfigv1.AWSResourceReference{

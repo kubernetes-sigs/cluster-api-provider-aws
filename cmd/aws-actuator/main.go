@@ -270,12 +270,12 @@ func bootstrapCommand() *cobra.Command {
 				return err
 			}
 
-			masterMachineProviderConfig, err := testutils.MasterMachineProviderConfig(awsCredentialsSecret.Name, masterUserDataSecret.Name, testCluster.Name)
+			masterMachineProviderSpec, err := testutils.MasterMachineProviderSpec(awsCredentialsSecret.Name, masterUserDataSecret.Name, testCluster.Name)
 			if err != nil {
 				return err
 			}
 
-			masterMachine := manifests.MasterMachine(testCluster.Name, testCluster.Namespace, masterMachineProviderConfig)
+			masterMachine := manifests.MasterMachine(testCluster.Name, testCluster.Namespace, masterMachineProviderSpec)
 
 			glog.Infof("Creating master machine")
 
@@ -382,11 +382,11 @@ func bootstrapCommand() *cobra.Command {
 			}
 
 			createSecretAndWait(clusterFramework, workerUserDataSecret)
-			workerMachineSetProviderConfig, err := testutils.WorkerMachineSetProviderConfig(awsCredentialsSecret.Name, workerUserDataSecret.Name, testCluster.Name)
+			workerMachineSetProviderSpec, err := testutils.WorkerMachineSetProviderSpec(awsCredentialsSecret.Name, workerUserDataSecret.Name, testCluster.Name)
 			if err != nil {
 				return err
 			}
-			workerMachineSet := manifests.WorkerMachineSet(testCluster.Name, testCluster.Namespace, workerMachineSetProviderConfig)
+			workerMachineSet := manifests.WorkerMachineSet(testCluster.Name, testCluster.Namespace, workerMachineSetProviderSpec)
 			clusterFramework.CreateMachineSetAndWait(workerMachineSet, acw)
 
 			return nil

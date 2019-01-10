@@ -129,9 +129,9 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 
 		It("Can create AWS instances", func() {
 			// Create/delete a single machine, test instance is provisioned/terminated
-			testMachineProviderConfig, err := utils.TestingMachineProviderConfig(awsCredSecret.Name, cluster.Name)
+			testMachineProviderSpec, err := utils.TestingMachineProviderSpec(awsCredSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderConfig)
+			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderSpec)
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
 
@@ -230,9 +230,9 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			createSecretAndWait(f, masterUserDataSecret)
-			masterMachineProviderConfig, err := utils.MasterMachineProviderConfig(awsCredSecret.Name, masterUserDataSecret.Name, cluster.Name)
+			masterMachineProviderSpec, err := utils.MasterMachineProviderSpec(awsCredSecret.Name, masterUserDataSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			masterMachine := manifests.MasterMachine(cluster.Name, cluster.Namespace, masterMachineProviderConfig)
+			masterMachine := manifests.MasterMachine(cluster.Name, cluster.Namespace, masterMachineProviderSpec)
 			f.CreateMachineAndWait(masterMachine, acw)
 			machinesToDelete.AddMachine(masterMachine, f, acw)
 
@@ -273,9 +273,9 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			workerUserDataSecret, err := manifests.WorkerMachineUserDataSecret("workeruserdatasecret", testNamespace.Name, masterPrivateIP)
 			Expect(err).NotTo(HaveOccurred())
 			createSecretAndWait(clusterFramework, workerUserDataSecret)
-			workerMachineSetProviderConfig, err := utils.WorkerMachineSetProviderConfig(awsCredSecret.Name, workerUserDataSecret.Name, cluster.Name)
+			workerMachineSetProviderSpec, err := utils.WorkerMachineSetProviderSpec(awsCredSecret.Name, workerUserDataSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			workerMachineSet := manifests.WorkerMachineSet(cluster.Name, cluster.Namespace, workerMachineSetProviderConfig)
+			workerMachineSet := manifests.WorkerMachineSet(cluster.Name, cluster.Namespace, workerMachineSetProviderSpec)
 			fmt.Printf("workerMachineSet: %#v\n", workerMachineSet)
 			clusterFramework.CreateMachineSetAndWait(workerMachineSet, acw)
 			machinesToDelete.AddMachineSet(workerMachineSet, clusterFramework, acw)
