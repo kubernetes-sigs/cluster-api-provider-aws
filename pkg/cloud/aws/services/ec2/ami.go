@@ -36,6 +36,10 @@ func (s *Service) defaultAMILookup(platform, platformVersion, kubernetesVersion 
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
+				Name:   aws.String("owner-id"),
+				Values: []*string{aws.String("258751437250")},
+			},
+			{
 				Name:   aws.String("name"),
 				Values: []*string{aws.String(amiName(platform, platformVersion, kubernetesVersion))},
 			},
