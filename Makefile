@@ -103,7 +103,7 @@ k8s-e2e: ## Run k8s specific e2e test
 		-args -v 5 -logtostderr true
 
 .PHONY: test-e2e
-validate-e2e: ## Run e2e validation/gating test
+test-e2e: ## Run e2e validation/gating test
 	go run ./test/e2e/*.go -alsologtostderr
 
 .PHONY: lint
