@@ -91,11 +91,11 @@ func TestingMachineProviderSpec(awsCredentialsSecretName string, clusterID strin
 	if err != nil {
 		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeProviderConfig(machinePc)
+	providerSpec, err := codec.EncodeProviderSpec(machinePc)
 	if err != nil {
-		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("codec.EncodeProviderSpec failed: %v", err)
 	}
-	return *config, nil
+	return *providerSpec, nil
 }
 
 func MasterMachineProviderSpec(awsCredentialsSecretName, masterUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
@@ -153,11 +153,11 @@ func MasterMachineProviderSpec(awsCredentialsSecretName, masterUserDataSecretNam
 	if err != nil {
 		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeProviderConfig(machinePc)
+	providerSpec, err := codec.EncodeProviderSpec(machinePc)
 	if err != nil {
-		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("codec.EncodeProviderSpec failed: %v", err)
 	}
-	return *config, nil
+	return *providerSpec, nil
 }
 
 func WorkerMachineSetProviderSpec(awsCredentialsSecretName, workerUserDataSecretName, clusterID string) (clusterv1alpha1.ProviderSpec, error) {
@@ -215,9 +215,9 @@ func WorkerMachineSetProviderSpec(awsCredentialsSecretName, workerUserDataSecret
 	if err != nil {
 		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeProviderConfig(machinePc)
+	providerSpec, err := codec.EncodeProviderSpec(machinePc)
 	if err != nil {
-		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("EncodeToProviderConfig failed: %v", err)
+		return clusterv1alpha1.ProviderSpec{}, fmt.Errorf("codec.EncodeProviderSpec failed: %v", err)
 	}
-	return *config, nil
+	return *providerSpec, nil
 }

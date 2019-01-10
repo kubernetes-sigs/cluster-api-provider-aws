@@ -599,7 +599,7 @@ func TestAvailabiltyZone(t *testing.T) {
 			}
 
 			machinePc := &providerconfigv1.AWSMachineProviderConfig{}
-			if err = codec.DecodeProviderConfig(&machine.Spec.ProviderSpec, machinePc); err != nil {
+			if err = codec.DecodeProviderSpec(&machine.Spec.ProviderSpec, machinePc); err != nil {
 				t.Fatal(err)
 			}
 
@@ -613,7 +613,7 @@ func TestAvailabiltyZone(t *testing.T) {
 				machinePc.Subnet.ID = aws.String(tc.subnet)
 			}
 
-			config, err := codec.EncodeProviderConfig(machinePc)
+			config, err := codec.EncodeProviderSpec(machinePc)
 			if err != nil {
 				t.Fatal(err)
 			}

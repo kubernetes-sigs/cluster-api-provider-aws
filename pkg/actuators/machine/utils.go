@@ -165,7 +165,7 @@ func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 	}
 
 	var config providerconfigv1.AWSMachineProviderConfig
-	if err := codec.DecodeProviderConfig(&clusterv1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
+	if err := codec.DecodeProviderSpec(&clusterv1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil

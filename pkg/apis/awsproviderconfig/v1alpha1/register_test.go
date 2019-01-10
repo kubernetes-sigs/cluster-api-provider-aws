@@ -66,7 +66,7 @@ func TestEncodeAndDecodeProviderStatus(t *testing.T) {
 	}
 }
 
-func TestEncodeAndDecodeProviderConfig(t *testing.T) {
+func TestEncodeAndDecodeProviderSpec(t *testing.T) {
 	codec, err := NewCodec()
 	if err != nil {
 		t.Fatal(err)
@@ -155,7 +155,7 @@ func TestEncodeAndDecodeProviderConfig(t *testing.T) {
 		},
 	}
 
-	providerConfigEncoded, err := codec.EncodeProviderConfig(providerConfig)
+	providerConfigEncoded, err := codec.EncodeProviderSpec(providerConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,20 +163,20 @@ func TestEncodeAndDecodeProviderConfig(t *testing.T) {
 	// Without deep copy
 	{
 		providerConfigDecoded := &AWSMachineProviderConfig{}
-		codec.DecodeProviderConfig(providerConfigEncoded, providerConfigDecoded)
+		codec.DecodeProviderSpec(providerConfigEncoded, providerConfigDecoded)
 
 		if !reflect.DeepEqual(providerConfig, providerConfigDecoded) {
-			t.Errorf("failed EncodeProviderConfig/DecodeProviderConfig. Expected: %+v, got: %+v", providerConfig, providerConfigDecoded)
+			t.Errorf("failed EncodeProviderSpec/DecodeProviderSpec. Expected: %+v, got: %+v", providerConfig, providerConfigDecoded)
 		}
 	}
 
 	// With deep copy
 	{
 		providerConfigDecoded := &AWSMachineProviderConfig{}
-		codec.DecodeProviderConfig(providerConfigEncoded, providerConfigDecoded)
+		codec.DecodeProviderSpec(providerConfigEncoded, providerConfigDecoded)
 
 		if !reflect.DeepEqual(providerConfig.DeepCopy(), providerConfigDecoded) {
-			t.Errorf("failed EncodeProviderConfig/DecodeProviderConfig. Expected: %+v, got: %+v", providerConfig, providerConfigDecoded)
+			t.Errorf("failed EncodeProviderSpec/DecodeProviderSpec. Expected: %+v, got: %+v", providerConfig, providerConfigDecoded)
 		}
 	}
 }

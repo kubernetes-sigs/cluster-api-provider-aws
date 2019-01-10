@@ -50,7 +50,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	encodedProviderConfig, err := codec.EncodeProviderConfig(providerConfig)
+	encodedProviderSpec, err := codec.EncodeProviderSpec(providerConfig)
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,7 +60,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 			Namespace: "openshift-cluster-api",
 			Name:      "testClass",
 		},
-		ProviderSpec: *encodedProviderConfig.Value,
+		ProviderSpec: *encodedProviderSpec.Value,
 	}
 
 	testCases := []struct {
@@ -79,7 +79,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 					Kind: "Machine",
 				},
 				Spec: clusterv1.MachineSpec{
-					ProviderSpec: *encodedProviderConfig,
+					ProviderSpec: *encodedProviderSpec,
 				},
 			},
 		},
