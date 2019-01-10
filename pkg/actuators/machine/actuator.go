@@ -21,12 +21,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-log/log/info"
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
@@ -38,6 +41,8 @@ import (
 
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	kubedrain "github.com/openshift/kubernetes-drain"
 )
 
 const (
@@ -56,6 +61,7 @@ const (
 type Actuator struct {
 	awsClientBuilder awsclient.AwsClientBuilderFuncType
 	client           client.Client
+	config           *rest.Config
 
 	codec         *providerconfigv1.AWSProviderConfigCodec
 	eventRecorder record.EventRecorder
@@ -64,6 +70,7 @@ type Actuator struct {
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
 	Client           client.Client
+	Config           *rest.Config
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
 	Codec            *providerconfigv1.AWSProviderConfigCodec
 	EventRecorder    record.EventRecorder
@@ -73,6 +80,7 @@ type ActuatorParams struct {
 func NewActuator(params ActuatorParams) (*Actuator, error) {
 	actuator := &Actuator{
 		client:           params.Client,
+		config:           params.Config,
 		awsClientBuilder: params.AwsClientBuilder,
 		codec:            params.Codec,
 		eventRecorder:    params.EventRecorder,
@@ -233,8 +241,54 @@ func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, m
 	return nil
 }
 
+type glogLogger struct{}
+
+func (gl *glogLogger) Log(v ...interface{}) {
+	glog.Info(v...)
+}
+
+func (gl *glogLogger) Logf(format string, v ...interface{}) {
+	glog.Infof(format, v...)
+}
+
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	// Drain node before deleting
+	if machine.ObjectMeta.Annotations["openshift.io/drain-node"] == "True" && machine.Status.NodeRef != nil {
+		glog.Infof("Draining node before delete")
+		if a.config == nil {
+			err := fmt.Errorf("missing client config, unable to build kube client")
+			glog.Error(err)
+			return err
+		}
+		kubeClient, err := kubernetes.NewForConfig(a.config)
+		if err != nil {
+			return fmt.Errorf("unable to build kube client: %v", err)
+		}
+		node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
+		}
+
+		if err := kubedrain.Drain(
+			kubeClient,
+			[]*corev1.Node{node},
+			&kubedrain.DrainOptions{
+				Force:              true,
+				IgnoreDaemonsets:   true,
+				DeleteLocalData:    true,
+				GracePeriodSeconds: -1,
+				Logger:             info.New(glog.V(0)),
+			},
+		); err != nil {
+			// Machine still tries to terminate after drain failure
+			glog.Warningf("drain failed for machine %q: %v", machine.Name, err)
+		} else {
+			glog.Infof("drain successful for machine %q", machine.Name)
+			a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
+		}
+	}
+
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
@@ -265,7 +319,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.DeleteMachine(err.Error()), noEventAction)
 	}
-	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted Machine %v", machine.Name)
+	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted machine %v", machine.Name)
 
 	return nil
 }

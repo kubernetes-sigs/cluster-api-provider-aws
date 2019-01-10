@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes/scheme"
 	capiv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -77,6 +78,13 @@ func runSuite() error {
 		return err
 	}
 	glog.Info("PASS: ExpectNewNodeWhenDeletingMachine")
+
+	glog.Info("RUN: ExpectNodeToBeDrainedBeforeDeletingMachine")
+	if err := testConfig.ExpectNodeToBeDrainedBeforeDeletingMachine(); err != nil {
+		glog.Errorf("FAIL: ExpectNodeToBeDrainedBeforeDeletingMachine: %v", err)
+		return err
+	}
+	glog.Info("PASS: ExpectNodeToBeDrainedBeforeDeletingMachine")
 
 	return nil
 }

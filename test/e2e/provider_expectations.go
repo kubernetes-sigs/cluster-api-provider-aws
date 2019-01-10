@@ -198,3 +198,112 @@ MachineLoop:
 	}
 	return nil
 }
+
+func (tc *testConfig) ExpectNodeToBeDrainedBeforeDeletingMachine() error {
+	listOptions := client.ListOptions{
+		Namespace: namespace,
+	}
+
+	var machine capiv1alpha1.Machine
+	var nodeName string
+	var node *corev1.Node
+
+	glog.Info("Get machineList with at least one machine with NodeRef set")
+	if err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
+		machineList := capiv1alpha1.MachineList{}
+		if err := tc.client.List(context.TODO(), &listOptions, &machineList); err != nil {
+			glog.Errorf("error querying api for machineList object: %v, retrying...", err)
+			return false, nil
+		}
+		for _, machineItem := range machineList.Items {
+			// empty or non-worker role skipped
+			if machineItem.Labels["sigs.k8s.io/cluster-api-machine-role"] == "worker" {
+				if machineItem.Status.NodeRef != nil && machineItem.Status.NodeRef.Name != "" {
+					machine = machineItem
+					nodeName = machineItem.Status.NodeRef.Name
+					return true, nil
+				}
+			}
+		}
+		return false, fmt.Errorf("no machine found with NodeRef not set")
+	}); err != nil {
+		return err
+	}
+
+	glog.Info("Get nodeList")
+	if err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
+		nodeList := corev1.NodeList{}
+		if err := tc.client.List(context.TODO(), &listOptions, &nodeList); err != nil {
+			glog.Errorf("error querying api for nodeList object: %v, retrying...", err)
+			return false, nil
+		}
+		for _, nodeItem := range nodeList.Items {
+			if nodeItem.Name == nodeName {
+				node = &nodeItem
+				break
+			}
+		}
+		if node == nil {
+			return false, fmt.Errorf("node %q not found", nodeName)
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+
+	glog.Info("Annotate machine with `openshift.io/drain-node` annotation")
+	if machine.ObjectMeta.Annotations == nil {
+		machine.ObjectMeta.Annotations = make(map[string]string)
+	}
+	machine.ObjectMeta.Annotations["openshift.io/drain-node"] = "True"
+	if err := tc.client.Update(context.TODO(), &machine); err != nil {
+		return fmt.Errorf("unable to set `drain-node` annotation")
+	}
+
+	glog.Info("Delete machine and observe node draining")
+	if err := tc.client.Delete(context.TODO(), &machine); err != nil {
+		return fmt.Errorf("unable to delete machine %q", machine.Name)
+	}
+
+	return wait.PollImmediate(time.Second, waitShort, func() (bool, error) {
+		eventList := corev1.EventList{}
+		if err := tc.client.List(context.TODO(), &listOptions, &eventList); err != nil {
+			glog.Errorf("error querying api for eventList object: %v, retrying...", err)
+			return false, nil
+		}
+
+		glog.Infof("Fetching delete machine and node drained events")
+		var nodeDrainedEvent *corev1.Event
+		var machineDeletedEvent *corev1.Event
+		for _, eventItem := range eventList.Items {
+			if eventItem.Reason == "Deleted" && eventItem.Message == fmt.Sprintf("Node %q drained", nodeName) {
+				nodeDrainedEvent = &eventItem
+				continue
+			}
+			// always take the newest 'machine deleted' event
+			if eventItem.Reason == "Deleted" && eventItem.Message == fmt.Sprintf("Deleted machine %v", machine.Name) {
+				machineDeletedEvent = &eventItem
+			}
+		}
+
+		if nodeDrainedEvent == nil {
+			glog.Infof("Unable to find %q node drained event", nodeName)
+			return false, nil
+		}
+
+		if machineDeletedEvent == nil {
+			glog.Infof("Unable to find %q machine deleted event", machine.Name)
+			return false, nil
+		}
+
+		glog.Infof("Node %q drained event recorded: %#v", nodeName, *nodeDrainedEvent)
+
+		if machineDeletedEvent.FirstTimestamp.Before(&nodeDrainedEvent.FirstTimestamp) {
+			err := fmt.Errorf("machine %q deleted before node %q got drained", machine.Name, nodeName)
+			glog.Error(err)
+			return true, err
+		}
+
+		return true, nil
+	})
+}

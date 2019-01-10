@@ -136,7 +136,7 @@ func TestMachineEvents(t *testing.T) {
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
 				actuator.DeleteMachine(cluster, machine)
 			},
-			event: "Normal Deleted Deleted Machine aws-actuator-testing-machine",
+			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
 		},
 	}
 
