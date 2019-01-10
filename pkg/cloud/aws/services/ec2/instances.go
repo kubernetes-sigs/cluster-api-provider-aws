@@ -18,7 +18,6 @@ package ec2
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -219,9 +218,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		input.UserData = aws.String(userData)
 
 	default:
-		errMsg := fmt.Sprintf("Unknown node role %q", machine.Role())
-		klog.Error(errMsg)
-		return nil, fmt.Errorf(errMsg)
+		return nil, errors.Errorf("Unknown node role %q", machine.Role())
 	}
 
 	// Pick SSH key, if any.

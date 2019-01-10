@@ -79,31 +79,32 @@ func (a *Actuator) getControlPlaneMachines(machineList *clusterv1.MachineList) [
 	return cpm
 }
 
-func isMachinesSame(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
+// defining equality as name and namespace are equivalent and not checking any other fields.
+func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
 
-func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine) (join bool, err error) {
-	err = nil
+func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine) (bool, error) {
 	switch newMachine.ObjectMeta.Labels["set"] {
 	case "node":
-		join = true
+		return true, nil
 	case "controlplane":
-		join = true
+		join := true
 		// join = false, if:
 		//		1. len(controlPlaneMachines) == 1 && controlPlaneMachines[0] == newMachine
-		if len(controlPlaneMachines) == 1 && isMachinesSame(controlPlaneMachines[0], newMachine) {
+		if len(controlPlaneMachines) == 1 && machinesEqual(controlPlaneMachines[0], newMachine) {
 			join = false
 		}
 		// 		TODO: ashish-amarnath 2. if none of the controlPlaneMachines exist
 
 		klog.V(2).Infof("Machine %q should join the controlplane: %t", newMachine.Name, join)
+		return join, nil
 	default:
 		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", newMachine.ObjectMeta.Labels["set"], newMachine.Name)
 		klog.Errorf(errMsg)
-		err = errors.Errorf(errMsg)
+		err := errors.Errorf(errMsg)
+		return false, err
 	}
-	return
 }
 
 // Create creates a machine and is invoked by the machine controller.
@@ -134,11 +135,10 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("Failed to determine whther machine %q should join cluster %q: %v", machine.Name, cluster.Name, err)
 	}
 
-	bootstrapToken := ""
+	var bootstrapToken string
 	if isNodeJoin {
 		bootstrapToken, err = a.getNodeJoinToken(cluster, controlPlaneURL)
 		if err != nil {
-			klog.Errorf("failed to retrieve token to create machine %q: %v", machine.Name, err)
 			return err
 		}
 	}
