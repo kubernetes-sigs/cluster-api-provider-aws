@@ -74,6 +74,7 @@ func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
 
 	params := machineactuator.ActuatorParams{
 		Client:           mgr.GetClient(),
+		Config:           mgr.GetConfig(),
 		AwsClientBuilder: awsclient.NewClient,
 		Codec:            codec,
 		EventRecorder:    mgr.GetRecorder("aws-controller"),
