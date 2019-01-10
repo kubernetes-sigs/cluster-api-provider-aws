@@ -56,8 +56,24 @@ EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
 
-tar -cvzf /etc/kubernetes/pki.tar.gz /etc/kubernetes/pki/*
-kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf create secret generic kubeadm-certs --from-file=/etc/kubernetes/pki.tar.gz
+kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf \
+create secret tls kubeadm-certs-ca \
+--key /etc/kubernetes/pki/ca.key \
+--cert /etc/kubernetes/pki/ca.crt
+
+kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf \
+create secret tls kubeadm-certs-etcd-ca \
+--key /etc/kubernetes/pki/etcd/ca.key \
+--cert /etc/kubernetes/pki/etcd/ca.crt
+
+kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf \
+create secret tls kubeadm-certs-front-proxy \
+--key /etc/kubernetes/pki/front-proxy-ca.key \
+--cert /etc/kubernetes/pki/front-proxy-ca.crt
+
+# service account keys are different
+tar -cvzf /etc/kubernetes/pki/sa-certs.tar.gz /etc/kubernetes/pki/sa.*
+kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf create secret generic kubeadm-sa-certs --from-file=/etc/kubernetes/pki/sa-certs.tar.gz
 `
 
 	controlPlaneJoinBashScript = `{{.Header}}
@@ -93,9 +109,26 @@ controlPlane:
     bindPort: 6443
 EOF
 
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system get secrets kubeadm-certs -ojson | jq '.data."pki.tar.gz"' -r | base64 --decode > /etc/kubernetes/pki.tar.gz
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
+get secret kubeadm-certs-ca -ojson | jq '.data."tls.crt"' -r | base64 --decode > /etc/kubernetes/pki/ca.crt
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
+get secret kubeadm-certs-ca -ojson | jq '.data."tls.key"' -r | base64 --decode > /etc/kubernetes/pki/ca.key
+
+mkdir -p /etc/kubernetes/pki/etcd
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
+get secret kubeadm-certs-etcd-ca -ojson | jq '.data."tls.crt"' -r | base64 --decode > /etc/kubernetes/pki/etcd/ca.crt
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
+get secret kubeadm-certs-etcd-ca -ojson | jq '.data."tls.key"' -r | base64 --decode > /etc/kubernetes/pki/etcd/ca.key
+
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
+get secret kubeadm-certs-front-proxy -ojson | jq '.data."tls.crt"' -r | base64 --decode > /etc/kubernetes/pki/front-proxy-ca.crt
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
+get secret kubeadm-certs-front-proxy -ojson | jq '.data."tls.key"' -r | base64 --decode > /etc/kubernetes/pki/front-proxy-ca.key
+
+
+kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system get secrets kubeadm-sa-certs -ojson | jq '.data."sa-certs.tar.gz"' -r | base64 --decode > /etc/kubernetes/pki/sa-certs.tar.gz
 cd / 
-tar -xvf /etc/kubernetes/pki.tar.gz
+tar -xvf /etc/kubernetes/pki/sa-certs.tar.gz
 
 kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
 `
