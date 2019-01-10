@@ -27,17 +27,36 @@ import (
 	"github.com/pkg/errors"
 )
 
-func amiName(platform, platformVersion, kubernetesVersion string) string {
-	return fmt.Sprintf("ami-%s-%s-%s-00-??????????", platform, platformVersion, strings.TrimPrefix(kubernetesVersion, "v"))
+const (
+	// machineAMIOwnerID is a heptio/VMware owned account. Please see:
+	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
+	machineAMIOwnerID = "258751437250"
+
+	// amiNameFormat is defined in the build/ directory of this project.
+	// The pattern is:
+	// 1. the string value `ami-`
+	// 2. the baseOS of the AMI, for example: ubuntu, centos, amazon
+	// 3. the version of the baseOS, for example: 18.04 (ubuntu), 7 (centos), 2 (amazon)
+	// 4. the kubernetes version as defined by the packages produced by kubernetes/release, for example: 1.13.0-00, 1.12.5-01
+	// 5. the timestamp that the AMI was built
+	amiNameFormat = "ami-%s-%s-%s-??-??????????"
+)
+
+func amiName(baseOS, baseOSVersion, kubernetesVersion string) string {
+	return fmt.Sprintf(amiNameFormat, baseOS, baseOSVersion, strings.TrimPrefix(kubernetesVersion, "v"))
 }
 
 // defaultAMILookup returns the default AMI based on region
-func (s *Service) defaultAMILookup(platform, platformVersion, kubernetesVersion string) (string, error) {
+func (s *Service) defaultAMILookup(baseOS, baseOSVersion, kubernetesVersion string) (string, error) {
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
+				Name:   aws.String("owner-id"),
+				Values: []*string{aws.String(machineAMIOwnerID)},
+			},
+			{
 				Name:   aws.String("name"),
-				Values: []*string{aws.String(amiName(platform, platformVersion, kubernetesVersion))},
+				Values: []*string{aws.String(amiName(baseOS, baseOSVersion, kubernetesVersion))},
 			},
 			{
 				Name:   aws.String("architecture"),
@@ -56,10 +75,10 @@ func (s *Service) defaultAMILookup(platform, platformVersion, kubernetesVersion 
 
 	out, err := s.scope.EC2.DescribeImages(describeImageInput)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to find ami: %q", amiName(platform, platformVersion, kubernetesVersion))
+		return "", errors.Wrapf(err, "failed to find ami: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
 	if len(out.Images) == 0 {
-		return "", errors.Errorf("found no AMIs with the name: %q", amiName(platform, platformVersion, kubernetesVersion))
+		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
 	klog.V(2).Infof("Using AMI: %q", aws.StringValue(out.Images[0].ImageId))
 	return aws.StringValue(out.Images[0].ImageId), nil
