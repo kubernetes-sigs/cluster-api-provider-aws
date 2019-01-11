@@ -1,0 +1,30 @@
+From 3200e454110d91955ab849c75db5ee60085c8991 Mon Sep 17 00:00:00 2001
+From: Jan Chaloupka <jchaloup@redhat.com>
+Date: Fri, 11 Jan 2019 12:31:06 +0100
+Subject: [PATCH] Validate machineset before reconciliation
+
+---
+ .../cluster-api/pkg/controller/machineset/controller.go            | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
+index a1d3923..cb537bd 100644
+--- a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
++++ b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
+@@ -150,6 +150,13 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
+ 	}
+ 
+ 	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
++
++	if errList := machineSet.Validate(); len(errList) > 0 {
++		err := fmt.Errorf("%q machineset validation failed: %v", machineSet.Name, errList.ToAggregate().Error())
++		klog.Error(err)
++		return reconcile.Result{}, err
++	}
++
+ 	allMachines := &clusterv1alpha1.MachineList{}
+ 
+ 	err = r.Client.List(context.Background(), client.InNamespace(machineSet.Namespace), allMachines)
+-- 
+2.7.5
+
