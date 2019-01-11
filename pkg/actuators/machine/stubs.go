@@ -103,9 +103,9 @@ func stubMachine() (*clusterv1.Machine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed creating codec: %v", err)
 	}
-	config, err := codec.EncodeProviderConfig(machinePc)
+	providerSpec, err := codec.EncodeProviderSpec(machinePc)
 	if err != nil {
-		return nil, fmt.Errorf("codec.EncodeProviderConfig failed: %v", err)
+		return nil, fmt.Errorf("codec.EncodeProviderSpec failed: %v", err)
 	}
 
 	machine := &clusterv1.Machine{
@@ -120,7 +120,7 @@ func stubMachine() (*clusterv1.Machine, error) {
 		},
 
 		Spec: clusterv1.MachineSpec{
-			ProviderSpec: *config,
+			ProviderSpec: *providerSpec,
 		},
 	}
 

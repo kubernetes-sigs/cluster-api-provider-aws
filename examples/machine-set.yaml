@@ -22,7 +22,7 @@ spec:
         sigs.k8s.io/cluster-api-machine-role: infra
         sigs.k8s.io/cluster-api-machine-type: master
     spec:
-      providerConfig:
+      providerSpec:
         value:
           apiVersion: awsproviderconfig.k8s.io/v1alpha1
           kind: AWSMachineProviderConfig
