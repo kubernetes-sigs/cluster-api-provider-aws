@@ -61,14 +61,6 @@ func NewActuator(params ActuatorParams) *Actuator {
 	}
 }
 
-func (a *Actuator) getClusterMachines(ms *actuators.MachineScope, cluster *clusterv1.Cluster) (*clusterv1.MachineList, error) {
-	clusterMachines, err := ms.MachineClient.List(v1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get machinesList for cluster %q in namespace %q: %v", cluster.Name, cluster.Namespace, err)
-	}
-	return clusterMachines, nil
-}
-
 func (a *Actuator) getControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
 	var cpm []*clusterv1.Machine
 	for _, m := range machineList.Items {
@@ -138,7 +130,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("failed to retrieve controlplane url during machine creation: %+v", err)
 	}
 
-	clusterMachines, err := a.getClusterMachines(scope, cluster)
+	clusterMachines, err := scope.MachineClient.List(v1.ListOptions{})
 	if err != nil {
 		return errors.Errorf("failed to retrieve machines for cluster %q: %v", cluster.Name, err)
 	}
