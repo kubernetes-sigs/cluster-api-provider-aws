@@ -1,51 +1,33 @@
-From f6a8010437fb132130a29369650f944df973058f Mon Sep 17 00:00:00 2001
+From 63c900811bf02ddaeea04fffe9cbf2e3471788d1 Mon Sep 17 00:00:00 2001
 From: Jan Chaloupka <jchaloup@redhat.com>
-Date: Sat, 20 Oct 2018 12:35:41 +0200
-Subject: [PATCH 1/2] Delete annotated machines first when scaling down
+Date: Fri, 21 Dec 2018 16:02:17 +0100
+Subject: [PATCH] Delete annotated machines first when scaling down
 
 ---
- .../pkg/controller/machineset/controller.go        | 22 +++++++++++++++++++++-
- 1 file changed, 21 insertions(+), 1 deletion(-)
+ .../cluster-api/pkg/controller/machineset/delete_policy.go          | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
-index 2bf2e16..63a8051 100644
---- a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
-+++ b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/controller.go
-@@ -46,6 +46,9 @@ var stateConfirmationTimeout = 10 * time.Second
- // The polling is against a local memory cache.
- var stateConfirmationInterval = 100 * time.Millisecond
-
+diff --git a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/delete_policy.go b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/delete_policy.go
+index 2c2a101..9f5e519 100644
+--- a/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/delete_policy.go
++++ b/vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset/delete_policy.go
+@@ -31,10 +31,16 @@ const (
+ 
+ type deletePriorityFunc func(machine *v1alpha1.Machine) deletePriority
+ 
 +// machineDeleteAnnotationKey annotates machines to be delete among first ones
 +var machineDeleteAnnotationKey = "sigs.k8s.io/cluster-api-delete-machine"
 +
- // Add creates a new MachineSet Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
- // and Start it when the Manager is Started.
- func Add(mgr manager.Manager) error {
-@@ -327,7 +330,24 @@ func (c *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet
- func getMachinesToDelete(filteredMachines []*clusterv1alpha1.Machine, diff int) []*clusterv1alpha1.Machine {
- 	// TODO: Define machines deletion policies.
- 	// see: https://github.com/kubernetes/kube-deploy/issues/625
--	return filteredMachines[:diff]
-+
-+	// First delete all machines with sigs.k8s.io/cluster-api-delete-machine annotation
-+	var machinesToDelete []*clusterv1alpha1.Machine
-+	var remainingMachines []*clusterv1alpha1.Machine
-+	for _, machine := range filteredMachines {
-+		if _, delete := machine.Annotations[machineDeleteAnnotationKey]; delete {
-+			machinesToDelete = append(machinesToDelete, machine)
-+		} else {
-+			remainingMachines = append(remainingMachines, machine)
-+		}
+ func simpleDeletePriority(machine *v1alpha1.Machine) deletePriority {
+ 	if machine.DeletionTimestamp != nil && !machine.DeletionTimestamp.IsZero() {
+ 		return mustDelete
+ 	}
++	if _, exists := machine.Annotations[machineDeleteAnnotationKey]; exists {
++		return mustDelete
 +	}
-+
-+	machinesToDeleteLen := len(machinesToDelete)
-+	if machinesToDeleteLen >= diff {
-+		return machinesToDelete[:diff]
-+	}
-+
-+	return append(machinesToDelete, remainingMachines[:(diff-machinesToDeleteLen)]...)
- }
-
- func (c *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alpha1.Machine) error {
---
+ 	if machine.Status.ErrorReason != nil || machine.Status.ErrorMessage != nil {
+ 		return betterDelete
+ 	}
+-- 
 2.7.5
+
