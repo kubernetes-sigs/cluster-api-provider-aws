@@ -234,6 +234,31 @@ func TestTerminateInstance(t *testing.T) {
 }
 
 func TestCreateInstance(t *testing.T) {
+	testCaCert := []byte(`
+-----BEGIN CERTIFICATE-----
+MIID6jCCAtICCQCa6H6nD76FxzANBgkqhkiG9w0BAQsFADCBtjELMAkGA1UEBhMC
+VVMxCzAJBgNVBAgMAldBMRMwEQYDVQQHDAprdWJlcm5ldGVzMRQwEgYDVQQKDAtj
+bHVzdGVyLWFwaTEhMB8GA1UECwwYY2x1c3Rlci1hcGktcHJvdmlkZXItYXdzMTAw
+LgYDVQQDDCdzaWdzLms4cy5pby5jbHVzdGVyLWFwaS1wcm92aWRlci1hd3MuYWYx
+GjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMB4XDTE5MDExMTA5MTgxNVoXDTIx
+MTAwNzA5MTgxNVowgbYxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJXQTETMBEGA1UE
+BwwKa3ViZXJuZXRlczEUMBIGA1UECgwLY2x1c3Rlci1hcGkxITAfBgNVBAsMGGNs
+dXN0ZXItYXBpLXByb3ZpZGVyLWF3czEwMC4GA1UEAwwnc2lncy5rOHMuaW8uY2x1
+c3Rlci1hcGktcHJvdmlkZXItYXdzLmFmMRowGAYJKoZIhvcNAQkBFgtmb29AYmFy
+LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKHVoYcq6NiS2lch
+ai62dDU+wStXJzFkF3URQ7auYDmL3Xz+01yxdARdafO3fweXSsfuxcGZ/DDBzRBB
+ROXeJI1zxV6xk+OlI0puOabo6m5ji4RdTTFqt94afnK43qcDMDOnh0u6F5UZXZlr
+T7XNnO++6e7elZ+9jJJ/NKPXDGKo9+M7kmypTLcI5b5pH4qn1coe8a5Li+FQONEM
+j+Ttomqr0s84DyFBSNZYKvRVL1AdH/6r213pco5Qm9RDkw9HZr83Y1PjyQ77C7FQ
+IPquny5XkjZjq65Bz8I8s+MoPQgBOr8JvVfc3Jt8u10qD4JOeRFnhZOygaApgswg
+9XZhdMsCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAVfucXOzEy88NQ+fz5FV1D1PO
+No6uqi2Q9fqGU9Lfnj3PhXr0sb0tAXGnZEg8i1317xMXqzA9J9umqg3ADsOsR3sL
+NR41dkjP2ROfTW1wkEGBaRzp/TOagMy1IeeS9MPd4gRH3cZqgUvrQJCrX8878gxk
+jor3R8gPhjvV74KrZD4lIF7IHHv4cCBaejm+3GwOIbTNoHXa4PadVwbcjWp6P8UB
+dTga1FiyISsMchVaVKD5aX7hkxMP1/C98KdVzWQ4k12TBOhZDYUS67M4ibBtw/og
+vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
+-----END CERTIFICATE-----
+	`)
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
@@ -282,7 +307,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			clusterConfig: &v1alpha1.AWSClusterProviderSpec{
-				CACertificate: []byte("x"),
+				CACertificate: testCaCert,
 				CAPrivateKey:  []byte("y"),
 			},
 			cluster: clusterv1.Cluster{
@@ -346,7 +371,13 @@ func TestCreateInstance(t *testing.T) {
 
 			scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 				Cluster: &tc.cluster,
-				Machine: &clusterv1.Machine{},
+				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"set": "node",
+						},
+					},
+				},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
@@ -363,7 +394,7 @@ func TestCreateInstance(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope.Scope)
-			instance, err := s.createInstance(scope, "token")
+			instance, err := s.createInstance(scope, "token", "kubeconfig")
 			tc.check(instance, err)
 		})
 	}
