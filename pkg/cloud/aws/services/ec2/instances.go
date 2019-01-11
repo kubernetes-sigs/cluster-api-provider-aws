@@ -160,11 +160,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		var err error
 
 		if bootstrapToken != "" {
-			// TODO ashish-amarnath
-			// prepare userdata with kubeadm join https://kubernetes.io/docs/setup/independent/high-availability/
 			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
 
-			// incomplete: https://github.com/kubernetes/kubernetes/blob/8d9ac261c4b49759179856d0a9db3ad4dc09e575/cmd/kubeadm/app/apis/kubeadm/types.go#L315:6
 			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
 				CACert:         string(s.scope.ClusterConfig.CACertificate),
 				CAKey:          string(s.scope.ClusterConfig.CAPrivateKey),

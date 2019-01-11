@@ -148,9 +148,6 @@ type ControlPlaneInput struct {
 	KubernetesVersion string
 }
 
-// TODO ashish-amarnath: incomplete
-// https://github.com/kubernetes/kubernetes/blob/8d9ac261c4b49759179856d0a9db3ad4dc09e575/cmd/kubeadm/app/apis/kubeadm/types.go#L315:6
-
 // ContolPlaneJoinInput defines context to generate controlplane instance user data for controlplane node join.
 type ContolPlaneJoinInput struct {
 	baseUserData
