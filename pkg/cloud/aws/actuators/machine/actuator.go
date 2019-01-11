@@ -84,21 +84,34 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
 
-func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine) (bool, error) {
+func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine, cluster *clusterv1.Cluster) (bool, error) {
 	switch newMachine.ObjectMeta.Labels["set"] {
 	case "node":
 		return true, nil
 	case "controlplane":
-		join := true
-		// join = false, if:
-		//		1. len(controlPlaneMachines) == 1 && controlPlaneMachines[0] == newMachine
-		if len(controlPlaneMachines) == 1 && machinesEqual(controlPlaneMachines[0], newMachine) {
-			join = false
-		}
-		// 		TODO: ashish-amarnath 2. if none of the controlPlaneMachines exist
+		contolPlaneExists := false
+		for _, cm := range controlPlaneMachines {
+			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+				Machine: cm,
+				Cluster: cluster,
+				Client:  a.client,
+			})
+			if err != nil {
+				return false, errors.Errorf("failed to create scope: %+v", err)
+			}
 
-		klog.V(2).Infof("Machine %q should join the controlplane: %t", newMachine.Name, join)
-		return join, nil
+			ec2svc := ec2.NewService(m.Scope)
+			contolPlaneExists, err = ec2svc.MachineExists(m)
+			if err != nil {
+				return false, errors.Errorf("failed to verify existence of machine %q: %v", m.Name(), err)
+			}
+			if contolPlaneExists {
+				break
+			}
+		}
+
+		klog.V(2).Infof("Machine %q should join the controlplane: %t", newMachine.Name, contolPlaneExists)
+		return contolPlaneExists, nil
 	default:
 		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", newMachine.ObjectMeta.Labels["set"], newMachine.Name)
 		klog.Errorf(errMsg)
@@ -130,7 +143,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("failed to retrieve machines for cluster %q: %v", cluster.Name, err)
 	}
 	controlPlaneMachines := a.getControlPlaneMachines(clusterMachines)
-	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine)
+	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine, cluster)
 	if err != nil {
 		return errors.Errorf("Failed to determine whther machine %q should join cluster %q: %v", machine.Name, cluster.Name, err)
 	}

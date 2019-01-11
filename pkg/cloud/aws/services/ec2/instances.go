@@ -275,6 +275,25 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 	return nil
 }
 
+// MachineExists will return whether or not a machine exists.
+func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
+	var err error
+	var instance *v1alpha1.Instance
+	if machine.MachineStatus.InstanceID != nil {
+		instance, err = s.InstanceIfExists(*machine.MachineStatus.InstanceID)
+	} else {
+		instance, err = s.InstanceByTags(machine)
+	}
+
+	if err != nil {
+		if awserrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to lookup machine %q: %v", machine.Name, err)
+	}
+	return instance != nil, nil
+}
+
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
 func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken, kubeConfig string) (*v1alpha1.Instance, error) {
 	klog.V(2).Infof("Attempting to create or get machine %q", machine.Name())
