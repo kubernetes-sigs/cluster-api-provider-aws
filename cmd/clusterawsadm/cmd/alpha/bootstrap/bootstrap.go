@@ -120,6 +120,7 @@ func createStackCmd() *cobra.Command {
 		Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			stackName := "cluster-api-provider-aws-sigs-k8s-io"
+			fmt.Printf("Attempting to create CloudFormation stack %s", stackName)
 			sess, err := session.NewSessionWithOptions(session.Options{
 				SharedConfigState: session.SharedConfigEnable,
 			})
