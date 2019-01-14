@@ -16,6 +16,8 @@ limitations under the License.
 
 package userdata
 
+import "github.com/pkg/errors"
+
 const (
 	controlPlaneBashScript = `{{.Header}}
 
@@ -163,11 +165,20 @@ type ContolPlaneJoinInput struct {
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = defaultHeader
-	return generate("controlplane", controlPlaneBashScript, input)
+	userData, err := generate("controlplane", controlPlaneBashScript, input)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
+	}
+
+	return userData, err
 }
 
 // JoinControlPlane returns the user data string to be used on a new contrplplane instance.
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 	input.Header = defaultHeader
-	return generate("controlplane", controlPlaneJoinBashScript, input)
+	userData, err := generate("controlplane", controlPlaneJoinBashScript, input)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
+	}
+	return userData, err
 }

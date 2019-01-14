@@ -89,13 +89,13 @@ func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMach
 				Client:  a.client,
 			})
 			if err != nil {
-				return false, errors.Errorf("failed to create scope: %+v", err)
+				return false, errors.Wrapf(err, "failed to create machine scope for machine %q", cm.Name)
 			}
 
 			ec2svc := ec2.NewService(m.Scope)
 			contolPlaneExists, err = ec2svc.MachineExists(m)
 			if err != nil {
-				return false, errors.Errorf("failed to verify existence of machine %q: %v", m.Name(), err)
+				return false, errors.Wrapf(err, "failed to verify existence of machine %q", m.Name())
 			}
 			if contolPlaneExists {
 				break
@@ -132,25 +132,25 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	clusterMachines, err := scope.MachineClient.List(v1.ListOptions{})
 	if err != nil {
-		return errors.Errorf("failed to retrieve machines for cluster %q: %v", cluster.Name, err)
+		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
 	}
 	controlPlaneMachines := a.getControlPlaneMachines(clusterMachines)
 	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine, cluster)
 	if err != nil {
-		return errors.Errorf("Failed to determine whther machine %q should join cluster %q: %v", machine.Name, cluster.Name, err)
+		return errors.Wrapf(err, "failed to determine whther machine %q should join cluster %q", machine.Name, cluster.Name)
 	}
 
 	var bootstrapToken string
 	if isNodeJoin {
 		bootstrapToken, err = a.getNodeJoinToken(cluster, controlPlaneURL)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to obtain token for node %q to join cluster %q", machine.Name, cluster.Name)
 		}
 	}
 
 	kubeConfig, err := a.GetKubeConfig(cluster, nil)
 	if err != nil {
-		return errors.Errorf("failed to retrieve kubeconfig to pass into machine creation: %+v", err)
+		return errors.Wrapf(err, "failed to retrieve kubeconfig while creating machine %q", machine.Name)
 	}
 
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken, kubeConfig)
@@ -184,7 +184,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster, controlPlaneURL string) (string, error) {
 	kubeConfig, err := a.GetKubeConfig(cluster, nil)
 	if err != nil {
-		return "", errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+		return "", errors.Wrapf(err, "failed to retrieve kubeconfig for cluster %q.", cluster.Name)
 	}
 
 	clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
@@ -192,17 +192,17 @@ func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster, controlPlaneURL 
 	})
 
 	if err != nil {
-		return "", errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+		return "", errors.Wrapf(err, "failed to get client config for cluster at %q", controlPlaneURL)
 	}
 
 	coreClient, err := corev1.NewForConfig(clientConfig)
 	if err != nil {
-		return "", errors.Errorf("failed to initialize new corev1 client: %+v", err)
+		return "", errors.Wrapf(err, "failed to initialize new corev1 client")
 	}
 
 	bootstrapToken, err := tokens.NewBootstrap(coreClient, 10*time.Minute)
 	if err != nil {
-		return "", errors.Errorf("failed to create new bootstrap token: %+v", err)
+		return "", errors.Wrapf(err, "failed to create new bootstrap token")
 	}
 
 	return bootstrapToken, nil

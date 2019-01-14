@@ -286,7 +286,7 @@ func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
 		if awserrors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "failed to lookup machine %q: %v", machine.Name, err)
+		return false, errors.Wrapf(err, "failed to lookup machine %q", machine.Name())
 	}
 	return instance != nil, nil
 }
