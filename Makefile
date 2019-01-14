@@ -46,6 +46,7 @@ vendor:
 	dep ensure -v
 	patch -p1 < 0001-Delete-annotated-machines-first-when-scaling-down.patch
 	patch -p1 < 0002-Sort-machines-before-syncing.patch
+	patch -p1 < 0001-Validate-machineset-before-reconciliation.patch
 
 .PHONY: generate
 generate:
