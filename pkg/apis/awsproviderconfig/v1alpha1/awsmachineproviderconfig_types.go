@@ -34,20 +34,22 @@ const (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // AWSMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
-// It containsk AWS-specific status information.
+// It contains AWS-specific status information.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AWSMachineProviderStatus struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// InstanceID is the instance ID of the machine created in AWS
-	InstanceID *string `json:"instanceId"`
+	// +optional
+	InstanceID *string `json:"instanceId,omitempty"`
 
 	// InstanceState is the state of the AWS instance for this machine
-	InstanceState *string `json:"instanceState"`
+	// +optional
+	InstanceState *string `json:"instanceState,omitempty"`
 
 	// Conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
-	Conditions []AWSMachineProviderCondition `json:"conditions"`
+	Conditions []AWSMachineProviderCondition `json:"conditions,omitempty"`
 }
 
 // AWSMachineProviderConditionType is a valid value for AWSMachineProviderCondition.Type
@@ -68,16 +70,16 @@ type AWSMachineProviderCondition struct {
 	Status corev1.ConditionStatus `json:"status"`
 	// LastProbeTime is the last time we probed the condition.
 	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime"`
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
 	// LastTransitionTime is the last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
 	// +optional
-	Reason string `json:"reason"`
+	Reason string `json:"reason,omitempty"`
 	// Message is a human-readable message indicating details about last transition.
 	// +optional
-	Message string `json:"message"`
+	Message string `json:"message,omitempty"`
 }
 
 // +genclient
@@ -99,21 +101,21 @@ type AWSMachineProviderConfig struct {
 	// added by default by the actuator. These tags are additive. The actuator will ensure
 	// these tags are present, but will not remove any other tags that may exist on the
 	// instance.
-	Tags []TagSpecification `json:"tags"`
+	Tags []TagSpecification `json:"tags,omitempty"`
 
 	// IAMInstanceProfile is a reference to an IAM role to assign to the instance
-	IAMInstanceProfile *AWSResourceReference `json:"iamInstanceProfile"`
+	IAMInstanceProfile *AWSResourceReference `json:"iamInstanceProfile,omitempty"`
 
 	// UserDataSecret contains a local reference to a secret that contains the
 	// UserData to apply to the instance
-	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret"`
+	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret,omitempty"`
 
 	// CredentialsSecret is a reference to the secret with AWS credentials. Otherwise, defaults to permissions
 	// provided by attached IAM role where the actuator is running.
-	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret"`
+	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret,omitempty"`
 
 	// KeyName is the name of the KeyPair to use for SSH
-	KeyName *string `json:"keyName"`
+	KeyName *string `json:"keyName,omitempty"`
 
 	// DeviceIndex is the index of the device on the instance for the network interface attachment.
 	// Defaults to 0.
@@ -125,7 +127,7 @@ type AWSMachineProviderConfig struct {
 
 	// SecurityGroups is an array of references to security groups that should be applied to the
 	// instance.
-	SecurityGroups []AWSResourceReference `json:"securityGroups"`
+	SecurityGroups []AWSResourceReference `json:"securityGroups,omitempty"`
 
 	// Subnet is a reference to the subnet to use for this instance
 	Subnet AWSResourceReference `json:"subnet"`
@@ -135,7 +137,7 @@ type AWSMachineProviderConfig struct {
 
 	// LoadBalancers is the set of load balancers to which the new instance
 	// should be added once it is created.
-	LoadBalancers []LoadBalancerReference `json:"loadBalancers"`
+	LoadBalancers []LoadBalancerReference `json:"loadBalancers,omitempty"`
 
 	// BlockDevices is the set of block device mapping associated to this instance
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
@@ -217,22 +219,24 @@ type EBSBlockDeviceSpec struct {
 // a validation error.
 type AWSResourceReference struct {
 	// ID of resource
-	ID *string `json:"id"`
+	// +optional
+	ID *string `json:"id,omitempty"`
 
 	// ARN of resource
-	ARN *string `json:"arn"`
+	// +optional
+	ARN *string `json:"arn,omitempty"`
 
 	// Filters is a set of filters used to identify a resource
-	Filters []Filter `json:"filters"`
+	Filters []Filter `json:"filters,omitempty"`
 }
 
 // Placement indicates where to create the instance in AWS
 type Placement struct {
 	// Region is the region to use to create the instance
-	Region string `json:"region"`
+	Region string `json:"region,omitempty"`
 
 	// AvailabilityZone is the availability zone of the instance
-	AvailabilityZone string `json:"availabilityZone"`
+	AvailabilityZone string `json:"availabilityZone,omitempty"`
 }
 
 // Filter is a filter used to identify an AWS resource
@@ -241,7 +245,7 @@ type Filter struct {
 	Name string `json:"name"`
 
 	// Values includes one or more filter values. Filter values are case-sensitive.
-	Values []string `json:"values"`
+	Values []string `json:"values,omitempty"`
 }
 
 // TagSpecification is the name/value pair for a tag
