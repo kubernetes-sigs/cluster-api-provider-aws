@@ -1,0 +1,41 @@
+From 6376c57e840a5ff57217ead3dd2633ee00c08d07 Mon Sep 17 00:00:00 2001
+From: Jan Chaloupka <jchaloup@redhat.com>
+Date: Tue, 15 Jan 2019 10:28:40 +0100
+Subject: [PATCH] Upstream: 677: Init klog in manager properly
+
+---
+ vendor/sigs.k8s.io/cluster-api/cmd/manager/main.go | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/vendor/sigs.k8s.io/cluster-api/cmd/manager/main.go b/vendor/sigs.k8s.io/cluster-api/cmd/manager/main.go
+index 6c53802..6082803 100644
+--- a/vendor/sigs.k8s.io/cluster-api/cmd/manager/main.go
++++ b/vendor/sigs.k8s.io/cluster-api/cmd/manager/main.go
+@@ -22,6 +22,7 @@ import (
+ 	"flag"
+ 
+ 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
++	"k8s.io/klog"
+ 	"sigs.k8s.io/cluster-api/pkg/apis"
+ 	"sigs.k8s.io/cluster-api/pkg/controller"
+ 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+@@ -30,7 +31,16 @@ import (
+ )
+ 
+ func main() {
++	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
++	klog.InitFlags(klogFlags)
+ 	flag.Parse()
++	flag.VisitAll(func(f1 *flag.Flag) {
++		f2 := klogFlags.Lookup(f1.Name)
++		if f2 != nil {
++			value := f1.Value.String()
++			f2.Value.Set(value)
++		}
++	})
+ 
+ 	// Get a config to talk to the apiserver
+ 	cfg, err := config.GetConfig()
+-- 
+2.7.5
+
