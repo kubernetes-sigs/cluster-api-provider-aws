@@ -44,6 +44,10 @@ func (c *awsClient) DescribeSubnets(input *ec2.DescribeSubnetsInput) (*ec2.Descr
 	}, nil
 }
 
+func (c *awsClient) DescribeAvailabilityZones(*ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error) {
+	return &ec2.DescribeAvailabilityZonesOutput{}, nil
+}
+
 func (c *awsClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error) {
 	return &ec2.DescribeSecurityGroupsOutput{
 		SecurityGroups: []*ec2.SecurityGroup{

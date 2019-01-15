@@ -102,6 +102,16 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone
 	} else {
 		var filters []providerconfigv1.Filter
 		if availabilityZone != "" {
+			// Improve error logging for better user experience.
+			// Otherwise, during the process of minimizing API calls, this is a good
+			// candidate for removal.
+			_, err := client.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
+				ZoneNames: []*string{aws.String(availabilityZone)},
+			})
+			if err != nil {
+				glog.Errorf("error describing availability zones: %v", err)
+				return nil, fmt.Errorf("error describing availability zones: %v", err)
+			}
 			filters = append(filters, providerconfigv1.Filter{Name: "availabilityZone", Values: []string{availabilityZone}})
 		}
 		filters = append(filters, subnet.Filters...)
