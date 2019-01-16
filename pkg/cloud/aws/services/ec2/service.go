@@ -24,11 +24,11 @@ import (
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
-	scope *actuators.Scope
+	scope *actuators.MachineScope
 }
 
 // NewService returns a new service given the ec2 api client.
-func NewService(scope *actuators.Scope) *Service {
+func NewService(scope *actuators.MachineScope) *Service {
 	return &Service{
 		scope: scope,
 	}

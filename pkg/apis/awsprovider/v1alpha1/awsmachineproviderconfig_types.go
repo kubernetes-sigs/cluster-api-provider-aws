@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -48,7 +49,19 @@ type AWSMachineProviderSpec struct {
 
 	// IAMInstanceProfile is a name of an IAM instance profile to assign to the instance
 	// +optional
-	IAMInstanceProfile string `json:"iamInstanceProfile,omitempty"`
+	IAMInstanceProfile AWSResourceReference `json:"iamInstanceProfile,omitempty"`
+
+	// UserDataSecret contains a local reference to a secret that contains the
+	// UserData to apply to the instance
+	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret"`
+
+	// CredentialsSecret is a reference to the secret with AWS credentials. Otherwise, defaults to permissions
+	// provided by attached IAM role where the actuator is running.
+	CredentialsSecret *corev1.LocalObjectReference `json:"credentialsSecret"`
+
+	// DeviceIndex is the index of the device on the instance for the network interface attachment.
+	// Defaults to 0.
+	DeviceIndex int64 `json:"deviceIndex"`
 
 	// PublicIP specifies whether the instance should get a public IP.
 	// Precedence for this setting is as follows:
@@ -72,7 +85,33 @@ type AWSMachineProviderSpec struct {
 	// KeyName is the name of the SSH key to install on the instance.
 	// +optional
 	KeyName string `json:"keyName,omitempty"`
+
+	// Placement specifies where to create the instance in AWS
+	Placement Placement `json:"placement"`
+
+	// LoadBalancers is the set of load balancers to which the new instance
+	// should be added once it is created.
+	LoadBalancers []LoadBalancerReference `json:"loadBalancers"`
 }
+
+// Placement indicates where to create the instance in AWS
+type Placement struct {
+	// Region is the region to use to create the instance
+	Region string `json:"region"`
+
+	// AvailabilityZone is the availability zone of the instance
+	AvailabilityZone string `json:"availabilityZone"`
+}
+
+// LoadBalancerReference is a reference to a load balancer on AWS.
+type LoadBalancerReference struct {
+	Name string              `json:"name"`
+	Type AWSLoadBalancerType `json:"type"`
+}
+
+// AWSLoadBalancerType is the type of LoadBalancer to use when registering
+// an instance with load balancers specified in LoadBalancerNames
+type AWSLoadBalancerType string
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

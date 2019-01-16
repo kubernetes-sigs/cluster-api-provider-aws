@@ -60,7 +60,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	defer scope.Close()
 
-	ec2svc := ec2.NewService(scope)
+	ec2svc := ec2.NewService(&actuators.MachineScope{Scope: scope})
 	elbsvc := elb.NewService(scope)
 
 	// Store some config parameters in the status.
@@ -100,7 +100,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 
 	defer scope.Close()
 
-	ec2svc := ec2.NewService(scope)
+	ec2svc := ec2.NewService(&actuators.MachineScope{Scope: scope})
 	elbsvc := elb.NewService(scope)
 
 	if err := elbsvc.DeleteLoadbalancers(); err != nil {

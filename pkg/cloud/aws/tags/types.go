@@ -70,6 +70,10 @@ const (
 	// dedicated to this cluster api provider implementation.
 	NameAWSClusterAPIRole = "sigs.k8s.io/cluster-api-provider-aws/role"
 
+	// ClusterIDLabel is the label that a machineset must have to identify the
+	// cluster to which it belongs.
+	NameAWSClusterIDLabel = "sigs.k8s.io/cluster-api-cluster"
+
 	// ValueAPIServerRole describes the value for the apiserver role
 	ValueAPIServerRole = "apiserver"
 

@@ -408,4 +408,39 @@ type Instance struct {
 
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
+
+	// One or more network interfaces.
+	NetworkInterfaces []*NetworkInterface `locationName:"networkInterface" locationNameList:"item" type:"list"`
+}
+
+// Describes a network interface.
+type NetworkInterface struct {
+	// Indicates whether to assign a public IPv4 address to an instance you launch
+	// in a VPC. The public IP address can only be assigned to a network interface
+	// for eth0, and can only be assigned to a new network interface, not an existing
+	// one. You cannot specify more than one network interface in the request. If
+	// launching into a default subnet, the default value is true.
+	AssociatePublicIpAddress *bool `locationName:"associatePublicIpAddress" type:"boolean"`
+
+	// If set to true, the interface is deleted when the instance is terminated.
+	// You can specify true only if creating a new network interface when launching
+	// an instance.
+	DeleteOnTermination *bool `locationName:"deleteOnTermination" type:"boolean"`
+
+	// The description of the network interface. Applies only if creating a network
+	// interface when launching an instance.
+	Description *string `locationName:"description" type:"string"`
+
+	// The index of the device on the instance for the network interface attachment.
+	// If you are specifying a network interface in a RunInstances request, you
+	// must provide the device index.
+	DeviceIndex *int64 `locationName:"deviceIndex" type:"integer"`
+
+	// The IDs of the security groups for the network interface. Applies only if
+	// creating a network interface when launching an instance.
+	Groups []*string `locationName:"SecurityGroupId" locationNameList:"SecurityGroupId" type:"list"`
+
+	// The ID of the subnet associated with the network string. Applies only if
+	// creating a network interface when launching an instance.
+	SubnetId *string `locationName:"subnetId" type:"string"`
 }

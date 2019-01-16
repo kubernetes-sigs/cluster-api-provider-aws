@@ -21,6 +21,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 )
 
+const (
+	// AwsCredsSecretIDKey is secret key containing AWS KeyId
+	AwsCredsSecretIDKey = "awsAccessKeyId"
+	// AwsCredsSecretAccessKey is secret key containing AWS Secret Key
+	AwsCredsSecretAccessKey = "awsSecretAccessKey"
+)
+
 // AWSClients contains all the aws clients used by the scopes.
 type AWSClients struct {
 	EC2 ec2iface.EC2API

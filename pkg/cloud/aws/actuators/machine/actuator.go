@@ -23,7 +23,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
+	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog"
@@ -43,55 +45,82 @@ import (
 type Actuator struct {
 	*deployer.Deployer
 
-	client client.ClusterV1alpha1Interface
+	client           client.ClusterV1alpha1Interface
+	KubeClientConfig *rest.Config
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	Client client.ClusterV1alpha1Interface
+	Client           client.ClusterV1alpha1Interface
+	KubeClientConfig *rest.Config
 }
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
-		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
-		client:   params.Client,
+		Deployer:         deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
+		client:           params.Client,
+		KubeClientConfig: params.KubeClientConfig,
 	}
 }
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
-
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
-	if err != nil {
-		return errors.Errorf("failed to create scope: %+v", err)
+	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster)
+	var scope *actuators.MachineScope
+	var err error
+	if cluster != nil {
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+		if err != nil {
+			return errors.Errorf("failed to create scope: %+v", err)
+		}
+	} else {
+		// create scope without cluster
+		if a.KubeClientConfig == nil {
+			return errors.New("failed to initialize new corev1 client. Either cluster object or KubeClientConfig must be non-nil. Both are found to be nil")
+		}
+		kubeClient, err := kubernetes.NewForConfig(a.KubeClientConfig)
+		if err != nil {
+			return errors.Errorf("failed to initialize new k8s client: %+v", err)
+		}
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, KubeClient: kubeClient})
+		if err != nil {
+			return errors.Errorf("failed to create scope: %+v", err)
+		}
 	}
 
 	defer scope.Close()
 
-	ec2svc := ec2.NewService(scope.Scope)
-
-	controlPlaneURL, err := a.GetIP(cluster, nil)
-	if err != nil {
-		return errors.Errorf("failed to retrieve controlplane url during machine creation: %+v", err)
-	}
+	ec2svc := ec2.NewService(scope)
 
 	var bootstrapToken string
+	var clientConfig *rest.Config
 	if machine.ObjectMeta.Labels["set"] == "node" {
-		kubeConfig, err := a.GetKubeConfig(cluster, nil)
-		if err != nil {
-			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+		if cluster != nil {
+			kubeConfig, err := a.GetKubeConfig(cluster, nil)
+			if err != nil {
+				return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+			}
+			controlPlaneURL, err := a.GetIP(cluster, nil)
+			if err != nil {
+				return errors.Errorf("failed to retrieve controlplane url during machine creation: %+v", err)
+			}
+
+			clientConfig, err = clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
+				return clientcmd.Load([]byte(kubeConfig))
+			})
+
+			if err != nil {
+				return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
+			}
+
+		} else {
+			// use kubeclient
+			if a.KubeClientConfig == nil {
+				return errors.New("failed to initialize new corev1 client. Either cluster object or KubeClientConfig must be non-nil. Both are found to be nil")
+			}
+			clientConfig = a.KubeClientConfig
 		}
-
-		clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
-			return clientcmd.Load([]byte(kubeConfig))
-		})
-
-		if err != nil {
-			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
-		}
-
 		coreClient, err := corev1.NewForConfig(clientConfig)
 		if err != nil {
 			return errors.Errorf("failed to initialize new corev1 client: %+v", err)
@@ -144,16 +173,38 @@ func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clust
 
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	klog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
-
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
-	if err != nil {
-		return errors.Errorf("failed to create scope: %+v", err)
+	klog.Infof("Deleting machine %+v for cluster %v.", machine, cluster)
+	var scope *actuators.MachineScope
+	var err error
+	if cluster != nil {
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+		if err != nil {
+			return errors.Errorf("failed to create scope: %+v", err)
+		}
+	} else {
+		// create scope without cluster
+		if a.KubeClientConfig == nil {
+			return errors.New("failed to initialize new corev1 client. Either cluster object or KubeClientConfig must be non-nil. Both are found to be nil")
+		}
+		kubeClient, err := kubernetes.NewForConfig(a.KubeClientConfig)
+		if err != nil {
+			return errors.Errorf("failed to initialize new k8s client: %+v", err)
+		}
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, KubeClient: kubeClient})
+		if err != nil {
+			return errors.Errorf("failed to delete machine %v: %+v", machine.Name, err)
+		}
 	}
 
 	defer scope.Close()
 
-	ec2svc := ec2.NewService(scope.Scope)
+	ec2svc := ec2.NewService(scope)
+	klog.Infof("machinestatus %+v", scope.MachineStatus)
+
+	if scope.MachineStatus.InstanceID == nil {
+		klog.Info("Instance is nil and therefore does not exist")
+		return nil
+	}
 
 	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
@@ -188,22 +239,49 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 // If the Update attempts to mutate any immutable state, the method will error
 // and no updates will be performed.
 func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	klog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
-
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
-	if err != nil {
-		return errors.Errorf("failed to create scope: %+v", err)
+	klog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster)
+	var scope *actuators.MachineScope
+	var err error
+	if cluster != nil {
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+		if err != nil {
+			return errors.Errorf("failed to create scope: %+v", err)
+		}
+	} else {
+		// create scope without cluster
+		if a.KubeClientConfig == nil {
+			return errors.New("failed to initialize new corev1 client. Either cluster object or KubeClientConfig must be non-nil. Both are found to be nil")
+		}
+		kubeClient, err := kubernetes.NewForConfig(a.KubeClientConfig)
+		if err != nil {
+			return errors.Errorf("failed to initialize new k8s client: %+v", err)
+		}
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, KubeClient: kubeClient})
+		if err != nil {
+			return errors.Errorf("failed to update machine %v: %+v", machine.Name, err)
+		}
 	}
 
 	defer scope.Close()
 
-	ec2svc := ec2.NewService(scope.Scope)
+	ec2svc := ec2.NewService(scope)
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Errorf("failed to get instance: %+v", err)
 	}
+	klog.Infof("Found instance for machine %q: %v", machine.Name, instance)
+
+	switch instance.State {
+	case v1alpha1.InstanceStateRunning:
+		klog.Infof("Machine %s, %v is running", machine.Name, scope.MachineStatus.InstanceID)
+	case v1alpha1.InstanceStatePending:
+		klog.Infof("Machine %s, %v is pending", machine.Name, scope.MachineStatus.InstanceID)
+	default:
+		return nil
+	}
+	scope.MachineStatus.InstanceState = aws.String(string(instance.State))
 
 	// We can now compare the various AWS state to the state we were passed.
 	// We will check immutable state first, in order to fail quickly before
@@ -216,7 +294,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 		machine,
 		*scope.MachineStatus.InstanceID,
 		scope.MachineConfig.AdditionalSecurityGroups,
-		instanceDescription.SecurityGroupIDs,
+		instance.SecurityGroupIDs,
 	)
 	if err != nil {
 		return errors.Errorf("failed to apply security groups: %+v", err)
@@ -233,16 +311,33 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	klog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
+	klog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
-	if err != nil {
-		return false, errors.Errorf("failed to create scope: %+v", err)
+	var scope *actuators.MachineScope
+	var err error
+	if cluster != nil {
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+		if err != nil {
+			return false, errors.Errorf("failed to create scope: %+v", err)
+		}
+	} else {
+		// create scope without cluster
+		if a.KubeClientConfig == nil {
+			return false, errors.New("failed to initialize new corev1 client. Either cluster object or KubeClientConfig must be non-nil. Both are found to be nil")
+		}
+		kubeClient, err := kubernetes.NewForConfig(a.KubeClientConfig)
+		if err != nil {
+			return false, errors.Errorf("failed to initialize new k8s client: %+v", err)
+		}
+		scope, err = actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, KubeClient: kubeClient})
+		if err != nil {
+			return false, errors.Errorf("failed to verify existence of machine %v: %+v", machine.Name, err)
+		}
 	}
 
 	defer scope.Close()
 
-	ec2svc := ec2.NewService(scope.Scope)
+	ec2svc  := ec2.NewService(scope)
 
 	// TODO worry about pointers. instance if exists returns *any* instance
 	if scope.MachineStatus.InstanceID == nil {
@@ -262,12 +357,13 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning:
-		klog.Infof("Machine %v is running", scope.MachineStatus.InstanceID)
+		klog.Infof("Machine %s, %v is running", machine.Name, scope.MachineStatus.InstanceID)
 	case v1alpha1.InstanceStatePending:
-		klog.Infof("Machine %v is pending", scope.MachineStatus.InstanceID)
+		klog.Infof("Machine %s, %v is pending", machine.Name, scope.MachineStatus.InstanceID)
 	default:
 		return false, nil
 	}
+	scope.MachineStatus.InstanceState = aws.String(string(instance.State))
 
 	if err := a.reconcileLBAttachment(scope, machine, instance); err != nil {
 		return true, err
