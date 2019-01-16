@@ -47,6 +47,7 @@ vendor:
 	patch -p1 < 0001-Delete-annotated-machines-first-when-scaling-down.patch
 	patch -p1 < 0002-Sort-machines-before-syncing.patch
 	patch -p1 < 0001-Validate-machineset-before-reconciliation.patch
+	patch -p1 < 0001-Upstream-677-Init-klog-in-manager-properly.patch
 
 .PHONY: generate
 generate:
@@ -59,8 +60,9 @@ bin:
 	@mkdir $@
 
 .PHONY: build
-build: ## build binary
-	$(DOCKER_CMD) go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+build: ## build binaries
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/machine-controller-manager -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/cmd/manager
 
 aws-actuator:
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
