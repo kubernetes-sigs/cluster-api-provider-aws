@@ -51,6 +51,7 @@ vendor:
 
 .PHONY: generate
 generate:
+	go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/golang/mock/mockgen
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: test

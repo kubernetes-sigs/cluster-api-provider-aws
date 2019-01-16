@@ -263,6 +263,7 @@ func TestLaunchInstance(t *testing.T) {
 		securityGroupErr    error
 		subnetOutput        *ec2.DescribeSubnetsOutput
 		subnetErr           error
+		azErr               error
 		imageOutput         *ec2.DescribeImagesOutput
 		imageErr            error
 	}{
@@ -326,6 +327,13 @@ func TestLaunchInstance(t *testing.T) {
 				Filters: []providerconfigv1.Filter{},
 			}),
 			subnetErr: fmt.Errorf("error"),
+		},
+		{
+			name: "Subnet with availability zone with error",
+			providerConfig: stubPCSubnet(providerconfigv1.AWSResourceReference{
+				Filters: []providerconfigv1.Filter{},
+			}),
+			azErr: fmt.Errorf("error"),
 		},
 		{
 			name: "AMI with filters",
@@ -396,6 +404,7 @@ func TestLaunchInstance(t *testing.T) {
 			mockAWSClient := mockaws.NewMockClient(mockCtrl)
 
 			mockAWSClient.EXPECT().DescribeSecurityGroups(gomock.Any()).Return(tc.securityGroupOutput, tc.securityGroupErr).AnyTimes()
+			mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, tc.azErr).AnyTimes()
 			mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(tc.subnetOutput, tc.subnetErr).AnyTimes()
 			mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(tc.imageOutput, tc.imageErr).AnyTimes()
 			mockAWSClient.EXPECT().RunInstances(gomock.Any())
