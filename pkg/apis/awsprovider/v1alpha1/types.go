@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
 	"time"
 
@@ -322,11 +321,7 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 	for _, x := range i {
 		found := false
 		for _, y := range o {
-			sort.Strings(x.CidrBlocks)
-			sort.Strings(y.CidrBlocks)
-			sort.Strings(x.SourceSecurityGroupIDs)
-			sort.Strings(y.SourceSecurityGroupIDs)
-			if reflect.DeepEqual(x, y) {
+			if x.Equals(y) {
 				found = true
 				break
 			}
@@ -338,6 +333,40 @@ func (i IngressRules) Difference(o IngressRules) (out IngressRules) {
 	}
 
 	return
+}
+
+// Equals returns true if two IngressRule are equal
+func (i *IngressRule) Equals(o *IngressRule) bool {
+	if len(i.CidrBlocks) != len(o.CidrBlocks) {
+		return false
+	}
+
+	sort.Strings(i.CidrBlocks)
+	sort.Strings(o.CidrBlocks)
+
+	for i, v := range i.CidrBlocks {
+		if v != o.CidrBlocks[i] {
+			return false
+		}
+	}
+
+	if len(i.SourceSecurityGroupIDs) != len(o.SourceSecurityGroupIDs) {
+		return false
+	}
+
+	sort.Strings(i.SourceSecurityGroupIDs)
+	sort.Strings(o.SourceSecurityGroupIDs)
+
+	for i, v := range i.SourceSecurityGroupIDs {
+		if v != o.SourceSecurityGroupIDs[i] {
+			return false
+		}
+	}
+
+	return i.Description == o.Description &&
+		i.FromPort == o.FromPort &&
+		i.ToPort == o.ToPort &&
+		i.Protocol == o.Protocol
 }
 
 // InstanceState describes the state of an AWS instance.

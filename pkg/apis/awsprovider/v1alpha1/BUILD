@@ -34,6 +34,7 @@ go_test(
         "awsmachineproviderconfig_types_test.go",
         "awsmachineproviderstatus_types_test.go",
         "register_test.go",
+        "types_test.go",
         "v1alpha1_suite_test.go",
     ],
     embed = [":go_default_library"],
