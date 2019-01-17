@@ -269,7 +269,7 @@ func launchInstance(machine *clusterv1.Machine, machineProviderConfig *providerc
 	}
 	tagVolume := &ec2.TagSpecification{
 		ResourceType: aws.String("volume"),
-		Tags:         []*ec2.Tag{{Key: aws.String("clusterid"), Value: aws.String(clusterID)}},
+		Tags:         tagList,
 	}
 
 	userDataEnc := base64.StdEncoding.EncodeToString(userData)
