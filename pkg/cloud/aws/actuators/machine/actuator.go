@@ -19,10 +19,12 @@ package machine
 // should not need to import the ec2 sdk here
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -59,6 +61,57 @@ func NewActuator(params ActuatorParams) *Actuator {
 	}
 }
 
+func (a *Actuator) getControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
+	var cpm []*clusterv1.Machine
+	for _, m := range machineList.Items {
+		if m.Spec.Versions.ControlPlane != "" {
+			cpm = append(cpm, m.DeepCopy())
+		}
+	}
+	return cpm
+}
+
+// defining equality as name and namespace are equivalent and not checking any other fields.
+func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
+	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
+}
+
+func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine, cluster *clusterv1.Cluster) (bool, error) {
+	switch newMachine.ObjectMeta.Labels["set"] {
+	case "node":
+		return true, nil
+	case "controlplane":
+		contolPlaneExists := false
+		for _, cm := range controlPlaneMachines {
+			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+				Machine: cm,
+				Cluster: cluster,
+				Client:  a.client,
+			})
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to create machine scope for machine %q", cm.Name)
+			}
+
+			ec2svc := ec2.NewService(m.Scope)
+			contolPlaneExists, err = ec2svc.MachineExists(m)
+			if err != nil {
+				return false, errors.Wrapf(err, "failed to verify existence of machine %q", m.Name())
+			}
+			if contolPlaneExists {
+				break
+			}
+		}
+
+		klog.V(2).Infof("Machine %q should join the controlplane: %t", newMachine.Name, contolPlaneExists)
+		return contolPlaneExists, nil
+	default:
+		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", newMachine.ObjectMeta.Labels["set"], newMachine.Name)
+		klog.Errorf(errMsg)
+		err := errors.Errorf(errMsg)
+		return false, err
+	}
+}
+
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
@@ -77,33 +130,30 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("failed to retrieve controlplane url during machine creation: %+v", err)
 	}
 
+	clusterMachines, err := scope.MachineClient.List(v1.ListOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
+	}
+	controlPlaneMachines := a.getControlPlaneMachines(clusterMachines)
+	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine, cluster)
+	if err != nil {
+		return errors.Wrapf(err, "failed to determine whether machine %q should join cluster %q", machine.Name, cluster.Name)
+	}
+
 	var bootstrapToken string
-	if machine.ObjectMeta.Labels["set"] == "node" {
-		kubeConfig, err := a.GetKubeConfig(cluster, nil)
+	if isNodeJoin {
+		bootstrapToken, err = a.getNodeJoinToken(cluster, controlPlaneURL)
 		if err != nil {
-			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
-		}
-
-		clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
-			return clientcmd.Load([]byte(kubeConfig))
-		})
-
-		if err != nil {
-			return errors.Errorf("failed to retrieve kubeconfig during machine creation: %+v", err)
-		}
-
-		coreClient, err := corev1.NewForConfig(clientConfig)
-		if err != nil {
-			return errors.Errorf("failed to initialize new corev1 client: %+v", err)
-		}
-
-		bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
-		if err != nil {
-			return errors.Errorf("failed to create new bootstrap token: %+v", err)
+			return errors.Wrapf(err, "failed to obtain token for node %q to join cluster %q", machine.Name, cluster.Name)
 		}
 	}
 
-	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
+	kubeConfig, err := a.GetKubeConfig(cluster, nil)
+	if err != nil {
+		return errors.Wrapf(err, "failed to retrieve kubeconfig while creating machine %q", machine.Name)
+	}
+
+	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken, kubeConfig)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
 			klog.Errorf("network not ready to launch instances yet: %+v", err)
@@ -129,6 +179,33 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	return nil
+}
+
+func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster, controlPlaneURL string) (string, error) {
+	kubeConfig, err := a.GetKubeConfig(cluster, nil)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to retrieve kubeconfig for cluster %q.", cluster.Name)
+	}
+
+	clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
+		return clientcmd.Load([]byte(kubeConfig))
+	})
+
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get client config for cluster at %q", controlPlaneURL)
+	}
+
+	coreClient, err := corev1.NewForConfig(clientConfig)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to initialize new corev1 client")
+	}
+
+	bootstrapToken, err := tokens.NewBootstrap(coreClient, 10*time.Minute)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to create new bootstrap token")
+	}
+
+	return bootstrapToken, nil
 }
 
 func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clusterv1.Machine, i *v1alpha1.Instance) error {

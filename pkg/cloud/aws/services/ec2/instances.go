@@ -91,7 +91,7 @@ func (s *Service) InstanceIfExists(id string) (*v1alpha1.Instance, error) {
 }
 
 // createInstance runs an ec2 instance.
-func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
+func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken, kubeConfig string) (*v1alpha1.Instance, error) {
 	klog.V(2).Infof("Creating a new instance for machine %q", machine.Name())
 
 	input := &v1alpha1.Instance{
@@ -142,47 +142,65 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		)
 	}
 
-	// apply values based on the role of the machine
-	if machine.Role() == "controlplane" {
+	caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CACertificate)
+	if err != nil {
+		return input, err
+	}
 
+	// apply values based on the role of the machine
+	switch machine.Role() {
+	case "controlplane":
 		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
 			return nil, awserrors.NewFailedDependency(
 				errors.New("failed to run controlplane, security group not available"),
 			)
 		}
 
-		if len(s.scope.ClusterConfig.CAPrivateKey) == 0 {
-			return nil, awserrors.NewFailedDependency(
-				errors.New("failed to run controlplane, missing CAPrivateKey"),
-			)
-		}
+		var userData string
+		var err error
 
-		userData, err := userdata.NewControlPlane(&userdata.ControlPlaneInput{
-			CACert:            string(s.scope.ClusterConfig.CACertificate),
-			CAKey:             string(s.scope.ClusterConfig.CAPrivateKey),
-			ELBAddress:        s.scope.Network().APIServerELB.DNSName,
-			ClusterName:       s.scope.Name(),
-			PodSubnet:         s.scope.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
-			ServiceSubnet:     s.scope.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
-			ServiceDomain:     s.scope.Cluster.Spec.ClusterNetwork.ServiceDomain,
-			KubernetesVersion: machine.Machine.Spec.Versions.ControlPlane,
-		})
+		if bootstrapToken != "" {
+			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
 
-		if err != nil {
-			return input, err
+			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
+				CACert:         string(s.scope.ClusterConfig.CACertificate),
+				CAKey:          string(s.scope.ClusterConfig.CAPrivateKey),
+				CACertHash:     caCertHash,
+				BootstrapToken: bootstrapToken,
+				ELBAddress:     s.scope.Network().APIServerELB.DNSName,
+				KubeConfig:     kubeConfig,
+			})
+			if err != nil {
+				return input, err
+			}
+		} else {
+			klog.V(2).Infof("Machine %q is the first controlplane machine for cluster %q", machine.Name(), s.scope.Name())
+			if len(s.scope.ClusterConfig.CAPrivateKey) == 0 {
+				return nil, awserrors.NewFailedDependency(
+					errors.New("failed to run controlplane, missing CAPrivateKey"),
+				)
+			}
+
+			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{
+				CACert:            string(s.scope.ClusterConfig.CACertificate),
+				CAKey:             string(s.scope.ClusterConfig.CAPrivateKey),
+				ELBAddress:        s.scope.Network().APIServerELB.DNSName,
+				ClusterName:       s.scope.Name(),
+				PodSubnet:         s.scope.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
+				ServiceSubnet:     s.scope.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
+				ServiceDomain:     s.scope.Cluster.Spec.ClusterNetwork.ServiceDomain,
+				KubernetesVersion: machine.Machine.Spec.Versions.ControlPlane,
+			})
+
+			if err != nil {
+				return input, err
+			}
 		}
 
 		input.UserData = aws.String(userData)
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID)
-	}
-
-	if machine.Role() == "node" {
+	case "node":
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
-
-		caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CACertificate)
-		if err != nil {
-			return input, err
-		}
 
 		userData, err := userdata.NewNode(&userdata.NodeInput{
 			CACertHash:     caCertHash,
@@ -195,6 +213,9 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		input.UserData = aws.String(userData)
+
+	default:
+		return nil, errors.Errorf("Unknown node role %q", machine.Role())
 	}
 
 	// Pick SSH key, if any.
@@ -251,8 +272,27 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 	return nil
 }
 
+// MachineExists will return whether or not a machine exists.
+func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
+	var err error
+	var instance *v1alpha1.Instance
+	if machine.MachineStatus.InstanceID != nil {
+		instance, err = s.InstanceIfExists(*machine.MachineStatus.InstanceID)
+	} else {
+		instance, err = s.InstanceByTags(machine)
+	}
+
+	if err != nil {
+		if awserrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to lookup machine %q", machine.Name())
+	}
+	return instance != nil, nil
+}
+
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken, kubeConfig string) (*v1alpha1.Instance, error) {
 	klog.V(2).Infof("Attempting to create or get machine %q", machine.Name())
 
 	// instance id exists, try to get it
@@ -275,7 +315,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 		return instance, nil
 	}
 
-	return s.createInstance(machine, bootstrapToken)
+	return s.createInstance(machine, bootstrapToken, kubeConfig)
 }
 
 func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
