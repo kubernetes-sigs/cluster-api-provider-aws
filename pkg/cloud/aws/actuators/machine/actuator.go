@@ -137,7 +137,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	controlPlaneMachines := a.getControlPlaneMachines(clusterMachines)
 	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine, cluster)
 	if err != nil {
-		return errors.Wrapf(err, "failed to determine whther machine %q should join cluster %q", machine.Name, cluster.Name)
+		return errors.Wrapf(err, "failed to determine whether machine %q should join cluster %q", machine.Name, cluster.Name)
 	}
 
 	var bootstrapToken string
