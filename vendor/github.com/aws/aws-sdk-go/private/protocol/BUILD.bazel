@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "host.go",
+        "host_prefix.go",
         "idempotency.go",
         "jsonvalue.go",
         "payload.go",
