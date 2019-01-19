@@ -17,31 +17,24 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
-	"k8s.io/api/core/v1"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	v1 "k8s.io/api/core/v1"
 	tcmd "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents"
-
-	"github.com/spf13/cobra"
-	"k8s.io/klog"
 )
 
 type DeleteOptions struct {
-	KubeconfigPath                string
-	ProviderComponents            string
-	ClusterNamespace              string
-	CleanupBootstrapCluster       bool
-	MiniKube                      []string
-	VmDriver                      string
-	ExistingClusterKubeconfigPath string
-	KubeconfigOverrides           tcmd.ConfigOverrides
+	KubeconfigPath      string
+	ProviderComponents  string
+	ClusterNamespace    string
+	KubeconfigOverrides tcmd.ConfigOverrides
+	BootstrapFlags      bootstrap.Options
 }
 
 var do = &DeleteOptions{}
@@ -70,12 +63,11 @@ func init() {
 
 	// Optional flags
 	deleteClusterCmd.Flags().StringVarP(&do.ClusterNamespace, "cluster-namespace", "", v1.NamespaceDefault, "Namespace where the cluster to be deleted resides")
-	deleteClusterCmd.Flags().BoolVarP(&do.CleanupBootstrapCluster, "cleanup-bootstrap-cluster", "", true, "Whether to cleanup the bootstrap cluster after bootstrap")
-	deleteClusterCmd.Flags().StringSliceVarP(&do.MiniKube, "minikube", "", []string{}, "Minikube options")
-	deleteClusterCmd.Flags().StringVarP(&do.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
-	deleteClusterCmd.Flags().StringVarP(&do.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "e", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
+
 	// BindContextFlags will bind the flags cluster, namespace, and user
 	tcmd.BindContextFlags(&do.KubeconfigOverrides.Context, deleteClusterCmd.Flags(), tcmd.RecommendedContextOverrideFlags(""))
+
+	do.BootstrapFlags.AddFlags(deleteClusterCmd.Flags())
 	deleteCmd.AddCommand(deleteClusterCmd)
 }
 
@@ -86,22 +78,13 @@ func RunDelete() error {
 	}
 	clusterClient, err := clusterclient.NewFromDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
 	if err != nil {
-		return fmt.Errorf("error when creating cluster client: %v", err)
+		return errors.Wrap(err, "error when creating cluster client")
 	}
 	defer clusterClient.Close()
 
-	var bootstrapProvider bootstrap.ClusterProvisioner
-	if do.ExistingClusterKubeconfigPath != "" {
-		bootstrapProvider, err = existing.NewExistingCluster(do.ExistingClusterKubeconfigPath)
-		if err != nil {
-			return err
-		}
-	} else {
-		if do.VmDriver != "" {
-			do.MiniKube = append(do.MiniKube, fmt.Sprintf("vm-driver=%s", do.VmDriver))
-		}
-
-		bootstrapProvider = minikube.WithOptions(do.MiniKube)
+	bootstrapProvider, err := bootstrap.Get(do.BootstrapFlags)
+	if err != nil {
+		return err
 	}
 
 	deployer := clusterdeployer.New(
@@ -109,14 +92,15 @@ func RunDelete() error {
 		clusterclient.NewFactory(),
 		providerComponents,
 		"",
-		do.CleanupBootstrapCluster)
+		do.BootstrapFlags.Cleanup)
+
 	return deployer.Delete(clusterClient, do.ClusterNamespace)
 }
 
 func loadProviderComponents() (string, error) {
 	coreClients, err := clientcmd.NewCoreClientSetForDefaultSearchPath(do.KubeconfigPath, do.KubeconfigOverrides)
 	if err != nil {
-		return "", fmt.Errorf("error creating core clients: %v", err)
+		return "", errors.Wrap(err, "error creating core clients")
 	}
 	pcStore := providercomponents.Store{
 		ExplicitPath: do.ProviderComponents,
@@ -124,7 +108,7 @@ func loadProviderComponents() (string, error) {
 	}
 	providerComponents, err := pcStore.Load()
 	if err != nil {
-		return "", fmt.Errorf("error when loading provider components: %v", err)
+		return "", errors.Wrap(err, "error when loading provider components")
 	}
 	return providerComponents, nil
 }

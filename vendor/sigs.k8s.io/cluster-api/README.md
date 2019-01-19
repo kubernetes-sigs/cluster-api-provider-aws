@@ -24,7 +24,7 @@ Google Group for access to documents and calendars.
   * Previous meetings: \[ [notes][notes] | [recordings][recordings] \]
 
 * Provider implementer office hours
-  * Weekly on Mondays @ 09:30 PT and Tuesdays @ 12:00 PT on [Zoom][zoomMeeting]
+  * Weekly on Tuesdays @ 12:00 PT ([Zoom][providerZoomMeetingTues]) and Wednesdays @ 15:00 CET ([Zoom][providerZoomMeetingWed])
   * Previous meetings: \[ [notes][implementerNotes] \]
 
 * Chat with us on [Slack](http://slack.k8s.io/): #cluster-api
@@ -37,7 +37,7 @@ are also sponsored by SIG-cluster-lifecycle:
 
   * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
   * AWS/Openshift, https://github.com/openshift/cluster-operator
-  * Azure, https://github.com/platform9/azure-provider
+  * Azure, https://github.com/kubernetes-sigs/cluster-api-provider-azure
   * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
   * DigitalOcean, https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean
   * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
@@ -58,8 +58,10 @@ Following are the implementations managed by third-parties adopting the standard
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)
 
-[cluster-api-kep]: https://github.com/kubernetes/community/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md
-[notes]: https://docs.google.com/document/d/16ils69KImmE94RlmzjWDrkmFZysgB2J4lGnYMRN89WM/edit
+[cluster-api-kep]: https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md
+[notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
-[zoomMeeting]: https://zoom.us/j/166836624
+[zoomMeeting]: https://zoom.us/j/861487554
 [implementerNotes]: https://docs.google.com/document/d/1IZ2-AZhe4r3CYiJuttyciS7bGZTTx4iMppcA8_Pr3xE/edit
+[providerZoomMeetingTues]: https://zoom.us/j/140808484
+[providerZoomMeetingWed]: https://zoom.us/j/424743530
