@@ -307,8 +307,10 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				},
 			},
 			clusterConfig: &v1alpha1.AWSClusterProviderSpec{
-				CACertificate: testCaCert,
-				CAPrivateKey:  []byte("y"),
+				CAKeyPair: v1alpha1.KeyPair{
+					Cert: testCaCert,
+					Key:  []byte("y"),
+				},
 			},
 			cluster: clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{

@@ -69,14 +69,14 @@ func (d *Deployer) GetKubeConfig(cluster *clusterv1.Cluster, _ *clusterv1.Machin
 		return "", errors.Errorf("failed to load cluster provider status: %v", err)
 	}
 
-	cert, err := certificates.DecodeCertPEM(config.CACertificate)
+	cert, err := certificates.DecodeCertPEM(config.CAKeyPair.Cert)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode CA Cert")
 	} else if cert == nil {
 		return "", errors.New("certificate not found in config")
 	}
 
-	key, err := certificates.DecodePrivateKeyPEM(config.CAPrivateKey)
+	key, err := certificates.DecodePrivateKeyPEM(config.CAKeyPair.Key)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode private key")
 	} else if key == nil {

@@ -19,16 +19,42 @@ spec:
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
-        caCertificate:
-          description: CACertificate is a PEM encoded CA Certificate for the control
-            plane nodes.
-          format: byte
-          type: string
-        caKey:
-          description: CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control
-            plane nodes.
-          format: byte
-          type: string
+        caKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
+        etcdKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
+        frontProxyKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
@@ -39,6 +65,18 @@ spec:
         region:
           description: The AWS Region the cluster lives in.
           type: string
+        saKeyPair:
+          properties:
+            cert:
+              format: byte
+              type: string
+            key:
+              format: byte
+              type: string
+          required:
+          - cert
+          - key
+          type: object
         sshKeyName:
           description: SSHKeyName is the name of the ssh key to attach to the bastion
             host.

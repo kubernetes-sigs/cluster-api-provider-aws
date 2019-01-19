@@ -205,6 +205,19 @@ func EncodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 	return pem.EncodeToMemory(&block)
 }
 
+// EncodePublicKeyPEM returns PEM-encoded public key data.
+func EncodePublicKeyPEM(key *rsa.PublicKey) ([]byte, error) {
+	der, err := x509.MarshalPKIXPublicKey(key)
+	if err != nil {
+		return []byte{}, err
+	}
+	block := pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: der,
+	}
+	return pem.EncodeToMemory(&block), nil
+}
+
 // DecodeCertPEM attempts to return a decoded certificate or nil
 // if the encoded input does not contain a certificate.
 func DecodeCertPEM(encoded []byte) (*x509.Certificate, error) {

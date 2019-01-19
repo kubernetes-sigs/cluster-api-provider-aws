@@ -21,10 +21,21 @@ import "github.com/pkg/errors"
 const (
 	controlPlaneBashScript = `{{.Header}}
 
+set -eox
+
 mkdir -p /etc/kubernetes/pki
 
 echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
 echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
+
+echo '{{.EtcdCert}}' > /etc/kubernetes/pki/etcd/ca.crt
+echo '{{.EtcdKey}}' >/etc/kubernetes/pki/etcd/ca.key
+
+echo '{{.FrontProxyCert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
+echo '{{.FrontProxyKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+
+echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.crt
+echo '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
 
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
@@ -57,35 +68,25 @@ nodeRegistration:
 EOF
 
 kubeadm init --config /tmp/kubeadm.yaml
-
-kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf \
-create secret tls kubeadm-certs-ca \
---key /etc/kubernetes/pki/ca.key \
---cert /etc/kubernetes/pki/ca.crt
-
-kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf \
-create secret tls kubeadm-certs-etcd-ca \
---key /etc/kubernetes/pki/etcd/ca.key \
---cert /etc/kubernetes/pki/etcd/ca.crt
-
-kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf \
-create secret tls kubeadm-certs-front-proxy \
---key /etc/kubernetes/pki/front-proxy-ca.key \
---cert /etc/kubernetes/pki/front-proxy-ca.crt
-
-# service account keys are different
-tar -cvzf /etc/kubernetes/pki/sa-certs.tar.gz /etc/kubernetes/pki/sa.*
-kubectl -n kube-system --kubeconfig /etc/kubernetes/admin.conf create secret generic kubeadm-sa-certs --from-file=/etc/kubernetes/pki/sa-certs.tar.gz
 `
 
 	controlPlaneJoinBashScript = `{{.Header}}
+    
+set -eox
 
 mkdir -p /etc/kubernetes/pki
 
 echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
 echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
 
-echo '{{.KubeConfig}}' > /etc/kubernetes/admin.conf
+echo '{{.EtcdCert}}' > /etc/kubernetes/pki/etcd/ca.crt
+echo '{{.EtcdKey}}' >/etc/kubernetes/pki/etcd/ca.key
+
+echo '{{.FrontProxyCert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
+echo '{{.FrontProxyKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+
+echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.crt
+echo '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
 
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
@@ -111,30 +112,17 @@ controlPlane:
     bindPort: 6443
 EOF
 
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
-get secret kubeadm-certs-ca -ojson | jq '.data."tls.crt"' -r | base64 --decode > /etc/kubernetes/pki/ca.crt
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
-get secret kubeadm-certs-ca -ojson | jq '.data."tls.key"' -r | base64 --decode > /etc/kubernetes/pki/ca.key
-
-mkdir -p /etc/kubernetes/pki/etcd
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
-get secret kubeadm-certs-etcd-ca -ojson | jq '.data."tls.crt"' -r | base64 --decode > /etc/kubernetes/pki/etcd/ca.crt
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
-get secret kubeadm-certs-etcd-ca -ojson | jq '.data."tls.key"' -r | base64 --decode > /etc/kubernetes/pki/etcd/ca.key
-
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
-get secret kubeadm-certs-front-proxy -ojson | jq '.data."tls.crt"' -r | base64 --decode > /etc/kubernetes/pki/front-proxy-ca.crt
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system \
-get secret kubeadm-certs-front-proxy -ojson | jq '.data."tls.key"' -r | base64 --decode > /etc/kubernetes/pki/front-proxy-ca.key
-
-
-kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system get secrets kubeadm-sa-certs -ojson | jq '.data."sa-certs.tar.gz"' -r | base64 --decode > /etc/kubernetes/pki/sa-certs.tar.gz
-cd / 
-tar -xvf /etc/kubernetes/pki/sa-certs.tar.gz
-
 kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
 `
 )
+
+func isKeyPairValid(cert, key string) bool {
+	if (cert == "" && key != "") ||
+		(cert != "" && key == "") {
+		return false
+	}
+	return true
+}
 
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
 type ControlPlaneInput struct {
@@ -142,6 +130,12 @@ type ControlPlaneInput struct {
 
 	CACert            string
 	CAKey             string
+	EtcdCACert        string
+	EtcdCAKey         string
+	FrontProxyCACert  string
+	FrontProxyCAKey   string
+	SaCert            string
+	SaKey             string
 	ELBAddress        string
 	ClusterName       string
 	PodSubnet         string
@@ -154,17 +148,68 @@ type ControlPlaneInput struct {
 type ContolPlaneJoinInput struct {
 	baseUserData
 
-	CACertHash     string
-	CACert         string
-	CAKey          string
-	BootstrapToken string
-	ELBAddress     string
-	KubeConfig     string
+	CACertHash       string
+	CACert           string
+	CAKey            string
+	EtcdCACert       string
+	EtcdCAKey        string
+	FrontProxyCACert string
+	FrontProxyCAKey  string
+	SaCert           string
+	SaKey            string
+	BootstrapToken   string
+	ELBAddress       string
+}
+
+func (cpi *ControlPlaneInput) isValid() (bool, string) {
+	// TODO: ashish-amarnath verify if ca cert and key is mandatory for kubeadm init
+	if cpi.CACert == "" || cpi.CAKey == "" {
+		return false, "CA cert material in the ControlPlaneInput is invalid"
+	}
+
+	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
+		return false, "ETCD cert material in the ControlPlaneInput is invalid"
+	}
+
+	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
+		return false, "FrontProxy cert material in ControlPlaneInput is invalid"
+	}
+
+	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
+		return false, "ServiceAccount cert material in ControlPlaneInput is invalid"
+	}
+
+	return true, ""
+}
+
+func (cpi *ContolPlaneJoinInput) isValid() (bool, string) {
+	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
+		return false, "CA cert material in the ContolPlaneJoinInput is invalid"
+	}
+
+	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
+		return false, "ETCD cert material in the ContolPlaneJoinInput is invalid"
+	}
+
+	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
+		return false, "FrontProxy cert material in ContolPlaneJoinInput is invalid"
+	}
+
+	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
+		return false, "ServiceAccount cert material in ContolPlaneJoinInput is invalid"
+	}
+
+	return true, ""
 }
 
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = defaultHeader
+	valid, reason := input.isValid()
+	if !valid {
+		return "", errors.Errorf("ControlPlaneInput is invalid, Reason: %q", reason)
+	}
+
 	userData, err := generate("controlplane", controlPlaneBashScript, input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
@@ -176,6 +221,12 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 // JoinControlPlane returns the user data string to be used on a new contrplplane instance.
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 	input.Header = defaultHeader
+
+	valid, reason := input.isValid()
+	if !valid {
+		return "", errors.Errorf("ControlPlaneInput is invalid, Reason: %q", reason)
+	}
+
 	userData, err := generate("controlplane", controlPlaneJoinBashScript, input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
