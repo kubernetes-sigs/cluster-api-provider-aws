@@ -266,6 +266,9 @@ func TestLaunchInstance(t *testing.T) {
 		azErr               error
 		imageOutput         *ec2.DescribeImagesOutput
 		imageErr            error
+		instancesOutput     *ec2.Reservation
+		instancesErr        error
+		succeeds            bool
 	}{
 		{
 			name: "Security groups with filters",
@@ -283,6 +286,8 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
+			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			succeeds:        true,
 		},
 		{
 			name: "Security groups with filters with error",
@@ -320,6 +325,8 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
+			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			succeeds:        true,
 		},
 		{
 			name: "Subnet with filters with error",
@@ -338,16 +345,23 @@ func TestLaunchInstance(t *testing.T) {
 		{
 			name: "AMI with filters",
 			providerConfig: stubPCAMI(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{},
+				Filters: []providerconfigv1.Filter{
+					{
+						Name:   "foo",
+						Values: []string{"bar"},
+					},
+				},
 			}),
 			imageOutput: &ec2.DescribeImagesOutput{
 				Images: []*ec2.Image{
 					{
-						CreationDate: aws.String(time.RFC3339),
+						CreationDate: aws.String("2006-01-02T15:04:05Z"),
 						ImageId:      aws.String("ami-1111"),
 					},
 				},
 			},
+			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			succeeds:        true,
 		},
 		{
 			name: "AMI with filters with error",
@@ -392,6 +406,8 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
+			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			succeeds:        true,
 		},
 		{
 			name:           "AMI not specified",
@@ -407,9 +423,19 @@ func TestLaunchInstance(t *testing.T) {
 			mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, tc.azErr).AnyTimes()
 			mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(tc.subnetOutput, tc.subnetErr).AnyTimes()
 			mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(tc.imageOutput, tc.imageErr).AnyTimes()
-			mockAWSClient.EXPECT().RunInstances(gomock.Any())
+			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(tc.instancesOutput, tc.instancesErr).AnyTimes()
 
-			launchInstance(machine, tc.providerConfig, nil, mockAWSClient)
+			_, launchErr := launchInstance(machine, tc.providerConfig, nil, mockAWSClient)
+			t.Log(launchErr)
+			if launchErr == nil {
+				if !tc.succeeds {
+					t.Errorf("Call to launchInstance did not fail as expected")
+				}
+			} else {
+				if tc.succeeds {
+					t.Errorf("Call to launchInstance did not succeed as expected")
+				}
+			}
 		})
 	}
 }
