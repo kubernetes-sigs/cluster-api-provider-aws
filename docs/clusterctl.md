@@ -36,11 +36,8 @@ to create as many clusters as you need.
 
 Cluster API controllers require kubernetes as a platform to
 run<sup>[1](#footnote1)</sup>. The first step to `clusterctl` is to create a
-bootstrap cluster. [Minikube](https://github.com/kubernetes/minikube) is used if
-no existing cluster exists. The bootstrap cluster's implementation is
-unimportant and any other software that creates a kubernetes cluster is
-acceptable. For example, it is possible to replace the Minikube usage with
-something like [Kubernetes-In-Docker](https://github.com/kubernetes-sigs/kind).
+bootstrap cluster or use an existing one. [KIND](https://sigs.k8s.io/kind) is
+the suggested way to run an ephemeral cluster.
 However, you can provide a kubeconfig to `clusterctl` if you already have a
 cluster you'd like to use as a bootstrap cluster. Please see `clusterctl`'s help
 flag `--help`. Note: The bootstrap cluster *must* be >= v1.12.0 of Kubernetes.
