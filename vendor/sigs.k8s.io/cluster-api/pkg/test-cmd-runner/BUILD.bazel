@@ -6,4 +6,5 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/pkg/test-cmd-runner",
     importpath = "sigs.k8s.io/cluster-api/pkg/test-cmd-runner",
     visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/pkg/errors:go_default_library"],
 )

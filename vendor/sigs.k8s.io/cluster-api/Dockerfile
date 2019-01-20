@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.11.2 as builder
+FROM golang:1.11.4 as builder
 
 # Copy in the go src
 WORKDIR $GOPATH/src/sigs.k8s.io/cluster-api
@@ -22,11 +22,10 @@ COPY cmd/    cmd/
 COPY vendor/ vendor/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager sigs.k8s.io/cluster-api/cmd/manager
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-extldflags "-static"' -o manager sigs.k8s.io/cluster-api/cmd/manager
 
 # Copy the controller-manager into a thin image
-# TODO: Build this on scratch
-FROM debian:latest
+FROM gcr.io/distroless/static:latest
 WORKDIR /
 COPY --from=builder /go/src/sigs.k8s.io/cluster-api/manager .
 ENTRYPOINT ["/manager"]

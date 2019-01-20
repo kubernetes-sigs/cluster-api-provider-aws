@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -112,6 +113,13 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	name := m.Name
 	klog.Infof("Running reconcile Machine for %s\n", name)
 
+	// Cluster might be nil as some providers might not require a cluster object
+	// for machine management.
+	cluster, err := r.getCluster(ctx, m)
+	if err != nil {
+		// Just log the error here.
+		klog.V(4).Infof("Cluster not found, machine actuation might fail: %v", err)
+	}
 	// If object hasn't been deleted and doesn't have a finalizer, add one
 	// Add a finalizer to newly created objects.
 	if m.ObjectMeta.DeletionTimestamp.IsZero() &&
@@ -137,7 +145,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, nil
 		}
 		klog.Infof("reconciling machine object %v triggers delete.", name)
-		if err := r.delete(ctx, m); err != nil {
+		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
 			klog.Errorf("Error deleting machine object %v; %v", name, err)
 			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
@@ -156,11 +164,6 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	cluster, err := r.getCluster(ctx, m)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
 	exist, err := r.actuator.Exists(ctx, cluster, m)
 	if err != nil {
 		klog.Errorf("Error checking existence of machine instance for machine object %v; %v", name, err)
@@ -168,7 +171,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	if exist {
 		klog.Infof("Reconciling machine object %v triggers idempotent update.", name)
-		if err := r.update(ctx, m); err != nil {
+		if err := r.actuator.Update(ctx, cluster, m); err != nil {
 			if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 				klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 				return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.RequeueAfter}, nil
@@ -179,7 +182,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 	// Machine resource created. Machine does not yet exist.
 	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
-	if err := r.create(ctx, m); err != nil {
+	if err := r.actuator.Create(ctx, cluster, m); err != nil {
 		klog.Warningf("unable to create machine %v: %v", name, err)
 		if requeueErr, ok := err.(*controllerError.RequeueAfterError); ok {
 			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
@@ -190,38 +193,20 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileMachine) create(ctx context.Context, machine *clusterv1.Machine) error {
-	cluster, err := r.getCluster(ctx, machine)
-	if err != nil {
-		return err
-	}
-
-	return r.actuator.Create(ctx, cluster, machine)
-}
-
-func (r *ReconcileMachine) update(ctx context.Context, new_machine *clusterv1.Machine) error {
-	cluster, err := r.getCluster(ctx, new_machine)
-	if err != nil {
-		return err
-	}
-
-	// TODO: Assume single master for now.
-	// TODO: Assume we never change the role for the machines. (Master->Node, Node->Master, etc)
-	return r.actuator.Update(ctx, cluster, new_machine)
-}
-
-func (r *ReconcileMachine) delete(ctx context.Context, machine *clusterv1.Machine) error {
-	cluster, err := r.getCluster(ctx, machine)
-	if err != nil {
-		return err
-	}
-
-	return r.actuator.Delete(ctx, cluster, machine)
-}
-
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *clusterv1.Machine) (*clusterv1.Cluster, error) {
 	clusterList := clusterv1.ClusterList{}
-	if err := r.Client.List(ctx, client.InNamespace(machine.Namespace), &clusterList); err != nil {
+	listOptions := &client.ListOptions{
+		Namespace: machine.Namespace,
+		// This is set so the fake client can be used for unit test. See:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
+		Raw: &metav1.ListOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: clusterv1.SchemeGroupVersion.String(),
+				Kind:       "Cluster",
+			},
+		},
+	}
+	if err := r.Client.List(ctx, listOptions, &clusterList); err != nil {
 		return nil, err
 	}
 

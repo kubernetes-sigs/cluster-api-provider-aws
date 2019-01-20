@@ -836,13 +836,14 @@
   revision = "0317810137be915b9cf888946c6e115c1bfac693"
 
 [[projects]]
-  digest = "1:ab6454ea7baa47e6d15292dd5c70dab3e749ac8b94644e8b3c8d09fde8073ae8"
+  digest = "1:e0646c498fb25588240aa66b7e4ef58da6d4b59037d6c7774eca3aa9bbaf2cab"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
     "cmd/clusterctl/clusterdeployer",
     "cmd/clusterctl/clusterdeployer/bootstrap",
     "cmd/clusterctl/clusterdeployer/bootstrap/existing",
+    "cmd/clusterctl/clusterdeployer/bootstrap/kind",
     "cmd/clusterctl/clusterdeployer/bootstrap/minikube",
     "cmd/clusterctl/clusterdeployer/clusterclient",
     "cmd/clusterctl/cmd",
@@ -862,7 +863,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "f03f47c17d09c4765a1bfdd204f8d814196cb3d8"
+  revision = "ca1e293c506a5ca10f46fefa86dd22e48d358430"
 
 [[projects]]
   digest = "1:f67de7bec51b31c93bce558098ac8c144e598248a6c91016dc7dca668558353d"
