@@ -94,6 +94,7 @@ cluster-api-dev-helper: dep-ensure ## Build cluster-api-dev-helper binary
 release-binaries: ## Build release binaries
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterctl //cmd/clusterawsadm
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterctl //cmd/clusterawsadm
+	mkdir -p out
 	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm out/clusterawsadm-darwin-amd64
 	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm out/clusterawsadm-linux-amd64
 	install bazel-bin/cmd/clusterctl/darwin_amd64_pure_stripped/clusterctl out/clusterctl-darwin-amd64
@@ -136,6 +137,7 @@ clean: ## Remove all generated files
 	rm -f kubeconfig
 	rm -f minikube.kubeconfig
 	rm -f bazel-*
+	rm -rf out/
 
 .PHONY: reset-bazel
 reset-bazel: ## Deep cleaning for bazel
