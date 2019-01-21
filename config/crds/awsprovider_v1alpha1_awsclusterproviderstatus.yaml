@@ -138,6 +138,8 @@ spec:
                     type: boolean
                   routeTableId:
                     type: string
+                  tags:
+                    type: object
                   vpcId:
                     type: string
                 required:
@@ -156,6 +158,8 @@ spec:
                   type: string
                 id:
                   type: string
+                tags:
+                  type: object
               required:
               - id
               - cidrBlock

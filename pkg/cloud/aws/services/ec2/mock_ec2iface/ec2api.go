@@ -361,6 +361,50 @@ func (mr *MockEC2APIMockRecorder) AllocateHostsWithContext(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateHostsWithContext", reflect.TypeOf((*MockEC2API)(nil).AllocateHostsWithContext), varargs...)
 }
 
+// ApplySecurityGroupsToClientVpnTargetNetwork mocks base method
+func (m *MockEC2API) ApplySecurityGroupsToClientVpnTargetNetwork(arg0 *ec2.ApplySecurityGroupsToClientVpnTargetNetworkInput) (*ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput, error) {
+	ret := m.ctrl.Call(m, "ApplySecurityGroupsToClientVpnTargetNetwork", arg0)
+	ret0, _ := ret[0].(*ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ApplySecurityGroupsToClientVpnTargetNetwork indicates an expected call of ApplySecurityGroupsToClientVpnTargetNetwork
+func (mr *MockEC2APIMockRecorder) ApplySecurityGroupsToClientVpnTargetNetwork(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplySecurityGroupsToClientVpnTargetNetwork", reflect.TypeOf((*MockEC2API)(nil).ApplySecurityGroupsToClientVpnTargetNetwork), arg0)
+}
+
+// ApplySecurityGroupsToClientVpnTargetNetworkRequest mocks base method
+func (m *MockEC2API) ApplySecurityGroupsToClientVpnTargetNetworkRequest(arg0 *ec2.ApplySecurityGroupsToClientVpnTargetNetworkInput) (*request.Request, *ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput) {
+	ret := m.ctrl.Call(m, "ApplySecurityGroupsToClientVpnTargetNetworkRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput)
+	return ret0, ret1
+}
+
+// ApplySecurityGroupsToClientVpnTargetNetworkRequest indicates an expected call of ApplySecurityGroupsToClientVpnTargetNetworkRequest
+func (mr *MockEC2APIMockRecorder) ApplySecurityGroupsToClientVpnTargetNetworkRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplySecurityGroupsToClientVpnTargetNetworkRequest", reflect.TypeOf((*MockEC2API)(nil).ApplySecurityGroupsToClientVpnTargetNetworkRequest), arg0)
+}
+
+// ApplySecurityGroupsToClientVpnTargetNetworkWithContext mocks base method
+func (m *MockEC2API) ApplySecurityGroupsToClientVpnTargetNetworkWithContext(arg0 aws.Context, arg1 *ec2.ApplySecurityGroupsToClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ApplySecurityGroupsToClientVpnTargetNetworkWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ApplySecurityGroupsToClientVpnTargetNetworkWithContext indicates an expected call of ApplySecurityGroupsToClientVpnTargetNetworkWithContext
+func (mr *MockEC2APIMockRecorder) ApplySecurityGroupsToClientVpnTargetNetworkWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplySecurityGroupsToClientVpnTargetNetworkWithContext", reflect.TypeOf((*MockEC2API)(nil).ApplySecurityGroupsToClientVpnTargetNetworkWithContext), varargs...)
+}
+
 // AssignIpv6Addresses mocks base method
 func (m *MockEC2API) AssignIpv6Addresses(arg0 *ec2.AssignIpv6AddressesInput) (*ec2.AssignIpv6AddressesOutput, error) {
 	ret := m.ctrl.Call(m, "AssignIpv6Addresses", arg0)
@@ -491,6 +535,50 @@ func (m *MockEC2API) AssociateAddressWithContext(arg0 aws.Context, arg1 *ec2.Ass
 func (mr *MockEC2APIMockRecorder) AssociateAddressWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateAddressWithContext", reflect.TypeOf((*MockEC2API)(nil).AssociateAddressWithContext), varargs...)
+}
+
+// AssociateClientVpnTargetNetwork mocks base method
+func (m *MockEC2API) AssociateClientVpnTargetNetwork(arg0 *ec2.AssociateClientVpnTargetNetworkInput) (*ec2.AssociateClientVpnTargetNetworkOutput, error) {
+	ret := m.ctrl.Call(m, "AssociateClientVpnTargetNetwork", arg0)
+	ret0, _ := ret[0].(*ec2.AssociateClientVpnTargetNetworkOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssociateClientVpnTargetNetwork indicates an expected call of AssociateClientVpnTargetNetwork
+func (mr *MockEC2APIMockRecorder) AssociateClientVpnTargetNetwork(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateClientVpnTargetNetwork", reflect.TypeOf((*MockEC2API)(nil).AssociateClientVpnTargetNetwork), arg0)
+}
+
+// AssociateClientVpnTargetNetworkRequest mocks base method
+func (m *MockEC2API) AssociateClientVpnTargetNetworkRequest(arg0 *ec2.AssociateClientVpnTargetNetworkInput) (*request.Request, *ec2.AssociateClientVpnTargetNetworkOutput) {
+	ret := m.ctrl.Call(m, "AssociateClientVpnTargetNetworkRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.AssociateClientVpnTargetNetworkOutput)
+	return ret0, ret1
+}
+
+// AssociateClientVpnTargetNetworkRequest indicates an expected call of AssociateClientVpnTargetNetworkRequest
+func (mr *MockEC2APIMockRecorder) AssociateClientVpnTargetNetworkRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateClientVpnTargetNetworkRequest", reflect.TypeOf((*MockEC2API)(nil).AssociateClientVpnTargetNetworkRequest), arg0)
+}
+
+// AssociateClientVpnTargetNetworkWithContext mocks base method
+func (m *MockEC2API) AssociateClientVpnTargetNetworkWithContext(arg0 aws.Context, arg1 *ec2.AssociateClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.AssociateClientVpnTargetNetworkOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AssociateClientVpnTargetNetworkWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.AssociateClientVpnTargetNetworkOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssociateClientVpnTargetNetworkWithContext indicates an expected call of AssociateClientVpnTargetNetworkWithContext
+func (mr *MockEC2APIMockRecorder) AssociateClientVpnTargetNetworkWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateClientVpnTargetNetworkWithContext", reflect.TypeOf((*MockEC2API)(nil).AssociateClientVpnTargetNetworkWithContext), varargs...)
 }
 
 // AssociateDhcpOptions mocks base method
@@ -975,6 +1063,50 @@ func (m *MockEC2API) AttachVpnGatewayWithContext(arg0 aws.Context, arg1 *ec2.Att
 func (mr *MockEC2APIMockRecorder) AttachVpnGatewayWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AttachVpnGatewayWithContext", reflect.TypeOf((*MockEC2API)(nil).AttachVpnGatewayWithContext), varargs...)
+}
+
+// AuthorizeClientVpnIngress mocks base method
+func (m *MockEC2API) AuthorizeClientVpnIngress(arg0 *ec2.AuthorizeClientVpnIngressInput) (*ec2.AuthorizeClientVpnIngressOutput, error) {
+	ret := m.ctrl.Call(m, "AuthorizeClientVpnIngress", arg0)
+	ret0, _ := ret[0].(*ec2.AuthorizeClientVpnIngressOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AuthorizeClientVpnIngress indicates an expected call of AuthorizeClientVpnIngress
+func (mr *MockEC2APIMockRecorder) AuthorizeClientVpnIngress(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeClientVpnIngress", reflect.TypeOf((*MockEC2API)(nil).AuthorizeClientVpnIngress), arg0)
+}
+
+// AuthorizeClientVpnIngressRequest mocks base method
+func (m *MockEC2API) AuthorizeClientVpnIngressRequest(arg0 *ec2.AuthorizeClientVpnIngressInput) (*request.Request, *ec2.AuthorizeClientVpnIngressOutput) {
+	ret := m.ctrl.Call(m, "AuthorizeClientVpnIngressRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.AuthorizeClientVpnIngressOutput)
+	return ret0, ret1
+}
+
+// AuthorizeClientVpnIngressRequest indicates an expected call of AuthorizeClientVpnIngressRequest
+func (mr *MockEC2APIMockRecorder) AuthorizeClientVpnIngressRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeClientVpnIngressRequest", reflect.TypeOf((*MockEC2API)(nil).AuthorizeClientVpnIngressRequest), arg0)
+}
+
+// AuthorizeClientVpnIngressWithContext mocks base method
+func (m *MockEC2API) AuthorizeClientVpnIngressWithContext(arg0 aws.Context, arg1 *ec2.AuthorizeClientVpnIngressInput, arg2 ...request.Option) (*ec2.AuthorizeClientVpnIngressOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AuthorizeClientVpnIngressWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.AuthorizeClientVpnIngressOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AuthorizeClientVpnIngressWithContext indicates an expected call of AuthorizeClientVpnIngressWithContext
+func (mr *MockEC2APIMockRecorder) AuthorizeClientVpnIngressWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthorizeClientVpnIngressWithContext", reflect.TypeOf((*MockEC2API)(nil).AuthorizeClientVpnIngressWithContext), varargs...)
 }
 
 // AuthorizeSecurityGroupEgress mocks base method
@@ -1679,6 +1811,94 @@ func (m *MockEC2API) CreateCapacityReservationWithContext(arg0 aws.Context, arg1
 func (mr *MockEC2APIMockRecorder) CreateCapacityReservationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCapacityReservationWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateCapacityReservationWithContext), varargs...)
+}
+
+// CreateClientVpnEndpoint mocks base method
+func (m *MockEC2API) CreateClientVpnEndpoint(arg0 *ec2.CreateClientVpnEndpointInput) (*ec2.CreateClientVpnEndpointOutput, error) {
+	ret := m.ctrl.Call(m, "CreateClientVpnEndpoint", arg0)
+	ret0, _ := ret[0].(*ec2.CreateClientVpnEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateClientVpnEndpoint indicates an expected call of CreateClientVpnEndpoint
+func (mr *MockEC2APIMockRecorder) CreateClientVpnEndpoint(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientVpnEndpoint", reflect.TypeOf((*MockEC2API)(nil).CreateClientVpnEndpoint), arg0)
+}
+
+// CreateClientVpnEndpointRequest mocks base method
+func (m *MockEC2API) CreateClientVpnEndpointRequest(arg0 *ec2.CreateClientVpnEndpointInput) (*request.Request, *ec2.CreateClientVpnEndpointOutput) {
+	ret := m.ctrl.Call(m, "CreateClientVpnEndpointRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateClientVpnEndpointOutput)
+	return ret0, ret1
+}
+
+// CreateClientVpnEndpointRequest indicates an expected call of CreateClientVpnEndpointRequest
+func (mr *MockEC2APIMockRecorder) CreateClientVpnEndpointRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientVpnEndpointRequest", reflect.TypeOf((*MockEC2API)(nil).CreateClientVpnEndpointRequest), arg0)
+}
+
+// CreateClientVpnEndpointWithContext mocks base method
+func (m *MockEC2API) CreateClientVpnEndpointWithContext(arg0 aws.Context, arg1 *ec2.CreateClientVpnEndpointInput, arg2 ...request.Option) (*ec2.CreateClientVpnEndpointOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateClientVpnEndpointWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateClientVpnEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateClientVpnEndpointWithContext indicates an expected call of CreateClientVpnEndpointWithContext
+func (mr *MockEC2APIMockRecorder) CreateClientVpnEndpointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientVpnEndpointWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateClientVpnEndpointWithContext), varargs...)
+}
+
+// CreateClientVpnRoute mocks base method
+func (m *MockEC2API) CreateClientVpnRoute(arg0 *ec2.CreateClientVpnRouteInput) (*ec2.CreateClientVpnRouteOutput, error) {
+	ret := m.ctrl.Call(m, "CreateClientVpnRoute", arg0)
+	ret0, _ := ret[0].(*ec2.CreateClientVpnRouteOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateClientVpnRoute indicates an expected call of CreateClientVpnRoute
+func (mr *MockEC2APIMockRecorder) CreateClientVpnRoute(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientVpnRoute", reflect.TypeOf((*MockEC2API)(nil).CreateClientVpnRoute), arg0)
+}
+
+// CreateClientVpnRouteRequest mocks base method
+func (m *MockEC2API) CreateClientVpnRouteRequest(arg0 *ec2.CreateClientVpnRouteInput) (*request.Request, *ec2.CreateClientVpnRouteOutput) {
+	ret := m.ctrl.Call(m, "CreateClientVpnRouteRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateClientVpnRouteOutput)
+	return ret0, ret1
+}
+
+// CreateClientVpnRouteRequest indicates an expected call of CreateClientVpnRouteRequest
+func (mr *MockEC2APIMockRecorder) CreateClientVpnRouteRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientVpnRouteRequest", reflect.TypeOf((*MockEC2API)(nil).CreateClientVpnRouteRequest), arg0)
+}
+
+// CreateClientVpnRouteWithContext mocks base method
+func (m *MockEC2API) CreateClientVpnRouteWithContext(arg0 aws.Context, arg1 *ec2.CreateClientVpnRouteInput, arg2 ...request.Option) (*ec2.CreateClientVpnRouteOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateClientVpnRouteWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateClientVpnRouteOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateClientVpnRouteWithContext indicates an expected call of CreateClientVpnRouteWithContext
+func (mr *MockEC2APIMockRecorder) CreateClientVpnRouteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClientVpnRouteWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateClientVpnRouteWithContext), varargs...)
 }
 
 // CreateCustomerGateway mocks base method
@@ -3483,6 +3703,94 @@ func (m *MockEC2API) CreateVpnGatewayWithContext(arg0 aws.Context, arg1 *ec2.Cre
 func (mr *MockEC2APIMockRecorder) CreateVpnGatewayWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVpnGatewayWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateVpnGatewayWithContext), varargs...)
+}
+
+// DeleteClientVpnEndpoint mocks base method
+func (m *MockEC2API) DeleteClientVpnEndpoint(arg0 *ec2.DeleteClientVpnEndpointInput) (*ec2.DeleteClientVpnEndpointOutput, error) {
+	ret := m.ctrl.Call(m, "DeleteClientVpnEndpoint", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteClientVpnEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteClientVpnEndpoint indicates an expected call of DeleteClientVpnEndpoint
+func (mr *MockEC2APIMockRecorder) DeleteClientVpnEndpoint(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientVpnEndpoint", reflect.TypeOf((*MockEC2API)(nil).DeleteClientVpnEndpoint), arg0)
+}
+
+// DeleteClientVpnEndpointRequest mocks base method
+func (m *MockEC2API) DeleteClientVpnEndpointRequest(arg0 *ec2.DeleteClientVpnEndpointInput) (*request.Request, *ec2.DeleteClientVpnEndpointOutput) {
+	ret := m.ctrl.Call(m, "DeleteClientVpnEndpointRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteClientVpnEndpointOutput)
+	return ret0, ret1
+}
+
+// DeleteClientVpnEndpointRequest indicates an expected call of DeleteClientVpnEndpointRequest
+func (mr *MockEC2APIMockRecorder) DeleteClientVpnEndpointRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientVpnEndpointRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteClientVpnEndpointRequest), arg0)
+}
+
+// DeleteClientVpnEndpointWithContext mocks base method
+func (m *MockEC2API) DeleteClientVpnEndpointWithContext(arg0 aws.Context, arg1 *ec2.DeleteClientVpnEndpointInput, arg2 ...request.Option) (*ec2.DeleteClientVpnEndpointOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteClientVpnEndpointWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteClientVpnEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteClientVpnEndpointWithContext indicates an expected call of DeleteClientVpnEndpointWithContext
+func (mr *MockEC2APIMockRecorder) DeleteClientVpnEndpointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientVpnEndpointWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteClientVpnEndpointWithContext), varargs...)
+}
+
+// DeleteClientVpnRoute mocks base method
+func (m *MockEC2API) DeleteClientVpnRoute(arg0 *ec2.DeleteClientVpnRouteInput) (*ec2.DeleteClientVpnRouteOutput, error) {
+	ret := m.ctrl.Call(m, "DeleteClientVpnRoute", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteClientVpnRouteOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteClientVpnRoute indicates an expected call of DeleteClientVpnRoute
+func (mr *MockEC2APIMockRecorder) DeleteClientVpnRoute(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientVpnRoute", reflect.TypeOf((*MockEC2API)(nil).DeleteClientVpnRoute), arg0)
+}
+
+// DeleteClientVpnRouteRequest mocks base method
+func (m *MockEC2API) DeleteClientVpnRouteRequest(arg0 *ec2.DeleteClientVpnRouteInput) (*request.Request, *ec2.DeleteClientVpnRouteOutput) {
+	ret := m.ctrl.Call(m, "DeleteClientVpnRouteRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteClientVpnRouteOutput)
+	return ret0, ret1
+}
+
+// DeleteClientVpnRouteRequest indicates an expected call of DeleteClientVpnRouteRequest
+func (mr *MockEC2APIMockRecorder) DeleteClientVpnRouteRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientVpnRouteRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteClientVpnRouteRequest), arg0)
+}
+
+// DeleteClientVpnRouteWithContext mocks base method
+func (m *MockEC2API) DeleteClientVpnRouteWithContext(arg0 aws.Context, arg1 *ec2.DeleteClientVpnRouteInput, arg2 ...request.Option) (*ec2.DeleteClientVpnRouteOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteClientVpnRouteWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteClientVpnRouteOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteClientVpnRouteWithContext indicates an expected call of DeleteClientVpnRouteWithContext
+func (mr *MockEC2APIMockRecorder) DeleteClientVpnRouteWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClientVpnRouteWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteClientVpnRouteWithContext), varargs...)
 }
 
 // DeleteCustomerGateway mocks base method
@@ -5507,6 +5815,226 @@ func (m *MockEC2API) DescribeClassicLinkInstancesWithContext(arg0 aws.Context, a
 func (mr *MockEC2APIMockRecorder) DescribeClassicLinkInstancesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClassicLinkInstancesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeClassicLinkInstancesWithContext), varargs...)
+}
+
+// DescribeClientVpnAuthorizationRules mocks base method
+func (m *MockEC2API) DescribeClientVpnAuthorizationRules(arg0 *ec2.DescribeClientVpnAuthorizationRulesInput) (*ec2.DescribeClientVpnAuthorizationRulesOutput, error) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnAuthorizationRules", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnAuthorizationRulesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnAuthorizationRules indicates an expected call of DescribeClientVpnAuthorizationRules
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnAuthorizationRules(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnAuthorizationRules", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnAuthorizationRules), arg0)
+}
+
+// DescribeClientVpnAuthorizationRulesRequest mocks base method
+func (m *MockEC2API) DescribeClientVpnAuthorizationRulesRequest(arg0 *ec2.DescribeClientVpnAuthorizationRulesInput) (*request.Request, *ec2.DescribeClientVpnAuthorizationRulesOutput) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnAuthorizationRulesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeClientVpnAuthorizationRulesOutput)
+	return ret0, ret1
+}
+
+// DescribeClientVpnAuthorizationRulesRequest indicates an expected call of DescribeClientVpnAuthorizationRulesRequest
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnAuthorizationRulesRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnAuthorizationRulesRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnAuthorizationRulesRequest), arg0)
+}
+
+// DescribeClientVpnAuthorizationRulesWithContext mocks base method
+func (m *MockEC2API) DescribeClientVpnAuthorizationRulesWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnAuthorizationRulesInput, arg2 ...request.Option) (*ec2.DescribeClientVpnAuthorizationRulesOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeClientVpnAuthorizationRulesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnAuthorizationRulesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnAuthorizationRulesWithContext indicates an expected call of DescribeClientVpnAuthorizationRulesWithContext
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnAuthorizationRulesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnAuthorizationRulesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnAuthorizationRulesWithContext), varargs...)
+}
+
+// DescribeClientVpnConnections mocks base method
+func (m *MockEC2API) DescribeClientVpnConnections(arg0 *ec2.DescribeClientVpnConnectionsInput) (*ec2.DescribeClientVpnConnectionsOutput, error) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnConnections", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnConnectionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnConnections indicates an expected call of DescribeClientVpnConnections
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnConnections(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnConnections", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnConnections), arg0)
+}
+
+// DescribeClientVpnConnectionsRequest mocks base method
+func (m *MockEC2API) DescribeClientVpnConnectionsRequest(arg0 *ec2.DescribeClientVpnConnectionsInput) (*request.Request, *ec2.DescribeClientVpnConnectionsOutput) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnConnectionsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeClientVpnConnectionsOutput)
+	return ret0, ret1
+}
+
+// DescribeClientVpnConnectionsRequest indicates an expected call of DescribeClientVpnConnectionsRequest
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnConnectionsRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnConnectionsRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnConnectionsRequest), arg0)
+}
+
+// DescribeClientVpnConnectionsWithContext mocks base method
+func (m *MockEC2API) DescribeClientVpnConnectionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnConnectionsInput, arg2 ...request.Option) (*ec2.DescribeClientVpnConnectionsOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeClientVpnConnectionsWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnConnectionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnConnectionsWithContext indicates an expected call of DescribeClientVpnConnectionsWithContext
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnConnectionsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnConnectionsWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnConnectionsWithContext), varargs...)
+}
+
+// DescribeClientVpnEndpoints mocks base method
+func (m *MockEC2API) DescribeClientVpnEndpoints(arg0 *ec2.DescribeClientVpnEndpointsInput) (*ec2.DescribeClientVpnEndpointsOutput, error) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnEndpoints", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnEndpointsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnEndpoints indicates an expected call of DescribeClientVpnEndpoints
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnEndpoints(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnEndpoints", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnEndpoints), arg0)
+}
+
+// DescribeClientVpnEndpointsRequest mocks base method
+func (m *MockEC2API) DescribeClientVpnEndpointsRequest(arg0 *ec2.DescribeClientVpnEndpointsInput) (*request.Request, *ec2.DescribeClientVpnEndpointsOutput) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnEndpointsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeClientVpnEndpointsOutput)
+	return ret0, ret1
+}
+
+// DescribeClientVpnEndpointsRequest indicates an expected call of DescribeClientVpnEndpointsRequest
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnEndpointsRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnEndpointsRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnEndpointsRequest), arg0)
+}
+
+// DescribeClientVpnEndpointsWithContext mocks base method
+func (m *MockEC2API) DescribeClientVpnEndpointsWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnEndpointsInput, arg2 ...request.Option) (*ec2.DescribeClientVpnEndpointsOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeClientVpnEndpointsWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnEndpointsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnEndpointsWithContext indicates an expected call of DescribeClientVpnEndpointsWithContext
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnEndpointsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnEndpointsWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnEndpointsWithContext), varargs...)
+}
+
+// DescribeClientVpnRoutes mocks base method
+func (m *MockEC2API) DescribeClientVpnRoutes(arg0 *ec2.DescribeClientVpnRoutesInput) (*ec2.DescribeClientVpnRoutesOutput, error) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnRoutes", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnRoutesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnRoutes indicates an expected call of DescribeClientVpnRoutes
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnRoutes(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnRoutes", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnRoutes), arg0)
+}
+
+// DescribeClientVpnRoutesRequest mocks base method
+func (m *MockEC2API) DescribeClientVpnRoutesRequest(arg0 *ec2.DescribeClientVpnRoutesInput) (*request.Request, *ec2.DescribeClientVpnRoutesOutput) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnRoutesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeClientVpnRoutesOutput)
+	return ret0, ret1
+}
+
+// DescribeClientVpnRoutesRequest indicates an expected call of DescribeClientVpnRoutesRequest
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnRoutesRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnRoutesRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnRoutesRequest), arg0)
+}
+
+// DescribeClientVpnRoutesWithContext mocks base method
+func (m *MockEC2API) DescribeClientVpnRoutesWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnRoutesInput, arg2 ...request.Option) (*ec2.DescribeClientVpnRoutesOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeClientVpnRoutesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnRoutesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnRoutesWithContext indicates an expected call of DescribeClientVpnRoutesWithContext
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnRoutesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnRoutesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnRoutesWithContext), varargs...)
+}
+
+// DescribeClientVpnTargetNetworks mocks base method
+func (m *MockEC2API) DescribeClientVpnTargetNetworks(arg0 *ec2.DescribeClientVpnTargetNetworksInput) (*ec2.DescribeClientVpnTargetNetworksOutput, error) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnTargetNetworks", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnTargetNetworksOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnTargetNetworks indicates an expected call of DescribeClientVpnTargetNetworks
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnTargetNetworks(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnTargetNetworks", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnTargetNetworks), arg0)
+}
+
+// DescribeClientVpnTargetNetworksRequest mocks base method
+func (m *MockEC2API) DescribeClientVpnTargetNetworksRequest(arg0 *ec2.DescribeClientVpnTargetNetworksInput) (*request.Request, *ec2.DescribeClientVpnTargetNetworksOutput) {
+	ret := m.ctrl.Call(m, "DescribeClientVpnTargetNetworksRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeClientVpnTargetNetworksOutput)
+	return ret0, ret1
+}
+
+// DescribeClientVpnTargetNetworksRequest indicates an expected call of DescribeClientVpnTargetNetworksRequest
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnTargetNetworksRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnTargetNetworksRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnTargetNetworksRequest), arg0)
+}
+
+// DescribeClientVpnTargetNetworksWithContext mocks base method
+func (m *MockEC2API) DescribeClientVpnTargetNetworksWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnTargetNetworksInput, arg2 ...request.Option) (*ec2.DescribeClientVpnTargetNetworksOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeClientVpnTargetNetworksWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeClientVpnTargetNetworksOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeClientVpnTargetNetworksWithContext indicates an expected call of DescribeClientVpnTargetNetworksWithContext
+func (mr *MockEC2APIMockRecorder) DescribeClientVpnTargetNetworksWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClientVpnTargetNetworksWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeClientVpnTargetNetworksWithContext), varargs...)
 }
 
 // DescribeConversionTasks mocks base method
@@ -9963,6 +10491,50 @@ func (mr *MockEC2APIMockRecorder) DisassociateAddressWithContext(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateAddressWithContext", reflect.TypeOf((*MockEC2API)(nil).DisassociateAddressWithContext), varargs...)
 }
 
+// DisassociateClientVpnTargetNetwork mocks base method
+func (m *MockEC2API) DisassociateClientVpnTargetNetwork(arg0 *ec2.DisassociateClientVpnTargetNetworkInput) (*ec2.DisassociateClientVpnTargetNetworkOutput, error) {
+	ret := m.ctrl.Call(m, "DisassociateClientVpnTargetNetwork", arg0)
+	ret0, _ := ret[0].(*ec2.DisassociateClientVpnTargetNetworkOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisassociateClientVpnTargetNetwork indicates an expected call of DisassociateClientVpnTargetNetwork
+func (mr *MockEC2APIMockRecorder) DisassociateClientVpnTargetNetwork(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateClientVpnTargetNetwork", reflect.TypeOf((*MockEC2API)(nil).DisassociateClientVpnTargetNetwork), arg0)
+}
+
+// DisassociateClientVpnTargetNetworkRequest mocks base method
+func (m *MockEC2API) DisassociateClientVpnTargetNetworkRequest(arg0 *ec2.DisassociateClientVpnTargetNetworkInput) (*request.Request, *ec2.DisassociateClientVpnTargetNetworkOutput) {
+	ret := m.ctrl.Call(m, "DisassociateClientVpnTargetNetworkRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DisassociateClientVpnTargetNetworkOutput)
+	return ret0, ret1
+}
+
+// DisassociateClientVpnTargetNetworkRequest indicates an expected call of DisassociateClientVpnTargetNetworkRequest
+func (mr *MockEC2APIMockRecorder) DisassociateClientVpnTargetNetworkRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateClientVpnTargetNetworkRequest", reflect.TypeOf((*MockEC2API)(nil).DisassociateClientVpnTargetNetworkRequest), arg0)
+}
+
+// DisassociateClientVpnTargetNetworkWithContext mocks base method
+func (m *MockEC2API) DisassociateClientVpnTargetNetworkWithContext(arg0 aws.Context, arg1 *ec2.DisassociateClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.DisassociateClientVpnTargetNetworkOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisassociateClientVpnTargetNetworkWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DisassociateClientVpnTargetNetworkOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisassociateClientVpnTargetNetworkWithContext indicates an expected call of DisassociateClientVpnTargetNetworkWithContext
+func (mr *MockEC2APIMockRecorder) DisassociateClientVpnTargetNetworkWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateClientVpnTargetNetworkWithContext", reflect.TypeOf((*MockEC2API)(nil).DisassociateClientVpnTargetNetworkWithContext), varargs...)
+}
+
 // DisassociateIamInstanceProfile mocks base method
 func (m *MockEC2API) DisassociateIamInstanceProfile(arg0 *ec2.DisassociateIamInstanceProfileInput) (*ec2.DisassociateIamInstanceProfileOutput, error) {
 	ret := m.ctrl.Call(m, "DisassociateIamInstanceProfile", arg0)
@@ -10401,6 +10973,94 @@ func (m *MockEC2API) EnableVpcClassicLinkWithContext(arg0 aws.Context, arg1 *ec2
 func (mr *MockEC2APIMockRecorder) EnableVpcClassicLinkWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableVpcClassicLinkWithContext", reflect.TypeOf((*MockEC2API)(nil).EnableVpcClassicLinkWithContext), varargs...)
+}
+
+// ExportClientVpnClientCertificateRevocationList mocks base method
+func (m *MockEC2API) ExportClientVpnClientCertificateRevocationList(arg0 *ec2.ExportClientVpnClientCertificateRevocationListInput) (*ec2.ExportClientVpnClientCertificateRevocationListOutput, error) {
+	ret := m.ctrl.Call(m, "ExportClientVpnClientCertificateRevocationList", arg0)
+	ret0, _ := ret[0].(*ec2.ExportClientVpnClientCertificateRevocationListOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExportClientVpnClientCertificateRevocationList indicates an expected call of ExportClientVpnClientCertificateRevocationList
+func (mr *MockEC2APIMockRecorder) ExportClientVpnClientCertificateRevocationList(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExportClientVpnClientCertificateRevocationList", reflect.TypeOf((*MockEC2API)(nil).ExportClientVpnClientCertificateRevocationList), arg0)
+}
+
+// ExportClientVpnClientCertificateRevocationListRequest mocks base method
+func (m *MockEC2API) ExportClientVpnClientCertificateRevocationListRequest(arg0 *ec2.ExportClientVpnClientCertificateRevocationListInput) (*request.Request, *ec2.ExportClientVpnClientCertificateRevocationListOutput) {
+	ret := m.ctrl.Call(m, "ExportClientVpnClientCertificateRevocationListRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ExportClientVpnClientCertificateRevocationListOutput)
+	return ret0, ret1
+}
+
+// ExportClientVpnClientCertificateRevocationListRequest indicates an expected call of ExportClientVpnClientCertificateRevocationListRequest
+func (mr *MockEC2APIMockRecorder) ExportClientVpnClientCertificateRevocationListRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExportClientVpnClientCertificateRevocationListRequest", reflect.TypeOf((*MockEC2API)(nil).ExportClientVpnClientCertificateRevocationListRequest), arg0)
+}
+
+// ExportClientVpnClientCertificateRevocationListWithContext mocks base method
+func (m *MockEC2API) ExportClientVpnClientCertificateRevocationListWithContext(arg0 aws.Context, arg1 *ec2.ExportClientVpnClientCertificateRevocationListInput, arg2 ...request.Option) (*ec2.ExportClientVpnClientCertificateRevocationListOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ExportClientVpnClientCertificateRevocationListWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ExportClientVpnClientCertificateRevocationListOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExportClientVpnClientCertificateRevocationListWithContext indicates an expected call of ExportClientVpnClientCertificateRevocationListWithContext
+func (mr *MockEC2APIMockRecorder) ExportClientVpnClientCertificateRevocationListWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExportClientVpnClientCertificateRevocationListWithContext", reflect.TypeOf((*MockEC2API)(nil).ExportClientVpnClientCertificateRevocationListWithContext), varargs...)
+}
+
+// ExportClientVpnClientConfiguration mocks base method
+func (m *MockEC2API) ExportClientVpnClientConfiguration(arg0 *ec2.ExportClientVpnClientConfigurationInput) (*ec2.ExportClientVpnClientConfigurationOutput, error) {
+	ret := m.ctrl.Call(m, "ExportClientVpnClientConfiguration", arg0)
+	ret0, _ := ret[0].(*ec2.ExportClientVpnClientConfigurationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExportClientVpnClientConfiguration indicates an expected call of ExportClientVpnClientConfiguration
+func (mr *MockEC2APIMockRecorder) ExportClientVpnClientConfiguration(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExportClientVpnClientConfiguration", reflect.TypeOf((*MockEC2API)(nil).ExportClientVpnClientConfiguration), arg0)
+}
+
+// ExportClientVpnClientConfigurationRequest mocks base method
+func (m *MockEC2API) ExportClientVpnClientConfigurationRequest(arg0 *ec2.ExportClientVpnClientConfigurationInput) (*request.Request, *ec2.ExportClientVpnClientConfigurationOutput) {
+	ret := m.ctrl.Call(m, "ExportClientVpnClientConfigurationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ExportClientVpnClientConfigurationOutput)
+	return ret0, ret1
+}
+
+// ExportClientVpnClientConfigurationRequest indicates an expected call of ExportClientVpnClientConfigurationRequest
+func (mr *MockEC2APIMockRecorder) ExportClientVpnClientConfigurationRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExportClientVpnClientConfigurationRequest", reflect.TypeOf((*MockEC2API)(nil).ExportClientVpnClientConfigurationRequest), arg0)
+}
+
+// ExportClientVpnClientConfigurationWithContext mocks base method
+func (m *MockEC2API) ExportClientVpnClientConfigurationWithContext(arg0 aws.Context, arg1 *ec2.ExportClientVpnClientConfigurationInput, arg2 ...request.Option) (*ec2.ExportClientVpnClientConfigurationOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ExportClientVpnClientConfigurationWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ExportClientVpnClientConfigurationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExportClientVpnClientConfigurationWithContext indicates an expected call of ExportClientVpnClientConfigurationWithContext
+func (mr *MockEC2APIMockRecorder) ExportClientVpnClientConfigurationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExportClientVpnClientConfigurationWithContext", reflect.TypeOf((*MockEC2API)(nil).ExportClientVpnClientConfigurationWithContext), varargs...)
 }
 
 // ExportTransitGatewayRoutes mocks base method
@@ -10843,6 +11503,50 @@ func (mr *MockEC2APIMockRecorder) GetTransitGatewayRouteTablePropagationsWithCon
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayRouteTablePropagationsWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayRouteTablePropagationsWithContext), varargs...)
 }
 
+// ImportClientVpnClientCertificateRevocationList mocks base method
+func (m *MockEC2API) ImportClientVpnClientCertificateRevocationList(arg0 *ec2.ImportClientVpnClientCertificateRevocationListInput) (*ec2.ImportClientVpnClientCertificateRevocationListOutput, error) {
+	ret := m.ctrl.Call(m, "ImportClientVpnClientCertificateRevocationList", arg0)
+	ret0, _ := ret[0].(*ec2.ImportClientVpnClientCertificateRevocationListOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportClientVpnClientCertificateRevocationList indicates an expected call of ImportClientVpnClientCertificateRevocationList
+func (mr *MockEC2APIMockRecorder) ImportClientVpnClientCertificateRevocationList(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportClientVpnClientCertificateRevocationList", reflect.TypeOf((*MockEC2API)(nil).ImportClientVpnClientCertificateRevocationList), arg0)
+}
+
+// ImportClientVpnClientCertificateRevocationListRequest mocks base method
+func (m *MockEC2API) ImportClientVpnClientCertificateRevocationListRequest(arg0 *ec2.ImportClientVpnClientCertificateRevocationListInput) (*request.Request, *ec2.ImportClientVpnClientCertificateRevocationListOutput) {
+	ret := m.ctrl.Call(m, "ImportClientVpnClientCertificateRevocationListRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ImportClientVpnClientCertificateRevocationListOutput)
+	return ret0, ret1
+}
+
+// ImportClientVpnClientCertificateRevocationListRequest indicates an expected call of ImportClientVpnClientCertificateRevocationListRequest
+func (mr *MockEC2APIMockRecorder) ImportClientVpnClientCertificateRevocationListRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportClientVpnClientCertificateRevocationListRequest", reflect.TypeOf((*MockEC2API)(nil).ImportClientVpnClientCertificateRevocationListRequest), arg0)
+}
+
+// ImportClientVpnClientCertificateRevocationListWithContext mocks base method
+func (m *MockEC2API) ImportClientVpnClientCertificateRevocationListWithContext(arg0 aws.Context, arg1 *ec2.ImportClientVpnClientCertificateRevocationListInput, arg2 ...request.Option) (*ec2.ImportClientVpnClientCertificateRevocationListOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ImportClientVpnClientCertificateRevocationListWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ImportClientVpnClientCertificateRevocationListOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportClientVpnClientCertificateRevocationListWithContext indicates an expected call of ImportClientVpnClientCertificateRevocationListWithContext
+func (mr *MockEC2APIMockRecorder) ImportClientVpnClientCertificateRevocationListWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportClientVpnClientCertificateRevocationListWithContext", reflect.TypeOf((*MockEC2API)(nil).ImportClientVpnClientCertificateRevocationListWithContext), varargs...)
+}
+
 // ImportImage mocks base method
 func (m *MockEC2API) ImportImage(arg0 *ec2.ImportImageInput) (*ec2.ImportImageOutput, error) {
 	ret := m.ctrl.Call(m, "ImportImage", arg0)
@@ -11105,6 +11809,50 @@ func (m *MockEC2API) ModifyCapacityReservationWithContext(arg0 aws.Context, arg1
 func (mr *MockEC2APIMockRecorder) ModifyCapacityReservationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyCapacityReservationWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyCapacityReservationWithContext), varargs...)
+}
+
+// ModifyClientVpnEndpoint mocks base method
+func (m *MockEC2API) ModifyClientVpnEndpoint(arg0 *ec2.ModifyClientVpnEndpointInput) (*ec2.ModifyClientVpnEndpointOutput, error) {
+	ret := m.ctrl.Call(m, "ModifyClientVpnEndpoint", arg0)
+	ret0, _ := ret[0].(*ec2.ModifyClientVpnEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyClientVpnEndpoint indicates an expected call of ModifyClientVpnEndpoint
+func (mr *MockEC2APIMockRecorder) ModifyClientVpnEndpoint(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyClientVpnEndpoint", reflect.TypeOf((*MockEC2API)(nil).ModifyClientVpnEndpoint), arg0)
+}
+
+// ModifyClientVpnEndpointRequest mocks base method
+func (m *MockEC2API) ModifyClientVpnEndpointRequest(arg0 *ec2.ModifyClientVpnEndpointInput) (*request.Request, *ec2.ModifyClientVpnEndpointOutput) {
+	ret := m.ctrl.Call(m, "ModifyClientVpnEndpointRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ModifyClientVpnEndpointOutput)
+	return ret0, ret1
+}
+
+// ModifyClientVpnEndpointRequest indicates an expected call of ModifyClientVpnEndpointRequest
+func (mr *MockEC2APIMockRecorder) ModifyClientVpnEndpointRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyClientVpnEndpointRequest", reflect.TypeOf((*MockEC2API)(nil).ModifyClientVpnEndpointRequest), arg0)
+}
+
+// ModifyClientVpnEndpointWithContext mocks base method
+func (m *MockEC2API) ModifyClientVpnEndpointWithContext(arg0 aws.Context, arg1 *ec2.ModifyClientVpnEndpointInput, arg2 ...request.Option) (*ec2.ModifyClientVpnEndpointOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifyClientVpnEndpointWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ModifyClientVpnEndpointOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyClientVpnEndpointWithContext indicates an expected call of ModifyClientVpnEndpointWithContext
+func (mr *MockEC2APIMockRecorder) ModifyClientVpnEndpointWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyClientVpnEndpointWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyClientVpnEndpointWithContext), varargs...)
 }
 
 // ModifyFleet mocks base method
@@ -13483,6 +14231,50 @@ func (mr *MockEC2APIMockRecorder) RestoreAddressToClassicWithContext(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreAddressToClassicWithContext", reflect.TypeOf((*MockEC2API)(nil).RestoreAddressToClassicWithContext), varargs...)
 }
 
+// RevokeClientVpnIngress mocks base method
+func (m *MockEC2API) RevokeClientVpnIngress(arg0 *ec2.RevokeClientVpnIngressInput) (*ec2.RevokeClientVpnIngressOutput, error) {
+	ret := m.ctrl.Call(m, "RevokeClientVpnIngress", arg0)
+	ret0, _ := ret[0].(*ec2.RevokeClientVpnIngressOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RevokeClientVpnIngress indicates an expected call of RevokeClientVpnIngress
+func (mr *MockEC2APIMockRecorder) RevokeClientVpnIngress(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeClientVpnIngress", reflect.TypeOf((*MockEC2API)(nil).RevokeClientVpnIngress), arg0)
+}
+
+// RevokeClientVpnIngressRequest mocks base method
+func (m *MockEC2API) RevokeClientVpnIngressRequest(arg0 *ec2.RevokeClientVpnIngressInput) (*request.Request, *ec2.RevokeClientVpnIngressOutput) {
+	ret := m.ctrl.Call(m, "RevokeClientVpnIngressRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.RevokeClientVpnIngressOutput)
+	return ret0, ret1
+}
+
+// RevokeClientVpnIngressRequest indicates an expected call of RevokeClientVpnIngressRequest
+func (mr *MockEC2APIMockRecorder) RevokeClientVpnIngressRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeClientVpnIngressRequest", reflect.TypeOf((*MockEC2API)(nil).RevokeClientVpnIngressRequest), arg0)
+}
+
+// RevokeClientVpnIngressWithContext mocks base method
+func (m *MockEC2API) RevokeClientVpnIngressWithContext(arg0 aws.Context, arg1 *ec2.RevokeClientVpnIngressInput, arg2 ...request.Option) (*ec2.RevokeClientVpnIngressOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RevokeClientVpnIngressWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.RevokeClientVpnIngressOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RevokeClientVpnIngressWithContext indicates an expected call of RevokeClientVpnIngressWithContext
+func (mr *MockEC2APIMockRecorder) RevokeClientVpnIngressWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeClientVpnIngressWithContext", reflect.TypeOf((*MockEC2API)(nil).RevokeClientVpnIngressWithContext), varargs...)
+}
+
 // RevokeSecurityGroupEgress mocks base method
 func (m *MockEC2API) RevokeSecurityGroupEgress(arg0 *ec2.RevokeSecurityGroupEgressInput) (*ec2.RevokeSecurityGroupEgressOutput, error) {
 	ret := m.ctrl.Call(m, "RevokeSecurityGroupEgress", arg0)
@@ -13789,6 +14581,50 @@ func (m *MockEC2API) StopInstancesWithContext(arg0 aws.Context, arg1 *ec2.StopIn
 func (mr *MockEC2APIMockRecorder) StopInstancesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopInstancesWithContext", reflect.TypeOf((*MockEC2API)(nil).StopInstancesWithContext), varargs...)
+}
+
+// TerminateClientVpnConnections mocks base method
+func (m *MockEC2API) TerminateClientVpnConnections(arg0 *ec2.TerminateClientVpnConnectionsInput) (*ec2.TerminateClientVpnConnectionsOutput, error) {
+	ret := m.ctrl.Call(m, "TerminateClientVpnConnections", arg0)
+	ret0, _ := ret[0].(*ec2.TerminateClientVpnConnectionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TerminateClientVpnConnections indicates an expected call of TerminateClientVpnConnections
+func (mr *MockEC2APIMockRecorder) TerminateClientVpnConnections(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateClientVpnConnections", reflect.TypeOf((*MockEC2API)(nil).TerminateClientVpnConnections), arg0)
+}
+
+// TerminateClientVpnConnectionsRequest mocks base method
+func (m *MockEC2API) TerminateClientVpnConnectionsRequest(arg0 *ec2.TerminateClientVpnConnectionsInput) (*request.Request, *ec2.TerminateClientVpnConnectionsOutput) {
+	ret := m.ctrl.Call(m, "TerminateClientVpnConnectionsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.TerminateClientVpnConnectionsOutput)
+	return ret0, ret1
+}
+
+// TerminateClientVpnConnectionsRequest indicates an expected call of TerminateClientVpnConnectionsRequest
+func (mr *MockEC2APIMockRecorder) TerminateClientVpnConnectionsRequest(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateClientVpnConnectionsRequest", reflect.TypeOf((*MockEC2API)(nil).TerminateClientVpnConnectionsRequest), arg0)
+}
+
+// TerminateClientVpnConnectionsWithContext mocks base method
+func (m *MockEC2API) TerminateClientVpnConnectionsWithContext(arg0 aws.Context, arg1 *ec2.TerminateClientVpnConnectionsInput, arg2 ...request.Option) (*ec2.TerminateClientVpnConnectionsOutput, error) {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TerminateClientVpnConnectionsWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.TerminateClientVpnConnectionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TerminateClientVpnConnectionsWithContext indicates an expected call of TerminateClientVpnConnectionsWithContext
+func (mr *MockEC2APIMockRecorder) TerminateClientVpnConnectionsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateClientVpnConnectionsWithContext", reflect.TypeOf((*MockEC2API)(nil).TerminateClientVpnConnectionsWithContext), varargs...)
 }
 
 // TerminateInstances mocks base method
