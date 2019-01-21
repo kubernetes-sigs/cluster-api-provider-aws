@@ -238,7 +238,7 @@ func generateAWSDefaultProfile() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "generate-aws-default-profile",
 		Short: "Generate an AWS profile from the current environment",
-		Long:  "Generate an AWS profile from the current environment to be saved into minikube",
+		Long:  "Generate an AWS profile from the current environment for the ephemeral bootstrap cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			creds, err := getCredentialsFromEnvironment()

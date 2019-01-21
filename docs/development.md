@@ -32,7 +32,7 @@ If you then want to use these mocks with `go test ./...`, run
 
 ## Set up
 
-You can use Google Cloud or just use local minikube storage.
+You can use Google Cloud or any other container registry.
 
 AWS Elastic Container Registry isn't recommended as public images are
 required for the provider manifests.
@@ -43,13 +43,10 @@ required for the provider manifests.
    - `brew install jq` on MacOS.
 2. Install [gettext][gettext] package
    - `brew install gettext && brew link --force gettext` on MacOS.
-3. Install [minikube][minikube]
-   - `brew install minikube` on MacOS.
+3. Install [KIND][kind]
+   - `go get sigs.k8s.io/kind`.
 4. Install [bazel][bazel]
 5. Configure Python 2.7+ with [pyenv][pyenv] if your default is Python 3.x.
-6. Configure `minikube`:
-    1. Use Kubernetes v1.12.1 `minikube config set kubernetes-version v1.12.1`.
-    2. Use kubeadm as bootstrapper `minikube config set bootstrapper kubeadm`.
 
 ### Using Google Cloud
 
@@ -89,7 +86,7 @@ make cluster-api-dev-helper
 [aws_vault]: https://github.com/99designs/aws-vault
 [gcloud_sdk]: https://cloud.google.com/sdk/install
 [gettext]: https://www.gnu.org/software/gettext/
-[minikube]: https://kubernetes.io/docs/setup/minikube/
+[kind]: https://sigs.k8s.io/kind
 [aws_cli]: https://docs.aws.amazon.com/cli/latest/userguide/installing.html
 [bazel]: https://docs.bazel.build/versions/master/install.html
 [pyenv]: https://github.com/pyenv/pyenv

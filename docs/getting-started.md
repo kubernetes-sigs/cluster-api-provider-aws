@@ -14,14 +14,12 @@
   - [SSH Key pair](#ssh-key-pair)
     - [Create a new key pair](#create-a-new-key-pair)
     - [Using an existing key](#using-an-existing-key)
-  - [Setting up Minikube](#setting-up-minikube)
-    - [Customizing for Cluster API](#customizing-for-cluster-api)
+  - [Setting up KIND](#setting-up-kind)
   - [Setting up the environment](#setting-up-the-environment)
 - [Deploying a cluster](#deploying-a-cluster)
   - [Generating cluster manifests](#generating-cluster-manifests)
   - [Starting Cluster API](#starting-cluster-api)
 - [Troubleshooting](#troubleshooting)
-  - [Hanging at "Creating bootstrap cluster"](#hanging-at-creating-bootstrap-cluster)
   - [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-aren't-being-created)
 
 <!-- /TOC -->
@@ -31,7 +29,7 @@
 - Linux or MacOS (Windows isn't supported at the moment)
 - A set of AWS credentials sufficient to bootstrap the cluster (see [bootstrapping-aws-identity-and-access-management-with-cloudformation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)).
 - An AWS IAM role to give to the Cluster API control plane.
-- [Minikube][minikube] version v0.30.0 or later
+- [KIND](https://sigs.k8s.io/kind)
 - [kubectl][kubectl]
 - [kustomize][kustomize]
 - make
@@ -43,7 +41,6 @@
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
 - [Homebrew][brew] (MacOS)
 - [jq][jq]
-- [PowerShell AWS Tools][aws_powershell]
 - [Go](https://golang.org/dl/)
 
 ## Prerequisites
@@ -62,9 +59,8 @@ Before launching clusterctl, you need to define a few environment variables (`AW
 > NOTE: The `clusterawsadm` command requires to have a working AWS environment.
 
 
-### Bootstrapping AWS Identity and Access Management with CloudFormation
+### Bootstrapping AWS IAM with CloudFormation
 
-**NOTE**:
 > Your credentials must let you make changes in AWS Identity and Access Management (IAM),
 > and use CloudFormation.
 
@@ -79,8 +75,6 @@ You will need to specify the name of an existing SSH key pair within the region 
 
 #### Create a new key pair
 
-*Bash:*
-
 ```bash
 # Save the output to a secure location
 aws ec2 create-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io | jq .KeyMaterial -r
@@ -89,19 +83,8 @@ aws ec2 create-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io | jq .Ke
 -----END RSA PRIVATE KEY-----
 ```
 
-*PowerShell:*
-
-```powershell
-(New-EC2KeyPair -KeyName cluster-api-provider-aws.sigs.k8s.io).KeyMaterial
------BEGIN RSA PRIVATE KEY-----
-[... contents omitted ...]
------END RSA PRIVATE KEY-----
-```
-
 If you want to save the private key directly into AWS Systems Manager Parameter
 Store with KMS encryption for security, you can use the following command:
-
-*Bash:*
 
 ```bash
 aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
@@ -112,70 +95,25 @@ aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
 }
 ```
 
-*PowerShell:*
-
-```powershell
-Write-SSMParameter -Name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" `
-  -Type SecureString `
-  -Value (New-EC2KeyPair -KeyName cluster-api-provider-aws.sigs.k8s.io).KeyMaterial
-1
-```
-
 #### Using an existing key
-
-*Bash:*
 
 ```bash
 # Replace with your own public key
-aws ec2 import-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io \
+aws ec2 import-key-pair \
+  --key-name cluster-api-provider-aws.sigs.k8s.io \
   --public-key-material $(cat ~/.ssh/id_rsa.pub)
 ```
 
-*PowerShell:*
-
-```powershell
-$publicKey = [System.Convert]::ToBase64String( `
-  [System.Text.Encoding]::UTF8.GetBytes(((get-content ~/.ssh/id_rsa.pub))))
-Import-EC2KeyPair -KeyName cluster-api-provider-aws.sigs.k8s.io -PublicKeyMaterial $publicKey
-```
-
-**NOTE**:
 > Only RSA keys are supported by AWS.
 
-### Setting up Minikube
+### Setting up KIND
 
-Minikube needs to be installed on your local machine, as this is what will be used by the Cluster API to bootstrap your cluster in AWS.
-
-[Instructions for setting up minikube][minikube] are available on the Kubernetes website.
-
-**NOTE**
-> `minikube start` is NOT idempotent, and running it twice will likely damage your `minikube`.
-> Since `clusterctl` runs `minikube start`, it is important to run `minikube delete` prior to `clusterctl create`.
-> See "troubleshooting" below for more on how to recover from running `clusterctl create` with an already running `minikube`.
-
-#### Customizing for Cluster API
-
-At present, the Cluster API provider runs minikube to create a new instance,
-but requires Kubernetes 1.12 and the kubeadm bootstrap method to work properly,
-so we configure Minikube as follows:
-
-```bash
-minikube config set kubernetes-version v1.12.1
-minikube config set bootstrapper kubeadm
-```
-
-If you already had a running `minikube`, be sure to remove it:
-
-```
-minikube delete
-```
+[KIND](https://sigs.k8s.io/kind) is used by clusterctl as an ephemeral bootstrap cluster. Follow these [instructions][https://github.com/kubernetes-sigs/kind#installation-and-usage] to install it on your local machine.
 
 ### Setting up the environment
 
 The current iteration of the Cluster API Provider AWS relies on credentials being present in your environment.
 These then get written into the cluster manifests for use by the controllers.
-
-*Bash:*
 
 ```bash
 # Region used to deploy the cluster in.
@@ -189,35 +127,16 @@ export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 export SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
 ```
 
-*PowerShell:*
-
-```powershell
-$ENV:AWS_REGION = "us-east-1"
-$ENV:AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
-$ENV:AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-$ENV:SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
-```
-
 If you applied the CloudFormation template above, an IAM user was created for you:
 
-*Bash:*
-
 ```bash
+export AWS_REGION=us-east-1
 export AWS_CREDENTIALS=$(aws iam create-access-key \
   --user-name bootstrapper.cluster-api-provider-aws.sigs.k8s.io)
 export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq .AccessKey.AccessKeyId -r)
 export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq .AccessKey.SecretAccessKey -r)
 ```
 
-*PowerShell:*
-
-```powershell
-$awsCredentials = New-IAMAccessKey -UserName bootstrapper.cluster-api-provider-aws.sigs.k8s.io
-$ENV:AWS_ACCESS_KEY_ID=$awsCredentials.AccessKeyId
-$ENV:AWS_SECRET_ACCESS_KEY=$awsCredentials.SecretAccessKey
-```
-
-**NOTE**:
 > To save credentials securely in your environment, [aws-vault][aws-vault] uses the OS keystore as permanent storage,
 > and offers shell features to securely expose and setup local AWS environments.
 
@@ -237,97 +156,72 @@ region and any apply other customisations you want to make.
 
 > Note: The generated manifests may refer to a keypair named `default`, which differs from the keypair created in this guide. That can be overridden by setting the `SSH_KEY_NAME` env var before running `make manifests`.
 
-### Starting Cluster API
-
-If you haven't already, set up your [environment](#setting-up-the-environment)
-in the [terminal session] you're working in.
+### Creating a cluster
 
 You can now start the Cluster API controllers and deploy a new cluster in AWS:
 
-*Bash:*
-
 ```bash
-clusterctl create cluster -v2 --provider aws \
+clusterctl create cluster -v 3 \
+  --bootstrap-type kind \
+  --provider aws \
   -m ./cmd/clusterctl/examples/aws/out/machines.yaml \
   -c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
   -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
   -a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
-I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
-I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
-I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provider Components
-I1018 01:21:12.106909   16367 clusterclient.go:505] Waiting for kubectl apply...
-I1018 01:21:12.460755   16367 clusterclient.go:533] Waiting for Cluster v1alpha resources to become available...
-I1018 01:21:12.464840   16367 clusterclient.go:546] Waiting for Cluster v1alpha resources to be listable...
-I1018 01:21:12.517706   16367 clusterdeployer.go:116] Provisioning target cluster via bootstrap cluster
-I1018 01:21:12.517722   16367 clusterdeployer.go:118] Creating cluster object aws-provider-test1 on bootstrap cluster in namespace "aws-provider-system"
-I1018 01:21:12.524912   16367 clusterdeployer.go:123] Creating master  in namespace "aws-provider-system"
+I0119 12:16:07.521123   38557 plugins.go:39] Registered cluster provisioner "aws"
+I0119 12:16:07.522563   38557 createbootstrapcluster.go:27] Creating bootstrap cluster
+I0119 12:16:07.522573   38557 kind.go:53] Running: kind [create cluster --name=clusterapi]
+I0119 12:16:40.661674   38557 kind.go:56] Ran: kind [create cluster --name=clusterapi] Output: Creating cluster 'kind-clusterapi' ...
+ • Ensuring node image (kindest/node:v1.12.2) 🖼  ...
+ ✓ Ensuring node image (kindest/node:v1.12.2) 🖼
+ • [kind-clusterapi-control-plane] Creating node container 📦  ...
+ ✓ [kind-clusterapi-control-plane] Creating node container 📦
+ • [kind-clusterapi-control-plane] Fixing mounts 🗻  ...
+ ✓ [kind-clusterapi-control-plane] Fixing mounts 🗻
+ • [kind-clusterapi-control-plane] Starting systemd 🖥  ...
+ ✓ [kind-clusterapi-control-plane] Starting systemd 🖥
+ • [kind-clusterapi-control-plane] Waiting for docker to be ready 🐋  ...
+ ✓ [kind-clusterapi-control-plane] Waiting for docker to be ready 🐋
+ • [kind-clusterapi-control-plane] Starting Kubernetes (this may take a minute) ☸  ...
+ ✓ [kind-clusterapi-control-plane] Starting Kubernetes (this may take a minute) ☸
+Cluster creation complete. You can now use the cluster with:
+
+export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+kubectl cluster-info
+I0119 12:16:40.661740   38557 kind.go:53] Running: kind [get kubeconfig-path --name=clusterapi]
+I0119 12:16:40.686496   38557 kind.go:56] Ran: kind [get kubeconfig-path --name=clusterapi] Output: /path/to/.kube/kind-config-clusterapi
+I0119 12:16:40.688189   38557 clusterdeployer.go:95] Applying Cluster API stack to bootstrap cluster
+I0119 12:16:40.688199   38557 applyclusterapicomponents.go:26] Applying Cluster API Provider Components
+I0119 12:16:40.688207   38557 clusterclient.go:520] Waiting for kubectl apply...
+I0119 12:16:40.981186   38557 clusterclient.go:549] Waiting for Cluster v1alpha resources to become available...
+I0119 12:16:40.989350   38557 clusterclient.go:562] Waiting for Cluster v1alpha resources to be listable...
+I0119 12:16:40.997829   38557 clusterdeployer.go:100] Provisioning target cluster via bootstrap cluster
+I0119 12:16:41.002232   38557 applycluster.go:36] Creating cluster object test1 in namespace "default"
+I0119 12:16:41.007516   38557 clusterdeployer.go:109] Creating control plane controlplane-0 in namespace "default"
+I0119 12:16:41.011616   38557 applymachines.go:36] Creating machines in namespace "default"
+I0119 12:16:41.021539   38557 clusterclient.go:573] Waiting for Machine controlplane-0 to become ready...
 ```
 
-*PowerShell:*
+The created KIND cluster is ephemeral and is cleaned up automatically when done. During the cluster creation, the KIND configuration is written to a local directory and can be retrieved using `kind get kubeconfig-path --name="clusterapi"`.
 
-```powershell
-clusterctl create cluster -v2 --provider aws `
-  -m ./cmd/clusterctl/examples/aws/out/machines.yaml `
-  -c ./cmd/clusterctl/examples/aws/out/cluster.yaml `
-  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml `
-  -a ./cmd/clusterctl/examples/aws/out/addons.yaml
-
-I1018 01:21:12.079384   16367 clusterdeployer.go:94] Creating bootstrap cluster
-I1018 01:21:12.106882   16367 clusterdeployer.go:111] Applying Cluster API stack to bootstrap cluster
-I1018 01:21:12.106901   16367 clusterdeployer.go:300] Applying Cluster API Provider Components
-...
-```
-
-The created minikube cluster is ephemeral and should be deleted on cluster creation success. During the cluster creation, the minikube configuration is written to `minikube.kubeconfig` in the directory you launched the `clusterctl` command.
-
-For a more in-depth look into what `clusterctl` is doing during this create
-step, please see the [clusterctl document](/docs/clusterctl.md).
+For a more in-depth look into what `clusterctl` is doing during this create step, please see the [clusterctl document](/docs/clusterctl.md).
 
 ## Troubleshooting
 
-## Hanging at "creating bootstrap cluster"
-
-`minikube logs -f` will tail the logs for the bootstrap cluster's bootstrap. If you see a message like the following:
-
-```
-Oct 30 16:52:13 minikube kubelet[3055]: E1030 16:52:13.023286    3055 pod_workers.go:186] Error syncing pod 9037f4a5-dc63-11e8-9de5-0800270170d7 ("kube-proxy-qj7x5_kube-system(9037f4a5-dc63-11e8-9de5-0800270170d7)"), skipping: failed to "StartContainer" for "kube-proxy" with ErrImagePull: "rpc error: code = Unknown desc = failed to register layer: Error processing tar file(exit status 1): operation not supported"
-```
-
-Then it will be necessary to run these commands to recover:
-
-```
-minikube delete
-sudo rm -rf ~/.minikube
-```
-
-Be sure to re-configure minikube as described in the [Customizing for Cluster API](#customizing-for-cluster-api) section.
-
 ## Bootstrap running, but resources aren't being created
 
-Controller logs can be tailed using [`kubectl`][kubectl]:
-
-*Bash:*
+Logs can be tailed using [`kubectl`][kubectl]:
 
 ```bash
-export KUBECONFIG=./minikube.kubeconfig
-kubectl get po -o name -n aws-provider-system | grep aws-provider-controller-manager | xargs kubectl logs -n aws-provider-system -c manager -f
-```
-
-*PowerShell:*
-
-```powershell
-$ENV:KUBECONFIG = "minikube.kubeconfig"
-kubectl logs -n aws-provider-system -c manager -f `
-  $(kubectl get po -o name | Select-String -Pattern "aws-provider-controller-manager")
+export KUBECONFIG=$(kind get kubeconfig-path --name="clusterapi")
+kubectl logs -f -n aws-provider-system aws-provider-controller-manager-0
 ```
 
 <!-- References -->
 
 [brew]: https://brew.sh/
 [jq]: https://stedolan.github.io/jq/download/
-[minikube]: https://kubernetes.io/docs/tasks/tools/install-minikube/
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[aws_powershell]: (https://docs.aws.amazon.com/powershell/index.html#lang/en_us)
 [aws-vault]: https://github.com/99designs/aws-vault
 [kustomize]: https://github.com/kubernetes-sigs/kustomize

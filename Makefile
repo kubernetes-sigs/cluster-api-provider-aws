@@ -175,25 +175,21 @@ binaries-dev: ## Builds and installs the binaries on the local GOPATH
 
 .PHONY: create-cluster
 create-cluster: ## Create a Kubernetes cluster on AWS using examples
-	clusterctl create cluster -v 3 --provider aws -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
+	clusterctl create cluster -v 3 \
+	--provider aws \
+	--bootstrap-type kind \
+	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
+	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
+	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
+	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 lint-full: dep-ensure ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
 
 ## Define kind dependencies here.
-## NOTE: The following targets are mainly used for development purposes.
 
-kind: ## Create a kind cluster named "capa".
-	kind get clusters | grep -e "^capa$$" || kind create cluster --name=capa
-
-kind-reset: ## Destroys the "capa" kind cluster.
-	kind delete cluster --name=capa
-
-kind-create-cluster: kind ## Invokes `clusterctl create cluster ...` using the kind "capa" cluster as bootstrap.
-	clusterctl create cluster -v 3 --provider aws -e $(shell kind get kubeconfig-path --name=capa) -m ./cmd/clusterctl/examples/aws/out/machines.yaml -c ./cmd/clusterctl/examples/aws/out/cluster.yaml -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml -a ./cmd/clusterctl/examples/aws/out/addons.yaml
-
-kind-delete-cluster: kind ## Invokes `clusterctl delete cluster ...` using the kind "capa" cluster as bootstrap.
-	clusterctl delete cluster -e $(shell kind get kubeconfig-path --name=capa) --cluster test1 --cluster-namespace default --kubeconfig ./kubeconfig -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml
+kind-reset: ## Destroys the "clusterapi" kind cluster.
+	kind delete cluster --name=clusterapi || true
 
 ifneq ($(FASTBUILD),y)
 
