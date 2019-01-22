@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	cloudConfigHeader = `#cloud-config
+	cloudConfigHeader = `## template: jinja
+#cloud-config
 #
 # Copyright 2018 by the contributors
 #
