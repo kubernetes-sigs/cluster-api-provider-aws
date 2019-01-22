@@ -53,9 +53,9 @@ write_files:
       discovery:
         bootstrapToken:
           token: "{{.BootstrapToken}}"
-        apiServerEndpoint: "{{.ELBAddress}}:6443"
-		caCertHashes:
-          - "{{.CACertHash}}"
+          apiServerEndpoint: "{{.ELBAddress}}:6443"
+		  caCertHashes:
+            - "{{.CACertHash}}"
       nodeRegistration:
         name: {{ "{{ v1.local_hostname }}" }}
         criSocket: /var/run/containerd/containerd.sock
