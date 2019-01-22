@@ -54,7 +54,7 @@ write_files:
         bootstrapToken:
           token: "{{.BootstrapToken}}"
         apiServerEndpoint: "{{.ELBAddress}}:6443"
-        caCertHashes
+		caCertHashes:
           - "{{.CACertHash}}"
       nodeRegistration:
         name: {{ "{{ v1.local_hostname }}" }}
