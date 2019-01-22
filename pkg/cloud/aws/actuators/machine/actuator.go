@@ -261,6 +261,56 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
+// immutableSateChanged checks that no immutable fields have been updated in an
+// Update request.
+// Returns a bool indicating if an attempt to change immutable state occured.
+//  - true:  An attempt to change immutable state occured.
+//  - false: Immutable state was untouched.
+func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, instanceDescription *v1alpha1.Instance) bool {
+	// State change tracking.
+	changed := false
+
+	// Instance Type
+	if machineConfig.InstanceType != instanceDescription.Type {
+		changed = true
+	}
+
+	// IAM Profile
+	if machineConfig.IAMInstanceProfile != instanceDescription.IAMProfile {
+		changed = true
+	}
+
+	// SSH Key Name
+	if machineConfig.KeyName != aws.StringValue(instanceDescription.KeyName) {
+		changed = true
+	}
+
+	// PublicIP check is a little more complicated as the machineConfig is a
+	// simple bool indicating if the instance should have a public IP or not,
+	// while the instanceDescription contains the public IP assigned to the
+	// instance.
+	// Work out whether the instance already has a public IP or not based on
+	// the length of the PublicIP string. Anything >0 is assumed to mean it does
+	// have a public IP.
+	instanceHasPublicIP := false
+	if len(aws.StringValue(instanceDescription.PublicIP)) > 0 {
+		instanceHasPublicIP = true
+	}
+
+	// Check the value of the machineConfig against the instanceDescription
+	// If these values don't match, a changed occurred.
+	if aws.BoolValue(machineConfig.PublicIP) != instanceHasPublicIP {
+		changed = true
+	}
+
+	// The subnet ID should also be checked here, but appears to be more
+	// complicated, as instanceDescription only contains SubnetID while the
+	// machineConfig can contain an ID, ARN or Filter for finding the correct
+	// SubnetID.
+
+	return changed
+}
+
 // Update updates a machine and is invoked by the Machine Controller.
 // If the Update attempts to mutate any immutable state, the method will error
 // and no updates will be performed.
@@ -286,6 +336,9 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// We will check immutable state first, in order to fail quickly before
 	// moving on to state that we can mutate.
 	// TODO: Implement immutable state check.
+	if immutableStateChanged(scope.MachineConfig, instanceDescription) {
+		return errors.Errorf("found attempt to change immutable state")
+	}
 
 	// Ensure that the security groups are correct.
 	_, err = a.ensureSecurityGroups(
