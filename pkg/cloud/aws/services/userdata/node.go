@@ -57,7 +57,7 @@ write_files:
           caCertHashes:
             - "{{.CACertHash}}"
       nodeRegistration:
-        name: "{{ ds.meta_data.hostname }}"
+        name: {{ "{{ ds.meta_data.hostname }}" }}
         criSocket: /var/run/containerd/containerd.sock
         kubeletExtraArgs:
           cloud-provider: aws
