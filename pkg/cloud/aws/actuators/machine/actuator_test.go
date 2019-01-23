@@ -448,7 +448,6 @@ func TestImmutableStateChange(t *testing.T) {
 	for _, tc := range testCases {
 		changed := immutableStateChanged(&tc.machineConfig, &tc.instanceDescription)
 
-		// true case: values changed
 		if tc.expectedValue != changed {
 			t.Fatalf("[%s] Expected Machine Config [%+v], NOT Equal Instance Description [%+v]",
 				tc.name, tc.machineConfig, tc.instanceDescription)
