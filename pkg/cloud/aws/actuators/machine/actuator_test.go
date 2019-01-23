@@ -405,7 +405,6 @@ func TestImmutableStateChange(t *testing.T) {
 				PublicIP: aws.Bool(false),
 			},
 			instanceDescription: v1alpha1.Instance{
-				// This IP chosen from RFC5737 TEST-NET-1
 				PublicIP: aws.String(""),
 			},
 			expectedValue: false,
@@ -416,7 +415,6 @@ func TestImmutableStateChange(t *testing.T) {
 				PublicIP: aws.Bool(true),
 			},
 			instanceDescription: v1alpha1.Instance{
-				// This IP chosen from RFC5737 TEST-NET-1
 				PublicIP: aws.String(""),
 			},
 			expectedValue: true,
