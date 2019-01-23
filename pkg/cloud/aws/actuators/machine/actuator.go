@@ -267,22 +267,19 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 //  - true:  An attempt to change immutable state occured.
 //  - false: Immutable state was untouched.
 func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, instanceDescription *v1alpha1.Instance) bool {
-	// State change tracking.
-	changed := false
-
 	// Instance Type
 	if machineConfig.InstanceType != instanceDescription.Type {
-		changed = true
+		return true
 	}
 
 	// IAM Profile
 	if machineConfig.IAMInstanceProfile != instanceDescription.IAMProfile {
-		changed = true
+		return true
 	}
 
 	// SSH Key Name
 	if machineConfig.KeyName != aws.StringValue(instanceDescription.KeyName) {
-		changed = true
+		return true
 	}
 
 	// Subnet ID
@@ -291,7 +288,7 @@ func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, insta
 	// as a *string, so do the same here.
 	if machineConfig.Subnet != nil {
 		if aws.StringValue(machineConfig.Subnet.ID) != instanceDescription.SubnetID {
-			changed = true
+			return true
 		}
 	}
 
@@ -310,10 +307,11 @@ func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, insta
 	// Check the value of the machineConfig against the instanceDescription
 	// If these values don't match, a changed occurred.
 	if aws.BoolValue(machineConfig.PublicIP) != instanceHasPublicIP {
-		changed = true
+		return true
 	}
 
-	return changed
+	// No immutable state changes found.
+	return false
 }
 
 // Update updates a machine and is invoked by the Machine Controller.
