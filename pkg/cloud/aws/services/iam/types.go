@@ -82,10 +82,7 @@ type Resources []string
 type PrincipalID []string
 
 // Conditions is the map of all conditions in the statement entry.
-type Conditions map[string]ConditionValues
-
-// ConditionValues are a list of condition values in a condition statement
-type ConditionValues []string
+type Conditions map[string]interface{}
 
 // JSON is the JSON output of the policy document
 func (p *PolicyDocument) JSON() (string, error) {
