@@ -10,7 +10,7 @@
   - [Optional](#optional)
 - [Prerequisites](#prerequisites)
   - [Installing clusterawsadm](#installing-clusterawsadm)
-  - [Bootstrapping AWS Identity and Access Management with CloudFormation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)
+  - [Bootstrapping AWS IAM with CloudFormation](#bootstrapping-aws-iam-with-cloudformation)
   - [SSH Key pair](#ssh-key-pair)
     - [Create a new key pair](#create-a-new-key-pair)
     - [Using an existing key](#using-an-existing-key)
@@ -18,9 +18,9 @@
   - [Setting up the environment](#setting-up-the-environment)
 - [Deploying a cluster](#deploying-a-cluster)
   - [Generating cluster manifests](#generating-cluster-manifests)
-  - [Starting Cluster API](#starting-cluster-api)
+  - [Creating a cluster](#creating-a-cluster)
 - [Troubleshooting](#troubleshooting)
-  - [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-aren't-being-created)
+- [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-arent-being-created)
 
 <!-- /TOC -->
 
