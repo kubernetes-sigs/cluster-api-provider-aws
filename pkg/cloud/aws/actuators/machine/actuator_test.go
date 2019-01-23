@@ -421,6 +421,30 @@ func TestImmutableStateChange(t *testing.T) {
 			},
 			expectedValue: true,
 		},
+		{
+			name: "subnetid is unchanged",
+			machineConfig: v1alpha1.AWSMachineProviderSpec{
+				Subnet: &v1alpha1.AWSResourceReference{
+					ID: aws.String("subnet-abcdef"),
+				},
+			},
+			instanceDescription: v1alpha1.Instance{
+				SubnetID: "subnet-abcdef",
+			},
+			expectedValue: false,
+		},
+		{
+			name: "subnetid is changed",
+			machineConfig: v1alpha1.AWSMachineProviderSpec{
+				Subnet: &v1alpha1.AWSResourceReference{
+					ID: aws.String("subnet-123456"),
+				},
+			},
+			instanceDescription: v1alpha1.Instance{
+				SubnetID: "subnet-abcdef",
+			},
+			expectedValue: true,
+		},
 	}
 
 	for _, tc := range testCases {

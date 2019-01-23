@@ -285,6 +285,16 @@ func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, insta
 		changed = true
 	}
 
+	// Subnet ID
+	// machineConfig.Subnet is an AWSResourceReference and could technically be
+	// a *string, ARN or Filter. However, elsewhere in the code it is only used
+	// as a *string, so do the same here.
+	if machineConfig.Subnet != nil {
+		if aws.StringValue(machineConfig.Subnet.ID) != instanceDescription.SubnetID {
+			changed = true
+		}
+	}
+
 	// PublicIP check is a little more complicated as the machineConfig is a
 	// simple bool indicating if the instance should have a public IP or not,
 	// while the instanceDescription contains the public IP assigned to the
@@ -302,11 +312,6 @@ func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, insta
 	if aws.BoolValue(machineConfig.PublicIP) != instanceHasPublicIP {
 		changed = true
 	}
-
-	// The subnet ID should also be checked here, but appears to be more
-	// complicated, as instanceDescription only contains SubnetID while the
-	// machineConfig can contain an ID, ARN or Filter for finding the correct
-	// SubnetID.
 
 	return changed
 }
