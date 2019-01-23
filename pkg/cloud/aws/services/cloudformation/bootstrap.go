@@ -191,6 +191,19 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 			{
 				Effect: iam.EffectAllow,
 				Resource: iam.Resources{fmt.Sprintf(
+					"arn:aws:iam::%s:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing",
+					accountID),
+				},
+				Action: iam.Actions{
+					"iam:CreateServiceLinkedRole",
+				},
+				Condition: iam.Conditions{
+					"StringLike": map[string]string{"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"},
+				},
+			},
+			{
+				Effect: iam.EffectAllow,
+				Resource: iam.Resources{fmt.Sprintf(
 					"arn:aws:iam::%s:role/%s",
 					accountID,
 					iam.NewManagedName("*"),
