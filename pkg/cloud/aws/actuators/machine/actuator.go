@@ -263,8 +263,8 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 // immutableSateChanged checks that no immutable fields have been updated in an
 // Update request.
-// Returns a bool indicating if an attempt to change immutable state occured.
-//  - true:  An attempt to change immutable state occured.
+// Returns a bool indicating if an attempt to change immutable state occurred.
+//  - true:  An attempt to change immutable state occurred.
 //  - false: Immutable state was untouched.
 func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, instanceDescription *v1alpha1.Instance) bool {
 	// Instance Type
