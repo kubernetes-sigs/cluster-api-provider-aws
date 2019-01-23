@@ -28,6 +28,7 @@ import (
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
 )
 
@@ -106,7 +107,7 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 				return err
 			}
 
-			fmt.Print(string(j))
+			fmt.Print(iam.ProcessPolicyDocument(string(j)))
 			return nil
 		},
 	}

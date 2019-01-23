@@ -19,6 +19,7 @@ package iam
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -63,7 +64,13 @@ type StatementEntry struct {
 	Effect       string     `json:"Effect"`
 	Action       Actions    `json:"Action"`
 	Resource     Resources  `json:",omitempty"`
-	Condition    Conditions `json:",omitempty"`
+
+	// Condition is currently called IAMConditions to pass through
+	// GoFormation's template processing without being replaced
+	// with an intrinsic function. If you use a Condition statement,
+	// run the resultant stringified template through ProcessPolicyDocument
+	// to change back IAMCondition to Condition.
+	Condition Conditions `json:"IAMConditions,omitempty"`
 }
 
 // Statements is the list of StatementEntries
@@ -90,11 +97,18 @@ func (p *PolicyDocument) JSON() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(b), nil
+	return ProcessPolicyDocument(string(b)), nil
 }
 
 // NewManagedName creates an IAM acceptable name prefixed with this Cluster API
 // implementation's prefix.
 func NewManagedName(prefix string) string {
 	return fmt.Sprintf("%s.%s", prefix, IAMSuffix)
+}
+
+// ProcessPolicyDocument replaces IAMConditions in serialised StatementEntry
+// objects with Condition as per the AWS IAM policy schema as a work-around for
+// https://github.com/awslabs/goformation/issues/157
+func ProcessPolicyDocument(p string) string {
+	return strings.Replace(p, "IAMConditions", "Condition", 1)
 }
