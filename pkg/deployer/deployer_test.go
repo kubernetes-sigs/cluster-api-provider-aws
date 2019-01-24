@@ -73,6 +73,11 @@ func TestGetIP(t *testing.T) {
 						},
 					},
 				}, nil)
+
+				m.DescribeLoadBalancerAttributes(gomock.Any()).
+					Return(&elb.DescribeLoadBalancerAttributesOutput{
+						LoadBalancerAttributes: &elb.LoadBalancerAttributes{},
+					}, nil)
 			},
 		},
 		{
@@ -97,6 +102,11 @@ func TestGetIP(t *testing.T) {
 						},
 					},
 				}, nil)
+
+				m.DescribeLoadBalancerAttributes(gomock.Any()).
+					Return(&elb.DescribeLoadBalancerAttributesOutput{
+						LoadBalancerAttributes: &elb.LoadBalancerAttributes{},
+					}, nil)
 			},
 		},
 		{

@@ -18,6 +18,7 @@ package elb
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
@@ -53,8 +54,17 @@ func (s *Service) ReconcileLoadbalancers() error {
 		return err
 	}
 
+	if !reflect.DeepEqual(spec.Attributes, apiELB.Attributes) {
+		err := s.configureAttributes(apiELB.Name, spec.Attributes)
+		if err != nil {
+			return err
+		}
+	}
+
 	// TODO(vincepri): check if anything has changed and reconcile as necessary.
 	apiELB.DeepCopyInto(&s.scope.Network().APIServerELB)
+	klog.V(2).Infof("Control plane load balancer: %+v", apiELB)
+
 	klog.V(2).Info("Reconcile load balancers completed successfully")
 	return nil
 }
@@ -150,6 +160,9 @@ func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 			UnhealthyThreshold: 3,
 		},
 		SecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
+		Attributes: v1alpha1.ClassicELBAttributes{
+			IdleTimeout: 10 * time.Minute,
+		},
 	}
 
 	res.Tags = tags.Build(tags.BuildParams{
@@ -205,11 +218,30 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 		}
 	}
 
-	klog.V(2).Infof("Created load balancer with dns name: %q", *out.DNSName)
+	klog.V(2).Infof("Created classic load balancer with dns name: %q", *out.DNSName)
 
 	res := spec.DeepCopy()
 	res.DNSName = *out.DNSName
 	return res, nil
+}
+
+func (s *Service) configureAttributes(name string, attributes v1alpha1.ClassicELBAttributes) error {
+	attrs := &elb.ModifyLoadBalancerAttributesInput{
+		LoadBalancerName:       aws.String(name),
+		LoadBalancerAttributes: &elb.LoadBalancerAttributes{},
+	}
+
+	if attributes.IdleTimeout > 0 {
+		attrs.LoadBalancerAttributes.ConnectionSettings = &elb.ConnectionSettings{
+			IdleTimeout: aws.Int64(int64(attributes.IdleTimeout.Seconds())),
+		}
+	}
+
+	if _, err := s.scope.ELB.ModifyLoadBalancerAttributes(attrs); err != nil {
+		return errors.Wrapf(err, "failed to configure attributes for classic load balancer: %v", name)
+	}
+
+	return nil
 }
 
 func (s *Service) deleteClassicELB(name string) error {
@@ -284,17 +316,31 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 		return nil, NewNotFound(fmt.Errorf("no classic load balancer found with name %q", name))
 	}
 
-	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0]), nil
+	outAtt, err := s.scope.ELB.DescribeLoadBalancerAttributes(&elb.DescribeLoadBalancerAttributesInput{
+		LoadBalancerName: aws.String(name),
+	})
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to describe classic load balancer %q attributes", name)
+	}
+
+	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0], outAtt.LoadBalancerAttributes), nil
 }
 
-func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription) *v1alpha1.ClassicELB {
-	return &v1alpha1.ClassicELB{
+func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *v1alpha1.ClassicELB {
+	res := &v1alpha1.ClassicELB{
 		Name:             aws.StringValue(v.LoadBalancerName),
 		Scheme:           v1alpha1.ClassicELBScheme(*v.Scheme),
 		SubnetIDs:        aws.StringValueSlice(v.Subnets),
 		SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
 		DNSName:          aws.StringValue(v.DNSName),
 	}
+
+	if attrs.ConnectionSettings != nil && attrs.ConnectionSettings.IdleTimeout != nil {
+		res.Attributes.IdleTimeout = time.Duration(*attrs.ConnectionSettings.IdleTimeout) * time.Second
+	}
+
+	return res
 }
 
 func fromSDKTypeToClassicListener(v *elb.Listener) *v1alpha1.ClassicELBListener {
