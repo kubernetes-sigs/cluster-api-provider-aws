@@ -20,7 +20,6 @@
     - [Running clusterctl](#running-clusterctl)
   - [Automated Testing](#automated-testing)
     - [Mocks](#mocks)
-- [cluster-api-dev-helper](#cluster-api-dev-helper)
 
 <!-- /TOC -->
 
@@ -112,18 +111,6 @@ Mocks are set up using Bazel, see [build](../../build)
 If you then want to use these mocks with `go test ./...`, run
 
 `make copy-genmocks`
-
-## cluster-api-dev-helper
-
-Some command development tasks have been put into a cluster-api-dev-helper
-utility in the /hack directory.
-
-To build it, run:
-
-``` bash
-make cluster-api-dev-helper
-```
-
 
 <!-- References -->
 
