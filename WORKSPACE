@@ -85,14 +85,6 @@ go_repository(
 )
 
 go_repository(
-    name = "com_github_alecthomas_gometalinter",
-    build_file_generation = "on",
-    importpath = "github.com/alecthomas/gometalinter",
-    strip_prefix = "gometalinter-8edca99e8a88355e29f550113bcba6ecfa39ae11",
-    urls = ["https://github.com/alecthomas/gometalinter/archive/8edca99e8a88355e29f550113bcba6ecfa39ae11.zip"],
-)
-
-go_repository(
     name = "com_github_golangci_golangci-lint",
     build_file_generation = "on",
     importpath = "github.com/golangci/golangci-lint",
