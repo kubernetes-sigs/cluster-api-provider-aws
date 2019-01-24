@@ -261,33 +261,33 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
-// immutableSateChanged checks that no immutable fields have been updated in an
+// immutableStateChanged checks that no immutable fields have been updated in an
 // Update request.
 // Returns a bool indicating if an attempt to change immutable state occurred.
 //  - true:  An attempt to change immutable state occurred.
 //  - false: Immutable state was untouched.
-func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, instanceDescription *v1alpha1.Instance) bool {
+func immutableStateChanged(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) bool {
 	// Instance Type
-	if machineConfig.InstanceType != instanceDescription.Type {
+	if machineSpec.InstanceType != instance.Type {
 		return true
 	}
 
 	// IAM Profile
-	if machineConfig.IAMInstanceProfile != instanceDescription.IAMProfile {
+	if machineSpec.IAMInstanceProfile != instance.IAMProfile {
 		return true
 	}
 
 	// SSH Key Name
-	if machineConfig.KeyName != aws.StringValue(instanceDescription.KeyName) {
+	if machineSpec.KeyName != aws.StringValue(instance.KeyName) {
 		return true
 	}
 
 	// Subnet ID
-	// machineConfig.Subnet is an AWSResourceReference and could technically be
+	// machineSpec.Subnet is a *AWSResourceReference and could technically be
 	// a *string, ARN or Filter. However, elsewhere in the code it is only used
 	// as a *string, so do the same here.
-	if machineConfig.Subnet != nil {
-		if aws.StringValue(machineConfig.Subnet.ID) != instanceDescription.SubnetID {
+	if machineSpec.Subnet != nil {
+		if aws.StringValue(machineSpec.Subnet.ID) != instance.SubnetID {
 			return true
 		}
 	}
@@ -300,13 +300,11 @@ func immutableStateChanged(machineConfig *v1alpha1.AWSMachineProviderSpec, insta
 	// the length of the PublicIP string. Anything >0 is assumed to mean it does
 	// have a public IP.
 	instanceHasPublicIP := false
-	if len(aws.StringValue(instanceDescription.PublicIP)) > 0 {
+	if len(aws.StringValue(instance.PublicIP)) > 0 {
 		instanceHasPublicIP = true
 	}
 
-	// Check the value of the machineConfig against the instanceDescription
-	// If these values don't match, a changed occurred.
-	if aws.BoolValue(machineConfig.PublicIP) != instanceHasPublicIP {
+	if aws.BoolValue(machineSpec.PublicIP) != instanceHasPublicIP {
 		return true
 	}
 

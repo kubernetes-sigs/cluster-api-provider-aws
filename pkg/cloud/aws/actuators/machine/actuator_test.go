@@ -312,145 +312,145 @@ func TestMachineEqual(t *testing.T) {
 
 func TestImmutableStateChange(t *testing.T) {
 	testCases := []struct {
-		name                string
-		machineConfig       v1alpha1.AWSMachineProviderSpec
-		instanceDescription v1alpha1.Instance
-		expectedValue       bool
+		name        string
+		machineSpec v1alpha1.AWSMachineProviderSpec
+		instance    v1alpha1.Instance
+		expected    bool
 	}{
 		{
 			name: "instance type is unchanged",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				InstanceType: "t2.micro",
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				Type: "t2.micro",
 			},
-			expectedValue: false,
+			expected: false,
 		},
 		{
 			name: "instance type is changed",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				InstanceType: "m5.large",
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				Type: "t2.micro",
 			},
-			expectedValue: true,
+			expected: true,
 		},
 		{
 			name: "iam profile is unchanged",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				IAMInstanceProfile: "test-profile",
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				IAMProfile: "test-profile",
 			},
-			expectedValue: false,
+			expected: false,
 		},
 		{
 			name: "iam profile is changed",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				IAMInstanceProfile: "test-profile-updated",
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				IAMProfile: "test-profile",
 			},
-			expectedValue: true,
+			expected: true,
 		},
 		{
 			name: "keyname is unchanged",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				KeyName: "SSHKey",
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				KeyName: aws.String("SSHKey"),
 			},
-			expectedValue: false,
+			expected: false,
 		},
 		{
 			name: "keyname is changed",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				KeyName: "SSHKey2",
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				KeyName: aws.String("SSHKey"),
 			},
-			expectedValue: true,
+			expected: true,
 		},
 		{
 			name: "instance with public ip is unchanged",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				PublicIP: aws.Bool(true),
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				// This IP chosen from RFC5737 TEST-NET-1
 				PublicIP: aws.String("192.0.2.1"),
 			},
-			expectedValue: false,
+			expected: false,
 		},
 		{
 			name: "instance with public ip is changed",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				PublicIP: aws.Bool(false),
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				// This IP chosen from RFC5737 TEST-NET-1
 				PublicIP: aws.String("192.0.2.1"),
 			},
-			expectedValue: true,
+			expected: true,
 		},
 		{
 			name: "instance without public ip is unchanged",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				PublicIP: aws.Bool(false),
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				PublicIP: aws.String(""),
 			},
-			expectedValue: false,
+			expected: false,
 		},
 		{
 			name: "instance without public ip is changed",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				PublicIP: aws.Bool(true),
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				PublicIP: aws.String(""),
 			},
-			expectedValue: true,
+			expected: true,
 		},
 		{
 			name: "subnetid is unchanged",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				Subnet: &v1alpha1.AWSResourceReference{
 					ID: aws.String("subnet-abcdef"),
 				},
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				SubnetID: "subnet-abcdef",
 			},
-			expectedValue: false,
+			expected: false,
 		},
 		{
 			name: "subnetid is changed",
-			machineConfig: v1alpha1.AWSMachineProviderSpec{
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				Subnet: &v1alpha1.AWSResourceReference{
 					ID: aws.String("subnet-123456"),
 				},
 			},
-			instanceDescription: v1alpha1.Instance{
+			instance: v1alpha1.Instance{
 				SubnetID: "subnet-abcdef",
 			},
-			expectedValue: true,
+			expected: true,
 		},
 	}
 
 	for _, tc := range testCases {
-		changed := immutableStateChanged(&tc.machineConfig, &tc.instanceDescription)
+		changed := immutableStateChanged(&tc.machineSpec, &tc.instance)
 
-		if tc.expectedValue != changed {
-			t.Fatalf("[%s] Expected Machine Config [%+v], NOT Equal Instance Description [%+v]",
-				tc.name, tc.machineConfig, tc.instanceDescription)
+		if tc.expected != changed {
+			t.Fatalf("[%s] Expected MachineSpec [%+v], NOT Equal Instance [%+v]",
+				tc.name, tc.machineSpec, tc.instance)
 		}
 	}
 }
