@@ -9,9 +9,11 @@ go_library(
         "//pkg/cloud/aws/services/cloudformation:go_default_library",
         "//pkg/cloud/aws/services/iam:go_default_library",
         "//pkg/cloud/aws/services/sts:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/defaults:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/cloudformation:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/sts:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
     ],
 )
