@@ -185,8 +185,18 @@ type ClassicELB struct {
 	// HealthCheck is the classic elb health check associated with the load balancer.
 	HealthCheck *ClassicELBHealthCheck `json:"healthChecks,omitempty"`
 
+	// Attributes defines extra attributes associated with the load balancer.
+	Attributes ClassicELBAttributes `json:"attributes,omitempty"`
+
 	// Tags is a map of tags associated with the load balancer.
 	Tags map[string]string `json:"tags,omitempty"`
+}
+
+// ClassicELBAttributes defines extra attributes associated with a classic load balancer.
+type ClassicELBAttributes struct {
+	// IdleTimeout is time that the connection is allowed to be idle (no data
+	// has been sent over the connection) before it is closed by the load balancer.
+	IdleTimeout time.Duration `json:"idleTimeout,omitempty"`
 }
 
 // ClassicELBListener defines an AWS classic load balancer listener.

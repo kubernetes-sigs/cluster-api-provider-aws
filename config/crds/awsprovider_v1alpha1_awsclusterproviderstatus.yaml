@@ -59,6 +59,12 @@ spec:
           properties:
             apiServerElb:
               properties:
+                attributes:
+                  properties:
+                    idleTimeout:
+                      format: int64
+                      type: integer
+                  type: object
                 dnsName:
                   type: string
                 healthChecks:
