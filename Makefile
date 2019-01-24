@@ -85,11 +85,6 @@ clusterawsadm: dep-ensure ## Build clusterawsadm binary.
 	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterawsadm $(BAZEL_ARGS)
 	install bazel-bin/cmd/clusterawsadm/${BINARYPATHPATTERN}/clusterawsadm $(shell go env GOPATH)/bin/clusterawsadm
 
-.PHONY: cluster-api-dev-helper
-cluster-api-dev-helper: dep-ensure ## Build cluster-api-dev-helper binary
-	bazel build //hack/cluster-api-dev-helper $(BAZEL_ARGS)
-	install bazel-bin/hack/cluster-api-dev-helper/${BINARYPATHPATTERN}/cluster-api-dev-helper $(shell go env GOPATH)/bin/cluster-api-dev-helper
-
 .PHONY: release-binaries
 release-binaries: ## Build release binaries
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterctl //cmd/clusterawsadm
