@@ -152,6 +152,7 @@ func (s *Scope) Close() {
 	latestCluster, err := s.storeClusterConfig(s.Cluster)
 	if err != nil {
 		klog.Errorf("[scope] failed to store provider config for cluster %q in namespace %q: %v", s.Cluster.Name, s.Cluster.Namespace, err)
+		return
 	}
 
 	_, err = s.storeClusterStatus(latestCluster)

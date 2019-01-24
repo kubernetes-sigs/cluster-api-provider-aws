@@ -123,6 +123,7 @@ func (m *MachineScope) Close() {
 	latestMachine, err := m.storeMachineSpec(m.Machine)
 	if err != nil {
 		klog.Errorf("[machinescope] failed to update machine %q in namespace %q: %v", m.Machine.Name, m.Machine.Namespace, err)
+		return
 	}
 
 	_, err = m.storeMachineStatus(latestMachine)
