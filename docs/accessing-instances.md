@@ -3,25 +3,25 @@
 ## Overview
 
 After running `clusterctl` the new cluster will be deployed. This document
-explains how to access its nodes throught SSH.
+explains how to access its nodes through SSH.
 
 ## Prerequisites
 
 * `clusterctl` was successfully executed and cluster is up and running in AWS
 environment
-* the `cluster-api-provider-aws.sigs.k8s.io` has been created and saved as
-`$HOME/.ssh/cluster-api-provider-aws`
-
+* the `cluster-api-provider-aws.sigs.k8s.io` has been created in AWS and saved
+as `$HOME/.ssh/cluster-api-provider-aws`
 
 ## AWS architecture
 
 After cluster creation none of the cluster instances is exposed to the internet,
-hence cannot be accessed. To make it accessible, bastion node is created.
+hence cannot be accessed. To make it accessible, `clusterctl` also creates
+a bastion node
 
 ### bastion node
 
-bastion node is created in public subnet and is available from the world and
-runs official Ubuntu 18.04 Linux image.
+bastion node is created in public subnet and provides SSH access from the world.
+It runs official Ubuntu 18.04 Linux image.
 
 ### cluster nodes
 
