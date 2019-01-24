@@ -9,15 +9,16 @@
 - [Requirements](#requirements)
   - [Optional](#optional)
 - [Prerequisites](#prerequisites)
-  - [Installing clusterawsadm](#installing-clusterawsadm)
-  - [Bootstrapping AWS IAM with CloudFormation](#bootstrapping-aws-iam-with-cloudformation)
+  - [Install release binaries](#install-release-binaries)
+  - [Setting up AWS](#setting-up-aws)
+    - [`clusterawsadm`](#clusterawsadm)
+    - [non-`clusterawsadm`](#non-clusterawsadm)
   - [SSH Key pair](#ssh-key-pair)
     - [Create a new key pair](#create-a-new-key-pair)
     - [Using an existing key](#using-an-existing-key)
-  - [Setting up KIND](#setting-up-kind)
-  - [Setting up the environment](#setting-up-the-environment)
 - [Deploying a cluster](#deploying-a-cluster)
-  - [Generating cluster manifests](#generating-cluster-manifests)
+  - [Setting up the environment](#setting-up-the-environment)
+  - [Generating cluster manifests and example cluster](#generating-cluster-manifests-and-example-cluster)
   - [Creating a cluster](#creating-a-cluster)
 - [Troubleshooting](#troubleshooting)
 - [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-arent-being-created)
@@ -45,39 +46,55 @@
 
 ## Prerequisites
 
-Get the latest [release of `clusterctl` and `clusterawsadm`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place it in your path. If a release isn't available, or you might prefer to build the latest version from master you can use `go get sigs.k8s.io/cluster-api-provider-aws/...` – the trailing `...` will ask for both `clusterctl` and `clusterawsadm` to be built.
+### Install release binaries
 
-Before launching clusterctl, you need to define a few environment variables (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`). You thus need an AWS user with sufficient permissions:
+Get the latest [release of `clusterctl` and
+`clusterawsadm`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases)
+and place them in your path.
 
-1. You can create that user and assign the permissions manually.
-2. Or you can use the `clusterawsadm` tool.
+If you prefer to build the latest version from master you can use `go get
+sigs.k8s.io/cluster-api-provider-aws/...` – the trailing `...` will ask for both
+`clusterctl` and `clusterawsadm` to be built.
 
-### Installing clusterawsadm
+### Setting up AWS
 
-`clusterawsadm`, is a helper utlity that users might choose to use to quickly setup prerequisites. It can be installed as per the previous section, by either downloading a release or using `go get` to build it.
+#### `clusterawsadm`
 
-> NOTE: The `clusterawsadm` command requires to have a working AWS environment.
+Cluster-API-Provider-AWS provides a tool, `clusterawsadm` to help you manage
+your AWS IAM objects for this project. In order to use `clusterawsadm`
+you must have an administrative user in an AWS account. Once you have that
+administrator user you need to set your environment variables:
 
+* `AWS_REGION`
+* `AWS_ACCESS_KEY_ID`
+* `AWS_SECRET_ACCESS_KEY`
 
-### Bootstrapping AWS IAM with CloudFormation
+After these are set run this command to get you up and running:
 
-> Your credentials must let you make changes in AWS Identity and Access Management (IAM),
-> and use CloudFormation.
+`clusterawsadm alpha bootstrap create-stack`
 
-```bash
-export AWS_REGION=us-east-1
-clusterawsadm alpha bootstrap create-stack
-```
+#### non-`clusterawsadm`
+
+This is not a recommended route as the policies are very specific and will
+change with new features.
+
+If you do not wish to use the `clusteradwsadm` tool then you will need to
+understand exactly which IAM policies and groups we are expecting. There are
+several policies, roles and users that need to be created. Please see our
+[controller policy][controllerpolicy] file to understand the permissions that are necessary.
+
+[controllerpolicy]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/0e543e0eb30a7065c967f5df8d6abd872aa4ff0c/pkg/cloud/aws/services/cloudformation/bootstrap.go#L149-L188
 
 ### SSH Key pair
 
-You will need to specify the name of an existing SSH key pair within the region you plan on using. If you don't have one yet, a new one needs to be created.
+You will need to specify the name of an existing SSH key pair within the region
+you plan on using. If you don't have one yet, a new one needs to be created.
 
 #### Create a new key pair
 
 ```bash
 # Save the output to a secure location
-aws ec2 create-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io | jq .KeyMaterial -r
+aws ec2 create-key-pair --key-name default | jq .KeyMaterial -r
 -----BEGIN RSA PRIVATE KEY-----
 [... contents omitted ...]
 -----END RSA PRIVATE KEY-----
@@ -89,7 +106,7 @@ Store with KMS encryption for security, you can use the following command:
 ```bash
 aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
   --type SecureString \
-  --value "$(aws ec2 create-key-pair --key-name cluster-api-provider-aws.sigs.k8s.io | jq .KeyMaterial -r)"
+  --value "$(aws ec2 create-key-pair --key-name default | jq .KeyMaterial -r)"
 {
 "Version": 1
 }
@@ -100,49 +117,40 @@ aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
 ```bash
 # Replace with your own public key
 aws ec2 import-key-pair \
-  --key-name cluster-api-provider-aws.sigs.k8s.io \
+  --key-name default \
   --public-key-material "$(cat ~/.ssh/id_rsa.pub)"
 ```
 
 > Only RSA keys are supported by AWS.
 
-### Setting up KIND
-
-[KIND](https://sigs.k8s.io/kind) is used by clusterctl as an ephemeral bootstrap cluster. Follow these [instructions][https://github.com/kubernetes-sigs/kind#installation-and-usage] to install it on your local machine.
+## Deploying a cluster
 
 ### Setting up the environment
 
-The current iteration of the Cluster API Provider AWS relies on credentials being present in your environment.
-These then get written into the cluster manifests for use by the controllers.
+The current iteration of the Cluster API Provider AWS relies on credentials
+being present in your environment. These then get written into the cluster
+manifests for use by the controllers.
+
+If you used `clusterawsadm` to set up IAM resources for you then you can run
+these commands to prepare your environment.
+
+Your `AWS_REGION` must already be set.
 
 ```bash
-# Region used to deploy the cluster in.
-export AWS_REGION=us-east-1
-
-# User access credentials.
-export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
-export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-
-# SSH Key to be used to run instances.
-export SSH_KEY_NAME="cluster-api-provider-aws.sigs.k8s.io"
-```
-
-If you applied the CloudFormation template above, an IAM user was created for you:
-
-```bash
-export AWS_REGION=us-east-1
 export AWS_CREDENTIALS=$(aws iam create-access-key \
   --user-name bootstrapper.cluster-api-provider-aws.sigs.k8s.io)
 export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq .AccessKey.AccessKeyId -r)
 export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq .AccessKey.SecretAccessKey -r)
 ```
 
-> To save credentials securely in your environment, [aws-vault][aws-vault] uses the OS keystore as permanent storage,
-> and offers shell features to securely expose and setup local AWS environments.
+If you did not use `clusterawsadm` to provision your user you will need to set
+these environment variables in your own way.
 
-## Deploying a cluster
+> To save credentials securely in your environment, [aws-vault][aws-vault] uses
+> the OS keystore as permanent storage, and offers shell features to securely
+> expose and setup local AWS environments.
 
-### Generating cluster manifests
+### Generating cluster manifests and example cluster
 
 There is a make target `manifests` that can be used to generate the
 cluster manifests.
@@ -151,10 +159,12 @@ cluster manifests.
 make manifests
 ```
 
-Then edit `cmd/clusterctl/examples/aws/out/cluster.yaml` and `cmd/clusterctl/examples/aws/out/machine.yaml`. Ensure that the `keyName` is set to the `cluster-api-provider-aws.sigs.k8s.io` we set up above. This is also an opportunity to edit the AWS
-region and any apply other customisations you want to make.
+You should not need to edit the generated manifests, but if you want to do any
+customization now is the time to do it. Take a look at
+`cmd/clusterctl/examples/aws/out/cluster.yaml` and
+`cmd/clusterctl/examples/aws/out/machine.yaml`.
 
-> Note: The generated manifests may refer to a keypair named `default`, which differs from the keypair created in this guide. That can be overridden by setting the `SSH_KEY_NAME` env var before running `make manifests`.
+Ensure the `region` and `keyName` are set to what you expect.
 
 ### Creating a cluster
 
