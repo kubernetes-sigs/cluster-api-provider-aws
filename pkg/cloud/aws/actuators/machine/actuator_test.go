@@ -445,8 +445,10 @@ func TestImmutableStateChange(t *testing.T) {
 		},
 	}
 
+	testActuator := NewActuator(ActuatorParams{})
+
 	for _, tc := range testCases {
-		changed := immutableStateChanged(&tc.machineSpec, &tc.instance)
+		changed := testActuator.isMachineOutdated(&tc.machineSpec, &tc.instance)
 
 		if tc.expected != changed {
 			t.Fatalf("[%s] Expected MachineSpec [%+v], NOT Equal Instance [%+v]",

@@ -261,12 +261,12 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
-// immutableStateChanged checks that no immutable fields have been updated in an
+// isMachineOudated checks that no immutable fields have been updated in an
 // Update request.
 // Returns a bool indicating if an attempt to change immutable state occurred.
 //  - true:  An attempt to change immutable state occurred.
 //  - false: Immutable state was untouched.
-func immutableStateChanged(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) bool {
+func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) bool {
 	// Instance Type
 	if machineSpec.InstanceType != instance.Type {
 		return true
@@ -337,7 +337,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// We will check immutable state first, in order to fail quickly before
 	// moving on to state that we can mutate.
 	// TODO: Implement immutable state check.
-	if immutableStateChanged(scope.MachineConfig, instanceDescription) {
+	if a.isMachineOutdated(scope.MachineConfig, instanceDescription) {
 		return errors.Errorf("found attempt to change immutable state")
 	}
 
