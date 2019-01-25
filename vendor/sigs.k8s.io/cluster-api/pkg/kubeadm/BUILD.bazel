@@ -6,5 +6,5 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/pkg/kubeadm",
     importpath = "sigs.k8s.io/cluster-api/pkg/kubeadm",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/sigs.k8s.io/cluster-api/pkg/cmd-runner:go_default_library"],
+    deps = ["//vendor/sigs.k8s.io/cluster-api/pkg/cmdrunner:go_default_library"],
 )

@@ -29,8 +29,8 @@ Including the ability to:
 - Develop new Cluster and Machine controllers.
 - Develop automation on top of MachineSets and MachineDeployments as well
 as other Cluster API resources. For example,
-  - Cloud agnostic Upgrade and Repair tools.
-  - Cluster Autoscalars.
+  - Cloud agnostic upgrade and repair tools.
+  - Cluster autoscalers.
   - Etc.
 
 ## Who else will this book be for in the future?
@@ -51,13 +51,13 @@ through Kubernetes native abstractions.
 
 Including the ability to:
 
-- Create reproducable Kubernetes clusters.
+- Create reproducible Kubernetes clusters.
 - Create hybrid cloud environments which optimize for cost, performance, and
 reliability. 
 
 ## Resources
 
-- GitBook: [book.cluster-api.sigs.k8s.io](http://book.cluster-api.sigs.k8s.io)
+- GitBook: [kubernetes-sigs.github.io/cluster-api](https://kubernetes-sigs.github.io/cluster-api)
 - GitHub Repo: [kubernetes-sigs/cluster-api](https://github.com/kubernetes-sigs/cluster-api)
 - Slack channel: [#cluster-api](http://slack.k8s.io/#cluster-api)
 - Google Group: [kubernetes-sig-cluster-lifecycle@googlegroups.com](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
