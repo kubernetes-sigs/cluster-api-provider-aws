@@ -46,7 +46,7 @@ required = [
 
 [[constraint]]
   name = "github.com/awslabs/goformation"
-  version = "1.2.2"
+  revision = "78d00367fee7a7c36dbd85bacc868be89fb9dc35"
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"

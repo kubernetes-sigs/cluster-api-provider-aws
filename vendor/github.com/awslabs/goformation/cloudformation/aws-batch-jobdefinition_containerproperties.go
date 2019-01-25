@@ -19,6 +19,11 @@ type AWSBatchJobDefinition_ContainerProperties struct {
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-batch-jobdefinition-containerproperties.html#cfn-batch-jobdefinition-containerproperties-image
 	Image string `json:"Image,omitempty"`
 
+	// InstanceType AWS CloudFormation Property
+	// Required: false
+	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-batch-jobdefinition-containerproperties.html#cfn-batch-jobdefinition-containerproperties-instancetype
+	InstanceType string `json:"InstanceType,omitempty"`
+
 	// JobRoleArn AWS CloudFormation Property
 	// Required: false
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-batch-jobdefinition-containerproperties.html#cfn-batch-jobdefinition-containerproperties-jobrolearn
@@ -27,7 +32,7 @@ type AWSBatchJobDefinition_ContainerProperties struct {
 	// Memory AWS CloudFormation Property
 	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-batch-jobdefinition-containerproperties.html#cfn-batch-jobdefinition-containerproperties-memory
-	Memory int `json:"Memory,omitempty"`
+	Memory int `json:"Memory"`
 
 	// MountPoints AWS CloudFormation Property
 	// Required: false
@@ -57,7 +62,7 @@ type AWSBatchJobDefinition_ContainerProperties struct {
 	// Vcpus AWS CloudFormation Property
 	// Required: true
 	// See: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-batch-jobdefinition-containerproperties.html#cfn-batch-jobdefinition-containerproperties-vcpus
-	Vcpus int `json:"Vcpus,omitempty"`
+	Vcpus int `json:"Vcpus"`
 
 	// Volumes AWS CloudFormation Property
 	// Required: false
@@ -66,11 +71,41 @@ type AWSBatchJobDefinition_ContainerProperties struct {
 
 	// _deletionPolicy represents a CloudFormation DeletionPolicy
 	_deletionPolicy DeletionPolicy
+
+	// _dependsOn stores the logical ID of the resources to be created before this resource
+	_dependsOn []string
+
+	// _metadata stores structured data associated with this resource
+	_metadata map[string]interface{}
 }
 
 // AWSCloudFormationType returns the AWS CloudFormation resource type
 func (r *AWSBatchJobDefinition_ContainerProperties) AWSCloudFormationType() string {
 	return "AWS::Batch::JobDefinition.ContainerProperties"
+}
+
+// DependsOn returns a slice of logical ID names this resource depends on.
+// see: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-dependson.html
+func (r *AWSBatchJobDefinition_ContainerProperties) DependsOn() []string {
+	return r._dependsOn
+}
+
+// SetDependsOn specify that the creation of this resource follows another.
+// see: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-dependson.html
+func (r *AWSBatchJobDefinition_ContainerProperties) SetDependsOn(dependencies []string) {
+	r._dependsOn = dependencies
+}
+
+// Metadata returns the metadata associated with this resource.
+// see: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-metadata.html
+func (r *AWSBatchJobDefinition_ContainerProperties) Metadata() map[string]interface{} {
+	return r._metadata
+}
+
+// SetMetadata enables you to associate structured data with this resource.
+// see: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-metadata.html
+func (r *AWSBatchJobDefinition_ContainerProperties) SetMetadata(metadata map[string]interface{}) {
+	r._metadata = metadata
 }
 
 // SetDeletionPolicy applies an AWS CloudFormation DeletionPolicy to this resource

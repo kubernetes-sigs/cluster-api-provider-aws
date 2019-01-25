@@ -6,8 +6,10 @@ import (
 	yaml "github.com/sanathkr/go-yaml"
 )
 
-var allTags = []string{"Ref", "GetAtt", "Base64", "FindInMap", "GetAZs",
+var allTags = []string{
+	"Ref", "GetAtt", "Base64", "FindInMap", "GetAZs",
 	"ImportValue", "Join", "Select", "Split", "Sub",
+	"Equals", "Cidr", "And", "If", "Not", "Or",
 }
 
 type tagUnmarshalerType struct {
@@ -40,6 +42,6 @@ func registerTagMarshallers() {
 
 func unregisterTagMarshallers() {
 	for _, tag := range allTags {
-		yaml.RegisterTagUnmarshaler("!"+tag, tagUnmarshaller)
+		yaml.UnRegisterTagUnmarshaler("!" + tag)
 	}
 }

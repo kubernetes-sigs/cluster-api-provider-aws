@@ -48,15 +48,15 @@
   version = "v1.16.22"
 
 [[projects]]
-  digest = "1:745bc6300190908c71ec4c641b83e903da724bae0c91b9dc539650b833e22fb4"
+  digest = "1:bce5c366c3cab75d7546eb1f03c104a8693e661df26e0633f885a988f8be601a"
   name = "github.com/awslabs/goformation"
   packages = [
+    ".",
     "cloudformation",
     "intrinsics",
   ]
   pruneopts = "UT"
-  revision = "d42502ef32a8892bf380256e2f57c6f69190d802"
-  version = "1.2.2"
+  revision = "78d00367fee7a7c36dbd85bacc868be89fb9dc35"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -952,7 +952,9 @@
     "github.com/aws/aws-sdk-go/service/elb/elbiface",
     "github.com/aws/aws-sdk-go/service/sts",
     "github.com/aws/aws-sdk-go/service/sts/stsiface",
+    "github.com/awslabs/goformation",
     "github.com/awslabs/goformation/cloudformation",
+    "github.com/awslabs/goformation/intrinsics",
     "github.com/emicklei/go-restful",
     "github.com/golang/mock/gomock",
     "github.com/onsi/ginkgo",
