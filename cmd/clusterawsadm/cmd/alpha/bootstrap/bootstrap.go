@@ -245,6 +245,8 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 		Long:  "Generate an AWS profile from the current environment for the ephemeral bootstrap cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
+			fmt.Fprint(os.Stderr, "\nWARNING: generate-aws-default-profile command is intended NOT to be used in production environment\n\n\n")
+
 			creds, err := getCredentialsFromDefaultChain()
 			if err != nil {
 				return err
