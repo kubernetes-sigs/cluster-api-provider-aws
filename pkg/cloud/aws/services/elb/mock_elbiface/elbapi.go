@@ -23,7 +23,7 @@ limitations under the License.
 package mock_elbiface
 
 import (
-	aws "github.com/aws/aws-sdk-go/aws"
+	context "context"
 	request "github.com/aws/aws-sdk-go/aws/request"
 	elb "github.com/aws/aws-sdk-go/service/elb"
 	gomock "github.com/golang/mock/gomock"
@@ -80,7 +80,7 @@ func (mr *MockELBAPIMockRecorder) AddTagsRequest(arg0 interface{}) *gomock.Call 
 }
 
 // AddTagsWithContext mocks base method
-func (m *MockELBAPI) AddTagsWithContext(arg0 aws.Context, arg1 *elb.AddTagsInput, arg2 ...request.Option) (*elb.AddTagsOutput, error) {
+func (m *MockELBAPI) AddTagsWithContext(arg0 context.Context, arg1 *elb.AddTagsInput, arg2 ...request.Option) (*elb.AddTagsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -124,7 +124,7 @@ func (mr *MockELBAPIMockRecorder) ApplySecurityGroupsToLoadBalancerRequest(arg0 
 }
 
 // ApplySecurityGroupsToLoadBalancerWithContext mocks base method
-func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancerWithContext(arg0 aws.Context, arg1 *elb.ApplySecurityGroupsToLoadBalancerInput, arg2 ...request.Option) (*elb.ApplySecurityGroupsToLoadBalancerOutput, error) {
+func (m *MockELBAPI) ApplySecurityGroupsToLoadBalancerWithContext(arg0 context.Context, arg1 *elb.ApplySecurityGroupsToLoadBalancerInput, arg2 ...request.Option) (*elb.ApplySecurityGroupsToLoadBalancerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -168,7 +168,7 @@ func (mr *MockELBAPIMockRecorder) AttachLoadBalancerToSubnetsRequest(arg0 interf
 }
 
 // AttachLoadBalancerToSubnetsWithContext mocks base method
-func (m *MockELBAPI) AttachLoadBalancerToSubnetsWithContext(arg0 aws.Context, arg1 *elb.AttachLoadBalancerToSubnetsInput, arg2 ...request.Option) (*elb.AttachLoadBalancerToSubnetsOutput, error) {
+func (m *MockELBAPI) AttachLoadBalancerToSubnetsWithContext(arg0 context.Context, arg1 *elb.AttachLoadBalancerToSubnetsInput, arg2 ...request.Option) (*elb.AttachLoadBalancerToSubnetsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -212,7 +212,7 @@ func (mr *MockELBAPIMockRecorder) ConfigureHealthCheckRequest(arg0 interface{}) 
 }
 
 // ConfigureHealthCheckWithContext mocks base method
-func (m *MockELBAPI) ConfigureHealthCheckWithContext(arg0 aws.Context, arg1 *elb.ConfigureHealthCheckInput, arg2 ...request.Option) (*elb.ConfigureHealthCheckOutput, error) {
+func (m *MockELBAPI) ConfigureHealthCheckWithContext(arg0 context.Context, arg1 *elb.ConfigureHealthCheckInput, arg2 ...request.Option) (*elb.ConfigureHealthCheckOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -256,7 +256,7 @@ func (mr *MockELBAPIMockRecorder) CreateAppCookieStickinessPolicyRequest(arg0 in
 }
 
 // CreateAppCookieStickinessPolicyWithContext mocks base method
-func (m *MockELBAPI) CreateAppCookieStickinessPolicyWithContext(arg0 aws.Context, arg1 *elb.CreateAppCookieStickinessPolicyInput, arg2 ...request.Option) (*elb.CreateAppCookieStickinessPolicyOutput, error) {
+func (m *MockELBAPI) CreateAppCookieStickinessPolicyWithContext(arg0 context.Context, arg1 *elb.CreateAppCookieStickinessPolicyInput, arg2 ...request.Option) (*elb.CreateAppCookieStickinessPolicyOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -300,7 +300,7 @@ func (mr *MockELBAPIMockRecorder) CreateLBCookieStickinessPolicyRequest(arg0 int
 }
 
 // CreateLBCookieStickinessPolicyWithContext mocks base method
-func (m *MockELBAPI) CreateLBCookieStickinessPolicyWithContext(arg0 aws.Context, arg1 *elb.CreateLBCookieStickinessPolicyInput, arg2 ...request.Option) (*elb.CreateLBCookieStickinessPolicyOutput, error) {
+func (m *MockELBAPI) CreateLBCookieStickinessPolicyWithContext(arg0 context.Context, arg1 *elb.CreateLBCookieStickinessPolicyInput, arg2 ...request.Option) (*elb.CreateLBCookieStickinessPolicyOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -357,7 +357,7 @@ func (mr *MockELBAPIMockRecorder) CreateLoadBalancerListenersRequest(arg0 interf
 }
 
 // CreateLoadBalancerListenersWithContext mocks base method
-func (m *MockELBAPI) CreateLoadBalancerListenersWithContext(arg0 aws.Context, arg1 *elb.CreateLoadBalancerListenersInput, arg2 ...request.Option) (*elb.CreateLoadBalancerListenersOutput, error) {
+func (m *MockELBAPI) CreateLoadBalancerListenersWithContext(arg0 context.Context, arg1 *elb.CreateLoadBalancerListenersInput, arg2 ...request.Option) (*elb.CreateLoadBalancerListenersOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -401,7 +401,7 @@ func (mr *MockELBAPIMockRecorder) CreateLoadBalancerPolicyRequest(arg0 interface
 }
 
 // CreateLoadBalancerPolicyWithContext mocks base method
-func (m *MockELBAPI) CreateLoadBalancerPolicyWithContext(arg0 aws.Context, arg1 *elb.CreateLoadBalancerPolicyInput, arg2 ...request.Option) (*elb.CreateLoadBalancerPolicyOutput, error) {
+func (m *MockELBAPI) CreateLoadBalancerPolicyWithContext(arg0 context.Context, arg1 *elb.CreateLoadBalancerPolicyInput, arg2 ...request.Option) (*elb.CreateLoadBalancerPolicyOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -432,7 +432,7 @@ func (mr *MockELBAPIMockRecorder) CreateLoadBalancerRequest(arg0 interface{}) *g
 }
 
 // CreateLoadBalancerWithContext mocks base method
-func (m *MockELBAPI) CreateLoadBalancerWithContext(arg0 aws.Context, arg1 *elb.CreateLoadBalancerInput, arg2 ...request.Option) (*elb.CreateLoadBalancerOutput, error) {
+func (m *MockELBAPI) CreateLoadBalancerWithContext(arg0 context.Context, arg1 *elb.CreateLoadBalancerInput, arg2 ...request.Option) (*elb.CreateLoadBalancerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -489,7 +489,7 @@ func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerListenersRequest(arg0 interf
 }
 
 // DeleteLoadBalancerListenersWithContext mocks base method
-func (m *MockELBAPI) DeleteLoadBalancerListenersWithContext(arg0 aws.Context, arg1 *elb.DeleteLoadBalancerListenersInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerListenersOutput, error) {
+func (m *MockELBAPI) DeleteLoadBalancerListenersWithContext(arg0 context.Context, arg1 *elb.DeleteLoadBalancerListenersInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerListenersOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -533,7 +533,7 @@ func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerPolicyRequest(arg0 interface
 }
 
 // DeleteLoadBalancerPolicyWithContext mocks base method
-func (m *MockELBAPI) DeleteLoadBalancerPolicyWithContext(arg0 aws.Context, arg1 *elb.DeleteLoadBalancerPolicyInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerPolicyOutput, error) {
+func (m *MockELBAPI) DeleteLoadBalancerPolicyWithContext(arg0 context.Context, arg1 *elb.DeleteLoadBalancerPolicyInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerPolicyOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -564,7 +564,7 @@ func (mr *MockELBAPIMockRecorder) DeleteLoadBalancerRequest(arg0 interface{}) *g
 }
 
 // DeleteLoadBalancerWithContext mocks base method
-func (m *MockELBAPI) DeleteLoadBalancerWithContext(arg0 aws.Context, arg1 *elb.DeleteLoadBalancerInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerOutput, error) {
+func (m *MockELBAPI) DeleteLoadBalancerWithContext(arg0 context.Context, arg1 *elb.DeleteLoadBalancerInput, arg2 ...request.Option) (*elb.DeleteLoadBalancerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -608,7 +608,7 @@ func (mr *MockELBAPIMockRecorder) DeregisterInstancesFromLoadBalancerRequest(arg
 }
 
 // DeregisterInstancesFromLoadBalancerWithContext mocks base method
-func (m *MockELBAPI) DeregisterInstancesFromLoadBalancerWithContext(arg0 aws.Context, arg1 *elb.DeregisterInstancesFromLoadBalancerInput, arg2 ...request.Option) (*elb.DeregisterInstancesFromLoadBalancerOutput, error) {
+func (m *MockELBAPI) DeregisterInstancesFromLoadBalancerWithContext(arg0 context.Context, arg1 *elb.DeregisterInstancesFromLoadBalancerInput, arg2 ...request.Option) (*elb.DeregisterInstancesFromLoadBalancerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -652,7 +652,7 @@ func (mr *MockELBAPIMockRecorder) DescribeAccountLimitsRequest(arg0 interface{})
 }
 
 // DescribeAccountLimitsWithContext mocks base method
-func (m *MockELBAPI) DescribeAccountLimitsWithContext(arg0 aws.Context, arg1 *elb.DescribeAccountLimitsInput, arg2 ...request.Option) (*elb.DescribeAccountLimitsOutput, error) {
+func (m *MockELBAPI) DescribeAccountLimitsWithContext(arg0 context.Context, arg1 *elb.DescribeAccountLimitsInput, arg2 ...request.Option) (*elb.DescribeAccountLimitsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -696,7 +696,7 @@ func (mr *MockELBAPIMockRecorder) DescribeInstanceHealthRequest(arg0 interface{}
 }
 
 // DescribeInstanceHealthWithContext mocks base method
-func (m *MockELBAPI) DescribeInstanceHealthWithContext(arg0 aws.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.Option) (*elb.DescribeInstanceHealthOutput, error) {
+func (m *MockELBAPI) DescribeInstanceHealthWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.Option) (*elb.DescribeInstanceHealthOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -740,7 +740,7 @@ func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerAttributesRequest(arg0 int
 }
 
 // DescribeLoadBalancerAttributesWithContext mocks base method
-func (m *MockELBAPI) DescribeLoadBalancerAttributesWithContext(arg0 aws.Context, arg1 *elb.DescribeLoadBalancerAttributesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerAttributesOutput, error) {
+func (m *MockELBAPI) DescribeLoadBalancerAttributesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancerAttributesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerAttributesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -784,7 +784,7 @@ func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPoliciesRequest(arg0 inter
 }
 
 // DescribeLoadBalancerPoliciesWithContext mocks base method
-func (m *MockELBAPI) DescribeLoadBalancerPoliciesWithContext(arg0 aws.Context, arg1 *elb.DescribeLoadBalancerPoliciesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerPoliciesOutput, error) {
+func (m *MockELBAPI) DescribeLoadBalancerPoliciesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancerPoliciesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerPoliciesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -828,7 +828,7 @@ func (mr *MockELBAPIMockRecorder) DescribeLoadBalancerPolicyTypesRequest(arg0 in
 }
 
 // DescribeLoadBalancerPolicyTypesWithContext mocks base method
-func (m *MockELBAPI) DescribeLoadBalancerPolicyTypesWithContext(arg0 aws.Context, arg1 *elb.DescribeLoadBalancerPolicyTypesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerPolicyTypesOutput, error) {
+func (m *MockELBAPI) DescribeLoadBalancerPolicyTypesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancerPolicyTypesInput, arg2 ...request.Option) (*elb.DescribeLoadBalancerPolicyTypesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -871,7 +871,7 @@ func (mr *MockELBAPIMockRecorder) DescribeLoadBalancersPages(arg0, arg1 interfac
 }
 
 // DescribeLoadBalancersPagesWithContext mocks base method
-func (m *MockELBAPI) DescribeLoadBalancersPagesWithContext(arg0 aws.Context, arg1 *elb.DescribeLoadBalancersInput, arg2 func(*elb.DescribeLoadBalancersOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockELBAPI) DescribeLoadBalancersPagesWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancersInput, arg2 func(*elb.DescribeLoadBalancersOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -901,7 +901,7 @@ func (mr *MockELBAPIMockRecorder) DescribeLoadBalancersRequest(arg0 interface{})
 }
 
 // DescribeLoadBalancersWithContext mocks base method
-func (m *MockELBAPI) DescribeLoadBalancersWithContext(arg0 aws.Context, arg1 *elb.DescribeLoadBalancersInput, arg2 ...request.Option) (*elb.DescribeLoadBalancersOutput, error) {
+func (m *MockELBAPI) DescribeLoadBalancersWithContext(arg0 context.Context, arg1 *elb.DescribeLoadBalancersInput, arg2 ...request.Option) (*elb.DescribeLoadBalancersOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -945,7 +945,7 @@ func (mr *MockELBAPIMockRecorder) DescribeTagsRequest(arg0 interface{}) *gomock.
 }
 
 // DescribeTagsWithContext mocks base method
-func (m *MockELBAPI) DescribeTagsWithContext(arg0 aws.Context, arg1 *elb.DescribeTagsInput, arg2 ...request.Option) (*elb.DescribeTagsOutput, error) {
+func (m *MockELBAPI) DescribeTagsWithContext(arg0 context.Context, arg1 *elb.DescribeTagsInput, arg2 ...request.Option) (*elb.DescribeTagsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -989,7 +989,7 @@ func (mr *MockELBAPIMockRecorder) DetachLoadBalancerFromSubnetsRequest(arg0 inte
 }
 
 // DetachLoadBalancerFromSubnetsWithContext mocks base method
-func (m *MockELBAPI) DetachLoadBalancerFromSubnetsWithContext(arg0 aws.Context, arg1 *elb.DetachLoadBalancerFromSubnetsInput, arg2 ...request.Option) (*elb.DetachLoadBalancerFromSubnetsOutput, error) {
+func (m *MockELBAPI) DetachLoadBalancerFromSubnetsWithContext(arg0 context.Context, arg1 *elb.DetachLoadBalancerFromSubnetsInput, arg2 ...request.Option) (*elb.DetachLoadBalancerFromSubnetsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1033,7 +1033,7 @@ func (mr *MockELBAPIMockRecorder) DisableAvailabilityZonesForLoadBalancerRequest
 }
 
 // DisableAvailabilityZonesForLoadBalancerWithContext mocks base method
-func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancerWithContext(arg0 aws.Context, arg1 *elb.DisableAvailabilityZonesForLoadBalancerInput, arg2 ...request.Option) (*elb.DisableAvailabilityZonesForLoadBalancerOutput, error) {
+func (m *MockELBAPI) DisableAvailabilityZonesForLoadBalancerWithContext(arg0 context.Context, arg1 *elb.DisableAvailabilityZonesForLoadBalancerInput, arg2 ...request.Option) (*elb.DisableAvailabilityZonesForLoadBalancerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1077,7 +1077,7 @@ func (mr *MockELBAPIMockRecorder) EnableAvailabilityZonesForLoadBalancerRequest(
 }
 
 // EnableAvailabilityZonesForLoadBalancerWithContext mocks base method
-func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancerWithContext(arg0 aws.Context, arg1 *elb.EnableAvailabilityZonesForLoadBalancerInput, arg2 ...request.Option) (*elb.EnableAvailabilityZonesForLoadBalancerOutput, error) {
+func (m *MockELBAPI) EnableAvailabilityZonesForLoadBalancerWithContext(arg0 context.Context, arg1 *elb.EnableAvailabilityZonesForLoadBalancerInput, arg2 ...request.Option) (*elb.EnableAvailabilityZonesForLoadBalancerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1121,7 +1121,7 @@ func (mr *MockELBAPIMockRecorder) ModifyLoadBalancerAttributesRequest(arg0 inter
 }
 
 // ModifyLoadBalancerAttributesWithContext mocks base method
-func (m *MockELBAPI) ModifyLoadBalancerAttributesWithContext(arg0 aws.Context, arg1 *elb.ModifyLoadBalancerAttributesInput, arg2 ...request.Option) (*elb.ModifyLoadBalancerAttributesOutput, error) {
+func (m *MockELBAPI) ModifyLoadBalancerAttributesWithContext(arg0 context.Context, arg1 *elb.ModifyLoadBalancerAttributesInput, arg2 ...request.Option) (*elb.ModifyLoadBalancerAttributesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1165,7 +1165,7 @@ func (mr *MockELBAPIMockRecorder) RegisterInstancesWithLoadBalancerRequest(arg0 
 }
 
 // RegisterInstancesWithLoadBalancerWithContext mocks base method
-func (m *MockELBAPI) RegisterInstancesWithLoadBalancerWithContext(arg0 aws.Context, arg1 *elb.RegisterInstancesWithLoadBalancerInput, arg2 ...request.Option) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
+func (m *MockELBAPI) RegisterInstancesWithLoadBalancerWithContext(arg0 context.Context, arg1 *elb.RegisterInstancesWithLoadBalancerInput, arg2 ...request.Option) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1209,7 +1209,7 @@ func (mr *MockELBAPIMockRecorder) RemoveTagsRequest(arg0 interface{}) *gomock.Ca
 }
 
 // RemoveTagsWithContext mocks base method
-func (m *MockELBAPI) RemoveTagsWithContext(arg0 aws.Context, arg1 *elb.RemoveTagsInput, arg2 ...request.Option) (*elb.RemoveTagsOutput, error) {
+func (m *MockELBAPI) RemoveTagsWithContext(arg0 context.Context, arg1 *elb.RemoveTagsInput, arg2 ...request.Option) (*elb.RemoveTagsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1253,7 +1253,7 @@ func (mr *MockELBAPIMockRecorder) SetLoadBalancerListenerSSLCertificateRequest(a
 }
 
 // SetLoadBalancerListenerSSLCertificateWithContext mocks base method
-func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificateWithContext(arg0 aws.Context, arg1 *elb.SetLoadBalancerListenerSSLCertificateInput, arg2 ...request.Option) (*elb.SetLoadBalancerListenerSSLCertificateOutput, error) {
+func (m *MockELBAPI) SetLoadBalancerListenerSSLCertificateWithContext(arg0 context.Context, arg1 *elb.SetLoadBalancerListenerSSLCertificateInput, arg2 ...request.Option) (*elb.SetLoadBalancerListenerSSLCertificateOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1297,7 +1297,7 @@ func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesForBackendServerRequest
 }
 
 // SetLoadBalancerPoliciesForBackendServerWithContext mocks base method
-func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServerWithContext(arg0 aws.Context, arg1 *elb.SetLoadBalancerPoliciesForBackendServerInput, arg2 ...request.Option) (*elb.SetLoadBalancerPoliciesForBackendServerOutput, error) {
+func (m *MockELBAPI) SetLoadBalancerPoliciesForBackendServerWithContext(arg0 context.Context, arg1 *elb.SetLoadBalancerPoliciesForBackendServerInput, arg2 ...request.Option) (*elb.SetLoadBalancerPoliciesForBackendServerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1341,7 +1341,7 @@ func (mr *MockELBAPIMockRecorder) SetLoadBalancerPoliciesOfListenerRequest(arg0 
 }
 
 // SetLoadBalancerPoliciesOfListenerWithContext mocks base method
-func (m *MockELBAPI) SetLoadBalancerPoliciesOfListenerWithContext(arg0 aws.Context, arg1 *elb.SetLoadBalancerPoliciesOfListenerInput, arg2 ...request.Option) (*elb.SetLoadBalancerPoliciesOfListenerOutput, error) {
+func (m *MockELBAPI) SetLoadBalancerPoliciesOfListenerWithContext(arg0 context.Context, arg1 *elb.SetLoadBalancerPoliciesOfListenerInput, arg2 ...request.Option) (*elb.SetLoadBalancerPoliciesOfListenerOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1371,7 +1371,7 @@ func (mr *MockELBAPIMockRecorder) WaitUntilAnyInstanceInService(arg0 interface{}
 }
 
 // WaitUntilAnyInstanceInServiceWithContext mocks base method
-func (m *MockELBAPI) WaitUntilAnyInstanceInServiceWithContext(arg0 aws.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
+func (m *MockELBAPI) WaitUntilAnyInstanceInServiceWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1400,7 +1400,7 @@ func (mr *MockELBAPIMockRecorder) WaitUntilInstanceDeregistered(arg0 interface{}
 }
 
 // WaitUntilInstanceDeregisteredWithContext mocks base method
-func (m *MockELBAPI) WaitUntilInstanceDeregisteredWithContext(arg0 aws.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
+func (m *MockELBAPI) WaitUntilInstanceDeregisteredWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1429,7 +1429,7 @@ func (mr *MockELBAPIMockRecorder) WaitUntilInstanceInService(arg0 interface{}) *
 }
 
 // WaitUntilInstanceInServiceWithContext mocks base method
-func (m *MockELBAPI) WaitUntilInstanceInServiceWithContext(arg0 aws.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
+func (m *MockELBAPI) WaitUntilInstanceInServiceWithContext(arg0 context.Context, arg1 *elb.DescribeInstanceHealthInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)

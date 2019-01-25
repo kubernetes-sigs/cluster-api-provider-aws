@@ -205,6 +205,7 @@ func GoPaths() []string {
 }
 
 func importPath(path string) string {
+	path = strings.TrimPrefix(path, "/private")
 	for _, gopath := range GoPaths() {
 		srcpath := filepath.Join(gopath, "src")
 		rel, err := filepath.Rel(srcpath, path)

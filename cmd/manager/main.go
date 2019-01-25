@@ -34,19 +34,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
-// initLogs is a temporary hack to enable proper logging until upstream dependencies
-// are migrated to fully utilize klog instead of glog.
-func initLogs() {
-	flag.Set("logtostderr", "true")
-	flags := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(flags)
-	flags.Set("alsologtostderr", "true")
-	flags.Set("v", "3")
-	flag.Parse()
-}
-
 func main() {
-	initLogs()
+	klog.InitFlags(nil)
+	flag.Parse()
+
 	cfg := config.GetConfigOrDie()
 
 	// Setup a Manager

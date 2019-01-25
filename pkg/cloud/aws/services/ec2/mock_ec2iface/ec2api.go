@@ -23,7 +23,7 @@ limitations under the License.
 package mock_ec2iface
 
 import (
-	aws "github.com/aws/aws-sdk-go/aws"
+	context "context"
 	request "github.com/aws/aws-sdk-go/aws/request"
 	ec2 "github.com/aws/aws-sdk-go/service/ec2"
 	gomock "github.com/golang/mock/gomock"
@@ -80,7 +80,7 @@ func (mr *MockEC2APIMockRecorder) AcceptReservedInstancesExchangeQuoteRequest(ar
 }
 
 // AcceptReservedInstancesExchangeQuoteWithContext mocks base method
-func (m *MockEC2API) AcceptReservedInstancesExchangeQuoteWithContext(arg0 aws.Context, arg1 *ec2.AcceptReservedInstancesExchangeQuoteInput, arg2 ...request.Option) (*ec2.AcceptReservedInstancesExchangeQuoteOutput, error) {
+func (m *MockEC2API) AcceptReservedInstancesExchangeQuoteWithContext(arg0 context.Context, arg1 *ec2.AcceptReservedInstancesExchangeQuoteInput, arg2 ...request.Option) (*ec2.AcceptReservedInstancesExchangeQuoteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -124,7 +124,7 @@ func (mr *MockEC2APIMockRecorder) AcceptTransitGatewayVpcAttachmentRequest(arg0 
 }
 
 // AcceptTransitGatewayVpcAttachmentWithContext mocks base method
-func (m *MockEC2API) AcceptTransitGatewayVpcAttachmentWithContext(arg0 aws.Context, arg1 *ec2.AcceptTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.AcceptTransitGatewayVpcAttachmentOutput, error) {
+func (m *MockEC2API) AcceptTransitGatewayVpcAttachmentWithContext(arg0 context.Context, arg1 *ec2.AcceptTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.AcceptTransitGatewayVpcAttachmentOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -168,7 +168,7 @@ func (mr *MockEC2APIMockRecorder) AcceptVpcEndpointConnectionsRequest(arg0 inter
 }
 
 // AcceptVpcEndpointConnectionsWithContext mocks base method
-func (m *MockEC2API) AcceptVpcEndpointConnectionsWithContext(arg0 aws.Context, arg1 *ec2.AcceptVpcEndpointConnectionsInput, arg2 ...request.Option) (*ec2.AcceptVpcEndpointConnectionsOutput, error) {
+func (m *MockEC2API) AcceptVpcEndpointConnectionsWithContext(arg0 context.Context, arg1 *ec2.AcceptVpcEndpointConnectionsInput, arg2 ...request.Option) (*ec2.AcceptVpcEndpointConnectionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -212,7 +212,7 @@ func (mr *MockEC2APIMockRecorder) AcceptVpcPeeringConnectionRequest(arg0 interfa
 }
 
 // AcceptVpcPeeringConnectionWithContext mocks base method
-func (m *MockEC2API) AcceptVpcPeeringConnectionWithContext(arg0 aws.Context, arg1 *ec2.AcceptVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.AcceptVpcPeeringConnectionOutput, error) {
+func (m *MockEC2API) AcceptVpcPeeringConnectionWithContext(arg0 context.Context, arg1 *ec2.AcceptVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.AcceptVpcPeeringConnectionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -256,7 +256,7 @@ func (mr *MockEC2APIMockRecorder) AdvertiseByoipCidrRequest(arg0 interface{}) *g
 }
 
 // AdvertiseByoipCidrWithContext mocks base method
-func (m *MockEC2API) AdvertiseByoipCidrWithContext(arg0 aws.Context, arg1 *ec2.AdvertiseByoipCidrInput, arg2 ...request.Option) (*ec2.AdvertiseByoipCidrOutput, error) {
+func (m *MockEC2API) AdvertiseByoipCidrWithContext(arg0 context.Context, arg1 *ec2.AdvertiseByoipCidrInput, arg2 ...request.Option) (*ec2.AdvertiseByoipCidrOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -300,7 +300,7 @@ func (mr *MockEC2APIMockRecorder) AllocateAddressRequest(arg0 interface{}) *gomo
 }
 
 // AllocateAddressWithContext mocks base method
-func (m *MockEC2API) AllocateAddressWithContext(arg0 aws.Context, arg1 *ec2.AllocateAddressInput, arg2 ...request.Option) (*ec2.AllocateAddressOutput, error) {
+func (m *MockEC2API) AllocateAddressWithContext(arg0 context.Context, arg1 *ec2.AllocateAddressInput, arg2 ...request.Option) (*ec2.AllocateAddressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -344,7 +344,7 @@ func (mr *MockEC2APIMockRecorder) AllocateHostsRequest(arg0 interface{}) *gomock
 }
 
 // AllocateHostsWithContext mocks base method
-func (m *MockEC2API) AllocateHostsWithContext(arg0 aws.Context, arg1 *ec2.AllocateHostsInput, arg2 ...request.Option) (*ec2.AllocateHostsOutput, error) {
+func (m *MockEC2API) AllocateHostsWithContext(arg0 context.Context, arg1 *ec2.AllocateHostsInput, arg2 ...request.Option) (*ec2.AllocateHostsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -388,7 +388,7 @@ func (mr *MockEC2APIMockRecorder) ApplySecurityGroupsToClientVpnTargetNetworkReq
 }
 
 // ApplySecurityGroupsToClientVpnTargetNetworkWithContext mocks base method
-func (m *MockEC2API) ApplySecurityGroupsToClientVpnTargetNetworkWithContext(arg0 aws.Context, arg1 *ec2.ApplySecurityGroupsToClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput, error) {
+func (m *MockEC2API) ApplySecurityGroupsToClientVpnTargetNetworkWithContext(arg0 context.Context, arg1 *ec2.ApplySecurityGroupsToClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.ApplySecurityGroupsToClientVpnTargetNetworkOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -432,7 +432,7 @@ func (mr *MockEC2APIMockRecorder) AssignIpv6AddressesRequest(arg0 interface{}) *
 }
 
 // AssignIpv6AddressesWithContext mocks base method
-func (m *MockEC2API) AssignIpv6AddressesWithContext(arg0 aws.Context, arg1 *ec2.AssignIpv6AddressesInput, arg2 ...request.Option) (*ec2.AssignIpv6AddressesOutput, error) {
+func (m *MockEC2API) AssignIpv6AddressesWithContext(arg0 context.Context, arg1 *ec2.AssignIpv6AddressesInput, arg2 ...request.Option) (*ec2.AssignIpv6AddressesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -476,7 +476,7 @@ func (mr *MockEC2APIMockRecorder) AssignPrivateIpAddressesRequest(arg0 interface
 }
 
 // AssignPrivateIpAddressesWithContext mocks base method
-func (m *MockEC2API) AssignPrivateIpAddressesWithContext(arg0 aws.Context, arg1 *ec2.AssignPrivateIpAddressesInput, arg2 ...request.Option) (*ec2.AssignPrivateIpAddressesOutput, error) {
+func (m *MockEC2API) AssignPrivateIpAddressesWithContext(arg0 context.Context, arg1 *ec2.AssignPrivateIpAddressesInput, arg2 ...request.Option) (*ec2.AssignPrivateIpAddressesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -520,7 +520,7 @@ func (mr *MockEC2APIMockRecorder) AssociateAddressRequest(arg0 interface{}) *gom
 }
 
 // AssociateAddressWithContext mocks base method
-func (m *MockEC2API) AssociateAddressWithContext(arg0 aws.Context, arg1 *ec2.AssociateAddressInput, arg2 ...request.Option) (*ec2.AssociateAddressOutput, error) {
+func (m *MockEC2API) AssociateAddressWithContext(arg0 context.Context, arg1 *ec2.AssociateAddressInput, arg2 ...request.Option) (*ec2.AssociateAddressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -564,7 +564,7 @@ func (mr *MockEC2APIMockRecorder) AssociateClientVpnTargetNetworkRequest(arg0 in
 }
 
 // AssociateClientVpnTargetNetworkWithContext mocks base method
-func (m *MockEC2API) AssociateClientVpnTargetNetworkWithContext(arg0 aws.Context, arg1 *ec2.AssociateClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.AssociateClientVpnTargetNetworkOutput, error) {
+func (m *MockEC2API) AssociateClientVpnTargetNetworkWithContext(arg0 context.Context, arg1 *ec2.AssociateClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.AssociateClientVpnTargetNetworkOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -608,7 +608,7 @@ func (mr *MockEC2APIMockRecorder) AssociateDhcpOptionsRequest(arg0 interface{}) 
 }
 
 // AssociateDhcpOptionsWithContext mocks base method
-func (m *MockEC2API) AssociateDhcpOptionsWithContext(arg0 aws.Context, arg1 *ec2.AssociateDhcpOptionsInput, arg2 ...request.Option) (*ec2.AssociateDhcpOptionsOutput, error) {
+func (m *MockEC2API) AssociateDhcpOptionsWithContext(arg0 context.Context, arg1 *ec2.AssociateDhcpOptionsInput, arg2 ...request.Option) (*ec2.AssociateDhcpOptionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -652,7 +652,7 @@ func (mr *MockEC2APIMockRecorder) AssociateIamInstanceProfileRequest(arg0 interf
 }
 
 // AssociateIamInstanceProfileWithContext mocks base method
-func (m *MockEC2API) AssociateIamInstanceProfileWithContext(arg0 aws.Context, arg1 *ec2.AssociateIamInstanceProfileInput, arg2 ...request.Option) (*ec2.AssociateIamInstanceProfileOutput, error) {
+func (m *MockEC2API) AssociateIamInstanceProfileWithContext(arg0 context.Context, arg1 *ec2.AssociateIamInstanceProfileInput, arg2 ...request.Option) (*ec2.AssociateIamInstanceProfileOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -696,7 +696,7 @@ func (mr *MockEC2APIMockRecorder) AssociateRouteTableRequest(arg0 interface{}) *
 }
 
 // AssociateRouteTableWithContext mocks base method
-func (m *MockEC2API) AssociateRouteTableWithContext(arg0 aws.Context, arg1 *ec2.AssociateRouteTableInput, arg2 ...request.Option) (*ec2.AssociateRouteTableOutput, error) {
+func (m *MockEC2API) AssociateRouteTableWithContext(arg0 context.Context, arg1 *ec2.AssociateRouteTableInput, arg2 ...request.Option) (*ec2.AssociateRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -740,7 +740,7 @@ func (mr *MockEC2APIMockRecorder) AssociateSubnetCidrBlockRequest(arg0 interface
 }
 
 // AssociateSubnetCidrBlockWithContext mocks base method
-func (m *MockEC2API) AssociateSubnetCidrBlockWithContext(arg0 aws.Context, arg1 *ec2.AssociateSubnetCidrBlockInput, arg2 ...request.Option) (*ec2.AssociateSubnetCidrBlockOutput, error) {
+func (m *MockEC2API) AssociateSubnetCidrBlockWithContext(arg0 context.Context, arg1 *ec2.AssociateSubnetCidrBlockInput, arg2 ...request.Option) (*ec2.AssociateSubnetCidrBlockOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -784,7 +784,7 @@ func (mr *MockEC2APIMockRecorder) AssociateTransitGatewayRouteTableRequest(arg0 
 }
 
 // AssociateTransitGatewayRouteTableWithContext mocks base method
-func (m *MockEC2API) AssociateTransitGatewayRouteTableWithContext(arg0 aws.Context, arg1 *ec2.AssociateTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.AssociateTransitGatewayRouteTableOutput, error) {
+func (m *MockEC2API) AssociateTransitGatewayRouteTableWithContext(arg0 context.Context, arg1 *ec2.AssociateTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.AssociateTransitGatewayRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -828,7 +828,7 @@ func (mr *MockEC2APIMockRecorder) AssociateVpcCidrBlockRequest(arg0 interface{})
 }
 
 // AssociateVpcCidrBlockWithContext mocks base method
-func (m *MockEC2API) AssociateVpcCidrBlockWithContext(arg0 aws.Context, arg1 *ec2.AssociateVpcCidrBlockInput, arg2 ...request.Option) (*ec2.AssociateVpcCidrBlockOutput, error) {
+func (m *MockEC2API) AssociateVpcCidrBlockWithContext(arg0 context.Context, arg1 *ec2.AssociateVpcCidrBlockInput, arg2 ...request.Option) (*ec2.AssociateVpcCidrBlockOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -872,7 +872,7 @@ func (mr *MockEC2APIMockRecorder) AttachClassicLinkVpcRequest(arg0 interface{}) 
 }
 
 // AttachClassicLinkVpcWithContext mocks base method
-func (m *MockEC2API) AttachClassicLinkVpcWithContext(arg0 aws.Context, arg1 *ec2.AttachClassicLinkVpcInput, arg2 ...request.Option) (*ec2.AttachClassicLinkVpcOutput, error) {
+func (m *MockEC2API) AttachClassicLinkVpcWithContext(arg0 context.Context, arg1 *ec2.AttachClassicLinkVpcInput, arg2 ...request.Option) (*ec2.AttachClassicLinkVpcOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -916,7 +916,7 @@ func (mr *MockEC2APIMockRecorder) AttachInternetGatewayRequest(arg0 interface{})
 }
 
 // AttachInternetGatewayWithContext mocks base method
-func (m *MockEC2API) AttachInternetGatewayWithContext(arg0 aws.Context, arg1 *ec2.AttachInternetGatewayInput, arg2 ...request.Option) (*ec2.AttachInternetGatewayOutput, error) {
+func (m *MockEC2API) AttachInternetGatewayWithContext(arg0 context.Context, arg1 *ec2.AttachInternetGatewayInput, arg2 ...request.Option) (*ec2.AttachInternetGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -960,7 +960,7 @@ func (mr *MockEC2APIMockRecorder) AttachNetworkInterfaceRequest(arg0 interface{}
 }
 
 // AttachNetworkInterfaceWithContext mocks base method
-func (m *MockEC2API) AttachNetworkInterfaceWithContext(arg0 aws.Context, arg1 *ec2.AttachNetworkInterfaceInput, arg2 ...request.Option) (*ec2.AttachNetworkInterfaceOutput, error) {
+func (m *MockEC2API) AttachNetworkInterfaceWithContext(arg0 context.Context, arg1 *ec2.AttachNetworkInterfaceInput, arg2 ...request.Option) (*ec2.AttachNetworkInterfaceOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1004,7 +1004,7 @@ func (mr *MockEC2APIMockRecorder) AttachVolumeRequest(arg0 interface{}) *gomock.
 }
 
 // AttachVolumeWithContext mocks base method
-func (m *MockEC2API) AttachVolumeWithContext(arg0 aws.Context, arg1 *ec2.AttachVolumeInput, arg2 ...request.Option) (*ec2.VolumeAttachment, error) {
+func (m *MockEC2API) AttachVolumeWithContext(arg0 context.Context, arg1 *ec2.AttachVolumeInput, arg2 ...request.Option) (*ec2.VolumeAttachment, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1048,7 +1048,7 @@ func (mr *MockEC2APIMockRecorder) AttachVpnGatewayRequest(arg0 interface{}) *gom
 }
 
 // AttachVpnGatewayWithContext mocks base method
-func (m *MockEC2API) AttachVpnGatewayWithContext(arg0 aws.Context, arg1 *ec2.AttachVpnGatewayInput, arg2 ...request.Option) (*ec2.AttachVpnGatewayOutput, error) {
+func (m *MockEC2API) AttachVpnGatewayWithContext(arg0 context.Context, arg1 *ec2.AttachVpnGatewayInput, arg2 ...request.Option) (*ec2.AttachVpnGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1092,7 +1092,7 @@ func (mr *MockEC2APIMockRecorder) AuthorizeClientVpnIngressRequest(arg0 interfac
 }
 
 // AuthorizeClientVpnIngressWithContext mocks base method
-func (m *MockEC2API) AuthorizeClientVpnIngressWithContext(arg0 aws.Context, arg1 *ec2.AuthorizeClientVpnIngressInput, arg2 ...request.Option) (*ec2.AuthorizeClientVpnIngressOutput, error) {
+func (m *MockEC2API) AuthorizeClientVpnIngressWithContext(arg0 context.Context, arg1 *ec2.AuthorizeClientVpnIngressInput, arg2 ...request.Option) (*ec2.AuthorizeClientVpnIngressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1136,7 +1136,7 @@ func (mr *MockEC2APIMockRecorder) AuthorizeSecurityGroupEgressRequest(arg0 inter
 }
 
 // AuthorizeSecurityGroupEgressWithContext mocks base method
-func (m *MockEC2API) AuthorizeSecurityGroupEgressWithContext(arg0 aws.Context, arg1 *ec2.AuthorizeSecurityGroupEgressInput, arg2 ...request.Option) (*ec2.AuthorizeSecurityGroupEgressOutput, error) {
+func (m *MockEC2API) AuthorizeSecurityGroupEgressWithContext(arg0 context.Context, arg1 *ec2.AuthorizeSecurityGroupEgressInput, arg2 ...request.Option) (*ec2.AuthorizeSecurityGroupEgressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1180,7 +1180,7 @@ func (mr *MockEC2APIMockRecorder) AuthorizeSecurityGroupIngressRequest(arg0 inte
 }
 
 // AuthorizeSecurityGroupIngressWithContext mocks base method
-func (m *MockEC2API) AuthorizeSecurityGroupIngressWithContext(arg0 aws.Context, arg1 *ec2.AuthorizeSecurityGroupIngressInput, arg2 ...request.Option) (*ec2.AuthorizeSecurityGroupIngressOutput, error) {
+func (m *MockEC2API) AuthorizeSecurityGroupIngressWithContext(arg0 context.Context, arg1 *ec2.AuthorizeSecurityGroupIngressInput, arg2 ...request.Option) (*ec2.AuthorizeSecurityGroupIngressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1224,7 +1224,7 @@ func (mr *MockEC2APIMockRecorder) BundleInstanceRequest(arg0 interface{}) *gomoc
 }
 
 // BundleInstanceWithContext mocks base method
-func (m *MockEC2API) BundleInstanceWithContext(arg0 aws.Context, arg1 *ec2.BundleInstanceInput, arg2 ...request.Option) (*ec2.BundleInstanceOutput, error) {
+func (m *MockEC2API) BundleInstanceWithContext(arg0 context.Context, arg1 *ec2.BundleInstanceInput, arg2 ...request.Option) (*ec2.BundleInstanceOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1268,7 +1268,7 @@ func (mr *MockEC2APIMockRecorder) CancelBundleTaskRequest(arg0 interface{}) *gom
 }
 
 // CancelBundleTaskWithContext mocks base method
-func (m *MockEC2API) CancelBundleTaskWithContext(arg0 aws.Context, arg1 *ec2.CancelBundleTaskInput, arg2 ...request.Option) (*ec2.CancelBundleTaskOutput, error) {
+func (m *MockEC2API) CancelBundleTaskWithContext(arg0 context.Context, arg1 *ec2.CancelBundleTaskInput, arg2 ...request.Option) (*ec2.CancelBundleTaskOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1312,7 +1312,7 @@ func (mr *MockEC2APIMockRecorder) CancelCapacityReservationRequest(arg0 interfac
 }
 
 // CancelCapacityReservationWithContext mocks base method
-func (m *MockEC2API) CancelCapacityReservationWithContext(arg0 aws.Context, arg1 *ec2.CancelCapacityReservationInput, arg2 ...request.Option) (*ec2.CancelCapacityReservationOutput, error) {
+func (m *MockEC2API) CancelCapacityReservationWithContext(arg0 context.Context, arg1 *ec2.CancelCapacityReservationInput, arg2 ...request.Option) (*ec2.CancelCapacityReservationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1356,7 +1356,7 @@ func (mr *MockEC2APIMockRecorder) CancelConversionTaskRequest(arg0 interface{}) 
 }
 
 // CancelConversionTaskWithContext mocks base method
-func (m *MockEC2API) CancelConversionTaskWithContext(arg0 aws.Context, arg1 *ec2.CancelConversionTaskInput, arg2 ...request.Option) (*ec2.CancelConversionTaskOutput, error) {
+func (m *MockEC2API) CancelConversionTaskWithContext(arg0 context.Context, arg1 *ec2.CancelConversionTaskInput, arg2 ...request.Option) (*ec2.CancelConversionTaskOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1400,7 +1400,7 @@ func (mr *MockEC2APIMockRecorder) CancelExportTaskRequest(arg0 interface{}) *gom
 }
 
 // CancelExportTaskWithContext mocks base method
-func (m *MockEC2API) CancelExportTaskWithContext(arg0 aws.Context, arg1 *ec2.CancelExportTaskInput, arg2 ...request.Option) (*ec2.CancelExportTaskOutput, error) {
+func (m *MockEC2API) CancelExportTaskWithContext(arg0 context.Context, arg1 *ec2.CancelExportTaskInput, arg2 ...request.Option) (*ec2.CancelExportTaskOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1444,7 +1444,7 @@ func (mr *MockEC2APIMockRecorder) CancelImportTaskRequest(arg0 interface{}) *gom
 }
 
 // CancelImportTaskWithContext mocks base method
-func (m *MockEC2API) CancelImportTaskWithContext(arg0 aws.Context, arg1 *ec2.CancelImportTaskInput, arg2 ...request.Option) (*ec2.CancelImportTaskOutput, error) {
+func (m *MockEC2API) CancelImportTaskWithContext(arg0 context.Context, arg1 *ec2.CancelImportTaskInput, arg2 ...request.Option) (*ec2.CancelImportTaskOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1488,7 +1488,7 @@ func (mr *MockEC2APIMockRecorder) CancelReservedInstancesListingRequest(arg0 int
 }
 
 // CancelReservedInstancesListingWithContext mocks base method
-func (m *MockEC2API) CancelReservedInstancesListingWithContext(arg0 aws.Context, arg1 *ec2.CancelReservedInstancesListingInput, arg2 ...request.Option) (*ec2.CancelReservedInstancesListingOutput, error) {
+func (m *MockEC2API) CancelReservedInstancesListingWithContext(arg0 context.Context, arg1 *ec2.CancelReservedInstancesListingInput, arg2 ...request.Option) (*ec2.CancelReservedInstancesListingOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1532,7 +1532,7 @@ func (mr *MockEC2APIMockRecorder) CancelSpotFleetRequestsRequest(arg0 interface{
 }
 
 // CancelSpotFleetRequestsWithContext mocks base method
-func (m *MockEC2API) CancelSpotFleetRequestsWithContext(arg0 aws.Context, arg1 *ec2.CancelSpotFleetRequestsInput, arg2 ...request.Option) (*ec2.CancelSpotFleetRequestsOutput, error) {
+func (m *MockEC2API) CancelSpotFleetRequestsWithContext(arg0 context.Context, arg1 *ec2.CancelSpotFleetRequestsInput, arg2 ...request.Option) (*ec2.CancelSpotFleetRequestsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1576,7 +1576,7 @@ func (mr *MockEC2APIMockRecorder) CancelSpotInstanceRequestsRequest(arg0 interfa
 }
 
 // CancelSpotInstanceRequestsWithContext mocks base method
-func (m *MockEC2API) CancelSpotInstanceRequestsWithContext(arg0 aws.Context, arg1 *ec2.CancelSpotInstanceRequestsInput, arg2 ...request.Option) (*ec2.CancelSpotInstanceRequestsOutput, error) {
+func (m *MockEC2API) CancelSpotInstanceRequestsWithContext(arg0 context.Context, arg1 *ec2.CancelSpotInstanceRequestsInput, arg2 ...request.Option) (*ec2.CancelSpotInstanceRequestsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1620,7 +1620,7 @@ func (mr *MockEC2APIMockRecorder) ConfirmProductInstanceRequest(arg0 interface{}
 }
 
 // ConfirmProductInstanceWithContext mocks base method
-func (m *MockEC2API) ConfirmProductInstanceWithContext(arg0 aws.Context, arg1 *ec2.ConfirmProductInstanceInput, arg2 ...request.Option) (*ec2.ConfirmProductInstanceOutput, error) {
+func (m *MockEC2API) ConfirmProductInstanceWithContext(arg0 context.Context, arg1 *ec2.ConfirmProductInstanceInput, arg2 ...request.Option) (*ec2.ConfirmProductInstanceOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1664,7 +1664,7 @@ func (mr *MockEC2APIMockRecorder) CopyFpgaImageRequest(arg0 interface{}) *gomock
 }
 
 // CopyFpgaImageWithContext mocks base method
-func (m *MockEC2API) CopyFpgaImageWithContext(arg0 aws.Context, arg1 *ec2.CopyFpgaImageInput, arg2 ...request.Option) (*ec2.CopyFpgaImageOutput, error) {
+func (m *MockEC2API) CopyFpgaImageWithContext(arg0 context.Context, arg1 *ec2.CopyFpgaImageInput, arg2 ...request.Option) (*ec2.CopyFpgaImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1708,7 +1708,7 @@ func (mr *MockEC2APIMockRecorder) CopyImageRequest(arg0 interface{}) *gomock.Cal
 }
 
 // CopyImageWithContext mocks base method
-func (m *MockEC2API) CopyImageWithContext(arg0 aws.Context, arg1 *ec2.CopyImageInput, arg2 ...request.Option) (*ec2.CopyImageOutput, error) {
+func (m *MockEC2API) CopyImageWithContext(arg0 context.Context, arg1 *ec2.CopyImageInput, arg2 ...request.Option) (*ec2.CopyImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1752,7 +1752,7 @@ func (mr *MockEC2APIMockRecorder) CopySnapshotRequest(arg0 interface{}) *gomock.
 }
 
 // CopySnapshotWithContext mocks base method
-func (m *MockEC2API) CopySnapshotWithContext(arg0 aws.Context, arg1 *ec2.CopySnapshotInput, arg2 ...request.Option) (*ec2.CopySnapshotOutput, error) {
+func (m *MockEC2API) CopySnapshotWithContext(arg0 context.Context, arg1 *ec2.CopySnapshotInput, arg2 ...request.Option) (*ec2.CopySnapshotOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1796,7 +1796,7 @@ func (mr *MockEC2APIMockRecorder) CreateCapacityReservationRequest(arg0 interfac
 }
 
 // CreateCapacityReservationWithContext mocks base method
-func (m *MockEC2API) CreateCapacityReservationWithContext(arg0 aws.Context, arg1 *ec2.CreateCapacityReservationInput, arg2 ...request.Option) (*ec2.CreateCapacityReservationOutput, error) {
+func (m *MockEC2API) CreateCapacityReservationWithContext(arg0 context.Context, arg1 *ec2.CreateCapacityReservationInput, arg2 ...request.Option) (*ec2.CreateCapacityReservationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1840,7 +1840,7 @@ func (mr *MockEC2APIMockRecorder) CreateClientVpnEndpointRequest(arg0 interface{
 }
 
 // CreateClientVpnEndpointWithContext mocks base method
-func (m *MockEC2API) CreateClientVpnEndpointWithContext(arg0 aws.Context, arg1 *ec2.CreateClientVpnEndpointInput, arg2 ...request.Option) (*ec2.CreateClientVpnEndpointOutput, error) {
+func (m *MockEC2API) CreateClientVpnEndpointWithContext(arg0 context.Context, arg1 *ec2.CreateClientVpnEndpointInput, arg2 ...request.Option) (*ec2.CreateClientVpnEndpointOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1884,7 +1884,7 @@ func (mr *MockEC2APIMockRecorder) CreateClientVpnRouteRequest(arg0 interface{}) 
 }
 
 // CreateClientVpnRouteWithContext mocks base method
-func (m *MockEC2API) CreateClientVpnRouteWithContext(arg0 aws.Context, arg1 *ec2.CreateClientVpnRouteInput, arg2 ...request.Option) (*ec2.CreateClientVpnRouteOutput, error) {
+func (m *MockEC2API) CreateClientVpnRouteWithContext(arg0 context.Context, arg1 *ec2.CreateClientVpnRouteInput, arg2 ...request.Option) (*ec2.CreateClientVpnRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1928,7 +1928,7 @@ func (mr *MockEC2APIMockRecorder) CreateCustomerGatewayRequest(arg0 interface{})
 }
 
 // CreateCustomerGatewayWithContext mocks base method
-func (m *MockEC2API) CreateCustomerGatewayWithContext(arg0 aws.Context, arg1 *ec2.CreateCustomerGatewayInput, arg2 ...request.Option) (*ec2.CreateCustomerGatewayOutput, error) {
+func (m *MockEC2API) CreateCustomerGatewayWithContext(arg0 context.Context, arg1 *ec2.CreateCustomerGatewayInput, arg2 ...request.Option) (*ec2.CreateCustomerGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -1972,7 +1972,7 @@ func (mr *MockEC2APIMockRecorder) CreateDefaultSubnetRequest(arg0 interface{}) *
 }
 
 // CreateDefaultSubnetWithContext mocks base method
-func (m *MockEC2API) CreateDefaultSubnetWithContext(arg0 aws.Context, arg1 *ec2.CreateDefaultSubnetInput, arg2 ...request.Option) (*ec2.CreateDefaultSubnetOutput, error) {
+func (m *MockEC2API) CreateDefaultSubnetWithContext(arg0 context.Context, arg1 *ec2.CreateDefaultSubnetInput, arg2 ...request.Option) (*ec2.CreateDefaultSubnetOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2016,7 +2016,7 @@ func (mr *MockEC2APIMockRecorder) CreateDefaultVpcRequest(arg0 interface{}) *gom
 }
 
 // CreateDefaultVpcWithContext mocks base method
-func (m *MockEC2API) CreateDefaultVpcWithContext(arg0 aws.Context, arg1 *ec2.CreateDefaultVpcInput, arg2 ...request.Option) (*ec2.CreateDefaultVpcOutput, error) {
+func (m *MockEC2API) CreateDefaultVpcWithContext(arg0 context.Context, arg1 *ec2.CreateDefaultVpcInput, arg2 ...request.Option) (*ec2.CreateDefaultVpcOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2060,7 +2060,7 @@ func (mr *MockEC2APIMockRecorder) CreateDhcpOptionsRequest(arg0 interface{}) *go
 }
 
 // CreateDhcpOptionsWithContext mocks base method
-func (m *MockEC2API) CreateDhcpOptionsWithContext(arg0 aws.Context, arg1 *ec2.CreateDhcpOptionsInput, arg2 ...request.Option) (*ec2.CreateDhcpOptionsOutput, error) {
+func (m *MockEC2API) CreateDhcpOptionsWithContext(arg0 context.Context, arg1 *ec2.CreateDhcpOptionsInput, arg2 ...request.Option) (*ec2.CreateDhcpOptionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2104,7 +2104,7 @@ func (mr *MockEC2APIMockRecorder) CreateEgressOnlyInternetGatewayRequest(arg0 in
 }
 
 // CreateEgressOnlyInternetGatewayWithContext mocks base method
-func (m *MockEC2API) CreateEgressOnlyInternetGatewayWithContext(arg0 aws.Context, arg1 *ec2.CreateEgressOnlyInternetGatewayInput, arg2 ...request.Option) (*ec2.CreateEgressOnlyInternetGatewayOutput, error) {
+func (m *MockEC2API) CreateEgressOnlyInternetGatewayWithContext(arg0 context.Context, arg1 *ec2.CreateEgressOnlyInternetGatewayInput, arg2 ...request.Option) (*ec2.CreateEgressOnlyInternetGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2148,7 +2148,7 @@ func (mr *MockEC2APIMockRecorder) CreateFleetRequest(arg0 interface{}) *gomock.C
 }
 
 // CreateFleetWithContext mocks base method
-func (m *MockEC2API) CreateFleetWithContext(arg0 aws.Context, arg1 *ec2.CreateFleetInput, arg2 ...request.Option) (*ec2.CreateFleetOutput, error) {
+func (m *MockEC2API) CreateFleetWithContext(arg0 context.Context, arg1 *ec2.CreateFleetInput, arg2 ...request.Option) (*ec2.CreateFleetOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2192,7 +2192,7 @@ func (mr *MockEC2APIMockRecorder) CreateFlowLogsRequest(arg0 interface{}) *gomoc
 }
 
 // CreateFlowLogsWithContext mocks base method
-func (m *MockEC2API) CreateFlowLogsWithContext(arg0 aws.Context, arg1 *ec2.CreateFlowLogsInput, arg2 ...request.Option) (*ec2.CreateFlowLogsOutput, error) {
+func (m *MockEC2API) CreateFlowLogsWithContext(arg0 context.Context, arg1 *ec2.CreateFlowLogsInput, arg2 ...request.Option) (*ec2.CreateFlowLogsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2236,7 +2236,7 @@ func (mr *MockEC2APIMockRecorder) CreateFpgaImageRequest(arg0 interface{}) *gomo
 }
 
 // CreateFpgaImageWithContext mocks base method
-func (m *MockEC2API) CreateFpgaImageWithContext(arg0 aws.Context, arg1 *ec2.CreateFpgaImageInput, arg2 ...request.Option) (*ec2.CreateFpgaImageOutput, error) {
+func (m *MockEC2API) CreateFpgaImageWithContext(arg0 context.Context, arg1 *ec2.CreateFpgaImageInput, arg2 ...request.Option) (*ec2.CreateFpgaImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2280,7 +2280,7 @@ func (mr *MockEC2APIMockRecorder) CreateImageRequest(arg0 interface{}) *gomock.C
 }
 
 // CreateImageWithContext mocks base method
-func (m *MockEC2API) CreateImageWithContext(arg0 aws.Context, arg1 *ec2.CreateImageInput, arg2 ...request.Option) (*ec2.CreateImageOutput, error) {
+func (m *MockEC2API) CreateImageWithContext(arg0 context.Context, arg1 *ec2.CreateImageInput, arg2 ...request.Option) (*ec2.CreateImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2324,7 +2324,7 @@ func (mr *MockEC2APIMockRecorder) CreateInstanceExportTaskRequest(arg0 interface
 }
 
 // CreateInstanceExportTaskWithContext mocks base method
-func (m *MockEC2API) CreateInstanceExportTaskWithContext(arg0 aws.Context, arg1 *ec2.CreateInstanceExportTaskInput, arg2 ...request.Option) (*ec2.CreateInstanceExportTaskOutput, error) {
+func (m *MockEC2API) CreateInstanceExportTaskWithContext(arg0 context.Context, arg1 *ec2.CreateInstanceExportTaskInput, arg2 ...request.Option) (*ec2.CreateInstanceExportTaskOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2368,7 +2368,7 @@ func (mr *MockEC2APIMockRecorder) CreateInternetGatewayRequest(arg0 interface{})
 }
 
 // CreateInternetGatewayWithContext mocks base method
-func (m *MockEC2API) CreateInternetGatewayWithContext(arg0 aws.Context, arg1 *ec2.CreateInternetGatewayInput, arg2 ...request.Option) (*ec2.CreateInternetGatewayOutput, error) {
+func (m *MockEC2API) CreateInternetGatewayWithContext(arg0 context.Context, arg1 *ec2.CreateInternetGatewayInput, arg2 ...request.Option) (*ec2.CreateInternetGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2412,7 +2412,7 @@ func (mr *MockEC2APIMockRecorder) CreateKeyPairRequest(arg0 interface{}) *gomock
 }
 
 // CreateKeyPairWithContext mocks base method
-func (m *MockEC2API) CreateKeyPairWithContext(arg0 aws.Context, arg1 *ec2.CreateKeyPairInput, arg2 ...request.Option) (*ec2.CreateKeyPairOutput, error) {
+func (m *MockEC2API) CreateKeyPairWithContext(arg0 context.Context, arg1 *ec2.CreateKeyPairInput, arg2 ...request.Option) (*ec2.CreateKeyPairOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2482,7 +2482,7 @@ func (mr *MockEC2APIMockRecorder) CreateLaunchTemplateVersionRequest(arg0 interf
 }
 
 // CreateLaunchTemplateVersionWithContext mocks base method
-func (m *MockEC2API) CreateLaunchTemplateVersionWithContext(arg0 aws.Context, arg1 *ec2.CreateLaunchTemplateVersionInput, arg2 ...request.Option) (*ec2.CreateLaunchTemplateVersionOutput, error) {
+func (m *MockEC2API) CreateLaunchTemplateVersionWithContext(arg0 context.Context, arg1 *ec2.CreateLaunchTemplateVersionInput, arg2 ...request.Option) (*ec2.CreateLaunchTemplateVersionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2500,7 +2500,7 @@ func (mr *MockEC2APIMockRecorder) CreateLaunchTemplateVersionWithContext(arg0, a
 }
 
 // CreateLaunchTemplateWithContext mocks base method
-func (m *MockEC2API) CreateLaunchTemplateWithContext(arg0 aws.Context, arg1 *ec2.CreateLaunchTemplateInput, arg2 ...request.Option) (*ec2.CreateLaunchTemplateOutput, error) {
+func (m *MockEC2API) CreateLaunchTemplateWithContext(arg0 context.Context, arg1 *ec2.CreateLaunchTemplateInput, arg2 ...request.Option) (*ec2.CreateLaunchTemplateOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2544,7 +2544,7 @@ func (mr *MockEC2APIMockRecorder) CreateNatGatewayRequest(arg0 interface{}) *gom
 }
 
 // CreateNatGatewayWithContext mocks base method
-func (m *MockEC2API) CreateNatGatewayWithContext(arg0 aws.Context, arg1 *ec2.CreateNatGatewayInput, arg2 ...request.Option) (*ec2.CreateNatGatewayOutput, error) {
+func (m *MockEC2API) CreateNatGatewayWithContext(arg0 context.Context, arg1 *ec2.CreateNatGatewayInput, arg2 ...request.Option) (*ec2.CreateNatGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2601,7 +2601,7 @@ func (mr *MockEC2APIMockRecorder) CreateNetworkAclEntryRequest(arg0 interface{})
 }
 
 // CreateNetworkAclEntryWithContext mocks base method
-func (m *MockEC2API) CreateNetworkAclEntryWithContext(arg0 aws.Context, arg1 *ec2.CreateNetworkAclEntryInput, arg2 ...request.Option) (*ec2.CreateNetworkAclEntryOutput, error) {
+func (m *MockEC2API) CreateNetworkAclEntryWithContext(arg0 context.Context, arg1 *ec2.CreateNetworkAclEntryInput, arg2 ...request.Option) (*ec2.CreateNetworkAclEntryOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2632,7 +2632,7 @@ func (mr *MockEC2APIMockRecorder) CreateNetworkAclRequest(arg0 interface{}) *gom
 }
 
 // CreateNetworkAclWithContext mocks base method
-func (m *MockEC2API) CreateNetworkAclWithContext(arg0 aws.Context, arg1 *ec2.CreateNetworkAclInput, arg2 ...request.Option) (*ec2.CreateNetworkAclOutput, error) {
+func (m *MockEC2API) CreateNetworkAclWithContext(arg0 context.Context, arg1 *ec2.CreateNetworkAclInput, arg2 ...request.Option) (*ec2.CreateNetworkAclOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2689,7 +2689,7 @@ func (mr *MockEC2APIMockRecorder) CreateNetworkInterfacePermissionRequest(arg0 i
 }
 
 // CreateNetworkInterfacePermissionWithContext mocks base method
-func (m *MockEC2API) CreateNetworkInterfacePermissionWithContext(arg0 aws.Context, arg1 *ec2.CreateNetworkInterfacePermissionInput, arg2 ...request.Option) (*ec2.CreateNetworkInterfacePermissionOutput, error) {
+func (m *MockEC2API) CreateNetworkInterfacePermissionWithContext(arg0 context.Context, arg1 *ec2.CreateNetworkInterfacePermissionInput, arg2 ...request.Option) (*ec2.CreateNetworkInterfacePermissionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2720,7 +2720,7 @@ func (mr *MockEC2APIMockRecorder) CreateNetworkInterfaceRequest(arg0 interface{}
 }
 
 // CreateNetworkInterfaceWithContext mocks base method
-func (m *MockEC2API) CreateNetworkInterfaceWithContext(arg0 aws.Context, arg1 *ec2.CreateNetworkInterfaceInput, arg2 ...request.Option) (*ec2.CreateNetworkInterfaceOutput, error) {
+func (m *MockEC2API) CreateNetworkInterfaceWithContext(arg0 context.Context, arg1 *ec2.CreateNetworkInterfaceInput, arg2 ...request.Option) (*ec2.CreateNetworkInterfaceOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2764,7 +2764,7 @@ func (mr *MockEC2APIMockRecorder) CreatePlacementGroupRequest(arg0 interface{}) 
 }
 
 // CreatePlacementGroupWithContext mocks base method
-func (m *MockEC2API) CreatePlacementGroupWithContext(arg0 aws.Context, arg1 *ec2.CreatePlacementGroupInput, arg2 ...request.Option) (*ec2.CreatePlacementGroupOutput, error) {
+func (m *MockEC2API) CreatePlacementGroupWithContext(arg0 context.Context, arg1 *ec2.CreatePlacementGroupInput, arg2 ...request.Option) (*ec2.CreatePlacementGroupOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2808,7 +2808,7 @@ func (mr *MockEC2APIMockRecorder) CreateReservedInstancesListingRequest(arg0 int
 }
 
 // CreateReservedInstancesListingWithContext mocks base method
-func (m *MockEC2API) CreateReservedInstancesListingWithContext(arg0 aws.Context, arg1 *ec2.CreateReservedInstancesListingInput, arg2 ...request.Option) (*ec2.CreateReservedInstancesListingOutput, error) {
+func (m *MockEC2API) CreateReservedInstancesListingWithContext(arg0 context.Context, arg1 *ec2.CreateReservedInstancesListingInput, arg2 ...request.Option) (*ec2.CreateReservedInstancesListingOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2878,7 +2878,7 @@ func (mr *MockEC2APIMockRecorder) CreateRouteTableRequest(arg0 interface{}) *gom
 }
 
 // CreateRouteTableWithContext mocks base method
-func (m *MockEC2API) CreateRouteTableWithContext(arg0 aws.Context, arg1 *ec2.CreateRouteTableInput, arg2 ...request.Option) (*ec2.CreateRouteTableOutput, error) {
+func (m *MockEC2API) CreateRouteTableWithContext(arg0 context.Context, arg1 *ec2.CreateRouteTableInput, arg2 ...request.Option) (*ec2.CreateRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2896,7 +2896,7 @@ func (mr *MockEC2APIMockRecorder) CreateRouteTableWithContext(arg0, arg1 interfa
 }
 
 // CreateRouteWithContext mocks base method
-func (m *MockEC2API) CreateRouteWithContext(arg0 aws.Context, arg1 *ec2.CreateRouteInput, arg2 ...request.Option) (*ec2.CreateRouteOutput, error) {
+func (m *MockEC2API) CreateRouteWithContext(arg0 context.Context, arg1 *ec2.CreateRouteInput, arg2 ...request.Option) (*ec2.CreateRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2940,7 +2940,7 @@ func (mr *MockEC2APIMockRecorder) CreateSecurityGroupRequest(arg0 interface{}) *
 }
 
 // CreateSecurityGroupWithContext mocks base method
-func (m *MockEC2API) CreateSecurityGroupWithContext(arg0 aws.Context, arg1 *ec2.CreateSecurityGroupInput, arg2 ...request.Option) (*ec2.CreateSecurityGroupOutput, error) {
+func (m *MockEC2API) CreateSecurityGroupWithContext(arg0 context.Context, arg1 *ec2.CreateSecurityGroupInput, arg2 ...request.Option) (*ec2.CreateSecurityGroupOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -2984,7 +2984,7 @@ func (mr *MockEC2APIMockRecorder) CreateSnapshotRequest(arg0 interface{}) *gomoc
 }
 
 // CreateSnapshotWithContext mocks base method
-func (m *MockEC2API) CreateSnapshotWithContext(arg0 aws.Context, arg1 *ec2.CreateSnapshotInput, arg2 ...request.Option) (*ec2.Snapshot, error) {
+func (m *MockEC2API) CreateSnapshotWithContext(arg0 context.Context, arg1 *ec2.CreateSnapshotInput, arg2 ...request.Option) (*ec2.Snapshot, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3028,7 +3028,7 @@ func (mr *MockEC2APIMockRecorder) CreateSpotDatafeedSubscriptionRequest(arg0 int
 }
 
 // CreateSpotDatafeedSubscriptionWithContext mocks base method
-func (m *MockEC2API) CreateSpotDatafeedSubscriptionWithContext(arg0 aws.Context, arg1 *ec2.CreateSpotDatafeedSubscriptionInput, arg2 ...request.Option) (*ec2.CreateSpotDatafeedSubscriptionOutput, error) {
+func (m *MockEC2API) CreateSpotDatafeedSubscriptionWithContext(arg0 context.Context, arg1 *ec2.CreateSpotDatafeedSubscriptionInput, arg2 ...request.Option) (*ec2.CreateSpotDatafeedSubscriptionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3072,7 +3072,7 @@ func (mr *MockEC2APIMockRecorder) CreateSubnetRequest(arg0 interface{}) *gomock.
 }
 
 // CreateSubnetWithContext mocks base method
-func (m *MockEC2API) CreateSubnetWithContext(arg0 aws.Context, arg1 *ec2.CreateSubnetInput, arg2 ...request.Option) (*ec2.CreateSubnetOutput, error) {
+func (m *MockEC2API) CreateSubnetWithContext(arg0 context.Context, arg1 *ec2.CreateSubnetInput, arg2 ...request.Option) (*ec2.CreateSubnetOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3116,7 +3116,7 @@ func (mr *MockEC2APIMockRecorder) CreateTagsRequest(arg0 interface{}) *gomock.Ca
 }
 
 // CreateTagsWithContext mocks base method
-func (m *MockEC2API) CreateTagsWithContext(arg0 aws.Context, arg1 *ec2.CreateTagsInput, arg2 ...request.Option) (*ec2.CreateTagsOutput, error) {
+func (m *MockEC2API) CreateTagsWithContext(arg0 context.Context, arg1 *ec2.CreateTagsInput, arg2 ...request.Option) (*ec2.CreateTagsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3212,7 +3212,7 @@ func (mr *MockEC2APIMockRecorder) CreateTransitGatewayRouteTableRequest(arg0 int
 }
 
 // CreateTransitGatewayRouteTableWithContext mocks base method
-func (m *MockEC2API) CreateTransitGatewayRouteTableWithContext(arg0 aws.Context, arg1 *ec2.CreateTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayRouteTableOutput, error) {
+func (m *MockEC2API) CreateTransitGatewayRouteTableWithContext(arg0 context.Context, arg1 *ec2.CreateTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3230,7 +3230,7 @@ func (mr *MockEC2APIMockRecorder) CreateTransitGatewayRouteTableWithContext(arg0
 }
 
 // CreateTransitGatewayRouteWithContext mocks base method
-func (m *MockEC2API) CreateTransitGatewayRouteWithContext(arg0 aws.Context, arg1 *ec2.CreateTransitGatewayRouteInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayRouteOutput, error) {
+func (m *MockEC2API) CreateTransitGatewayRouteWithContext(arg0 context.Context, arg1 *ec2.CreateTransitGatewayRouteInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3274,7 +3274,7 @@ func (mr *MockEC2APIMockRecorder) CreateTransitGatewayVpcAttachmentRequest(arg0 
 }
 
 // CreateTransitGatewayVpcAttachmentWithContext mocks base method
-func (m *MockEC2API) CreateTransitGatewayVpcAttachmentWithContext(arg0 aws.Context, arg1 *ec2.CreateTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayVpcAttachmentOutput, error) {
+func (m *MockEC2API) CreateTransitGatewayVpcAttachmentWithContext(arg0 context.Context, arg1 *ec2.CreateTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayVpcAttachmentOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3292,7 +3292,7 @@ func (mr *MockEC2APIMockRecorder) CreateTransitGatewayVpcAttachmentWithContext(a
 }
 
 // CreateTransitGatewayWithContext mocks base method
-func (m *MockEC2API) CreateTransitGatewayWithContext(arg0 aws.Context, arg1 *ec2.CreateTransitGatewayInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayOutput, error) {
+func (m *MockEC2API) CreateTransitGatewayWithContext(arg0 context.Context, arg1 *ec2.CreateTransitGatewayInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3336,7 +3336,7 @@ func (mr *MockEC2APIMockRecorder) CreateVolumeRequest(arg0 interface{}) *gomock.
 }
 
 // CreateVolumeWithContext mocks base method
-func (m *MockEC2API) CreateVolumeWithContext(arg0 aws.Context, arg1 *ec2.CreateVolumeInput, arg2 ...request.Option) (*ec2.Volume, error) {
+func (m *MockEC2API) CreateVolumeWithContext(arg0 context.Context, arg1 *ec2.CreateVolumeInput, arg2 ...request.Option) (*ec2.Volume, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3406,7 +3406,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpcEndpointConnectionNotificationRequest
 }
 
 // CreateVpcEndpointConnectionNotificationWithContext mocks base method
-func (m *MockEC2API) CreateVpcEndpointConnectionNotificationWithContext(arg0 aws.Context, arg1 *ec2.CreateVpcEndpointConnectionNotificationInput, arg2 ...request.Option) (*ec2.CreateVpcEndpointConnectionNotificationOutput, error) {
+func (m *MockEC2API) CreateVpcEndpointConnectionNotificationWithContext(arg0 context.Context, arg1 *ec2.CreateVpcEndpointConnectionNotificationInput, arg2 ...request.Option) (*ec2.CreateVpcEndpointConnectionNotificationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3463,7 +3463,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpcEndpointServiceConfigurationRequest(a
 }
 
 // CreateVpcEndpointServiceConfigurationWithContext mocks base method
-func (m *MockEC2API) CreateVpcEndpointServiceConfigurationWithContext(arg0 aws.Context, arg1 *ec2.CreateVpcEndpointServiceConfigurationInput, arg2 ...request.Option) (*ec2.CreateVpcEndpointServiceConfigurationOutput, error) {
+func (m *MockEC2API) CreateVpcEndpointServiceConfigurationWithContext(arg0 context.Context, arg1 *ec2.CreateVpcEndpointServiceConfigurationInput, arg2 ...request.Option) (*ec2.CreateVpcEndpointServiceConfigurationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3481,7 +3481,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpcEndpointServiceConfigurationWithConte
 }
 
 // CreateVpcEndpointWithContext mocks base method
-func (m *MockEC2API) CreateVpcEndpointWithContext(arg0 aws.Context, arg1 *ec2.CreateVpcEndpointInput, arg2 ...request.Option) (*ec2.CreateVpcEndpointOutput, error) {
+func (m *MockEC2API) CreateVpcEndpointWithContext(arg0 context.Context, arg1 *ec2.CreateVpcEndpointInput, arg2 ...request.Option) (*ec2.CreateVpcEndpointOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3525,7 +3525,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpcPeeringConnectionRequest(arg0 interfa
 }
 
 // CreateVpcPeeringConnectionWithContext mocks base method
-func (m *MockEC2API) CreateVpcPeeringConnectionWithContext(arg0 aws.Context, arg1 *ec2.CreateVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.CreateVpcPeeringConnectionOutput, error) {
+func (m *MockEC2API) CreateVpcPeeringConnectionWithContext(arg0 context.Context, arg1 *ec2.CreateVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.CreateVpcPeeringConnectionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3556,7 +3556,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpcRequest(arg0 interface{}) *gomock.Cal
 }
 
 // CreateVpcWithContext mocks base method
-func (m *MockEC2API) CreateVpcWithContext(arg0 aws.Context, arg1 *ec2.CreateVpcInput, arg2 ...request.Option) (*ec2.CreateVpcOutput, error) {
+func (m *MockEC2API) CreateVpcWithContext(arg0 context.Context, arg1 *ec2.CreateVpcInput, arg2 ...request.Option) (*ec2.CreateVpcOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3626,7 +3626,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpnConnectionRouteRequest(arg0 interface
 }
 
 // CreateVpnConnectionRouteWithContext mocks base method
-func (m *MockEC2API) CreateVpnConnectionRouteWithContext(arg0 aws.Context, arg1 *ec2.CreateVpnConnectionRouteInput, arg2 ...request.Option) (*ec2.CreateVpnConnectionRouteOutput, error) {
+func (m *MockEC2API) CreateVpnConnectionRouteWithContext(arg0 context.Context, arg1 *ec2.CreateVpnConnectionRouteInput, arg2 ...request.Option) (*ec2.CreateVpnConnectionRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3644,7 +3644,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpnConnectionRouteWithContext(arg0, arg1
 }
 
 // CreateVpnConnectionWithContext mocks base method
-func (m *MockEC2API) CreateVpnConnectionWithContext(arg0 aws.Context, arg1 *ec2.CreateVpnConnectionInput, arg2 ...request.Option) (*ec2.CreateVpnConnectionOutput, error) {
+func (m *MockEC2API) CreateVpnConnectionWithContext(arg0 context.Context, arg1 *ec2.CreateVpnConnectionInput, arg2 ...request.Option) (*ec2.CreateVpnConnectionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3688,7 +3688,7 @@ func (mr *MockEC2APIMockRecorder) CreateVpnGatewayRequest(arg0 interface{}) *gom
 }
 
 // CreateVpnGatewayWithContext mocks base method
-func (m *MockEC2API) CreateVpnGatewayWithContext(arg0 aws.Context, arg1 *ec2.CreateVpnGatewayInput, arg2 ...request.Option) (*ec2.CreateVpnGatewayOutput, error) {
+func (m *MockEC2API) CreateVpnGatewayWithContext(arg0 context.Context, arg1 *ec2.CreateVpnGatewayInput, arg2 ...request.Option) (*ec2.CreateVpnGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3732,7 +3732,7 @@ func (mr *MockEC2APIMockRecorder) DeleteClientVpnEndpointRequest(arg0 interface{
 }
 
 // DeleteClientVpnEndpointWithContext mocks base method
-func (m *MockEC2API) DeleteClientVpnEndpointWithContext(arg0 aws.Context, arg1 *ec2.DeleteClientVpnEndpointInput, arg2 ...request.Option) (*ec2.DeleteClientVpnEndpointOutput, error) {
+func (m *MockEC2API) DeleteClientVpnEndpointWithContext(arg0 context.Context, arg1 *ec2.DeleteClientVpnEndpointInput, arg2 ...request.Option) (*ec2.DeleteClientVpnEndpointOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3776,7 +3776,7 @@ func (mr *MockEC2APIMockRecorder) DeleteClientVpnRouteRequest(arg0 interface{}) 
 }
 
 // DeleteClientVpnRouteWithContext mocks base method
-func (m *MockEC2API) DeleteClientVpnRouteWithContext(arg0 aws.Context, arg1 *ec2.DeleteClientVpnRouteInput, arg2 ...request.Option) (*ec2.DeleteClientVpnRouteOutput, error) {
+func (m *MockEC2API) DeleteClientVpnRouteWithContext(arg0 context.Context, arg1 *ec2.DeleteClientVpnRouteInput, arg2 ...request.Option) (*ec2.DeleteClientVpnRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3820,7 +3820,7 @@ func (mr *MockEC2APIMockRecorder) DeleteCustomerGatewayRequest(arg0 interface{})
 }
 
 // DeleteCustomerGatewayWithContext mocks base method
-func (m *MockEC2API) DeleteCustomerGatewayWithContext(arg0 aws.Context, arg1 *ec2.DeleteCustomerGatewayInput, arg2 ...request.Option) (*ec2.DeleteCustomerGatewayOutput, error) {
+func (m *MockEC2API) DeleteCustomerGatewayWithContext(arg0 context.Context, arg1 *ec2.DeleteCustomerGatewayInput, arg2 ...request.Option) (*ec2.DeleteCustomerGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3864,7 +3864,7 @@ func (mr *MockEC2APIMockRecorder) DeleteDhcpOptionsRequest(arg0 interface{}) *go
 }
 
 // DeleteDhcpOptionsWithContext mocks base method
-func (m *MockEC2API) DeleteDhcpOptionsWithContext(arg0 aws.Context, arg1 *ec2.DeleteDhcpOptionsInput, arg2 ...request.Option) (*ec2.DeleteDhcpOptionsOutput, error) {
+func (m *MockEC2API) DeleteDhcpOptionsWithContext(arg0 context.Context, arg1 *ec2.DeleteDhcpOptionsInput, arg2 ...request.Option) (*ec2.DeleteDhcpOptionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3908,7 +3908,7 @@ func (mr *MockEC2APIMockRecorder) DeleteEgressOnlyInternetGatewayRequest(arg0 in
 }
 
 // DeleteEgressOnlyInternetGatewayWithContext mocks base method
-func (m *MockEC2API) DeleteEgressOnlyInternetGatewayWithContext(arg0 aws.Context, arg1 *ec2.DeleteEgressOnlyInternetGatewayInput, arg2 ...request.Option) (*ec2.DeleteEgressOnlyInternetGatewayOutput, error) {
+func (m *MockEC2API) DeleteEgressOnlyInternetGatewayWithContext(arg0 context.Context, arg1 *ec2.DeleteEgressOnlyInternetGatewayInput, arg2 ...request.Option) (*ec2.DeleteEgressOnlyInternetGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3952,7 +3952,7 @@ func (mr *MockEC2APIMockRecorder) DeleteFleetsRequest(arg0 interface{}) *gomock.
 }
 
 // DeleteFleetsWithContext mocks base method
-func (m *MockEC2API) DeleteFleetsWithContext(arg0 aws.Context, arg1 *ec2.DeleteFleetsInput, arg2 ...request.Option) (*ec2.DeleteFleetsOutput, error) {
+func (m *MockEC2API) DeleteFleetsWithContext(arg0 context.Context, arg1 *ec2.DeleteFleetsInput, arg2 ...request.Option) (*ec2.DeleteFleetsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -3996,7 +3996,7 @@ func (mr *MockEC2APIMockRecorder) DeleteFlowLogsRequest(arg0 interface{}) *gomoc
 }
 
 // DeleteFlowLogsWithContext mocks base method
-func (m *MockEC2API) DeleteFlowLogsWithContext(arg0 aws.Context, arg1 *ec2.DeleteFlowLogsInput, arg2 ...request.Option) (*ec2.DeleteFlowLogsOutput, error) {
+func (m *MockEC2API) DeleteFlowLogsWithContext(arg0 context.Context, arg1 *ec2.DeleteFlowLogsInput, arg2 ...request.Option) (*ec2.DeleteFlowLogsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4040,7 +4040,7 @@ func (mr *MockEC2APIMockRecorder) DeleteFpgaImageRequest(arg0 interface{}) *gomo
 }
 
 // DeleteFpgaImageWithContext mocks base method
-func (m *MockEC2API) DeleteFpgaImageWithContext(arg0 aws.Context, arg1 *ec2.DeleteFpgaImageInput, arg2 ...request.Option) (*ec2.DeleteFpgaImageOutput, error) {
+func (m *MockEC2API) DeleteFpgaImageWithContext(arg0 context.Context, arg1 *ec2.DeleteFpgaImageInput, arg2 ...request.Option) (*ec2.DeleteFpgaImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4084,7 +4084,7 @@ func (mr *MockEC2APIMockRecorder) DeleteInternetGatewayRequest(arg0 interface{})
 }
 
 // DeleteInternetGatewayWithContext mocks base method
-func (m *MockEC2API) DeleteInternetGatewayWithContext(arg0 aws.Context, arg1 *ec2.DeleteInternetGatewayInput, arg2 ...request.Option) (*ec2.DeleteInternetGatewayOutput, error) {
+func (m *MockEC2API) DeleteInternetGatewayWithContext(arg0 context.Context, arg1 *ec2.DeleteInternetGatewayInput, arg2 ...request.Option) (*ec2.DeleteInternetGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4128,7 +4128,7 @@ func (mr *MockEC2APIMockRecorder) DeleteKeyPairRequest(arg0 interface{}) *gomock
 }
 
 // DeleteKeyPairWithContext mocks base method
-func (m *MockEC2API) DeleteKeyPairWithContext(arg0 aws.Context, arg1 *ec2.DeleteKeyPairInput, arg2 ...request.Option) (*ec2.DeleteKeyPairOutput, error) {
+func (m *MockEC2API) DeleteKeyPairWithContext(arg0 context.Context, arg1 *ec2.DeleteKeyPairInput, arg2 ...request.Option) (*ec2.DeleteKeyPairOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4198,7 +4198,7 @@ func (mr *MockEC2APIMockRecorder) DeleteLaunchTemplateVersionsRequest(arg0 inter
 }
 
 // DeleteLaunchTemplateVersionsWithContext mocks base method
-func (m *MockEC2API) DeleteLaunchTemplateVersionsWithContext(arg0 aws.Context, arg1 *ec2.DeleteLaunchTemplateVersionsInput, arg2 ...request.Option) (*ec2.DeleteLaunchTemplateVersionsOutput, error) {
+func (m *MockEC2API) DeleteLaunchTemplateVersionsWithContext(arg0 context.Context, arg1 *ec2.DeleteLaunchTemplateVersionsInput, arg2 ...request.Option) (*ec2.DeleteLaunchTemplateVersionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4216,7 +4216,7 @@ func (mr *MockEC2APIMockRecorder) DeleteLaunchTemplateVersionsWithContext(arg0, 
 }
 
 // DeleteLaunchTemplateWithContext mocks base method
-func (m *MockEC2API) DeleteLaunchTemplateWithContext(arg0 aws.Context, arg1 *ec2.DeleteLaunchTemplateInput, arg2 ...request.Option) (*ec2.DeleteLaunchTemplateOutput, error) {
+func (m *MockEC2API) DeleteLaunchTemplateWithContext(arg0 context.Context, arg1 *ec2.DeleteLaunchTemplateInput, arg2 ...request.Option) (*ec2.DeleteLaunchTemplateOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4260,7 +4260,7 @@ func (mr *MockEC2APIMockRecorder) DeleteNatGatewayRequest(arg0 interface{}) *gom
 }
 
 // DeleteNatGatewayWithContext mocks base method
-func (m *MockEC2API) DeleteNatGatewayWithContext(arg0 aws.Context, arg1 *ec2.DeleteNatGatewayInput, arg2 ...request.Option) (*ec2.DeleteNatGatewayOutput, error) {
+func (m *MockEC2API) DeleteNatGatewayWithContext(arg0 context.Context, arg1 *ec2.DeleteNatGatewayInput, arg2 ...request.Option) (*ec2.DeleteNatGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4317,7 +4317,7 @@ func (mr *MockEC2APIMockRecorder) DeleteNetworkAclEntryRequest(arg0 interface{})
 }
 
 // DeleteNetworkAclEntryWithContext mocks base method
-func (m *MockEC2API) DeleteNetworkAclEntryWithContext(arg0 aws.Context, arg1 *ec2.DeleteNetworkAclEntryInput, arg2 ...request.Option) (*ec2.DeleteNetworkAclEntryOutput, error) {
+func (m *MockEC2API) DeleteNetworkAclEntryWithContext(arg0 context.Context, arg1 *ec2.DeleteNetworkAclEntryInput, arg2 ...request.Option) (*ec2.DeleteNetworkAclEntryOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4348,7 +4348,7 @@ func (mr *MockEC2APIMockRecorder) DeleteNetworkAclRequest(arg0 interface{}) *gom
 }
 
 // DeleteNetworkAclWithContext mocks base method
-func (m *MockEC2API) DeleteNetworkAclWithContext(arg0 aws.Context, arg1 *ec2.DeleteNetworkAclInput, arg2 ...request.Option) (*ec2.DeleteNetworkAclOutput, error) {
+func (m *MockEC2API) DeleteNetworkAclWithContext(arg0 context.Context, arg1 *ec2.DeleteNetworkAclInput, arg2 ...request.Option) (*ec2.DeleteNetworkAclOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4405,7 +4405,7 @@ func (mr *MockEC2APIMockRecorder) DeleteNetworkInterfacePermissionRequest(arg0 i
 }
 
 // DeleteNetworkInterfacePermissionWithContext mocks base method
-func (m *MockEC2API) DeleteNetworkInterfacePermissionWithContext(arg0 aws.Context, arg1 *ec2.DeleteNetworkInterfacePermissionInput, arg2 ...request.Option) (*ec2.DeleteNetworkInterfacePermissionOutput, error) {
+func (m *MockEC2API) DeleteNetworkInterfacePermissionWithContext(arg0 context.Context, arg1 *ec2.DeleteNetworkInterfacePermissionInput, arg2 ...request.Option) (*ec2.DeleteNetworkInterfacePermissionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4436,7 +4436,7 @@ func (mr *MockEC2APIMockRecorder) DeleteNetworkInterfaceRequest(arg0 interface{}
 }
 
 // DeleteNetworkInterfaceWithContext mocks base method
-func (m *MockEC2API) DeleteNetworkInterfaceWithContext(arg0 aws.Context, arg1 *ec2.DeleteNetworkInterfaceInput, arg2 ...request.Option) (*ec2.DeleteNetworkInterfaceOutput, error) {
+func (m *MockEC2API) DeleteNetworkInterfaceWithContext(arg0 context.Context, arg1 *ec2.DeleteNetworkInterfaceInput, arg2 ...request.Option) (*ec2.DeleteNetworkInterfaceOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4480,7 +4480,7 @@ func (mr *MockEC2APIMockRecorder) DeletePlacementGroupRequest(arg0 interface{}) 
 }
 
 // DeletePlacementGroupWithContext mocks base method
-func (m *MockEC2API) DeletePlacementGroupWithContext(arg0 aws.Context, arg1 *ec2.DeletePlacementGroupInput, arg2 ...request.Option) (*ec2.DeletePlacementGroupOutput, error) {
+func (m *MockEC2API) DeletePlacementGroupWithContext(arg0 context.Context, arg1 *ec2.DeletePlacementGroupInput, arg2 ...request.Option) (*ec2.DeletePlacementGroupOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4550,7 +4550,7 @@ func (mr *MockEC2APIMockRecorder) DeleteRouteTableRequest(arg0 interface{}) *gom
 }
 
 // DeleteRouteTableWithContext mocks base method
-func (m *MockEC2API) DeleteRouteTableWithContext(arg0 aws.Context, arg1 *ec2.DeleteRouteTableInput, arg2 ...request.Option) (*ec2.DeleteRouteTableOutput, error) {
+func (m *MockEC2API) DeleteRouteTableWithContext(arg0 context.Context, arg1 *ec2.DeleteRouteTableInput, arg2 ...request.Option) (*ec2.DeleteRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4568,7 +4568,7 @@ func (mr *MockEC2APIMockRecorder) DeleteRouteTableWithContext(arg0, arg1 interfa
 }
 
 // DeleteRouteWithContext mocks base method
-func (m *MockEC2API) DeleteRouteWithContext(arg0 aws.Context, arg1 *ec2.DeleteRouteInput, arg2 ...request.Option) (*ec2.DeleteRouteOutput, error) {
+func (m *MockEC2API) DeleteRouteWithContext(arg0 context.Context, arg1 *ec2.DeleteRouteInput, arg2 ...request.Option) (*ec2.DeleteRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4612,7 +4612,7 @@ func (mr *MockEC2APIMockRecorder) DeleteSecurityGroupRequest(arg0 interface{}) *
 }
 
 // DeleteSecurityGroupWithContext mocks base method
-func (m *MockEC2API) DeleteSecurityGroupWithContext(arg0 aws.Context, arg1 *ec2.DeleteSecurityGroupInput, arg2 ...request.Option) (*ec2.DeleteSecurityGroupOutput, error) {
+func (m *MockEC2API) DeleteSecurityGroupWithContext(arg0 context.Context, arg1 *ec2.DeleteSecurityGroupInput, arg2 ...request.Option) (*ec2.DeleteSecurityGroupOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4656,7 +4656,7 @@ func (mr *MockEC2APIMockRecorder) DeleteSnapshotRequest(arg0 interface{}) *gomoc
 }
 
 // DeleteSnapshotWithContext mocks base method
-func (m *MockEC2API) DeleteSnapshotWithContext(arg0 aws.Context, arg1 *ec2.DeleteSnapshotInput, arg2 ...request.Option) (*ec2.DeleteSnapshotOutput, error) {
+func (m *MockEC2API) DeleteSnapshotWithContext(arg0 context.Context, arg1 *ec2.DeleteSnapshotInput, arg2 ...request.Option) (*ec2.DeleteSnapshotOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4700,7 +4700,7 @@ func (mr *MockEC2APIMockRecorder) DeleteSpotDatafeedSubscriptionRequest(arg0 int
 }
 
 // DeleteSpotDatafeedSubscriptionWithContext mocks base method
-func (m *MockEC2API) DeleteSpotDatafeedSubscriptionWithContext(arg0 aws.Context, arg1 *ec2.DeleteSpotDatafeedSubscriptionInput, arg2 ...request.Option) (*ec2.DeleteSpotDatafeedSubscriptionOutput, error) {
+func (m *MockEC2API) DeleteSpotDatafeedSubscriptionWithContext(arg0 context.Context, arg1 *ec2.DeleteSpotDatafeedSubscriptionInput, arg2 ...request.Option) (*ec2.DeleteSpotDatafeedSubscriptionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4744,7 +4744,7 @@ func (mr *MockEC2APIMockRecorder) DeleteSubnetRequest(arg0 interface{}) *gomock.
 }
 
 // DeleteSubnetWithContext mocks base method
-func (m *MockEC2API) DeleteSubnetWithContext(arg0 aws.Context, arg1 *ec2.DeleteSubnetInput, arg2 ...request.Option) (*ec2.DeleteSubnetOutput, error) {
+func (m *MockEC2API) DeleteSubnetWithContext(arg0 context.Context, arg1 *ec2.DeleteSubnetInput, arg2 ...request.Option) (*ec2.DeleteSubnetOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4788,7 +4788,7 @@ func (mr *MockEC2APIMockRecorder) DeleteTagsRequest(arg0 interface{}) *gomock.Ca
 }
 
 // DeleteTagsWithContext mocks base method
-func (m *MockEC2API) DeleteTagsWithContext(arg0 aws.Context, arg1 *ec2.DeleteTagsInput, arg2 ...request.Option) (*ec2.DeleteTagsOutput, error) {
+func (m *MockEC2API) DeleteTagsWithContext(arg0 context.Context, arg1 *ec2.DeleteTagsInput, arg2 ...request.Option) (*ec2.DeleteTagsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4884,7 +4884,7 @@ func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayRouteTableRequest(arg0 int
 }
 
 // DeleteTransitGatewayRouteTableWithContext mocks base method
-func (m *MockEC2API) DeleteTransitGatewayRouteTableWithContext(arg0 aws.Context, arg1 *ec2.DeleteTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayRouteTableOutput, error) {
+func (m *MockEC2API) DeleteTransitGatewayRouteTableWithContext(arg0 context.Context, arg1 *ec2.DeleteTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4902,7 +4902,7 @@ func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayRouteTableWithContext(arg0
 }
 
 // DeleteTransitGatewayRouteWithContext mocks base method
-func (m *MockEC2API) DeleteTransitGatewayRouteWithContext(arg0 aws.Context, arg1 *ec2.DeleteTransitGatewayRouteInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayRouteOutput, error) {
+func (m *MockEC2API) DeleteTransitGatewayRouteWithContext(arg0 context.Context, arg1 *ec2.DeleteTransitGatewayRouteInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4946,7 +4946,7 @@ func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayVpcAttachmentRequest(arg0 
 }
 
 // DeleteTransitGatewayVpcAttachmentWithContext mocks base method
-func (m *MockEC2API) DeleteTransitGatewayVpcAttachmentWithContext(arg0 aws.Context, arg1 *ec2.DeleteTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayVpcAttachmentOutput, error) {
+func (m *MockEC2API) DeleteTransitGatewayVpcAttachmentWithContext(arg0 context.Context, arg1 *ec2.DeleteTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayVpcAttachmentOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -4964,7 +4964,7 @@ func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayVpcAttachmentWithContext(a
 }
 
 // DeleteTransitGatewayWithContext mocks base method
-func (m *MockEC2API) DeleteTransitGatewayWithContext(arg0 aws.Context, arg1 *ec2.DeleteTransitGatewayInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayOutput, error) {
+func (m *MockEC2API) DeleteTransitGatewayWithContext(arg0 context.Context, arg1 *ec2.DeleteTransitGatewayInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5008,7 +5008,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVolumeRequest(arg0 interface{}) *gomock.
 }
 
 // DeleteVolumeWithContext mocks base method
-func (m *MockEC2API) DeleteVolumeWithContext(arg0 aws.Context, arg1 *ec2.DeleteVolumeInput, arg2 ...request.Option) (*ec2.DeleteVolumeOutput, error) {
+func (m *MockEC2API) DeleteVolumeWithContext(arg0 context.Context, arg1 *ec2.DeleteVolumeInput, arg2 ...request.Option) (*ec2.DeleteVolumeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5065,7 +5065,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpcEndpointConnectionNotificationsReques
 }
 
 // DeleteVpcEndpointConnectionNotificationsWithContext mocks base method
-func (m *MockEC2API) DeleteVpcEndpointConnectionNotificationsWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpcEndpointConnectionNotificationsInput, arg2 ...request.Option) (*ec2.DeleteVpcEndpointConnectionNotificationsOutput, error) {
+func (m *MockEC2API) DeleteVpcEndpointConnectionNotificationsWithContext(arg0 context.Context, arg1 *ec2.DeleteVpcEndpointConnectionNotificationsInput, arg2 ...request.Option) (*ec2.DeleteVpcEndpointConnectionNotificationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5109,7 +5109,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpcEndpointServiceConfigurationsRequest(
 }
 
 // DeleteVpcEndpointServiceConfigurationsWithContext mocks base method
-func (m *MockEC2API) DeleteVpcEndpointServiceConfigurationsWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpcEndpointServiceConfigurationsInput, arg2 ...request.Option) (*ec2.DeleteVpcEndpointServiceConfigurationsOutput, error) {
+func (m *MockEC2API) DeleteVpcEndpointServiceConfigurationsWithContext(arg0 context.Context, arg1 *ec2.DeleteVpcEndpointServiceConfigurationsInput, arg2 ...request.Option) (*ec2.DeleteVpcEndpointServiceConfigurationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5153,7 +5153,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpcEndpointsRequest(arg0 interface{}) *g
 }
 
 // DeleteVpcEndpointsWithContext mocks base method
-func (m *MockEC2API) DeleteVpcEndpointsWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpcEndpointsInput, arg2 ...request.Option) (*ec2.DeleteVpcEndpointsOutput, error) {
+func (m *MockEC2API) DeleteVpcEndpointsWithContext(arg0 context.Context, arg1 *ec2.DeleteVpcEndpointsInput, arg2 ...request.Option) (*ec2.DeleteVpcEndpointsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5197,7 +5197,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpcPeeringConnectionRequest(arg0 interfa
 }
 
 // DeleteVpcPeeringConnectionWithContext mocks base method
-func (m *MockEC2API) DeleteVpcPeeringConnectionWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.DeleteVpcPeeringConnectionOutput, error) {
+func (m *MockEC2API) DeleteVpcPeeringConnectionWithContext(arg0 context.Context, arg1 *ec2.DeleteVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.DeleteVpcPeeringConnectionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5228,7 +5228,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpcRequest(arg0 interface{}) *gomock.Cal
 }
 
 // DeleteVpcWithContext mocks base method
-func (m *MockEC2API) DeleteVpcWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpcInput, arg2 ...request.Option) (*ec2.DeleteVpcOutput, error) {
+func (m *MockEC2API) DeleteVpcWithContext(arg0 context.Context, arg1 *ec2.DeleteVpcInput, arg2 ...request.Option) (*ec2.DeleteVpcOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5298,7 +5298,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpnConnectionRouteRequest(arg0 interface
 }
 
 // DeleteVpnConnectionRouteWithContext mocks base method
-func (m *MockEC2API) DeleteVpnConnectionRouteWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpnConnectionRouteInput, arg2 ...request.Option) (*ec2.DeleteVpnConnectionRouteOutput, error) {
+func (m *MockEC2API) DeleteVpnConnectionRouteWithContext(arg0 context.Context, arg1 *ec2.DeleteVpnConnectionRouteInput, arg2 ...request.Option) (*ec2.DeleteVpnConnectionRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5316,7 +5316,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpnConnectionRouteWithContext(arg0, arg1
 }
 
 // DeleteVpnConnectionWithContext mocks base method
-func (m *MockEC2API) DeleteVpnConnectionWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpnConnectionInput, arg2 ...request.Option) (*ec2.DeleteVpnConnectionOutput, error) {
+func (m *MockEC2API) DeleteVpnConnectionWithContext(arg0 context.Context, arg1 *ec2.DeleteVpnConnectionInput, arg2 ...request.Option) (*ec2.DeleteVpnConnectionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5360,7 +5360,7 @@ func (mr *MockEC2APIMockRecorder) DeleteVpnGatewayRequest(arg0 interface{}) *gom
 }
 
 // DeleteVpnGatewayWithContext mocks base method
-func (m *MockEC2API) DeleteVpnGatewayWithContext(arg0 aws.Context, arg1 *ec2.DeleteVpnGatewayInput, arg2 ...request.Option) (*ec2.DeleteVpnGatewayOutput, error) {
+func (m *MockEC2API) DeleteVpnGatewayWithContext(arg0 context.Context, arg1 *ec2.DeleteVpnGatewayInput, arg2 ...request.Option) (*ec2.DeleteVpnGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5404,7 +5404,7 @@ func (mr *MockEC2APIMockRecorder) DeprovisionByoipCidrRequest(arg0 interface{}) 
 }
 
 // DeprovisionByoipCidrWithContext mocks base method
-func (m *MockEC2API) DeprovisionByoipCidrWithContext(arg0 aws.Context, arg1 *ec2.DeprovisionByoipCidrInput, arg2 ...request.Option) (*ec2.DeprovisionByoipCidrOutput, error) {
+func (m *MockEC2API) DeprovisionByoipCidrWithContext(arg0 context.Context, arg1 *ec2.DeprovisionByoipCidrInput, arg2 ...request.Option) (*ec2.DeprovisionByoipCidrOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5448,7 +5448,7 @@ func (mr *MockEC2APIMockRecorder) DeregisterImageRequest(arg0 interface{}) *gomo
 }
 
 // DeregisterImageWithContext mocks base method
-func (m *MockEC2API) DeregisterImageWithContext(arg0 aws.Context, arg1 *ec2.DeregisterImageInput, arg2 ...request.Option) (*ec2.DeregisterImageOutput, error) {
+func (m *MockEC2API) DeregisterImageWithContext(arg0 context.Context, arg1 *ec2.DeregisterImageInput, arg2 ...request.Option) (*ec2.DeregisterImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5492,7 +5492,7 @@ func (mr *MockEC2APIMockRecorder) DescribeAccountAttributesRequest(arg0 interfac
 }
 
 // DescribeAccountAttributesWithContext mocks base method
-func (m *MockEC2API) DescribeAccountAttributesWithContext(arg0 aws.Context, arg1 *ec2.DescribeAccountAttributesInput, arg2 ...request.Option) (*ec2.DescribeAccountAttributesOutput, error) {
+func (m *MockEC2API) DescribeAccountAttributesWithContext(arg0 context.Context, arg1 *ec2.DescribeAccountAttributesInput, arg2 ...request.Option) (*ec2.DescribeAccountAttributesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5536,7 +5536,7 @@ func (mr *MockEC2APIMockRecorder) DescribeAddressesRequest(arg0 interface{}) *go
 }
 
 // DescribeAddressesWithContext mocks base method
-func (m *MockEC2API) DescribeAddressesWithContext(arg0 aws.Context, arg1 *ec2.DescribeAddressesInput, arg2 ...request.Option) (*ec2.DescribeAddressesOutput, error) {
+func (m *MockEC2API) DescribeAddressesWithContext(arg0 context.Context, arg1 *ec2.DescribeAddressesInput, arg2 ...request.Option) (*ec2.DescribeAddressesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5580,7 +5580,7 @@ func (mr *MockEC2APIMockRecorder) DescribeAggregateIdFormatRequest(arg0 interfac
 }
 
 // DescribeAggregateIdFormatWithContext mocks base method
-func (m *MockEC2API) DescribeAggregateIdFormatWithContext(arg0 aws.Context, arg1 *ec2.DescribeAggregateIdFormatInput, arg2 ...request.Option) (*ec2.DescribeAggregateIdFormatOutput, error) {
+func (m *MockEC2API) DescribeAggregateIdFormatWithContext(arg0 context.Context, arg1 *ec2.DescribeAggregateIdFormatInput, arg2 ...request.Option) (*ec2.DescribeAggregateIdFormatOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5624,7 +5624,7 @@ func (mr *MockEC2APIMockRecorder) DescribeAvailabilityZonesRequest(arg0 interfac
 }
 
 // DescribeAvailabilityZonesWithContext mocks base method
-func (m *MockEC2API) DescribeAvailabilityZonesWithContext(arg0 aws.Context, arg1 *ec2.DescribeAvailabilityZonesInput, arg2 ...request.Option) (*ec2.DescribeAvailabilityZonesOutput, error) {
+func (m *MockEC2API) DescribeAvailabilityZonesWithContext(arg0 context.Context, arg1 *ec2.DescribeAvailabilityZonesInput, arg2 ...request.Option) (*ec2.DescribeAvailabilityZonesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5668,7 +5668,7 @@ func (mr *MockEC2APIMockRecorder) DescribeBundleTasksRequest(arg0 interface{}) *
 }
 
 // DescribeBundleTasksWithContext mocks base method
-func (m *MockEC2API) DescribeBundleTasksWithContext(arg0 aws.Context, arg1 *ec2.DescribeBundleTasksInput, arg2 ...request.Option) (*ec2.DescribeBundleTasksOutput, error) {
+func (m *MockEC2API) DescribeBundleTasksWithContext(arg0 context.Context, arg1 *ec2.DescribeBundleTasksInput, arg2 ...request.Option) (*ec2.DescribeBundleTasksOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5712,7 +5712,7 @@ func (mr *MockEC2APIMockRecorder) DescribeByoipCidrsRequest(arg0 interface{}) *g
 }
 
 // DescribeByoipCidrsWithContext mocks base method
-func (m *MockEC2API) DescribeByoipCidrsWithContext(arg0 aws.Context, arg1 *ec2.DescribeByoipCidrsInput, arg2 ...request.Option) (*ec2.DescribeByoipCidrsOutput, error) {
+func (m *MockEC2API) DescribeByoipCidrsWithContext(arg0 context.Context, arg1 *ec2.DescribeByoipCidrsInput, arg2 ...request.Option) (*ec2.DescribeByoipCidrsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5756,7 +5756,7 @@ func (mr *MockEC2APIMockRecorder) DescribeCapacityReservationsRequest(arg0 inter
 }
 
 // DescribeCapacityReservationsWithContext mocks base method
-func (m *MockEC2API) DescribeCapacityReservationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeCapacityReservationsInput, arg2 ...request.Option) (*ec2.DescribeCapacityReservationsOutput, error) {
+func (m *MockEC2API) DescribeCapacityReservationsWithContext(arg0 context.Context, arg1 *ec2.DescribeCapacityReservationsInput, arg2 ...request.Option) (*ec2.DescribeCapacityReservationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5800,7 +5800,7 @@ func (mr *MockEC2APIMockRecorder) DescribeClassicLinkInstancesRequest(arg0 inter
 }
 
 // DescribeClassicLinkInstancesWithContext mocks base method
-func (m *MockEC2API) DescribeClassicLinkInstancesWithContext(arg0 aws.Context, arg1 *ec2.DescribeClassicLinkInstancesInput, arg2 ...request.Option) (*ec2.DescribeClassicLinkInstancesOutput, error) {
+func (m *MockEC2API) DescribeClassicLinkInstancesWithContext(arg0 context.Context, arg1 *ec2.DescribeClassicLinkInstancesInput, arg2 ...request.Option) (*ec2.DescribeClassicLinkInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5844,7 +5844,7 @@ func (mr *MockEC2APIMockRecorder) DescribeClientVpnAuthorizationRulesRequest(arg
 }
 
 // DescribeClientVpnAuthorizationRulesWithContext mocks base method
-func (m *MockEC2API) DescribeClientVpnAuthorizationRulesWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnAuthorizationRulesInput, arg2 ...request.Option) (*ec2.DescribeClientVpnAuthorizationRulesOutput, error) {
+func (m *MockEC2API) DescribeClientVpnAuthorizationRulesWithContext(arg0 context.Context, arg1 *ec2.DescribeClientVpnAuthorizationRulesInput, arg2 ...request.Option) (*ec2.DescribeClientVpnAuthorizationRulesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5888,7 +5888,7 @@ func (mr *MockEC2APIMockRecorder) DescribeClientVpnConnectionsRequest(arg0 inter
 }
 
 // DescribeClientVpnConnectionsWithContext mocks base method
-func (m *MockEC2API) DescribeClientVpnConnectionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnConnectionsInput, arg2 ...request.Option) (*ec2.DescribeClientVpnConnectionsOutput, error) {
+func (m *MockEC2API) DescribeClientVpnConnectionsWithContext(arg0 context.Context, arg1 *ec2.DescribeClientVpnConnectionsInput, arg2 ...request.Option) (*ec2.DescribeClientVpnConnectionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5932,7 +5932,7 @@ func (mr *MockEC2APIMockRecorder) DescribeClientVpnEndpointsRequest(arg0 interfa
 }
 
 // DescribeClientVpnEndpointsWithContext mocks base method
-func (m *MockEC2API) DescribeClientVpnEndpointsWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnEndpointsInput, arg2 ...request.Option) (*ec2.DescribeClientVpnEndpointsOutput, error) {
+func (m *MockEC2API) DescribeClientVpnEndpointsWithContext(arg0 context.Context, arg1 *ec2.DescribeClientVpnEndpointsInput, arg2 ...request.Option) (*ec2.DescribeClientVpnEndpointsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -5976,7 +5976,7 @@ func (mr *MockEC2APIMockRecorder) DescribeClientVpnRoutesRequest(arg0 interface{
 }
 
 // DescribeClientVpnRoutesWithContext mocks base method
-func (m *MockEC2API) DescribeClientVpnRoutesWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnRoutesInput, arg2 ...request.Option) (*ec2.DescribeClientVpnRoutesOutput, error) {
+func (m *MockEC2API) DescribeClientVpnRoutesWithContext(arg0 context.Context, arg1 *ec2.DescribeClientVpnRoutesInput, arg2 ...request.Option) (*ec2.DescribeClientVpnRoutesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6020,7 +6020,7 @@ func (mr *MockEC2APIMockRecorder) DescribeClientVpnTargetNetworksRequest(arg0 in
 }
 
 // DescribeClientVpnTargetNetworksWithContext mocks base method
-func (m *MockEC2API) DescribeClientVpnTargetNetworksWithContext(arg0 aws.Context, arg1 *ec2.DescribeClientVpnTargetNetworksInput, arg2 ...request.Option) (*ec2.DescribeClientVpnTargetNetworksOutput, error) {
+func (m *MockEC2API) DescribeClientVpnTargetNetworksWithContext(arg0 context.Context, arg1 *ec2.DescribeClientVpnTargetNetworksInput, arg2 ...request.Option) (*ec2.DescribeClientVpnTargetNetworksOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6064,7 +6064,7 @@ func (mr *MockEC2APIMockRecorder) DescribeConversionTasksRequest(arg0 interface{
 }
 
 // DescribeConversionTasksWithContext mocks base method
-func (m *MockEC2API) DescribeConversionTasksWithContext(arg0 aws.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.Option) (*ec2.DescribeConversionTasksOutput, error) {
+func (m *MockEC2API) DescribeConversionTasksWithContext(arg0 context.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.Option) (*ec2.DescribeConversionTasksOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6108,7 +6108,7 @@ func (mr *MockEC2APIMockRecorder) DescribeCustomerGatewaysRequest(arg0 interface
 }
 
 // DescribeCustomerGatewaysWithContext mocks base method
-func (m *MockEC2API) DescribeCustomerGatewaysWithContext(arg0 aws.Context, arg1 *ec2.DescribeCustomerGatewaysInput, arg2 ...request.Option) (*ec2.DescribeCustomerGatewaysOutput, error) {
+func (m *MockEC2API) DescribeCustomerGatewaysWithContext(arg0 context.Context, arg1 *ec2.DescribeCustomerGatewaysInput, arg2 ...request.Option) (*ec2.DescribeCustomerGatewaysOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6152,7 +6152,7 @@ func (mr *MockEC2APIMockRecorder) DescribeDhcpOptionsRequest(arg0 interface{}) *
 }
 
 // DescribeDhcpOptionsWithContext mocks base method
-func (m *MockEC2API) DescribeDhcpOptionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeDhcpOptionsInput, arg2 ...request.Option) (*ec2.DescribeDhcpOptionsOutput, error) {
+func (m *MockEC2API) DescribeDhcpOptionsWithContext(arg0 context.Context, arg1 *ec2.DescribeDhcpOptionsInput, arg2 ...request.Option) (*ec2.DescribeDhcpOptionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6196,7 +6196,7 @@ func (mr *MockEC2APIMockRecorder) DescribeEgressOnlyInternetGatewaysRequest(arg0
 }
 
 // DescribeEgressOnlyInternetGatewaysWithContext mocks base method
-func (m *MockEC2API) DescribeEgressOnlyInternetGatewaysWithContext(arg0 aws.Context, arg1 *ec2.DescribeEgressOnlyInternetGatewaysInput, arg2 ...request.Option) (*ec2.DescribeEgressOnlyInternetGatewaysOutput, error) {
+func (m *MockEC2API) DescribeEgressOnlyInternetGatewaysWithContext(arg0 context.Context, arg1 *ec2.DescribeEgressOnlyInternetGatewaysInput, arg2 ...request.Option) (*ec2.DescribeEgressOnlyInternetGatewaysOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6240,7 +6240,7 @@ func (mr *MockEC2APIMockRecorder) DescribeElasticGpusRequest(arg0 interface{}) *
 }
 
 // DescribeElasticGpusWithContext mocks base method
-func (m *MockEC2API) DescribeElasticGpusWithContext(arg0 aws.Context, arg1 *ec2.DescribeElasticGpusInput, arg2 ...request.Option) (*ec2.DescribeElasticGpusOutput, error) {
+func (m *MockEC2API) DescribeElasticGpusWithContext(arg0 context.Context, arg1 *ec2.DescribeElasticGpusInput, arg2 ...request.Option) (*ec2.DescribeElasticGpusOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6284,7 +6284,7 @@ func (mr *MockEC2APIMockRecorder) DescribeExportTasksRequest(arg0 interface{}) *
 }
 
 // DescribeExportTasksWithContext mocks base method
-func (m *MockEC2API) DescribeExportTasksWithContext(arg0 aws.Context, arg1 *ec2.DescribeExportTasksInput, arg2 ...request.Option) (*ec2.DescribeExportTasksOutput, error) {
+func (m *MockEC2API) DescribeExportTasksWithContext(arg0 context.Context, arg1 *ec2.DescribeExportTasksInput, arg2 ...request.Option) (*ec2.DescribeExportTasksOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6328,7 +6328,7 @@ func (mr *MockEC2APIMockRecorder) DescribeFleetHistoryRequest(arg0 interface{}) 
 }
 
 // DescribeFleetHistoryWithContext mocks base method
-func (m *MockEC2API) DescribeFleetHistoryWithContext(arg0 aws.Context, arg1 *ec2.DescribeFleetHistoryInput, arg2 ...request.Option) (*ec2.DescribeFleetHistoryOutput, error) {
+func (m *MockEC2API) DescribeFleetHistoryWithContext(arg0 context.Context, arg1 *ec2.DescribeFleetHistoryInput, arg2 ...request.Option) (*ec2.DescribeFleetHistoryOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6372,7 +6372,7 @@ func (mr *MockEC2APIMockRecorder) DescribeFleetInstancesRequest(arg0 interface{}
 }
 
 // DescribeFleetInstancesWithContext mocks base method
-func (m *MockEC2API) DescribeFleetInstancesWithContext(arg0 aws.Context, arg1 *ec2.DescribeFleetInstancesInput, arg2 ...request.Option) (*ec2.DescribeFleetInstancesOutput, error) {
+func (m *MockEC2API) DescribeFleetInstancesWithContext(arg0 context.Context, arg1 *ec2.DescribeFleetInstancesInput, arg2 ...request.Option) (*ec2.DescribeFleetInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6416,7 +6416,7 @@ func (mr *MockEC2APIMockRecorder) DescribeFleetsRequest(arg0 interface{}) *gomoc
 }
 
 // DescribeFleetsWithContext mocks base method
-func (m *MockEC2API) DescribeFleetsWithContext(arg0 aws.Context, arg1 *ec2.DescribeFleetsInput, arg2 ...request.Option) (*ec2.DescribeFleetsOutput, error) {
+func (m *MockEC2API) DescribeFleetsWithContext(arg0 context.Context, arg1 *ec2.DescribeFleetsInput, arg2 ...request.Option) (*ec2.DescribeFleetsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6460,7 +6460,7 @@ func (mr *MockEC2APIMockRecorder) DescribeFlowLogsRequest(arg0 interface{}) *gom
 }
 
 // DescribeFlowLogsWithContext mocks base method
-func (m *MockEC2API) DescribeFlowLogsWithContext(arg0 aws.Context, arg1 *ec2.DescribeFlowLogsInput, arg2 ...request.Option) (*ec2.DescribeFlowLogsOutput, error) {
+func (m *MockEC2API) DescribeFlowLogsWithContext(arg0 context.Context, arg1 *ec2.DescribeFlowLogsInput, arg2 ...request.Option) (*ec2.DescribeFlowLogsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6504,7 +6504,7 @@ func (mr *MockEC2APIMockRecorder) DescribeFpgaImageAttributeRequest(arg0 interfa
 }
 
 // DescribeFpgaImageAttributeWithContext mocks base method
-func (m *MockEC2API) DescribeFpgaImageAttributeWithContext(arg0 aws.Context, arg1 *ec2.DescribeFpgaImageAttributeInput, arg2 ...request.Option) (*ec2.DescribeFpgaImageAttributeOutput, error) {
+func (m *MockEC2API) DescribeFpgaImageAttributeWithContext(arg0 context.Context, arg1 *ec2.DescribeFpgaImageAttributeInput, arg2 ...request.Option) (*ec2.DescribeFpgaImageAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6548,7 +6548,7 @@ func (mr *MockEC2APIMockRecorder) DescribeFpgaImagesRequest(arg0 interface{}) *g
 }
 
 // DescribeFpgaImagesWithContext mocks base method
-func (m *MockEC2API) DescribeFpgaImagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeFpgaImagesInput, arg2 ...request.Option) (*ec2.DescribeFpgaImagesOutput, error) {
+func (m *MockEC2API) DescribeFpgaImagesWithContext(arg0 context.Context, arg1 *ec2.DescribeFpgaImagesInput, arg2 ...request.Option) (*ec2.DescribeFpgaImagesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6592,7 +6592,7 @@ func (mr *MockEC2APIMockRecorder) DescribeHostReservationOfferingsRequest(arg0 i
 }
 
 // DescribeHostReservationOfferingsWithContext mocks base method
-func (m *MockEC2API) DescribeHostReservationOfferingsWithContext(arg0 aws.Context, arg1 *ec2.DescribeHostReservationOfferingsInput, arg2 ...request.Option) (*ec2.DescribeHostReservationOfferingsOutput, error) {
+func (m *MockEC2API) DescribeHostReservationOfferingsWithContext(arg0 context.Context, arg1 *ec2.DescribeHostReservationOfferingsInput, arg2 ...request.Option) (*ec2.DescribeHostReservationOfferingsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6636,7 +6636,7 @@ func (mr *MockEC2APIMockRecorder) DescribeHostReservationsRequest(arg0 interface
 }
 
 // DescribeHostReservationsWithContext mocks base method
-func (m *MockEC2API) DescribeHostReservationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeHostReservationsInput, arg2 ...request.Option) (*ec2.DescribeHostReservationsOutput, error) {
+func (m *MockEC2API) DescribeHostReservationsWithContext(arg0 context.Context, arg1 *ec2.DescribeHostReservationsInput, arg2 ...request.Option) (*ec2.DescribeHostReservationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6680,7 +6680,7 @@ func (mr *MockEC2APIMockRecorder) DescribeHostsRequest(arg0 interface{}) *gomock
 }
 
 // DescribeHostsWithContext mocks base method
-func (m *MockEC2API) DescribeHostsWithContext(arg0 aws.Context, arg1 *ec2.DescribeHostsInput, arg2 ...request.Option) (*ec2.DescribeHostsOutput, error) {
+func (m *MockEC2API) DescribeHostsWithContext(arg0 context.Context, arg1 *ec2.DescribeHostsInput, arg2 ...request.Option) (*ec2.DescribeHostsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6724,7 +6724,7 @@ func (mr *MockEC2APIMockRecorder) DescribeIamInstanceProfileAssociationsRequest(
 }
 
 // DescribeIamInstanceProfileAssociationsWithContext mocks base method
-func (m *MockEC2API) DescribeIamInstanceProfileAssociationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeIamInstanceProfileAssociationsInput, arg2 ...request.Option) (*ec2.DescribeIamInstanceProfileAssociationsOutput, error) {
+func (m *MockEC2API) DescribeIamInstanceProfileAssociationsWithContext(arg0 context.Context, arg1 *ec2.DescribeIamInstanceProfileAssociationsInput, arg2 ...request.Option) (*ec2.DescribeIamInstanceProfileAssociationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6768,7 +6768,7 @@ func (mr *MockEC2APIMockRecorder) DescribeIdFormatRequest(arg0 interface{}) *gom
 }
 
 // DescribeIdFormatWithContext mocks base method
-func (m *MockEC2API) DescribeIdFormatWithContext(arg0 aws.Context, arg1 *ec2.DescribeIdFormatInput, arg2 ...request.Option) (*ec2.DescribeIdFormatOutput, error) {
+func (m *MockEC2API) DescribeIdFormatWithContext(arg0 context.Context, arg1 *ec2.DescribeIdFormatInput, arg2 ...request.Option) (*ec2.DescribeIdFormatOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6812,7 +6812,7 @@ func (mr *MockEC2APIMockRecorder) DescribeIdentityIdFormatRequest(arg0 interface
 }
 
 // DescribeIdentityIdFormatWithContext mocks base method
-func (m *MockEC2API) DescribeIdentityIdFormatWithContext(arg0 aws.Context, arg1 *ec2.DescribeIdentityIdFormatInput, arg2 ...request.Option) (*ec2.DescribeIdentityIdFormatOutput, error) {
+func (m *MockEC2API) DescribeIdentityIdFormatWithContext(arg0 context.Context, arg1 *ec2.DescribeIdentityIdFormatInput, arg2 ...request.Option) (*ec2.DescribeIdentityIdFormatOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6856,7 +6856,7 @@ func (mr *MockEC2APIMockRecorder) DescribeImageAttributeRequest(arg0 interface{}
 }
 
 // DescribeImageAttributeWithContext mocks base method
-func (m *MockEC2API) DescribeImageAttributeWithContext(arg0 aws.Context, arg1 *ec2.DescribeImageAttributeInput, arg2 ...request.Option) (*ec2.DescribeImageAttributeOutput, error) {
+func (m *MockEC2API) DescribeImageAttributeWithContext(arg0 context.Context, arg1 *ec2.DescribeImageAttributeInput, arg2 ...request.Option) (*ec2.DescribeImageAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6900,7 +6900,7 @@ func (mr *MockEC2APIMockRecorder) DescribeImagesRequest(arg0 interface{}) *gomoc
 }
 
 // DescribeImagesWithContext mocks base method
-func (m *MockEC2API) DescribeImagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeImagesInput, arg2 ...request.Option) (*ec2.DescribeImagesOutput, error) {
+func (m *MockEC2API) DescribeImagesWithContext(arg0 context.Context, arg1 *ec2.DescribeImagesInput, arg2 ...request.Option) (*ec2.DescribeImagesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6944,7 +6944,7 @@ func (mr *MockEC2APIMockRecorder) DescribeImportImageTasksRequest(arg0 interface
 }
 
 // DescribeImportImageTasksWithContext mocks base method
-func (m *MockEC2API) DescribeImportImageTasksWithContext(arg0 aws.Context, arg1 *ec2.DescribeImportImageTasksInput, arg2 ...request.Option) (*ec2.DescribeImportImageTasksOutput, error) {
+func (m *MockEC2API) DescribeImportImageTasksWithContext(arg0 context.Context, arg1 *ec2.DescribeImportImageTasksInput, arg2 ...request.Option) (*ec2.DescribeImportImageTasksOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -6988,7 +6988,7 @@ func (mr *MockEC2APIMockRecorder) DescribeImportSnapshotTasksRequest(arg0 interf
 }
 
 // DescribeImportSnapshotTasksWithContext mocks base method
-func (m *MockEC2API) DescribeImportSnapshotTasksWithContext(arg0 aws.Context, arg1 *ec2.DescribeImportSnapshotTasksInput, arg2 ...request.Option) (*ec2.DescribeImportSnapshotTasksOutput, error) {
+func (m *MockEC2API) DescribeImportSnapshotTasksWithContext(arg0 context.Context, arg1 *ec2.DescribeImportSnapshotTasksInput, arg2 ...request.Option) (*ec2.DescribeImportSnapshotTasksOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7032,7 +7032,7 @@ func (mr *MockEC2APIMockRecorder) DescribeInstanceAttributeRequest(arg0 interfac
 }
 
 // DescribeInstanceAttributeWithContext mocks base method
-func (m *MockEC2API) DescribeInstanceAttributeWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstanceAttributeInput, arg2 ...request.Option) (*ec2.DescribeInstanceAttributeOutput, error) {
+func (m *MockEC2API) DescribeInstanceAttributeWithContext(arg0 context.Context, arg1 *ec2.DescribeInstanceAttributeInput, arg2 ...request.Option) (*ec2.DescribeInstanceAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7076,7 +7076,7 @@ func (mr *MockEC2APIMockRecorder) DescribeInstanceCreditSpecificationsRequest(ar
 }
 
 // DescribeInstanceCreditSpecificationsWithContext mocks base method
-func (m *MockEC2API) DescribeInstanceCreditSpecificationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstanceCreditSpecificationsInput, arg2 ...request.Option) (*ec2.DescribeInstanceCreditSpecificationsOutput, error) {
+func (m *MockEC2API) DescribeInstanceCreditSpecificationsWithContext(arg0 context.Context, arg1 *ec2.DescribeInstanceCreditSpecificationsInput, arg2 ...request.Option) (*ec2.DescribeInstanceCreditSpecificationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7119,7 +7119,7 @@ func (mr *MockEC2APIMockRecorder) DescribeInstanceStatusPages(arg0, arg1 interfa
 }
 
 // DescribeInstanceStatusPagesWithContext mocks base method
-func (m *MockEC2API) DescribeInstanceStatusPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 func(*ec2.DescribeInstanceStatusOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeInstanceStatusPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 func(*ec2.DescribeInstanceStatusOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -7149,7 +7149,7 @@ func (mr *MockEC2APIMockRecorder) DescribeInstanceStatusRequest(arg0 interface{}
 }
 
 // DescribeInstanceStatusWithContext mocks base method
-func (m *MockEC2API) DescribeInstanceStatusWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 ...request.Option) (*ec2.DescribeInstanceStatusOutput, error) {
+func (m *MockEC2API) DescribeInstanceStatusWithContext(arg0 context.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 ...request.Option) (*ec2.DescribeInstanceStatusOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7192,7 +7192,7 @@ func (mr *MockEC2APIMockRecorder) DescribeInstancesPages(arg0, arg1 interface{})
 }
 
 // DescribeInstancesPagesWithContext mocks base method
-func (m *MockEC2API) DescribeInstancesPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstancesInput, arg2 func(*ec2.DescribeInstancesOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeInstancesPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeInstancesInput, arg2 func(*ec2.DescribeInstancesOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -7222,7 +7222,7 @@ func (mr *MockEC2APIMockRecorder) DescribeInstancesRequest(arg0 interface{}) *go
 }
 
 // DescribeInstancesWithContext mocks base method
-func (m *MockEC2API) DescribeInstancesWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.Option) (*ec2.DescribeInstancesOutput, error) {
+func (m *MockEC2API) DescribeInstancesWithContext(arg0 context.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.Option) (*ec2.DescribeInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7266,7 +7266,7 @@ func (mr *MockEC2APIMockRecorder) DescribeInternetGatewaysRequest(arg0 interface
 }
 
 // DescribeInternetGatewaysWithContext mocks base method
-func (m *MockEC2API) DescribeInternetGatewaysWithContext(arg0 aws.Context, arg1 *ec2.DescribeInternetGatewaysInput, arg2 ...request.Option) (*ec2.DescribeInternetGatewaysOutput, error) {
+func (m *MockEC2API) DescribeInternetGatewaysWithContext(arg0 context.Context, arg1 *ec2.DescribeInternetGatewaysInput, arg2 ...request.Option) (*ec2.DescribeInternetGatewaysOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7310,7 +7310,7 @@ func (mr *MockEC2APIMockRecorder) DescribeKeyPairsRequest(arg0 interface{}) *gom
 }
 
 // DescribeKeyPairsWithContext mocks base method
-func (m *MockEC2API) DescribeKeyPairsWithContext(arg0 aws.Context, arg1 *ec2.DescribeKeyPairsInput, arg2 ...request.Option) (*ec2.DescribeKeyPairsOutput, error) {
+func (m *MockEC2API) DescribeKeyPairsWithContext(arg0 context.Context, arg1 *ec2.DescribeKeyPairsInput, arg2 ...request.Option) (*ec2.DescribeKeyPairsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7354,7 +7354,7 @@ func (mr *MockEC2APIMockRecorder) DescribeLaunchTemplateVersionsRequest(arg0 int
 }
 
 // DescribeLaunchTemplateVersionsWithContext mocks base method
-func (m *MockEC2API) DescribeLaunchTemplateVersionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeLaunchTemplateVersionsInput, arg2 ...request.Option) (*ec2.DescribeLaunchTemplateVersionsOutput, error) {
+func (m *MockEC2API) DescribeLaunchTemplateVersionsWithContext(arg0 context.Context, arg1 *ec2.DescribeLaunchTemplateVersionsInput, arg2 ...request.Option) (*ec2.DescribeLaunchTemplateVersionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7398,7 +7398,7 @@ func (mr *MockEC2APIMockRecorder) DescribeLaunchTemplatesRequest(arg0 interface{
 }
 
 // DescribeLaunchTemplatesWithContext mocks base method
-func (m *MockEC2API) DescribeLaunchTemplatesWithContext(arg0 aws.Context, arg1 *ec2.DescribeLaunchTemplatesInput, arg2 ...request.Option) (*ec2.DescribeLaunchTemplatesOutput, error) {
+func (m *MockEC2API) DescribeLaunchTemplatesWithContext(arg0 context.Context, arg1 *ec2.DescribeLaunchTemplatesInput, arg2 ...request.Option) (*ec2.DescribeLaunchTemplatesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7442,7 +7442,7 @@ func (mr *MockEC2APIMockRecorder) DescribeMovingAddressesRequest(arg0 interface{
 }
 
 // DescribeMovingAddressesWithContext mocks base method
-func (m *MockEC2API) DescribeMovingAddressesWithContext(arg0 aws.Context, arg1 *ec2.DescribeMovingAddressesInput, arg2 ...request.Option) (*ec2.DescribeMovingAddressesOutput, error) {
+func (m *MockEC2API) DescribeMovingAddressesWithContext(arg0 context.Context, arg1 *ec2.DescribeMovingAddressesInput, arg2 ...request.Option) (*ec2.DescribeMovingAddressesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7485,7 +7485,7 @@ func (mr *MockEC2APIMockRecorder) DescribeNatGatewaysPages(arg0, arg1 interface{
 }
 
 // DescribeNatGatewaysPagesWithContext mocks base method
-func (m *MockEC2API) DescribeNatGatewaysPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeNatGatewaysInput, arg2 func(*ec2.DescribeNatGatewaysOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeNatGatewaysPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeNatGatewaysInput, arg2 func(*ec2.DescribeNatGatewaysOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -7515,7 +7515,7 @@ func (mr *MockEC2APIMockRecorder) DescribeNatGatewaysRequest(arg0 interface{}) *
 }
 
 // DescribeNatGatewaysWithContext mocks base method
-func (m *MockEC2API) DescribeNatGatewaysWithContext(arg0 aws.Context, arg1 *ec2.DescribeNatGatewaysInput, arg2 ...request.Option) (*ec2.DescribeNatGatewaysOutput, error) {
+func (m *MockEC2API) DescribeNatGatewaysWithContext(arg0 context.Context, arg1 *ec2.DescribeNatGatewaysInput, arg2 ...request.Option) (*ec2.DescribeNatGatewaysOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7559,7 +7559,7 @@ func (mr *MockEC2APIMockRecorder) DescribeNetworkAclsRequest(arg0 interface{}) *
 }
 
 // DescribeNetworkAclsWithContext mocks base method
-func (m *MockEC2API) DescribeNetworkAclsWithContext(arg0 aws.Context, arg1 *ec2.DescribeNetworkAclsInput, arg2 ...request.Option) (*ec2.DescribeNetworkAclsOutput, error) {
+func (m *MockEC2API) DescribeNetworkAclsWithContext(arg0 context.Context, arg1 *ec2.DescribeNetworkAclsInput, arg2 ...request.Option) (*ec2.DescribeNetworkAclsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7603,7 +7603,7 @@ func (mr *MockEC2APIMockRecorder) DescribeNetworkInterfaceAttributeRequest(arg0 
 }
 
 // DescribeNetworkInterfaceAttributeWithContext mocks base method
-func (m *MockEC2API) DescribeNetworkInterfaceAttributeWithContext(arg0 aws.Context, arg1 *ec2.DescribeNetworkInterfaceAttributeInput, arg2 ...request.Option) (*ec2.DescribeNetworkInterfaceAttributeOutput, error) {
+func (m *MockEC2API) DescribeNetworkInterfaceAttributeWithContext(arg0 context.Context, arg1 *ec2.DescribeNetworkInterfaceAttributeInput, arg2 ...request.Option) (*ec2.DescribeNetworkInterfaceAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7647,7 +7647,7 @@ func (mr *MockEC2APIMockRecorder) DescribeNetworkInterfacePermissionsRequest(arg
 }
 
 // DescribeNetworkInterfacePermissionsWithContext mocks base method
-func (m *MockEC2API) DescribeNetworkInterfacePermissionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeNetworkInterfacePermissionsInput, arg2 ...request.Option) (*ec2.DescribeNetworkInterfacePermissionsOutput, error) {
+func (m *MockEC2API) DescribeNetworkInterfacePermissionsWithContext(arg0 context.Context, arg1 *ec2.DescribeNetworkInterfacePermissionsInput, arg2 ...request.Option) (*ec2.DescribeNetworkInterfacePermissionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7690,7 +7690,7 @@ func (mr *MockEC2APIMockRecorder) DescribeNetworkInterfacesPages(arg0, arg1 inte
 }
 
 // DescribeNetworkInterfacesPagesWithContext mocks base method
-func (m *MockEC2API) DescribeNetworkInterfacesPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeNetworkInterfacesInput, arg2 func(*ec2.DescribeNetworkInterfacesOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeNetworkInterfacesPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeNetworkInterfacesInput, arg2 func(*ec2.DescribeNetworkInterfacesOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -7720,7 +7720,7 @@ func (mr *MockEC2APIMockRecorder) DescribeNetworkInterfacesRequest(arg0 interfac
 }
 
 // DescribeNetworkInterfacesWithContext mocks base method
-func (m *MockEC2API) DescribeNetworkInterfacesWithContext(arg0 aws.Context, arg1 *ec2.DescribeNetworkInterfacesInput, arg2 ...request.Option) (*ec2.DescribeNetworkInterfacesOutput, error) {
+func (m *MockEC2API) DescribeNetworkInterfacesWithContext(arg0 context.Context, arg1 *ec2.DescribeNetworkInterfacesInput, arg2 ...request.Option) (*ec2.DescribeNetworkInterfacesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7764,7 +7764,7 @@ func (mr *MockEC2APIMockRecorder) DescribePlacementGroupsRequest(arg0 interface{
 }
 
 // DescribePlacementGroupsWithContext mocks base method
-func (m *MockEC2API) DescribePlacementGroupsWithContext(arg0 aws.Context, arg1 *ec2.DescribePlacementGroupsInput, arg2 ...request.Option) (*ec2.DescribePlacementGroupsOutput, error) {
+func (m *MockEC2API) DescribePlacementGroupsWithContext(arg0 context.Context, arg1 *ec2.DescribePlacementGroupsInput, arg2 ...request.Option) (*ec2.DescribePlacementGroupsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7808,7 +7808,7 @@ func (mr *MockEC2APIMockRecorder) DescribePrefixListsRequest(arg0 interface{}) *
 }
 
 // DescribePrefixListsWithContext mocks base method
-func (m *MockEC2API) DescribePrefixListsWithContext(arg0 aws.Context, arg1 *ec2.DescribePrefixListsInput, arg2 ...request.Option) (*ec2.DescribePrefixListsOutput, error) {
+func (m *MockEC2API) DescribePrefixListsWithContext(arg0 context.Context, arg1 *ec2.DescribePrefixListsInput, arg2 ...request.Option) (*ec2.DescribePrefixListsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7852,7 +7852,7 @@ func (mr *MockEC2APIMockRecorder) DescribePrincipalIdFormatRequest(arg0 interfac
 }
 
 // DescribePrincipalIdFormatWithContext mocks base method
-func (m *MockEC2API) DescribePrincipalIdFormatWithContext(arg0 aws.Context, arg1 *ec2.DescribePrincipalIdFormatInput, arg2 ...request.Option) (*ec2.DescribePrincipalIdFormatOutput, error) {
+func (m *MockEC2API) DescribePrincipalIdFormatWithContext(arg0 context.Context, arg1 *ec2.DescribePrincipalIdFormatInput, arg2 ...request.Option) (*ec2.DescribePrincipalIdFormatOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7896,7 +7896,7 @@ func (mr *MockEC2APIMockRecorder) DescribePublicIpv4PoolsRequest(arg0 interface{
 }
 
 // DescribePublicIpv4PoolsWithContext mocks base method
-func (m *MockEC2API) DescribePublicIpv4PoolsWithContext(arg0 aws.Context, arg1 *ec2.DescribePublicIpv4PoolsInput, arg2 ...request.Option) (*ec2.DescribePublicIpv4PoolsOutput, error) {
+func (m *MockEC2API) DescribePublicIpv4PoolsWithContext(arg0 context.Context, arg1 *ec2.DescribePublicIpv4PoolsInput, arg2 ...request.Option) (*ec2.DescribePublicIpv4PoolsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7940,7 +7940,7 @@ func (mr *MockEC2APIMockRecorder) DescribeRegionsRequest(arg0 interface{}) *gomo
 }
 
 // DescribeRegionsWithContext mocks base method
-func (m *MockEC2API) DescribeRegionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeRegionsInput, arg2 ...request.Option) (*ec2.DescribeRegionsOutput, error) {
+func (m *MockEC2API) DescribeRegionsWithContext(arg0 context.Context, arg1 *ec2.DescribeRegionsInput, arg2 ...request.Option) (*ec2.DescribeRegionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -7997,7 +7997,7 @@ func (mr *MockEC2APIMockRecorder) DescribeReservedInstancesListingsRequest(arg0 
 }
 
 // DescribeReservedInstancesListingsWithContext mocks base method
-func (m *MockEC2API) DescribeReservedInstancesListingsWithContext(arg0 aws.Context, arg1 *ec2.DescribeReservedInstancesListingsInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesListingsOutput, error) {
+func (m *MockEC2API) DescribeReservedInstancesListingsWithContext(arg0 context.Context, arg1 *ec2.DescribeReservedInstancesListingsInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesListingsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8040,7 +8040,7 @@ func (mr *MockEC2APIMockRecorder) DescribeReservedInstancesModificationsPages(ar
 }
 
 // DescribeReservedInstancesModificationsPagesWithContext mocks base method
-func (m *MockEC2API) DescribeReservedInstancesModificationsPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeReservedInstancesModificationsInput, arg2 func(*ec2.DescribeReservedInstancesModificationsOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeReservedInstancesModificationsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeReservedInstancesModificationsInput, arg2 func(*ec2.DescribeReservedInstancesModificationsOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -8070,7 +8070,7 @@ func (mr *MockEC2APIMockRecorder) DescribeReservedInstancesModificationsRequest(
 }
 
 // DescribeReservedInstancesModificationsWithContext mocks base method
-func (m *MockEC2API) DescribeReservedInstancesModificationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeReservedInstancesModificationsInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesModificationsOutput, error) {
+func (m *MockEC2API) DescribeReservedInstancesModificationsWithContext(arg0 context.Context, arg1 *ec2.DescribeReservedInstancesModificationsInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesModificationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8113,7 +8113,7 @@ func (mr *MockEC2APIMockRecorder) DescribeReservedInstancesOfferingsPages(arg0, 
 }
 
 // DescribeReservedInstancesOfferingsPagesWithContext mocks base method
-func (m *MockEC2API) DescribeReservedInstancesOfferingsPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeReservedInstancesOfferingsInput, arg2 func(*ec2.DescribeReservedInstancesOfferingsOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeReservedInstancesOfferingsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeReservedInstancesOfferingsInput, arg2 func(*ec2.DescribeReservedInstancesOfferingsOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -8143,7 +8143,7 @@ func (mr *MockEC2APIMockRecorder) DescribeReservedInstancesOfferingsRequest(arg0
 }
 
 // DescribeReservedInstancesOfferingsWithContext mocks base method
-func (m *MockEC2API) DescribeReservedInstancesOfferingsWithContext(arg0 aws.Context, arg1 *ec2.DescribeReservedInstancesOfferingsInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesOfferingsOutput, error) {
+func (m *MockEC2API) DescribeReservedInstancesOfferingsWithContext(arg0 context.Context, arg1 *ec2.DescribeReservedInstancesOfferingsInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesOfferingsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8174,7 +8174,7 @@ func (mr *MockEC2APIMockRecorder) DescribeReservedInstancesRequest(arg0 interfac
 }
 
 // DescribeReservedInstancesWithContext mocks base method
-func (m *MockEC2API) DescribeReservedInstancesWithContext(arg0 aws.Context, arg1 *ec2.DescribeReservedInstancesInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesOutput, error) {
+func (m *MockEC2API) DescribeReservedInstancesWithContext(arg0 context.Context, arg1 *ec2.DescribeReservedInstancesInput, arg2 ...request.Option) (*ec2.DescribeReservedInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8217,7 +8217,7 @@ func (mr *MockEC2APIMockRecorder) DescribeRouteTablesPages(arg0, arg1 interface{
 }
 
 // DescribeRouteTablesPagesWithContext mocks base method
-func (m *MockEC2API) DescribeRouteTablesPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeRouteTablesInput, arg2 func(*ec2.DescribeRouteTablesOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeRouteTablesPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeRouteTablesInput, arg2 func(*ec2.DescribeRouteTablesOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -8247,7 +8247,7 @@ func (mr *MockEC2APIMockRecorder) DescribeRouteTablesRequest(arg0 interface{}) *
 }
 
 // DescribeRouteTablesWithContext mocks base method
-func (m *MockEC2API) DescribeRouteTablesWithContext(arg0 aws.Context, arg1 *ec2.DescribeRouteTablesInput, arg2 ...request.Option) (*ec2.DescribeRouteTablesOutput, error) {
+func (m *MockEC2API) DescribeRouteTablesWithContext(arg0 context.Context, arg1 *ec2.DescribeRouteTablesInput, arg2 ...request.Option) (*ec2.DescribeRouteTablesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8291,7 +8291,7 @@ func (mr *MockEC2APIMockRecorder) DescribeScheduledInstanceAvailabilityRequest(a
 }
 
 // DescribeScheduledInstanceAvailabilityWithContext mocks base method
-func (m *MockEC2API) DescribeScheduledInstanceAvailabilityWithContext(arg0 aws.Context, arg1 *ec2.DescribeScheduledInstanceAvailabilityInput, arg2 ...request.Option) (*ec2.DescribeScheduledInstanceAvailabilityOutput, error) {
+func (m *MockEC2API) DescribeScheduledInstanceAvailabilityWithContext(arg0 context.Context, arg1 *ec2.DescribeScheduledInstanceAvailabilityInput, arg2 ...request.Option) (*ec2.DescribeScheduledInstanceAvailabilityOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8335,7 +8335,7 @@ func (mr *MockEC2APIMockRecorder) DescribeScheduledInstancesRequest(arg0 interfa
 }
 
 // DescribeScheduledInstancesWithContext mocks base method
-func (m *MockEC2API) DescribeScheduledInstancesWithContext(arg0 aws.Context, arg1 *ec2.DescribeScheduledInstancesInput, arg2 ...request.Option) (*ec2.DescribeScheduledInstancesOutput, error) {
+func (m *MockEC2API) DescribeScheduledInstancesWithContext(arg0 context.Context, arg1 *ec2.DescribeScheduledInstancesInput, arg2 ...request.Option) (*ec2.DescribeScheduledInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8379,7 +8379,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupReferencesRequest(arg0 in
 }
 
 // DescribeSecurityGroupReferencesWithContext mocks base method
-func (m *MockEC2API) DescribeSecurityGroupReferencesWithContext(arg0 aws.Context, arg1 *ec2.DescribeSecurityGroupReferencesInput, arg2 ...request.Option) (*ec2.DescribeSecurityGroupReferencesOutput, error) {
+func (m *MockEC2API) DescribeSecurityGroupReferencesWithContext(arg0 context.Context, arg1 *ec2.DescribeSecurityGroupReferencesInput, arg2 ...request.Option) (*ec2.DescribeSecurityGroupReferencesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8422,7 +8422,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupsPages(arg0, arg1 interfa
 }
 
 // DescribeSecurityGroupsPagesWithContext mocks base method
-func (m *MockEC2API) DescribeSecurityGroupsPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeSecurityGroupsInput, arg2 func(*ec2.DescribeSecurityGroupsOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeSecurityGroupsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeSecurityGroupsInput, arg2 func(*ec2.DescribeSecurityGroupsOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -8452,7 +8452,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSecurityGroupsRequest(arg0 interface{}
 }
 
 // DescribeSecurityGroupsWithContext mocks base method
-func (m *MockEC2API) DescribeSecurityGroupsWithContext(arg0 aws.Context, arg1 *ec2.DescribeSecurityGroupsInput, arg2 ...request.Option) (*ec2.DescribeSecurityGroupsOutput, error) {
+func (m *MockEC2API) DescribeSecurityGroupsWithContext(arg0 context.Context, arg1 *ec2.DescribeSecurityGroupsInput, arg2 ...request.Option) (*ec2.DescribeSecurityGroupsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8496,7 +8496,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSnapshotAttributeRequest(arg0 interfac
 }
 
 // DescribeSnapshotAttributeWithContext mocks base method
-func (m *MockEC2API) DescribeSnapshotAttributeWithContext(arg0 aws.Context, arg1 *ec2.DescribeSnapshotAttributeInput, arg2 ...request.Option) (*ec2.DescribeSnapshotAttributeOutput, error) {
+func (m *MockEC2API) DescribeSnapshotAttributeWithContext(arg0 context.Context, arg1 *ec2.DescribeSnapshotAttributeInput, arg2 ...request.Option) (*ec2.DescribeSnapshotAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8539,7 +8539,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSnapshotsPages(arg0, arg1 interface{})
 }
 
 // DescribeSnapshotsPagesWithContext mocks base method
-func (m *MockEC2API) DescribeSnapshotsPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeSnapshotsInput, arg2 func(*ec2.DescribeSnapshotsOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeSnapshotsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeSnapshotsInput, arg2 func(*ec2.DescribeSnapshotsOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -8569,7 +8569,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSnapshotsRequest(arg0 interface{}) *go
 }
 
 // DescribeSnapshotsWithContext mocks base method
-func (m *MockEC2API) DescribeSnapshotsWithContext(arg0 aws.Context, arg1 *ec2.DescribeSnapshotsInput, arg2 ...request.Option) (*ec2.DescribeSnapshotsOutput, error) {
+func (m *MockEC2API) DescribeSnapshotsWithContext(arg0 context.Context, arg1 *ec2.DescribeSnapshotsInput, arg2 ...request.Option) (*ec2.DescribeSnapshotsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8613,7 +8613,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotDatafeedSubscriptionRequest(arg0 i
 }
 
 // DescribeSpotDatafeedSubscriptionWithContext mocks base method
-func (m *MockEC2API) DescribeSpotDatafeedSubscriptionWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotDatafeedSubscriptionInput, arg2 ...request.Option) (*ec2.DescribeSpotDatafeedSubscriptionOutput, error) {
+func (m *MockEC2API) DescribeSpotDatafeedSubscriptionWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotDatafeedSubscriptionInput, arg2 ...request.Option) (*ec2.DescribeSpotDatafeedSubscriptionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8657,7 +8657,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotFleetInstancesRequest(arg0 interfa
 }
 
 // DescribeSpotFleetInstancesWithContext mocks base method
-func (m *MockEC2API) DescribeSpotFleetInstancesWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotFleetInstancesInput, arg2 ...request.Option) (*ec2.DescribeSpotFleetInstancesOutput, error) {
+func (m *MockEC2API) DescribeSpotFleetInstancesWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotFleetInstancesInput, arg2 ...request.Option) (*ec2.DescribeSpotFleetInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8701,7 +8701,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotFleetRequestHistoryRequest(arg0 in
 }
 
 // DescribeSpotFleetRequestHistoryWithContext mocks base method
-func (m *MockEC2API) DescribeSpotFleetRequestHistoryWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotFleetRequestHistoryInput, arg2 ...request.Option) (*ec2.DescribeSpotFleetRequestHistoryOutput, error) {
+func (m *MockEC2API) DescribeSpotFleetRequestHistoryWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotFleetRequestHistoryInput, arg2 ...request.Option) (*ec2.DescribeSpotFleetRequestHistoryOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8744,7 +8744,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotFleetRequestsPages(arg0, arg1 inte
 }
 
 // DescribeSpotFleetRequestsPagesWithContext mocks base method
-func (m *MockEC2API) DescribeSpotFleetRequestsPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotFleetRequestsInput, arg2 func(*ec2.DescribeSpotFleetRequestsOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeSpotFleetRequestsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotFleetRequestsInput, arg2 func(*ec2.DescribeSpotFleetRequestsOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -8774,7 +8774,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotFleetRequestsRequest(arg0 interfac
 }
 
 // DescribeSpotFleetRequestsWithContext mocks base method
-func (m *MockEC2API) DescribeSpotFleetRequestsWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotFleetRequestsInput, arg2 ...request.Option) (*ec2.DescribeSpotFleetRequestsOutput, error) {
+func (m *MockEC2API) DescribeSpotFleetRequestsWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotFleetRequestsInput, arg2 ...request.Option) (*ec2.DescribeSpotFleetRequestsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8818,7 +8818,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotInstanceRequestsRequest(arg0 inter
 }
 
 // DescribeSpotInstanceRequestsWithContext mocks base method
-func (m *MockEC2API) DescribeSpotInstanceRequestsWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotInstanceRequestsInput, arg2 ...request.Option) (*ec2.DescribeSpotInstanceRequestsOutput, error) {
+func (m *MockEC2API) DescribeSpotInstanceRequestsWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotInstanceRequestsInput, arg2 ...request.Option) (*ec2.DescribeSpotInstanceRequestsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8861,7 +8861,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotPriceHistoryPages(arg0, arg1 inter
 }
 
 // DescribeSpotPriceHistoryPagesWithContext mocks base method
-func (m *MockEC2API) DescribeSpotPriceHistoryPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotPriceHistoryInput, arg2 func(*ec2.DescribeSpotPriceHistoryOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeSpotPriceHistoryPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotPriceHistoryInput, arg2 func(*ec2.DescribeSpotPriceHistoryOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -8891,7 +8891,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSpotPriceHistoryRequest(arg0 interface
 }
 
 // DescribeSpotPriceHistoryWithContext mocks base method
-func (m *MockEC2API) DescribeSpotPriceHistoryWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotPriceHistoryInput, arg2 ...request.Option) (*ec2.DescribeSpotPriceHistoryOutput, error) {
+func (m *MockEC2API) DescribeSpotPriceHistoryWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotPriceHistoryInput, arg2 ...request.Option) (*ec2.DescribeSpotPriceHistoryOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8935,7 +8935,7 @@ func (mr *MockEC2APIMockRecorder) DescribeStaleSecurityGroupsRequest(arg0 interf
 }
 
 // DescribeStaleSecurityGroupsWithContext mocks base method
-func (m *MockEC2API) DescribeStaleSecurityGroupsWithContext(arg0 aws.Context, arg1 *ec2.DescribeStaleSecurityGroupsInput, arg2 ...request.Option) (*ec2.DescribeStaleSecurityGroupsOutput, error) {
+func (m *MockEC2API) DescribeStaleSecurityGroupsWithContext(arg0 context.Context, arg1 *ec2.DescribeStaleSecurityGroupsInput, arg2 ...request.Option) (*ec2.DescribeStaleSecurityGroupsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -8979,7 +8979,7 @@ func (mr *MockEC2APIMockRecorder) DescribeSubnetsRequest(arg0 interface{}) *gomo
 }
 
 // DescribeSubnetsWithContext mocks base method
-func (m *MockEC2API) DescribeSubnetsWithContext(arg0 aws.Context, arg1 *ec2.DescribeSubnetsInput, arg2 ...request.Option) (*ec2.DescribeSubnetsOutput, error) {
+func (m *MockEC2API) DescribeSubnetsWithContext(arg0 context.Context, arg1 *ec2.DescribeSubnetsInput, arg2 ...request.Option) (*ec2.DescribeSubnetsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9022,7 +9022,7 @@ func (mr *MockEC2APIMockRecorder) DescribeTagsPages(arg0, arg1 interface{}) *gom
 }
 
 // DescribeTagsPagesWithContext mocks base method
-func (m *MockEC2API) DescribeTagsPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeTagsInput, arg2 func(*ec2.DescribeTagsOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeTagsPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeTagsInput, arg2 func(*ec2.DescribeTagsOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -9052,7 +9052,7 @@ func (mr *MockEC2APIMockRecorder) DescribeTagsRequest(arg0 interface{}) *gomock.
 }
 
 // DescribeTagsWithContext mocks base method
-func (m *MockEC2API) DescribeTagsWithContext(arg0 aws.Context, arg1 *ec2.DescribeTagsInput, arg2 ...request.Option) (*ec2.DescribeTagsOutput, error) {
+func (m *MockEC2API) DescribeTagsWithContext(arg0 context.Context, arg1 *ec2.DescribeTagsInput, arg2 ...request.Option) (*ec2.DescribeTagsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9096,7 +9096,7 @@ func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayAttachmentsRequest(arg0 
 }
 
 // DescribeTransitGatewayAttachmentsWithContext mocks base method
-func (m *MockEC2API) DescribeTransitGatewayAttachmentsWithContext(arg0 aws.Context, arg1 *ec2.DescribeTransitGatewayAttachmentsInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayAttachmentsOutput, error) {
+func (m *MockEC2API) DescribeTransitGatewayAttachmentsWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewayAttachmentsInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayAttachmentsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9140,7 +9140,7 @@ func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayRouteTablesRequest(arg0 
 }
 
 // DescribeTransitGatewayRouteTablesWithContext mocks base method
-func (m *MockEC2API) DescribeTransitGatewayRouteTablesWithContext(arg0 aws.Context, arg1 *ec2.DescribeTransitGatewayRouteTablesInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayRouteTablesOutput, error) {
+func (m *MockEC2API) DescribeTransitGatewayRouteTablesWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewayRouteTablesInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayRouteTablesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9184,7 +9184,7 @@ func (mr *MockEC2APIMockRecorder) DescribeTransitGatewayVpcAttachmentsRequest(ar
 }
 
 // DescribeTransitGatewayVpcAttachmentsWithContext mocks base method
-func (m *MockEC2API) DescribeTransitGatewayVpcAttachmentsWithContext(arg0 aws.Context, arg1 *ec2.DescribeTransitGatewayVpcAttachmentsInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayVpcAttachmentsOutput, error) {
+func (m *MockEC2API) DescribeTransitGatewayVpcAttachmentsWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewayVpcAttachmentsInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewayVpcAttachmentsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9228,7 +9228,7 @@ func (mr *MockEC2APIMockRecorder) DescribeTransitGatewaysRequest(arg0 interface{
 }
 
 // DescribeTransitGatewaysWithContext mocks base method
-func (m *MockEC2API) DescribeTransitGatewaysWithContext(arg0 aws.Context, arg1 *ec2.DescribeTransitGatewaysInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewaysOutput, error) {
+func (m *MockEC2API) DescribeTransitGatewaysWithContext(arg0 context.Context, arg1 *ec2.DescribeTransitGatewaysInput, arg2 ...request.Option) (*ec2.DescribeTransitGatewaysOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9272,7 +9272,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVolumeAttributeRequest(arg0 interface{
 }
 
 // DescribeVolumeAttributeWithContext mocks base method
-func (m *MockEC2API) DescribeVolumeAttributeWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumeAttributeInput, arg2 ...request.Option) (*ec2.DescribeVolumeAttributeOutput, error) {
+func (m *MockEC2API) DescribeVolumeAttributeWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumeAttributeInput, arg2 ...request.Option) (*ec2.DescribeVolumeAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9315,7 +9315,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVolumeStatusPages(arg0, arg1 interface
 }
 
 // DescribeVolumeStatusPagesWithContext mocks base method
-func (m *MockEC2API) DescribeVolumeStatusPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumeStatusInput, arg2 func(*ec2.DescribeVolumeStatusOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeVolumeStatusPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumeStatusInput, arg2 func(*ec2.DescribeVolumeStatusOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -9345,7 +9345,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVolumeStatusRequest(arg0 interface{}) 
 }
 
 // DescribeVolumeStatusWithContext mocks base method
-func (m *MockEC2API) DescribeVolumeStatusWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumeStatusInput, arg2 ...request.Option) (*ec2.DescribeVolumeStatusOutput, error) {
+func (m *MockEC2API) DescribeVolumeStatusWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumeStatusInput, arg2 ...request.Option) (*ec2.DescribeVolumeStatusOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9402,7 +9402,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVolumesModificationsRequest(arg0 inter
 }
 
 // DescribeVolumesModificationsWithContext mocks base method
-func (m *MockEC2API) DescribeVolumesModificationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumesModificationsInput, arg2 ...request.Option) (*ec2.DescribeVolumesModificationsOutput, error) {
+func (m *MockEC2API) DescribeVolumesModificationsWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumesModificationsInput, arg2 ...request.Option) (*ec2.DescribeVolumesModificationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9432,7 +9432,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVolumesPages(arg0, arg1 interface{}) *
 }
 
 // DescribeVolumesPagesWithContext mocks base method
-func (m *MockEC2API) DescribeVolumesPagesWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumesInput, arg2 func(*ec2.DescribeVolumesOutput, bool) bool, arg3 ...request.Option) error {
+func (m *MockEC2API) DescribeVolumesPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumesInput, arg2 func(*ec2.DescribeVolumesOutput, bool) bool, arg3 ...request.Option) error {
 	varargs := []interface{}{arg0, arg1, arg2}
 	for _, a := range arg3 {
 		varargs = append(varargs, a)
@@ -9462,7 +9462,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVolumesRequest(arg0 interface{}) *gomo
 }
 
 // DescribeVolumesWithContext mocks base method
-func (m *MockEC2API) DescribeVolumesWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.Option) (*ec2.DescribeVolumesOutput, error) {
+func (m *MockEC2API) DescribeVolumesWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.Option) (*ec2.DescribeVolumesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9506,7 +9506,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcAttributeRequest(arg0 interface{}) 
 }
 
 // DescribeVpcAttributeWithContext mocks base method
-func (m *MockEC2API) DescribeVpcAttributeWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcAttributeInput, arg2 ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
+func (m *MockEC2API) DescribeVpcAttributeWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcAttributeInput, arg2 ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9563,7 +9563,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcClassicLinkDnsSupportRequest(arg0 i
 }
 
 // DescribeVpcClassicLinkDnsSupportWithContext mocks base method
-func (m *MockEC2API) DescribeVpcClassicLinkDnsSupportWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcClassicLinkDnsSupportInput, arg2 ...request.Option) (*ec2.DescribeVpcClassicLinkDnsSupportOutput, error) {
+func (m *MockEC2API) DescribeVpcClassicLinkDnsSupportWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcClassicLinkDnsSupportInput, arg2 ...request.Option) (*ec2.DescribeVpcClassicLinkDnsSupportOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9594,7 +9594,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcClassicLinkRequest(arg0 interface{}
 }
 
 // DescribeVpcClassicLinkWithContext mocks base method
-func (m *MockEC2API) DescribeVpcClassicLinkWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcClassicLinkInput, arg2 ...request.Option) (*ec2.DescribeVpcClassicLinkOutput, error) {
+func (m *MockEC2API) DescribeVpcClassicLinkWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcClassicLinkInput, arg2 ...request.Option) (*ec2.DescribeVpcClassicLinkOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9638,7 +9638,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcEndpointConnectionNotificationsRequ
 }
 
 // DescribeVpcEndpointConnectionNotificationsWithContext mocks base method
-func (m *MockEC2API) DescribeVpcEndpointConnectionNotificationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcEndpointConnectionNotificationsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointConnectionNotificationsOutput, error) {
+func (m *MockEC2API) DescribeVpcEndpointConnectionNotificationsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcEndpointConnectionNotificationsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointConnectionNotificationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9682,7 +9682,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcEndpointConnectionsRequest(arg0 int
 }
 
 // DescribeVpcEndpointConnectionsWithContext mocks base method
-func (m *MockEC2API) DescribeVpcEndpointConnectionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcEndpointConnectionsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointConnectionsOutput, error) {
+func (m *MockEC2API) DescribeVpcEndpointConnectionsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcEndpointConnectionsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointConnectionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9726,7 +9726,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcEndpointServiceConfigurationsReques
 }
 
 // DescribeVpcEndpointServiceConfigurationsWithContext mocks base method
-func (m *MockEC2API) DescribeVpcEndpointServiceConfigurationsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcEndpointServiceConfigurationsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointServiceConfigurationsOutput, error) {
+func (m *MockEC2API) DescribeVpcEndpointServiceConfigurationsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcEndpointServiceConfigurationsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointServiceConfigurationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9770,7 +9770,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcEndpointServicePermissionsRequest(a
 }
 
 // DescribeVpcEndpointServicePermissionsWithContext mocks base method
-func (m *MockEC2API) DescribeVpcEndpointServicePermissionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcEndpointServicePermissionsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointServicePermissionsOutput, error) {
+func (m *MockEC2API) DescribeVpcEndpointServicePermissionsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcEndpointServicePermissionsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointServicePermissionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9814,7 +9814,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcEndpointServicesRequest(arg0 interf
 }
 
 // DescribeVpcEndpointServicesWithContext mocks base method
-func (m *MockEC2API) DescribeVpcEndpointServicesWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcEndpointServicesInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointServicesOutput, error) {
+func (m *MockEC2API) DescribeVpcEndpointServicesWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcEndpointServicesInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointServicesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9858,7 +9858,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcEndpointsRequest(arg0 interface{}) 
 }
 
 // DescribeVpcEndpointsWithContext mocks base method
-func (m *MockEC2API) DescribeVpcEndpointsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcEndpointsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointsOutput, error) {
+func (m *MockEC2API) DescribeVpcEndpointsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcEndpointsInput, arg2 ...request.Option) (*ec2.DescribeVpcEndpointsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9902,7 +9902,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcPeeringConnectionsRequest(arg0 inte
 }
 
 // DescribeVpcPeeringConnectionsWithContext mocks base method
-func (m *MockEC2API) DescribeVpcPeeringConnectionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcPeeringConnectionsInput, arg2 ...request.Option) (*ec2.DescribeVpcPeeringConnectionsOutput, error) {
+func (m *MockEC2API) DescribeVpcPeeringConnectionsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcPeeringConnectionsInput, arg2 ...request.Option) (*ec2.DescribeVpcPeeringConnectionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9946,7 +9946,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpcsRequest(arg0 interface{}) *gomock.
 }
 
 // DescribeVpcsWithContext mocks base method
-func (m *MockEC2API) DescribeVpcsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcsInput, arg2 ...request.Option) (*ec2.DescribeVpcsOutput, error) {
+func (m *MockEC2API) DescribeVpcsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcsInput, arg2 ...request.Option) (*ec2.DescribeVpcsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -9990,7 +9990,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpnConnectionsRequest(arg0 interface{}
 }
 
 // DescribeVpnConnectionsWithContext mocks base method
-func (m *MockEC2API) DescribeVpnConnectionsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpnConnectionsInput, arg2 ...request.Option) (*ec2.DescribeVpnConnectionsOutput, error) {
+func (m *MockEC2API) DescribeVpnConnectionsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpnConnectionsInput, arg2 ...request.Option) (*ec2.DescribeVpnConnectionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10034,7 +10034,7 @@ func (mr *MockEC2APIMockRecorder) DescribeVpnGatewaysRequest(arg0 interface{}) *
 }
 
 // DescribeVpnGatewaysWithContext mocks base method
-func (m *MockEC2API) DescribeVpnGatewaysWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpnGatewaysInput, arg2 ...request.Option) (*ec2.DescribeVpnGatewaysOutput, error) {
+func (m *MockEC2API) DescribeVpnGatewaysWithContext(arg0 context.Context, arg1 *ec2.DescribeVpnGatewaysInput, arg2 ...request.Option) (*ec2.DescribeVpnGatewaysOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10078,7 +10078,7 @@ func (mr *MockEC2APIMockRecorder) DetachClassicLinkVpcRequest(arg0 interface{}) 
 }
 
 // DetachClassicLinkVpcWithContext mocks base method
-func (m *MockEC2API) DetachClassicLinkVpcWithContext(arg0 aws.Context, arg1 *ec2.DetachClassicLinkVpcInput, arg2 ...request.Option) (*ec2.DetachClassicLinkVpcOutput, error) {
+func (m *MockEC2API) DetachClassicLinkVpcWithContext(arg0 context.Context, arg1 *ec2.DetachClassicLinkVpcInput, arg2 ...request.Option) (*ec2.DetachClassicLinkVpcOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10122,7 +10122,7 @@ func (mr *MockEC2APIMockRecorder) DetachInternetGatewayRequest(arg0 interface{})
 }
 
 // DetachInternetGatewayWithContext mocks base method
-func (m *MockEC2API) DetachInternetGatewayWithContext(arg0 aws.Context, arg1 *ec2.DetachInternetGatewayInput, arg2 ...request.Option) (*ec2.DetachInternetGatewayOutput, error) {
+func (m *MockEC2API) DetachInternetGatewayWithContext(arg0 context.Context, arg1 *ec2.DetachInternetGatewayInput, arg2 ...request.Option) (*ec2.DetachInternetGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10166,7 +10166,7 @@ func (mr *MockEC2APIMockRecorder) DetachNetworkInterfaceRequest(arg0 interface{}
 }
 
 // DetachNetworkInterfaceWithContext mocks base method
-func (m *MockEC2API) DetachNetworkInterfaceWithContext(arg0 aws.Context, arg1 *ec2.DetachNetworkInterfaceInput, arg2 ...request.Option) (*ec2.DetachNetworkInterfaceOutput, error) {
+func (m *MockEC2API) DetachNetworkInterfaceWithContext(arg0 context.Context, arg1 *ec2.DetachNetworkInterfaceInput, arg2 ...request.Option) (*ec2.DetachNetworkInterfaceOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10210,7 +10210,7 @@ func (mr *MockEC2APIMockRecorder) DetachVolumeRequest(arg0 interface{}) *gomock.
 }
 
 // DetachVolumeWithContext mocks base method
-func (m *MockEC2API) DetachVolumeWithContext(arg0 aws.Context, arg1 *ec2.DetachVolumeInput, arg2 ...request.Option) (*ec2.VolumeAttachment, error) {
+func (m *MockEC2API) DetachVolumeWithContext(arg0 context.Context, arg1 *ec2.DetachVolumeInput, arg2 ...request.Option) (*ec2.VolumeAttachment, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10254,7 +10254,7 @@ func (mr *MockEC2APIMockRecorder) DetachVpnGatewayRequest(arg0 interface{}) *gom
 }
 
 // DetachVpnGatewayWithContext mocks base method
-func (m *MockEC2API) DetachVpnGatewayWithContext(arg0 aws.Context, arg1 *ec2.DetachVpnGatewayInput, arg2 ...request.Option) (*ec2.DetachVpnGatewayOutput, error) {
+func (m *MockEC2API) DetachVpnGatewayWithContext(arg0 context.Context, arg1 *ec2.DetachVpnGatewayInput, arg2 ...request.Option) (*ec2.DetachVpnGatewayOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10298,7 +10298,7 @@ func (mr *MockEC2APIMockRecorder) DisableTransitGatewayRouteTablePropagationRequ
 }
 
 // DisableTransitGatewayRouteTablePropagationWithContext mocks base method
-func (m *MockEC2API) DisableTransitGatewayRouteTablePropagationWithContext(arg0 aws.Context, arg1 *ec2.DisableTransitGatewayRouteTablePropagationInput, arg2 ...request.Option) (*ec2.DisableTransitGatewayRouteTablePropagationOutput, error) {
+func (m *MockEC2API) DisableTransitGatewayRouteTablePropagationWithContext(arg0 context.Context, arg1 *ec2.DisableTransitGatewayRouteTablePropagationInput, arg2 ...request.Option) (*ec2.DisableTransitGatewayRouteTablePropagationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10342,7 +10342,7 @@ func (mr *MockEC2APIMockRecorder) DisableVgwRoutePropagationRequest(arg0 interfa
 }
 
 // DisableVgwRoutePropagationWithContext mocks base method
-func (m *MockEC2API) DisableVgwRoutePropagationWithContext(arg0 aws.Context, arg1 *ec2.DisableVgwRoutePropagationInput, arg2 ...request.Option) (*ec2.DisableVgwRoutePropagationOutput, error) {
+func (m *MockEC2API) DisableVgwRoutePropagationWithContext(arg0 context.Context, arg1 *ec2.DisableVgwRoutePropagationInput, arg2 ...request.Option) (*ec2.DisableVgwRoutePropagationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10399,7 +10399,7 @@ func (mr *MockEC2APIMockRecorder) DisableVpcClassicLinkDnsSupportRequest(arg0 in
 }
 
 // DisableVpcClassicLinkDnsSupportWithContext mocks base method
-func (m *MockEC2API) DisableVpcClassicLinkDnsSupportWithContext(arg0 aws.Context, arg1 *ec2.DisableVpcClassicLinkDnsSupportInput, arg2 ...request.Option) (*ec2.DisableVpcClassicLinkDnsSupportOutput, error) {
+func (m *MockEC2API) DisableVpcClassicLinkDnsSupportWithContext(arg0 context.Context, arg1 *ec2.DisableVpcClassicLinkDnsSupportInput, arg2 ...request.Option) (*ec2.DisableVpcClassicLinkDnsSupportOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10430,7 +10430,7 @@ func (mr *MockEC2APIMockRecorder) DisableVpcClassicLinkRequest(arg0 interface{})
 }
 
 // DisableVpcClassicLinkWithContext mocks base method
-func (m *MockEC2API) DisableVpcClassicLinkWithContext(arg0 aws.Context, arg1 *ec2.DisableVpcClassicLinkInput, arg2 ...request.Option) (*ec2.DisableVpcClassicLinkOutput, error) {
+func (m *MockEC2API) DisableVpcClassicLinkWithContext(arg0 context.Context, arg1 *ec2.DisableVpcClassicLinkInput, arg2 ...request.Option) (*ec2.DisableVpcClassicLinkOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10474,7 +10474,7 @@ func (mr *MockEC2APIMockRecorder) DisassociateAddressRequest(arg0 interface{}) *
 }
 
 // DisassociateAddressWithContext mocks base method
-func (m *MockEC2API) DisassociateAddressWithContext(arg0 aws.Context, arg1 *ec2.DisassociateAddressInput, arg2 ...request.Option) (*ec2.DisassociateAddressOutput, error) {
+func (m *MockEC2API) DisassociateAddressWithContext(arg0 context.Context, arg1 *ec2.DisassociateAddressInput, arg2 ...request.Option) (*ec2.DisassociateAddressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10518,7 +10518,7 @@ func (mr *MockEC2APIMockRecorder) DisassociateClientVpnTargetNetworkRequest(arg0
 }
 
 // DisassociateClientVpnTargetNetworkWithContext mocks base method
-func (m *MockEC2API) DisassociateClientVpnTargetNetworkWithContext(arg0 aws.Context, arg1 *ec2.DisassociateClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.DisassociateClientVpnTargetNetworkOutput, error) {
+func (m *MockEC2API) DisassociateClientVpnTargetNetworkWithContext(arg0 context.Context, arg1 *ec2.DisassociateClientVpnTargetNetworkInput, arg2 ...request.Option) (*ec2.DisassociateClientVpnTargetNetworkOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10562,7 +10562,7 @@ func (mr *MockEC2APIMockRecorder) DisassociateIamInstanceProfileRequest(arg0 int
 }
 
 // DisassociateIamInstanceProfileWithContext mocks base method
-func (m *MockEC2API) DisassociateIamInstanceProfileWithContext(arg0 aws.Context, arg1 *ec2.DisassociateIamInstanceProfileInput, arg2 ...request.Option) (*ec2.DisassociateIamInstanceProfileOutput, error) {
+func (m *MockEC2API) DisassociateIamInstanceProfileWithContext(arg0 context.Context, arg1 *ec2.DisassociateIamInstanceProfileInput, arg2 ...request.Option) (*ec2.DisassociateIamInstanceProfileOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10606,7 +10606,7 @@ func (mr *MockEC2APIMockRecorder) DisassociateRouteTableRequest(arg0 interface{}
 }
 
 // DisassociateRouteTableWithContext mocks base method
-func (m *MockEC2API) DisassociateRouteTableWithContext(arg0 aws.Context, arg1 *ec2.DisassociateRouteTableInput, arg2 ...request.Option) (*ec2.DisassociateRouteTableOutput, error) {
+func (m *MockEC2API) DisassociateRouteTableWithContext(arg0 context.Context, arg1 *ec2.DisassociateRouteTableInput, arg2 ...request.Option) (*ec2.DisassociateRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10650,7 +10650,7 @@ func (mr *MockEC2APIMockRecorder) DisassociateSubnetCidrBlockRequest(arg0 interf
 }
 
 // DisassociateSubnetCidrBlockWithContext mocks base method
-func (m *MockEC2API) DisassociateSubnetCidrBlockWithContext(arg0 aws.Context, arg1 *ec2.DisassociateSubnetCidrBlockInput, arg2 ...request.Option) (*ec2.DisassociateSubnetCidrBlockOutput, error) {
+func (m *MockEC2API) DisassociateSubnetCidrBlockWithContext(arg0 context.Context, arg1 *ec2.DisassociateSubnetCidrBlockInput, arg2 ...request.Option) (*ec2.DisassociateSubnetCidrBlockOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10694,7 +10694,7 @@ func (mr *MockEC2APIMockRecorder) DisassociateTransitGatewayRouteTableRequest(ar
 }
 
 // DisassociateTransitGatewayRouteTableWithContext mocks base method
-func (m *MockEC2API) DisassociateTransitGatewayRouteTableWithContext(arg0 aws.Context, arg1 *ec2.DisassociateTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.DisassociateTransitGatewayRouteTableOutput, error) {
+func (m *MockEC2API) DisassociateTransitGatewayRouteTableWithContext(arg0 context.Context, arg1 *ec2.DisassociateTransitGatewayRouteTableInput, arg2 ...request.Option) (*ec2.DisassociateTransitGatewayRouteTableOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10738,7 +10738,7 @@ func (mr *MockEC2APIMockRecorder) DisassociateVpcCidrBlockRequest(arg0 interface
 }
 
 // DisassociateVpcCidrBlockWithContext mocks base method
-func (m *MockEC2API) DisassociateVpcCidrBlockWithContext(arg0 aws.Context, arg1 *ec2.DisassociateVpcCidrBlockInput, arg2 ...request.Option) (*ec2.DisassociateVpcCidrBlockOutput, error) {
+func (m *MockEC2API) DisassociateVpcCidrBlockWithContext(arg0 context.Context, arg1 *ec2.DisassociateVpcCidrBlockInput, arg2 ...request.Option) (*ec2.DisassociateVpcCidrBlockOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10782,7 +10782,7 @@ func (mr *MockEC2APIMockRecorder) EnableTransitGatewayRouteTablePropagationReque
 }
 
 // EnableTransitGatewayRouteTablePropagationWithContext mocks base method
-func (m *MockEC2API) EnableTransitGatewayRouteTablePropagationWithContext(arg0 aws.Context, arg1 *ec2.EnableTransitGatewayRouteTablePropagationInput, arg2 ...request.Option) (*ec2.EnableTransitGatewayRouteTablePropagationOutput, error) {
+func (m *MockEC2API) EnableTransitGatewayRouteTablePropagationWithContext(arg0 context.Context, arg1 *ec2.EnableTransitGatewayRouteTablePropagationInput, arg2 ...request.Option) (*ec2.EnableTransitGatewayRouteTablePropagationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10826,7 +10826,7 @@ func (mr *MockEC2APIMockRecorder) EnableVgwRoutePropagationRequest(arg0 interfac
 }
 
 // EnableVgwRoutePropagationWithContext mocks base method
-func (m *MockEC2API) EnableVgwRoutePropagationWithContext(arg0 aws.Context, arg1 *ec2.EnableVgwRoutePropagationInput, arg2 ...request.Option) (*ec2.EnableVgwRoutePropagationOutput, error) {
+func (m *MockEC2API) EnableVgwRoutePropagationWithContext(arg0 context.Context, arg1 *ec2.EnableVgwRoutePropagationInput, arg2 ...request.Option) (*ec2.EnableVgwRoutePropagationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10870,7 +10870,7 @@ func (mr *MockEC2APIMockRecorder) EnableVolumeIORequest(arg0 interface{}) *gomoc
 }
 
 // EnableVolumeIOWithContext mocks base method
-func (m *MockEC2API) EnableVolumeIOWithContext(arg0 aws.Context, arg1 *ec2.EnableVolumeIOInput, arg2 ...request.Option) (*ec2.EnableVolumeIOOutput, error) {
+func (m *MockEC2API) EnableVolumeIOWithContext(arg0 context.Context, arg1 *ec2.EnableVolumeIOInput, arg2 ...request.Option) (*ec2.EnableVolumeIOOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10927,7 +10927,7 @@ func (mr *MockEC2APIMockRecorder) EnableVpcClassicLinkDnsSupportRequest(arg0 int
 }
 
 // EnableVpcClassicLinkDnsSupportWithContext mocks base method
-func (m *MockEC2API) EnableVpcClassicLinkDnsSupportWithContext(arg0 aws.Context, arg1 *ec2.EnableVpcClassicLinkDnsSupportInput, arg2 ...request.Option) (*ec2.EnableVpcClassicLinkDnsSupportOutput, error) {
+func (m *MockEC2API) EnableVpcClassicLinkDnsSupportWithContext(arg0 context.Context, arg1 *ec2.EnableVpcClassicLinkDnsSupportInput, arg2 ...request.Option) (*ec2.EnableVpcClassicLinkDnsSupportOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -10958,7 +10958,7 @@ func (mr *MockEC2APIMockRecorder) EnableVpcClassicLinkRequest(arg0 interface{}) 
 }
 
 // EnableVpcClassicLinkWithContext mocks base method
-func (m *MockEC2API) EnableVpcClassicLinkWithContext(arg0 aws.Context, arg1 *ec2.EnableVpcClassicLinkInput, arg2 ...request.Option) (*ec2.EnableVpcClassicLinkOutput, error) {
+func (m *MockEC2API) EnableVpcClassicLinkWithContext(arg0 context.Context, arg1 *ec2.EnableVpcClassicLinkInput, arg2 ...request.Option) (*ec2.EnableVpcClassicLinkOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11002,7 +11002,7 @@ func (mr *MockEC2APIMockRecorder) ExportClientVpnClientCertificateRevocationList
 }
 
 // ExportClientVpnClientCertificateRevocationListWithContext mocks base method
-func (m *MockEC2API) ExportClientVpnClientCertificateRevocationListWithContext(arg0 aws.Context, arg1 *ec2.ExportClientVpnClientCertificateRevocationListInput, arg2 ...request.Option) (*ec2.ExportClientVpnClientCertificateRevocationListOutput, error) {
+func (m *MockEC2API) ExportClientVpnClientCertificateRevocationListWithContext(arg0 context.Context, arg1 *ec2.ExportClientVpnClientCertificateRevocationListInput, arg2 ...request.Option) (*ec2.ExportClientVpnClientCertificateRevocationListOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11046,7 +11046,7 @@ func (mr *MockEC2APIMockRecorder) ExportClientVpnClientConfigurationRequest(arg0
 }
 
 // ExportClientVpnClientConfigurationWithContext mocks base method
-func (m *MockEC2API) ExportClientVpnClientConfigurationWithContext(arg0 aws.Context, arg1 *ec2.ExportClientVpnClientConfigurationInput, arg2 ...request.Option) (*ec2.ExportClientVpnClientConfigurationOutput, error) {
+func (m *MockEC2API) ExportClientVpnClientConfigurationWithContext(arg0 context.Context, arg1 *ec2.ExportClientVpnClientConfigurationInput, arg2 ...request.Option) (*ec2.ExportClientVpnClientConfigurationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11090,7 +11090,7 @@ func (mr *MockEC2APIMockRecorder) ExportTransitGatewayRoutesRequest(arg0 interfa
 }
 
 // ExportTransitGatewayRoutesWithContext mocks base method
-func (m *MockEC2API) ExportTransitGatewayRoutesWithContext(arg0 aws.Context, arg1 *ec2.ExportTransitGatewayRoutesInput, arg2 ...request.Option) (*ec2.ExportTransitGatewayRoutesOutput, error) {
+func (m *MockEC2API) ExportTransitGatewayRoutesWithContext(arg0 context.Context, arg1 *ec2.ExportTransitGatewayRoutesInput, arg2 ...request.Option) (*ec2.ExportTransitGatewayRoutesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11134,7 +11134,7 @@ func (mr *MockEC2APIMockRecorder) GetConsoleOutputRequest(arg0 interface{}) *gom
 }
 
 // GetConsoleOutputWithContext mocks base method
-func (m *MockEC2API) GetConsoleOutputWithContext(arg0 aws.Context, arg1 *ec2.GetConsoleOutputInput, arg2 ...request.Option) (*ec2.GetConsoleOutputOutput, error) {
+func (m *MockEC2API) GetConsoleOutputWithContext(arg0 context.Context, arg1 *ec2.GetConsoleOutputInput, arg2 ...request.Option) (*ec2.GetConsoleOutputOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11178,7 +11178,7 @@ func (mr *MockEC2APIMockRecorder) GetConsoleScreenshotRequest(arg0 interface{}) 
 }
 
 // GetConsoleScreenshotWithContext mocks base method
-func (m *MockEC2API) GetConsoleScreenshotWithContext(arg0 aws.Context, arg1 *ec2.GetConsoleScreenshotInput, arg2 ...request.Option) (*ec2.GetConsoleScreenshotOutput, error) {
+func (m *MockEC2API) GetConsoleScreenshotWithContext(arg0 context.Context, arg1 *ec2.GetConsoleScreenshotInput, arg2 ...request.Option) (*ec2.GetConsoleScreenshotOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11222,7 +11222,7 @@ func (mr *MockEC2APIMockRecorder) GetHostReservationPurchasePreviewRequest(arg0 
 }
 
 // GetHostReservationPurchasePreviewWithContext mocks base method
-func (m *MockEC2API) GetHostReservationPurchasePreviewWithContext(arg0 aws.Context, arg1 *ec2.GetHostReservationPurchasePreviewInput, arg2 ...request.Option) (*ec2.GetHostReservationPurchasePreviewOutput, error) {
+func (m *MockEC2API) GetHostReservationPurchasePreviewWithContext(arg0 context.Context, arg1 *ec2.GetHostReservationPurchasePreviewInput, arg2 ...request.Option) (*ec2.GetHostReservationPurchasePreviewOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11266,7 +11266,7 @@ func (mr *MockEC2APIMockRecorder) GetLaunchTemplateDataRequest(arg0 interface{})
 }
 
 // GetLaunchTemplateDataWithContext mocks base method
-func (m *MockEC2API) GetLaunchTemplateDataWithContext(arg0 aws.Context, arg1 *ec2.GetLaunchTemplateDataInput, arg2 ...request.Option) (*ec2.GetLaunchTemplateDataOutput, error) {
+func (m *MockEC2API) GetLaunchTemplateDataWithContext(arg0 context.Context, arg1 *ec2.GetLaunchTemplateDataInput, arg2 ...request.Option) (*ec2.GetLaunchTemplateDataOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11310,7 +11310,7 @@ func (mr *MockEC2APIMockRecorder) GetPasswordDataRequest(arg0 interface{}) *gomo
 }
 
 // GetPasswordDataWithContext mocks base method
-func (m *MockEC2API) GetPasswordDataWithContext(arg0 aws.Context, arg1 *ec2.GetPasswordDataInput, arg2 ...request.Option) (*ec2.GetPasswordDataOutput, error) {
+func (m *MockEC2API) GetPasswordDataWithContext(arg0 context.Context, arg1 *ec2.GetPasswordDataInput, arg2 ...request.Option) (*ec2.GetPasswordDataOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11354,7 +11354,7 @@ func (mr *MockEC2APIMockRecorder) GetReservedInstancesExchangeQuoteRequest(arg0 
 }
 
 // GetReservedInstancesExchangeQuoteWithContext mocks base method
-func (m *MockEC2API) GetReservedInstancesExchangeQuoteWithContext(arg0 aws.Context, arg1 *ec2.GetReservedInstancesExchangeQuoteInput, arg2 ...request.Option) (*ec2.GetReservedInstancesExchangeQuoteOutput, error) {
+func (m *MockEC2API) GetReservedInstancesExchangeQuoteWithContext(arg0 context.Context, arg1 *ec2.GetReservedInstancesExchangeQuoteInput, arg2 ...request.Option) (*ec2.GetReservedInstancesExchangeQuoteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11398,7 +11398,7 @@ func (mr *MockEC2APIMockRecorder) GetTransitGatewayAttachmentPropagationsRequest
 }
 
 // GetTransitGatewayAttachmentPropagationsWithContext mocks base method
-func (m *MockEC2API) GetTransitGatewayAttachmentPropagationsWithContext(arg0 aws.Context, arg1 *ec2.GetTransitGatewayAttachmentPropagationsInput, arg2 ...request.Option) (*ec2.GetTransitGatewayAttachmentPropagationsOutput, error) {
+func (m *MockEC2API) GetTransitGatewayAttachmentPropagationsWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayAttachmentPropagationsInput, arg2 ...request.Option) (*ec2.GetTransitGatewayAttachmentPropagationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11442,7 +11442,7 @@ func (mr *MockEC2APIMockRecorder) GetTransitGatewayRouteTableAssociationsRequest
 }
 
 // GetTransitGatewayRouteTableAssociationsWithContext mocks base method
-func (m *MockEC2API) GetTransitGatewayRouteTableAssociationsWithContext(arg0 aws.Context, arg1 *ec2.GetTransitGatewayRouteTableAssociationsInput, arg2 ...request.Option) (*ec2.GetTransitGatewayRouteTableAssociationsOutput, error) {
+func (m *MockEC2API) GetTransitGatewayRouteTableAssociationsWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayRouteTableAssociationsInput, arg2 ...request.Option) (*ec2.GetTransitGatewayRouteTableAssociationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11486,7 +11486,7 @@ func (mr *MockEC2APIMockRecorder) GetTransitGatewayRouteTablePropagationsRequest
 }
 
 // GetTransitGatewayRouteTablePropagationsWithContext mocks base method
-func (m *MockEC2API) GetTransitGatewayRouteTablePropagationsWithContext(arg0 aws.Context, arg1 *ec2.GetTransitGatewayRouteTablePropagationsInput, arg2 ...request.Option) (*ec2.GetTransitGatewayRouteTablePropagationsOutput, error) {
+func (m *MockEC2API) GetTransitGatewayRouteTablePropagationsWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayRouteTablePropagationsInput, arg2 ...request.Option) (*ec2.GetTransitGatewayRouteTablePropagationsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11530,7 +11530,7 @@ func (mr *MockEC2APIMockRecorder) ImportClientVpnClientCertificateRevocationList
 }
 
 // ImportClientVpnClientCertificateRevocationListWithContext mocks base method
-func (m *MockEC2API) ImportClientVpnClientCertificateRevocationListWithContext(arg0 aws.Context, arg1 *ec2.ImportClientVpnClientCertificateRevocationListInput, arg2 ...request.Option) (*ec2.ImportClientVpnClientCertificateRevocationListOutput, error) {
+func (m *MockEC2API) ImportClientVpnClientCertificateRevocationListWithContext(arg0 context.Context, arg1 *ec2.ImportClientVpnClientCertificateRevocationListInput, arg2 ...request.Option) (*ec2.ImportClientVpnClientCertificateRevocationListOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11574,7 +11574,7 @@ func (mr *MockEC2APIMockRecorder) ImportImageRequest(arg0 interface{}) *gomock.C
 }
 
 // ImportImageWithContext mocks base method
-func (m *MockEC2API) ImportImageWithContext(arg0 aws.Context, arg1 *ec2.ImportImageInput, arg2 ...request.Option) (*ec2.ImportImageOutput, error) {
+func (m *MockEC2API) ImportImageWithContext(arg0 context.Context, arg1 *ec2.ImportImageInput, arg2 ...request.Option) (*ec2.ImportImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11618,7 +11618,7 @@ func (mr *MockEC2APIMockRecorder) ImportInstanceRequest(arg0 interface{}) *gomoc
 }
 
 // ImportInstanceWithContext mocks base method
-func (m *MockEC2API) ImportInstanceWithContext(arg0 aws.Context, arg1 *ec2.ImportInstanceInput, arg2 ...request.Option) (*ec2.ImportInstanceOutput, error) {
+func (m *MockEC2API) ImportInstanceWithContext(arg0 context.Context, arg1 *ec2.ImportInstanceInput, arg2 ...request.Option) (*ec2.ImportInstanceOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11662,7 +11662,7 @@ func (mr *MockEC2APIMockRecorder) ImportKeyPairRequest(arg0 interface{}) *gomock
 }
 
 // ImportKeyPairWithContext mocks base method
-func (m *MockEC2API) ImportKeyPairWithContext(arg0 aws.Context, arg1 *ec2.ImportKeyPairInput, arg2 ...request.Option) (*ec2.ImportKeyPairOutput, error) {
+func (m *MockEC2API) ImportKeyPairWithContext(arg0 context.Context, arg1 *ec2.ImportKeyPairInput, arg2 ...request.Option) (*ec2.ImportKeyPairOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11706,7 +11706,7 @@ func (mr *MockEC2APIMockRecorder) ImportSnapshotRequest(arg0 interface{}) *gomoc
 }
 
 // ImportSnapshotWithContext mocks base method
-func (m *MockEC2API) ImportSnapshotWithContext(arg0 aws.Context, arg1 *ec2.ImportSnapshotInput, arg2 ...request.Option) (*ec2.ImportSnapshotOutput, error) {
+func (m *MockEC2API) ImportSnapshotWithContext(arg0 context.Context, arg1 *ec2.ImportSnapshotInput, arg2 ...request.Option) (*ec2.ImportSnapshotOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11750,7 +11750,7 @@ func (mr *MockEC2APIMockRecorder) ImportVolumeRequest(arg0 interface{}) *gomock.
 }
 
 // ImportVolumeWithContext mocks base method
-func (m *MockEC2API) ImportVolumeWithContext(arg0 aws.Context, arg1 *ec2.ImportVolumeInput, arg2 ...request.Option) (*ec2.ImportVolumeOutput, error) {
+func (m *MockEC2API) ImportVolumeWithContext(arg0 context.Context, arg1 *ec2.ImportVolumeInput, arg2 ...request.Option) (*ec2.ImportVolumeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11794,7 +11794,7 @@ func (mr *MockEC2APIMockRecorder) ModifyCapacityReservationRequest(arg0 interfac
 }
 
 // ModifyCapacityReservationWithContext mocks base method
-func (m *MockEC2API) ModifyCapacityReservationWithContext(arg0 aws.Context, arg1 *ec2.ModifyCapacityReservationInput, arg2 ...request.Option) (*ec2.ModifyCapacityReservationOutput, error) {
+func (m *MockEC2API) ModifyCapacityReservationWithContext(arg0 context.Context, arg1 *ec2.ModifyCapacityReservationInput, arg2 ...request.Option) (*ec2.ModifyCapacityReservationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11838,7 +11838,7 @@ func (mr *MockEC2APIMockRecorder) ModifyClientVpnEndpointRequest(arg0 interface{
 }
 
 // ModifyClientVpnEndpointWithContext mocks base method
-func (m *MockEC2API) ModifyClientVpnEndpointWithContext(arg0 aws.Context, arg1 *ec2.ModifyClientVpnEndpointInput, arg2 ...request.Option) (*ec2.ModifyClientVpnEndpointOutput, error) {
+func (m *MockEC2API) ModifyClientVpnEndpointWithContext(arg0 context.Context, arg1 *ec2.ModifyClientVpnEndpointInput, arg2 ...request.Option) (*ec2.ModifyClientVpnEndpointOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11882,7 +11882,7 @@ func (mr *MockEC2APIMockRecorder) ModifyFleetRequest(arg0 interface{}) *gomock.C
 }
 
 // ModifyFleetWithContext mocks base method
-func (m *MockEC2API) ModifyFleetWithContext(arg0 aws.Context, arg1 *ec2.ModifyFleetInput, arg2 ...request.Option) (*ec2.ModifyFleetOutput, error) {
+func (m *MockEC2API) ModifyFleetWithContext(arg0 context.Context, arg1 *ec2.ModifyFleetInput, arg2 ...request.Option) (*ec2.ModifyFleetOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11926,7 +11926,7 @@ func (mr *MockEC2APIMockRecorder) ModifyFpgaImageAttributeRequest(arg0 interface
 }
 
 // ModifyFpgaImageAttributeWithContext mocks base method
-func (m *MockEC2API) ModifyFpgaImageAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifyFpgaImageAttributeInput, arg2 ...request.Option) (*ec2.ModifyFpgaImageAttributeOutput, error) {
+func (m *MockEC2API) ModifyFpgaImageAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifyFpgaImageAttributeInput, arg2 ...request.Option) (*ec2.ModifyFpgaImageAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -11970,7 +11970,7 @@ func (mr *MockEC2APIMockRecorder) ModifyHostsRequest(arg0 interface{}) *gomock.C
 }
 
 // ModifyHostsWithContext mocks base method
-func (m *MockEC2API) ModifyHostsWithContext(arg0 aws.Context, arg1 *ec2.ModifyHostsInput, arg2 ...request.Option) (*ec2.ModifyHostsOutput, error) {
+func (m *MockEC2API) ModifyHostsWithContext(arg0 context.Context, arg1 *ec2.ModifyHostsInput, arg2 ...request.Option) (*ec2.ModifyHostsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12014,7 +12014,7 @@ func (mr *MockEC2APIMockRecorder) ModifyIdFormatRequest(arg0 interface{}) *gomoc
 }
 
 // ModifyIdFormatWithContext mocks base method
-func (m *MockEC2API) ModifyIdFormatWithContext(arg0 aws.Context, arg1 *ec2.ModifyIdFormatInput, arg2 ...request.Option) (*ec2.ModifyIdFormatOutput, error) {
+func (m *MockEC2API) ModifyIdFormatWithContext(arg0 context.Context, arg1 *ec2.ModifyIdFormatInput, arg2 ...request.Option) (*ec2.ModifyIdFormatOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12058,7 +12058,7 @@ func (mr *MockEC2APIMockRecorder) ModifyIdentityIdFormatRequest(arg0 interface{}
 }
 
 // ModifyIdentityIdFormatWithContext mocks base method
-func (m *MockEC2API) ModifyIdentityIdFormatWithContext(arg0 aws.Context, arg1 *ec2.ModifyIdentityIdFormatInput, arg2 ...request.Option) (*ec2.ModifyIdentityIdFormatOutput, error) {
+func (m *MockEC2API) ModifyIdentityIdFormatWithContext(arg0 context.Context, arg1 *ec2.ModifyIdentityIdFormatInput, arg2 ...request.Option) (*ec2.ModifyIdentityIdFormatOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12102,7 +12102,7 @@ func (mr *MockEC2APIMockRecorder) ModifyImageAttributeRequest(arg0 interface{}) 
 }
 
 // ModifyImageAttributeWithContext mocks base method
-func (m *MockEC2API) ModifyImageAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifyImageAttributeInput, arg2 ...request.Option) (*ec2.ModifyImageAttributeOutput, error) {
+func (m *MockEC2API) ModifyImageAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifyImageAttributeInput, arg2 ...request.Option) (*ec2.ModifyImageAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12146,7 +12146,7 @@ func (mr *MockEC2APIMockRecorder) ModifyInstanceAttributeRequest(arg0 interface{
 }
 
 // ModifyInstanceAttributeWithContext mocks base method
-func (m *MockEC2API) ModifyInstanceAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifyInstanceAttributeInput, arg2 ...request.Option) (*ec2.ModifyInstanceAttributeOutput, error) {
+func (m *MockEC2API) ModifyInstanceAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifyInstanceAttributeInput, arg2 ...request.Option) (*ec2.ModifyInstanceAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12190,7 +12190,7 @@ func (mr *MockEC2APIMockRecorder) ModifyInstanceCapacityReservationAttributesReq
 }
 
 // ModifyInstanceCapacityReservationAttributesWithContext mocks base method
-func (m *MockEC2API) ModifyInstanceCapacityReservationAttributesWithContext(arg0 aws.Context, arg1 *ec2.ModifyInstanceCapacityReservationAttributesInput, arg2 ...request.Option) (*ec2.ModifyInstanceCapacityReservationAttributesOutput, error) {
+func (m *MockEC2API) ModifyInstanceCapacityReservationAttributesWithContext(arg0 context.Context, arg1 *ec2.ModifyInstanceCapacityReservationAttributesInput, arg2 ...request.Option) (*ec2.ModifyInstanceCapacityReservationAttributesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12234,7 +12234,7 @@ func (mr *MockEC2APIMockRecorder) ModifyInstanceCreditSpecificationRequest(arg0 
 }
 
 // ModifyInstanceCreditSpecificationWithContext mocks base method
-func (m *MockEC2API) ModifyInstanceCreditSpecificationWithContext(arg0 aws.Context, arg1 *ec2.ModifyInstanceCreditSpecificationInput, arg2 ...request.Option) (*ec2.ModifyInstanceCreditSpecificationOutput, error) {
+func (m *MockEC2API) ModifyInstanceCreditSpecificationWithContext(arg0 context.Context, arg1 *ec2.ModifyInstanceCreditSpecificationInput, arg2 ...request.Option) (*ec2.ModifyInstanceCreditSpecificationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12278,7 +12278,7 @@ func (mr *MockEC2APIMockRecorder) ModifyInstancePlacementRequest(arg0 interface{
 }
 
 // ModifyInstancePlacementWithContext mocks base method
-func (m *MockEC2API) ModifyInstancePlacementWithContext(arg0 aws.Context, arg1 *ec2.ModifyInstancePlacementInput, arg2 ...request.Option) (*ec2.ModifyInstancePlacementOutput, error) {
+func (m *MockEC2API) ModifyInstancePlacementWithContext(arg0 context.Context, arg1 *ec2.ModifyInstancePlacementInput, arg2 ...request.Option) (*ec2.ModifyInstancePlacementOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12322,7 +12322,7 @@ func (mr *MockEC2APIMockRecorder) ModifyLaunchTemplateRequest(arg0 interface{}) 
 }
 
 // ModifyLaunchTemplateWithContext mocks base method
-func (m *MockEC2API) ModifyLaunchTemplateWithContext(arg0 aws.Context, arg1 *ec2.ModifyLaunchTemplateInput, arg2 ...request.Option) (*ec2.ModifyLaunchTemplateOutput, error) {
+func (m *MockEC2API) ModifyLaunchTemplateWithContext(arg0 context.Context, arg1 *ec2.ModifyLaunchTemplateInput, arg2 ...request.Option) (*ec2.ModifyLaunchTemplateOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12366,7 +12366,7 @@ func (mr *MockEC2APIMockRecorder) ModifyNetworkInterfaceAttributeRequest(arg0 in
 }
 
 // ModifyNetworkInterfaceAttributeWithContext mocks base method
-func (m *MockEC2API) ModifyNetworkInterfaceAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifyNetworkInterfaceAttributeInput, arg2 ...request.Option) (*ec2.ModifyNetworkInterfaceAttributeOutput, error) {
+func (m *MockEC2API) ModifyNetworkInterfaceAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifyNetworkInterfaceAttributeInput, arg2 ...request.Option) (*ec2.ModifyNetworkInterfaceAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12410,7 +12410,7 @@ func (mr *MockEC2APIMockRecorder) ModifyReservedInstancesRequest(arg0 interface{
 }
 
 // ModifyReservedInstancesWithContext mocks base method
-func (m *MockEC2API) ModifyReservedInstancesWithContext(arg0 aws.Context, arg1 *ec2.ModifyReservedInstancesInput, arg2 ...request.Option) (*ec2.ModifyReservedInstancesOutput, error) {
+func (m *MockEC2API) ModifyReservedInstancesWithContext(arg0 context.Context, arg1 *ec2.ModifyReservedInstancesInput, arg2 ...request.Option) (*ec2.ModifyReservedInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12454,7 +12454,7 @@ func (mr *MockEC2APIMockRecorder) ModifySnapshotAttributeRequest(arg0 interface{
 }
 
 // ModifySnapshotAttributeWithContext mocks base method
-func (m *MockEC2API) ModifySnapshotAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifySnapshotAttributeInput, arg2 ...request.Option) (*ec2.ModifySnapshotAttributeOutput, error) {
+func (m *MockEC2API) ModifySnapshotAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifySnapshotAttributeInput, arg2 ...request.Option) (*ec2.ModifySnapshotAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12498,7 +12498,7 @@ func (mr *MockEC2APIMockRecorder) ModifySpotFleetRequestRequest(arg0 interface{}
 }
 
 // ModifySpotFleetRequestWithContext mocks base method
-func (m *MockEC2API) ModifySpotFleetRequestWithContext(arg0 aws.Context, arg1 *ec2.ModifySpotFleetRequestInput, arg2 ...request.Option) (*ec2.ModifySpotFleetRequestOutput, error) {
+func (m *MockEC2API) ModifySpotFleetRequestWithContext(arg0 context.Context, arg1 *ec2.ModifySpotFleetRequestInput, arg2 ...request.Option) (*ec2.ModifySpotFleetRequestOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12542,7 +12542,7 @@ func (mr *MockEC2APIMockRecorder) ModifySubnetAttributeRequest(arg0 interface{})
 }
 
 // ModifySubnetAttributeWithContext mocks base method
-func (m *MockEC2API) ModifySubnetAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifySubnetAttributeInput, arg2 ...request.Option) (*ec2.ModifySubnetAttributeOutput, error) {
+func (m *MockEC2API) ModifySubnetAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifySubnetAttributeInput, arg2 ...request.Option) (*ec2.ModifySubnetAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12586,7 +12586,7 @@ func (mr *MockEC2APIMockRecorder) ModifyTransitGatewayVpcAttachmentRequest(arg0 
 }
 
 // ModifyTransitGatewayVpcAttachmentWithContext mocks base method
-func (m *MockEC2API) ModifyTransitGatewayVpcAttachmentWithContext(arg0 aws.Context, arg1 *ec2.ModifyTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.ModifyTransitGatewayVpcAttachmentOutput, error) {
+func (m *MockEC2API) ModifyTransitGatewayVpcAttachmentWithContext(arg0 context.Context, arg1 *ec2.ModifyTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.ModifyTransitGatewayVpcAttachmentOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12643,7 +12643,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVolumeAttributeRequest(arg0 interface{})
 }
 
 // ModifyVolumeAttributeWithContext mocks base method
-func (m *MockEC2API) ModifyVolumeAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifyVolumeAttributeInput, arg2 ...request.Option) (*ec2.ModifyVolumeAttributeOutput, error) {
+func (m *MockEC2API) ModifyVolumeAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifyVolumeAttributeInput, arg2 ...request.Option) (*ec2.ModifyVolumeAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12674,7 +12674,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVolumeRequest(arg0 interface{}) *gomock.
 }
 
 // ModifyVolumeWithContext mocks base method
-func (m *MockEC2API) ModifyVolumeWithContext(arg0 aws.Context, arg1 *ec2.ModifyVolumeInput, arg2 ...request.Option) (*ec2.ModifyVolumeOutput, error) {
+func (m *MockEC2API) ModifyVolumeWithContext(arg0 context.Context, arg1 *ec2.ModifyVolumeInput, arg2 ...request.Option) (*ec2.ModifyVolumeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12718,7 +12718,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVpcAttributeRequest(arg0 interface{}) *g
 }
 
 // ModifyVpcAttributeWithContext mocks base method
-func (m *MockEC2API) ModifyVpcAttributeWithContext(arg0 aws.Context, arg1 *ec2.ModifyVpcAttributeInput, arg2 ...request.Option) (*ec2.ModifyVpcAttributeOutput, error) {
+func (m *MockEC2API) ModifyVpcAttributeWithContext(arg0 context.Context, arg1 *ec2.ModifyVpcAttributeInput, arg2 ...request.Option) (*ec2.ModifyVpcAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12775,7 +12775,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVpcEndpointConnectionNotificationRequest
 }
 
 // ModifyVpcEndpointConnectionNotificationWithContext mocks base method
-func (m *MockEC2API) ModifyVpcEndpointConnectionNotificationWithContext(arg0 aws.Context, arg1 *ec2.ModifyVpcEndpointConnectionNotificationInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointConnectionNotificationOutput, error) {
+func (m *MockEC2API) ModifyVpcEndpointConnectionNotificationWithContext(arg0 context.Context, arg1 *ec2.ModifyVpcEndpointConnectionNotificationInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointConnectionNotificationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12832,7 +12832,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVpcEndpointServiceConfigurationRequest(a
 }
 
 // ModifyVpcEndpointServiceConfigurationWithContext mocks base method
-func (m *MockEC2API) ModifyVpcEndpointServiceConfigurationWithContext(arg0 aws.Context, arg1 *ec2.ModifyVpcEndpointServiceConfigurationInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointServiceConfigurationOutput, error) {
+func (m *MockEC2API) ModifyVpcEndpointServiceConfigurationWithContext(arg0 context.Context, arg1 *ec2.ModifyVpcEndpointServiceConfigurationInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointServiceConfigurationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12876,7 +12876,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVpcEndpointServicePermissionsRequest(arg
 }
 
 // ModifyVpcEndpointServicePermissionsWithContext mocks base method
-func (m *MockEC2API) ModifyVpcEndpointServicePermissionsWithContext(arg0 aws.Context, arg1 *ec2.ModifyVpcEndpointServicePermissionsInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointServicePermissionsOutput, error) {
+func (m *MockEC2API) ModifyVpcEndpointServicePermissionsWithContext(arg0 context.Context, arg1 *ec2.ModifyVpcEndpointServicePermissionsInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointServicePermissionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12894,7 +12894,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVpcEndpointServicePermissionsWithContext
 }
 
 // ModifyVpcEndpointWithContext mocks base method
-func (m *MockEC2API) ModifyVpcEndpointWithContext(arg0 aws.Context, arg1 *ec2.ModifyVpcEndpointInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointOutput, error) {
+func (m *MockEC2API) ModifyVpcEndpointWithContext(arg0 context.Context, arg1 *ec2.ModifyVpcEndpointInput, arg2 ...request.Option) (*ec2.ModifyVpcEndpointOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12938,7 +12938,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVpcPeeringConnectionOptionsRequest(arg0 
 }
 
 // ModifyVpcPeeringConnectionOptionsWithContext mocks base method
-func (m *MockEC2API) ModifyVpcPeeringConnectionOptionsWithContext(arg0 aws.Context, arg1 *ec2.ModifyVpcPeeringConnectionOptionsInput, arg2 ...request.Option) (*ec2.ModifyVpcPeeringConnectionOptionsOutput, error) {
+func (m *MockEC2API) ModifyVpcPeeringConnectionOptionsWithContext(arg0 context.Context, arg1 *ec2.ModifyVpcPeeringConnectionOptionsInput, arg2 ...request.Option) (*ec2.ModifyVpcPeeringConnectionOptionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -12982,7 +12982,7 @@ func (mr *MockEC2APIMockRecorder) ModifyVpcTenancyRequest(arg0 interface{}) *gom
 }
 
 // ModifyVpcTenancyWithContext mocks base method
-func (m *MockEC2API) ModifyVpcTenancyWithContext(arg0 aws.Context, arg1 *ec2.ModifyVpcTenancyInput, arg2 ...request.Option) (*ec2.ModifyVpcTenancyOutput, error) {
+func (m *MockEC2API) ModifyVpcTenancyWithContext(arg0 context.Context, arg1 *ec2.ModifyVpcTenancyInput, arg2 ...request.Option) (*ec2.ModifyVpcTenancyOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13026,7 +13026,7 @@ func (mr *MockEC2APIMockRecorder) MonitorInstancesRequest(arg0 interface{}) *gom
 }
 
 // MonitorInstancesWithContext mocks base method
-func (m *MockEC2API) MonitorInstancesWithContext(arg0 aws.Context, arg1 *ec2.MonitorInstancesInput, arg2 ...request.Option) (*ec2.MonitorInstancesOutput, error) {
+func (m *MockEC2API) MonitorInstancesWithContext(arg0 context.Context, arg1 *ec2.MonitorInstancesInput, arg2 ...request.Option) (*ec2.MonitorInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13070,7 +13070,7 @@ func (mr *MockEC2APIMockRecorder) MoveAddressToVpcRequest(arg0 interface{}) *gom
 }
 
 // MoveAddressToVpcWithContext mocks base method
-func (m *MockEC2API) MoveAddressToVpcWithContext(arg0 aws.Context, arg1 *ec2.MoveAddressToVpcInput, arg2 ...request.Option) (*ec2.MoveAddressToVpcOutput, error) {
+func (m *MockEC2API) MoveAddressToVpcWithContext(arg0 context.Context, arg1 *ec2.MoveAddressToVpcInput, arg2 ...request.Option) (*ec2.MoveAddressToVpcOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13114,7 +13114,7 @@ func (mr *MockEC2APIMockRecorder) ProvisionByoipCidrRequest(arg0 interface{}) *g
 }
 
 // ProvisionByoipCidrWithContext mocks base method
-func (m *MockEC2API) ProvisionByoipCidrWithContext(arg0 aws.Context, arg1 *ec2.ProvisionByoipCidrInput, arg2 ...request.Option) (*ec2.ProvisionByoipCidrOutput, error) {
+func (m *MockEC2API) ProvisionByoipCidrWithContext(arg0 context.Context, arg1 *ec2.ProvisionByoipCidrInput, arg2 ...request.Option) (*ec2.ProvisionByoipCidrOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13158,7 +13158,7 @@ func (mr *MockEC2APIMockRecorder) PurchaseHostReservationRequest(arg0 interface{
 }
 
 // PurchaseHostReservationWithContext mocks base method
-func (m *MockEC2API) PurchaseHostReservationWithContext(arg0 aws.Context, arg1 *ec2.PurchaseHostReservationInput, arg2 ...request.Option) (*ec2.PurchaseHostReservationOutput, error) {
+func (m *MockEC2API) PurchaseHostReservationWithContext(arg0 context.Context, arg1 *ec2.PurchaseHostReservationInput, arg2 ...request.Option) (*ec2.PurchaseHostReservationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13202,7 +13202,7 @@ func (mr *MockEC2APIMockRecorder) PurchaseReservedInstancesOfferingRequest(arg0 
 }
 
 // PurchaseReservedInstancesOfferingWithContext mocks base method
-func (m *MockEC2API) PurchaseReservedInstancesOfferingWithContext(arg0 aws.Context, arg1 *ec2.PurchaseReservedInstancesOfferingInput, arg2 ...request.Option) (*ec2.PurchaseReservedInstancesOfferingOutput, error) {
+func (m *MockEC2API) PurchaseReservedInstancesOfferingWithContext(arg0 context.Context, arg1 *ec2.PurchaseReservedInstancesOfferingInput, arg2 ...request.Option) (*ec2.PurchaseReservedInstancesOfferingOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13246,7 +13246,7 @@ func (mr *MockEC2APIMockRecorder) PurchaseScheduledInstancesRequest(arg0 interfa
 }
 
 // PurchaseScheduledInstancesWithContext mocks base method
-func (m *MockEC2API) PurchaseScheduledInstancesWithContext(arg0 aws.Context, arg1 *ec2.PurchaseScheduledInstancesInput, arg2 ...request.Option) (*ec2.PurchaseScheduledInstancesOutput, error) {
+func (m *MockEC2API) PurchaseScheduledInstancesWithContext(arg0 context.Context, arg1 *ec2.PurchaseScheduledInstancesInput, arg2 ...request.Option) (*ec2.PurchaseScheduledInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13290,7 +13290,7 @@ func (mr *MockEC2APIMockRecorder) RebootInstancesRequest(arg0 interface{}) *gomo
 }
 
 // RebootInstancesWithContext mocks base method
-func (m *MockEC2API) RebootInstancesWithContext(arg0 aws.Context, arg1 *ec2.RebootInstancesInput, arg2 ...request.Option) (*ec2.RebootInstancesOutput, error) {
+func (m *MockEC2API) RebootInstancesWithContext(arg0 context.Context, arg1 *ec2.RebootInstancesInput, arg2 ...request.Option) (*ec2.RebootInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13334,7 +13334,7 @@ func (mr *MockEC2APIMockRecorder) RegisterImageRequest(arg0 interface{}) *gomock
 }
 
 // RegisterImageWithContext mocks base method
-func (m *MockEC2API) RegisterImageWithContext(arg0 aws.Context, arg1 *ec2.RegisterImageInput, arg2 ...request.Option) (*ec2.RegisterImageOutput, error) {
+func (m *MockEC2API) RegisterImageWithContext(arg0 context.Context, arg1 *ec2.RegisterImageInput, arg2 ...request.Option) (*ec2.RegisterImageOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13378,7 +13378,7 @@ func (mr *MockEC2APIMockRecorder) RejectTransitGatewayVpcAttachmentRequest(arg0 
 }
 
 // RejectTransitGatewayVpcAttachmentWithContext mocks base method
-func (m *MockEC2API) RejectTransitGatewayVpcAttachmentWithContext(arg0 aws.Context, arg1 *ec2.RejectTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.RejectTransitGatewayVpcAttachmentOutput, error) {
+func (m *MockEC2API) RejectTransitGatewayVpcAttachmentWithContext(arg0 context.Context, arg1 *ec2.RejectTransitGatewayVpcAttachmentInput, arg2 ...request.Option) (*ec2.RejectTransitGatewayVpcAttachmentOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13422,7 +13422,7 @@ func (mr *MockEC2APIMockRecorder) RejectVpcEndpointConnectionsRequest(arg0 inter
 }
 
 // RejectVpcEndpointConnectionsWithContext mocks base method
-func (m *MockEC2API) RejectVpcEndpointConnectionsWithContext(arg0 aws.Context, arg1 *ec2.RejectVpcEndpointConnectionsInput, arg2 ...request.Option) (*ec2.RejectVpcEndpointConnectionsOutput, error) {
+func (m *MockEC2API) RejectVpcEndpointConnectionsWithContext(arg0 context.Context, arg1 *ec2.RejectVpcEndpointConnectionsInput, arg2 ...request.Option) (*ec2.RejectVpcEndpointConnectionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13466,7 +13466,7 @@ func (mr *MockEC2APIMockRecorder) RejectVpcPeeringConnectionRequest(arg0 interfa
 }
 
 // RejectVpcPeeringConnectionWithContext mocks base method
-func (m *MockEC2API) RejectVpcPeeringConnectionWithContext(arg0 aws.Context, arg1 *ec2.RejectVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.RejectVpcPeeringConnectionOutput, error) {
+func (m *MockEC2API) RejectVpcPeeringConnectionWithContext(arg0 context.Context, arg1 *ec2.RejectVpcPeeringConnectionInput, arg2 ...request.Option) (*ec2.RejectVpcPeeringConnectionOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13510,7 +13510,7 @@ func (mr *MockEC2APIMockRecorder) ReleaseAddressRequest(arg0 interface{}) *gomoc
 }
 
 // ReleaseAddressWithContext mocks base method
-func (m *MockEC2API) ReleaseAddressWithContext(arg0 aws.Context, arg1 *ec2.ReleaseAddressInput, arg2 ...request.Option) (*ec2.ReleaseAddressOutput, error) {
+func (m *MockEC2API) ReleaseAddressWithContext(arg0 context.Context, arg1 *ec2.ReleaseAddressInput, arg2 ...request.Option) (*ec2.ReleaseAddressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13554,7 +13554,7 @@ func (mr *MockEC2APIMockRecorder) ReleaseHostsRequest(arg0 interface{}) *gomock.
 }
 
 // ReleaseHostsWithContext mocks base method
-func (m *MockEC2API) ReleaseHostsWithContext(arg0 aws.Context, arg1 *ec2.ReleaseHostsInput, arg2 ...request.Option) (*ec2.ReleaseHostsOutput, error) {
+func (m *MockEC2API) ReleaseHostsWithContext(arg0 context.Context, arg1 *ec2.ReleaseHostsInput, arg2 ...request.Option) (*ec2.ReleaseHostsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13598,7 +13598,7 @@ func (mr *MockEC2APIMockRecorder) ReplaceIamInstanceProfileAssociationRequest(ar
 }
 
 // ReplaceIamInstanceProfileAssociationWithContext mocks base method
-func (m *MockEC2API) ReplaceIamInstanceProfileAssociationWithContext(arg0 aws.Context, arg1 *ec2.ReplaceIamInstanceProfileAssociationInput, arg2 ...request.Option) (*ec2.ReplaceIamInstanceProfileAssociationOutput, error) {
+func (m *MockEC2API) ReplaceIamInstanceProfileAssociationWithContext(arg0 context.Context, arg1 *ec2.ReplaceIamInstanceProfileAssociationInput, arg2 ...request.Option) (*ec2.ReplaceIamInstanceProfileAssociationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13642,7 +13642,7 @@ func (mr *MockEC2APIMockRecorder) ReplaceNetworkAclAssociationRequest(arg0 inter
 }
 
 // ReplaceNetworkAclAssociationWithContext mocks base method
-func (m *MockEC2API) ReplaceNetworkAclAssociationWithContext(arg0 aws.Context, arg1 *ec2.ReplaceNetworkAclAssociationInput, arg2 ...request.Option) (*ec2.ReplaceNetworkAclAssociationOutput, error) {
+func (m *MockEC2API) ReplaceNetworkAclAssociationWithContext(arg0 context.Context, arg1 *ec2.ReplaceNetworkAclAssociationInput, arg2 ...request.Option) (*ec2.ReplaceNetworkAclAssociationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13686,7 +13686,7 @@ func (mr *MockEC2APIMockRecorder) ReplaceNetworkAclEntryRequest(arg0 interface{}
 }
 
 // ReplaceNetworkAclEntryWithContext mocks base method
-func (m *MockEC2API) ReplaceNetworkAclEntryWithContext(arg0 aws.Context, arg1 *ec2.ReplaceNetworkAclEntryInput, arg2 ...request.Option) (*ec2.ReplaceNetworkAclEntryOutput, error) {
+func (m *MockEC2API) ReplaceNetworkAclEntryWithContext(arg0 context.Context, arg1 *ec2.ReplaceNetworkAclEntryInput, arg2 ...request.Option) (*ec2.ReplaceNetworkAclEntryOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13756,7 +13756,7 @@ func (mr *MockEC2APIMockRecorder) ReplaceRouteTableAssociationRequest(arg0 inter
 }
 
 // ReplaceRouteTableAssociationWithContext mocks base method
-func (m *MockEC2API) ReplaceRouteTableAssociationWithContext(arg0 aws.Context, arg1 *ec2.ReplaceRouteTableAssociationInput, arg2 ...request.Option) (*ec2.ReplaceRouteTableAssociationOutput, error) {
+func (m *MockEC2API) ReplaceRouteTableAssociationWithContext(arg0 context.Context, arg1 *ec2.ReplaceRouteTableAssociationInput, arg2 ...request.Option) (*ec2.ReplaceRouteTableAssociationOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13774,7 +13774,7 @@ func (mr *MockEC2APIMockRecorder) ReplaceRouteTableAssociationWithContext(arg0, 
 }
 
 // ReplaceRouteWithContext mocks base method
-func (m *MockEC2API) ReplaceRouteWithContext(arg0 aws.Context, arg1 *ec2.ReplaceRouteInput, arg2 ...request.Option) (*ec2.ReplaceRouteOutput, error) {
+func (m *MockEC2API) ReplaceRouteWithContext(arg0 context.Context, arg1 *ec2.ReplaceRouteInput, arg2 ...request.Option) (*ec2.ReplaceRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13818,7 +13818,7 @@ func (mr *MockEC2APIMockRecorder) ReplaceTransitGatewayRouteRequest(arg0 interfa
 }
 
 // ReplaceTransitGatewayRouteWithContext mocks base method
-func (m *MockEC2API) ReplaceTransitGatewayRouteWithContext(arg0 aws.Context, arg1 *ec2.ReplaceTransitGatewayRouteInput, arg2 ...request.Option) (*ec2.ReplaceTransitGatewayRouteOutput, error) {
+func (m *MockEC2API) ReplaceTransitGatewayRouteWithContext(arg0 context.Context, arg1 *ec2.ReplaceTransitGatewayRouteInput, arg2 ...request.Option) (*ec2.ReplaceTransitGatewayRouteOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13862,7 +13862,7 @@ func (mr *MockEC2APIMockRecorder) ReportInstanceStatusRequest(arg0 interface{}) 
 }
 
 // ReportInstanceStatusWithContext mocks base method
-func (m *MockEC2API) ReportInstanceStatusWithContext(arg0 aws.Context, arg1 *ec2.ReportInstanceStatusInput, arg2 ...request.Option) (*ec2.ReportInstanceStatusOutput, error) {
+func (m *MockEC2API) ReportInstanceStatusWithContext(arg0 context.Context, arg1 *ec2.ReportInstanceStatusInput, arg2 ...request.Option) (*ec2.ReportInstanceStatusOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13906,7 +13906,7 @@ func (mr *MockEC2APIMockRecorder) RequestSpotFleetRequest(arg0 interface{}) *gom
 }
 
 // RequestSpotFleetWithContext mocks base method
-func (m *MockEC2API) RequestSpotFleetWithContext(arg0 aws.Context, arg1 *ec2.RequestSpotFleetInput, arg2 ...request.Option) (*ec2.RequestSpotFleetOutput, error) {
+func (m *MockEC2API) RequestSpotFleetWithContext(arg0 context.Context, arg1 *ec2.RequestSpotFleetInput, arg2 ...request.Option) (*ec2.RequestSpotFleetOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13950,7 +13950,7 @@ func (mr *MockEC2APIMockRecorder) RequestSpotInstancesRequest(arg0 interface{}) 
 }
 
 // RequestSpotInstancesWithContext mocks base method
-func (m *MockEC2API) RequestSpotInstancesWithContext(arg0 aws.Context, arg1 *ec2.RequestSpotInstancesInput, arg2 ...request.Option) (*ec2.RequestSpotInstancesOutput, error) {
+func (m *MockEC2API) RequestSpotInstancesWithContext(arg0 context.Context, arg1 *ec2.RequestSpotInstancesInput, arg2 ...request.Option) (*ec2.RequestSpotInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -13994,7 +13994,7 @@ func (mr *MockEC2APIMockRecorder) ResetFpgaImageAttributeRequest(arg0 interface{
 }
 
 // ResetFpgaImageAttributeWithContext mocks base method
-func (m *MockEC2API) ResetFpgaImageAttributeWithContext(arg0 aws.Context, arg1 *ec2.ResetFpgaImageAttributeInput, arg2 ...request.Option) (*ec2.ResetFpgaImageAttributeOutput, error) {
+func (m *MockEC2API) ResetFpgaImageAttributeWithContext(arg0 context.Context, arg1 *ec2.ResetFpgaImageAttributeInput, arg2 ...request.Option) (*ec2.ResetFpgaImageAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14038,7 +14038,7 @@ func (mr *MockEC2APIMockRecorder) ResetImageAttributeRequest(arg0 interface{}) *
 }
 
 // ResetImageAttributeWithContext mocks base method
-func (m *MockEC2API) ResetImageAttributeWithContext(arg0 aws.Context, arg1 *ec2.ResetImageAttributeInput, arg2 ...request.Option) (*ec2.ResetImageAttributeOutput, error) {
+func (m *MockEC2API) ResetImageAttributeWithContext(arg0 context.Context, arg1 *ec2.ResetImageAttributeInput, arg2 ...request.Option) (*ec2.ResetImageAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14082,7 +14082,7 @@ func (mr *MockEC2APIMockRecorder) ResetInstanceAttributeRequest(arg0 interface{}
 }
 
 // ResetInstanceAttributeWithContext mocks base method
-func (m *MockEC2API) ResetInstanceAttributeWithContext(arg0 aws.Context, arg1 *ec2.ResetInstanceAttributeInput, arg2 ...request.Option) (*ec2.ResetInstanceAttributeOutput, error) {
+func (m *MockEC2API) ResetInstanceAttributeWithContext(arg0 context.Context, arg1 *ec2.ResetInstanceAttributeInput, arg2 ...request.Option) (*ec2.ResetInstanceAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14126,7 +14126,7 @@ func (mr *MockEC2APIMockRecorder) ResetNetworkInterfaceAttributeRequest(arg0 int
 }
 
 // ResetNetworkInterfaceAttributeWithContext mocks base method
-func (m *MockEC2API) ResetNetworkInterfaceAttributeWithContext(arg0 aws.Context, arg1 *ec2.ResetNetworkInterfaceAttributeInput, arg2 ...request.Option) (*ec2.ResetNetworkInterfaceAttributeOutput, error) {
+func (m *MockEC2API) ResetNetworkInterfaceAttributeWithContext(arg0 context.Context, arg1 *ec2.ResetNetworkInterfaceAttributeInput, arg2 ...request.Option) (*ec2.ResetNetworkInterfaceAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14170,7 +14170,7 @@ func (mr *MockEC2APIMockRecorder) ResetSnapshotAttributeRequest(arg0 interface{}
 }
 
 // ResetSnapshotAttributeWithContext mocks base method
-func (m *MockEC2API) ResetSnapshotAttributeWithContext(arg0 aws.Context, arg1 *ec2.ResetSnapshotAttributeInput, arg2 ...request.Option) (*ec2.ResetSnapshotAttributeOutput, error) {
+func (m *MockEC2API) ResetSnapshotAttributeWithContext(arg0 context.Context, arg1 *ec2.ResetSnapshotAttributeInput, arg2 ...request.Option) (*ec2.ResetSnapshotAttributeOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14214,7 +14214,7 @@ func (mr *MockEC2APIMockRecorder) RestoreAddressToClassicRequest(arg0 interface{
 }
 
 // RestoreAddressToClassicWithContext mocks base method
-func (m *MockEC2API) RestoreAddressToClassicWithContext(arg0 aws.Context, arg1 *ec2.RestoreAddressToClassicInput, arg2 ...request.Option) (*ec2.RestoreAddressToClassicOutput, error) {
+func (m *MockEC2API) RestoreAddressToClassicWithContext(arg0 context.Context, arg1 *ec2.RestoreAddressToClassicInput, arg2 ...request.Option) (*ec2.RestoreAddressToClassicOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14258,7 +14258,7 @@ func (mr *MockEC2APIMockRecorder) RevokeClientVpnIngressRequest(arg0 interface{}
 }
 
 // RevokeClientVpnIngressWithContext mocks base method
-func (m *MockEC2API) RevokeClientVpnIngressWithContext(arg0 aws.Context, arg1 *ec2.RevokeClientVpnIngressInput, arg2 ...request.Option) (*ec2.RevokeClientVpnIngressOutput, error) {
+func (m *MockEC2API) RevokeClientVpnIngressWithContext(arg0 context.Context, arg1 *ec2.RevokeClientVpnIngressInput, arg2 ...request.Option) (*ec2.RevokeClientVpnIngressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14302,7 +14302,7 @@ func (mr *MockEC2APIMockRecorder) RevokeSecurityGroupEgressRequest(arg0 interfac
 }
 
 // RevokeSecurityGroupEgressWithContext mocks base method
-func (m *MockEC2API) RevokeSecurityGroupEgressWithContext(arg0 aws.Context, arg1 *ec2.RevokeSecurityGroupEgressInput, arg2 ...request.Option) (*ec2.RevokeSecurityGroupEgressOutput, error) {
+func (m *MockEC2API) RevokeSecurityGroupEgressWithContext(arg0 context.Context, arg1 *ec2.RevokeSecurityGroupEgressInput, arg2 ...request.Option) (*ec2.RevokeSecurityGroupEgressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14346,7 +14346,7 @@ func (mr *MockEC2APIMockRecorder) RevokeSecurityGroupIngressRequest(arg0 interfa
 }
 
 // RevokeSecurityGroupIngressWithContext mocks base method
-func (m *MockEC2API) RevokeSecurityGroupIngressWithContext(arg0 aws.Context, arg1 *ec2.RevokeSecurityGroupIngressInput, arg2 ...request.Option) (*ec2.RevokeSecurityGroupIngressOutput, error) {
+func (m *MockEC2API) RevokeSecurityGroupIngressWithContext(arg0 context.Context, arg1 *ec2.RevokeSecurityGroupIngressInput, arg2 ...request.Option) (*ec2.RevokeSecurityGroupIngressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14390,7 +14390,7 @@ func (mr *MockEC2APIMockRecorder) RunInstancesRequest(arg0 interface{}) *gomock.
 }
 
 // RunInstancesWithContext mocks base method
-func (m *MockEC2API) RunInstancesWithContext(arg0 aws.Context, arg1 *ec2.RunInstancesInput, arg2 ...request.Option) (*ec2.Reservation, error) {
+func (m *MockEC2API) RunInstancesWithContext(arg0 context.Context, arg1 *ec2.RunInstancesInput, arg2 ...request.Option) (*ec2.Reservation, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14434,7 +14434,7 @@ func (mr *MockEC2APIMockRecorder) RunScheduledInstancesRequest(arg0 interface{})
 }
 
 // RunScheduledInstancesWithContext mocks base method
-func (m *MockEC2API) RunScheduledInstancesWithContext(arg0 aws.Context, arg1 *ec2.RunScheduledInstancesInput, arg2 ...request.Option) (*ec2.RunScheduledInstancesOutput, error) {
+func (m *MockEC2API) RunScheduledInstancesWithContext(arg0 context.Context, arg1 *ec2.RunScheduledInstancesInput, arg2 ...request.Option) (*ec2.RunScheduledInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14478,7 +14478,7 @@ func (mr *MockEC2APIMockRecorder) SearchTransitGatewayRoutesRequest(arg0 interfa
 }
 
 // SearchTransitGatewayRoutesWithContext mocks base method
-func (m *MockEC2API) SearchTransitGatewayRoutesWithContext(arg0 aws.Context, arg1 *ec2.SearchTransitGatewayRoutesInput, arg2 ...request.Option) (*ec2.SearchTransitGatewayRoutesOutput, error) {
+func (m *MockEC2API) SearchTransitGatewayRoutesWithContext(arg0 context.Context, arg1 *ec2.SearchTransitGatewayRoutesInput, arg2 ...request.Option) (*ec2.SearchTransitGatewayRoutesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14522,7 +14522,7 @@ func (mr *MockEC2APIMockRecorder) StartInstancesRequest(arg0 interface{}) *gomoc
 }
 
 // StartInstancesWithContext mocks base method
-func (m *MockEC2API) StartInstancesWithContext(arg0 aws.Context, arg1 *ec2.StartInstancesInput, arg2 ...request.Option) (*ec2.StartInstancesOutput, error) {
+func (m *MockEC2API) StartInstancesWithContext(arg0 context.Context, arg1 *ec2.StartInstancesInput, arg2 ...request.Option) (*ec2.StartInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14566,7 +14566,7 @@ func (mr *MockEC2APIMockRecorder) StopInstancesRequest(arg0 interface{}) *gomock
 }
 
 // StopInstancesWithContext mocks base method
-func (m *MockEC2API) StopInstancesWithContext(arg0 aws.Context, arg1 *ec2.StopInstancesInput, arg2 ...request.Option) (*ec2.StopInstancesOutput, error) {
+func (m *MockEC2API) StopInstancesWithContext(arg0 context.Context, arg1 *ec2.StopInstancesInput, arg2 ...request.Option) (*ec2.StopInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14610,7 +14610,7 @@ func (mr *MockEC2APIMockRecorder) TerminateClientVpnConnectionsRequest(arg0 inte
 }
 
 // TerminateClientVpnConnectionsWithContext mocks base method
-func (m *MockEC2API) TerminateClientVpnConnectionsWithContext(arg0 aws.Context, arg1 *ec2.TerminateClientVpnConnectionsInput, arg2 ...request.Option) (*ec2.TerminateClientVpnConnectionsOutput, error) {
+func (m *MockEC2API) TerminateClientVpnConnectionsWithContext(arg0 context.Context, arg1 *ec2.TerminateClientVpnConnectionsInput, arg2 ...request.Option) (*ec2.TerminateClientVpnConnectionsOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14654,7 +14654,7 @@ func (mr *MockEC2APIMockRecorder) TerminateInstancesRequest(arg0 interface{}) *g
 }
 
 // TerminateInstancesWithContext mocks base method
-func (m *MockEC2API) TerminateInstancesWithContext(arg0 aws.Context, arg1 *ec2.TerminateInstancesInput, arg2 ...request.Option) (*ec2.TerminateInstancesOutput, error) {
+func (m *MockEC2API) TerminateInstancesWithContext(arg0 context.Context, arg1 *ec2.TerminateInstancesInput, arg2 ...request.Option) (*ec2.TerminateInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14698,7 +14698,7 @@ func (mr *MockEC2APIMockRecorder) UnassignIpv6AddressesRequest(arg0 interface{})
 }
 
 // UnassignIpv6AddressesWithContext mocks base method
-func (m *MockEC2API) UnassignIpv6AddressesWithContext(arg0 aws.Context, arg1 *ec2.UnassignIpv6AddressesInput, arg2 ...request.Option) (*ec2.UnassignIpv6AddressesOutput, error) {
+func (m *MockEC2API) UnassignIpv6AddressesWithContext(arg0 context.Context, arg1 *ec2.UnassignIpv6AddressesInput, arg2 ...request.Option) (*ec2.UnassignIpv6AddressesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14742,7 +14742,7 @@ func (mr *MockEC2APIMockRecorder) UnassignPrivateIpAddressesRequest(arg0 interfa
 }
 
 // UnassignPrivateIpAddressesWithContext mocks base method
-func (m *MockEC2API) UnassignPrivateIpAddressesWithContext(arg0 aws.Context, arg1 *ec2.UnassignPrivateIpAddressesInput, arg2 ...request.Option) (*ec2.UnassignPrivateIpAddressesOutput, error) {
+func (m *MockEC2API) UnassignPrivateIpAddressesWithContext(arg0 context.Context, arg1 *ec2.UnassignPrivateIpAddressesInput, arg2 ...request.Option) (*ec2.UnassignPrivateIpAddressesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14786,7 +14786,7 @@ func (mr *MockEC2APIMockRecorder) UnmonitorInstancesRequest(arg0 interface{}) *g
 }
 
 // UnmonitorInstancesWithContext mocks base method
-func (m *MockEC2API) UnmonitorInstancesWithContext(arg0 aws.Context, arg1 *ec2.UnmonitorInstancesInput, arg2 ...request.Option) (*ec2.UnmonitorInstancesOutput, error) {
+func (m *MockEC2API) UnmonitorInstancesWithContext(arg0 context.Context, arg1 *ec2.UnmonitorInstancesInput, arg2 ...request.Option) (*ec2.UnmonitorInstancesOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14830,7 +14830,7 @@ func (mr *MockEC2APIMockRecorder) UpdateSecurityGroupRuleDescriptionsEgressReque
 }
 
 // UpdateSecurityGroupRuleDescriptionsEgressWithContext mocks base method
-func (m *MockEC2API) UpdateSecurityGroupRuleDescriptionsEgressWithContext(arg0 aws.Context, arg1 *ec2.UpdateSecurityGroupRuleDescriptionsEgressInput, arg2 ...request.Option) (*ec2.UpdateSecurityGroupRuleDescriptionsEgressOutput, error) {
+func (m *MockEC2API) UpdateSecurityGroupRuleDescriptionsEgressWithContext(arg0 context.Context, arg1 *ec2.UpdateSecurityGroupRuleDescriptionsEgressInput, arg2 ...request.Option) (*ec2.UpdateSecurityGroupRuleDescriptionsEgressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14874,7 +14874,7 @@ func (mr *MockEC2APIMockRecorder) UpdateSecurityGroupRuleDescriptionsIngressRequ
 }
 
 // UpdateSecurityGroupRuleDescriptionsIngressWithContext mocks base method
-func (m *MockEC2API) UpdateSecurityGroupRuleDescriptionsIngressWithContext(arg0 aws.Context, arg1 *ec2.UpdateSecurityGroupRuleDescriptionsIngressInput, arg2 ...request.Option) (*ec2.UpdateSecurityGroupRuleDescriptionsIngressOutput, error) {
+func (m *MockEC2API) UpdateSecurityGroupRuleDescriptionsIngressWithContext(arg0 context.Context, arg1 *ec2.UpdateSecurityGroupRuleDescriptionsIngressInput, arg2 ...request.Option) (*ec2.UpdateSecurityGroupRuleDescriptionsIngressOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14904,7 +14904,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilBundleTaskComplete(arg0 interface{}) 
 }
 
 // WaitUntilBundleTaskCompleteWithContext mocks base method
-func (m *MockEC2API) WaitUntilBundleTaskCompleteWithContext(arg0 aws.Context, arg1 *ec2.DescribeBundleTasksInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilBundleTaskCompleteWithContext(arg0 context.Context, arg1 *ec2.DescribeBundleTasksInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14933,7 +14933,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilConversionTaskCancelled(arg0 interfac
 }
 
 // WaitUntilConversionTaskCancelledWithContext mocks base method
-func (m *MockEC2API) WaitUntilConversionTaskCancelledWithContext(arg0 aws.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilConversionTaskCancelledWithContext(arg0 context.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14962,7 +14962,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilConversionTaskCompleted(arg0 interfac
 }
 
 // WaitUntilConversionTaskCompletedWithContext mocks base method
-func (m *MockEC2API) WaitUntilConversionTaskCompletedWithContext(arg0 aws.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilConversionTaskCompletedWithContext(arg0 context.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -14991,7 +14991,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilConversionTaskDeleted(arg0 interface{
 }
 
 // WaitUntilConversionTaskDeletedWithContext mocks base method
-func (m *MockEC2API) WaitUntilConversionTaskDeletedWithContext(arg0 aws.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilConversionTaskDeletedWithContext(arg0 context.Context, arg1 *ec2.DescribeConversionTasksInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15020,7 +15020,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilCustomerGatewayAvailable(arg0 interfa
 }
 
 // WaitUntilCustomerGatewayAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilCustomerGatewayAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeCustomerGatewaysInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilCustomerGatewayAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeCustomerGatewaysInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15049,7 +15049,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilExportTaskCancelled(arg0 interface{})
 }
 
 // WaitUntilExportTaskCancelledWithContext mocks base method
-func (m *MockEC2API) WaitUntilExportTaskCancelledWithContext(arg0 aws.Context, arg1 *ec2.DescribeExportTasksInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilExportTaskCancelledWithContext(arg0 context.Context, arg1 *ec2.DescribeExportTasksInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15078,7 +15078,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilExportTaskCompleted(arg0 interface{})
 }
 
 // WaitUntilExportTaskCompletedWithContext mocks base method
-func (m *MockEC2API) WaitUntilExportTaskCompletedWithContext(arg0 aws.Context, arg1 *ec2.DescribeExportTasksInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilExportTaskCompletedWithContext(arg0 context.Context, arg1 *ec2.DescribeExportTasksInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15107,7 +15107,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilImageAvailable(arg0 interface{}) *gom
 }
 
 // WaitUntilImageAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilImageAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeImagesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilImageAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeImagesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15136,7 +15136,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilImageExists(arg0 interface{}) *gomock
 }
 
 // WaitUntilImageExistsWithContext mocks base method
-func (m *MockEC2API) WaitUntilImageExistsWithContext(arg0 aws.Context, arg1 *ec2.DescribeImagesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilImageExistsWithContext(arg0 context.Context, arg1 *ec2.DescribeImagesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15165,7 +15165,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilInstanceExists(arg0 interface{}) *gom
 }
 
 // WaitUntilInstanceExistsWithContext mocks base method
-func (m *MockEC2API) WaitUntilInstanceExistsWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilInstanceExistsWithContext(arg0 context.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15194,7 +15194,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilInstanceRunning(arg0 interface{}) *go
 }
 
 // WaitUntilInstanceRunningWithContext mocks base method
-func (m *MockEC2API) WaitUntilInstanceRunningWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilInstanceRunningWithContext(arg0 context.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15223,7 +15223,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilInstanceStatusOk(arg0 interface{}) *g
 }
 
 // WaitUntilInstanceStatusOkWithContext mocks base method
-func (m *MockEC2API) WaitUntilInstanceStatusOkWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilInstanceStatusOkWithContext(arg0 context.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15252,7 +15252,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilInstanceStopped(arg0 interface{}) *go
 }
 
 // WaitUntilInstanceStoppedWithContext mocks base method
-func (m *MockEC2API) WaitUntilInstanceStoppedWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilInstanceStoppedWithContext(arg0 context.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15281,7 +15281,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilInstanceTerminated(arg0 interface{}) 
 }
 
 // WaitUntilInstanceTerminatedWithContext mocks base method
-func (m *MockEC2API) WaitUntilInstanceTerminatedWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilInstanceTerminatedWithContext(arg0 context.Context, arg1 *ec2.DescribeInstancesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15310,7 +15310,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilKeyPairExists(arg0 interface{}) *gomo
 }
 
 // WaitUntilKeyPairExistsWithContext mocks base method
-func (m *MockEC2API) WaitUntilKeyPairExistsWithContext(arg0 aws.Context, arg1 *ec2.DescribeKeyPairsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilKeyPairExistsWithContext(arg0 context.Context, arg1 *ec2.DescribeKeyPairsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15339,7 +15339,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilNatGatewayAvailable(arg0 interface{})
 }
 
 // WaitUntilNatGatewayAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilNatGatewayAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeNatGatewaysInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilNatGatewayAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeNatGatewaysInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15368,7 +15368,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilNetworkInterfaceAvailable(arg0 interf
 }
 
 // WaitUntilNetworkInterfaceAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilNetworkInterfaceAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeNetworkInterfacesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilNetworkInterfaceAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeNetworkInterfacesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15397,7 +15397,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilPasswordDataAvailable(arg0 interface{
 }
 
 // WaitUntilPasswordDataAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilPasswordDataAvailableWithContext(arg0 aws.Context, arg1 *ec2.GetPasswordDataInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilPasswordDataAvailableWithContext(arg0 context.Context, arg1 *ec2.GetPasswordDataInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15426,7 +15426,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilSnapshotCompleted(arg0 interface{}) *
 }
 
 // WaitUntilSnapshotCompletedWithContext mocks base method
-func (m *MockEC2API) WaitUntilSnapshotCompletedWithContext(arg0 aws.Context, arg1 *ec2.DescribeSnapshotsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilSnapshotCompletedWithContext(arg0 context.Context, arg1 *ec2.DescribeSnapshotsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15455,7 +15455,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilSpotInstanceRequestFulfilled(arg0 int
 }
 
 // WaitUntilSpotInstanceRequestFulfilledWithContext mocks base method
-func (m *MockEC2API) WaitUntilSpotInstanceRequestFulfilledWithContext(arg0 aws.Context, arg1 *ec2.DescribeSpotInstanceRequestsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilSpotInstanceRequestFulfilledWithContext(arg0 context.Context, arg1 *ec2.DescribeSpotInstanceRequestsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15484,7 +15484,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilSubnetAvailable(arg0 interface{}) *go
 }
 
 // WaitUntilSubnetAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilSubnetAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeSubnetsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilSubnetAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeSubnetsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15513,7 +15513,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilSystemStatusOk(arg0 interface{}) *gom
 }
 
 // WaitUntilSystemStatusOkWithContext mocks base method
-func (m *MockEC2API) WaitUntilSystemStatusOkWithContext(arg0 aws.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilSystemStatusOkWithContext(arg0 context.Context, arg1 *ec2.DescribeInstanceStatusInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15542,7 +15542,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVolumeAvailable(arg0 interface{}) *go
 }
 
 // WaitUntilVolumeAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilVolumeAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVolumeAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15571,7 +15571,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVolumeDeleted(arg0 interface{}) *gomo
 }
 
 // WaitUntilVolumeDeletedWithContext mocks base method
-func (m *MockEC2API) WaitUntilVolumeDeletedWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVolumeDeletedWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15600,7 +15600,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVolumeInUse(arg0 interface{}) *gomock
 }
 
 // WaitUntilVolumeInUseWithContext mocks base method
-func (m *MockEC2API) WaitUntilVolumeInUseWithContext(arg0 aws.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVolumeInUseWithContext(arg0 context.Context, arg1 *ec2.DescribeVolumesInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15629,7 +15629,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVpcAvailable(arg0 interface{}) *gomoc
 }
 
 // WaitUntilVpcAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilVpcAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVpcAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15658,7 +15658,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVpcExists(arg0 interface{}) *gomock.C
 }
 
 // WaitUntilVpcExistsWithContext mocks base method
-func (m *MockEC2API) WaitUntilVpcExistsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVpcExistsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15687,7 +15687,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVpcPeeringConnectionDeleted(arg0 inte
 }
 
 // WaitUntilVpcPeeringConnectionDeletedWithContext mocks base method
-func (m *MockEC2API) WaitUntilVpcPeeringConnectionDeletedWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcPeeringConnectionsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVpcPeeringConnectionDeletedWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcPeeringConnectionsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15716,7 +15716,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVpcPeeringConnectionExists(arg0 inter
 }
 
 // WaitUntilVpcPeeringConnectionExistsWithContext mocks base method
-func (m *MockEC2API) WaitUntilVpcPeeringConnectionExistsWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpcPeeringConnectionsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVpcPeeringConnectionExistsWithContext(arg0 context.Context, arg1 *ec2.DescribeVpcPeeringConnectionsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15745,7 +15745,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVpnConnectionAvailable(arg0 interface
 }
 
 // WaitUntilVpnConnectionAvailableWithContext mocks base method
-func (m *MockEC2API) WaitUntilVpnConnectionAvailableWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpnConnectionsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVpnConnectionAvailableWithContext(arg0 context.Context, arg1 *ec2.DescribeVpnConnectionsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15774,7 +15774,7 @@ func (mr *MockEC2APIMockRecorder) WaitUntilVpnConnectionDeleted(arg0 interface{}
 }
 
 // WaitUntilVpnConnectionDeletedWithContext mocks base method
-func (m *MockEC2API) WaitUntilVpnConnectionDeletedWithContext(arg0 aws.Context, arg1 *ec2.DescribeVpnConnectionsInput, arg2 ...request.WaiterOption) error {
+func (m *MockEC2API) WaitUntilVpnConnectionDeletedWithContext(arg0 context.Context, arg1 *ec2.DescribeVpnConnectionsInput, arg2 ...request.WaiterOption) error {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
@@ -15817,7 +15817,7 @@ func (mr *MockEC2APIMockRecorder) WithdrawByoipCidrRequest(arg0 interface{}) *go
 }
 
 // WithdrawByoipCidrWithContext mocks base method
-func (m *MockEC2API) WithdrawByoipCidrWithContext(arg0 aws.Context, arg1 *ec2.WithdrawByoipCidrInput, arg2 ...request.Option) (*ec2.WithdrawByoipCidrOutput, error) {
+func (m *MockEC2API) WithdrawByoipCidrWithContext(arg0 context.Context, arg1 *ec2.WithdrawByoipCidrInput, arg2 ...request.Option) (*ec2.WithdrawByoipCidrOutput, error) {
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)

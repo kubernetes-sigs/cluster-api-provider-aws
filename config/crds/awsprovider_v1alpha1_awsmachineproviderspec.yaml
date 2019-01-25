@@ -15,16 +15,27 @@ spec:
     openAPIV3Schema:
       properties:
         additionalSecurityGroups:
+          description: AdditionalSecurityGroups is an array of references to security
+            groups that should be applied to the instance. These security groups would
+            be set in addition to any security groups defined at the cluster level
+            or in the actuator.
           items:
             properties:
               arn:
+                description: ARN of resource
                 type: string
               filters:
+                description: 'Filters is a set of key/value pairs used to identify
+                  a resource They are applied according to the rules defined by the
+                  AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
                 items:
                   properties:
                     name:
+                      description: Name of the filter. Filter names are case-sensitive.
                       type: string
                     values:
+                      description: Values includes one or more filter values. Filter
+                        values are case-sensitive.
                       items:
                         type: string
                       type: array
@@ -34,21 +45,35 @@ spec:
                   type: object
                 type: array
               id:
+                description: ID of resource
                 type: string
             type: object
           type: array
         additionalTags:
+          description: AdditionalTags is the set of tags to add to an instance, in
+            addition to the ones added by default by the actuator. These tags are
+            additive. The actuator will ensure these tags are present, but will not
+            remove any other tags that may exist on the instance.
           type: object
         ami:
+          description: AMI is the reference to the AMI from which to create the machine
+            instance.
           properties:
             arn:
+              description: ARN of resource
               type: string
             filters:
+              description: 'Filters is a set of key/value pairs used to identify a
+                resource They are applied according to the rules defined by the AWS
+                API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
               items:
                 properties:
                   name:
+                    description: Name of the filter. Filter names are case-sensitive.
                     type: string
                   values:
+                    description: Values includes one or more filter values. Filter
+                      values are case-sensitive.
                     items:
                       type: string
                     type: array
@@ -58,32 +83,55 @@ spec:
                 type: object
               type: array
             id:
+              description: ID of resource
               type: string
           type: object
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         iamInstanceProfile:
+          description: IAMInstanceProfile is a name of an IAM instance profile to
+            assign to the instance
           type: string
         instanceType:
+          description: 'InstanceType is the type of instance to create. Example: m4.xlarge'
           type: string
         keyName:
+          description: KeyName is the name of the SSH key to install on the instance.
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         publicIP:
+          description: 'PublicIP specifies whether the instance should get a public
+            IP. Precedence for this setting is as follows: 1. This field if set 2.
+            Cluster/flavor setting 3. Subnet default'
           type: boolean
         subnet:
+          description: Subnet is a reference to the subnet to use for this instance.
+            If not specified, the cluster subnet will be used.
           properties:
             arn:
+              description: ARN of resource
               type: string
             filters:
+              description: 'Filters is a set of key/value pairs used to identify a
+                resource They are applied according to the rules defined by the AWS
+                API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
               items:
                 properties:
                   name:
+                    description: Name of the filter. Filter names are case-sensitive.
                     type: string
                   values:
+                    description: Values includes one or more filter values. Filter
+                      values are case-sensitive.
                     items:
                       type: string
                     type: array
@@ -93,6 +141,7 @@ spec:
                 type: object
               type: array
             id:
+              description: ID of resource
               type: string
           type: object
   version: v1alpha1
