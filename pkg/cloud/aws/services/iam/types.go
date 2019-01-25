@@ -64,14 +64,11 @@ type StatementEntry struct {
 	Effect       string     `json:"Effect"`
 	Action       Actions    `json:"Action"`
 	Resource     Resources  `json:",omitempty"`
-
-	// Condition is currently called IAMConditions to pass through
-	// GoFormation's template processing without being replaced
-	// with an intrinsic function. If you use a Condition statement,
-	// run the resultant stringified template through ProcessPolicyDocument
-	// to change back IAMCondition to Condition.
-	Condition Conditions `json:"IAMConditions,omitempty"`
+	Condition    Conditions `json:",omitempty"`
 }
+
+// Conditions is the map of all conditions in the statement entry.
+type Conditions map[string]interface{}
 
 // Statements is the list of StatementEntries
 type Statements []StatementEntry
@@ -87,9 +84,6 @@ type Resources []string
 
 // PrincipalID represents the list of all principals, such as ARNs
 type PrincipalID []string
-
-// Conditions is the map of all conditions in the statement entry.
-type Conditions map[string]interface{}
 
 // JSON is the JSON output of the policy document
 func (p *PolicyDocument) JSON() (string, error) {

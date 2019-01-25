@@ -21,7 +21,10 @@ import (
 	"io/ioutil"
 	"path"
 
+	"encoding/json"
+	"github.com/awslabs/goformation"
 	"github.com/awslabs/goformation/cloudformation"
+	"github.com/awslabs/goformation/intrinsics"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
@@ -308,6 +311,36 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 			},
 		},
 	}
+}
+
+func reparseTemplate(t *cloudformation.Template) (*cloudformation.Template, error) {
+	j, err := json.MarshalIndent(t, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	rendered, err := intrinsics.ProcessJSON(j, &intrinsics.ProcessorOptions{
+		NoProcess: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return goformation.ParseJSONWithOptions(
+		rendered, &intrinsics.ProcessorOptions{
+			IntrinsicHandlerOverrides: cloudformation.EncoderIntrinsics,
+		},
+	)
+}
+
+// YAMLWithoutConditions returns rendered GoFormation without Condition
+// intrinsic function processing
+func YAMLWithoutConditions(t *cloudformation.Template) ([]byte, error) {
+	reparsed, err := reparseTemplate(t)
+	if err != nil {
+		return nil, err
+	}
+
+	return reparsed.YAML()
 }
 
 func getPolicyDocFromPolicyName(policyName, accountID string) (*iam.PolicyDocument, error) {

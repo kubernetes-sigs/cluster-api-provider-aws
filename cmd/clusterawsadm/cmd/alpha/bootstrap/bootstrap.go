@@ -28,7 +28,6 @@ import (
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
 )
 
@@ -102,12 +101,12 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			template := cloudformation.BootstrapTemplate(args[0])
-			j, err := template.YAML()
+			j, err := cloudformation.YAMLWithoutConditions(template)
 			if err != nil {
 				return err
 			}
 
-			fmt.Print(iam.ProcessPolicyDocument(string(j)))
+			fmt.Print(string(j))
 			return nil
 		},
 	}
