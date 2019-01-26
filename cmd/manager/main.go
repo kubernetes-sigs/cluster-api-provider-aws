@@ -36,6 +36,7 @@ import (
 
 func main() {
 	klog.InitFlags(nil)
+	flag.Set("logtostderr", "true")
 	flag.Parse()
 
 	cfg := config.GetConfigOrDie()
