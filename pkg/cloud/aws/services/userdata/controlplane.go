@@ -23,18 +23,18 @@ const (
 
 set -eox
 
-mkdir -p /etc/kubernetes/pki
+mkdir -p /etc/kubernetes/pki/etcd
 
 echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
 echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
 
-echo '{{.EtcdCert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo '{{.EtcdKey}}' >/etc/kubernetes/pki/etcd/ca.key
+echo '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
+echo '{{.EtcdCAKey}}' >/etc/kubernetes/pki/etcd/ca.key
 
-echo '{{.FrontProxyCert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo '{{.FrontProxyKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+echo '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
+echo '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
 
-echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.crt
+echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
 echo '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
 
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
@@ -67,7 +67,7 @@ nodeRegistration:
     cloud-provider: aws
 EOF
 
-kubeadm init --config /tmp/kubeadm.yaml
+kubeadm init --config /tmp/kubeadm.yaml --v 10
 `
 
 	controlPlaneJoinBashScript = `{{.Header}}
@@ -79,13 +79,13 @@ mkdir -p /etc/kubernetes/pki
 echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
 echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
 
-echo '{{.EtcdCert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo '{{.EtcdKey}}' >/etc/kubernetes/pki/etcd/ca.key
+echo '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
+echo '{{.EtcdCAKey}}' >/etc/kubernetes/pki/etcd/ca.key
 
-echo '{{.FrontProxyCert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo '{{.FrontProxyKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+echo '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
+echo '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
 
-echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.crt
+echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
 echo '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
 
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)

@@ -39,11 +39,11 @@ type AWSClusterProviderSpec struct {
 	// CAKeyPair is the key pair for ca certs.
 	CAKeyPair KeyPair `json:"caKeyPair,omitempty"`
 
-	//EtcdKeyPair is the key pair for etcd.
-	EtcdCAKeyPair KeyPair `json:"etcdKeyPair,omitempty"`
+	//EtcdCAKeyPair is the key pair for etcd.
+	EtcdCAKeyPair KeyPair `json:"etcdCAKeyPair,omitempty"`
 
 	// FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
-	FrontProxyCAKeyPair KeyPair `json:"frontProxyKeyPair,omitempty"`
+	FrontProxyCAKeyPair KeyPair `json:"frontProxyCAKeyPair,omitempty"`
 
 	// SAKeyPair is the service account key pair.
 	SAKeyPair KeyPair `json:"saKeyPair,omitempty"`

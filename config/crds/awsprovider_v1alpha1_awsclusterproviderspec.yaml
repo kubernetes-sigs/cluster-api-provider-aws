@@ -20,6 +20,7 @@ spec:
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         caKeyPair:
+          description: CAKeyPair is the key pair for ca certs.
           properties:
             cert:
               format: byte
@@ -31,7 +32,8 @@ spec:
           - cert
           - key
           type: object
-        etcdKeyPair:
+        etcdCAKeyPair:
+          description: EtcdCAKeyPair is the key pair for etcd.
           properties:
             cert:
               format: byte
@@ -43,7 +45,8 @@ spec:
           - cert
           - key
           type: object
-        frontProxyKeyPair:
+        frontProxyCAKeyPair:
+          description: FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
           properties:
             cert:
               format: byte
@@ -66,6 +69,7 @@ spec:
           description: The AWS Region the cluster lives in.
           type: string
         saKeyPair:
+          description: SAKeyPair is the service account key pair.
           properties:
             cert:
               format: byte
