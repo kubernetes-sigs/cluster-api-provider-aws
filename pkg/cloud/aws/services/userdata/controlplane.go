@@ -117,11 +117,7 @@ kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
 )
 
 func isKeyPairValid(cert, key string) bool {
-	if (cert == "" && key != "") ||
-		(cert != "" && key == "") {
-		return false
-	}
-	return true
+	return cert != "" && key != ""
 }
 
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
@@ -161,53 +157,53 @@ type ContolPlaneJoinInput struct {
 	ELBAddress       string
 }
 
-func (cpi *ControlPlaneInput) isValid() (bool, string) {
+func (cpi *ControlPlaneInput) isValid() error {
 	// TODO: ashish-amarnath verify if ca cert and key is mandatory for kubeadm init
 	if cpi.CACert == "" || cpi.CAKey == "" {
-		return false, "CA cert material in the ControlPlaneInput is invalid"
+		return errors.Errorf("CA cert material in the ControlPlaneInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return false, "ETCD cert material in the ControlPlaneInput is invalid"
+		return errors.Errorf("ETCD cert material in the ControlPlaneInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return false, "FrontProxy cert material in ControlPlaneInput is invalid"
+		return errors.Errorf("FrontProxy cert material in ControlPlaneInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
-		return false, "ServiceAccount cert material in ControlPlaneInput is invalid"
+		return errors.Errorf("ServiceAccount cert material in ControlPlaneInput is invalid")
 	}
 
-	return true, ""
+	return nil
 }
 
-func (cpi *ContolPlaneJoinInput) isValid() (bool, string) {
+func (cpi *ContolPlaneJoinInput) isValid() error {
 	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
-		return false, "CA cert material in the ContolPlaneJoinInput is invalid"
+		return errors.Errorf("CA cert material in the ContolPlaneJoinInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return false, "ETCD cert material in the ContolPlaneJoinInput is invalid"
+		return errors.Errorf("ETCD cert material in the ContolPlaneJoinInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return false, "FrontProxy cert material in ContolPlaneJoinInput is invalid"
+		return errors.Errorf("FrontProxy cert material in ContolPlaneJoinInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
-		return false, "ServiceAccount cert material in ContolPlaneJoinInput is invalid"
+		return errors.Errorf("ServiceAccount cert material in ContolPlaneJoinInput is invalid")
 	}
 
-	return true, ""
+	return nil
 }
 
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = defaultHeader
-	valid, reason := input.isValid()
-	if !valid {
-		return "", errors.Errorf("ControlPlaneInput is invalid, Reason: %q", reason)
+	err := input.isValid()
+	if err != nil {
+		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
 	userData, err := generate("controlplane", controlPlaneBashScript, input)
@@ -222,9 +218,9 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 	input.Header = defaultHeader
 
-	valid, reason := input.isValid()
-	if !valid {
-		return "", errors.Errorf("ControlPlaneInput is invalid, Reason: %q", reason)
+	err := input.isValid()
+	if err != nil {
+		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
 	userData, err := generate("controlplane", controlPlaneJoinBashScript, input)
