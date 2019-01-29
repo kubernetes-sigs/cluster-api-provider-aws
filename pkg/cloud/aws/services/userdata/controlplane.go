@@ -163,11 +163,11 @@ func (cpi *ControlPlaneInput) isValid() error {
 	}
 
 	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return errors.Errorf("ETCD cert material in the ControlPlaneInput is invalid")
+		return errors.Errorf("ETCD CA cert material in the ControlPlaneInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return errors.Errorf("FrontProxy cert material in ControlPlaneInput is invalid")
+		return errors.Errorf("FrontProxy CA cert material in ControlPlaneInput is invalid")
 	}
 
 	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {

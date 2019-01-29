@@ -171,7 +171,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				FrontProxyCACert: string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
 				FrontProxyCAKey:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
 				SaCert:           string(s.scope.ClusterConfig.SAKeyPair.Cert),
-				SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Cert),
+				SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
 				BootstrapToken:   bootstrapToken,
 				ELBAddress:       s.scope.Network().APIServerELB.DNSName,
 			})
