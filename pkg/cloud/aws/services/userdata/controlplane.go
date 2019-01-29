@@ -158,7 +158,6 @@ type ContolPlaneJoinInput struct {
 }
 
 func (cpi *ControlPlaneInput) isValid() error {
-	// TODO: ashish-amarnath verify if ca cert and key is mandatory for kubeadm init
 	if cpi.CACert == "" || cpi.CAKey == "" {
 		return errors.Errorf("CA cert material in the ControlPlaneInput is invalid")
 	}
