@@ -15,5 +15,9 @@ go_library(
         "//vendor/github.com/aws/aws-sdk-go/service/cloudformation:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/sts:go_default_library",
         "//vendor/github.com/spf13/cobra:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/cmd:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/phases:go_default_library",
     ],
 )

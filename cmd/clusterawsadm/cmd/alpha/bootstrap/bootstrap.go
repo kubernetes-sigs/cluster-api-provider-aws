@@ -25,6 +25,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/defaults"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
@@ -32,6 +34,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
+	capiCmd "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
 )
 
 // KubernetesAWSSecret is the template to generate an encoded version of the
@@ -77,7 +82,7 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(generateIAMPolicyDocJSON())
 	newCmd.AddCommand(encodeAWSSecret())
 	newCmd.AddCommand(generateAWSDefaultProfileWithChain())
-
+	newCmd.AddCommand(createHaControlPlane())
 	return newCmd
 }
 
@@ -270,6 +275,45 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 	}
 
 	return newCmd
+}
+
+func createHaControlPlane() *cobra.Command {
+	newCmd := &cobra.Command{
+		Use:   "create-ha-control-plane",
+		Short: "Create a HA control plane",
+		Long:  "Create a HA control plane that consists of three nodes",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := createBootstrapCluster()
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+	}
+
+	return newCmd
+}
+
+func createBootstrapCluster() error {
+	var pcbco = &capiCmd.AlphaPhaseCreateBootstrapClusterOptions{}
+	// TODO: take this value from the flag
+	pcbco.Bootstrap.Type = "kind"
+
+	bootstrapProvider, err := bootstrap.Get(pcbco.Bootstrap)
+	if err != nil {
+		return err
+	}
+
+	// TODO: start using cleanup
+	_, _, err = phases.CreateBootstrapCluster(bootstrapProvider, true, clusterclient.NewFactory())
+	if err != nil {
+		return err
+	}
+
+	//NOTE: To access access bootstrap kubeconfig: bootstrapProvider.GetKubeconfig()
+
+	return nil
 }
 
 func getCredentialsFromDefaultChain() (*awsCredential, error) {
