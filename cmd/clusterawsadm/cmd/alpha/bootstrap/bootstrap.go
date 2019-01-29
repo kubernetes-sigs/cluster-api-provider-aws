@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"text/template"
 
@@ -283,7 +284,12 @@ func createHaControlPlane() *cobra.Command {
 		Short: "Create a HA control plane",
 		Long:  "Create a HA control plane that consists of three nodes",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := createBootstrapCluster()
+			client, err := createBootstrapCluster()
+			if err != nil {
+				return err
+			}
+
+			err = applyClusterAPIComponents(client)
 			if err != nil {
 				return err
 			}
@@ -295,25 +301,43 @@ func createHaControlPlane() *cobra.Command {
 	return newCmd
 }
 
-func createBootstrapCluster() error {
+func createBootstrapCluster() (*clusterclient.Client, error) {
 	var pcbco = &capiCmd.AlphaPhaseCreateBootstrapClusterOptions{}
 	// TODO: take this value from the flag
 	pcbco.Bootstrap.Type = "kind"
 
 	bootstrapProvider, err := bootstrap.Get(pcbco.Bootstrap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO: start using cleanup
-	_, _, err = phases.CreateBootstrapCluster(bootstrapProvider, true, clusterclient.NewFactory())
+	client, _, err := phases.CreateBootstrapCluster(bootstrapProvider, true, clusterclient.NewFactory())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	//NOTE: To access access bootstrap kubeconfig: bootstrapProvider.GetKubeconfig()
 
-	return nil
+	return &client, nil
+}
+
+func applyClusterAPIComponents(client *clusterclient.Client) error {
+	pc, err := getProviderComponents("cmd/clusterctl/examples/aws/out/provider-components.yaml")
+	if err != nil {
+		return err
+	}
+
+	return phases.ApplyClusterAPIComponents(*client, string(pc))
+}
+
+func getProviderComponents(file string) ([]byte, error) {
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return content, nil
 }
 
 func getCredentialsFromDefaultChain() (*awsCredential, error) {
