@@ -23,6 +23,8 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
@@ -72,7 +74,8 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(createStackCmd())
 	newCmd.AddCommand(generateIAMPolicyDocJSON())
 	newCmd.AddCommand(encodeAWSSecret())
-	newCmd.AddCommand(generateAWSDefaultProfile())
+	newCmd.AddCommand(generateAWSDefaultProfileWithChain())
+
 	return newCmd
 }
 
@@ -216,7 +219,7 @@ func encodeAWSSecret() *cobra.Command {
 		Short: "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		Long:  "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := getCredentialsFromEnvironment()
+			creds, err := getCredentialsFromDefaultChain()
 
 			if err != nil {
 				return err
@@ -235,21 +238,21 @@ func encodeAWSSecret() *cobra.Command {
 	return newCmd
 }
 
-func generateAWSDefaultProfile() *cobra.Command {
+func generateAWSDefaultProfileWithChain() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "generate-aws-default-profile",
 		Short: "Generate an AWS profile from the current environment",
 		Long:  "Generate an AWS profile from the current environment for the ephemeral bootstrap cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			creds, err := getCredentialsFromEnvironment()
+			fmt.Fprint(os.Stderr, "\nWARNING: generate-aws-default-profile command is intended NOT to be used in production environment\n\n\n")
 
+			creds, err := getCredentialsFromDefaultChain()
 			if err != nil {
 				return err
 			}
 
 			profile, err := renderAWSDefaultProfile(*creds)
-
 			if err != nil {
 				return err
 			}
@@ -263,33 +266,25 @@ func generateAWSDefaultProfile() *cobra.Command {
 	return newCmd
 }
 
-func getCredentialsFromEnvironment() (*awsCredential, error) {
+func getCredentialsFromDefaultChain() (*awsCredential, error) {
 	creds := awsCredential{}
+	conf := aws.NewConfig()
+	chain := defaults.CredChain(conf, defaults.Handlers())
+	chainCreds, err := chain.Get()
+	if err != nil {
+		return nil, err
+	}
 
+	// still needed as defaults.CredChain doesn't contain region
 	region, err := getEnv("AWS_REGION")
 	if err != nil {
 		return nil, err
 	}
 	creds.Region = region
 
-	accessKeyID, err := getEnv("AWS_ACCESS_KEY_ID")
-	if err != nil {
-		return nil, err
-	}
-	creds.AccessKeyID = accessKeyID
-
-	secretAccessKey, err := getEnv("AWS_SECRET_ACCESS_KEY")
-	if err != nil {
-		return nil, err
-	}
-	creds.SecretAccessKey = secretAccessKey
-
-	sessionToken, err := getEnv("AWS_SESSION_TOKEN")
-	if err != nil {
-		creds.SessionToken = ""
-	} else {
-		creds.SessionToken = sessionToken
-	}
+	creds.AccessKeyID = chainCreds.AccessKeyID
+	creds.SecretAccessKey = chainCreds.SecretAccessKey
+	creds.SessionToken = chainCreds.SessionToken
 
 	return &creds, nil
 }
