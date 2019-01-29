@@ -74,7 +74,7 @@ kubeadm init --config /tmp/kubeadm.yaml --v 10
     
 set -eox
 
-mkdir -p /etc/kubernetes/pki
+mkdir -p /etc/kubernetes/pki/etcd
 
 echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
 echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key

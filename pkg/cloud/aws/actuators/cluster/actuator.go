@@ -64,44 +64,44 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	elbsvc := elb.NewService(scope)
 
 	// Store some config parameters in the status.
-	caCert, caKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.CAKeyPair, "cluster-ca")
-	if err != nil {
-		return errors.Wrap(err, "Failed to generate a CA for the control plane")
-	}
 	if !scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
+		caCert, caKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.CAKeyPair, "cluster-ca")
+		if err != nil {
+			return errors.Wrap(err, "Failed to generate a CA for the control plane")
+		}
 		scope.ClusterConfig.CAKeyPair = v1alpha1.KeyPair{
 			Cert: caCert,
 			Key:  caKey,
 		}
 	}
 
-	etcdCACert, etcdCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.EtcdCAKeyPair, "etcd-ca")
-	if err != nil {
-		return errors.Wrapf(err, "failed to get or generate etcd CA cert")
-	}
 	if !scope.ClusterConfig.EtcdCAKeyPair.HasCertAndKey() {
+		etcdCACert, etcdCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.EtcdCAKeyPair, "etcd-ca")
+		if err != nil {
+			return errors.Wrapf(err, "failed to get or generate etcd CA cert")
+		}
 		scope.ClusterConfig.EtcdCAKeyPair = v1alpha1.KeyPair{
 			Cert: etcdCACert,
 			Key:  etcdCAKey,
 		}
 	}
 
-	fpCACert, fpCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.FrontProxyCAKeyPair, "front-proxy-ca")
-	if err != nil {
-		return errors.Wrapf(err, "failed to get or generate front-proxy CA cert")
-	}
 	if !scope.ClusterConfig.FrontProxyCAKeyPair.HasCertAndKey() {
+		fpCACert, fpCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.FrontProxyCAKeyPair, "front-proxy-ca")
+		if err != nil {
+			return errors.Wrapf(err, "failed to get or generate front-proxy CA cert")
+		}
 		scope.ClusterConfig.FrontProxyCAKeyPair = v1alpha1.KeyPair{
 			Cert: fpCACert,
 			Key:  fpCAKey,
 		}
 	}
 
-	saPub, saKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.SAKeyPair, "service-account")
-	if err != nil {
-		return errors.Wrapf(err, "failed to get or generate service-account certificates")
-	}
 	if !scope.ClusterConfig.SAKeyPair.HasCertAndKey() {
+		saPub, saKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.SAKeyPair, "service-account")
+		if err != nil {
+			return errors.Wrapf(err, "failed to get or generate service-account certificates")
+		}
 		scope.ClusterConfig.SAKeyPair = v1alpha1.KeyPair{
 			Cert: saPub,
 			Key:  saKey,

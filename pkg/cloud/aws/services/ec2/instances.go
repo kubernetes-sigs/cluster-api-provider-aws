@@ -132,8 +132,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 	if !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		return nil, awserrors.NewFailedDependency(
-			errors.Errorf("Invalid CA cert supplied, len(cert)=%d, len(key)=%d",
-				len(s.scope.ClusterConfig.CAKeyPair.Cert), len(s.scope.ClusterConfig.CAKeyPair.Key)))
+			errors.New("failed to run controlplane, missing CACertificate"),
+		)
 	}
 
 	if s.scope.Network().APIServerELB.DNSName == "" {
