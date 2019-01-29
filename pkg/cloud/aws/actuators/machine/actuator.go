@@ -125,11 +125,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	ec2svc := ec2.NewService(scope.Scope)
 
-	controlPlaneURL, err := a.GetIP(cluster, nil)
-	if err != nil {
-		return errors.Errorf("failed to retrieve controlplane url during machine creation: %+v", err)
-	}
-
 	clusterMachines, err := scope.MachineClient.List(v1.ListOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
@@ -142,7 +137,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	var bootstrapToken string
 	if isNodeJoin {
-		bootstrapToken, err = a.getNodeJoinToken(cluster, controlPlaneURL)
+		bootstrapToken, err = a.getNodeJoinToken(cluster)
 		if err != nil {
 			return errors.Wrapf(err, "failed to obtain token for node %q to join cluster %q", machine.Name, cluster.Name)
 		}
@@ -181,7 +176,14 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
-func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster, controlPlaneURL string) (string, error) {
+func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster) (string, error) {
+	controlPlaneDNSName, err := a.GetIP(cluster, nil)
+	if err != nil {
+		return "", errors.Errorf("failed to retrieve controlplane (GetIP): %+v", err)
+	}
+
+	controlPlaneURL := fmt.Sprintf("https://%s:6443", controlPlaneDNSName)
+
 	kubeConfig, err := a.GetKubeConfig(cluster, nil)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to retrieve kubeconfig for cluster %q.", cluster.Name)
@@ -339,9 +341,9 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning:
-		klog.Infof("Machine %v is running", scope.MachineStatus.InstanceID)
+		klog.Infof("Machine %v is running", *scope.MachineStatus.InstanceID)
 	case v1alpha1.InstanceStatePending:
-		klog.Infof("Machine %v is pending", scope.MachineStatus.InstanceID)
+		klog.Infof("Machine %v is pending", *scope.MachineStatus.InstanceID)
 	default:
 		return false, nil
 	}
