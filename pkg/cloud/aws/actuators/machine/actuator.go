@@ -336,7 +336,6 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// We can now compare the various AWS state to the state we were passed.
 	// We will check immutable state first, in order to fail quickly before
 	// moving on to state that we can mutate.
-	// TODO: Implement immutable state check.
 	if a.isMachineOutdated(scope.MachineConfig, instanceDescription) {
 		return errors.Errorf("found attempt to change immutable state")
 	}
