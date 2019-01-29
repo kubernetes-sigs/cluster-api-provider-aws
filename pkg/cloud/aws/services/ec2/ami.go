@@ -39,7 +39,7 @@ const (
 	// 3. the version of the baseOS, for example: 18.04 (ubuntu), 7 (centos), 2 (amazon)
 	// 4. the kubernetes version as defined by the packages produced by kubernetes/release, for example: 1.13.0-00, 1.12.5-01
 	// 5. the timestamp that the AMI was built
-	amiNameFormat = "ami-%s-%s-%s-??-??????????"
+	amiNameFormat = "capa-ami-%s-%s-%s-??-??????????"
 )
 
 func amiName(baseOS, baseOSVersion, kubernetesVersion string) string {
