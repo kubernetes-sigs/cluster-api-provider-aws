@@ -263,6 +263,57 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
+// isMachineOudated checks that no immutable fields have been updated in an
+// Update request.
+// Returns a bool indicating if an attempt to change immutable state occurred.
+//  - true:  An attempt to change immutable state occurred.
+//  - false: Immutable state was untouched.
+func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) bool {
+	// Instance Type
+	if machineSpec.InstanceType != instance.Type {
+		return true
+	}
+
+	// IAM Profile
+	if machineSpec.IAMInstanceProfile != instance.IAMProfile {
+		return true
+	}
+
+	// SSH Key Name
+	if machineSpec.KeyName != aws.StringValue(instance.KeyName) {
+		return true
+	}
+
+	// Subnet ID
+	// machineSpec.Subnet is a *AWSResourceReference and could technically be
+	// a *string, ARN or Filter. However, elsewhere in the code it is only used
+	// as a *string, so do the same here.
+	if machineSpec.Subnet != nil {
+		if aws.StringValue(machineSpec.Subnet.ID) != instance.SubnetID {
+			return true
+		}
+	}
+
+	// PublicIP check is a little more complicated as the machineConfig is a
+	// simple bool indicating if the instance should have a public IP or not,
+	// while the instanceDescription contains the public IP assigned to the
+	// instance.
+	// Work out whether the instance already has a public IP or not based on
+	// the length of the PublicIP string. Anything >0 is assumed to mean it does
+	// have a public IP.
+	instanceHasPublicIP := false
+	if len(aws.StringValue(instance.PublicIP)) > 0 {
+		instanceHasPublicIP = true
+	}
+
+	if aws.BoolValue(machineSpec.PublicIP) != instanceHasPublicIP {
+		return true
+	}
+
+	// No immutable state changes found.
+	return false
+}
+
 // Update updates a machine and is invoked by the Machine Controller.
 // If the Update attempts to mutate any immutable state, the method will error
 // and no updates will be performed.
@@ -287,7 +338,9 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// We can now compare the various AWS state to the state we were passed.
 	// We will check immutable state first, in order to fail quickly before
 	// moving on to state that we can mutate.
-	// TODO: Implement immutable state check.
+	if a.isMachineOutdated(scope.MachineConfig, instanceDescription) {
+		return errors.Errorf("found attempt to change immutable state")
+	}
 
 	// Ensure that the security groups are correct.
 	_, err = a.ensureSecurityGroups(
