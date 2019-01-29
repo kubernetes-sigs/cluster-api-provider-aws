@@ -20,10 +20,10 @@ This directory contains tooling for building base images for use as nodes in Kub
 
 The following variables can be overriden when building images using the `-var` option when calling `packer build`:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| kubernetes_version | 1.13.0-00 | Kubernetes Version to install |
-| kubernetes_cni_version | 0.6.0-00 | CNI Version to install |
+| Variable               | Default   | Description                   |
+| ---------------------- | --------- | ----------------------------- |
+| kubernetes_version     | 1.13.2-00 | Kubernetes Version to install |
+| kubernetes_cni_version | 0.6.0-00  | CNI Version to install        |
 
 For example, to build all images for use with Kubernetes 1.11.3 for build version 1:
 
