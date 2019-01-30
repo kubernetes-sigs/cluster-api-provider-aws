@@ -17,30 +17,6 @@ limitations under the License.
 package userdata
 
 const (
-	nodeBashScript = `{{.Header}}
-
-HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
-
-cat >/tmp/kubeadm-node.yaml <<EOF
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: JoinConfiguration
-discovery:
-  bootstrapToken:
-    token: "{{.BootstrapToken}}"
-    apiServerEndpoint: "{{.ELBAddress}}:6443"
-    caCertHashes:
-      - "{{.CACertHash}}"
-nodeRegistration:
-  name: "${HOSTNAME}"
-  criSocket: /var/run/containerd/containerd.sock
-  kubeletExtraArgs:
-    cloud-provider: aws
-EOF
-
-kubeadm join --config /tmp/kubeadm-node.yaml
-`
-
 	nodeCloudInit = `{{.Header}}
 write_files:
 -   path: /tmp/kubeadm-node.yaml
