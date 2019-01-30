@@ -323,6 +323,7 @@ func createBootstrapCluster() (*clusterclient.Client, error) {
 }
 
 func applyClusterAPIComponents(client *clusterclient.Client) error {
+	// TODO: take this from the flag
 	pc, err := getProviderComponents("cmd/clusterctl/examples/aws/out/provider-components.yaml")
 	if err != nil {
 		return err
