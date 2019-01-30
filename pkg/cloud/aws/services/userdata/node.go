@@ -61,8 +61,9 @@ write_files:
         criSocket: /var/run/containerd/containerd.sock
         kubeletExtraArgs:
           cloud-provider: aws
-runcmd:
-  - kubeadm join --config /tmp/kubeadm-node.yaml
+kubeadm:
+  operation: join
+  config: /tmp/kubeadm-node.yaml
 `
 )
 
