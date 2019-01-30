@@ -26,9 +26,9 @@ import (
 // GetOrGenerateKeyPair returns a byte encoded cert and key pair if exists, generates one otherwise
 func GetOrGenerateKeyPair(kp *v1alpha1.KeyPair, user string) ([]byte, []byte, error) {
 	if kp == nil || !kp.HasCertAndKey() {
+		klog.V(2).Infof("Generating key pair for %q", user)
 		switch user {
 		case "etcd-ca", "front-proxy-ca", "cluster-ca":
-			klog.V(2).Infof("Generating CA certs for %q", user)
 			x509Cert, privKey, err := certificates.NewCertificateAuthority()
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to generate CA cert for %q", user)
@@ -45,6 +45,8 @@ func GetOrGenerateKeyPair(kp *v1alpha1.KeyPair, user string) ([]byte, []byte, er
 			}
 
 			return saPub, certificates.EncodePrivateKeyPEM(saCreds), nil
+		default:
+			return nil, nil, errors.Errorf("Unknown user %q, skipping generating keyPair", user)
 		}
 	}
 

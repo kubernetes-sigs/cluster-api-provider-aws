@@ -157,41 +157,41 @@ type ContolPlaneJoinInput struct {
 	ELBAddress       string
 }
 
-func (cpi *ControlPlaneInput) isValid() error {
-	if cpi.CACert == "" || cpi.CAKey == "" {
-		return errors.Errorf("CA cert material in the ControlPlaneInput is invalid")
+func (cpi *ControlPlaneInput) isCertMaterialExists() error {
+	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
+		return errors.New("CA cert material in the ControlPlaneInput is missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return errors.Errorf("ETCD CA cert material in the ControlPlaneInput is invalid")
+		return errors.New("ETCD CA cert material in the ControlPlaneInput is  missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return errors.Errorf("FrontProxy CA cert material in ControlPlaneInput is invalid")
+		return errors.New("FrontProxy CA cert material in ControlPlaneInput is  missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
-		return errors.Errorf("ServiceAccount cert material in ControlPlaneInput is invalid")
+		return errors.New("ServiceAccount cert material in ControlPlaneInput is  missing cert/key")
 	}
 
 	return nil
 }
 
-func (cpi *ContolPlaneJoinInput) isValid() error {
+func (cpi *ContolPlaneJoinInput) isCertMaterialExists() error {
 	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
-		return errors.Errorf("CA cert material in the ContolPlaneJoinInput is invalid")
+		return errors.New("CA cert material in the ContolPlaneJoinInput is  missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.EtcdCACert, cpi.EtcdCAKey) {
-		return errors.Errorf("ETCD cert material in the ContolPlaneJoinInput is invalid")
+		return errors.New("ETCD cert material in the ContolPlaneJoinInput is  missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.FrontProxyCACert, cpi.FrontProxyCAKey) {
-		return errors.Errorf("FrontProxy cert material in ContolPlaneJoinInput is invalid")
+		return errors.New("FrontProxy cert material in ContolPlaneJoinInput is  missing cert/key")
 	}
 
 	if !isKeyPairValid(cpi.SaCert, cpi.SaKey) {
-		return errors.Errorf("ServiceAccount cert material in ContolPlaneJoinInput is invalid")
+		return errors.New("ServiceAccount cert material in ContolPlaneJoinInput is  missing cert/key")
 	}
 
 	return nil
@@ -200,7 +200,7 @@ func (cpi *ContolPlaneJoinInput) isValid() error {
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = defaultHeader
-	err := input.isValid()
+	err := input.isCertMaterialExists()
 	if err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
@@ -217,7 +217,7 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 	input.Header = defaultHeader
 
-	err := input.isValid()
+	err := input.isCertMaterialExists()
 	if err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}

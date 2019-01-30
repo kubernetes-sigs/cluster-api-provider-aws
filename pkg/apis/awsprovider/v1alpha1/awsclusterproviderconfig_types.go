@@ -61,7 +61,7 @@ func init() {
 	SchemeBuilder.Register(&AWSClusterProviderSpec{})
 }
 
-// HasCertAndKey returns whether a keypair is valid.
+// HasCertAndKey returns whether a keypair contains cert and key of non-zero length.
 func (kp *KeyPair) HasCertAndKey() bool {
-	return kp != nil && len(kp.Cert) != 0 && len(kp.Key) != 0
+	return len(kp.Cert) != 0 && len(kp.Key) != 0
 }
