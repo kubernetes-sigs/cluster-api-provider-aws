@@ -45,7 +45,7 @@ kubeadm join --config /tmp/kubeadm-node.yaml
 write_files:
 -   path: /tmp/kubeadm-node.yaml
     owner: root:root
-    permissions: '0644'
+    permissions: '0640'
     content: |
       ---
       apiVersion: kubeadm.k8s.io/v1beta1
