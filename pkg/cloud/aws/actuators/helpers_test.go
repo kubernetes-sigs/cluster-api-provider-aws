@@ -29,7 +29,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 		name                string
 		inputKeyPair        *v1alpha1.KeyPair
 		inputUser           string
-		expectKeyPairgen    bool
+		expectKeyPairGen    bool
 		expectCACertKeyPair bool
 		expectedError       error
 	}{
@@ -37,7 +37,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should return generated \"cluster-ca\" keypair when inputKeyPair==nil",
 			inputKeyPair:        nil,
 			inputUser:           "cluster-ca",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: true,
 			expectedError:       nil,
 		},
@@ -45,7 +45,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should return generated \"cluster-ca\" keypair when inputKeyPair has no cert",
 			inputKeyPair:        &v1alpha1.KeyPair{Key: []byte("foo-key")},
 			inputUser:           "cluster-ca",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: true,
 			expectedError:       nil,
 		},
@@ -53,7 +53,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should return generated \"cluster-ca\" keypair when inputKeyPair has no key",
 			inputKeyPair:        &v1alpha1.KeyPair{Cert: []byte("foo-cert")},
 			inputUser:           "cluster-ca",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: true,
 			expectedError:       nil,
 		},
@@ -61,7 +61,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should generate \"cluster-ca\" keypair",
 			inputKeyPair:        nil,
 			inputUser:           "cluster-ca",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: true,
 			expectedError:       nil,
 		},
@@ -69,7 +69,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should generate \"etcd-ca\" keypair",
 			inputKeyPair:        nil,
 			inputUser:           "etcd-ca",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: true,
 			expectedError:       nil,
 		},
@@ -77,7 +77,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should generate \"front-proxy-ca\" keypair",
 			inputKeyPair:        nil,
 			inputUser:           "front-proxy-ca",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: true,
 			expectedError:       nil,
 		},
@@ -85,7 +85,7 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should generate \"service-account\" keypair",
 			inputKeyPair:        nil,
 			inputUser:           "service-account",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: false,
 			expectedError:       nil,
 		},
@@ -93,15 +93,15 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			name:                "should return error for unknown user",
 			inputKeyPair:        nil,
 			inputUser:           "foo-ca",
-			expectKeyPairgen:    true,
+			expectKeyPairGen:    true,
 			expectCACertKeyPair: false,
 			expectedError:       errors.Errorf("Unknown user \"foo-ca\", skipping generating keyPair"),
 		},
 		{
-			name:                "should not generated keypair when inputKeyPair has cert and key",
+			name:                "should not generate keypair when inputKeyPair has cert and key",
 			inputKeyPair:        &v1alpha1.KeyPair{Cert: []byte("foo-cert"), Key: []byte("foo-key")},
 			inputUser:           "cluster-ca",
-			expectKeyPairgen:    false,
+			expectKeyPairGen:    false,
 			expectCACertKeyPair: false,
 			expectedError:       nil,
 		},
@@ -115,10 +115,9 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			} else {
 				continue
 			}
-
 		}
 
-		if !tc.expectKeyPairgen {
+		if !tc.expectKeyPairGen {
 			if len(tc.inputKeyPair.Cert) != len(actualCert) || string(tc.inputKeyPair.Cert) != string(actualCert) {
 				t.Fatalf("[%s] Want cert=%q, Got cert=%q", tc.name, string(tc.inputKeyPair.Cert), string(actualCert))
 			}
@@ -129,16 +128,16 @@ func TestGetOrGenerateKeyPair(t *testing.T) {
 			if tc.expectCACertKeyPair {
 				_, decodeErr := certificates.DecodeCertPEM(actualCert)
 				if decodeErr != nil {
-					t.Fatalf("[%s], Expected to decode generated cert, Got decode failure %q", tc.name, decodeErr)
+					t.Fatalf("[%s], Expected to decode generated cert, Got decode failure %v", tc.name, decodeErr)
 				}
 				_, decodeErr = certificates.DecodePrivateKeyPEM(actualKey)
 				if decodeErr != nil {
-					t.Fatalf("[%s], Expected to decode generated private key, Got decode failure failed %q", tc.name, decodeErr)
+					t.Fatalf("[%s], Expected to decode generated private key, Got decode failure failed %v", tc.name, decodeErr)
 				}
 			} else {
 				_, decodeErr := certificates.DecodePrivateKeyPEM(actualKey)
 				if decodeErr != nil {
-					t.Fatalf("[%s], Expected to decode generated private key, Got decode failure failed %q", tc.name, decodeErr)
+					t.Fatalf("[%s], Expected to decode generated private key, Got decode failure failed %v", tc.name, decodeErr)
 				}
 
 				// TODO: find a stronger check
