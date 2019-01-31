@@ -1,0 +1,7 @@
+load("@bazel_gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/openshift/cluster-api
+gazelle(
+    name = "gazelle",
+    external = "vendored",
+)

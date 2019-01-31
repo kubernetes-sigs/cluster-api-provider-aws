@@ -385,6 +385,23 @@
   version = "v1.4.2"
 
 [[projects]]
+  digest = "1:c49c9300cc3bcc68bc1380ac1bad9ccc190f4f53c58dc208d805eda92c3b9279"
+  name = "github.com/openshift/cluster-api"
+  packages = [
+    "pkg/apis",
+    "pkg/apis/cluster/common",
+    "pkg/apis/cluster/v1alpha1",
+    "pkg/apis/machine/common",
+    "pkg/apis/machine/v1beta1",
+    "pkg/controller/error",
+    "pkg/controller/machine",
+    "pkg/errors",
+    "pkg/util",
+  ]
+  pruneopts = "T"
+  revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
+
+[[projects]]
   digest = "1:8a5594cfb48c87f2e1d54ac443bc466c98e74484e4da43647f995836788a94ad"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
@@ -740,7 +757,6 @@
   ]
   pruneopts = "T"
   revision = "2d6f90ab1293a1fb871cf149423ebb72aa7423aa"
-  version = "kubernetes-1.11.2"
 
 [[projects]]
   digest = "1:3fe3cb0c5e5a140f0b40c18796b884d3432efbd690b0bda8cbd838d38a3ea585"
@@ -754,7 +770,6 @@
   ]
   pruneopts = "T"
   revision = "408db4a50408e2149acbd657bceb2480c13cb0a4"
-  version = "kubernetes-1.11.2"
 
 [[projects]]
   digest = "1:e2035d60919705a125feeb8b13926383aff8817634b2c4550743c19ca21f3b08"
@@ -807,7 +822,6 @@
   ]
   pruneopts = "T"
   revision = "103fd098999dc9c0c88536f5c9ad2e5da39373ae"
-  version = "kubernetes-1.11.2"
 
 [[projects]]
   digest = "1:0a19f9bf56ecc683569299c8c2282ee3ac70d4e32eeb170d3265761bff8d5e12"
@@ -882,11 +896,9 @@
   ]
   pruneopts = "T"
   revision = "1f13a808da65775f22cbf47862c4e5898d8f4ca1"
-  version = "kubernetes-1.11.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:69bcba4f5b287e27653cea4d21005cd6611d7a297d2546ec25d62d7bbe21dfff"
+  digest = "1:8ab487a323486c8bbbaa3b689850487fdccc6cbea8690620e083b2d230a4447e"
   name = "k8s.io/code-generator"
   packages = [
     "cmd/deepcopy-gen",
@@ -894,7 +906,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "772c233fdd266aea152482f6d8381bf12b222cd7"
+  revision = "6702109cc68eb6fe6350b83e14407c8d7309fd1a"
 
 [[projects]]
   branch = "master"
@@ -927,25 +939,6 @@
   packages = ["pkg/util/proto"]
   pruneopts = "T"
   revision = "72693cb1fadd73ae2742f6fe29af77d1aecdd8cd"
-
-[[projects]]
-  branch = "master"
-  digest = "1:7dcbe4d792c3e524fd0e08722294b4553eefb2609a708a4470d1abcd87aa12a6"
-  name = "sigs.k8s.io/cluster-api"
-  packages = [
-    "pkg/apis",
-    "pkg/apis/cluster/common",
-    "pkg/apis/cluster/v1alpha1",
-    "pkg/client/clientset_generated/clientset",
-    "pkg/client/clientset_generated/clientset/scheme",
-    "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
-    "pkg/controller/error",
-    "pkg/controller/machine",
-    "pkg/errors",
-    "pkg/util",
-  ]
-  pruneopts = "T"
-  revision = "cba244b06de7d29777036551e6b32817878d1fcd"
 
 [[projects]]
   digest = "1:ca3f51201a90f3a23bf35938ee910d2fb3095ece453cf56c8b723e935c194ebd"
@@ -1040,6 +1033,11 @@
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
+    "github.com/openshift/cluster-api/pkg/apis",
+    "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1",
+    "github.com/openshift/cluster-api/pkg/controller/error",
+    "github.com/openshift/cluster-api/pkg/controller/machine",
+    "github.com/openshift/cluster-api/pkg/errors",
     "github.com/openshift/kubernetes-drain",
     "github.com/prometheus/common/log",
     "github.com/spf13/cobra",
@@ -1066,11 +1064,7 @@
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/record",
     "k8s.io/code-generator/cmd/deepcopy-gen",
-    "sigs.k8s.io/cluster-api/pkg/apis",
-    "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1",
-    "sigs.k8s.io/cluster-api/pkg/controller/error",
-    "sigs.k8s.io/cluster-api/pkg/controller/machine",
-    "sigs.k8s.io/cluster-api/pkg/errors",
+    "k8s.io/klog",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/client/fake",
