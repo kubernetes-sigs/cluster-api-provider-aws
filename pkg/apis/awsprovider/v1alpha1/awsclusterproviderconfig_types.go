@@ -51,6 +51,7 @@ type AWSClusterProviderSpec struct {
 
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.
 type KeyPair struct {
+	// base64 encoded cert and key
 	Cert []byte `json:"cert"`
 	Key  []byte `json:"key"`
 }
