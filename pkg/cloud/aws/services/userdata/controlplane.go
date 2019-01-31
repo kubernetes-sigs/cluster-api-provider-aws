@@ -200,8 +200,7 @@ func (cpi *ContolPlaneJoinInput) isCertMaterialExists() error {
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = defaultHeader
-	err := input.isCertMaterialExists()
-	if err != nil {
+	if err := input.isCertMaterialExists(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
@@ -217,8 +216,7 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 	input.Header = defaultHeader
 
-	err := input.isCertMaterialExists()
-	if err != nil {
+	if err := input.isCertMaterialExists(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
