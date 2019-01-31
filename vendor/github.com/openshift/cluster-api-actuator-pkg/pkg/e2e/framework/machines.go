@@ -14,18 +14,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
-func (f *Framework) DeleteMachineAndWait(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) {
+func (f *Framework) DeleteMachineAndWait(machine *machinev1beta1.Machine, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Deleting %q machine", machine.Name))
-	err := f.CAPIClient.ClusterV1alpha1().Machines(machine.Namespace).Delete(machine.Name, &metav1.DeleteOptions{})
+	err := f.CAPIClient.MachineV1beta1().Machines(machine.Namespace).Delete(machine.Name, &metav1.DeleteOptions{})
 	f.IgnoreNotFoundErr(err)
 
 	// Verify the testing machine has been destroyed
 	f.By("Verify instance is terminated")
 	err = wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
-		_, err := f.CAPIClient.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
+		_, err := f.CAPIClient.MachineV1beta1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
 		if err == nil {
 			glog.V(2).Info("Waiting for machine to be deleted")
 			return false, nil
@@ -55,11 +55,11 @@ func (f *Framework) DeleteMachineAndWait(machine *clusterv1alpha1.Machine, clien
 	}
 }
 
-func (f *Framework) waitForMachineToRun(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) {
+func (f *Framework) waitForMachineToRun(machine *machinev1beta1.Machine, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Waiting for %q machine", machine.Name))
 	// Verify machine has been deployed
 	err := wait.Poll(PollInterval, TimeoutPoolMachineRunningInterval, func() (bool, error) {
-		if _, err := f.CAPIClient.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{}); err != nil {
+		if _, err := f.CAPIClient.MachineV1beta1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{}); err != nil {
 			glog.V(2).Infof("Waiting for '%v/%v' machine to be created", machine.Namespace, machine.Name)
 			return false, nil
 		}
@@ -88,7 +88,7 @@ func (f *Framework) waitForMachineToRun(machine *clusterv1alpha1.Machine, client
 	f.ErrNotExpected(err)
 }
 
-func (f *Framework) waitForMachineToTerminate(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) error {
+func (f *Framework) waitForMachineToTerminate(machine *machinev1beta1.Machine, client types.CloudProviderClient) error {
 	f.By("Verify machine's underlying instance is not running")
 	err := wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
 		glog.V(2).Info("Waiting for instance to terminate")
@@ -112,7 +112,7 @@ func (f *Framework) waitForMachineToTerminate(machine *clusterv1alpha1.Machine, 
 	f.By(fmt.Sprintf("Waiting for %q machine object to be deleted", machine.Name))
 	// Verify machine has been deployed
 	err = wait.Poll(PollInterval, TimeoutPoolMachineRunningInterval, func() (bool, error) {
-		if _, err := f.CAPIClient.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{}); err != nil {
+		if _, err := f.CAPIClient.MachineV1beta1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{}); err != nil {
 			glog.V(2).Infof("err: %v", err)
 			return true, nil
 		}
@@ -125,10 +125,10 @@ func (f *Framework) waitForMachineToTerminate(machine *clusterv1alpha1.Machine, 
 	return nil
 }
 
-func (f *Framework) CreateMachineAndWait(machine *clusterv1alpha1.Machine, client types.CloudProviderClient) {
+func (f *Framework) CreateMachineAndWait(machine *machinev1beta1.Machine, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Creating %q machine", machine.Name))
 	err := wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
-		_, err := f.CAPIClient.ClusterV1alpha1().Machines(machine.Namespace).Create(machine)
+		_, err := f.CAPIClient.MachineV1beta1().Machines(machine.Namespace).Create(machine)
 		if err != nil {
 			glog.V(2).Infof("can't create machine: %v", err)
 			return false, nil
@@ -140,10 +140,10 @@ func (f *Framework) CreateMachineAndWait(machine *clusterv1alpha1.Machine, clien
 	f.waitForMachineToRun(machine, client)
 }
 
-func (f *Framework) CreateMachineSetAndWait(machineset *clusterv1alpha1.MachineSet, client types.CloudProviderClient) {
+func (f *Framework) CreateMachineSetAndWait(machineset *machinev1beta1.MachineSet, client types.CloudProviderClient) {
 	f.By(fmt.Sprintf("Creating %q machineset", machineset.Name))
 	err := wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
-		_, err := f.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Create(machineset)
+		_, err := f.CAPIClient.MachineV1beta1().MachineSets(machineset.Namespace).Create(machineset)
 		if err != nil {
 			glog.V(2).Infof("can't create machineset: %v", err)
 			return false, nil
@@ -154,7 +154,7 @@ func (f *Framework) CreateMachineSetAndWait(machineset *clusterv1alpha1.MachineS
 
 	// Verify machineset has been deployed
 	err = wait.Poll(PollInterval, TimeoutPoolMachineRunningInterval, func() (bool, error) {
-		if _, err := f.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Get(machineset.Name, metav1.GetOptions{}); err != nil {
+		if _, err := f.CAPIClient.MachineV1beta1().MachineSets(machineset.Namespace).Get(machineset.Name, metav1.GetOptions{}); err != nil {
 			glog.V(2).Infof("Waiting for machineset to be created: %v", err)
 			return false, nil
 		}
@@ -163,7 +163,7 @@ func (f *Framework) CreateMachineSetAndWait(machineset *clusterv1alpha1.MachineS
 	f.ErrNotExpected(err)
 
 	f.By("Verify machineset's underlying instances is running")
-	machines, err := f.CAPIClient.ClusterV1alpha1().Machines(machineset.Namespace).List(metav1.ListOptions{
+	machines, err := f.CAPIClient.MachineV1beta1().Machines(machineset.Namespace).List(metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(machineset.Spec.Selector.MatchLabels).String(),
 	})
 	f.ErrNotExpected(err)
@@ -173,9 +173,9 @@ func (f *Framework) CreateMachineSetAndWait(machineset *clusterv1alpha1.MachineS
 	}
 }
 
-func (f *Framework) DeleteMachineSetAndWait(machineset *clusterv1alpha1.MachineSet, client types.CloudProviderClient) error {
+func (f *Framework) DeleteMachineSetAndWait(machineset *machinev1beta1.MachineSet, client types.CloudProviderClient) error {
 	f.By(fmt.Sprintf("Get all %q machineset's machines", machineset.Name))
-	machines, err := f.CAPIClient.ClusterV1alpha1().Machines(machineset.Namespace).List(metav1.ListOptions{
+	machines, err := f.CAPIClient.MachineV1beta1().Machines(machineset.Namespace).List(metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(machineset.Spec.Selector.MatchLabels).String(),
 	})
 	if err != nil {
@@ -183,7 +183,7 @@ func (f *Framework) DeleteMachineSetAndWait(machineset *clusterv1alpha1.MachineS
 	}
 
 	f.By(fmt.Sprintf("Deleting %q machineset", machineset.Name))
-	err = f.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Delete(machineset.Name, &metav1.DeleteOptions{})
+	err = f.CAPIClient.MachineV1beta1().MachineSets(machineset.Namespace).Delete(machineset.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (f *Framework) DeleteMachineSetAndWait(machineset *clusterv1alpha1.MachineS
 	}
 
 	err = wait.Poll(PollInterval, PoolTimeout, func() (bool, error) {
-		_, err := f.CAPIClient.ClusterV1alpha1().MachineSets(machineset.Namespace).Get(machineset.Name, metav1.GetOptions{})
+		_, err := f.CAPIClient.MachineV1beta1().MachineSets(machineset.Namespace).Get(machineset.Name, metav1.GetOptions{})
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
 				return true, nil
@@ -264,7 +264,7 @@ func ReadKubeconfigFromServer(sshConfig *SSHConfig) (string, error) {
 	return b.String(), nil
 }
 
-func (f *Framework) GetMasterMachineRestConfig(masterMachine *clusterv1alpha1.Machine, client types.CloudProviderClient) (*rest.Config, error) {
+func (f *Framework) GetMasterMachineRestConfig(masterMachine *machinev1beta1.Machine, client types.CloudProviderClient) (*rest.Config, error) {
 	var masterPublicDNSName string
 	err := wait.Poll(PollInterval, TimeoutPoolMachineRunningInterval, func() (bool, error) {
 		var err error
@@ -312,13 +312,13 @@ func (f *Framework) GetMasterMachineRestConfig(masterMachine *clusterv1alpha1.Ma
 }
 
 type machineToDelete struct {
-	machine   *clusterv1alpha1.Machine
+	machine   *machinev1beta1.Machine
 	framework *Framework
 	client    types.CloudProviderClient
 }
 
 type machinesetToDelete struct {
-	machineset *clusterv1alpha1.MachineSet
+	machineset *machinev1beta1.MachineSet
 	framework  *Framework
 	client     types.CloudProviderClient
 }
@@ -335,11 +335,11 @@ func InitMachinesToDelete() *MachinesToDelete {
 	}
 }
 
-func (m *MachinesToDelete) AddMachine(machine *clusterv1alpha1.Machine, framework *Framework, client types.CloudProviderClient) {
+func (m *MachinesToDelete) AddMachine(machine *machinev1beta1.Machine, framework *Framework, client types.CloudProviderClient) {
 	m.machines = append([]machineToDelete{{machine: machine, framework: framework, client: client}}, m.machines...)
 }
 
-func (m *MachinesToDelete) AddMachineSet(machineset *clusterv1alpha1.MachineSet, framework *Framework, client types.CloudProviderClient) {
+func (m *MachinesToDelete) AddMachineSet(machineset *machinev1beta1.MachineSet, framework *Framework, client types.CloudProviderClient) {
 	m.machinesets = append([]machinesetToDelete{{machineset: machineset, framework: framework, client: client}}, m.machinesets...)
 }
 

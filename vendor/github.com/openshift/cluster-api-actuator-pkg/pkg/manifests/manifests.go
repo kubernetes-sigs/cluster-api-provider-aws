@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	// apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	Machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 func ClusterCRDManifest() *v1beta1.CustomResourceDefinition {
@@ -23,14 +23,14 @@ func ClusterCRDManifest() *v1beta1.CustomResourceDefinition {
 			APIVersion: "apiextensions.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "clusters.cluster.k8s.io",
+			Name: "clusters.machine.openshift.io",
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
 			},
 		},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
-			Group:   "cluster.k8s.io",
-			Version: "v1alpha1",
+			Group:   "machine.openshift.io",
+			Version: "v1beta1",
 			Names: v1beta1.CustomResourceDefinitionNames{
 				Plural: "clusters",
 				Kind:   "Cluster",
@@ -164,14 +164,14 @@ func MachineCRDManifest() *v1beta1.CustomResourceDefinition {
 			APIVersion: "apiextensions.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "machines.cluster.k8s.io",
+			Name: "machines.machine.openshift.io",
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
 			},
 		},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
-			Group:   "cluster.k8s.io",
-			Version: "v1alpha1",
+			Group:   "machine.openshift.io",
+			Version: "v1beta1",
 			Names: v1beta1.CustomResourceDefinitionNames{
 				Plural: "machines",
 				Kind:   "Machine",
@@ -304,14 +304,14 @@ func MachineSetCRDManifest() *v1beta1.CustomResourceDefinition {
 			APIVersion: "apiextensions.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "machinesets.cluster.k8s.io",
+			Name: "machinesets.machine.openshift.io",
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
 			},
 		},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
-			Group:   "cluster.k8s.io",
-			Version: "v1alpha1",
+			Group:   "machine.openshift.io",
+			Version: "v1beta1",
 			Names: v1beta1.CustomResourceDefinitionNames{
 				Plural: "machinesets",
 				Kind:   "MachineSet",
@@ -454,14 +454,14 @@ func MachineDeploymentCRDManifest() *v1beta1.CustomResourceDefinition {
 			APIVersion: "apiextensions.k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "machinedeployments.cluster.k8s.io",
+			Name: "machinedeployments.machine.openshift.io",
 			Labels: map[string]string{
 				"controller-tools.k8s.io": "1.0",
 			},
 		},
 		Spec: v1beta1.CustomResourceDefinitionSpec{
-			Group:   "cluster.k8s.io",
-			Version: "v1alpha1",
+			Group:   "machine.openshift.io",
+			Version: "v1beta1",
 			Names: v1beta1.CustomResourceDefinitionNames{
 				Plural: "machinedeployments",
 				Kind:   "MachineDeployment",
@@ -644,7 +644,7 @@ func ClusterRoleManifest() *rbacv1.ClusterRole {
 					"delete",
 				},
 				APIGroups: []string{
-					"cluster.k8s.io",
+					"machine.openshift.io",
 				},
 				Resources: []string{
 					"clusters",
@@ -902,9 +902,9 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, machineControllerImage
 	return deployment
 }
 
-func TestingMachine(clusterID string, namespace string, providerSpec clusterv1alpha1.ProviderSpec) *clusterv1alpha1.Machine {
+func TestingMachine(clusterID string, namespace string, providerSpec Machinev1beta1.ProviderSpec) *Machinev1beta1.Machine {
 	randomUUID := string(uuid.NewUUID())
-	machine := &clusterv1alpha1.Machine{
+	machine := &Machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         clusterID + "-machine-" + randomUUID[:6],
 			Namespace:    namespace,
@@ -913,14 +913,14 @@ func TestingMachine(clusterID string, namespace string, providerSpec clusterv1al
 				"sigs.k8s.io/cluster-api-cluster": clusterID,
 			},
 		},
-		Spec: clusterv1alpha1.MachineSpec{
+		Spec: Machinev1beta1.MachineSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
 					"node-role.kubernetes.io/compute": "",
 				},
 			},
 			ProviderSpec: providerSpec,
-			Versions: clusterv1alpha1.MachineVersionInfo{
+			Versions: Machinev1beta1.MachineVersionInfo{
 				Kubelet:      "1.10.1",
 				ControlPlane: "1.10.1",
 			},
@@ -930,9 +930,9 @@ func TestingMachine(clusterID string, namespace string, providerSpec clusterv1al
 	return machine
 }
 
-func MasterMachine(clusterID, namespace string, providerSpec clusterv1alpha1.ProviderSpec) *clusterv1alpha1.Machine {
+func MasterMachine(clusterID, namespace string, providerSpec Machinev1beta1.ProviderSpec) *Machinev1beta1.Machine {
 	randomUUID := string(uuid.NewUUID())
-	machine := &clusterv1alpha1.Machine{
+	machine := &Machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         clusterID + "-master-machine-" + randomUUID[:6],
 			Namespace:    namespace,
@@ -941,9 +941,9 @@ func MasterMachine(clusterID, namespace string, providerSpec clusterv1alpha1.Pro
 				"sigs.k8s.io/cluster-api-cluster": clusterID,
 			},
 		},
-		Spec: clusterv1alpha1.MachineSpec{
+		Spec: Machinev1beta1.MachineSpec{
 			ProviderSpec: providerSpec,
-			Versions: clusterv1alpha1.MachineVersionInfo{
+			Versions: Machinev1beta1.MachineVersionInfo{
 				Kubelet:      "1.10.1",
 				ControlPlane: "1.10.1",
 			},
@@ -1003,10 +1003,10 @@ func WorkerMachineUserDataSecret(secretName, namespace, masterIP string) (*apiv1
 	}, nil
 }
 
-func WorkerMachineSet(clusterID, namespace string, providerSpec clusterv1alpha1.ProviderSpec) *clusterv1alpha1.MachineSet {
+func WorkerMachineSet(clusterID, namespace string, providerSpec Machinev1beta1.ProviderSpec) *Machinev1beta1.MachineSet {
 	var replicas int32 = 1
 	randomUUID := string(uuid.NewUUID())
-	return &clusterv1alpha1.MachineSet{
+	return &Machinev1beta1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         clusterID + "-worker-machineset-" + randomUUID[:6],
 			Namespace:    namespace,
@@ -1015,7 +1015,7 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec clusterv1alpha1.
 				"sigs.k8s.io/cluster-api-cluster": clusterID,
 			},
 		},
-		Spec: clusterv1alpha1.MachineSetSpec{
+		Spec: Machinev1beta1.MachineSetSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"sigs.k8s.io/cluster-api-machineset": clusterID + "-worker-machineset-" + randomUUID[:6],
@@ -1023,7 +1023,7 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec clusterv1alpha1.
 				},
 			},
 			Replicas: &replicas,
-			Template: clusterv1alpha1.MachineTemplateSpec{
+			Template: Machinev1beta1.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: clusterID + "-worker-machine-" + randomUUID[:6] + "-",
 					Labels: map[string]string{
@@ -1031,14 +1031,14 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec clusterv1alpha1.
 						"sigs.k8s.io/cluster-api-cluster":    clusterID,
 					},
 				},
-				Spec: clusterv1alpha1.MachineSpec{
+				Spec: Machinev1beta1.MachineSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"node-role.kubernetes.io/compute": "",
 						},
 					},
 					ProviderSpec: providerSpec,
-					Versions: clusterv1alpha1.MachineVersionInfo{
+					Versions: Machinev1beta1.MachineVersionInfo{
 						Kubelet:      "1.10.1",
 						ControlPlane: "1.10.1",
 					},
