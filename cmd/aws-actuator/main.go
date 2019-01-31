@@ -41,10 +41,10 @@ import (
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	testutils "sigs.k8s.io/cluster-api-provider-aws/test/utils"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const (
@@ -56,7 +56,7 @@ const (
 
 func init() {
 	// Add types to scheme
-	clusterv1.AddToScheme(scheme.Scheme)
+	machinev1.AddToScheme(scheme.Scheme)
 
 	rootCmd.PersistentFlags().StringP("machine", "m", "", "Machine manifest")
 	rootCmd.PersistentFlags().StringP("cluster", "c", "", "Cluster manifest")
@@ -240,17 +240,17 @@ func bootstrapCommand() *cobra.Command {
 				},
 			}
 
-			testCluster := &clusterv1.Cluster{
+			testCluster := &machinev1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      machinePrefix,
 					Namespace: testNamespace.Name,
 				},
-				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
-						Services: clusterv1.NetworkRanges{
+				Spec: machinev1.ClusterSpec{
+					ClusterNetwork: machinev1.ClusterNetworkingConfig{
+						Services: machinev1.NetworkRanges{
 							CIDRBlocks: []string{"10.0.0.1/24"},
 						},
-						Pods: clusterv1.NetworkRanges{
+						Pods: machinev1.NetworkRanges{
 							CIDRBlocks: []string{"10.0.0.1/24"},
 						},
 						ServiceDomain: "example.com",

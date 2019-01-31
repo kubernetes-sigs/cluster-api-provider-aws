@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	//"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/fake"
+	//"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"github.com/ghodss/yaml"
 )
@@ -43,8 +43,8 @@ runcmd:
 - [ cat, /root/node_bootstrap/node_settings.yaml]
 `
 
-func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
-	machine := &clusterv1.Machine{}
+func testMachineAPIResources(clusterID string) (*machinev1.Machine, *machinev1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
+	machine := &machinev1.Machine{}
 
 	bytes, err := ioutil.ReadFile(path.Join(os.Getenv("GOPATH"), "/src/sigs.k8s.io/cluster-api-provider-aws/examples/machine.yaml"))
 	if err != nil {
@@ -76,7 +76,7 @@ func testMachineAPIResources(clusterID string) (*clusterv1.Machine, *clusterv1.C
 		},
 	}
 
-	cluster := &clusterv1.Cluster{
+	cluster := &machinev1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterID,
 			Namespace: defaultNamespace,
@@ -91,7 +91,7 @@ func TestCreateAndDeleteMachine(t *testing.T) {
 	// kube client is needed to fetch aws credentials:
 	// - kubeClient.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
 	// cluster client for updating machine statues
-	// - clusterClient.ClusterV1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
+	// - clusterClient.machinev1alpha1().Machines(machineCopy.Namespace).UpdateStatus(machineCopy)
 
 	if os.Getenv("GOPATH") == "" {
 		t.Fatalf("GOPATH not set")

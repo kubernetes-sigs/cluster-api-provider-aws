@@ -8,8 +8,8 @@ import (
 
 	"github.com/golang/glog"
 
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -33,7 +33,7 @@ func removeDuplicatedTags(tags []*ec2.Tag) []*ec2.Tag {
 }
 
 // removeStoppedMachine removes all instances of a specific machine that are in a stopped state.
-func removeStoppedMachine(machine *clusterv1.Machine, client awsclient.Client) error {
+func removeStoppedMachine(machine *machinev1.Machine, client awsclient.Client) error {
 	instances, err := getStoppedInstances(machine, client)
 	if err != nil {
 		glog.Errorf("error getting stopped instances: %v", err)
@@ -214,7 +214,7 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 	return []*ec2.BlockDeviceMapping{&blockDeviceMapping}, nil
 }
 
-func launchInstance(machine *clusterv1.Machine, machineProviderConfig *providerconfigv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
+func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerconfigv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
 	amiID, err := getAMI(machineProviderConfig.AMI, client)
 	if err != nil {
 		return nil, fmt.Errorf("error getting AMI: %v,", err)

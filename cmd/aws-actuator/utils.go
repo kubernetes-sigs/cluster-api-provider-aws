@@ -17,18 +17,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 type manifestParams struct {
 	ClusterID string
 }
 
-func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*clusterv1.Machine, error) {
-	machine := &clusterv1.Machine{}
+func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*machinev1.Machine, error) {
+	machine := &machinev1.Machine{}
 	manifestBytes, err := ioutil.ReadFile(manifestLoc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read %v: %v", manifestLoc, err)
@@ -51,13 +51,13 @@ func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*c
 	return machine, nil
 }
 
-func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *clusterv1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
+func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*machinev1.Cluster, *machinev1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
 	machine, err := readMachineManifest(manifestParams, machineLoc)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	cluster := &clusterv1.Cluster{}
+	cluster := &machinev1.Cluster{}
 	bytes, err := ioutil.ReadFile(clusterLoc)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
@@ -110,7 +110,7 @@ func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) error {
 }
 
 // CreateActuator creates actuator with fake clientsets
-func createActuator(machine *clusterv1.Machine, awsCredentials, userData *apiv1.Secret) (*machineactuator.Actuator, error) {
+func createActuator(machine *machinev1.Machine, awsCredentials, userData *apiv1.Secret) (*machineactuator.Actuator, error) {
 	objList := []runtime.Object{machine}
 	if awsCredentials != nil {
 		objList = append(objList, awsCredentials)

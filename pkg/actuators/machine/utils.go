@@ -27,17 +27,17 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // getRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
 // the most recently launched will be returned. If no instance exists, an error will be returned.
-func getRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*ec2.Instance, error) {
+func getRunningInstance(machine *machinev1.Machine, client awsclient.Client) (*ec2.Instance, error) {
 	instances, err := getRunningInstances(machine, client)
 	if err != nil {
 		return nil, err
@@ -52,21 +52,21 @@ func getRunningInstance(machine *clusterv1.Machine, client awsclient.Client) (*e
 
 // getRunningInstances returns all running instances that have a tag matching our machine name,
 // and cluster ID.
-func getRunningInstances(machine *clusterv1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
+func getRunningInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
 	runningInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameRunning), aws.String(ec2.InstanceStateNamePending)}
 	return getInstances(machine, client, runningInstanceStateFilter)
 }
 
 // getStoppedInstances returns all stopped instances that have a tag matching our machine name,
 // and cluster ID.
-func getStoppedInstances(machine *clusterv1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
+func getStoppedInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
 	stoppedInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameStopped), aws.String(ec2.InstanceStateNameStopping)}
 	return getInstances(machine, client, stoppedInstanceStateFilter)
 }
 
 // getInstances returns all instances that have a tag matching our machine name,
 // and cluster ID.
-func getInstances(machine *clusterv1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {
+func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {
 
 	machineName := machine.Name
 
@@ -138,7 +138,7 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 
 // providerConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func providerConfigFromMachine(client client.Client, machine *machinev1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
 	var providerSpecRawExtention runtime.RawExtension
 
 	providerSpec := machine.Spec.ProviderSpec
@@ -153,7 +153,7 @@ func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 		if providerSpec.ValueFrom.MachineClass == nil {
 			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderSpec.ValueFrom")
 		}
-		machineClass := &clusterv1.MachineClass{}
+		machineClass := &machinev1.MachineClass{}
 		key := types.NamespacedName{
 			Namespace: providerSpec.ValueFrom.MachineClass.Namespace,
 			Name:      providerSpec.ValueFrom.MachineClass.Name,
@@ -165,14 +165,14 @@ func providerConfigFromMachine(client client.Client, machine *clusterv1.Machine,
 	}
 
 	var config providerconfigv1.AWSMachineProviderConfig
-	if err := codec.DecodeProviderSpec(&clusterv1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
+	if err := codec.DecodeProviderSpec(&machinev1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil
 }
 
 // isMaster returns true if the machine is part of a cluster's control plane
-func isMaster(machine *clusterv1.Machine) bool {
+func isMaster(machine *machinev1.Machine) bool {
 	if machineType, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineTypeLabel]; exists && machineType == "master" {
 		return true
 	}

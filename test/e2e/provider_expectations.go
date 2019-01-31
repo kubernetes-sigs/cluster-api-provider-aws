@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
+	capiv1beta1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	kappsapi "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	capiv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -44,7 +44,7 @@ func (tc *testConfig) ExpectOneClusterObject() error {
 	listOptions := client.ListOptions{
 		Namespace: namespace,
 	}
-	clusterList := capiv1alpha1.ClusterList{}
+	clusterList := capiv1beta1.ClusterList{}
 
 	err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
 		if err := tc.client.List(context.TODO(), &listOptions, &clusterList); err != nil {
@@ -64,7 +64,7 @@ func (tc *testConfig) ExpectAllMachinesLinkedToANode() error {
 	listOptions := client.ListOptions{
 		Namespace: namespace,
 	}
-	machineList := capiv1alpha1.MachineList{}
+	machineList := capiv1beta1.MachineList{}
 	nodeList := corev1.NodeList{}
 
 	err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
@@ -107,7 +107,7 @@ func (tc *testConfig) ExpectNewNodeWhenDeletingMachine() error {
 	listOptions := client.ListOptions{
 		Namespace: namespace,
 	}
-	machineList := capiv1alpha1.MachineList{}
+	machineList := capiv1beta1.MachineList{}
 	nodeList := corev1.NodeList{}
 
 	glog.Info("Get machineList")
@@ -136,7 +136,7 @@ func (tc *testConfig) ExpectNewNodeWhenDeletingMachine() error {
 
 	clusterInitialTotalNodes := len(nodeList.Items)
 	clusterInitialTotalMachines := len(machineList.Items)
-	var triagedWorkerMachine capiv1alpha1.Machine
+	var triagedWorkerMachine capiv1beta1.Machine
 	var triagedWorkerNode corev1.Node
 MachineLoop:
 	for _, m := range machineList.Items {
@@ -204,13 +204,13 @@ func (tc *testConfig) ExpectNodeToBeDrainedBeforeDeletingMachine() error {
 		Namespace: namespace,
 	}
 
-	var machine capiv1alpha1.Machine
+	var machine capiv1beta1.Machine
 	var nodeName string
 	var node *corev1.Node
 
 	glog.Info("Get machineList with at least one machine with NodeRef set")
 	if err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
-		machineList := capiv1alpha1.MachineList{}
+		machineList := capiv1beta1.MachineList{}
 		if err := tc.client.List(context.TODO(), &listOptions, &machineList); err != nil {
 			glog.Errorf("error querying api for machineList object: %v, retrying...", err)
 			return false, nil

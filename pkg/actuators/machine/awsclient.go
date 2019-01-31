@@ -5,8 +5,8 @@ import (
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
 
+	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 // AwsClientWrapper implements CloudProviderClient for aws e2e framework
@@ -23,7 +23,7 @@ func NewAwsClientWrapper(client awsclient.Client) *AwsClientWrapper {
 }
 
 // GetRunningInstances gets running instances (of a given cloud provider) managed by the machine object
-func (client *AwsClientWrapper) GetRunningInstances(machine *clusterv1alpha1.Machine) ([]interface{}, error) {
+func (client *AwsClientWrapper) GetRunningInstances(machine *machinev1beta1.Machine) ([]interface{}, error) {
 	runningInstances, err := getRunningInstances(machine, client.client)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (client *AwsClientWrapper) GetRunningInstances(machine *clusterv1alpha1.Mac
 }
 
 // GetPublicDNSName gets running instance public DNS name
-func (client *AwsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machine) (string, error) {
+func (client *AwsClientWrapper) GetPublicDNSName(machine *machinev1beta1.Machine) (string, error) {
 	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
@@ -52,7 +52,7 @@ func (client *AwsClientWrapper) GetPublicDNSName(machine *clusterv1alpha1.Machin
 }
 
 // GetPrivateIP gets private IP
-func (client *AwsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (string, error) {
+func (client *AwsClientWrapper) GetPrivateIP(machine *machinev1beta1.Machine) (string, error) {
 	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
@@ -66,7 +66,7 @@ func (client *AwsClientWrapper) GetPrivateIP(machine *clusterv1alpha1.Machine) (
 }
 
 // GetSecurityGroups gets security groups
-func (client *AwsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machine) ([]string, error) {
+func (client *AwsClientWrapper) GetSecurityGroups(machine *machinev1beta1.Machine) ([]string, error) {
 	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (client *AwsClientWrapper) GetSecurityGroups(machine *clusterv1alpha1.Machi
 }
 
 // GetIAMRole gets IAM role
-func (client *AwsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (string, error) {
+func (client *AwsClientWrapper) GetIAMRole(machine *machinev1beta1.Machine) (string, error) {
 	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
@@ -93,7 +93,7 @@ func (client *AwsClientWrapper) GetIAMRole(machine *clusterv1alpha1.Machine) (st
 }
 
 // GetTags gets tags
-func (client *AwsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[string]string, error) {
+func (client *AwsClientWrapper) GetTags(machine *machinev1beta1.Machine) (map[string]string, error) {
 	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (client *AwsClientWrapper) GetTags(machine *clusterv1alpha1.Machine) (map[s
 }
 
 // GetSubnet gets subnet
-func (client *AwsClientWrapper) GetSubnet(machine *clusterv1alpha1.Machine) (string, error) {
+func (client *AwsClientWrapper) GetSubnet(machine *machinev1beta1.Machine) (string, error) {
 	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err
@@ -118,7 +118,7 @@ func (client *AwsClientWrapper) GetSubnet(machine *clusterv1alpha1.Machine) (str
 }
 
 // GetAvailabilityZone gets availability zone
-func (client *AwsClientWrapper) GetAvailabilityZone(machine *clusterv1alpha1.Machine) (string, error) {
+func (client *AwsClientWrapper) GetAvailabilityZone(machine *machinev1beta1.Machine) (string, error) {
 	instance, err := getRunningInstance(machine, client.client)
 	if err != nil {
 		return "", err

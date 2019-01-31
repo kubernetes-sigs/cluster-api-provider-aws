@@ -4,17 +4,17 @@ import (
 	"reflect"
 	"testing"
 
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func init() {
 	// Add types to scheme
-	clusterv1.AddToScheme(scheme.Scheme)
+	machinev1.AddToScheme(scheme.Scheme)
 }
 
 func TestProviderConfigFromMachine(t *testing.T) {
@@ -55,7 +55,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 		t.Error(err)
 	}
 
-	machineClass := &clusterv1.MachineClass{
+	machineClass := &machinev1.MachineClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "openshift-cluster-api",
 			Name:      "testClass",
@@ -64,10 +64,10 @@ func TestProviderConfigFromMachine(t *testing.T) {
 	}
 
 	testCases := []struct {
-		machine *clusterv1.Machine
+		machine *machinev1.Machine
 	}{
 		{
-			machine: &clusterv1.Machine{
+			machine: &machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "configFromSpecProviderConfigValue",
 					Namespace: "",
@@ -78,13 +78,13 @@ func TestProviderConfigFromMachine(t *testing.T) {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "Machine",
 				},
-				Spec: clusterv1.MachineSpec{
+				Spec: machinev1.MachineSpec{
 					ProviderSpec: *encodedProviderSpec,
 				},
 			},
 		},
 		{
-			machine: &clusterv1.Machine{
+			machine: &machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "configFromClass",
 					Namespace: "",
@@ -95,10 +95,10 @@ func TestProviderConfigFromMachine(t *testing.T) {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "Machine",
 				},
-				Spec: clusterv1.MachineSpec{
-					ProviderSpec: clusterv1.ProviderSpec{
-						ValueFrom: &clusterv1.ProviderSpecSource{
-							MachineClass: &clusterv1.MachineClassRef{
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: machinev1.ProviderSpec{
+						ValueFrom: &machinev1.ProviderSpecSource{
+							MachineClass: &machinev1.MachineClassRef{
 								ObjectReference: &corev1.ObjectReference{
 									Kind:      "MachineClass",
 									Name:      "testClass",
