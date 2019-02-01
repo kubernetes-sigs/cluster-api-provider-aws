@@ -65,7 +65,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	// Store some config parameters in the status.
 	if !scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
-		caCert, caKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.CAKeyPair, "cluster-ca")
+		caCert, caKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.CAKeyPair, actuators.ClusterCA)
 		if err != nil {
 			return errors.Wrap(err, "Failed to generate a CA for the control plane")
 		}
@@ -76,7 +76,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	}
 
 	if !scope.ClusterConfig.EtcdCAKeyPair.HasCertAndKey() {
-		etcdCACert, etcdCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.EtcdCAKeyPair, "etcd-ca")
+		etcdCACert, etcdCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.EtcdCAKeyPair, actuators.EtcdCA)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get or generate etcd CA cert")
 		}
@@ -87,7 +87,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	}
 
 	if !scope.ClusterConfig.FrontProxyCAKeyPair.HasCertAndKey() {
-		fpCACert, fpCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.FrontProxyCAKeyPair, "front-proxy-ca")
+		fpCACert, fpCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.FrontProxyCAKeyPair, actuators.FrontProxyCA)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get or generate front-proxy CA cert")
 		}
@@ -98,7 +98,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	}
 
 	if !scope.ClusterConfig.SAKeyPair.HasCertAndKey() {
-		saPub, saKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.SAKeyPair, "service-account")
+		saPub, saKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.SAKeyPair, actuators.ServiceAccount)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get or generate service-account certificates")
 		}

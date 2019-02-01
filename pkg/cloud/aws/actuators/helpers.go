@@ -23,18 +23,25 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 )
 
+const (
+	ClusterCA      = "cluster-ca"
+	EtcdCA         = "etcd-ca"
+	FrontProxyCA   = "front-proxy-ca"
+	ServiceAccount = "service-account"
+)
+
 // GetOrGenerateKeyPair returns a byte encoded cert and key pair if exists, generates one otherwise
 func GetOrGenerateKeyPair(kp *v1alpha1.KeyPair, user string) ([]byte, []byte, error) {
 	if kp == nil || !kp.HasCertAndKey() {
 		klog.V(2).Infof("Generating key pair for %q", user)
 		switch user {
-		case "etcd-ca", "front-proxy-ca", "cluster-ca":
+		case EtcdCA, FrontProxyCA, ClusterCA:
 			x509Cert, privKey, err := certificates.NewCertificateAuthority()
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to generate CA cert for %q", user)
 			}
 			return certificates.EncodeCertPEM(x509Cert), certificates.EncodePrivateKeyPEM(privKey), nil
-		case "service-account":
+		case ServiceAccount:
 			saCreds, err := certificates.NewPrivateKey()
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "failed to create service account public and private keys")
