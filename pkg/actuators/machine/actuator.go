@@ -32,10 +32,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
+	apierrors "github.com/openshift/cluster-api/pkg/errors"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
-	apierrors "sigs.k8s.io/cluster-api/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 
@@ -96,7 +96,7 @@ const (
 
 // Set corresponding event based on error. It also returns the original error
 // for convenience, so callers can do "return handleMachineError(...)".
-func (a *Actuator) handleMachineError(machine *clusterv1.Machine, err *apierrors.MachineError, eventAction string) error {
+func (a *Actuator) handleMachineError(machine *machinev1.Machine, err *apierrors.MachineError, eventAction string) error {
 	if eventAction != noEventAction {
 		a.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
 	}
@@ -106,7 +106,7 @@ func (a *Actuator) handleMachineError(machine *clusterv1.Machine, err *apierrors
 }
 
 // Create runs a new EC2 instance
-func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Create(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("creating machine")
 	instance, err := a.CreateMachine(cluster, machine)
 	if err != nil {
@@ -120,7 +120,7 @@ func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, m
 	return a.updateStatus(machine, instance)
 }
 
-func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, networkAddresses []corev1.NodeAddress) error {
+func (a *Actuator) updateMachineStatus(machine *machinev1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, networkAddresses []corev1.NodeAddress) error {
 	awsStatusRaw, err := a.codec.EncodeProviderStatus(awsStatus)
 	if err != nil {
 		glog.Errorf("error encoding AWS provider status: %v", err)
@@ -157,7 +157,7 @@ func (a *Actuator) updateMachineStatus(machine *clusterv1.Machine, awsStatus *pr
 }
 
 // updateMachineProviderConditions updates conditions set within machine provider status.
-func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, conditionType providerconfigv1.AWSMachineProviderConditionType, reason string, msg string) error {
+func (a *Actuator) updateMachineProviderConditions(machine *machinev1.Machine, conditionType providerconfigv1.AWSMachineProviderConditionType, reason string, msg string) error {
 
 	glog.Info("updating machine conditions")
 
@@ -177,7 +177,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *clusterv1.Machine, c
 }
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
-func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
+func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
@@ -232,7 +232,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 }
 
 // Delete deletes a machine and updates its finalizer
-func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Delete(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("deleting machine")
 	if err := a.DeleteMachine(cluster, machine); err != nil {
 		glog.Errorf("error deleting machine: %v", err)
@@ -252,7 +252,7 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 }
 
 // DeleteMachine deletes an AWS instance
-func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	// Drain node before deleting
 	if machine.ObjectMeta.Annotations["openshift.io/drain-node"] == "True" && machine.Status.NodeRef != nil {
 		glog.Infof("Draining node before delete")
@@ -327,7 +327,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *clusterv1.
 // Update attempts to sync machine state with an existing instance. Today this just updates status
 // for details that may have changed. (IPs and hostnames) We do not currently support making any
 // changes to actual machines in AWS. Instead these will be replaced via MachineDeployments.
-func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("updating machine")
 
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
@@ -397,7 +397,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 
 // Exists determines if the given machine currently exists. For AWS we query for instances in
 // running state, with a matching name tag, to determine a match.
-func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (a *Actuator) Exists(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) (bool, error) {
 	glog.Info("checking if machine exists")
 
 	instances, err := a.getMachineInstances(cluster, machine)
@@ -416,7 +416,7 @@ func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, m
 }
 
 // Describe provides information about machine's instance(s)
-func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*ec2.Instance, error) {
+func (a *Actuator) Describe(cluster *machinev1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
 	glog.Infof("checking if machine exists")
 
 	instances, err := a.getMachineInstances(cluster, machine)
@@ -432,7 +432,7 @@ func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *clusterv1.Machi
 	return instances[0], nil
 }
 
-func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *clusterv1.Machine) ([]*ec2.Instance, error) {
+func (a *Actuator) getMachineInstances(cluster *machinev1.Cluster, machine *machinev1.Machine) ([]*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		glog.Errorf("error decoding MachineProviderConfig: %v", err)
@@ -493,7 +493,7 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 }
 
 // updateStatus calculates the new machine status, checks if anything has changed, and updates if so.
-func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instance) error {
+func (a *Actuator) updateStatus(machine *machinev1.Machine, instance *ec2.Instance) error {
 
 	glog.Info("updating status")
 
@@ -563,7 +563,7 @@ func (a *Actuator) updateStatus(machine *clusterv1.Machine, instance *ec2.Instan
 	return nil
 }
 
-func getClusterID(machine *clusterv1.Machine) (string, bool) {
+func getClusterID(machine *machinev1.Machine) (string, bool) {
 	clusterID, ok := machine.Labels[providerconfigv1.ClusterIDLabel]
 	return clusterID, ok
 }

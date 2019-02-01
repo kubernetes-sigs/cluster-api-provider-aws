@@ -4,8 +4,8 @@ import (
 	"flag"
 
 	"github.com/golang/glog"
+	capiv1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	"k8s.io/client-go/kubernetes/scheme"
-	capiv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )

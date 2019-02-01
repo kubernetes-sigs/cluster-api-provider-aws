@@ -13,10 +13,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -27,7 +27,7 @@ import (
 
 func init() {
 	// Add types to scheme
-	clusterv1.AddToScheme(scheme.Scheme)
+	machinev1.AddToScheme(scheme.Scheme)
 }
 
 const (
@@ -60,9 +60,9 @@ func TestMachineEvents(t *testing.T) {
 
 	cases := []struct {
 		name                    string
-		machine                 *clusterv1.Machine
+		machine                 *machinev1.Machine
 		error                   string
-		operation               func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		operation               func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine)
 		event                   string
 		describeInstancesOutput *ec2.DescribeInstancesOutput
 		describeInstancesErr    error
@@ -74,7 +74,7 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Create machine event failed (invalid configuration)",
 			machine: machineInvalidProviderConfig,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
 			event: "Warning FailedCreate InvalidConfiguration",
@@ -83,7 +83,7 @@ func TestMachineEvents(t *testing.T) {
 			name:    "Create machine event failed (error creating aws service)",
 			machine: machine,
 			error:   awsServiceError,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
 			event: "Warning FailedCreate CreateError",
@@ -92,7 +92,7 @@ func TestMachineEvents(t *testing.T) {
 			name:            "Create machine event failed (error launching instance)",
 			machine:         machine,
 			runInstancesErr: fmt.Errorf("error"),
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
 			event: "Warning FailedCreate CreateError",
@@ -101,7 +101,7 @@ func TestMachineEvents(t *testing.T) {
 			name:    "Create machine event failed (error updating load balancers)",
 			machine: machine,
 			lbErr:   fmt.Errorf("error"),
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
 			event: "Warning FailedCreate CreateError",
@@ -109,7 +109,7 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Create machine event succeed",
 			machine: machine,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
 			event: "Normal Created Created Machine aws-actuator-testing-machine",
@@ -117,7 +117,7 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Create worker machine event succeed",
 			machine: workerMachine,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
 			event: "Normal Created Created Machine aws-actuator-testing-machine",
@@ -125,7 +125,7 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Delete machine event failed",
 			machine: machineInvalidProviderConfig,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.DeleteMachine(cluster, machine)
 			},
 			event: "Warning FailedDelete InvalidConfiguration",
@@ -133,7 +133,7 @@ func TestMachineEvents(t *testing.T) {
 		{
 			name:    "Delete machine event succeed",
 			machine: machine,
-			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.DeleteMachine(cluster, machine)
 			},
 			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
@@ -211,13 +211,13 @@ func TestActuator(t *testing.T) {
 		t.Fatalf("unable to build codec: %v", err)
 	}
 
-	getMachineStatus := func(objectClient client.Client, machine *clusterv1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
+	getMachineStatus := func(objectClient client.Client, machine *machinev1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
 		// Get updated machine object from the cluster client
 		key := types.NamespacedName{
 			Namespace: machine.Namespace,
 			Name:      machine.Name,
 		}
-		updatedMachine := clusterv1.Machine{}
+		updatedMachine := machinev1.Machine{}
 		err := objectClient.Get(context.Background(), client.ObjectKey(key), &updatedMachine)
 		if err != nil {
 			return nil, fmt.Errorf("unable to retrieve machine: %v", err)
@@ -244,9 +244,9 @@ func TestActuator(t *testing.T) {
 
 	cases := []struct {
 		name                    string
-		machine                 *clusterv1.Machine
+		machine                 *machinev1.Machine
 		error                   string
-		operation               func(client client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine)
+		operation               func(client client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine)
 		describeInstancesOutput *ec2.DescribeInstancesOutput
 		runInstancesErr         error
 		describeInstancesErr    error
@@ -256,7 +256,7 @@ func TestActuator(t *testing.T) {
 		{
 			name:    "Create machine with success",
 			machine: machine,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				createErr := actuator.Create(context.TODO(), cluster, machine)
 				assert.NoError(t, createErr)
 
@@ -296,7 +296,7 @@ func TestActuator(t *testing.T) {
 			name:            "Create machine with failure",
 			machine:         machine,
 			runInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				createErr := actuator.Create(context.TODO(), cluster, machine)
 				assert.Error(t, createErr)
 
@@ -311,28 +311,28 @@ func TestActuator(t *testing.T) {
 		{
 			name:    "Update machine with success",
 			machine: machine,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:    "Update machine failed (invalid configuration)",
 			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:  "Update machine failed (error creating aws service)",
 			error: awsServiceError,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:                 "Update machine failed (error getting running instances)",
 			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
@@ -345,7 +345,7 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
@@ -361,7 +361,7 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
@@ -376,7 +376,7 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
@@ -393,42 +393,42 @@ func TestActuator(t *testing.T) {
 				},
 			},
 			terminateInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:    "Update machine with failure (cluster ID missing)",
 			machine: machineNoClusterID,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:  "Update machine failed (error updating load balancers)",
 			lbErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Update(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:                 "Describe machine fails (error getting running instance)",
 			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
 		{
 			name:    "Describe machine failed (invalid configuration)",
 			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
 		{
 			name:  "Describe machine failed (error creating aws service)",
 			error: awsServiceError,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
@@ -441,20 +441,20 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
 		{
 			name: "Describe machine succeeds",
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Describe(cluster, machine)
 			},
 		},
 		{
 			name:    "Exists machine failed (invalid configuration)",
 			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Exists(context.TODO(), cluster, machine)
 			},
 		},
@@ -467,28 +467,28 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Exists(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:    "Delete machine failed (invalid configuration)",
 			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Delete(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:  "Delete machine failed (error creating aws service)",
 			error: awsServiceError,
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Delete(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name:                 "Delete machine failed (error getting running instances)",
 			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Delete(context.TODO(), cluster, machine)
 			},
 		},
@@ -501,14 +501,14 @@ func TestActuator(t *testing.T) {
 					},
 				},
 			},
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Delete(context.TODO(), cluster, machine)
 			},
 		},
 		{
 			name: "Delete machine failed (error terminating instances)",
 			terminateInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *clusterv1.Machine) {
+			operation: func(objectClient client.Client, actuator *Actuator, cluster *machinev1.Cluster, machine *machinev1.Machine) {
 				actuator.Delete(context.TODO(), cluster, machine)
 			},
 		},

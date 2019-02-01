@@ -17,9 +17,9 @@ import (
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 
+	MachineV1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -88,7 +88,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			acw           *machineutils.AwsClientWrapper
 			awsClient     awsclient.Client
 			awsCredSecret *apiv1.Secret
-			cluster       *clusterv1alpha1.Cluster
+			cluster       *MachineV1beta1.Cluster
 			clusterID     string
 		)
 
@@ -101,17 +101,17 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 				clusterID = "cluster-" + string(uuid.NewUUID())
 			}
 
-			cluster = &clusterv1alpha1.Cluster{
+			cluster = &MachineV1beta1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterID,
 					Namespace: testNamespace.Name,
 				},
-				Spec: clusterv1alpha1.ClusterSpec{
-					ClusterNetwork: clusterv1alpha1.ClusterNetworkingConfig{
-						Services: clusterv1alpha1.NetworkRanges{
+				Spec: MachineV1beta1.ClusterSpec{
+					ClusterNetwork: MachineV1beta1.ClusterNetworkingConfig{
+						Services: MachineV1beta1.NetworkRanges{
 							CIDRBlocks: []string{"10.0.0.1/24"},
 						},
-						Pods: clusterv1alpha1.NetworkRanges{
+						Pods: MachineV1beta1.NetworkRanges{
 							CIDRBlocks: []string{"10.0.0.1/24"},
 						},
 						ServiceDomain: "example.com",
@@ -300,7 +300,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 					nonMasterNodes = append(nonMasterNodes, node)
 				}
 
-				machines, err := clusterFramework.CAPIClient.ClusterV1alpha1().Machines(workerMachineSet.Namespace).List(metav1.ListOptions{
+				machines, err := clusterFramework.CAPIClient.MachineV1beta1().Machines(workerMachineSet.Namespace).List(metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(workerMachineSet.Spec.Selector.MatchLabels).String(),
 				})
 				Expect(err).NotTo(HaveOccurred())
