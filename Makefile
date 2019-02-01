@@ -44,10 +44,6 @@ depend:
 vendor:
 	dep version || go get -u github.com/golang/dep/cmd/dep
 	dep ensure -v
-	patch -p1 < 0001-Delete-annotated-machines-first-when-scaling-down.patch
-	patch -p1 < 0002-Sort-machines-before-syncing.patch
-	patch -p1 < 0001-Validate-machineset-before-reconciliation.patch
-	patch -p1 < 0001-Upstream-677-Init-klog-in-manager-properly.patch
 
 .PHONY: generate
 generate:
