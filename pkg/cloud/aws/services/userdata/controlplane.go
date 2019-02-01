@@ -25,17 +25,21 @@ set -eox
 
 mkdir -p /etc/kubernetes/pki/etcd
 
-echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
-echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
+echo -n '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
+echo -n '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
+chmod 600 /etc/kubernetes/pki/ca.key
 
-echo '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo '{{.EtcdCAKey}}' >/etc/kubernetes/pki/etcd/ca.key
+echo -n '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
+echo -n '{{.EtcdCAKey}}' > /etc/kubernetes/pki/etcd/ca.key
+chmod 600 /etc/kubernetes/pki/etcd/ca.key
 
-echo '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+echo -n '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
+echo -n '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+chmod 600 /etc/kubernetes/pki/front-proxy-ca.key
 
-echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
-echo '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
+echo -n '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
+echo -n '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
+chmod 600 /etc/kubernetes/pki/sa.key
 
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
@@ -76,17 +80,21 @@ set -eox
 
 mkdir -p /etc/kubernetes/pki/etcd
 
-echo '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
-echo '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
+echo -n '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
+echo -n '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
+chmod 600 /etc/kubernetes/pki/ca.key
 
-echo '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo '{{.EtcdCAKey}}' >/etc/kubernetes/pki/etcd/ca.key
+echo -n '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
+echo -n '{{.EtcdCAKey}}' > /etc/kubernetes/pki/etcd/ca.key
+chmod 600 /etc/kubernetes/pki/etcd/ca.key
 
-echo '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+echo -n'{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
+echo -n '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
+chmod 600 /etc/kubernetes/pki/front-proxy-ca.key
 
-echo '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
-echo '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
+echo -n '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
+echo -n '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
+chmod 600 /etc/kubernetes/pki/sa.key
 
 PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
 HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
