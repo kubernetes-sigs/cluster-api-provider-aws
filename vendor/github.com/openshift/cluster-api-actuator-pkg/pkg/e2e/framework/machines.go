@@ -8,13 +8,13 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
+	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 func (f *Framework) DeleteMachineAndWait(machine *machinev1beta1.Machine, client types.CloudProviderClient) {
@@ -105,7 +105,7 @@ func (f *Framework) waitForMachineToTerminate(machine *machinev1beta1.Machine, c
 	})
 	// We need to allow to follow
 	if err != nil {
-		glog.V(2).Info("unable to wait for instance(s) to terminate: %v", err)
+		glog.V(2).Infof("unable to wait for instance(s) to terminate: %v", err)
 		return err
 	}
 
@@ -119,7 +119,7 @@ func (f *Framework) waitForMachineToTerminate(machine *machinev1beta1.Machine, c
 		return false, nil
 	})
 	if err != nil {
-		glog.V(2).Info("unable to wait for machine to get deleted: %v", err)
+		glog.V(2).Infof("unable to wait for machine to get deleted: %v", err)
 		return err
 	}
 	return nil

@@ -16,9 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
 	// apiregistrationclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+
 	"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

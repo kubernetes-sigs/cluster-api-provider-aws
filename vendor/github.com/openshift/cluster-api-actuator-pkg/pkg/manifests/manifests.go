@@ -11,9 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
+
 	// apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
+	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	Machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 func ClusterCRDManifest() *v1beta1.CustomResourceDefinition {
@@ -902,9 +903,9 @@ func ClusterAPIControllersDeployment(clusterAPINamespace, machineControllerImage
 	return deployment
 }
 
-func TestingMachine(clusterID string, namespace string, providerSpec Machinev1beta1.ProviderSpec) *Machinev1beta1.Machine {
+func TestingMachine(clusterID string, namespace string, providerSpec machinev1beta1.ProviderSpec) *machinev1beta1.Machine {
 	randomUUID := string(uuid.NewUUID())
-	machine := &Machinev1beta1.Machine{
+	machine := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         clusterID + "-machine-" + randomUUID[:6],
 			Namespace:    namespace,
@@ -913,14 +914,14 @@ func TestingMachine(clusterID string, namespace string, providerSpec Machinev1be
 				"sigs.k8s.io/cluster-api-cluster": clusterID,
 			},
 		},
-		Spec: Machinev1beta1.MachineSpec{
+		Spec: machinev1beta1.MachineSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: map[string]string{
 					"node-role.kubernetes.io/compute": "",
 				},
 			},
 			ProviderSpec: providerSpec,
-			Versions: Machinev1beta1.MachineVersionInfo{
+			Versions: machinev1beta1.MachineVersionInfo{
 				Kubelet:      "1.10.1",
 				ControlPlane: "1.10.1",
 			},
@@ -930,9 +931,9 @@ func TestingMachine(clusterID string, namespace string, providerSpec Machinev1be
 	return machine
 }
 
-func MasterMachine(clusterID, namespace string, providerSpec Machinev1beta1.ProviderSpec) *Machinev1beta1.Machine {
+func MasterMachine(clusterID, namespace string, providerSpec machinev1beta1.ProviderSpec) *machinev1beta1.Machine {
 	randomUUID := string(uuid.NewUUID())
-	machine := &Machinev1beta1.Machine{
+	machine := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         clusterID + "-master-machine-" + randomUUID[:6],
 			Namespace:    namespace,
@@ -941,9 +942,9 @@ func MasterMachine(clusterID, namespace string, providerSpec Machinev1beta1.Prov
 				"sigs.k8s.io/cluster-api-cluster": clusterID,
 			},
 		},
-		Spec: Machinev1beta1.MachineSpec{
+		Spec: machinev1beta1.MachineSpec{
 			ProviderSpec: providerSpec,
-			Versions: Machinev1beta1.MachineVersionInfo{
+			Versions: machinev1beta1.MachineVersionInfo{
 				Kubelet:      "1.10.1",
 				ControlPlane: "1.10.1",
 			},
@@ -1003,10 +1004,10 @@ func WorkerMachineUserDataSecret(secretName, namespace, masterIP string) (*apiv1
 	}, nil
 }
 
-func WorkerMachineSet(clusterID, namespace string, providerSpec Machinev1beta1.ProviderSpec) *Machinev1beta1.MachineSet {
+func WorkerMachineSet(clusterID, namespace string, providerSpec machinev1beta1.ProviderSpec) *machinev1beta1.MachineSet {
 	var replicas int32 = 1
 	randomUUID := string(uuid.NewUUID())
-	return &Machinev1beta1.MachineSet{
+	return &machinev1beta1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         clusterID + "-worker-machineset-" + randomUUID[:6],
 			Namespace:    namespace,
@@ -1015,7 +1016,7 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec Machinev1beta1.P
 				"sigs.k8s.io/cluster-api-cluster": clusterID,
 			},
 		},
-		Spec: Machinev1beta1.MachineSetSpec{
+		Spec: machinev1beta1.MachineSetSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"sigs.k8s.io/cluster-api-machineset": clusterID + "-worker-machineset-" + randomUUID[:6],
@@ -1023,7 +1024,7 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec Machinev1beta1.P
 				},
 			},
 			Replicas: &replicas,
-			Template: Machinev1beta1.MachineTemplateSpec{
+			Template: machinev1beta1.MachineTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: clusterID + "-worker-machine-" + randomUUID[:6] + "-",
 					Labels: map[string]string{
@@ -1031,14 +1032,14 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec Machinev1beta1.P
 						"sigs.k8s.io/cluster-api-cluster":    clusterID,
 					},
 				},
-				Spec: Machinev1beta1.MachineSpec{
+				Spec: machinev1beta1.MachineSpec{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"node-role.kubernetes.io/compute": "",
 						},
 					},
 					ProviderSpec: providerSpec,
-					Versions: Machinev1beta1.MachineVersionInfo{
+					Versions: machinev1beta1.MachineVersionInfo{
 						Kubelet:      "1.10.1",
 						ControlPlane: "1.10.1",
 					},
