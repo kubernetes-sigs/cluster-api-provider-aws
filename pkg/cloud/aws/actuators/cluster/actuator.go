@@ -19,8 +19,8 @@ package cluster
 import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
@@ -64,14 +64,48 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	elbsvc := elb.NewService(scope)
 
 	// Store some config parameters in the status.
-	if len(scope.ClusterConfig.CACertificate) == 0 {
-		caCert, caKey, err := certificates.NewCertificateAuthority()
+	if !scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
+		caCert, caKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.CAKeyPair, actuators.ClusterCA)
 		if err != nil {
 			return errors.Wrap(err, "Failed to generate a CA for the control plane")
 		}
+		scope.ClusterConfig.CAKeyPair = v1alpha1.KeyPair{
+			Cert: caCert,
+			Key:  caKey,
+		}
+	}
 
-		scope.ClusterConfig.CACertificate = certificates.EncodeCertPEM(caCert)
-		scope.ClusterConfig.CAPrivateKey = certificates.EncodePrivateKeyPEM(caKey)
+	if !scope.ClusterConfig.EtcdCAKeyPair.HasCertAndKey() {
+		etcdCACert, etcdCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.EtcdCAKeyPair, actuators.EtcdCA)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get or generate etcd CA cert")
+		}
+		scope.ClusterConfig.EtcdCAKeyPair = v1alpha1.KeyPair{
+			Cert: etcdCACert,
+			Key:  etcdCAKey,
+		}
+	}
+
+	if !scope.ClusterConfig.FrontProxyCAKeyPair.HasCertAndKey() {
+		fpCACert, fpCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.FrontProxyCAKeyPair, actuators.FrontProxyCA)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get or generate front-proxy CA cert")
+		}
+		scope.ClusterConfig.FrontProxyCAKeyPair = v1alpha1.KeyPair{
+			Cert: fpCACert,
+			Key:  fpCAKey,
+		}
+	}
+
+	if !scope.ClusterConfig.SAKeyPair.HasCertAndKey() {
+		saPub, saKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.SAKeyPair, actuators.ServiceAccount)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get or generate service-account certificates")
+		}
+		scope.ClusterConfig.SAKeyPair = v1alpha1.KeyPair{
+			Cert: saPub,
+			Key:  saKey,
+		}
 	}
 
 	if err := ec2svc.ReconcileNetwork(); err != nil {

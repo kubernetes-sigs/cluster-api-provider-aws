@@ -36,15 +36,33 @@ type AWSClusterProviderSpec struct {
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
 	SSHKeyName string `json:"sshKeyName,omitempty"`
 
-	// CACertificate is a PEM encoded CA Certificate for the control plane nodes.
-	CACertificate []byte `json:"caCertificate,omitempty"`
+	// CAKeyPair is the key pair for ca certs.
+	CAKeyPair KeyPair `json:"caKeyPair,omitempty"`
 
-	// CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control plane nodes.
-	CAPrivateKey []byte `json:"caKey,omitempty"`
+	//EtcdCAKeyPair is the key pair for etcd.
+	EtcdCAKeyPair KeyPair `json:"etcdCAKeyPair,omitempty"`
+
+	// FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
+	FrontProxyCAKeyPair KeyPair `json:"frontProxyCAKeyPair,omitempty"`
+
+	// SAKeyPair is the service account key pair.
+	SAKeyPair KeyPair `json:"saKeyPair,omitempty"`
+}
+
+// KeyPair is how operators can supply custom keypairs for kubeadm to use.
+type KeyPair struct {
+	// base64 encoded cert and key
+	Cert []byte `json:"cert"`
+	Key  []byte `json:"key"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 func init() {
 	SchemeBuilder.Register(&AWSClusterProviderSpec{})
+}
+
+// HasCertAndKey returns whether a keypair contains cert and key of non-zero length.
+func (kp *KeyPair) HasCertAndKey() bool {
+	return len(kp.Cert) != 0 && len(kp.Key) != 0
 }

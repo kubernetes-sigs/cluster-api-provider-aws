@@ -130,7 +130,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		input.SubnetID = sns[0].ID
 	}
 
-	if len(s.scope.ClusterConfig.CACertificate) == 0 {
+	if !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		return nil, awserrors.NewFailedDependency(
 			errors.New("failed to run controlplane, missing CACertificate"),
 		)
@@ -142,7 +142,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		)
 	}
 
-	caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CACertificate)
+	caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CAKeyPair.Cert)
 	if err != nil {
 		return input, err
 	}
@@ -163,27 +163,38 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
 
 			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
-				CACert:         string(s.scope.ClusterConfig.CACertificate),
-				CAKey:          string(s.scope.ClusterConfig.CAPrivateKey),
-				CACertHash:     caCertHash,
-				BootstrapToken: bootstrapToken,
-				ELBAddress:     s.scope.Network().APIServerELB.DNSName,
-				KubeConfig:     kubeConfig,
+				CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
+				CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
+				CACertHash:       caCertHash,
+				EtcdCACert:       string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
+				EtcdCAKey:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
+				FrontProxyCACert: string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
+				FrontProxyCAKey:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
+				SaCert:           string(s.scope.ClusterConfig.SAKeyPair.Cert),
+				SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
+				BootstrapToken:   bootstrapToken,
+				ELBAddress:       s.scope.Network().APIServerELB.DNSName,
 			})
 			if err != nil {
 				return input, err
 			}
 		} else {
 			klog.V(2).Infof("Machine %q is the first controlplane machine for cluster %q", machine.Name(), s.scope.Name())
-			if len(s.scope.ClusterConfig.CAPrivateKey) == 0 {
+			if !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
 				return nil, awserrors.NewFailedDependency(
 					errors.New("failed to run controlplane, missing CAPrivateKey"),
 				)
 			}
 
 			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{
-				CACert:            string(s.scope.ClusterConfig.CACertificate),
-				CAKey:             string(s.scope.ClusterConfig.CAPrivateKey),
+				CACert:            string(s.scope.ClusterConfig.CAKeyPair.Cert),
+				CAKey:             string(s.scope.ClusterConfig.CAKeyPair.Key),
+				EtcdCACert:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
+				EtcdCAKey:         string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
+				FrontProxyCACert:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
+				FrontProxyCAKey:   string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
+				SaCert:            string(s.scope.ClusterConfig.SAKeyPair.Cert),
+				SaKey:             string(s.scope.ClusterConfig.SAKeyPair.Key),
 				ELBAddress:        s.scope.Network().APIServerELB.DNSName,
 				ClusterName:       s.scope.Name(),
 				PodSubnet:         s.scope.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
