@@ -14,17 +14,25 @@
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@io_kubernetes_build//defs:go.bzl", "go_genrule")
+load("//build:install.bzl", "install")
 
 MOCKGEN = "@com_github_golang_mock//mockgen"
+
 MOCKGEN_LIBS = [
-  "@com_github_golang_mock//mockgen/model:go_default_library",
-  "//vendor/github.com/golang/mock/gomock:go_default_library",
+    "@com_github_golang_mock//mockgen/model:go_default_library",
+    "//vendor/github.com/golang/mock/gomock:go_default_library",
 ]
+
 ASM_SHIM = "//build/asm_shim"
+
 ASM_SHIM_LIB = "%s:go_default_library" % ASM_SHIM
+
 TEXTFLAG_SHIM = "%s:textflag.h" % ASM_SHIM
+
 SDK_INCLUDE_DIR = "$$GOROOT/pkg/include"
+
 BOILERPLATE = "//hack:boilerplate/boilerplate.go.txt"
+
 GO_FLAGS = "CGO_ENABLED=0"
 
 def _qualified_genfile(label):
@@ -40,6 +48,7 @@ def go_mock(name, importpath, visibility, mocks, deps):
         importpath = importpath,
         deps = deps + MOCKGEN_LIBS ,
         visibility = visibility,
+        tags = [ "generated" ]
     )
 
     for m in mocks:
@@ -88,4 +97,11 @@ echo "\n\n" >> {qualified_out} && \\
           cmd = cmd,
           go_deps = full_deps,
           tools = [MOCKGEN],
+          tags = [ "generated" ]
+      )
+
+      install(
+        name = out_basename + "_install",
+        srcs = [ out_basename ],
+        tags = [ "generated" ]
       )

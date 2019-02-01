@@ -1,0 +1,11 @@
+  apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: cluster-api-provider-aws-controller-manager
+    namespace: system
+  spec:
+    template:
+      spec:
+        containers:
+        - image: gcr.io/cluster-provider-ssh-rv/cluster-api-aws-controller:0.0.2
+          name: manager

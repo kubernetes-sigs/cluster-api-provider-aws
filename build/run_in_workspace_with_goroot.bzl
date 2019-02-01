@@ -1,4 +1,4 @@
-# Copyright 2018 The Kubernetes Authors.
+# Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,11 @@
 # changes to the workspace root, and then runs a command.
 
 def _workspace_binary_script_impl(ctx):
+    if ctx.attr.ignore_error:
+      bash_ignore_error = "true"
+    else:
+      bash_ignore_error = "false"
+
     content = """#!/usr/bin/env bash
 set -o errexit
 set -o nounset
@@ -27,11 +32,12 @@ GOBINDIR=$(dirname $(readlink {go_bin}))
 export PATH=$GOBINDIR:$PATH
 BASE=$(pwd)
 cd $(dirname $(readlink {root_file}))
-"$BASE/{cmd}" $@
+"$BASE/{cmd}" $@ || {ignore_error}
 """.format(
         cmd = ctx.file.cmd.short_path,
         root_file = ctx.file.root_file.short_path,
         go_bin = ctx.file.go_bin.short_path,
+        ignore_error = bash_ignore_error,
     )
     ctx.actions.write(
         output = ctx.outputs.executable,
@@ -64,6 +70,9 @@ _workspace_binary_script = rule(
             allow_files = True,
             single_file = True,
         ),
+        "ignore_error": attr.bool(
+            mandatory = True,
+        ),
     },
     executable = True,
     implementation = _workspace_binary_script_impl,
@@ -85,6 +94,9 @@ def workspace_binary(
         args = None,
         visibility = None,
         go_bin = "@go_sdk//:bin/go",
+        srcs = [],
+        data = [],
+        ignore_error = False,
         root_file = "//:WORKSPACE"):
     script_name = name + "_script"
     _workspace_binary_script(
@@ -92,12 +104,14 @@ def workspace_binary(
         cmd = cmd,
         root_file = root_file,
         go_bin = go_bin,
+        ignore_error = ignore_error,
         tags = ["manual"],
     )
     native.sh_binary(
         name = name,
-        srcs = [":" + script_name],
+        srcs = [":" + script_name] + srcs,
         args = args,
         visibility = visibility,
+        data = data,
         tags = ["manual"],
     )

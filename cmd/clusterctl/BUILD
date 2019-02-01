@@ -17,6 +17,7 @@ go_binary(
     name = "clusterctl",
     embed = [":go_default_library"],
     pure = "on",
+    tags = ["cli"],
     visibility = ["//visibility:public"],
     x_defs = {
         "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.GitBranch": "{GIT_BRANCH}",

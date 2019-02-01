@@ -1,0 +1,61 @@
+# Copyright 2019 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+load("//build:merge_yaml.bzl", "merge_yaml")
+load("//build:install.bzl", "install")
+
+pkg_tar(
+    name = "provider-components",
+    srcs = [
+        "aws-provider-components.yaml",
+        "aws-provider-version-patch.yaml",
+        "cluster-api-provider-components.yaml",
+        "kustomization.yaml",
+    ],
+    package_dir = "base/provider-components",
+    visibility = ["//visibility:public"],
+)
+
+merge_yaml(
+    name = "aws-provider-components",
+    srcs = [
+        "//config",
+    ],
+    out = "aws-provider-components.yaml",
+    tags = ["generated"],
+)
+
+install(
+    name = "provider-components-install",
+    srcs = [
+        "aws-provider-components",
+        "aws-provider-version-patch",
+        "cluster-api-provider-components",
+    ],
+    tags = ["generated"],
+)
+
+merge_yaml(
+    name = "cluster-api-provider-components",
+    srcs = ["//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml"],
+    out = "cluster-api-provider-components.yaml",
+)
+
+merge_yaml(
+    name = "aws-provider-version-patch",
+    srcs = ["//cmd/manager:manager-version-patch.yaml"],
+    out = "aws-provider-version-patch.yaml",
+    tags = ["generated"],
+)

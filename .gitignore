@@ -27,6 +27,9 @@ kind.kubeconfig
 minikube.kubeconfig
 kubeconfig
 
+# vscode debugging bits
+hack/scratch
+
 # binaries
 /manager
 /clusterctl

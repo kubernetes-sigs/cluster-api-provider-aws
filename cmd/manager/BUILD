@@ -1,5 +1,22 @@
+# Copyright 2019 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
-load("//build:cluster_api_binary_image.bzl", "cluster_api_binary_image")
+load("@io_bazel_rules_docker//go:image.bzl", "go_image")
+load("@io_bazel_rules_docker//contrib:push-all.bzl", "docker_push")
+load("@io_bazel_rules_docker//container:container.bzl", "container_bundle")
+load("//build:stateful_set_patch.bzl", "stateful_set_patch")
 
 go_library(
     name = "go_default_library",
@@ -26,8 +43,78 @@ go_library(
 go_binary(
     name = "manager",
     embed = [":go_default_library"],
-    visibility = ["//visibility:public"],
     pure = "on",
+    visibility = ["//visibility:public"],
 )
 
-cluster_api_binary_image(name = "manager")
+go_image(
+    name = "manager-amd64",
+    base = "@golang-image//image",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+tags = [
+    "{GIT_VERSION}",
+    "$(MANAGER_IMAGE_TAG)",
+]
+
+images = {
+    "{registry}/manager:{tag}".format(
+        registry = "$(REGISTRY_STABLE)",
+        name = "$(MANAGER_IMAGE_NAME)",
+        tag = tag,
+    ): ":manager-amd64"
+    for tag in tags
+}
+
+images_dev = {
+    "{registry}/manager:{tag}".format(
+        registry = "$(REGISTRY_DEV)",
+        name = "$(MANAGER_IMAGE_NAME)",
+        tag = tag,
+    ): ":manager-amd64"
+    for tag in tags
+}
+
+container_bundle(
+    name = "manager-image",
+    images = images,
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+container_bundle(
+    name = "manager-image-dev",
+    images = images_dev,
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+docker_push(
+    name = "manager-push",
+    bundle = "manager-image",
+    tags = ["manual"],
+)
+
+docker_push(
+    name = "manager-push-dev",
+    bundle = "manager-image-dev",
+    tags = ["manual"],
+)
+
+stateful_set_patch(
+    name = "manager-version-patch",
+    docker_repo_var = "REGISTRY_STABLE",
+    tags = ["generated"],
+    visibility = ["//visibility:public"],
+)
+
+stateful_set_patch(
+    name = "manager-version-patch-dev",
+    docker_repo_var = "REGISTRY_DEV",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,16 @@
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+
+pkg_tar(
+    name = "package",
+    srcs = [
+        "README.md",
+    ],
+    package_dir = "/",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/clusterctl/examples/aws/base/addons:addons.tar",
+        "//cmd/clusterctl/examples/aws/base/clusters:clusters.tar",
+        "//cmd/clusterctl/examples/aws/base/provider-components:provider-components.tar",
+        "//cmd/clusterctl/examples/aws/overlays/template:template.tar",
+    ],
+)

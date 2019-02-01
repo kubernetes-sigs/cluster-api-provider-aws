@@ -1,0 +1,15 @@
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+
+pkg_tar(
+    name = "template",
+    srcs = [
+        "network-configuration.yaml",
+    ],
+    package_dir = "overlays/template",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cmd/clusterctl/examples/aws/overlays/template/addons:addons.tar",
+        "//cmd/clusterctl/examples/aws/overlays/template/clusters:clusters.tar",
+        "//cmd/clusterctl/examples/aws/overlays/template/provider-components:provider-components.tar",
+    ],
+)

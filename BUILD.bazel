@@ -37,9 +37,9 @@ package(default_visibility = ["//visibility:public"])
 # gazelle:exclude vendor/github.com/golang/dep/cmd/dep/testdata
 gazelle(
     name = "gazelle",
+    build_tags = ["integration"],
     command = "fix",
     external = "vendored",
-    build_tags = ["integration"],
 )
 
 filegroup(
@@ -52,6 +52,15 @@ filegroup(
 workspace_binary(
     name = "dep",
     cmd = "@com_github_golang_dep//cmd/dep",
+)
+
+filegroup(
+    name = "mocks",
+    srcs = [
+        "//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library",
+        "//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library",
+        "//pkg/cloud/aws/services/mocks:go_mock_interfaces",
+    ],
 )
 
 workspace_binary(
@@ -76,22 +85,27 @@ workspace_binary(
     cmd = "@com_github_golangci_golangci-lint//cmd/golangci-lint",
 )
 
+workspace_binary(
+    name = "kind-reset",
+    args = ["delete cluster --name=clusterapi"],
+    cmd = "@io_k8s_sigs_kind//:kind",
+    ignore_error = True,
+)
+
 filegroup(
     name = "all-srcs",
     srcs = glob(["**"]),
 )
 
 filegroup(
-    name = "cluster-api-kustomize-yaml",
+    name = "kubebuilder-api",
     srcs = glob([
-        "vendor/sigs.k8s.io/cluster-api/config/crds/*.yaml",
-        "vendor/sigs.k8s.io/cluster-api/config/rbac/*.yaml",
-        "vendor/sigs.k8s.io/cluster-api/config/manager/*.yaml",
-        "vendor/sigs.k8s.io/cluster-api/config/default/*.yaml",
+        "pkg/apis:go_default_library",
+        "pkg/controller:go_default_library",
     ]),
-    visibility = ["//visibility:public"],
 )
 
 exports_files(glob([
     "WORKSPACE",
+    "PROJECT",
 ]))

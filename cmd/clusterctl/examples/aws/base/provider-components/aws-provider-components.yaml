@@ -1,0 +1,695 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: awsclusterproviderspecs.awsprovider.k8s.io
+spec:
+  group: awsprovider.k8s.io
+  names:
+    kind: AWSClusterProviderSpec
+    plural: awsclusterproviderspecs
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        caCertificate:
+          description: CACertificate is a PEM encoded CA Certificate for the control
+            plane nodes.
+          format: byte
+          type: string
+        caKey:
+          description: CAPrivateKey is a PEM encoded PKCS1 CA PrivateKey for the control
+            plane nodes.
+          format: byte
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        region:
+          description: The AWS Region the cluster lives in.
+          type: string
+        sshKeyName:
+          description: SSHKeyName is the name of the ssh key to attach to the bastion
+            host.
+          type: string
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: awsclusterproviderstatuses.awsprovider.k8s.io
+spec:
+  group: awsprovider.k8s.io
+  names:
+    kind: AWSClusterProviderStatus
+    plural: awsclusterproviderstatuses
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        bastion:
+          properties:
+            ebsOptimized:
+              description: Indicates whether the instance is optimized for Amazon
+                EBS I/O.
+              type: boolean
+            enaSupport:
+              description: Specifies whether enhanced networking with ENA is enabled.
+              type: boolean
+            iamProfile:
+              description: The name of the IAM instance profile associated with the
+                instance, if applicable.
+              type: string
+            id:
+              type: string
+            imageId:
+              description: The ID of the AMI used to launch the instance.
+              type: string
+            instanceState:
+              description: The current state of the instance.
+              type: string
+            keyName:
+              description: The name of the SSH key pair.
+              type: string
+            privateIp:
+              description: The private IPv4 address assigned to the instance.
+              type: string
+            publicIp:
+              description: The public IPv4 address assigned to the instance, if applicable.
+              type: string
+            securityGroupIds:
+              description: SecurityGroupIDs are one or more security group IDs this
+                instance belongs to.
+              items:
+                type: string
+              type: array
+            subnetId:
+              description: The ID of the subnet of the instance.
+              type: string
+            tags:
+              description: The tags associated with the instance.
+              type: object
+            type:
+              description: The instance type.
+              type: string
+            userData:
+              description: UserData is the raw data script passed to the instance
+                which is run upon bootstrap. This field must not be base64 encoded
+                and should only be used when running a new instance.
+              type: string
+          required:
+          - id
+          type: object
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        network:
+          properties:
+            apiServerElb:
+              description: APIServerELB is the Kubernetes api server classic load
+                balancer.
+              properties:
+                attributes:
+                  description: Attributes defines extra attributes associated with
+                    the load balancer.
+                  properties:
+                    idleTimeout:
+                      description: IdleTimeout is time that the connection is allowed
+                        to be idle (no data has been sent over the connection) before
+                        it is closed by the load balancer.
+                      format: int64
+                      type: integer
+                  type: object
+                dnsName:
+                  description: DNSName is the dns name of the load balancer.
+                  type: string
+                healthChecks:
+                  description: HealthCheck is the classic elb health check associated
+                    with the load balancer.
+                  properties:
+                    healthyThreshold:
+                      format: int64
+                      type: integer
+                    interval:
+                      format: int64
+                      type: integer
+                    target:
+                      type: string
+                    timeout:
+                      format: int64
+                      type: integer
+                    unhealthyThreshold:
+                      format: int64
+                      type: integer
+                  required:
+                  - target
+                  - interval
+                  - timeout
+                  - healthyThreshold
+                  - unhealthyThreshold
+                  type: object
+                listeners:
+                  description: Listeners is an array of classic elb listeners associated
+                    with the load balancer. There must be at least one.
+                  items:
+                    properties:
+                      instancePort:
+                        format: int64
+                        type: integer
+                      instanceProtocol:
+                        type: string
+                      port:
+                        format: int64
+                        type: integer
+                      protocol:
+                        type: string
+                    required:
+                    - protocol
+                    - port
+                    - instanceProtocol
+                    - instancePort
+                    type: object
+                  type: array
+                name:
+                  description: The name of the load balancer. It must be unique within
+                    the set of load balancers defined in the region. It also serves
+                    as identifier.
+                  type: string
+                scheme:
+                  description: Scheme is the load balancer scheme, either internet-facing
+                    or private.
+                  type: string
+                securityGroupIds:
+                  description: SecurityGroupIDs is an array of security groups assigned
+                    to the load balancer.
+                  items:
+                    type: string
+                  type: array
+                subnetIds:
+                  description: SubnetIDs is an array of subnets in the VPC attached
+                    to the load balancer.
+                  items:
+                    type: string
+                  type: array
+                tags:
+                  description: Tags is a map of tags associated with the load balancer.
+                  type: object
+              type: object
+            internetGatewayId:
+              description: InternetGatewayID is the id of the internet gateway associated
+                with the VPC.
+              type: string
+            securityGroups:
+              description: SecurityGroups is a map from the role/kind of the security
+                group to its unique name, if any.
+              type: object
+            subnets:
+              description: Subnets includes all the subnets defined inside the VPC.
+              items:
+                properties:
+                  availabilityZone:
+                    type: string
+                  cidrBlock:
+                    type: string
+                  id:
+                    type: string
+                  natGatewayId:
+                    type: string
+                  public:
+                    type: boolean
+                  routeTableId:
+                    type: string
+                  tags:
+                    type: object
+                  vpcId:
+                    type: string
+                required:
+                - id
+                - vpcId
+                - availabilityZone
+                - cidrBlock
+                - public
+                - routeTableId
+                - natGatewayId
+                type: object
+              type: array
+            vpc:
+              description: VPC defines the cluster vpc.
+              properties:
+                cidrBlock:
+                  type: string
+                id:
+                  type: string
+                tags:
+                  type: object
+              required:
+              - id
+              - cidrBlock
+              type: object
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: awsmachineproviderspecs.awsprovider.k8s.io
+spec:
+  group: awsprovider.k8s.io
+  names:
+    kind: AWSMachineProviderSpec
+    plural: awsmachineproviderspecs
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        additionalSecurityGroups:
+          description: AdditionalSecurityGroups is an array of references to security
+            groups that should be applied to the instance. These security groups would
+            be set in addition to any security groups defined at the cluster level
+            or in the actuator.
+          items:
+            properties:
+              arn:
+                description: ARN of resource
+                type: string
+              filters:
+                description: 'Filters is a set of key/value pairs used to identify
+                  a resource They are applied according to the rules defined by the
+                  AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+                items:
+                  properties:
+                    name:
+                      description: Name of the filter. Filter names are case-sensitive.
+                      type: string
+                    values:
+                      description: Values includes one or more filter values. Filter
+                        values are case-sensitive.
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - name
+                  - values
+                  type: object
+                type: array
+              id:
+                description: ID of resource
+                type: string
+            type: object
+          type: array
+        additionalTags:
+          description: AdditionalTags is the set of tags to add to an instance, in
+            addition to the ones added by default by the actuator. These tags are
+            additive. The actuator will ensure these tags are present, but will not
+            remove any other tags that may exist on the instance.
+          type: object
+        ami:
+          description: AMI is the reference to the AMI from which to create the machine
+            instance.
+          properties:
+            arn:
+              description: ARN of resource
+              type: string
+            filters:
+              description: 'Filters is a set of key/value pairs used to identify a
+                resource They are applied according to the rules defined by the AWS
+                API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+              items:
+                properties:
+                  name:
+                    description: Name of the filter. Filter names are case-sensitive.
+                    type: string
+                  values:
+                    description: Values includes one or more filter values. Filter
+                      values are case-sensitive.
+                    items:
+                      type: string
+                    type: array
+                required:
+                - name
+                - values
+                type: object
+              type: array
+            id:
+              description: ID of resource
+              type: string
+          type: object
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        iamInstanceProfile:
+          description: IAMInstanceProfile is a name of an IAM instance profile to
+            assign to the instance
+          type: string
+        instanceType:
+          description: 'InstanceType is the type of instance to create. Example: m4.xlarge'
+          type: string
+        keyName:
+          description: KeyName is the name of the SSH key to install on the instance.
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        publicIP:
+          description: 'PublicIP specifies whether the instance should get a public
+            IP. Precedence for this setting is as follows: 1. This field if set 2.
+            Cluster/flavor setting 3. Subnet default'
+          type: boolean
+        subnet:
+          description: Subnet is a reference to the subnet to use for this instance.
+            If not specified, the cluster subnet will be used.
+          properties:
+            arn:
+              description: ARN of resource
+              type: string
+            filters:
+              description: 'Filters is a set of key/value pairs used to identify a
+                resource They are applied according to the rules defined by the AWS
+                API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+              items:
+                properties:
+                  name:
+                    description: Name of the filter. Filter names are case-sensitive.
+                    type: string
+                  values:
+                    description: Values includes one or more filter values. Filter
+                      values are case-sensitive.
+                    items:
+                      type: string
+                    type: array
+                required:
+                - name
+                - values
+                type: object
+              type: array
+            id:
+              description: ID of resource
+              type: string
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: awsmachineproviderstatuses.awsprovider.k8s.io
+spec:
+  group: awsprovider.k8s.io
+  names:
+    kind: AWSMachineProviderStatus
+    plural: awsmachineproviderstatuses
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        conditions:
+          description: Conditions is a set of conditions associated with the Machine
+            to indicate errors or other status
+          items:
+            properties:
+              lastProbeTime:
+                description: LastProbeTime is the last time we probed the condition.
+                format: date-time
+                type: string
+              lastTransitionTime:
+                description: LastTransitionTime is the last time the condition transitioned
+                  from one status to another.
+                format: date-time
+                type: string
+              message:
+                description: Message is a human-readable message indicating details
+                  about last transition.
+                type: string
+              reason:
+                description: Reason is a unique, one-word, CamelCase reason for the
+                  condition's last transition.
+                type: string
+              status:
+                description: Status is the status of the condition.
+                type: string
+              type:
+                description: Type is the type of the condition.
+                type: string
+            required:
+            - type
+            - status
+            - lastProbeTime
+            - lastTransitionTime
+            - reason
+            - message
+            type: object
+          type: array
+        instanceID:
+          description: InstanceID is the instance ID of the machine created in AWS
+          type: string
+        instanceState:
+          description: InstanceState is the state of the AWS instance for this machine
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+  version: v1alpha1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: cluster-api-provider-aws-manager-role
+rules:
+- apiGroups:
+  - awsprovider.k8s.io
+  resources:
+  - awsclusterproviderconfigs
+  - awsclusterproviderstatuses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
+  - clusters
+  - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - awsprovider.k8s.io
+  resources:
+  - awsmachineproviderconfigs
+  - awsmachineproviderstatuses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
+  - machines
+  - machines/status
+  - machinedeployments
+  - machinedeployments/status
+  - machinesets
+  - machinesets/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - v1
+  resources:
+  - nodes
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: cluster-api-provider-aws-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-api-provider-aws-manager-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: cluster-api-provider-aws-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+  name: cluster-api-provider-aws-controller-manager-service
+  namespace: cluster-api-provider-aws-system
+spec:
+  ports:
+  - port: 443
+  selector:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+  name: cluster-api-provider-aws-controller-manager
+  namespace: cluster-api-provider-aws-system
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      controller-tools.k8s.io: "1.0"
+  serviceName: cluster-api-provider-aws-controller-manager-service
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        controller-tools.k8s.io: "1.0"
+    spec:
+      containers:
+      - args:
+        - -v=3
+        - -logtostderr=true
+        - -stderrthreshold=INFO
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        image: SET_BY_PATCH
+        imagePullPolicy: Always
+        name: manager
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        volumeMounts:
+        - mountPath: /etc/kubernetes
+          name: config
+        - mountPath: /etc/ssl/certs
+          name: certs
+        - mountPath: /root/.aws
+          name: credentials
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/notReady
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/unreachable
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /etc/kubernetes
+        name: config
+      - hostPath:
+          path: /etc/ssl/certs
+        name: certs
+      - name: credentials
+        secret:
+          secretName: manager-bootstrap-credentials
+---

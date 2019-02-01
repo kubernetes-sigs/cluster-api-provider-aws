@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -7,6 +8,6 @@ spec:
   template:
     spec:
       containers:
-      - image: ${MANAGER_IMAGE}
-        imagePullPolicy: ${MANAGER_IMAGE_PULL_POLICY}
-        name: manager
+        - image: gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.0.3
+          name: manager
+---

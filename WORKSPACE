@@ -41,6 +41,16 @@ http_archive(
     urls = ["https://github.com/kubernetes/repo-infra/archive/e8f2f7c3decf03e1fde9f30d249e39b8328aa8b0.tar.gz"],
 )
 
+git_repository(
+    name = "bazel_skylib",
+    commit = "4b67f5ff384d1d2b0925299e0c1919d36b4ecaab",
+    remote = "https://github.com/bazelbuild/bazel-skylib.git",
+)
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+bazel_skylib_workspace()
+
 load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 go_rules_dependencies()
@@ -80,8 +90,8 @@ go_repository(
     name = "com_github_golang_dep",
     build_file_generation = "on",
     importpath = "github.com/golang/dep",
-    strip_prefix = "dep-22125cfaa6ddc71e145b1535d4b7ee9744fefff2",
-    urls = ["https://github.com/golang/dep/archive/22125cfaa6ddc71e145b1535d4b7ee9744fefff2.zip"],
+    strip_prefix = "dep-73b3afefe4973c8d023870b691e9227a13569870",
+    urls = ["https://github.com/golang/dep/archive/73b3afefe4973c8d023870b691e9227a13569870.zip"],
 )
 
 go_repository(
@@ -119,9 +129,15 @@ go_repository(
 )
 
 go_repository(
-    name = "com_github_a8m_envsubst",
-    commit = "41dec2456c86b2a9fa51a22a808b7084b8d52c64",  # v1.1.0
-    importpath = "github.com/a8m/envsubst",
+    name = "com_github_shurcool_vfsgen",
+    commit = "a97a25d856cadfe6481325baeb35a70d6723ca0c",
+    importpath = "github.com/shurcool/vfsgen",
+)
+
+go_repository(
+    name = "com_github_shurcool_httpfs",
+    commit = "809beceb23714880abc4a382a00c05f89d13b1cc",
+    importpath = "github.com/shurcooL/httpfs",
 )
 
 # for @io_k8s_kubernetes

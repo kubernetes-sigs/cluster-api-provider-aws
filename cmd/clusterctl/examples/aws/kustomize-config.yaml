@@ -1,0 +1,581 @@
+commonAnnotations:
+- path: metadata/annotations
+  create: true
+
+- path: spec/template/metadata/annotations
+  create: true
+  version: v1
+  kind: ReplicationController
+
+- path: spec/template/metadata/annotations
+  create: true
+  kind: Deployment
+
+- path: spec/template/metadata/annotations
+  create: true
+  kind: ReplicaSet
+
+- path: spec/template/metadata/annotations
+  create: true
+  kind: DaemonSet
+
+- path: spec/template/metadata/annotations
+  create: true
+  kind: StatefulSet
+
+- path: spec/template/metadata/annotations
+  create: true
+  group: batch
+  kind: Job
+
+- path: spec/jobTemplate/metadata/annotations
+  create: true
+  group: batch
+  kind: CronJob
+
+- path: spec/jobTemplate/spec/template/metadata/annotations
+  create: true
+  group: batch
+  kind: CronJob
+
+
+commonLabels:
+- path: metadata/labels
+  create: true
+
+- path: spec/selector
+  create: true
+  version: v1
+  kind: Service
+
+- path: spec/selector
+  create: true
+  version: v1
+  kind: ReplicationController
+
+- path: spec/template/metadata/labels
+  create: true
+  version: v1
+  kind: ReplicationController
+
+- path: spec/selector/matchLabels
+  create: true
+  kind: Deployment
+
+- path: spec/template/metadata/labels
+  create: true
+  kind: Deployment
+
+- path: spec/template/spec/affinity/podAffinity/preferredDuringSchedulingIgnoredDuringExecution/podAffinityTerm/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: Deployment
+
+- path: spec/template/spec/affinity/podAffinity/requiredDuringSchedulingIgnoredDuringExecution/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: Deployment
+
+- path: spec/template/spec/affinity/podAntiAffinity/preferredDuringSchedulingIgnoredDuringExecution/podAffinityTerm/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: Deployment
+
+- path: spec/template/spec/affinity/podAntiAffinity/requiredDuringSchedulingIgnoredDuringExecution/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: Deployment
+
+- path: spec/selector/matchLabels
+  create: true
+  kind: ReplicaSet
+
+- path: spec/template/metadata/labels
+  create: true
+  kind: ReplicaSet
+
+- path: spec/selector/matchLabels
+  create: true
+  kind: DaemonSet
+
+- path: spec/template/metadata/labels
+  create: true
+  kind: DaemonSet
+
+- path: spec/selector/matchLabels
+  create: true
+  group: apps
+  kind: StatefulSet
+
+- path: spec/template/metadata/labels
+  create: true
+  group: apps
+  kind: StatefulSet
+
+- path: spec/template/spec/affinity/podAffinity/preferredDuringSchedulingIgnoredDuringExecution/podAffinityTerm/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: StatefulSet
+
+- path: spec/template/spec/affinity/podAffinity/requiredDuringSchedulingIgnoredDuringExecution/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: StatefulSet
+
+- path: spec/template/spec/affinity/podAntiAffinity/preferredDuringSchedulingIgnoredDuringExecution/podAffinityTerm/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: StatefulSet
+
+- path: spec/template/spec/affinity/podAntiAffinity/requiredDuringSchedulingIgnoredDuringExecution/labelSelector/matchLabels
+  create: false
+  group: apps
+  kind: StatefulSet
+
+- path: spec/volumeClaimTemplates/metadata/labels
+  create: true
+  group: apps
+  kind: StatefulSet
+
+- path: spec/selector/matchLabels
+  create: false
+  group: batch
+  kind: Job
+
+- path: spec/template/metadata/labels
+  create: true
+  group: batch
+  kind: Job
+
+- path: spec/jobTemplate/spec/selector/matchLabels
+  create: false
+  group: batch
+  kind: CronJob
+
+- path: spec/jobTemplate/spec/template/metadata/labels
+  create: true
+  group: batch
+  kind: CronJob
+
+- path: spec/selector/matchLabels
+  create: false
+  group: policy
+  kind: PodDisruptionBudget
+
+- path: spec/podSelector/matchLabels
+  create: false
+  group: networking.k8s.io
+  kind: NetworkPolicy
+
+- path: spec/ingress/from/podSelector/matchLabels
+  create: false
+  group: networking.k8s.io
+  kind: NetworkPolicy
+
+- path: spec/egress/to/podSelector/matchLabels
+  create: false
+  group: networking.k8s.io
+  kind: NetworkPolicy
+
+namePrefix:
+- path: metadata/name
+
+nameReference:
+- kind: Deployment
+  fieldSpecs:
+  - path: spec/scaleTargetRef/name
+    kind: HorizontalPodAutoscaler
+
+- kind: ReplicationController
+  fieldSpecs:
+  - path: spec/scaleTargetRef/name
+    kind: HorizontalPodAutoscaler
+
+- kind: ReplicaSet
+  fieldSpecs:
+  - path: spec/scaleTargetRef/name
+    kind: HorizontalPodAutoscaler
+
+- kind: ConfigMap
+  version: v1
+  fieldSpecs:
+  - path: spec/volumes/configMap/name
+    version: v1
+    kind: Pod
+  - path: spec/containers/env/valueFrom/configMapKeyRef/name
+    version: v1
+    kind: Pod
+  - path: spec/initContainers/env/valueFrom/configMapKeyRef/name
+    version: v1
+    kind: Pod
+  - path: spec/containers/envFrom/configMapRef/name
+    version: v1
+    kind: Pod
+  - path: spec/initContainers/envFrom/configMapRef/name
+    version: v1
+    kind: Pod
+  - path: spec/template/spec/volumes/configMap/name
+    kind: Deployment
+  - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: Deployment
+  - path: spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
+    kind: Deployment
+  - path: spec/template/spec/containers/envFrom/configMapRef/name
+    kind: Deployment
+  - path: spec/template/spec/initContainers/envFrom/configMapRef/name
+    kind: Deployment
+  - path: spec/template/spec/volumes/projected/sources/configMap/name
+    kind: Deployment
+  - path: spec/template/spec/volumes/configMap/name
+    kind: ReplicaSet
+  - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/containers/envFrom/configMapRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/initContainers/envFrom/configMapRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/volumes/configMap/name
+    kind: DaemonSet
+  - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/containers/envFrom/configMapRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/initContainers/envFrom/configMapRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/volumes/configMap/name
+    kind: StatefulSet
+  - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/containers/envFrom/configMapRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/initContainers/envFrom/configMapRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/volumes/projected/sources/configMap/name
+    kind: StatefulSet
+  - path: spec/template/spec/volumes/configMap/name
+    kind: Job
+  - path: spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: Job
+  - path: spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
+    kind: Job
+  - path: spec/template/spec/containers/envFrom/configMapRef/name
+    kind: Job
+  - path: spec/template/spec/initContainers/envFrom/configMapRef/name
+    kind: Job
+  - path: spec/jobTemplate/spec/template/spec/volumes/configMap/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/containers/env/valueFrom/configmapKeyRef/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/containers/envFrom/configMapRef/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/initContainers/envFrom/configmapRef/name
+    kind: CronJob
+
+- kind: Secret
+  version: v1
+  fieldSpecs:
+  - path: spec/volumes/secret/secretName
+    version: v1
+    kind: Pod
+  - path: spec/containers/env/valueFrom/secretKeyRef/name
+    version: v1
+    kind: Pod
+  - path: spec/initContainers/env/valueFrom/secretKeyRef/name
+    version: v1
+    kind: Pod
+  - path: spec/containers/envFrom/secretRef/name
+    version: v1
+    kind: Pod
+  - path: spec/initContainers/envFrom/secretRef/name
+    version: v1
+    kind: Pod
+  - path: spec/imagePullSecrets/name
+    version: v1
+    kind: Pod
+  - path: spec/template/spec/volumes/secret/secretName
+    kind: Deployment
+  - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+    kind: Deployment
+  - path: spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
+    kind: Deployment
+  - path: spec/template/spec/containers/envFrom/secretRef/name
+    kind: Deployment
+  - path: spec/template/spec/initContainers/envFrom/secretRef/name
+    kind: Deployment
+  - path: spec/template/spec/imagePullSecrets/name
+    kind: Deployment
+  - path: spec/template/spec/volumes/secret/secretName
+    kind: ReplicaSet
+  - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/containers/envFrom/secretRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/initContainers/envFrom/secretRef/name
+    kind: ReplicaSet
+  - path: spec/template/spec/imagePullSecrets/name
+    kind: ReplicaSet
+  - path: spec/template/spec/volumes/secret/secretName
+    kind: DaemonSet
+  - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/containers/envFrom/secretRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/initContainers/envFrom/secretRef/name
+    kind: DaemonSet
+  - path: spec/template/spec/imagePullSecrets/name
+    kind: DaemonSet
+  - path: spec/template/spec/volumes/secret/secretName
+    kind: StatefulSet
+  - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/containers/envFrom/secretRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/initContainers/envFrom/secretRef/name
+    kind: StatefulSet
+  - path: spec/template/spec/imagePullSecrets/name
+    kind: StatefulSet
+  - path: spec/template/spec/volumes/secret/secretName
+    kind: Job
+  - path: spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+    kind: Job
+  - path: spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
+    kind: Job
+  - path: spec/template/spec/containers/envFrom/secretRef/name
+    kind: Job
+  - path: spec/template/spec/initContainers/envFrom/secretRef/name
+    kind: Job
+  - path: spec/template/spec/imagePullSecrets/name
+    kind: Job
+  - path: spec/jobTemplate/spec/template/sepc/volumes/secret/secretName
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/containers/env/valueFrom/secretKeyRef/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/containers/envFrom/secretRef/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/initContainers/envFrom/secretRef/name
+    kind: CronJob
+  - path: spec/jobTemplate/spec/template/spec/imagePullSecrets/name
+    kind: CronJob
+  - path: spec/tls/secretName
+    kind: Ingress
+  - path: metadata/annotations/ingress.kubernetes.io\/auth-secret
+    kind: Ingress
+  - path: metadata/annotations/nginx.ingress.kubernetes.io\/auth-secret
+    kind: Ingress
+  - path: imagePullSecrets/name
+    kind: ServiceAccount
+  - path: parameters/secretName
+    kind: StorageClass
+  - path: parameters/adminSecretName
+    kind: StorageClass
+  - path: parameters/userSecretName
+    kind: StorageClass
+  - path: parameters/secretRef
+    kind: StorageClass
+
+- kind: Service
+  version: v1
+  fieldSpecs:
+  - path: spec/serviceName
+    kind: StatefulSet
+    group: apps
+  - path: spec/rules/http/paths/backend/serviceName
+    kind: Ingress
+  - path: spec/backend/serviceName
+    kind: Ingress
+
+- kind: Role
+  group: rbac.authorization.k8s.io
+  fieldSpecs:
+  - path: roleRef/name
+    kind: RoleBinding
+    group: rbac.authorization.k8s.io
+
+- kind: ClusterRole
+  group: rbac.authorization.k8s.io
+  fieldSpecs:
+  - path: roleRef/name
+    kind: RoleBinding
+    group: rbac.authorization.k8s.io
+  - path: roleRef/name
+    kind: ClusterRoleBinding
+    group: rbac.authorization.k8s.io
+
+- kind: ServiceAccount
+  version: v1
+  fieldSpecs:
+  - path: subjects/name
+    kind: RoleBinding
+    group: rbac.authorization.k8s.io
+  - path: subjects/name
+    kind: ClusterRoleBinding
+    group: rbac.authorization.k8s.io
+  - path: spec/serviceAccountName
+    kind: Pod
+  - path: spec/template/spec/serviceAccountName
+    kind: StatefulSet
+  - path: spec/template/spec/serviceAccountName
+    kind: Deployment
+  - path: spec/template/spec/serviceAccountName
+    kind: ReplicationController
+  - path: spec/jobTemplate/spec/template/spec/serviceAccountName
+    kind: CronJob
+  - path: spec/template/spec/serviceAccountName
+    kind: job
+  - path: spec/template/spec/serviceAccountName
+    kind: DaemonSet
+
+- kind: PersistentVolumeClaim
+  version: v1
+  fieldSpecs:
+  - path: spec/volumes/persistentVolumeClaim/claimName
+    kind: Pod
+  - path: spec/template/spec/volumes/persistentVolumeClaim/claimName
+    kind: StatefulSet
+  - path: spec/template/spec/volumes/persistentVolumeClaim/claimName
+    kind: Deployment
+  - path: spec/template/spec/volumes/persistentVolumeClaim/claimName
+    kind: ReplicationController
+  - path: spec/jobTemplate/spec/template/spec/volumes/persistentVolumeClaim/claimName
+    kind: CronJob
+  - path: spec/template/spec/volumes/persistentVolumeClaim/claimName
+    kind: Job
+  - path: spec/template/spec/volumes/persistentVolumeClaim/claimName
+    kind: DaemonSet
+
+- kind: PersistentVolume
+  version: v1
+  fieldSpecs:
+  - path: spec/volumeName
+    kind: PersistentVolumeClaim
+
+namespace:
+- path: metadata/namespace
+  create: true
+varReference:
+  - path: spec/template/spec/initContainers/command
+    kind: StatefulSet
+
+  - path: spec/template/spec/containers/command
+    kind: StatefulSet
+
+  - path: spec/template/spec/initContainers/command
+    kind: Deployment
+
+  - path: spec/template/spec/containers/command
+    kind: Deployment
+
+  - path: spec/template/spec/containers/command
+    kind: Job
+
+  - path: spec/jobTemplate/spec/template/spec/containers/command
+    kind: CronJob
+
+  - path: spec/template/spec/initContainers/args
+    kind: StatefulSet
+
+  - path: spec/template/spec/containers/args
+    kind: StatefulSet
+
+  - path: spec/template/spec/initContainers/args
+    kind: Deployment
+
+  - path: spec/template/spec/containers/args
+    kind: Deployment
+
+  - path: spec/template/spec/containers/args
+    kind: Job
+
+  - path: spec/jobTemplate/spec/template/spec/containers/args
+    kind: CronJob
+
+  - path: spec/template/spec/initContainers/env/value
+    kind: StatefulSet
+
+  - path: spec/template/spec/containers/env/value
+    kind: StatefulSet
+
+  - path: spec/template/spec/initContainers/env/value
+    kind: Deployment
+
+  - path: spec/template/spec/containers/env/value
+    kind: Deployment
+
+  - path: spec/template/spec/containers/env/value
+    kind: Job
+
+  - path: spec/jobTemplate/spec/template/spec/containers/env/value
+    kind: CronJob
+
+  - path: spec/containers/command
+    kind: Pod
+
+  - path: spec/containers/args
+    kind: Pod
+
+  - path: spec/containers/env/value
+    kind: Pod
+
+  - path: spec/template/spec/containers/env/value
+    kind: DaemonSet
+
+  - path: spec/clusterNetwork/services/cidrBlocks
+    kind: Cluster
+
+  - path: spec/clusterNetwork/pods/cidrBlocks
+    kind: Cluster
+
+  - path: spec/clusterNetwork/serviceDomain
+    kind: Cluster
+
+  - path: spec/providerSpec/value/region
+    kind: Cluster
+
+  - path: spec/providerSpec/value/sshKeyName
+    kind: Cluster
+
+  - path: metadata/name
+    kind: Cluster
+
+  - path: metadata/generateName
+    kind: MachineList
+
+  - path: items/spec/providerSpec/value/keyName
+    kind: MachineList
+
+  - path: items/spec/providerSpec/value/instanceType
+    kind: MachineList
+
+  - path: items/spec/providerSpec/value/iamInstanceProfile
+    kind: MachineList
+
+  - path: metadata/generateName
+    kind: Machine
+
+  - path: spec/providerSpec/value/keyName
+    kind: Machine
+
+  - path: spec/providerSpec/value/instanceType
+    kind: Machine
+
+  - path: spec/providerSpec/value/iamInstanceProfile
+    kind: Machine
+
+  - path: data/*
+    kind: ConfigMap
