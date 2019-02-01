@@ -23,6 +23,7 @@ spec:
           description: CAKeyPair is the key pair for ca certs.
           properties:
             cert:
+              description: base64 encoded cert and key
               format: byte
               type: string
             key:
@@ -36,6 +37,7 @@ spec:
           description: EtcdCAKeyPair is the key pair for etcd.
           properties:
             cert:
+              description: base64 encoded cert and key
               format: byte
               type: string
             key:
@@ -49,6 +51,7 @@ spec:
           description: FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
           properties:
             cert:
+              description: base64 encoded cert and key
               format: byte
               type: string
             key:
@@ -72,6 +75,7 @@ spec:
           description: SAKeyPair is the service account key pair.
           properties:
             cert:
+              description: base64 encoded cert and key
               format: byte
               type: string
             key:

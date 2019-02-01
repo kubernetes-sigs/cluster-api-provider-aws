@@ -165,7 +165,7 @@ type ContolPlaneJoinInput struct {
 	ELBAddress       string
 }
 
-func (cpi *ControlPlaneInput) isCertMaterialExists() error {
+func (cpi *ControlPlaneInput) validateCertificates() error {
 	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
 		return errors.New("CA cert material in the ControlPlaneInput is missing cert/key")
 	}
@@ -185,7 +185,7 @@ func (cpi *ControlPlaneInput) isCertMaterialExists() error {
 	return nil
 }
 
-func (cpi *ContolPlaneJoinInput) isCertMaterialExists() error {
+func (cpi *ContolPlaneJoinInput) validateCertificates() error {
 	if !isKeyPairValid(cpi.CACert, cpi.CAKey) {
 		return errors.New("CA cert material in the ContolPlaneJoinInput is  missing cert/key")
 	}
@@ -208,7 +208,7 @@ func (cpi *ContolPlaneJoinInput) isCertMaterialExists() error {
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = defaultHeader
-	if err := input.isCertMaterialExists(); err != nil {
+	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
@@ -224,7 +224,7 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 	input.Header = defaultHeader
 
-	if err := input.isCertMaterialExists(); err != nil {
+	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
