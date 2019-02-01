@@ -98,6 +98,27 @@
         "--extra-vars",
         "kubernetes_version={{user `kubernetes_version`}} kubernetes_cni_version={{user `kubernetes_cni_version`}}"
       ]
+    },
+    {
+      "type": "goss",
+      "vars_file": "goss/redhat-vars.yaml",
+      "tests": [
+        "goss/goss.yaml"
+      ],
+      "only": [
+        "amazon-2",
+        "centos-7"
+      ]
+    },
+    {
+      "type": "goss",
+      "vars_file": "goss/ubuntu-vars.yaml",
+      "tests": [
+        "goss/goss.yaml"
+      ],
+      "only": [
+        "ubuntu-1804"
+      ]
     }
   ]
 }
