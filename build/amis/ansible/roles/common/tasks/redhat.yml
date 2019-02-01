@@ -40,3 +40,12 @@
 - name: install extra rpms
   yum:
     name: "{{ common_extra_rpms }}"
+
+- name: configure cloud-init on amazon-linux
+  copy:
+    src: files/cloud.cfg
+    dest: /etc/cloud/cloud.cfg
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution == "Amazon" and ansible_distribution_major_version == "NA"
