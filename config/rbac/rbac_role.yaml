@@ -1,6 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
@@ -8,8 +9,6 @@ rules:
   resources:
   - awsclusterproviderconfigs
   - awsclusterproviderstatuses
-  - awsmachineproviderconfigs
-  - awsmachineproviderstatuses
   verbs:
   - get
   - list
@@ -23,6 +22,30 @@ rules:
   resources:
   - clusters
   - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - awsprovider.k8s.io
+  resources:
+  - awsmachineproviderconfigs
+  - awsmachineproviderstatuses
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
   - machines
   - machines/status
   - machinedeployments
@@ -37,6 +60,15 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - cluster.k8s.io
+  resources:
+  - clusters
+  - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - ""
   resources:

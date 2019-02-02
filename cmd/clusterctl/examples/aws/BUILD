@@ -1,10 +1,9 @@
 genrule(
     name = "example-out",
-    srcs = glob(["*.yaml.template"]) +
-           [
-               "addons.yaml",
-               "//cmd/manager:manager-amd64.digest",
-           ],
+    srcs = glob(["*.yaml.template"]) + [
+        "addons.yaml",
+        "//cmd/manager:manager-amd64.digest",
+    ],
     outs = [
         "out/addons.yaml",
         "out/cluster.yaml",
@@ -25,5 +24,13 @@ genrule(
         ":generate-yaml.sh",
         "@com_github_a8m_envsubst//cmd/envsubst:envsubst",
     ],
+    visibility = ["//visibility:public"],
+)
+
+# TODO(EKF/liztio/randomvariable): Extracted from config/build, needs real creds
+genrule(
+    name = "test-credentials",
+    outs = ["out/credentials"],
+    cmd = "mkdir -p out && touch $@",
     visibility = ["//visibility:public"],
 )

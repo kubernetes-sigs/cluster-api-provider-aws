@@ -164,6 +164,12 @@ manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for
 manifests-dev: dep-ensure dep-install binaries-dev ## Builds development manifests
 	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) MANAGER_IMAGE_PULL_POLICY="Always" $(MAKE) manifests
 
+.PHONY: crds
+crds:
+	bazel build //config
+	cp -R bazel-genfiles/config/crds/* config/crds/
+	cp -R bazel-genfiles/config/rbac/* config/rbac/
+
 # TODO(vincepri): This should move to rebuild Bazel binaries once every
 # make target uses Bazel bins to run operations.
 .PHONY: binaries-dev
