@@ -20,6 +20,7 @@
   - [Setting up the environment](#setting-up-the-environment)
   - [Generating cluster manifests and example cluster](#generating-cluster-manifests-and-example-cluster)
   - [Creating a cluster](#creating-a-cluster)
+- [Using the cluster](#using-the-cluster)
 - [Troubleshooting](#troubleshooting)
 - [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-arent-being-created)
 
@@ -234,6 +235,13 @@ I0119 12:16:41.021539   38557 clusterclient.go:573] Waiting for Machine controlp
 The created KIND cluster is ephemeral and is cleaned up automatically when done. During the cluster creation, the KIND configuration is written to a local directory and can be retrieved using `kind get kubeconfig-path --name="clusterapi"`.
 
 For a more in-depth look into what `clusterctl` is doing during this create step, please see the [clusterctl document](/docs/clusterctl.md).
+
+## Using the cluster
+Kubeconfig for the new cluster is created in the directory from where the above `clusterctl create` was run.
+Run the following command to point `kubectl` to the kubeconfig of the new cluster
+`export KUBECONFIG=$(PWD)/kubeconfig`
+
+Alternatively, move the kubeconfig file to a desired location and set the `KUBECONFIG` environment variable accordingly.
 
 ## Troubleshooting
 
