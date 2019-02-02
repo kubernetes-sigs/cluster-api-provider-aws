@@ -33,11 +33,17 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 const (
-	rsaKeySize   = 2048
-	duration365d = time.Hour * 24 * 365
+	rsaKeySize     = 2048
+	duration365d   = time.Hour * 24 * 365
+	clusterCA      = "cluster-ca"
+	etcdCA         = "etcd-ca"
+	frontProxyCA   = "front-proxy-ca"
+	serviceAccount = "service-account"
 )
 
 // NewPrivateKey creates an RSA private key
@@ -59,6 +65,78 @@ type Config struct {
 	Organization []string
 	AltNames     AltNames
 	Usages       []x509.ExtKeyUsage
+}
+
+// ReconcileCertificates generate certificates if none exists.
+func (s *Service) ReconcileCertificates() error {
+	klog.V(2).Infof("Reconciling certificates for cluster %q", s.scope.Cluster.Name)
+	clusterCAKeyPair, err := getOrGenerateCACert(&s.scope.ClusterConfig.CAKeyPair, clusterCA)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to generate certs for %q", clusterCA)
+	}
+	s.scope.ClusterConfig.CAKeyPair = clusterCAKeyPair
+
+	etcdCAKeyPair, err := getOrGenerateCACert(&s.scope.ClusterConfig.EtcdCAKeyPair, etcdCA)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to generate certs for %q", etcdCA)
+	}
+	s.scope.ClusterConfig.EtcdCAKeyPair = etcdCAKeyPair
+
+	fpCAKeyPair, err := getOrGenerateCACert(&s.scope.ClusterConfig.FrontProxyCAKeyPair, frontProxyCA)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to generate certs for %q", frontProxyCA)
+	}
+	s.scope.ClusterConfig.FrontProxyCAKeyPair = fpCAKeyPair
+
+	saKeyPair, err := getOrGenerateServiceAccountKeys(&s.scope.ClusterConfig.SAKeyPair, serviceAccount)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to generate keyPair for %q", serviceAccount)
+	}
+	s.scope.ClusterConfig.SAKeyPair = saKeyPair
+
+	return nil
+}
+
+func getOrGenerateCACert(kp *v1alpha1.KeyPair, user string) (v1alpha1.KeyPair, error) {
+	if kp == nil || !kp.HasCertAndKey() {
+		klog.V(2).Infof("Generating keypair for %q", user)
+		x509Cert, privKey, err := NewCertificateAuthority()
+		if err != nil {
+			return v1alpha1.KeyPair{}, errors.Wrapf(err, "failed to generate CA cert for %q", user)
+		}
+		if kp == nil {
+			return v1alpha1.KeyPair{
+				Cert: EncodeCertPEM(x509Cert),
+				Key:  EncodePrivateKeyPEM(privKey),
+			}, nil
+		}
+		kp.Cert = EncodeCertPEM(x509Cert)
+		kp.Key = EncodePrivateKeyPEM(privKey)
+	}
+	return *kp, nil
+}
+
+func getOrGenerateServiceAccountKeys(kp *v1alpha1.KeyPair, user string) (v1alpha1.KeyPair, error) {
+	if kp == nil || !kp.HasCertAndKey() {
+		klog.V(2).Infof("Generating service account keys for %q", user)
+		saCreds, err := NewPrivateKey()
+		if err != nil {
+			return v1alpha1.KeyPair{}, errors.Wrapf(err, "failed to create service account public and private keys")
+		}
+		saPub, err := EncodePublicKeyPEM(&saCreds.PublicKey)
+		if err != nil {
+			return v1alpha1.KeyPair{}, errors.Wrapf(err, "failed to encode service account public key to PEM")
+		}
+		if kp == nil {
+			return v1alpha1.KeyPair{
+				Cert: saPub,
+				Key:  EncodePrivateKeyPEM(saCreds),
+			}, nil
+		}
+		kp.Cert = saPub
+		kp.Key = EncodePrivateKeyPEM(saCreds)
+	}
+	return *kp, nil
 }
 
 // NewSignedCert creates a signed certificate using the given CA certificate and key
