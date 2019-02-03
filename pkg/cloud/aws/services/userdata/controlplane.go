@@ -88,7 +88,7 @@ echo -n '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
 echo -n '{{.EtcdCAKey}}' > /etc/kubernetes/pki/etcd/ca.key
 chmod 600 /etc/kubernetes/pki/etcd/ca.key
 
-echo -n'{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
+echo -n '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
 echo -n '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
 chmod 600 /etc/kubernetes/pki/front-proxy-ca.key
 
