@@ -185,6 +185,8 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"elasticloadbalancing:ConfigureHealthCheck",
 					"elasticloadbalancing:DeleteLoadBalancer",
 					"elasticloadbalancing:DescribeLoadBalancers",
+					"elasticloadbalancing:DescribeLoadBalancerAttributes",
+					"elasticloadbalancing:ModifyLoadBalancerAttributes",
 					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				},
 			},
