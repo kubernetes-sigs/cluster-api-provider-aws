@@ -64,7 +64,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	elbsvc := elb.NewService(scope)
 	certSvc := certificates.NewService(scope)
 
-	// Store some config parameters in the status.
+	// Store cert material in spec.
 	if err := certSvc.ReconcileCertificates(); err != nil {
 		return errors.Wrapf(err, "failed to reconcile certificates for cluster %q", cluster.Name)
 	}

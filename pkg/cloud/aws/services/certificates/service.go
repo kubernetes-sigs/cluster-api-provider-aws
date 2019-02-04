@@ -20,9 +20,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
-// Service holds a collection of interfaces.
-// The interfaces are broken down like this to group functions together and
-// decouple implementation of service provider APIs.
+// Service groups certificate related operations together and allows
+// certificate updates to be applied to the actuator scope.
 type Service struct {
 	scope *actuators.Scope
 }
