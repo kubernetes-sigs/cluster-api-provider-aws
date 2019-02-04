@@ -8,7 +8,7 @@ We use it to bake our AMIs.
 ## Prerequisites
 
 * `packer` binary
-* `packer-goss` plugin
+* [packer-goss](https://github.com/YaleUniversity/packer-provisioner-goss) plugin
 
 ## Plugin instalation
 
