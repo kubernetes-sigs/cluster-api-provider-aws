@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -40,14 +41,19 @@ func TestReconcileSubnets(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha1.Network
+		input  *v1alpha1.NetworkSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create public with defaults",
-			input: &v1alpha1.Network{
-				VPC: v1alpha1.VPC{ID: subnetsVPCID},
-				Subnets: []*v1alpha1.Subnet{
+			input: &v1alpha1.NetworkSpec{
+				VPC: v1alpha1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: tags.Map{
+						tags.NameAWSProviderManaged: "true",
+					},
+				},
+				Subnets: []*v1alpha1.SubnetSpec{
 					{
 						ID:               "subnet-1",
 						AvailabilityZone: "us-east-1a",
@@ -70,16 +76,12 @@ func TestReconcileSubnets(t *testing.T) {
 				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String(subnetsVPCID)},
-						},
-						{
-							Name:   aws.String("tag-key"),
-							Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
-						},
-						{
 							Name:   aws.String("state"),
 							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
 						},
 					},
 				})).
@@ -144,10 +146,15 @@ func TestReconcileSubnets(t *testing.T) {
 			},
 		},
 		{
-			name: "no subnet exist, create private and public",
-			input: &v1alpha1.Network{
-				VPC: v1alpha1.VPC{ID: subnetsVPCID},
-				Subnets: []*v1alpha1.Subnet{
+			name: "no subnet exist, create private and public from spec",
+			input: &v1alpha1.NetworkSpec{
+				VPC: v1alpha1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: tags.Map{
+						tags.NameAWSProviderManaged: "true",
+					},
+				},
+				Subnets: []*v1alpha1.SubnetSpec{
 					{
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.1.0.0/16",
@@ -164,16 +171,12 @@ func TestReconcileSubnets(t *testing.T) {
 				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String(subnetsVPCID)},
-						},
-						{
-							Name:   aws.String("tag-key"),
-							Values: []*string{aws.String("kubernetes.io/cluster/test-cluster")},
-						},
-						{
 							Name:   aws.String("state"),
 							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
 						},
 					},
 				})).
@@ -233,6 +236,95 @@ func TestReconcileSubnets(t *testing.T) {
 
 			},
 		},
+		{
+			name: "no subnet exist, expect one private and one public from defaults",
+			input: &v1alpha1.NetworkSpec{
+				VPC: v1alpha1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: tags.Map{
+						tags.NameAWSProviderManaged: "true",
+					},
+				},
+				Subnets: []*v1alpha1.SubnetSpec{},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeAvailabilityZones(gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1c"),
+							},
+						},
+					}, nil)
+
+				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{}, nil)
+
+				firstSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String(defaultPrivateSubnetCidr),
+					AvailabilityZone: aws.String("us-east-1c"),
+				})).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &ec2.Subnet{
+							VpcId:               aws.String(subnetsVPCID),
+							SubnetId:            aws.String("subnet-1"),
+							CidrBlock:           aws.String(defaultPrivateSubnetCidr),
+							AvailabilityZone:    aws.String("us-east-1c"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						},
+					}, nil).
+					After(describeCall)
+
+				m.WaitUntilSubnetAvailable(gomock.Any()).
+					After(firstSubnet)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+
+				secondSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String(defaultPublicSubnetCidr),
+					AvailabilityZone: aws.String("us-east-1c"),
+				})).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &ec2.Subnet{
+							VpcId:               aws.String(subnetsVPCID),
+							SubnetId:            aws.String("subnet-2"),
+							CidrBlock:           aws.String(defaultPublicSubnetCidr),
+							AvailabilityZone:    aws.String("us-east-1c"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						},
+					}, nil).
+					After(firstSubnet)
+
+				m.WaitUntilSubnetAvailable(gomock.Any()).
+					After(secondSubnet)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
+
+				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
+					After(secondSubnet)
+
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -250,8 +342,8 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			})
 
-			scope.ClusterStatus = &v1alpha1.AWSClusterProviderStatus{
-				Network: *tc.input,
+			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: *tc.input,
 			}
 
 			if err != nil {

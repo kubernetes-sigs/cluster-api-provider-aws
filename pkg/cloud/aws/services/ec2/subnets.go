@@ -41,15 +41,8 @@ func (s *Service) reconcileSubnets() error {
 
 	subnets := s.scope.Subnets()
 	defer func() {
-		s.scope.Network().Subnets = subnets
+		s.scope.ClusterConfig.NetworkSpec.Subnets = subnets
 	}()
-
-	// Make sure all subnets have a vpc id.
-	for _, sn := range subnets {
-		if sn.VpcID == "" {
-			sn.VpcID = s.scope.VPC().ID
-		}
-	}
 
 	// Describe subnets in the vpc.
 	existing, err := s.describeVpcSubnets()
@@ -59,15 +52,18 @@ func (s *Service) reconcileSubnets() error {
 
 	// If the subnets are empty, populate the slice with the default configuration.
 	// Adds a single private and public subnet in the first available zone.
-	if len(subnets) < 2 {
+	if len(existing) < 2 && len(subnets) < 2 {
 		zones, err := s.getAvailableZones()
 		if err != nil {
 			return err
 		}
 
 		if len(subnets.FilterPrivate()) == 0 {
-			subnets = append(subnets, &v1alpha1.Subnet{
-				VpcID:            s.scope.VPC().ID,
+			if s.scope.VPC().IsProvided() {
+				return errors.New("expected at least one private subnet available for use, got 0")
+			}
+
+			subnets = append(subnets, &v1alpha1.SubnetSpec{
 				CidrBlock:        defaultPrivateSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         false,
@@ -75,8 +71,11 @@ func (s *Service) reconcileSubnets() error {
 		}
 
 		if len(subnets.FilterPublic()) == 0 {
-			subnets = append(subnets, &v1alpha1.Subnet{
-				VpcID:            s.scope.VPC().ID,
+			if s.scope.VPC().IsProvided() {
+				return errors.New("expected at least one public subnet available for use, got 0")
+			}
+
+			subnets = append(subnets, &v1alpha1.SubnetSpec{
 				CidrBlock:        defaultPublicSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         true,
@@ -90,7 +89,12 @@ LoopExisting:
 		for _, sn := range subnets {
 			// Two subnets are defined equal to each other if their id is equal
 			// or if they are in the same vpc and the cidr block is the same.
-			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.VpcID == exsn.VpcID && sn.CidrBlock == exsn.CidrBlock) {
+			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.CidrBlock == exsn.CidrBlock) {
+				if s.scope.VPC().IsProvided() {
+					// TODO(vincepri): Validate provided subnet passes some basic checks.
+					exsn.DeepCopyInto(sn)
+					continue LoopExisting
+				}
 
 				// Make sure tags are up to date.
 				err = tags.Ensure(exsn.Tags, &tags.ApplyParams{
@@ -113,17 +117,19 @@ LoopExisting:
 	}
 
 	// Proceed to create the rest of the subnets that don't have an ID.
-	for _, subnet := range subnets {
-		if subnet.ID != "" {
-			continue
-		}
+	if !s.scope.VPC().IsProvided() {
+		for _, subnet := range subnets {
+			if subnet.ID != "" {
+				continue
+			}
 
-		nsn, err := s.createSubnet(subnet)
-		if err != nil {
-			return err
-		}
+			nsn, err := s.createSubnet(subnet)
+			if err != nil {
+				return err
+			}
 
-		nsn.DeepCopyInto(subnet)
+			nsn.DeepCopyInto(subnet)
+		}
 	}
 
 	klog.V(2).Infof("Subnets available: %v", subnets)
@@ -131,6 +137,11 @@ LoopExisting:
 }
 
 func (s *Service) deleteSubnets() error {
+	if s.scope.VPC().IsProvided() {
+		klog.V(4).Info("Skipping subnets deletion in unmanaged mode")
+		return nil
+	}
+
 	// Describe subnets in the vpc.
 	existing, err := s.describeVpcSubnets()
 	if err != nil {
@@ -147,23 +158,27 @@ func (s *Service) deleteSubnets() error {
 }
 
 func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
-	out, err := s.scope.EC2.DescribeSubnets(&ec2.DescribeSubnetsInput{
+	input := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.VPC(s.scope.VPC().ID),
-			filter.EC2.Cluster(s.scope.Name()),
 			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 		},
-	})
+	}
 
+	if s.scope.VPC().ID == "" {
+		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
+	} else {
+		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
+	}
+
+	out, err := s.scope.EC2.DescribeSubnets(input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
 	}
 
-	subnets := make([]*v1alpha1.Subnet, 0, len(out.Subnets))
+	subnets := make([]*v1alpha1.SubnetSpec, 0, len(out.Subnets))
 	for _, ec2sn := range out.Subnets {
-		subnets = append(subnets, &v1alpha1.Subnet{
+		subnets = append(subnets, &v1alpha1.SubnetSpec{
 			ID:               *ec2sn.SubnetId,
-			VpcID:            *ec2sn.VpcId,
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
 			IsPublic:         *ec2sn.MapPublicIpOnLaunch,
@@ -174,9 +189,9 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 	return subnets, nil
 }
 
-func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
+func (s *Service) createSubnet(sn *v1alpha1.SubnetSpec) (*v1alpha1.SubnetSpec, error) {
 	out, err := s.scope.EC2.CreateSubnet(&ec2.CreateSubnetInput{
-		VpcId:            aws.String(sn.VpcID),
+		VpcId:            aws.String(s.scope.VPC().ID),
 		CidrBlock:        aws.String(sn.CidrBlock),
 		AvailabilityZone: aws.String(sn.AvailabilityZone),
 	})
@@ -217,9 +232,8 @@ func (s *Service) createSubnet(sn *v1alpha1.Subnet) (*v1alpha1.Subnet, error) {
 
 	record.Eventf(s.scope.Cluster, "CreatedSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
 
-	return &v1alpha1.Subnet{
+	return &v1alpha1.SubnetSpec{
 		ID:               *out.Subnet.SubnetId,
-		VpcID:            *out.Subnet.VpcId,
 		AvailabilityZone: *out.Subnet.AvailabilityZone,
 		CidrBlock:        *out.Subnet.CidrBlock,
 		IsPublic:         sn.IsPublic,

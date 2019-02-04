@@ -19,6 +19,8 @@ package ec2
 import (
 	"testing"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
@@ -36,14 +38,17 @@ func TestReconcileInternetGateways(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha1.Network
+		input  *v1alpha1.NetworkSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "has igw",
-			input: &v1alpha1.Network{
-				VPC: v1alpha1.VPC{
+			input: &v1alpha1.NetworkSpec{
+				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
+					Tags: tags.Map{
+						tags.NameAWSProviderManaged: "true",
+					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
@@ -68,9 +73,12 @@ func TestReconcileInternetGateways(t *testing.T) {
 		},
 		{
 			name: "no igw attached, creates one",
-			input: &v1alpha1.Network{
-				VPC: v1alpha1.VPC{
+			input: &v1alpha1.NetworkSpec{
+				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
+					Tags: tags.Map{
+						tags.NameAWSProviderManaged: "true",
+					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
@@ -110,8 +118,8 @@ func TestReconcileInternetGateways(t *testing.T) {
 				},
 			})
 
-			scope.ClusterStatus = &v1alpha1.AWSClusterProviderStatus{
-				Network: *tc.input,
+			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: *tc.input,
 			}
 
 			if err != nil {

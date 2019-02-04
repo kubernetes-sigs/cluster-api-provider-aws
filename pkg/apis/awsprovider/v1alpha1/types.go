@@ -85,50 +85,11 @@ type AWSMachineProviderCondition struct {
 
 // Network encapsulates AWS networking resources.
 type Network struct {
-	// VPC defines the cluster vpc.
-	VPC VPC `json:"vpc,omitempty"`
-
-	// InternetGatewayID is the id of the internet gateway associated with the VPC.
-	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
-
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
 	SecurityGroups map[SecurityGroupRole]*SecurityGroup `json:"securityGroups,omitempty"`
 
-	// Subnets includes all the subnets defined inside the VPC.
-	Subnets Subnets `json:"subnets,omitempty"`
-
 	// APIServerELB is the Kubernetes api server classic load balancer.
 	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`
-}
-
-// VPC defines an AWS vpc.
-type VPC struct {
-	ID        string            `json:"id"`
-	CidrBlock string            `json:"cidrBlock"`
-	Tags      map[string]string `json:"tags,omitempty"`
-}
-
-// String returns a string representation of the VPC.
-func (v *VPC) String() string {
-	return fmt.Sprintf("id=%s", v.ID)
-}
-
-// Subnet defines an AWS subnet attached to a VPC.
-type Subnet struct {
-	ID string `json:"id"`
-
-	VpcID            string            `json:"vpcId"`
-	AvailabilityZone string            `json:"availabilityZone"`
-	CidrBlock        string            `json:"cidrBlock"`
-	IsPublic         bool              `json:"public"`
-	RouteTableID     *string           `json:"routeTableId"`
-	NatGatewayID     *string           `json:"natGatewayId"`
-	Tags             map[string]string `json:"tags,omitempty"`
-}
-
-// String returns a string representation of the subnet.
-func (s *Subnet) String() string {
-	return fmt.Sprintf("id=%s/az=%s/public=%v", s.ID, s.AvailabilityZone, s.IsPublic)
 }
 
 // ClassicELBScheme defines the scheme of a classic load balancer.
@@ -217,11 +178,11 @@ type ClassicELBHealthCheck struct {
 }
 
 // Subnets is a slice of Subnet.
-type Subnets []*Subnet
+type Subnets []*SubnetSpec
 
 // ToMap returns a map from id to subnet.
-func (s Subnets) ToMap() map[string]*Subnet {
-	res := make(map[string]*Subnet)
+func (s Subnets) ToMap() map[string]*SubnetSpec {
+	res := make(map[string]*SubnetSpec)
 	for _, x := range s {
 		res[x.ID] = x
 	}

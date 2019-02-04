@@ -75,7 +75,7 @@ kubeadm init --config /tmp/kubeadm.yaml --v 10
 `
 
 	controlPlaneJoinBashScript = `{{.Header}}
-    
+
 set -eox
 
 mkdir -p /etc/kubernetes/pki/etcd

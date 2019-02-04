@@ -15,6 +15,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/cloud/aws/tags:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",

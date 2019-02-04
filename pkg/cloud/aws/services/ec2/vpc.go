@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	defaultVpcCidr = "10.0.0.0/16"
+	defaultVPCCidr = "10.0.0.0/16"
 )
 
 func (s *Service) reconcileVPC() error {
@@ -41,7 +41,7 @@ func (s *Service) reconcileVPC() error {
 
 	vpc, err := s.describeVPC()
 	if awserrors.IsNotFound(err) {
-		// Create a new vpc.
+		// Create a new managed vpc.
 		vpc, err = s.createVPC()
 		if err != nil {
 			return errors.Wrap(err, "failed to create new vpc")
@@ -49,6 +49,12 @@ func (s *Service) reconcileVPC() error {
 
 	} else if err != nil {
 		return errors.Wrap(err, "failed to describe VPCs")
+	}
+
+	if vpc.IsProvided() {
+		vpc.DeepCopyInto(s.scope.VPC())
+		klog.V(2).Infof("Working on unmanaged VPC %q", vpc.ID)
+		return nil
 	}
 
 	// Make sure tags are up to date.
@@ -62,13 +68,17 @@ func (s *Service) reconcileVPC() error {
 	}
 
 	vpc.DeepCopyInto(s.scope.VPC())
-	klog.V(2).Infof("Working on VPC %q", vpc.ID)
+	klog.V(2).Infof("Working on managed VPC %q", vpc.ID)
 	return nil
 }
 
-func (s *Service) createVPC() (*v1alpha1.VPC, error) {
+func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
+	if s.scope.VPC().IsProvided() {
+		return nil, errors.Errorf("cannot create a managed vpc in unmanaged mode")
+	}
+
 	if s.scope.VPC().CidrBlock == "" {
-		s.scope.VPC().CidrBlock = defaultVpcCidr
+		s.scope.VPC().CidrBlock = defaultVPCCidr
 	}
 
 	input := &ec2.CreateVpcInput{
@@ -88,33 +98,50 @@ func (s *Service) createVPC() (*v1alpha1.VPC, error) {
 	klog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
 	record.Eventf(s.scope.Cluster, "CreatedVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 
-	return &v1alpha1.VPC{
+	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
+	tagApply := &tags.ApplyParams{
+		EC2Client:   s.scope.EC2,
+		BuildParams: tagParams,
+	}
+
+	if err := tags.Apply(tagApply); err != nil {
+		return nil, err
+	}
+
+	return &v1alpha1.VPCSpec{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
+		Tags:      tags.Build(tagParams),
 	}, nil
 }
 
 func (s *Service) deleteVPC() error {
-	// TODO(johanneswuerbach): ensure that the VPC is owned by this cluster before deleting
+	vpc := s.scope.VPC()
+
+	if vpc.IsProvided() {
+		klog.V(4).Info("Skipping VPC deletion in unmanaged mode")
+		return nil
+	}
+
 	input := &ec2.DeleteVpcInput{
-		VpcId: aws.String(s.scope.VPC().ID),
+		VpcId: aws.String(vpc.ID),
 	}
 
 	_, err := s.scope.EC2.DeleteVpc(input)
 	if err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); code != "InvalidVpcID.NotFound" && ok {
-			return errors.Wrapf(err, "failed to delete vpc %q", s.scope.VPC().ID)
+			return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 		}
 		return err
 	}
 
-	klog.V(2).Infof("Deleted VPC %q", s.scope.VPC().ID)
-	record.Eventf(s.scope.Cluster, "DeletedVPC", "Deleted managed VPC %q", s.scope.VPC().ID)
+	klog.V(2).Infof("Deleted VPC %q", vpc.ID)
+	record.Eventf(s.scope.Cluster, "DeletedVPC", "Deleted managed VPC %q", vpc.ID)
 	return nil
 }
 
-func (s *Service) describeVPC() (*v1alpha1.VPC, error) {
+func (s *Service) describeVPC() (*v1alpha1.VPCSpec, error) {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
@@ -123,7 +150,7 @@ func (s *Service) describeVPC() (*v1alpha1.VPC, error) {
 
 	if s.scope.VPC().ID == "" {
 		// Try to find a previously created and tagged VPC
-		input.Filters = []*ec2.Filter{filter.EC2.Cluster(s.scope.Name())}
+		input.Filters = append(input.Filters, filter.EC2.Cluster(s.scope.Name()))
 	} else {
 		input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
 	}
@@ -149,7 +176,7 @@ func (s *Service) describeVPC() (*v1alpha1.VPC, error) {
 		return nil, awserrors.NewNotFound(errors.Errorf("could not find available or pending vpc"))
 	}
 
-	return &v1alpha1.VPC{
+	return &v1alpha1.VPCSpec{
 		ID:        *out.Vpcs[0].VpcId,
 		CidrBlock: *out.Vpcs[0].CidrBlock,
 		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),

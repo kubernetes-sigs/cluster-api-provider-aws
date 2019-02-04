@@ -31,10 +31,19 @@ import (
 )
 
 func (s *Service) reconcileInternetGateways() error {
+	if s.scope.VPC().IsProvided() {
+		klog.V(4).Info("Skipping internet gateways reconcile in unmanaged mode")
+		return nil
+	}
+
 	klog.V(2).Infof("Reconciling internet gateways")
 
 	igs, err := s.describeVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
+		if s.scope.VPC().IsProvided() {
+			return errors.Errorf("failed to validate network: no internet gateways found in VPC %q", s.scope.VPC().ID)
+		}
+
 		ig, err := s.createInternetGateway()
 		if err != nil {
 			return nil
@@ -45,6 +54,7 @@ func (s *Service) reconcileInternetGateways() error {
 	}
 
 	gateway := igs[0]
+	s.scope.VPC().InternetGatewayID = gateway.InternetGatewayId
 
 	// Make sure tags are up to date.
 	err = tags.Ensure(converters.TagsToMap(gateway.Tags), &tags.ApplyParams{
@@ -56,11 +66,15 @@ func (s *Service) reconcileInternetGateways() error {
 		return errors.Wrapf(err, "failed to tag internet gateway %q", *gateway.InternetGatewayId)
 	}
 
-	s.scope.Network().InternetGatewayID = gateway.InternetGatewayId
 	return nil
 }
 
 func (s *Service) deleteInternetGateways() error {
+	if s.scope.VPC().IsProvided() {
+		klog.V(4).Info("Skipping internet gateway deletion in unmanaged mode")
+		return nil
+	}
+
 	igs, err := s.describeVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
 		return nil
@@ -120,7 +134,6 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	out, err := s.scope.EC2.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPCAttachment(s.scope.VPC().ID),
-			filter.EC2.Cluster(s.scope.Name()),
 		},
 	})
 

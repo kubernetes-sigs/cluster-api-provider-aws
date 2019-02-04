@@ -68,6 +68,65 @@ spec:
           type: string
         metadata:
           type: object
+        networkSpec:
+          description: NetworkSpec encapsulates all things related to AWS network.
+          properties:
+            subnets:
+              description: Subnets configuration.
+              items:
+                properties:
+                  availabilityZone:
+                    description: AvailabilityZone defines the availability zone to
+                      use for this subnet in the cluster's region.
+                    type: string
+                  cidrBlock:
+                    description: CidrBlock is the CIDR block to be used when the provider
+                      creates a managed VPC.
+                    type: string
+                  id:
+                    description: ID defines a unique identifier to reference this
+                      resource.
+                    type: string
+                  isPublic:
+                    description: IsPublic defines the subnet as a public subnet. Refer
+                      to the AWS documentation for further information.
+                    type: boolean
+                  natGatewayId:
+                    description: NatGatewayID is the NAT gateway id associated with
+                      the subnet. Ignored if the subnet is public.
+                    type: string
+                  routeTableId:
+                    description: RouteTableID is the routing table id associated with
+                      the subnet.
+                    type: string
+                  tags:
+                    description: Tags is a collection of tags describing the resource.
+                    type: object
+                required:
+                - routeTableId
+                - natGatewayId
+                type: object
+              type: array
+            vpc:
+              description: VPC configuration.
+              properties:
+                cidrBlock:
+                  description: CidrBlock is the CIDR block to be used when the provider
+                    creates a managed VPC. Defaults to 10.0.0.0/16.
+                  type: string
+                id:
+                  description: ID is the vpc-id of the VPC this provider should use
+                    to create resources.
+                  type: string
+                internetGatewayId:
+                  description: InternetGatewayID is the id of the internet gateway
+                    associated with the VPC.
+                  type: string
+                tags:
+                  description: Tags is a collection of tags describing the resource.
+                  type: object
+              type: object
+          type: object
         region:
           description: The AWS Region the cluster lives in.
           type: string

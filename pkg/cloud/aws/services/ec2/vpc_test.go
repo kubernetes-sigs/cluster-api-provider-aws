@@ -37,14 +37,14 @@ func TestReconcileVPC(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha1.VPC
-		output *v1alpha1.VPC
+		input  *v1alpha1.VPCSpec
+		output *v1alpha1.VPCSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
-			name:   "vpc exists",
-			input:  &v1alpha1.VPC{ID: "vpc-exists"},
-			output: &v1alpha1.VPC{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
+			name:   "managed vpc exists",
+			input:  &v1alpha1.VPCSpec{ID: "vpc-exists"},
+			output: &v1alpha1.VPCSpec{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -87,18 +87,21 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:   "vpc does not exist",
-			input:  &v1alpha1.VPC{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
-			output: &v1alpha1.VPC{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
+			name: "managed vpc does not exist",
+			input: &v1alpha1.VPCSpec{
+				CidrBlock: "10.1.0.0/16",
+			},
+			output: &v1alpha1.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
-					VpcIds: []*string{
-						aws.String("vpc-new"),
-					},
 					Filters: []*ec2.Filter{
 						{
 							Name:   aws.String("state"),
 							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+						},
+						{
+							Name:   aws.String("tag-key"),
+							Values: aws.StringSlice([]string{"kubernetes.io/cluster/test-cluster"}),
 						},
 					},
 				})).
@@ -143,8 +146,8 @@ func TestReconcileVPC(t *testing.T) {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
-			scope.ClusterStatus = &v1alpha1.AWSClusterProviderStatus{
-				Network: v1alpha1.Network{
+			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha1.NetworkSpec{
 					VPC: *tc.input,
 				},
 			}

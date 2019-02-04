@@ -166,6 +166,24 @@ customization now is the time to do it. Take a look at
 
 Ensure the `region` and `keyName` are set to what you expect.
 
+#### Cluster name
+
+By default the cluster name is set `test1` when generating manifests, `CLUSTER_NAME` environment variable is used in `make manifests` to customize the cluster name.
+
+```bash
+export CLUSTER_NAME="<pony-unicorns>"
+```
+
+#### Using an existing VPC
+
+By default the provider creates network resources needed to spin up a cluster on AWS. Users can bring their own network infrastructure and disable the default behavior declaring the `VPC_ID` environment variable before the `make manifests` step.
+
+Features and limitations:
+- VPCs are required to have at least 1 private and 1 public subnet available.
+- Cluster name must be unique within a region: the limitation comes from the ELB naming scheme which is required to be unique within a region.
+- Security groups cannot be customized at the time of writing.
+
+
 ### Creating a cluster
 
 You can now start the Cluster API controllers and deploy a new cluster in AWS:

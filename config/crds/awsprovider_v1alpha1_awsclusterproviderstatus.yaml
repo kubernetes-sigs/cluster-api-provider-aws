@@ -171,56 +171,9 @@ spec:
                   description: Tags is a map of tags associated with the load balancer.
                   type: object
               type: object
-            internetGatewayId:
-              description: InternetGatewayID is the id of the internet gateway associated
-                with the VPC.
-              type: string
             securityGroups:
               description: SecurityGroups is a map from the role/kind of the security
                 group to its unique name, if any.
-              type: object
-            subnets:
-              description: Subnets includes all the subnets defined inside the VPC.
-              items:
-                properties:
-                  availabilityZone:
-                    type: string
-                  cidrBlock:
-                    type: string
-                  id:
-                    type: string
-                  natGatewayId:
-                    type: string
-                  public:
-                    type: boolean
-                  routeTableId:
-                    type: string
-                  tags:
-                    type: object
-                  vpcId:
-                    type: string
-                required:
-                - id
-                - vpcId
-                - availabilityZone
-                - cidrBlock
-                - public
-                - routeTableId
-                - natGatewayId
-                type: object
-              type: array
-            vpc:
-              description: VPC defines the cluster vpc.
-              properties:
-                cidrBlock:
-                  type: string
-                id:
-                  type: string
-                tags:
-                  type: object
-              required:
-              - id
-              - cidrBlock
               type: object
           type: object
   version: v1alpha1

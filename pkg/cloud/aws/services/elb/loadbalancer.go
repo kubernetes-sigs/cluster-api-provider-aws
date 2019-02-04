@@ -316,6 +316,12 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 		return nil, NewNotFound(fmt.Errorf("no classic load balancer found with name %q", name))
 	}
 
+	if s.scope.VPC().ID != "" && s.scope.VPC().ID != *out.LoadBalancerDescriptions[0].VPCId {
+		return nil, errors.Errorf(
+			"ELB names must be unique within a region: %q ELB already exists in this region in VPC %q",
+			name, *out.LoadBalancerDescriptions[0].VPCId)
+	}
+
 	outAtt, err := s.scope.ELB.DescribeLoadBalancerAttributes(&elb.DescribeLoadBalancerAttributesInput{
 		LoadBalancerName: aws.String(name),
 	})

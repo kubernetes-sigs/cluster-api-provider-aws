@@ -143,14 +143,14 @@ func (s *Service) deleteSecurityGroups() error {
 func (s *Service) describeSecurityGroupsByName() (map[string]*v1alpha1.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.VPC(s.scope.Network().VPC.ID),
+			filter.EC2.VPC(s.scope.VPC().ID),
 			filter.EC2.Cluster(s.scope.Name()),
 		},
 	}
 
 	out, err := s.scope.EC2.DescribeSecurityGroups(input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe security groups in vpc %q", s.scope.Network().VPC.ID)
+		return nil, errors.Wrapf(err, "failed to describe security groups in vpc %q", s.scope.VPC().ID)
 	}
 
 	res := make(map[string]*v1alpha1.SecurityGroup, len(out.SecurityGroups))
