@@ -22,7 +22,7 @@ import (
 
 // ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork() (err error) {
-	klog.V(2).Info("Reconciling network")
+	klog.V(2).Infof("Reconciling network for cluster %q", s.scope.Cluster.Name)
 
 	// VPC.
 	if err := s.reconcileVPC(); err != nil {

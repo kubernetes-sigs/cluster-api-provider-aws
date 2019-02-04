@@ -19,8 +19,8 @@ package cluster
 import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
@@ -62,62 +62,23 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	ec2svc := ec2.NewService(scope)
 	elbsvc := elb.NewService(scope)
+	certSvc := certificates.NewService(scope)
 
-	// Store some config parameters in the status.
-	if !scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
-		caCert, caKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.CAKeyPair, actuators.ClusterCA)
-		if err != nil {
-			return errors.Wrap(err, "Failed to generate a CA for the control plane")
-		}
-		scope.ClusterConfig.CAKeyPair = v1alpha1.KeyPair{
-			Cert: caCert,
-			Key:  caKey,
-		}
-	}
-
-	if !scope.ClusterConfig.EtcdCAKeyPair.HasCertAndKey() {
-		etcdCACert, etcdCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.EtcdCAKeyPair, actuators.EtcdCA)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get or generate etcd CA cert")
-		}
-		scope.ClusterConfig.EtcdCAKeyPair = v1alpha1.KeyPair{
-			Cert: etcdCACert,
-			Key:  etcdCAKey,
-		}
-	}
-
-	if !scope.ClusterConfig.FrontProxyCAKeyPair.HasCertAndKey() {
-		fpCACert, fpCAKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.FrontProxyCAKeyPair, actuators.FrontProxyCA)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get or generate front-proxy CA cert")
-		}
-		scope.ClusterConfig.FrontProxyCAKeyPair = v1alpha1.KeyPair{
-			Cert: fpCACert,
-			Key:  fpCAKey,
-		}
-	}
-
-	if !scope.ClusterConfig.SAKeyPair.HasCertAndKey() {
-		saPub, saKey, err := actuators.GetOrGenerateKeyPair(&scope.ClusterConfig.SAKeyPair, actuators.ServiceAccount)
-		if err != nil {
-			return errors.Wrapf(err, "failed to get or generate service-account certificates")
-		}
-		scope.ClusterConfig.SAKeyPair = v1alpha1.KeyPair{
-			Cert: saPub,
-			Key:  saKey,
-		}
+	// Store cert material in spec.
+	if err := certSvc.ReconcileCertificates(); err != nil {
+		return errors.Wrapf(err, "failed to reconcile certificates for cluster %q", cluster.Name)
 	}
 
 	if err := ec2svc.ReconcileNetwork(); err != nil {
-		return errors.Errorf("unable to reconcile network: %+v", err)
+		return errors.Wrapf(err, "failed to reconcile network for cluster %q", cluster.Name)
 	}
 
 	if err := ec2svc.ReconcileBastion(); err != nil {
-		return errors.Errorf("unable to reconcile network: %+v", err)
+		return errors.Wrapf(err, "failed to reconcile bastion host for cluster %q", cluster.Name)
 	}
 
 	if err := elbsvc.ReconcileLoadbalancers(); err != nil {
-		return errors.Errorf("unable to reconcile load balancers: %+v", err)
+		return errors.Wrapf(err, "failed to reconcile load balancers for cluster %q", cluster.Name)
 	}
 
 	return nil
