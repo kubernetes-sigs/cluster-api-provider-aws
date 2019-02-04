@@ -97,6 +97,11 @@ func (c *awsClient) TerminateInstances(input *ec2.TerminateInstancesInput) (*ec2
 	return &ec2.TerminateInstancesOutput{}, nil
 }
 
+func (c *awsClient) DescribeVolumes(input *ec2.DescribeVolumesInput) (*ec2.DescribeVolumesOutput, error) {
+	// Feel free to extend the returned values
+	return &ec2.DescribeVolumesOutput{}, nil
+}
+
 func (c *awsClient) RegisterInstancesWithLoadBalancer(input *elb.RegisterInstancesWithLoadBalancerInput) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
 	// Feel free to extend the returned values
 	return &elb.RegisterInstancesWithLoadBalancerOutput{}, nil

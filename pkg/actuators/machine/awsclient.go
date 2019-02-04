@@ -128,3 +128,28 @@ func (client *AwsClientWrapper) GetAvailabilityZone(machine *machinev1beta1.Mach
 	}
 	return *instance.Placement.AvailabilityZone, nil
 }
+
+// GetVolumes gets volumes attached to instance
+func (client *AwsClientWrapper) GetVolumes(machine *machinev1beta1.Machine) (map[string]map[string]interface{}, error) {
+	instance, err := getRunningInstance(machine, client.client)
+	if err != nil {
+		return nil, err
+	}
+	if instance.BlockDeviceMappings == nil {
+		return nil, err
+	}
+	volumes := make(map[string]map[string]interface{}, len(instance.BlockDeviceMappings))
+	for _, blockDeviceMapping := range instance.BlockDeviceMappings {
+		volume, err := getVolume(client.client, *blockDeviceMapping.Ebs.VolumeId)
+		if err != nil {
+			return volumes, err
+		}
+		volumes[*blockDeviceMapping.DeviceName] = map[string]interface{}{
+			"id":   *volume.VolumeId,
+			"iops": *volume.Iops,
+			"size": *volume.Size,
+			"type": *volume.VolumeType,
+		}
+	}
+	return volumes, nil
+}
