@@ -35,7 +35,7 @@ import (
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
 	apierrors "github.com/openshift/cluster-api/pkg/errors"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 

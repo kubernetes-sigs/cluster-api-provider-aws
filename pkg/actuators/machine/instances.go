@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"

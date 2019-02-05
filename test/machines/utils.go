@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
 
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 )
 
 func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) {
