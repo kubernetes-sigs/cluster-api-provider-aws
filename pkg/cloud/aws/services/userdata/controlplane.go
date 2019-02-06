@@ -25,49 +25,49 @@ write_files:
     owner: root:root
     permissions: '0640'
     content: |
-{{.CACert}}
+      {{.CACert}}
 
 -   path: /etc/kubernetes/pki/ca.key
     owner: root:root
     permissions: '0600'
     content: |
-{{.CAKey}}
+      {{.CAKey}}
 
 -   path: /etc/kubernetes/pki/etcd/ca.crt
     owner: root:root
     permissions: '0640'
     content: |
-{{.EtcdCACert}}
+      {{.EtcdCACert}}
 
 -   path: /etc/kubernetes/pki/etcd/ca.key
     owner: root:root
     permissions: '0600'
     content: |
-{{.EtcdCAKey}}
+      {{.EtcdCAKey}}
 
 -   path: /etc/kubernetes/pki/front-proxy-ca.crt
     owner: root:root
     permissions: '0640'
     content: |
-{{.FrontProxyCACert}}
+      {{.FrontProxyCACert}}
 
 -   path: /etc/kubernetes/pki/front-proxy-ca.key
     owner: root:root
     permissions: '0600'
     content: |
-{{.FrontProxyCAKey}}
+      {{.FrontProxyCAKey}}
 
 -   path: /etc/kubernetes/pki/sa.pub
     owner: root:root
     permissions: '0640'
     content: |
-{{.SaCert}}
+      {{.SaCert}}
 
 -   path: /etc/kubernetes/pki/sa.key
     owner: root:root
     permissions: '0600'
     content: |
-{{.SaKey}}
+      {{.SaKey}}
 
 -   path: /tmp/kubeadm.yaml
     owner: root:root
