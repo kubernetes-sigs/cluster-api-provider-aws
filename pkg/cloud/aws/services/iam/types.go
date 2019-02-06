@@ -93,7 +93,7 @@ type Conditions map[string]interface{}
 
 // JSON is the JSON output of the policy document
 func (p *PolicyDocument) JSON() (string, error) {
-	b, err := json.Marshal(&p)
+	b, err := json.MarshalIndent(&p, "", "  ")
 	if err != nil {
 		return "", err
 	}

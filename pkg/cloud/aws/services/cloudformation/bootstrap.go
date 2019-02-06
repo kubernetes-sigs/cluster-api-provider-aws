@@ -351,14 +351,15 @@ func (s *Service) ReconcileBootstrapStack(stackName string, accountID string) er
 
 	template := BootstrapTemplate(accountID)
 	yaml, err := template.YAML()
+	processedYaml := iam.ProcessPolicyDocument(string(yaml))
 	if err != nil {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
 	}
 
-	if err := s.createStack(stackName, iam.ProcessPolicyDocument(string(yaml))); err != nil {
+	if err := s.createStack(stackName, processedYaml); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
 			klog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
-			updateErr := s.updateStack(stackName, string(yaml))
+			updateErr := s.updateStack(stackName, processedYaml)
 			if updateErr != nil {
 				code, ok := awserrors.Code(errors.Cause(updateErr))
 				message := awserrors.Message(errors.Cause(updateErr))
