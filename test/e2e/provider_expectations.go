@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	capiv1beta1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
+	mapiv1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	kappsapi "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,19 +40,19 @@ func (tc *testConfig) ExpectProviderAvailable() error {
 	return err
 }
 
-func (tc *testConfig) ExpectOneClusterObject() error {
+func (tc *testConfig) ExpectNoClusterObject() error {
 	listOptions := client.ListOptions{
 		Namespace: namespace,
 	}
-	clusterList := capiv1beta1.ClusterList{}
+	clusterList := mapiv1beta1.ClusterList{}
 
 	err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
 		if err := tc.client.List(context.TODO(), &listOptions, &clusterList); err != nil {
 			glog.Errorf("error querying api for clusterList object: %v, retrying...", err)
 			return false, nil
 		}
-		if len(clusterList.Items) != 1 {
-			return false, errors.New("more than one cluster object found")
+		if len(clusterList.Items) > 0 {
+			return false, errors.New("a cluster object was found")
 		}
 		return true, nil
 	})
@@ -60,11 +60,11 @@ func (tc *testConfig) ExpectOneClusterObject() error {
 }
 
 func (tc *testConfig) ExpectAllMachinesLinkedToANode() error {
-	machineAnnotationKey := "cluster.k8s.io/machine"
+	machineAnnotationKey := "machine.openshift.io/machine"
 	listOptions := client.ListOptions{
 		Namespace: namespace,
 	}
-	machineList := capiv1beta1.MachineList{}
+	machineList := mapiv1beta1.MachineList{}
 	nodeList := corev1.NodeList{}
 
 	err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
@@ -107,7 +107,7 @@ func (tc *testConfig) ExpectNewNodeWhenDeletingMachine() error {
 	listOptions := client.ListOptions{
 		Namespace: namespace,
 	}
-	machineList := capiv1beta1.MachineList{}
+	machineList := mapiv1beta1.MachineList{}
 	nodeList := corev1.NodeList{}
 
 	glog.Info("Get machineList")
@@ -136,7 +136,7 @@ func (tc *testConfig) ExpectNewNodeWhenDeletingMachine() error {
 
 	clusterInitialTotalNodes := len(nodeList.Items)
 	clusterInitialTotalMachines := len(machineList.Items)
-	var triagedWorkerMachine capiv1beta1.Machine
+	var triagedWorkerMachine mapiv1beta1.Machine
 	var triagedWorkerNode corev1.Node
 MachineLoop:
 	for _, m := range machineList.Items {
@@ -204,13 +204,13 @@ func (tc *testConfig) ExpectNodeToBeDrainedBeforeDeletingMachine() error {
 		Namespace: namespace,
 	}
 
-	var machine capiv1beta1.Machine
+	var machine mapiv1beta1.Machine
 	var nodeName string
 	var node *corev1.Node
 
 	glog.Info("Get machineList with at least one machine with NodeRef set")
 	if err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
-		machineList := capiv1beta1.MachineList{}
+		machineList := mapiv1beta1.MachineList{}
 		if err := tc.client.List(context.TODO(), &listOptions, &machineList); err != nil {
 			glog.Errorf("error querying api for machineList object: %v, retrying...", err)
 			return false, nil
