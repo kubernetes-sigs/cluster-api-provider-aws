@@ -750,12 +750,13 @@
   version = "kubernetes-1.13.1"
 
 [[projects]]
-  digest = "1:cded8487c675439a87cc6a3462ec26d2dd78362a2d89c484f58b1d6c181fb877"
+  digest = "1:c7c02c6f769116c386391a5b8f50058afea7489b39338973ac073f4c28217773"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
+    "pkg/apis/config",
     "pkg/apis/meta/internalversion",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
@@ -791,6 +792,7 @@
     "pkg/util/uuid",
     "pkg/util/validation",
     "pkg/util/validation/field",
+    "pkg/util/version",
     "pkg/util/wait",
     "pkg/util/yaml",
     "pkg/version",
@@ -930,6 +932,23 @@
   packages = ["pkg/util/proto"]
   pruneopts = "UT"
   revision = "d7c86cdc46e3a4fcf892b32dd7bc3aa775e0870e"
+
+[[projects]]
+  digest = "1:694796918b3fe258b1eebffafd7b155ab6850508051544c37e3920aedc4f30f7"
+  name = "k8s.io/kubernetes"
+  packages = [
+    "cmd/kubeadm/app/apis/kubeadm",
+    "cmd/kubeadm/app/apis/kubeadm/v1beta1",
+    "cmd/kubeadm/app/constants",
+    "pkg/apis/core",
+    "pkg/kubelet/apis/config",
+    "pkg/proxy/apis/config",
+    "pkg/registry/core/service/allocator",
+    "pkg/registry/core/service/ipallocator",
+  ]
+  pruneopts = "UT"
+  revision = "721bfa751924da8d1680787490c54b9179b1fed0"
+  version = "v1.13.3"
 
 [[projects]]
   digest = "1:0dd3be513e09375e3f8fefc718fdfc1aac6924dc57adecb6dddfc7edc96a8dda"
@@ -1093,6 +1112,7 @@
     "k8s.io/cluster-bootstrap/token/util",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/klog",
+    "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	tags "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
@@ -53,6 +54,8 @@ type AWSClusterProviderSpec struct {
 
 	// SAKeyPair is the service account key pair.
 	SAKeyPair KeyPair `json:"saKeyPair,omitempty"`
+
+	KubeadmConfiguration *v1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
 }
 
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.
