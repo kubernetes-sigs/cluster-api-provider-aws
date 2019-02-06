@@ -290,12 +290,12 @@ func (cpi *ContolPlaneJoinInput) validateCertificates() error {
 
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
-	input.Header = defaultHeader
+	input.Header = cloudConfigHeader
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
-	userData, err := generate("controlplane", controlPlaneBashScript, input)
+	userData, err := generate("controlplane", controlPlaneCloudInit, input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
 	}
