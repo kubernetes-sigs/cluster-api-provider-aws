@@ -307,7 +307,11 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
-	userData, err := generate("controlplane", controlPlaneCloudInit, input)
+	fMap := map[string]interface{}{
+		"Base64Encode": templateBase64Encode,
+	}
+
+	userData, err := generateWithFuncs("controlplane", controlPlaneCloudInit, funcMap(fMap), input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
 	}
