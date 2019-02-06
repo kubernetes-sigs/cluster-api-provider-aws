@@ -114,60 +114,6 @@ kubeadm:
   config: /tmp/kubeadm.yaml
 
 `
-	controlPlaneBashScript = `{{.Header}}
-
-set -eox
-
-mkdir -p /etc/kubernetes/pki/etcd
-
-echo -n '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
-echo -n '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
-chmod 600 /etc/kubernetes/pki/ca.key
-
-echo -n '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo -n '{{.EtcdCAKey}}' > /etc/kubernetes/pki/etcd/ca.key
-chmod 600 /etc/kubernetes/pki/etcd/ca.key
-
-echo -n '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo -n '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
-chmod 600 /etc/kubernetes/pki/front-proxy-ca.key
-
-echo -n '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
-echo -n '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
-chmod 600 /etc/kubernetes/pki/sa.key
-
-PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
-HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
-
-cat >/tmp/kubeadm.yaml <<EOF
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: ClusterConfiguration
-apiServer:
-  certSANs:
-    - "$PRIVATE_IP"
-    - "{{.ELBAddress}}"
-  extraArgs:
-    cloud-provider: aws
-controlPlaneEndpoint: "{{.ELBAddress}}:6443"
-clusterName: "{{.ClusterName}}"
-networking:
-  dnsDomain: "{{.ServiceDomain}}"
-  podSubnet: "{{.PodSubnet}}"
-  serviceSubnet: "{{.ServiceSubnet}}"
-kubernetesVersion: "{{.KubernetesVersion"
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: InitConfiguration
-nodeRegistration:
-  name: ${HOSTNAME}
-  criSocket: /var/run/containerd/containerd.sock
-  kubeletExtraArgs:
-    cloud-provider: aws
-EOF
-
-kubeadm init --config /tmp/kubeadm.yaml --v 10
-`
 
 	controlPlaneJoinBashScript = `{{.Header}}
 
