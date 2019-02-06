@@ -16,58 +16,70 @@ limitations under the License.
 
 package userdata
 
-import "github.com/pkg/errors"
+import (
+	"encoding/base64"
+
+	"github.com/pkg/errors"
+)
 
 const (
 	controlPlaneCloudInit = `{{.Header}}
 write_files:
 -   path: /etc/kubernetes/pki/ca.crt
+    encoding: "base64"
     owner: root:root
     permissions: '0640'
     content: |
-      {{.CACert}}
+      {{.CACert | Base64Encode}}
 
 -   path: /etc/kubernetes/pki/ca.key
+    encoding: "base64"
     owner: root:root
     permissions: '0600'
     content: |
-      {{.CAKey}}
+      {{.CAKey | Base64Encode}}
 
 -   path: /etc/kubernetes/pki/etcd/ca.crt
+    encoding: "base64"
     owner: root:root
     permissions: '0640'
     content: |
-      {{.EtcdCACert}}
+      {{.EtcdCACert | Base64Encode}}
 
 -   path: /etc/kubernetes/pki/etcd/ca.key
+    encoding: "base64"
     owner: root:root
     permissions: '0600'
     content: |
-      {{.EtcdCAKey}}
+      {{.EtcdCAKey | Base64Encode}}
 
 -   path: /etc/kubernetes/pki/front-proxy-ca.crt
+    encoding: "base64"
     owner: root:root
     permissions: '0640'
     content: |
-      {{.FrontProxyCACert}}
+      {{.FrontProxyCACert | Base64Encode}}
 
 -   path: /etc/kubernetes/pki/front-proxy-ca.key
+    encoding: "base64"
     owner: root:root
     permissions: '0600'
     content: |
-      {{.FrontProxyCAKey}}
+      {{.FrontProxyCAKey | Base64Encode}}
 
 -   path: /etc/kubernetes/pki/sa.pub
+    encoding: "base64"
     owner: root:root
     permissions: '0640'
     content: |
-      {{.SaCert}}
+      {{.SaCert | Base64Encode}}
 
 -   path: /etc/kubernetes/pki/sa.key
+    encoding: "base64"
     owner: root:root
     permissions: '0600'
     content: |
-      {{.SaKey}}
+      {{.SaKey | Base64Encode}}
 
 -   path: /tmp/kubeadm.yaml
     owner: root:root
@@ -311,9 +323,17 @@ func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
-	userData, err := generate("controlplane", controlPlaneJoinBashScript, input)
+	fMap := map[string]interface{}{
+		"Base64Encode": templateBase64Encode,
+	}
+
+	userData, err := generateWithFuncs("controlplane", controlPlaneJoinBashScript, funcMap(fMap), input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
 	}
 	return userData, err
+}
+
+func templateBase64Encode(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }
