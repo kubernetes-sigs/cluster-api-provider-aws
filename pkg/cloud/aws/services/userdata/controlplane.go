@@ -22,81 +22,81 @@ const (
 	controlPlaneCloudInit = `{{.Header}}
 write_files:
 -   path: /etc/kubernetes/pki/ca.crt
-	owner: root:root
-	permissions: '0640'
-	content: |
+    owner: root:root
+    permissions: '0640'
+    content: |
 {{.CACert}}
 
 -   path: /etc/kubernetes/pki/ca.key
-	owner: root:root
-	permissions: '0600'
-	content: |
+    owner: root:root
+    permissions: '0600'
+    content: |
 {{.CAKey}}
 
 -   path: /etc/kubernetes/pki/etcd/ca.crt
-	owner: root:root
-	permissions: '0640'
-	content: |
+    owner: root:root
+    permissions: '0640'
+    content: |
 {{.EtcdCACert}}
 
 -   path: /etc/kubernetes/pki/etcd/ca.key
-	owner: root:root
-	permissions: '0600'
-	content: |
+    owner: root:root
+    permissions: '0600'
+    content: |
 {{.EtcdCAKey}}
 
 -   path: /etc/kubernetes/pki/front-proxy-ca.crt
-	owner: root:root
-	permissions: '0640'
-	content: |
+    owner: root:root
+    permissions: '0640'
+    content: |
 {{.FrontProxyCACert}}
 
 -   path: /etc/kubernetes/pki/front-proxy-ca.key
-	owner: root:root
-	permissions: '0600'
-	content: |
+    owner: root:root
+    permissions: '0600'
+    content: |
 {{.FrontProxyCAKey}}
 
 -   path: /etc/kubernetes/pki/sa.pub
-	owner: root:root
-	permissions: '0640'
-	content: |
+    owner: root:root
+    permissions: '0640'
+    content: |
 {{.SaCert}}
 
 -   path: /etc/kubernetes/pki/sa.key
-	owner: root:root
-	permissions: '0600'
-	content: |
+    owner: root:root
+    permissions: '0600'
+    content: |
 {{.SaKey}}
 
 -   path: /tmp/kubeadm.yaml
-	owner: root:root
-	permissions: '0640'
-	content: |
-	  ---
-	  apiVersion: kubeadm.k8s.io/v1beta1
-	  kind: ClusterConfiguration
-	  apiServer:
-		certSANs:
-		  - {{ "{{ ds.meta_data.local_ipv4 }}" }}
-		  - "{{.ELBAddress}}"
-		extraArgs:
-		  cloud-provider: aws
-	  controlPlaneEndpoint: "{{.ELBAddress}}:6443"
-	  clusterName: "{{.ClusterName}}"
-	  networking:
-		dnsDomain: "{{.ServiceDomain}}"
-		podSubnet: "{{.PodSubnet}}"
-		serviceSubnet: "{{.ServiceSubnet}}"
-	  kubernetesVersion: "{{.KubernetesVersion}}"
-	  ---
-	  apiVersion: kubeadm.k8s.io/v1beta1
-	  kind: InitConfiguration
-	  nodeRegistration:
-		name: {{ "{{ ds.meta_data.hostname }}" }}
-		criSocket: /var/run/containerd/containerd.sock
-		kubeletExtraArgs:
-		  cloud-provider: aws
+    owner: root:root
+    permissions: '0640'
+    content: |
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta1
+      kind: ClusterConfiguration
+      apiServer:
+        certSANs:
+          - {{ "{{ ds.meta_data.local_ipv4 }}" }}
+          - "{{.ELBAddress}}"
+        extraArgs:
+          cloud-provider: aws
+      controlPlaneEndpoint: "{{.ELBAddress}}:6443"
+      clusterName: "{{.ClusterName}}"
+      networking:
+        dnsDomain: "{{.ServiceDomain}}"
+        podSubnet: "{{.PodSubnet}}"
+        serviceSubnet: "{{.ServiceSubnet}}"
+      kubernetesVersion: "{{.KubernetesVersion}}"
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta1
+      kind: InitConfiguration
+      nodeRegistration:
+        name: {{ "{{ ds.meta_data.hostname }}" }}
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: aws
 kubeadm:
   operation: init
   config: /tmp/kubeadm.yaml
@@ -143,7 +143,7 @@ networking:
   dnsDomain: "{{.ServiceDomain}}"
   podSubnet: "{{.PodSubnet}}"
   serviceSubnet: "{{.ServiceSubnet}}"
-kubernetesVersion: "{{.KubernetesVersion}}"
+kubernetesVersion: "{{.KubernetesVersion"
 ---
 apiVersion: kubeadm.k8s.io/v1beta1
 kind: InitConfiguration
