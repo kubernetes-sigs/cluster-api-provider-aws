@@ -138,6 +138,7 @@ clean: ## Remove all generated files
 reset-bazel: ## Deep cleaning for bazel
 	bazel clean --expunge
 
+.PHONY: cmd/clusterctl/examples/aws/out
 cmd/clusterctl/examples/aws/out:
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
