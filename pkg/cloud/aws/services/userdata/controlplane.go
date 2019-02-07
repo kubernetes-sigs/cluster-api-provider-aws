@@ -194,6 +194,9 @@ write_files:
         localAPIEndpoint:
           advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
           bindPort: 6443
+kubeadm:
+  operation: join
+  config: /tmp/kubeadm-controlplane-join-config.yaml
 `
 )
 
