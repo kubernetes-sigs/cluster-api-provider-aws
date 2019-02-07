@@ -51,6 +51,11 @@ cd "$(go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-aws"
 make dep-ensure
 ```
 
+### Get familiar with basic concepts
+
+This provider is modeled after the upstream cluster-api project. To get familiar
+with resources, concepts and conventions refer to the [upstream gitbook](https://kubernetes-sigs.github.io/cluster-api/).
+
 ### Dev manifest files
 
 Part of running cluster-api-provider-aws is generating manifests to run.
