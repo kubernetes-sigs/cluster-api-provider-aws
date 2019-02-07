@@ -180,20 +180,20 @@ write_files:
       apiVersion: kubeadm.k8s.io/v1beta1
       kind: JoinConfiguration
       discovery:
-      bootstrapToken:
-        token: "{{.BootstrapToken}}"
-        apiServerEndpoint: "{{.ELBAddress}}:6443"
-        caCertHashes:
-          - "{{.CACertHash}}"
-    nodeRegistration:
-      name: {{ "{{ ds.meta_data.hostname }}" }}
-      criSocket: /var/run/containerd/containerd.sock
-      kubeletExtraArgs:
-        cloud-provider: aws
-    controlPlane:
-      localAPIEndpoint:
-        advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
-        bindPort: 6443
+        bootstrapToken:
+          token: "{{.BootstrapToken}}"
+          apiServerEndpoint: "{{.ELBAddress}}:6443"
+          caCertHashes:
+            - "{{.CACertHash}}"
+      nodeRegistration:
+        name: {{ "{{ ds.meta_data.hostname }}" }}
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: aws
+      controlPlane:
+        localAPIEndpoint:
+          advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
+          bindPort: 6443
 `
 )
 
