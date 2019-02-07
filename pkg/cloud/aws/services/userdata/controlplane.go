@@ -195,54 +195,6 @@ write_files:
         advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
         bindPort: 6443
 `
-	controlPlaneJoinBashScript = `{{.Header}}
-
-set -eox
-
-mkdir -p /etc/kubernetes/pki/etcd
-
-echo -n '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
-echo -n '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
-chmod 600 /etc/kubernetes/pki/ca.key
-
-echo -n '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo -n '{{.EtcdCAKey}}' > /etc/kubernetes/pki/etcd/ca.key
-chmod 600 /etc/kubernetes/pki/etcd/ca.key
-
-echo -n '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo -n '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
-chmod 600 /etc/kubernetes/pki/front-proxy-ca.key
-
-echo -n '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
-echo -n '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
-chmod 600 /etc/kubernetes/pki/sa.key
-
-PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
-HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
-
-cat >/tmp/kubeadm-controlplane-join-config.yaml <<EOF
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: JoinConfiguration
-discovery:
-  bootstrapToken:
-    token: "{{.BootstrapToken}}"
-    apiServerEndpoint: "{{.ELBAddress}}:6443"
-    caCertHashes:
-      - "{{.CACertHash}}"
-nodeRegistration:
-  name: "${HOSTNAME}"
-  criSocket: /var/run/containerd/containerd.sock
-  kubeletExtraArgs:
-    cloud-provider: aws
-controlPlane:
-  localAPIEndpoint:
-    advertiseAddress: "${PRIVATE_IP}"
-    bindPort: 6443
-EOF
-
-kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
-`
 )
 
 func isKeyPairValid(cert, key string) bool {
