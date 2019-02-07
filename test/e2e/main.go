@@ -4,7 +4,7 @@ import (
 	"flag"
 
 	"github.com/golang/glog"
-	capiv1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
+	mapiv1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -15,7 +15,7 @@ const (
 )
 
 func init() {
-	if err := capiv1alpha1.AddToScheme(scheme.Scheme); err != nil {
+	if err := mapiv1beta1.AddToScheme(scheme.Scheme); err != nil {
 		glog.Fatal(err)
 	}
 }
@@ -58,9 +58,9 @@ func runSuite() error {
 	}
 	glog.Info("PASS: ExpectProviderAvailable")
 
-	glog.Info("RUN: ExpectOneClusterObject")
-	if err := testConfig.ExpectOneClusterObject(); err != nil {
-		glog.Errorf("FAIL: ExpectOneClusterObject: %v", err)
+	glog.Info("RUN: ExpectNoClusterObject")
+	if err := testConfig.ExpectNoClusterObject(); err != nil {
+		glog.Errorf("FAIL: ExpectNoClusterObject: %v", err)
 		return err
 	}
 	glog.Info("PASS: ExpectOneClusterObject")
