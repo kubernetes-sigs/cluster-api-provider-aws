@@ -53,7 +53,7 @@ make dep-ensure
 
 ### Get familiar with basic concepts
 
-This provider is shaped out after the upstream cluster-api project. To get familiar
+This provider is modeled after the upstream cluster-api project. To get familiar
 with resources, concepts and conventions refer to the [upstream gitbook](https://kubernetes-sigs.github.io/cluster-api/).
 
 ### Dev manifest files
