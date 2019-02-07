@@ -115,6 +115,86 @@ kubeadm:
 
 `
 
+	controlPlaneJoinCloudInit = `{{.Header}}
+write_files:
+-   path: /etc/kubernetes/pki/ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.CACert | Base64Encode}}
+
+-   path: /etc/kubernetes/pki/ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.CAKey | Base64Encode}}
+
+-   path: /etc/kubernetes/pki/etcd/ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.EtcdCACert | Base64Encode}}
+
+-   path: /etc/kubernetes/pki/etcd/ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.EtcdCAKey | Base64Encode}}
+
+-   path: /etc/kubernetes/pki/front-proxy-ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.FrontProxyCACert | Base64Encode}}
+
+-   path: /etc/kubernetes/pki/front-proxy-ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.FrontProxyCAKey | Base64Encode}}
+
+-   path: /etc/kubernetes/pki/sa.pub
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.SaCert | Base64Encode}}
+
+-   path: /etc/kubernetes/pki/sa.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.SaKey | Base64Encode}}
+
+-   path: /tmp/kubeadm-controlplane-join-config.yaml
+    owner: root:root
+    permissions: '0640'
+    content: |
+      apiVersion: kubeadm.k8s.io/v1beta1
+      kind: JoinConfiguration
+      discovery:
+      bootstrapToken:
+        token: "{{.BootstrapToken}}"
+        apiServerEndpoint: "{{.ELBAddress}}:6443"
+        caCertHashes:
+          - "{{.CACertHash}}"
+    nodeRegistration:
+      name: {{ "{{ ds.meta_data.hostname }}" }}
+      criSocket: /var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        cloud-provider: aws
+    controlPlane:
+      localAPIEndpoint:
+        advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
+        bindPort: 6443	
+`
 	controlPlaneJoinBashScript = `{{.Header}}
 
 set -eox
@@ -267,7 +347,7 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 
 // JoinControlPlane returns the user data string to be used on a new contrplplane instance.
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
-	input.Header = defaultHeader
+	input.Header = cloudConfigHeader
 
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
@@ -277,7 +357,7 @@ func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 		"Base64Encode": templateBase64Encode,
 	}
 
-	userData, err := generateWithFuncs("controlplane", controlPlaneJoinBashScript, funcMap(fMap), input)
+	userData, err := generateWithFuncs("controlplane", controlPlaneJoinCloudInit, funcMap(fMap), input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
 	}
