@@ -193,7 +193,7 @@ write_files:
     controlPlane:
       localAPIEndpoint:
         advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
-        bindPort: 6443	
+        bindPort: 6443
 `
 	controlPlaneJoinBashScript = `{{.Header}}
 
