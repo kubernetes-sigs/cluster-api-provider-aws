@@ -9,6 +9,7 @@ We use it to bake our AMIs.
 
 * `packer` binary
 * [packer-goss](https://github.com/YaleUniversity/packer-provisioner-goss) plugin
+* ansible
 
 ## Plugin instalation
 
