@@ -1,4 +1,4 @@
-package v1alpha1
+package v1beta1
 
 import (
 	"reflect"
@@ -27,7 +27,7 @@ func TestEncodeAndDecodeProviderStatus(t *testing.T) {
 	providerStatus := &AWSMachineProviderStatus{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AWSMachineProviderStatus",
-			APIVersion: "awsproviderconfig.k8s.io/v1alpha1",
+			APIVersion: "awsproviderconfig.openshift.io/v1beta1",
 		},
 		InstanceState: &instanceState,
 		InstanceID:    &instanceID,
@@ -80,7 +80,7 @@ func TestEncodeAndDecodeProviderSpec(t *testing.T) {
 	providerConfig := &AWSMachineProviderConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AWSMachineProviderConfig",
-			APIVersion: "awsproviderconfig.k8s.io/v1alpha1",
+			APIVersion: "awsproviderconfig.openshift.io/v1beta1",
 		},
 		AMI: AWSResourceReference{
 			Filters: []Filter{

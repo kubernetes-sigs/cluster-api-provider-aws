@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package awsprovider contains awsprovider API versions
-package awsprovider
+// Package awsproviderconfig contains awsprovider API versions
+package awsproviderconfig

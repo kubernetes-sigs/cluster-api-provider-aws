@@ -23,7 +23,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -77,7 +77,7 @@ func main() {
 }
 
 func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
-	codec, err := v1alpha1.NewCodec()
+	codec, err := v1beta1.NewCodec()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create codec: %v", err)
 	}

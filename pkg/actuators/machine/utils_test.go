@@ -8,7 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1alpha1"
+	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -21,7 +21,7 @@ func TestProviderConfigFromMachine(t *testing.T) {
 
 	providerConfig := &providerconfigv1.AWSMachineProviderConfig{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "awsproviderconfig.k8s.io/v1alpha1",
+			APIVersion: "awsproviderconfig.openshift.io/v1beta1",
 			Kind:       "AWSMachineProviderConfig",
 		},
 		InstanceType: "testInstance",
