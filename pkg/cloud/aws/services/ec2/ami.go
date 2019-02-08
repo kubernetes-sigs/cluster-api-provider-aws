@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,9 @@ package ec2
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 
 	"k8s.io/klog"
 
@@ -40,6 +42,9 @@ const (
 	// 4. the kubernetes version as defined by the packages produced by kubernetes/release, for example: 1.13.0-00, 1.12.5-01
 	// 5. the timestamp that the AMI was built
 	amiNameFormat = "capa-ami-%s-%s-%s-??-??????????"
+
+	// Amazon's AMI timestamp format
+	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
 )
 
 func amiName(baseOS, baseOSVersion, kubernetesVersion string) string {
@@ -80,8 +85,44 @@ func (s *Service) defaultAMILookup(baseOS, baseOSVersion, kubernetesVersion stri
 	if len(out.Images) == 0 {
 		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
-	klog.V(2).Infof("Using AMI: %q", aws.StringValue(out.Images[0].ImageId))
-	return aws.StringValue(out.Images[0].ImageId), nil
+	latestImage := getLatestImage(out.Images)
+	klog.V(2).Infof("Using AMI: %q", aws.StringValue(latestImage.ImageId))
+	return aws.StringValue(latestImage.ImageId), nil
+}
+
+type images []*ec2.Image
+
+// Len is the number of elements in the collection.
+func (i images) Len() int {
+	return len(i)
+}
+
+// Less reports whether the element with
+// index i should sort before the element with index j.
+func (i images) Less(k, j int) bool {
+	firstTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[k].CreationDate))
+	if err != nil {
+		klog.Infof("unable to parse an AMI creation timestamp: %q", aws.StringValue(i[k].CreationDate))
+		return false
+	}
+	secondTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[j].CreationDate))
+	if err != nil {
+		klog.Infof("unable to parse an AMI creation timestamp: %q", aws.StringValue(i[j].CreationDate))
+		return false
+	}
+	return firstTime.Before(secondTime)
+}
+
+// Swap swaps the elements with indexes i and j.
+func (i images) Swap(k, j int) {
+	i[k], i[j] = i[j], i[k]
+}
+
+// getLatestImage assumes imgs is not empty. Responsibility of the caller to check.
+func getLatestImage(imgs []*ec2.Image) *ec2.Image {
+	// old to new (newest one is last)
+	sort.Sort(images(imgs))
+	return imgs[len(imgs)-1]
 }
 
 func (s *Service) defaultBastionAMILookup(region string) string {
