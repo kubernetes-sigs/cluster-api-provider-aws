@@ -155,13 +155,12 @@ examples-dev: ## Generate example output with developer image
 
 .PHONY: manifests
 manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for clusterctl
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
 	kustomize build config/default/ > cmd/clusterctl/examples/aws/out/provider-components.yaml
 	echo "---" >> cmd/clusterctl/examples/aws/out/provider-components.yaml
 	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> cmd/clusterctl/examples/aws/out/provider-components.yaml
 
 .PHONY: manifests-dev
-manifests-dev: dep-ensure dep-install binaries-dev ## Builds development manifests
+manifests-dev: dep-ensure dep-install binaries-dev crds ## Builds development manifests
 	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) MANAGER_IMAGE_PULL_POLICY="Always" $(MAKE) manifests
 
 .PHONY: crds
