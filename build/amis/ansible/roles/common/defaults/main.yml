@@ -22,6 +22,7 @@ common_rpms:
 - jq
 - nfs-utils
 common_extra_rpms: []
+cloud_init_version: 18.3-52-gc5f78957-1~bddeb~18.04.1
 common_debs:
 - openssh-client
 - openssh-server
@@ -33,6 +34,9 @@ common_debs:
 - ntp
 - jq
 - nfs-client
+
+common_pinned_debs:
+- "cloud-init={{ cloud_init_version }}"
 common_extra_debs: []
 common_redhat_epel_rpm: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
 common_redhat_cloud_init_copr_rpm: "https://copr.fedorainfracloud.org/coprs/jdetiber/cloud-init/repo/epel-7/jdetiber-cloud-init-epel-7.repo"

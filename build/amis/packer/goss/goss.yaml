@@ -1,0 +1,9 @@
+package:
+{{range $name, $vers := index .Vars "packages"}}
+  {{$name}}:
+    installed: true
+    versions:
+    {{range $vers}}
+      - {{.}}
+    {{end}}
+{{end}}

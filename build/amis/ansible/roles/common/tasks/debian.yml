@@ -38,3 +38,10 @@
     force_apt_get: True
     name: "{{ common_extra_debs }}"
     state: latest
+
+- name: install pinned debs
+  apt:
+    force_apt_get: True
+    name: "{{ common_pinned_debs }}"
+    state: present
+    force: yes

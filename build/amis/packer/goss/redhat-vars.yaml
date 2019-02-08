@@ -1,0 +1,3 @@
+packages:
+  cloud-init:
+    - "18.3+52.gc5f78957"
