@@ -16,111 +16,187 @@ limitations under the License.
 
 package userdata
 
-import "github.com/pkg/errors"
+import (
+	"encoding/base64"
+
+	"github.com/pkg/errors"
+)
 
 const (
-	controlPlaneBashScript = `{{.Header}}
+	controlPlaneCloudInit = `{{.Header}}
+write_files:
+-   path: /etc/kubernetes/pki/ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.CACert | Base64Encode}}
 
-set -eox
+-   path: /etc/kubernetes/pki/ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.CAKey | Base64Encode}}
 
-mkdir -p /etc/kubernetes/pki/etcd
+-   path: /etc/kubernetes/pki/etcd/ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.EtcdCACert | Base64Encode}}
 
-echo -n '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
-echo -n '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
-chmod 600 /etc/kubernetes/pki/ca.key
+-   path: /etc/kubernetes/pki/etcd/ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.EtcdCAKey | Base64Encode}}
 
-echo -n '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo -n '{{.EtcdCAKey}}' > /etc/kubernetes/pki/etcd/ca.key
-chmod 600 /etc/kubernetes/pki/etcd/ca.key
+-   path: /etc/kubernetes/pki/front-proxy-ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.FrontProxyCACert | Base64Encode}}
 
-echo -n '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo -n '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
-chmod 600 /etc/kubernetes/pki/front-proxy-ca.key
+-   path: /etc/kubernetes/pki/front-proxy-ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.FrontProxyCAKey | Base64Encode}}
 
-echo -n '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
-echo -n '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
-chmod 600 /etc/kubernetes/pki/sa.key
+-   path: /etc/kubernetes/pki/sa.pub
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.SaCert | Base64Encode}}
 
-PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
-HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
+-   path: /etc/kubernetes/pki/sa.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.SaKey | Base64Encode}}
 
-cat >/tmp/kubeadm.yaml <<EOF
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: ClusterConfiguration
-apiServer:
-  certSANs:
-    - "$PRIVATE_IP"
-    - "{{.ELBAddress}}"
-  extraArgs:
-    cloud-provider: aws
-controlPlaneEndpoint: "{{.ELBAddress}}:6443"
-clusterName: "{{.ClusterName}}"
-networking:
-  dnsDomain: "{{.ServiceDomain}}"
-  podSubnet: "{{.PodSubnet}}"
-  serviceSubnet: "{{.ServiceSubnet}}"
-kubernetesVersion: "{{.KubernetesVersion}}"
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: InitConfiguration
-nodeRegistration:
-  name: ${HOSTNAME}
-  criSocket: /var/run/containerd/containerd.sock
-  kubeletExtraArgs:
-    cloud-provider: aws
-EOF
+-   path: /tmp/kubeadm.yaml
+    owner: root:root
+    permissions: '0640'
+    content: |
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta1
+      kind: ClusterConfiguration
+      apiServer:
+        certSANs:
+          - {{ "{{ ds.meta_data.local_ipv4 }}" }}
+          - "{{.ELBAddress}}"
+        extraArgs:
+          cloud-provider: aws
+      controlPlaneEndpoint: "{{.ELBAddress}}:6443"
+      clusterName: "{{.ClusterName}}"
+      networking:
+        dnsDomain: "{{.ServiceDomain}}"
+        podSubnet: "{{.PodSubnet}}"
+        serviceSubnet: "{{.ServiceSubnet}}"
+      kubernetesVersion: "{{.KubernetesVersion}}"
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta1
+      kind: InitConfiguration
+      nodeRegistration:
+        name: {{ "{{ ds.meta_data.hostname }}" }}
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: aws
+kubeadm:
+  operation: init
+  config: /tmp/kubeadm.yaml
 
-kubeadm init --config /tmp/kubeadm.yaml --v 10
 `
 
-	controlPlaneJoinBashScript = `{{.Header}}
+	controlPlaneJoinCloudInit = `{{.Header}}
+write_files:
+-   path: /etc/kubernetes/pki/ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.CACert | Base64Encode}}
 
-set -eox
+-   path: /etc/kubernetes/pki/ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.CAKey | Base64Encode}}
 
-mkdir -p /etc/kubernetes/pki/etcd
+-   path: /etc/kubernetes/pki/etcd/ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.EtcdCACert | Base64Encode}}
 
-echo -n '{{.CACert}}' > /etc/kubernetes/pki/ca.crt
-echo -n '{{.CAKey}}' > /etc/kubernetes/pki/ca.key
-chmod 600 /etc/kubernetes/pki/ca.key
+-   path: /etc/kubernetes/pki/etcd/ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.EtcdCAKey | Base64Encode}}
 
-echo -n '{{.EtcdCACert}}' > /etc/kubernetes/pki/etcd/ca.crt
-echo -n '{{.EtcdCAKey}}' > /etc/kubernetes/pki/etcd/ca.key
-chmod 600 /etc/kubernetes/pki/etcd/ca.key
+-   path: /etc/kubernetes/pki/front-proxy-ca.crt
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.FrontProxyCACert | Base64Encode}}
 
-echo -n '{{.FrontProxyCACert}}' > /etc/kubernetes/pki/front-proxy-ca.crt
-echo -n '{{.FrontProxyCAKey}}' > /etc/kubernetes/pki/front-proxy-ca.key
-chmod 600 /etc/kubernetes/pki/front-proxy-ca.key
+-   path: /etc/kubernetes/pki/front-proxy-ca.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.FrontProxyCAKey | Base64Encode}}
 
-echo -n '{{.SaCert}}' > /etc/kubernetes/pki/sa.pub
-echo -n '{{.SaKey}}' > /etc/kubernetes/pki/sa.key
-chmod 600 /etc/kubernetes/pki/sa.key
+-   path: /etc/kubernetes/pki/sa.pub
+    encoding: "base64"
+    owner: root:root
+    permissions: '0640'
+    content: |
+      {{.SaCert | Base64Encode}}
 
-PRIVATE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
-HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
+-   path: /etc/kubernetes/pki/sa.key
+    encoding: "base64"
+    owner: root:root
+    permissions: '0600'
+    content: |
+      {{.SaKey | Base64Encode}}
 
-cat >/tmp/kubeadm-controlplane-join-config.yaml <<EOF
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: JoinConfiguration
-discovery:
-  bootstrapToken:
-    token: "{{.BootstrapToken}}"
-    apiServerEndpoint: "{{.ELBAddress}}:6443"
-    caCertHashes:
-      - "{{.CACertHash}}"
-nodeRegistration:
-  name: "${HOSTNAME}"
-  criSocket: /var/run/containerd/containerd.sock
-  kubeletExtraArgs:
-    cloud-provider: aws
-controlPlane:
-  localAPIEndpoint:
-    advertiseAddress: "${PRIVATE_IP}"
-    bindPort: 6443
-EOF
-
-kubeadm join --config /tmp/kubeadm-controlplane-join-config.yaml --v 10
+-   path: /tmp/kubeadm-controlplane-join-config.yaml
+    owner: root:root
+    permissions: '0640'
+    content: |
+      apiVersion: kubeadm.k8s.io/v1beta1
+      kind: JoinConfiguration
+      discovery:
+        bootstrapToken:
+          token: "{{.BootstrapToken}}"
+          apiServerEndpoint: "{{.ELBAddress}}:6443"
+          caCertHashes:
+            - "{{.CACertHash}}"
+      nodeRegistration:
+        name: {{ "{{ ds.meta_data.hostname }}" }}
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: aws
+      controlPlane:
+        localAPIEndpoint:
+          advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
+          bindPort: 6443
+kubeadm:
+  operation: join
+  config: /tmp/kubeadm-controlplane-join-config.yaml
 `
 )
 
@@ -207,12 +283,16 @@ func (cpi *ContolPlaneJoinInput) validateCertificates() error {
 
 // NewControlPlane returns the user data string to be used on a controlplane instance.
 func NewControlPlane(input *ControlPlaneInput) (string, error) {
-	input.Header = defaultHeader
+	input.Header = cloudConfigHeader
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
-	userData, err := generate("controlplane", controlPlaneBashScript, input)
+	fMap := map[string]interface{}{
+		"Base64Encode": templateBase64Encode,
+	}
+
+	userData, err := generateWithFuncs("controlplane", controlPlaneCloudInit, funcMap(fMap), input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
 	}
@@ -222,15 +302,23 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 
 // JoinControlPlane returns the user data string to be used on a new contrplplane instance.
 func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
-	input.Header = defaultHeader
+	input.Header = cloudConfigHeader
 
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
 
-	userData, err := generate("controlplane", controlPlaneJoinBashScript, input)
+	fMap := map[string]interface{}{
+		"Base64Encode": templateBase64Encode,
+	}
+
+	userData, err := generateWithFuncs("controlplane", controlPlaneJoinCloudInit, funcMap(fMap), input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")
 	}
 	return userData, err
+}
+
+func templateBase64Encode(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }

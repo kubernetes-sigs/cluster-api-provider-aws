@@ -17,28 +17,29 @@ limitations under the License.
 package userdata
 
 const (
-	nodeBashScript = `{{.Header}}
-
-HOSTNAME="$(curl http://169.254.169.254/latest/meta-data/local-hostname)"
-
-cat >/tmp/kubeadm-node.yaml <<EOF
----
-apiVersion: kubeadm.k8s.io/v1beta1
-kind: JoinConfiguration
-discovery:
-  bootstrapToken:
-    token: "{{.BootstrapToken}}"
-    apiServerEndpoint: "{{.ELBAddress}}:6443"
-    caCertHashes:
-      - "{{.CACertHash}}"
-nodeRegistration:
-  name: "${HOSTNAME}"
-  criSocket: /var/run/containerd/containerd.sock
-  kubeletExtraArgs:
-    cloud-provider: aws
-EOF
-
-kubeadm join --config /tmp/kubeadm-node.yaml
+	nodeCloudInit = `{{.Header}}
+write_files:
+-   path: /tmp/kubeadm-node.yaml
+    owner: root:root
+    permissions: '0640'
+    content: |
+      ---
+      apiVersion: kubeadm.k8s.io/v1beta1
+      kind: JoinConfiguration
+      discovery:
+        bootstrapToken:
+          token: "{{.BootstrapToken}}"
+          apiServerEndpoint: "{{.ELBAddress}}:6443"
+          caCertHashes:
+            - "{{.CACertHash}}"
+      nodeRegistration:
+        name: {{ "{{ ds.meta_data.hostname }}" }}
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cloud-provider: aws
+kubeadm:
+  operation: join
+  config: /tmp/kubeadm-node.yaml
 `
 )
 
@@ -53,6 +54,6 @@ type NodeInput struct {
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) (string, error) {
-	input.Header = defaultHeader
-	return generate("node", nodeBashScript, input)
+	input.Header = cloudConfigHeader
+	return generate("node", nodeCloudInit, input)
 }
