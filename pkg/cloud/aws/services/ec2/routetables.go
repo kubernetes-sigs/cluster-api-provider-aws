@@ -155,11 +155,16 @@ func (s *Service) deleteRouteTables() error {
 }
 
 func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
+	filters := []*ec2.Filter{
+		filter.EC2.VPC(s.scope.VPC().ID),
+	}
+
+	if !s.scope.VPC().IsProvided() {
+		filters = append(filters, filter.EC2.Cluster(s.scope.Name()))
+	}
+
 	out, err := s.scope.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
-		Filters: []*ec2.Filter{
-			filter.EC2.VPC(s.scope.VPC().ID),
-			filter.EC2.Cluster(s.scope.Name()),
-		},
+		Filters: filters,
 	})
 
 	if err != nil {

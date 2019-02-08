@@ -175,14 +175,56 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
 	}
 
+	routeTables, err := s.describeVpcRouteTablesBySubnet()
+	if err != nil {
+		return nil, err
+	}
+
+	natGateways, err := s.describeNatGatewaysBySubnet()
+	if err != nil {
+		return nil, err
+	}
+	internetGateways, err := s.describeVpcInternetGateways()
+	if err != nil {
+		return nil, err
+	}
+
 	subnets := make([]*v1alpha1.SubnetSpec, 0, len(out.Subnets))
 	for _, ec2sn := range out.Subnets {
+		rt := routeTables[*ec2sn.SubnetId]
+		var hasPublicRoute bool
+		var routeTableId, natGatewayId *string
+		if rt != nil {
+			routeTableId = rt.RouteTableId
+			for _, route := range rt.Routes {
+				if route == nil {
+					continue
+				}
+				if route.GatewayId != nil {
+					for _, igw := range internetGateways {
+						if igw == nil {
+							continue
+						}
+						if *route.GatewayId == *igw.InternetGatewayId {
+							hasPublicRoute = true
+						}
+					}
+				}
+			}
+		}
+
+		ngw := natGateways[*ec2sn.SubnetId]
+		if ngw != nil {
+			natGatewayId = ngw.NatGatewayId
+		}
 		subnets = append(subnets, &v1alpha1.SubnetSpec{
 			ID:               *ec2sn.SubnetId,
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
-			IsPublic:         *ec2sn.MapPublicIpOnLaunch,
+			IsPublic:         hasPublicRoute,
 			Tags:             converters.TagsToMap(ec2sn.Tags),
+			RouteTableID:     routeTableId,
+			NatGatewayID:     natGatewayId,
 		})
 	}
 
