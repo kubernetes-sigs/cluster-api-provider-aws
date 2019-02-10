@@ -41,6 +41,7 @@ go_library(
 go_test(
     name = "go_default_test",
     srcs = [
+        "ami_test.go",
         "gateways_test.go",
         "instances_test.go",
         "natgateways_test.go",
