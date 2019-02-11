@@ -17,8 +17,10 @@ limitations under the License.
 package certificates
 
 import (
+	"crypto/x509"
 	"testing"
 
+	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
@@ -163,6 +165,59 @@ func TestGetOrGenerateServiceAccountKeys(t *testing.T) {
 			if len(actualKeyPair.Key) <= 0 {
 				t.Fatalf("[%s], Expected to public key of length > 0, Got public key of length %d", tc.name, len(actualKeyPair.Key))
 			}
+		}
+	}
+}
+
+func TestNewCertificateAuthority(t *testing.T) {
+	testCases := []struct {
+		name     string
+		testFunc func() error
+	}{
+		{
+			name: "should generate conformant ca certificate",
+			testFunc: func() error {
+				cert, _, err := NewCertificateAuthority()
+				if err != nil {
+					return err
+				}
+
+				if !cert.MaxPathLenZero {
+					return errors.Errorf("Unexpected value for MaxPathLenZero, Want: [true]; Got: [%t]", cert.MaxPathLenZero)
+				}
+
+				if cert.MaxPathLen != 0 {
+					return errors.Errorf("Unexpected value for MaxPathLen, Want: [0]; Got: [%d]", cert.MaxPathLen)
+				}
+
+				if !cert.BasicConstraintsValid {
+					return errors.Errorf("Unexpected value for BasicConstraintsValid, Want: [true]; Got: [%t]", cert.BasicConstraintsValid)
+				}
+
+				expectedUsage := x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign
+				actualUsage := cert.KeyUsage
+				if expectedUsage != actualUsage {
+					return errors.Errorf("Unexpected value for KeyUsage, Want: [%d]; Got: [%d]", expectedUsage, actualUsage)
+				}
+
+				expectedCommonName := "kubernetes"
+				actualCommonName := cert.Subject.CommonName
+				if expectedCommonName != actualCommonName {
+					return errors.Errorf("Unexpected CommonName, Want: [%s]; Got: [%s]", expectedCommonName, actualCommonName)
+				}
+
+				if !cert.IsCA {
+					return errors.Errorf("Unexpected value for IsCA, Want: [true]; Got: [%t]", cert.IsCA)
+				}
+
+				return nil
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		if err := tc.testFunc(); err != nil {
+			t.Fatalf("[%s] failed: %v", tc.name, err)
 		}
 	}
 }

@@ -208,7 +208,9 @@ func NewSelfSignedCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {
 		NotBefore:             now,
 		NotAfter:              now.Add(duration365d * 10),
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		MaxPathLenZero:        true,
 		BasicConstraintsValid: true,
+		MaxPathLen:            0,
 		IsCA:                  true,
 	}
 

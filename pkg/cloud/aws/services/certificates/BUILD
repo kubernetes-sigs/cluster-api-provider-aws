@@ -21,5 +21,8 @@ go_test(
     name = "go_default_test",
     srcs = ["certificates_test.go"],
     embed = [":go_default_library"],
-    deps = ["//pkg/apis/awsprovider/v1alpha1:go_default_library"],
+    deps = [
+        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+    ],
 )
