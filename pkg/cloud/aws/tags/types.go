@@ -76,14 +76,19 @@ const (
 	// The tag value is an ownership value
 	NameKubernetesClusterPrefix = "kubernetes.io/cluster/"
 
+	// NameAWSProviderPrefix is the tag prefix we use to differentiate
+	// cluster-api-provider-aws owned components from other tooling that
+	// uses NameKubernetesClusterPrefix
+	NameAWSProviderPrefix = "sigs.k8s.io/cluster-api-provider-aws/"
+
 	// NameAWSProviderManaged is the tag name we use to differentiate
 	// cluster-api-provider-aws owned components from other tooling that
 	// uses NameKubernetesClusterPrefix
-	NameAWSProviderManaged = "sigs.k8s.io/cluster-api-provider-aws/managed"
+	NameAWSProviderManaged = NameAWSProviderPrefix + "managed"
 
 	// NameAWSClusterAPIRole is the tag name we use to mark roles for resources
 	// dedicated to this cluster api provider implementation.
-	NameAWSClusterAPIRole = "sigs.k8s.io/cluster-api-provider-aws/role"
+	NameAWSClusterAPIRole = NameAWSProviderPrefix + "role"
 
 	// ValueAPIServerRole describes the value for the apiserver role
 	ValueAPIServerRole = "apiserver"

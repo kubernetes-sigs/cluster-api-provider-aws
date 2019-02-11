@@ -36,6 +36,10 @@ const (
 	defaultPublicSubnetCidr  = "10.0.1.0/24"
 )
 
+const (
+	NameSubnetRoutable = tags.NameAWSProviderPrefix + "routable"
+)
+
 func (s *Service) reconcileSubnets() error {
 	klog.V(2).Infof("Reconciling subnets")
 
@@ -184,36 +188,50 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	internetGateways, err := s.describeVpcInternetGateways()
 	if err != nil {
 		return nil, err
 	}
 
 	subnets := make([]*v1alpha1.SubnetSpec, 0, len(out.Subnets))
+	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) or if there are any associated NAT gateways.
+	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
 	for _, ec2sn := range out.Subnets {
+		var hasPublicTag bool
+		for _, tag := range ec2sn.Tags {
+			if tag == nil {
+				continue
+			}
+
+			if tag.Key != nil && *tag.Key == NameSubnetRoutable && tag.Value != nil && *tag.Value == "public" {
+				hasPublicTag = true
+			}
+		}
+
 		rt := routeTables[*ec2sn.SubnetId]
+
 		var hasPublicRoute bool
-		var routeTableId, natGatewayId *string
+		var routeTableId *string
 		if rt != nil {
 			routeTableId = rt.RouteTableId
 			for _, route := range rt.Routes {
-				if route == nil {
+				if route == nil || route.GatewayId == nil {
 					continue
 				}
-				if route.GatewayId != nil {
-					for _, igw := range internetGateways {
-						if igw == nil {
-							continue
-						}
-						if *route.GatewayId == *igw.InternetGatewayId {
-							hasPublicRoute = true
-						}
+				for _, igw := range internetGateways {
+					if igw == nil {
+						continue
+					}
+					if *route.GatewayId == *igw.InternetGatewayId {
+						hasPublicRoute = true
 					}
 				}
 			}
 		}
 
 		ngw := natGateways[*ec2sn.SubnetId]
+		var natGatewayId *string
 		if ngw != nil {
 			natGatewayId = ngw.NatGatewayId
 		}
@@ -221,7 +239,7 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 			ID:               *ec2sn.SubnetId,
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
-			IsPublic:         hasPublicRoute,
+			IsPublic:         hasPublicRoute || hasPublicTag,
 			Tags:             converters.TagsToMap(ec2sn.Tags),
 			RouteTableID:     routeTableId,
 			NatGatewayID:     natGatewayId,
@@ -297,15 +315,17 @@ func (s *Service) deleteSubnet(id string) error {
 }
 
 func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
-	var name strings.Builder
+	var routable string
+	if public {
+		routable = "public"
+	} else {
+		routable = "private"
+	}
 
+	var name strings.Builder
 	name.WriteString(s.scope.Name())
 	name.WriteString("-subnet-")
-	if public {
-		name.WriteString("public")
-	} else {
-		name.WriteString("private")
-	}
+	name.WriteString(routable)
 
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
@@ -313,5 +333,8 @@ func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
 		Lifecycle:   tags.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
 		Role:        aws.String(tags.ValueCommonRole),
+		Additional: tags.Map{
+			NameSubnetRoutable: routable,
+		},
 	}
 }
