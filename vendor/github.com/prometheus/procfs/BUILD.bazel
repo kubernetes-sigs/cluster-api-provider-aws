@@ -14,6 +14,7 @@ go_library(
         "proc_io.go",
         "proc_limits.go",
         "proc_ns.go",
+        "proc_psi.go",
         "proc_stat.go",
         "stat.go",
         "xfrm.go",
