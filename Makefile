@@ -22,7 +22,7 @@ FASTBUILD ?= n ## Set FASTBUILD=y (case-sensitive) to skip some slow tasks
 ## Image URL to use all building/pushing image targets
 STABLE_DOCKER_REPO ?= gcr.io/cluster-api-provider-aws
 MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
-MANAGER_IMAGE_TAG ?= 0.0.3
+MANAGER_IMAGE_TAG ?= 0.0.4
 MANAGER_IMAGE ?= $(STABLE_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 DEV_DOCKER_REPO ?= gcr.io/$(shell gcloud config get-value project)
 DEV_MANAGER_IMAGE ?= $(DEV_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
