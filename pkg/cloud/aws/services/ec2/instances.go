@@ -180,7 +180,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
 				BootstrapToken:   bootstrapToken,
 				ELBAddress:       s.scope.Network().APIServerELB.DNSName,
-			})
+			}, v1beta1.JoinConfiguration{})
 			if err != nil {
 				return input, err
 			}
@@ -190,21 +190,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				return nil, awserrors.NewFailedDependency(
 					errors.New("failed to run controlplane, missing CAPrivateKey"),
 				)
-			}
-
-			clusterConfiguration := v1beta1.ClusterConfiguration{
-				APIServer: v1beta1.APIServer{
-					CertSANs: []string{
-						`"{{ ds.meta_data.local_ipv4 }}"`,
-						s.scope.Network().APIServerELB.DNSName,
-					},
-					ExtraAgs: map[string]string{
-						"cloud-provider": "aws",
-					},
-				},
-				ControlPlaneEndpoint: fmt.Sprintf("%s:%d", s.scope.Network().APIServerELB.DNSName, 6443),
-				ClusterName: s.scope.Name(),
-				Networking: v1beta1
 			}
 
 			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{
@@ -222,7 +207,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				ServiceSubnet:     s.scope.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
 				ServiceDomain:     s.scope.Cluster.Spec.ClusterNetwork.ServiceDomain,
 				KubernetesVersion: machine.Machine.Spec.Versions.ControlPlane,
-			})
+			}, v1beta1.InitConfiguration{})
 
 			if err != nil {
 				return input, err

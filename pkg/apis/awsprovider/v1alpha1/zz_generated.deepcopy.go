@@ -35,6 +35,8 @@ func (in *AWSClusterProviderSpec) DeepCopyInto(out *AWSClusterProviderSpec) {
 	in.EtcdCAKeyPair.DeepCopyInto(&out.EtcdCAKeyPair)
 	in.FrontProxyCAKeyPair.DeepCopyInto(&out.FrontProxyCAKeyPair)
 	in.SAKeyPair.DeepCopyInto(&out.SAKeyPair)
+	in.InitConfiguration.DeepCopyInto(&out.InitConfiguration)
+	in.JoinConfiguration.DeepCopyInto(&out.JoinConfiguration)
 	return
 }
 

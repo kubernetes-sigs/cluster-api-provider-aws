@@ -262,6 +262,10 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 	// in the configuration.
 	initConfiguration.NodeRegistration.Name = `"{{ ds.meta_data.hostname }}"`
 	initConfiguration.NodeRegistration.CRISocket = "/var/run/containerd/containerd.sock"
+
+	if initConfiguration.NodeRegistration.KubeletExtraArgs == nil {
+		initConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+	}
 	initConfiguration.NodeRegistration.KubeletExtraArgs["cloud-provider"] = "aws"
 
 	clusterConfiguration := v1beta1.ClusterConfiguration{
@@ -314,7 +318,7 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 }
 
 // JoinControlPlane returns the user data string to be used on a new contrplplane instance.
-func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration *v1beta1.JoinConfiguration) (string, error) {
+func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration v1beta1.JoinConfiguration) (string, error) {
 	input.Header = cloudConfigHeader
 
 	if err := input.validateCertificates(); err != nil {
@@ -329,7 +333,7 @@ func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration *v1beta1.Jo
 	joinConfiguration.NodeRegistration.KubeletExtraArgs["cloud-provider"] = "aws"
 	joinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = `"{{ ds.meta_data.local_ipv4 }}"`
 	joinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = 6443
-	joincfg, err := util.MarshalToYaml(joinConfiguration, v1beta1.SchemeGroupVersion)
+	joincfg, err := util.MarshalToYaml(&joinConfiguration, v1beta1.SchemeGroupVersion)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to marshal cluster configuration")
 	}
