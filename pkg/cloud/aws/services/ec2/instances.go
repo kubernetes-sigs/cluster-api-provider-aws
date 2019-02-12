@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -188,6 +190,21 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				return nil, awserrors.NewFailedDependency(
 					errors.New("failed to run controlplane, missing CAPrivateKey"),
 				)
+			}
+
+			clusterConfiguration := v1beta1.ClusterConfiguration{
+				APIServer: v1beta1.APIServer{
+					CertSANs: []string{
+						`"{{ ds.meta_data.local_ipv4 }}"`,
+						s.scope.Network().APIServerELB.DNSName,
+					},
+					ExtraAgs: map[string]string{
+						"cloud-provider": "aws",
+					},
+				},
+				ControlPlaneEndpoint: fmt.Sprintf("%s:%d", s.scope.Network().APIServerELB.DNSName, 6443),
+				ClusterName: s.scope.Name(),
+				Networking: v1beta1
 			}
 
 			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{

@@ -55,7 +55,17 @@ type AWSClusterProviderSpec struct {
 	// SAKeyPair is the service account key pair.
 	SAKeyPair KeyPair `json:"saKeyPair,omitempty"`
 
-	KubeadmConfiguration *v1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+	// InitConfiguration is used to customize any kubeadm init configuration
+	// parameters.
+	// Cannot override certain variables including:
+	// * noderegistration.Name
+	// * noderegistration.criSocket
+	// * apiserver.ExtraArgs[cloud-provider] = aws
+	InitConfiguration v1beta1.InitConfiguration `json:"initConfiguration,omitempty"`
+
+	// JoinConfiguration is used to customize any kubeadm join configuration
+	// parameters.
+	JoinConfiguration v1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
 }
 
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.

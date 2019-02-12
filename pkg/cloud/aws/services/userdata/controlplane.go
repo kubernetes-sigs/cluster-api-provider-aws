@@ -18,8 +18,11 @@ package userdata
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	"github.com/pkg/errors"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util"
 )
 
 const (
@@ -86,29 +89,9 @@ write_files:
     permissions: '0640'
     content: |
       ---
-      apiVersion: kubeadm.k8s.io/v1beta1
-      kind: ClusterConfiguration
-      apiServer:
-        certSANs:
-          - {{ "{{ ds.meta_data.local_ipv4 }}" }}
-          - "{{.ELBAddress}}"
-        extraArgs:
-          cloud-provider: aws
-      controlPlaneEndpoint: "{{.ELBAddress}}:6443"
-      clusterName: "{{.ClusterName}}"
-      networking:
-        dnsDomain: "{{.ServiceDomain}}"
-        podSubnet: "{{.PodSubnet}}"
-        serviceSubnet: "{{.ServiceSubnet}}"
-      kubernetesVersion: "{{.KubernetesVersion}}"
+      {{ .ClusterConfiguration }}
       ---
-      apiVersion: kubeadm.k8s.io/v1beta1
-      kind: InitConfiguration
-      nodeRegistration:
-        name: {{ "{{ ds.meta_data.hostname }}" }}
-        criSocket: /var/run/containerd/containerd.sock
-        kubeletExtraArgs:
-          cloud-provider: aws
+      {{ .InitConfiguration }}
 kubeadm:
   operation: init
   config: /tmp/kubeadm.yaml
@@ -222,6 +205,10 @@ type ControlPlaneInput struct {
 	ServiceDomain     string
 	ServiceSubnet     string
 	KubernetesVersion string
+
+	// TODO extract these since they contain values from above (not certs)
+	ClusterConfiguration string
+	InitConfiguration    string
 }
 
 // ContolPlaneJoinInput defines context to generate controlplane instance user data for controlplane node join.
@@ -282,7 +269,46 @@ func (cpi *ContolPlaneJoinInput) validateCertificates() error {
 }
 
 // NewControlPlane returns the user data string to be used on a controlplane instance.
-func NewControlPlane(input *ControlPlaneInput) (string, error) {
+func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitConfiguration) (string, error) {
+	// Override critical variables
+	// TODO(chuckha) add a warning if this is overwriting user input defined
+	// in the configuration.
+	initConfiguration.NodeRegistration.Name = `"{{ ds.meta_data.hostname }}"`
+	initConfiguration.NodeRegistration.CRISocket = "/var/run/containerd/containerd.sock"
+	initConfiguration.NodeRegistration.KubeletExtraArgs["cloud-provider"] = "aws"
+
+	clusterConfiguration := v1beta1.ClusterConfiguration{
+		APIServer: v1beta1.APIServer{
+			CertSANs: []string{
+				`"{{ ds.meta_data.local_ipv4 }}"`,
+				input.ELBAddress,
+			},
+			ControlPlaneComponent: v1beta1.ControlPlaneComponent{
+				ExtraArgs: map[string]string{
+					"cloud-provider": "aws",
+				},
+			},
+		},
+		ControlPlaneEndpoint: fmt.Sprintf("%s:%d", input.ELBAddress, 6443),
+		ClusterName:          input.ClusterName,
+		Networking: v1beta1.Networking{
+			DNSDomain:     input.ServiceDomain,
+			PodSubnet:     input.PodSubnet,
+			ServiceSubnet: input.ServiceSubnet,
+		},
+		KubernetesVersion: input.KubernetesVersion,
+	}
+	initcfg, err := util.MarshalToYaml(&initConfiguration, v1beta1.SchemeGroupVersion)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal init configuration")
+	}
+	input.InitConfiguration = string(initcfg)
+
+	clustercfg, err := util.MarshalToYaml(&clusterConfiguration, v1beta1.SchemeGroupVersion)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal cluster configuration")
+	}
+	input.ClusterConfiguration = string(clustercfg)
 	input.Header = cloudConfigHeader
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
