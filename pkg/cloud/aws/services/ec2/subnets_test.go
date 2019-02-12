@@ -139,21 +139,6 @@ func TestReconcileSubnets(t *testing.T) {
 					}),
 					gomock.Any()).Return(nil)
 
-				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
-					Return(&ec2.DescribeInternetGatewaysOutput{
-						InternetGateways: []*ec2.InternetGateway{
-							{
-								InternetGatewayId: aws.String("igw-0"),
-								Attachments: []*ec2.InternetGatewayAttachment{
-									{
-										State: aws.String(ec2.AttachmentStatusAttached),
-										VpcId: aws.String(subnetsVPCID),
-									},
-								},
-							},
-						},
-					}, nil)
-
 				m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String(defaultPublicSubnetCidr),
@@ -238,21 +223,6 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
-
-				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
-					Return(&ec2.DescribeInternetGatewaysOutput{
-						InternetGateways: []*ec2.InternetGateway{
-							{
-								InternetGatewayId: aws.String("igw-0"),
-								Attachments: []*ec2.InternetGatewayAttachment{
-									{
-										State: aws.String(ec2.AttachmentStatusAttached),
-										VpcId: aws.String(subnetsVPCID),
-									},
-								},
-							},
-						},
-					}, nil)
 
 				firstSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
@@ -360,21 +330,6 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
-
-				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
-					Return(&ec2.DescribeInternetGatewaysOutput{
-						InternetGateways: []*ec2.InternetGateway{
-							{
-								InternetGatewayId: aws.String("igw-0"),
-								Attachments: []*ec2.InternetGatewayAttachment{
-									{
-										State: aws.String(ec2.AttachmentStatusAttached),
-										VpcId: aws.String(subnetsVPCID),
-									},
-								},
-							},
-						},
-					}, nil)
 
 				firstSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
@@ -521,21 +476,6 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
-
-				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
-					Return(&ec2.DescribeInternetGatewaysOutput{
-						InternetGateways: []*ec2.InternetGateway{
-							{
-								InternetGatewayId: aws.String("igw-0"),
-								Attachments: []*ec2.InternetGatewayAttachment{
-									{
-										State: aws.String(ec2.AttachmentStatusAttached),
-										VpcId: aws.String(subnetsVPCID),
-									},
-								},
-							},
-						},
-					}, nil)
 
 				m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
@@ -703,21 +643,6 @@ func TestDiscoverSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
-
-				m.DescribeInternetGateways(gomock.AssignableToTypeOf(&ec2.DescribeInternetGatewaysInput{})).
-					Return(&ec2.DescribeInternetGatewaysOutput{
-						InternetGateways: []*ec2.InternetGateway{
-							{
-								InternetGatewayId: aws.String("igw-0"),
-								Attachments: []*ec2.InternetGatewayAttachment{
-									{
-										State: aws.String(ec2.AttachmentStatusAttached),
-										VpcId: aws.String(subnetsVPCID),
-									},
-								},
-							},
-						},
-					}, nil)
 
 			},
 			expect: []*v1alpha1.SubnetSpec{

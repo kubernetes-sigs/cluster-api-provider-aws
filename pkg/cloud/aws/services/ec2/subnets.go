@@ -189,13 +189,8 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 		return nil, err
 	}
 
-	internetGateways, err := s.describeVpcInternetGateways()
-	if err != nil {
-		return nil, err
-	}
-
 	subnets := make([]*v1alpha1.SubnetSpec, 0, len(out.Subnets))
-	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) or if there are any associated NAT gateways.
+	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) and if there are any associated NAT gateways.
 	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
 	for _, ec2sn := range out.Subnets {
 		var hasPublicTag bool
@@ -209,23 +204,17 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 			}
 		}
 
-		rt := routeTables[*ec2sn.SubnetId]
-
 		var hasPublicRoute bool
 		var routeTableId *string
+		rt := routeTables[*ec2sn.SubnetId]
 		if rt != nil {
 			routeTableId = rt.RouteTableId
 			for _, route := range rt.Routes {
-				if route == nil || route.GatewayId == nil {
+				if route.GatewayId == nil {
 					continue
 				}
-				for _, igw := range internetGateways {
-					if igw == nil {
-						continue
-					}
-					if *route.GatewayId == *igw.InternetGatewayId {
-						hasPublicRoute = true
-					}
+				if strings.HasPrefix(*route.GatewayId, "igw") {
+					hasPublicRoute = true
 				}
 			}
 		}

@@ -122,7 +122,7 @@ type SubnetSpec struct {
 	// AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
-	// IsPublic defines the subnet as a public subnet. A subnet is considered public when it has a direct route to and from the internet via an internet gateway.
+	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
 	// +optional
 	IsPublic bool `json:"isPublic"`
 
