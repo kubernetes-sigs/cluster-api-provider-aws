@@ -52,6 +52,7 @@ rules:
   - machinedeployments/status
   - machinesets
   - machinesets/status
+  - machineclasses
   verbs:
   - get
   - list
