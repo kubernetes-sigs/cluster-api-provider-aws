@@ -10,7 +10,7 @@
   version = "1.0.0"
 
 [[projects]]
-  digest = "1:abf08dc8d4039346e90fafeea2cba585ab8a7131187725b2b389d0ea923db445"
+  digest = "1:fe7e73816dbbd5ac3922c1520e32a06f7173700d54925c618e0942ae4f32428b"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -52,8 +52,8 @@
     "service/sts/stsiface",
   ]
   pruneopts = "UT"
-  revision = "a86c8123483bed64c20a08cddc5155e8e8c89dcb"
-  version = "v1.16.31"
+  revision = "503020bbd95ec9f25b061a83aa62567bc43e6d96"
+  version = "v1.16.32"
 
 [[projects]]
   digest = "1:745bc6300190908c71ec4c641b83e903da724bae0c91b9dc539650b833e22fb4"
@@ -455,8 +455,8 @@
     "semver",
   ]
   pruneopts = "UT"
-  revision = "a2d2540d382d6c5b27a0f914f176c3a1c3383907"
-  version = "v1.2.0"
+  revision = "2ea7272aa4c7de5c8a568dff504404e8dc49945d"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "v2"
@@ -538,7 +538,7 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "193df9c0f06f8bb35fba505183eaf0acc0136505"
+  revision = "74369b46fc6756741c016591724fd1cb8e26845f"
 
 [[projects]]
   branch = "master"
@@ -560,14 +560,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e007b54f54cbd4214aa6d97a67d57bc2539991adb4e22ea92c482bbece8de469"
+  digest = "1:24b119cd3ac544771b332f054a7a420b15ab9b8c3978a0b7381aabac1375ba02"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
     "internal",
   ]
   pruneopts = "UT"
-  revision = "99b60b757ec124ebb7d6b7e97f153b19c10ce163"
+  revision = "5f6b76b7c9ddc07924f32b15de8f03ceec72d74b"
 
 [[projects]]
   branch = "master"
@@ -642,7 +642,7 @@
     "internal/semver",
   ]
   pruneopts = "UT"
-  revision = "3744606dbb67b99c60d3f11cb10bd3f9e6dad472"
+  revision = "44bee7e801e4a70b5fc9a91ff23830ab4df55d5e"
 
 [[projects]]
   digest = "1:6f3bd49ddf2e104e52062774d797714371fac1b8bddfd8e124ce78e6b2264a10"
@@ -916,12 +916,12 @@
   revision = "0689ccc1d7d65d9dd1bedcc3b0b1ed7df91ba266"
 
 [[projects]]
-  digest = "1:e2999bf1bb6eddc2a6aa03fe5e6629120a53088926520ca3b4765f77d7ff7eab"
+  digest = "1:72fd56341405f53c745377e0ebc4abeff87f1a048e0eea6568a20212650f5a82"
   name = "k8s.io/klog"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a5bc97fbc634d635061f3146511332c7e313a55a"
-  version = "v0.1.0"
+  revision = "71442cd4037d612096940ceb0f3fec3f7fff66e0"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
@@ -932,7 +932,7 @@
   revision = "d7c86cdc46e3a4fcf892b32dd7bc3aa775e0870e"
 
 [[projects]]
-  digest = "1:903b0c89099777eca9b1b45f99bed950fb86b1931261ee315f07260ec2bad011"
+  digest = "1:0dd3be513e09375e3f8fefc718fdfc1aac6924dc57adecb6dddfc7edc96a8dda"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
@@ -960,7 +960,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "a3f503ff2a2fa4b3be612fab9edaf4f7eb7f1e27"
+  revision = "0f315e945d5fabe0c805ccf30fa6cf02fac6c0b5"
 
 [[projects]]
   digest = "1:4e97dc637c467531240326f56e253c6d42b519424b6a89d80664ef0f3ed4f721"
