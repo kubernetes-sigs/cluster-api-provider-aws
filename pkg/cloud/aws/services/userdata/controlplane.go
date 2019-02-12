@@ -89,9 +89,9 @@ write_files:
     permissions: '0640'
     content: |
       ---
-      {{ .ClusterConfiguration }}
+      {{.ClusterConfiguration}}
       ---
-      {{ .InitConfiguration }}
+      {{.InitConfiguration}}
 kubeadm:
   operation: init
   config: /tmp/kubeadm.yaml
@@ -160,23 +160,7 @@ write_files:
     owner: root:root
     permissions: '0640'
     content: |
-      apiVersion: kubeadm.k8s.io/v1beta1
-      kind: JoinConfiguration
-      discovery:
-        bootstrapToken:
-          token: "{{.BootstrapToken}}"
-          apiServerEndpoint: "{{.ELBAddress}}:6443"
-          caCertHashes:
-            - "{{.CACertHash}}"
-      nodeRegistration:
-        name: {{ "{{ ds.meta_data.hostname }}" }}
-        criSocket: /var/run/containerd/containerd.sock
-        kubeletExtraArgs:
-          cloud-provider: aws
-      controlPlane:
-        localAPIEndpoint:
-          advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
-          bindPort: 6443
+      {{.JoinConfiguration}}
 kubeadm:
   operation: join
   config: /tmp/kubeadm-controlplane-join-config.yaml
@@ -226,6 +210,9 @@ type ContolPlaneJoinInput struct {
 	SaKey            string
 	BootstrapToken   string
 	ELBAddress       string
+
+	// TODO extract this
+	JoinConfiguration string
 }
 
 func (cpi *ControlPlaneInput) validateCertificates() error {
@@ -327,12 +314,26 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 }
 
 // JoinControlPlane returns the user data string to be used on a new contrplplane instance.
-func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
+func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration *v1beta1.JoinConfiguration) (string, error) {
 	input.Header = cloudConfigHeader
 
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
+
+	joinConfiguration.Discovery.BootstrapToken.Token = input.BootstrapToken
+	joinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = fmt.Sprintf("%s:%d", input.ELBAddress, 6443)
+	joinConfiguration.Discovery.BootstrapToken.CACertHashes = append(joinConfiguration.Discovery.BootstrapToken.CACertHashes, input.CACertHash)
+	joinConfiguration.NodeRegistration.Name = `"{{ ds.meta_data.hostname }}"`
+	joinConfiguration.NodeRegistration.CRISocket = "/var/run/containerd/containerd.sock"
+	joinConfiguration.NodeRegistration.KubeletExtraArgs["cloud-provider"] = "aws"
+	joinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = `"{{ ds.meta_data.local_ipv4 }}"`
+	joinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = 6443
+	joincfg, err := util.MarshalToYaml(joinConfiguration, v1beta1.SchemeGroupVersion)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal cluster configuration")
+	}
+	input.JoinConfiguration = string(joincfg)
 
 	fMap := map[string]interface{}{
 		"Base64Encode": templateBase64Encode,

@@ -934,21 +934,31 @@
   revision = "d7c86cdc46e3a4fcf892b32dd7bc3aa775e0870e"
 
 [[projects]]
-  digest = "1:694796918b3fe258b1eebffafd7b155ab6850508051544c37e3920aedc4f30f7"
+  digest = "1:42ec0fcf04d4b48fc329f9feb31524ac3a204f9ebf28e35da358818e29fe477e"
   name = "k8s.io/kubernetes"
   packages = [
     "cmd/kubeadm/app/apis/kubeadm",
     "cmd/kubeadm/app/apis/kubeadm/v1beta1",
     "cmd/kubeadm/app/constants",
+    "cmd/kubeadm/app/util",
     "pkg/apis/core",
     "pkg/kubelet/apis/config",
     "pkg/proxy/apis/config",
     "pkg/registry/core/service/allocator",
     "pkg/registry/core/service/ipallocator",
+    "pkg/version",
   ]
   pruneopts = "UT"
   revision = "721bfa751924da8d1680787490c54b9179b1fed0"
   version = "v1.13.3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:f268bd5bd086f2db10d350eb84e7fcdce063a460f0e1b64eeb1cb32f9a82999e"
+  name = "k8s.io/utils"
+  packages = ["exec"]
+  pruneopts = "UT"
+  revision = "cdba02414f767c89d729b1b9e61d9891f4e82b35"
 
 [[projects]]
   digest = "1:0dd3be513e09375e3f8fefc718fdfc1aac6924dc57adecb6dddfc7edc96a8dda"
@@ -1113,6 +1123,7 @@
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/klog",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1",
+    "k8s.io/kubernetes/cmd/kubeadm/app/util",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",
