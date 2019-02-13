@@ -18,10 +18,13 @@ package actuators
 
 import (
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/yaml"
 )
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
@@ -40,7 +43,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, err
 	}
 
-	machineConfig, err := v1alpha1.MachineConfigFromProviderSpec(params.Machine.Spec.ProviderSpec)
+	machineConfig, err := machineConfigFromProviderSpec(params.Client, params.Machine.Spec.ProviderSpec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get machine config")
 	}
@@ -84,7 +87,7 @@ func (m *MachineScope) Namespace() string {
 	return m.Machine.Namespace
 }
 
-// Name returns the machine role from the labels.
+// Role returns the machine role from the labels.
 func (m *MachineScope) Role() string {
 	return m.Machine.Labels["set"]
 }
@@ -130,4 +133,45 @@ func (m *MachineScope) Close() {
 	if err != nil {
 		klog.Errorf("[machinescope] failed to store provider status for machine %q in namespace %q: %v", m.Machine.Name, m.Machine.Namespace, err)
 	}
+}
+
+func machineConfigFromProviderSpec(clusterClient client.MachineClassesGetter, providerConfig clusterv1.ProviderSpec) (*v1alpha1.AWSMachineProviderSpec, error) {
+	var config v1alpha1.AWSMachineProviderSpec
+	if providerConfig.Value != nil {
+		klog.V(4).Info("Decoding ProviderConfig from Value")
+		return unmarshalProviderSpec(providerConfig.Value)
+	}
+
+	if providerConfig.ValueFrom != nil && providerConfig.ValueFrom.MachineClass != nil {
+		ref := providerConfig.ValueFrom.MachineClass
+		klog.V(4).Info("Decoding ProviderConfig from MachineClass")
+		klog.V(6).Infof("ref: %v", ref)
+		if ref.Provider != "" && ref.Provider != "aws" {
+			return nil, errors.Errorf("Unsupported provider: %q", ref.Provider)
+		}
+
+		if len(ref.Namespace) > 0 && len(ref.Name) > 0 {
+			klog.V(4).Infof("Getting MachineClass: %s/%s", ref.Namespace, ref.Name)
+			mc, err := clusterClient.MachineClasses(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
+			klog.V(6).Infof("Retrieved MachineClass: %+v", mc)
+			if err != nil {
+				return nil, err
+			}
+			providerConfig.Value = &mc.ProviderSpec
+			return unmarshalProviderSpec(&mc.ProviderSpec)
+		}
+	}
+
+	return &config, nil
+}
+
+func unmarshalProviderSpec(spec *runtime.RawExtension) (*v1alpha1.AWSMachineProviderSpec, error) {
+	var config v1alpha1.AWSMachineProviderSpec
+	if spec != nil {
+		if err := yaml.Unmarshal(spec.Raw, &config); err != nil {
+			return nil, err
+		}
+	}
+	klog.V(6).Infof("Found ProviderSpec: %+v", config)
+	return &config, nil
 }
