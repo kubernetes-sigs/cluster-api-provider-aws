@@ -43,7 +43,7 @@ Now that you have a cluster with a single instance control plane, more control p
 
 2. For each desired controlplane machine, create the machine object, alongside other machines of the cluster, by applying the `controlplane-machine.yaml`, from above.
 ```bash
-kubectl apply -f controlplane-machines.yaml
+kubectl apply -f controlplane-machine.yaml
 ``` 
 Note: You may have to use the `-n <NAMESPACE>` option to kubectl incase your cluster and machines were created in the non-default namespace.
 
