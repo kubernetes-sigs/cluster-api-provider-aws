@@ -16,7 +16,7 @@ Set up a single instance control plane cluster by following the [getting started
 ## Growing controlplane into multi-node controlplane.
 At this point, a cluster with a single instance control plane has been created and is responding to `kubectl`. Please refer to the 'Using the Cluster' section of the [getting started guide](docs/getting-started.md) for instructions. If you are unable to run `kubectl` against the cluster, please follow the 'Troubleshooting' section of the [getting started guide](docs/getting-started.md) to resolve the problem. 
 
-Now, that the cluster with the single instance control plane has been created, more controlplane instances can be added by creating a machine object for each desired controlplane machine, one machine at a time. 
+Now that you have a cluster with a single instance control plane, more control plane instances can be added by creating a machine object for each desired control plane machine, one machine at a time. 
 1. Copy the following yaml into a file, say `controlplane-machine.yaml`, and for each desired controlplane machine, update `controlplane-machine.yaml` with the machine and cluster name.
    
   ```bash
