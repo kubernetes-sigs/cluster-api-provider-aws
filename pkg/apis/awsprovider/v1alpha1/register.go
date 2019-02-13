@@ -27,7 +27,11 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
+
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 	"sigs.k8s.io/yaml"
@@ -39,7 +43,19 @@ var (
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
+	KubeadmCodecs serializer.CodecFactory
 )
+
+func init() {
+	sb := &scheme.Builder{GroupVersion: v1beta1.SchemeGroupVersion}
+
+	sb.Register(&v1beta1.JoinConfiguration{}, &v1beta1.InitConfiguration{}, &v1beta1.ClusterConfiguration{})
+	kubeadmScheme, err := sb.Build()
+	if err != nil {
+		panic(err)
+	}
+	KubeadmCodecs = serializer.NewCodecFactory(kubeadmScheme)
+}
 
 // ClusterConfigFromProviderSpec unmarshals a provider config into an AWS Cluster type
 func ClusterConfigFromProviderSpec(providerConfig clusterv1.ProviderSpec) (*AWSClusterProviderSpec, error) {

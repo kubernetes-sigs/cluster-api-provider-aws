@@ -19,10 +19,13 @@ package userdata
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 const (
@@ -89,9 +92,9 @@ write_files:
     permissions: '0640'
     content: |
       ---
-      {{.ClusterConfiguration}}
+      {{.ClusterConfiguration | Indent 6}}
       ---
-      {{.InitConfiguration}}
+      {{.InitConfiguration | Indent 6}}
 kubeadm:
   operation: init
   config: /tmp/kubeadm.yaml
@@ -160,7 +163,7 @@ write_files:
     owner: root:root
     permissions: '0640'
     content: |
-      {{.JoinConfiguration}}
+      {{.JoinConfiguration | Indent 6}}
 kubeadm:
   operation: join
   config: /tmp/kubeadm-controlplane-join-config.yaml
@@ -260,7 +263,7 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 	// Override critical variables
 	// TODO(chuckha) add a warning if this is overwriting user input defined
 	// in the configuration.
-	initConfiguration.NodeRegistration.Name = `"{{ ds.meta_data.hostname }}"`
+	initConfiguration.NodeRegistration.Name = "{{ ds.meta_data.hostname }}"
 	initConfiguration.NodeRegistration.CRISocket = "/var/run/containerd/containerd.sock"
 
 	if initConfiguration.NodeRegistration.KubeletExtraArgs == nil {
@@ -271,7 +274,7 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 	clusterConfiguration := v1beta1.ClusterConfiguration{
 		APIServer: v1beta1.APIServer{
 			CertSANs: []string{
-				`"{{ ds.meta_data.local_ipv4 }}"`,
+				"{{ ds.meta_data.local_ipv4 }}",
 				input.ELBAddress,
 			},
 			ControlPlaneComponent: v1beta1.ControlPlaneComponent{
@@ -289,13 +292,13 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 		},
 		KubernetesVersion: input.KubernetesVersion,
 	}
-	initcfg, err := util.MarshalToYaml(&initConfiguration, v1beta1.SchemeGroupVersion)
+	initcfg, err := util.MarshalToYamlForCodecs(&initConfiguration, v1beta1.SchemeGroupVersion, v1alpha1.KubeadmCodecs)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to marshal init configuration")
 	}
 	input.InitConfiguration = string(initcfg)
 
-	clustercfg, err := util.MarshalToYaml(&clusterConfiguration, v1beta1.SchemeGroupVersion)
+	clustercfg, err := util.MarshalToYamlForCodecs(&clusterConfiguration, v1beta1.SchemeGroupVersion, v1alpha1.KubeadmCodecs)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to marshal cluster configuration")
 	}
@@ -307,6 +310,7 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 
 	fMap := map[string]interface{}{
 		"Base64Encode": templateBase64Encode,
+		"Indent":       templateYAMLIndent,
 	}
 
 	userData, err := generateWithFuncs("controlplane", controlPlaneCloudInit, funcMap(fMap), input)
@@ -328,12 +332,12 @@ func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration v1beta1.Joi
 	joinConfiguration.Discovery.BootstrapToken.Token = input.BootstrapToken
 	joinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = fmt.Sprintf("%s:%d", input.ELBAddress, 6443)
 	joinConfiguration.Discovery.BootstrapToken.CACertHashes = append(joinConfiguration.Discovery.BootstrapToken.CACertHashes, input.CACertHash)
-	joinConfiguration.NodeRegistration.Name = `"{{ ds.meta_data.hostname }}"`
+	joinConfiguration.NodeRegistration.Name = "{{ ds.meta_data.hostname }}"
 	joinConfiguration.NodeRegistration.CRISocket = "/var/run/containerd/containerd.sock"
 	joinConfiguration.NodeRegistration.KubeletExtraArgs["cloud-provider"] = "aws"
-	joinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = `"{{ ds.meta_data.local_ipv4 }}"`
+	joinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = "{{ ds.meta_data.local_ipv4 }}"
 	joinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = 6443
-	joincfg, err := util.MarshalToYaml(&joinConfiguration, v1beta1.SchemeGroupVersion)
+	joincfg, err := util.MarshalToYamlForCodecs(&joinConfiguration, v1beta1.SchemeGroupVersion, v1alpha1.KubeadmCodecs)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to marshal cluster configuration")
 	}
@@ -341,6 +345,7 @@ func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration v1beta1.Joi
 
 	fMap := map[string]interface{}{
 		"Base64Encode": templateBase64Encode,
+		"Indent":       templateYAMLIndent,
 	}
 
 	userData, err := generateWithFuncs("controlplane", controlPlaneJoinCloudInit, funcMap(fMap), input)
@@ -352,4 +357,11 @@ func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration v1beta1.Joi
 
 func templateBase64Encode(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+func templateYAMLIndent(i int, input string) string {
+	split := strings.Split(input, "\n")
+	ident := "\n" + strings.Repeat(" ", i)
+	// Don't indent the first line, it's already indented in the template
+	return strings.Join(split, ident)
 }
