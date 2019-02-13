@@ -57,9 +57,11 @@ genrule(
     tools = ["@io_k8s_sigs_kustomize//:kustomize"],
     visibility = ["//visibility:public"],
 )
+
 genrule(
     name = "credential_file",
     outs = ["credentials"],
+    visibility = ["//visibility:public"],
     cmd = " && ".join([
         "touch $@",
         "export AWS_ACCESS_KEY_ID=$$(grep ^AWS_ACCESS_KEY_ID bazel-out/volatile-status.txt | cut -f2 -d\" \")",
@@ -70,4 +72,3 @@ genrule(
     ]),
     stamp = 1,
 )
-

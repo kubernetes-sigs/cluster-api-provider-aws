@@ -17,6 +17,7 @@ limitations under the License.
 package e2e_test
 
 import (
+	"flag"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -24,9 +25,20 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	awssts "github.com/aws/aws-sdk-go/service/sts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
 	capi "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -38,10 +50,14 @@ const (
 	clusterName      = "capa-test-cluster"
 	controlPlaneName = "capa-test-control-plane"
 
-	kubeletVersion = "v1.13.0"
+	kubeletVersion = "v1.13.2"
 	instanceType   = "t2.medium"
-	instanceRegion = "us-east-1"
+	awsRegion      = "us-east-1"
+	stackName      = "cluster-api-provider-aws-sigs-k8s-io"
+	keyPairName    = "cluster-api-provider-aws-sigs-k8s-io"
 )
+
+var credFile = flag.String("credFile", "", "path to an AWS credentials file")
 
 var _ = Describe("AWS", func() {
 	var (
@@ -61,20 +77,23 @@ var _ = Describe("AWS", func() {
 	})
 
 	Describe("control plane node", func() {
-		It("Should be healthy", func() {
-			_, err := cluster.KubeClient().CoreV1().Namespaces().Create(&corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: namespace,
-				},
-			})
-			Expect(err).To(BeNil())
+		It("should be running", func() {
 
-			machineapi := client.ClusterV1alpha1().Machines(namespace)
+			sess := getSession()
+			accountID := getAccountID(sess)
+
+			createKeyPair(sess)
+			createIAMRoles(sess, accountID)
+
+			createNamespace(cluster.KubeClient())
+
+			By("Creating a cluster")
 			clusterapi := client.ClusterV1alpha1().Clusters(namespace)
-
-			_, err = clusterapi.Create(makeCluster())
+			_, err := clusterapi.Create(makeCluster())
 			Expect(err).To(BeNil())
 
+			By("Creating a machine")
+			machineapi := client.ClusterV1alpha1().Machines(namespace)
 			_, err = machineapi.Create(makeMachine())
 			Expect(err).To(BeNil())
 
@@ -86,7 +105,7 @@ var _ = Describe("AWS", func() {
 					}
 					return capa.MachineStatusFromProviderStatus(machine.Status.ProviderStatus)
 				},
-				10*time.Minute, 30*time.Second,
+				15*time.Minute, 15*time.Second,
 			).Should(beHealthy())
 		})
 	})
@@ -102,8 +121,8 @@ func beHealthy() types.GomegaMatcher {
 
 func makeCluster() *capi.Cluster {
 	clusterSpec, err := capa.EncodeClusterSpec(&capa.AWSClusterProviderSpec{
-		Region:     instanceRegion,
-		SSHKeyName: "default",
+		Region:     awsRegion,
+		SSHKeyName: keyPairName,
 	})
 	Expect(err).To(BeNil())
 
@@ -132,7 +151,7 @@ func makeMachine() *capi.Machine {
 	providerSpec, err := capa.EncodeMachineSpec(&capa.AWSMachineProviderSpec{
 		InstanceType:       instanceType,
 		IAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
-		KeyName:            "default",
+		KeyName:            keyPairName,
 	})
 	Expect(err).To(BeNil())
 
@@ -154,4 +173,44 @@ func makeMachine() *capi.Machine {
 			},
 		},
 	}
+}
+
+func getAccountID(sess *session.Session) string {
+	stsSvc := sts.NewService(awssts.New(sess))
+	accountID, err := stsSvc.AccountID()
+	Expect(err).To(BeNil())
+	return accountID
+}
+
+func createNamespace(client kubernetes.Interface) {
+	_, err := client.CoreV1().Namespaces().Create(&corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
+func createIAMRoles(sess *session.Session, accountID string) {
+	cfnSvc := cloudformation.NewService(cfn.New(sess))
+	Expect(
+		cfnSvc.ReconcileBootstrapStack(stackName, accountID),
+	).To(Succeed())
+}
+
+func createKeyPair(sess *session.Session) {
+	ec2c := ec2.New(sess)
+	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
+	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
+		Expect(err).To(BeNil())
+	}
+}
+
+func getSession() *session.Session {
+	creds := credentials.NewCredentials(&credentials.SharedCredentialsProvider{
+		Filename: *credFile,
+	})
+	sess, err := session.NewSession(aws.NewConfig().WithCredentials(creds).WithRegion(awsRegion))
+	Expect(err).To(BeNil())
+	return sess
 }
