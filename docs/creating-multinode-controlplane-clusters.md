@@ -53,7 +53,7 @@ kubectl -n aws-provider-system logs -f aws-provider-controller-manager-0
 ```
 Additionally, view the new instances initializing in the AWS console.
 
-4. Once the machine objects have been reconciled and the instances in AWS have been created and initialized, `kubectl get no` should show the two new machines with master roles.
+4. Once the machine objects have been reconciled and the instances in AWS have been created and initialized, `kubectl get nodes` should show the two new machines with master roles.
 
 Just like that, you have now transformed your cluster from a single instance controlplane to one with a multi-node controlplane. 🎉
 
