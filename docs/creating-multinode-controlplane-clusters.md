@@ -14,11 +14,10 @@ Currently, clusterctl only supports creating clusters with a single instance con
 Set up a single instance control plane cluster by following the [getting started guide](docs/getting-started.md).
 
 ## Growing controlplane into multi-node controlplane.
-At this point, a cluster with a single instance control plane has been created and is responding to `kubectl`. Please refer to the 'Using the Cluster' section of the [getting started guide](docs/getting-started.md) for instructions. If you are unable to run `kubectl` against the cluster, please follow the 'Troubleshooting' section of the [getting started guide](docs/getting-started.md) to resolve the problem. 
+At this point, a cluster with a single instance control plane has been created and is responding to `kubectl`.
 
 Now that you have a cluster with a single instance control plane, more control plane instances can be added by creating a machine object for each desired control plane machine, one machine at a time. 
-1. Copy the following yaml into a file, say `controlplane-machine.yaml`, and for each desired controlplane machine, update `controlplane-machine.yaml` with the machine and cluster name.
-   
+1. Copy the following yaml into a file, say `controlplane-machine.yaml`.
   ```bash
   apiVersion: "cluster.k8s.io/v1alpha1"
   kind: Machine
@@ -40,20 +39,18 @@ Now that you have a cluster with a single instance control plane, more control p
         keyName: "cluster-api-provider-aws.sigs.k8s.io"
   ```
   *Pro tip* 💡: You may refer to the machine's yaml in the release to create the above yaml for yourself.
-
-2. For each desired controlplane machine, create the machine object, alongside other machines of the cluster, by applying the `controlplane-machine.yaml`, from above.
-```bash
-kubectl apply -f controlplane-machine.yaml
-``` 
-Note: You may have to use the `-n <NAMESPACE>` option to kubectl incase your cluster and machines were created in the non-default namespace.
-
-3. This step is optional. Watch these newly created machine objects being reconciled by following the logs from the `aws-provider-controller-manager-0` pod using the below command
-```bash
-kubectl -n aws-provider-system logs -f aws-provider-controller-manager-0
-```
+  Now, for each desired controlplane machine, edit the file with machine name and cluster name and create the machine object using the command below.
+  ```bash
+  kubectl apply -f controlplane-machine.yaml
+  ``` 
+  Note: You may have to use the `-n <NAMESPACE>` option to kubectl incase your cluster and machines were created in the non-default namespace.
+2. This step is optional. Watch these newly created machine objects being reconciled by following the logs from the `aws-provider-controller-manager-0` pod using the below command
+  ```bash
+  kubectl -n aws-provider-system logs -f aws-provider-controller-manager-0
+  ```
 Additionally, view the new instances initializing in the AWS console.
 
-4. Once the machine objects have been reconciled and the instances in AWS have been created and initialized, `kubectl get nodes` should show the two new machines with master roles.
+3. Once the machine objects have been reconciled and the instances in AWS have been created and initialized, `kubectl get nodes` should show the new machines with master roles.
 
 Just like that, you have now transformed your cluster from a single instance controlplane to one with a multi-node controlplane. 🎉
 
