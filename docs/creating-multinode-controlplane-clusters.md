@@ -11,7 +11,7 @@ Currently, clusterctl only supports creating clusters with a single instance con
 
 ## Prerequisites
 ### Creating cluster with single instance controlplane.
-Following the [getting started guide](docs/getting-started.md), please set up a cluster with a single control plane instance.
+Set up a single instance control plane cluster by following the [getting started guide](docs/getting-started.md).
 
 ## Growing controlplane into multi-node controlplane.
 At this point, a cluster with a single instance control plane has been created and is responding to `kubectl`. Please refer to the 'Using the Cluster' section of the [getting started guide](docs/getting-started.md) for instructions. If you are unable to run `kubectl` against the cluster, please follow the 'Troubleshooting' section of the [getting started guide](docs/getting-started.md) to resolve the problem. 
