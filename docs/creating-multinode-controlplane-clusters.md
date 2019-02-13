@@ -1,5 +1,5 @@
 # Creating Clusters With Multi-Node Control Plane  <!-- omit in toc -->
-Currently, clusterctl supports creating clusters with a single instance controlplane. This document outlines the steps for standing up a cluster with a multi-node controlplane.
+Currently, clusterctl only supports creating clusters with a single instance control plane, but cluster-api-provider-aws has the capability to create clusters with multiple control plane nodes. This document outlines the steps for standing up a cluster with a multi-node control plane.
 
 ## Contents <!-- omit in toc -->
 - [Prerequisites](#prerequisites)
