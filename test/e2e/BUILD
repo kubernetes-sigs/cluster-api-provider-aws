@@ -3,7 +3,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_test")
 go_test(
     name = "go_default_test",
     size = "large",
-    timeout = "eternal",
     srcs = [
         "aws_test.go",
         "e2e_suite_test.go",

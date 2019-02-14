@@ -105,7 +105,7 @@ var _ = Describe("AWS", func() {
 					}
 					return capa.MachineStatusFromProviderStatus(machine.Status.ProviderStatus)
 				},
-				15*time.Minute, 15*time.Second,
+				10*time.Minute, 15*time.Second,
 			).Should(beHealthy())
 		})
 	})
