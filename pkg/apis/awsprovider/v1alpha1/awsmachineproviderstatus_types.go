@@ -35,7 +35,7 @@ type AWSMachineProviderStatus struct {
 
 	// InstanceState is the state of the AWS instance for this machine
 	// +optional
-	InstanceState *string `json:"instanceState,omitempty"`
+	InstanceState *InstanceState `json:"instanceState,omitempty"`
 
 	// Conditions is a set of conditions associated with the Machine to indicate
 	// errors or other status
