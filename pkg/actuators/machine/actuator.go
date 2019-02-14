@@ -283,10 +283,11 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 		); err != nil {
 			// Machine still tries to terminate after drain failure
 			glog.Warningf("drain failed for machine %q: %v", machine.Name, err)
-		} else {
-			glog.Infof("drain successful for machine %q", machine.Name)
-			a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
+			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
+
+		glog.Infof("drain successful for machine %q", machine.Name)
+		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
 	}
 
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
