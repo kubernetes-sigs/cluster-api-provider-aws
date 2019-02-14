@@ -1,11 +1,11 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
 
 go_test(
     name = "go_default_test",
     size = "large",
     srcs = [
+        "aws_test.go",
         "e2e_suite_test.go",
-        "metacluster_test.go",
     ],
     args = [
         "-kindBinary=$(location @io_k8s_sigs_kind//:kind)",
@@ -13,31 +13,47 @@ go_test(
         "-awsProviderYAML=$(location //config:aws-provider-yaml)",
         "-clusterAPIYAML=$(location //vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
+        "-credFile=$(location //config:credential_file)",
+        "-clusterYAML=$(location //cmd/clusterctl/examples/aws:out/cluster.yaml)",
+        "-machineYAML=$(location //cmd/clusterctl/examples/aws:out/machines.yaml)",
     ],
     data = [
+        "//cmd/clusterctl/examples/aws:out/cluster.yaml",
+        "//cmd/clusterctl/examples/aws:out/machines.yaml",
         "//config:aws-provider-yaml",
+        "//config:credential_file",
         "//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml",
         "//cmd/manager:manager-amd64.tar",
         "@io_k8s_kubernetes//cmd/kubectl:kubectl",
         "@io_k8s_sigs_kind//:kind",
     ],
-    embed = [":go_default_library"],
     rundir = ".",
     deps = [
+        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/cloud/aws/actuators:go_default_library",
+        "//pkg/cloud/aws/actuators/machine:go_default_library",
+        "//pkg/cloud/aws/services/awserrors:go_default_library",
+        "//pkg/cloud/aws/services/cloudformation:go_default_library",
+        "//pkg/cloud/aws/services/sts:go_default_library",
         "//test/e2e/util/kind:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/client:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/credentials:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/cloudformation:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
+        "//vendor/github.com/aws/aws-sdk-go/service/sts:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
         "//vendor/github.com/onsi/gomega/gstruct:go_default_library",
         "//vendor/github.com/onsi/gomega/types:go_default_library",
-        "//vendor/k8s.io/api/apps/v1:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machine:go_default_library",
     ],
-)
-
-go_library(
-    name = "go_default_library",
-    srcs = ["e2e.go"],
-    importpath = "sigs.k8s.io/cluster-api-provider-aws/test/e2e",
-    visibility = ["//visibility:public"],
 )

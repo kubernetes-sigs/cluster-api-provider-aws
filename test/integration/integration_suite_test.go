@@ -14,4 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package integration_test
+
+import (
+	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+func TestIntegration(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Integration Suite")
+}

@@ -43,7 +43,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, err
 	}
 
-	machineConfig, err := machineConfigFromProviderSpec(params.Client, params.Machine.Spec.ProviderSpec)
+	machineConfig, err := MachineConfigFromProviderSpec(params.Client, params.Machine.Spec.ProviderSpec)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get machine config")
 	}
@@ -135,7 +135,8 @@ func (m *MachineScope) Close() {
 	}
 }
 
-func machineConfigFromProviderSpec(clusterClient client.MachineClassesGetter, providerConfig clusterv1.ProviderSpec) (*v1alpha1.AWSMachineProviderSpec, error) {
+// MachineConfigFromProviderSpec tries to decode the JSON-encoded spec, falling back on getting a MachineClass if the value is absent.
+func MachineConfigFromProviderSpec(clusterClient client.MachineClassesGetter, providerConfig clusterv1.ProviderSpec) (*v1alpha1.AWSMachineProviderSpec, error) {
 	var config v1alpha1.AWSMachineProviderSpec
 	if providerConfig.Value != nil {
 		klog.V(4).Info("Decoding ProviderConfig from Value")

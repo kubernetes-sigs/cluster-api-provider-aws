@@ -29,6 +29,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -95,10 +96,16 @@ func (c *Cluster) applyYAML() {
 	))
 }
 
-// KubeConfig returns an absolute path to the Kube Config
-func (c *Cluster) KubeClient() kubernetes.Interface {
+// RestConfig returns a rest configuration pointed at the provisioned cluster
+func (c *Cluster) RestConfig() *restclient.Config {
 	cfg, err := clientcmd.BuildConfigFromFlags("", c.kubepath)
 	gomega.ExpectWithOffset(1, err).To(gomega.BeNil())
+	return cfg
+}
+
+// KubeClient returns a Kubernetes client pointing at the provisioned cluster
+func (c *Cluster) KubeClient() kubernetes.Interface {
+	cfg := c.RestConfig()
 	client, err := kubernetes.NewForConfig(cfg)
 	gomega.ExpectWithOffset(1, err).To(gomega.BeNil())
 	return client

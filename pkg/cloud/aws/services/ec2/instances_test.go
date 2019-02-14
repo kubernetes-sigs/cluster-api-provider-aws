@@ -389,7 +389,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
-			defer mockCtrl.Finish()
+			// defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
@@ -408,12 +408,12 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				},
 			})
 
-			scope.Scope.ClusterConfig = tc.clusterConfig
-			scope.Scope.ClusterStatus = tc.clusterStatus
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
+
+			scope.Scope.ClusterConfig = tc.clusterConfig
+			scope.Scope.ClusterStatus = tc.clusterStatus
 
 			tc.expect(ec2Mock.EXPECT())
 

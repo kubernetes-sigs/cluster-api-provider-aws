@@ -41,10 +41,12 @@ genrule(
         "//cmd/clusterctl/examples/aws:out/aws_manager_image_patch.yaml",
         "//cmd/clusterctl/examples/aws:test-credentials",
         "config",
+        ":credential_file",
         "//:WORKSPACE",
     ],
     outs = ["aws_provider.yaml"],
-    cmd = """CONFIG_SRCDIR={root_dir}/config && \\
+    cmd = """install -D $(location :credential_file) $(@D)/../cmd/clusterctl/examples/aws/out/credentials && \\
+             CONFIG_SRCDIR={root_dir}/config && \\
              cp -R $$CONFIG_SRCDIR/default $(@D)/default && \\
              cp -R $$CONFIG_SRCDIR/manager $(@D)/manager && \\
              {kustomize} build $(@D)/default > $@
@@ -54,4 +56,19 @@ genrule(
     ),
     tools = ["@io_k8s_sigs_kustomize//:kustomize"],
     visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "credential_file",
+    outs = ["credentials"],
+    visibility = ["//visibility:public"],
+    cmd = " && ".join([
+        "touch $@",
+        "export AWS_ACCESS_KEY_ID=$$(grep ^AWS_ACCESS_KEY_ID bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_SECRET_ACCESS_KEY=$$(grep ^AWS_SECRET_ACCESS_KEY bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "echo '[default]' >> $@",
+        "echo aws_access_key_id = $$AWS_ACCESS_KEY_ID >> $@",
+        "echo aws_secret_access_key = $$AWS_SECRET_ACCESS_KEY >> $@",
+    ]),
+    stamp = 1,
 )
