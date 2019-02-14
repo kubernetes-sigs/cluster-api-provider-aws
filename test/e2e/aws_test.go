@@ -26,6 +26,7 @@ import (
 	"github.com/onsi/gomega/types"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
@@ -175,13 +176,6 @@ func makeMachine() *capi.Machine {
 	}
 }
 
-func getAccountID(sess *session.Session) string {
-	stsSvc := sts.NewService(awssts.New(sess))
-	accountID, err := stsSvc.AccountID()
-	Expect(err).To(BeNil())
-	return accountID
-}
-
 func createNamespace(client kubernetes.Interface) {
 	_, err := client.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -191,22 +185,29 @@ func createNamespace(client kubernetes.Interface) {
 	Expect(err).To(BeNil())
 }
 
-func createIAMRoles(sess *session.Session, accountID string) {
-	cfnSvc := cloudformation.NewService(cfn.New(sess))
+func getAccountID(prov client.ConfigProvider) string {
+	stsSvc := sts.NewService(awssts.New(prov))
+	accountID, err := stsSvc.AccountID()
+	Expect(err).To(BeNil())
+	return accountID
+}
+
+func createIAMRoles(prov client.ConfigProvider, accountID string) {
+	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	Expect(
 		cfnSvc.ReconcileBootstrapStack(stackName, accountID),
 	).To(Succeed())
 }
 
-func createKeyPair(sess *session.Session) {
-	ec2c := ec2.New(sess)
+func createKeyPair(prov client.ConfigProvider) {
+	ec2c := ec2.New(prov)
 	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
 	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
 		Expect(err).To(BeNil())
 	}
 }
 
-func getSession() *session.Session {
+func getSession() client.ConfigProvider {
 	creds := credentials.NewCredentials(&credentials.SharedCredentialsProvider{
 		Filename: *credFile,
 	})
