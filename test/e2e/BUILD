@@ -14,8 +14,12 @@ go_test(
         "-clusterAPIYAML=$(location //vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
         "-credFile=$(location //config:credential_file)",
+        "-clusterYAML=$(location //cmd/clusterctl/examples/aws:out/cluster.yaml)",
+        "-machineYAML=$(location //cmd/clusterctl/examples/aws:out/machines.yaml)",
     ],
     data = [
+        "//cmd/clusterctl/examples/aws:out/cluster.yaml",
+        "//cmd/clusterctl/examples/aws:out/machines.yaml",
         "//config:aws-provider-yaml",
         "//config:credential_file",
         "//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml",
@@ -26,6 +30,8 @@ go_test(
     rundir = ".",
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/cloud/aws/actuators:go_default_library",
+        "//pkg/cloud/aws/actuators/machine:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/cloudformation:go_default_library",
         "//pkg/cloud/aws/services/sts:go_default_library",
@@ -43,8 +49,11 @@ go_test(
         "//vendor/github.com/onsi/gomega/types:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machine:go_default_library",
     ],
 )

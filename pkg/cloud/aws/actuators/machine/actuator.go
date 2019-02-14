@@ -66,7 +66,8 @@ func NewActuator(params ActuatorParams) *Actuator {
 	}
 }
 
-func (a *Actuator) getControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
+// GetControlPlaneMachines retrieves all control plane nodes from a MachineList
+func GetControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
 	var cpm []*clusterv1.Machine
 	for _, m := range machineList.Items {
 		if m.Spec.Versions.ControlPlane != "" {
@@ -134,7 +135,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
 	}
-	controlPlaneMachines := a.getControlPlaneMachines(clusterMachines)
+	controlPlaneMachines := GetControlPlaneMachines(clusterMachines)
 	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine, cluster)
 	if err != nil {
 		return errors.Wrapf(err, "failed to determine whether machine %q should join cluster %q", machine.Name, cluster.Name)

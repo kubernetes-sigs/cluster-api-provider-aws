@@ -220,10 +220,9 @@ func TestGetControlPlaneMachines(t *testing.T) {
 			expectedOut: []clusterv1.Machine{},
 		},
 	}
-	testActuator := NewActuator(ActuatorParams{})
 
 	for _, tc := range testCases {
-		actual := testActuator.getControlPlaneMachines(tc.input)
+		actual := GetControlPlaneMachines(tc.input)
 		if len(actual) != len(tc.expectedOut) {
 			t.Fatalf("[%s] Unexpected number of controlplane machines returned. Got: %d, Want: %d", tc.name, len(actual), len(tc.expectedOut))
 		}
