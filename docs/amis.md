@@ -4,14 +4,14 @@
 
 <!-- TOC -->
 
-- [Kubernetes Version v1.13.2](#kubernetes-version-v1132)
+- [Kubernetes Version v1.13.3](#kubernetes-version-v1133)
   - [Amazon Linux 2](#amazon-linux-2)
   - [CentOS 7](#centos-7)
   - [Ubuntu 18.04 (Bionic)](#ubuntu-1804-bionic)
 
 <!-- TOC -->
 
-## Kubernetes Version v1.13.2
+## Kubernetes Version v1.13.3
 
 ### Amazon Linux 2
 

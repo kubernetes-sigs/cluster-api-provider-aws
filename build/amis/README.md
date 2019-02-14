@@ -6,8 +6,18 @@ This directory contains tooling for building base images for use as nodes in Kub
 
 ### Prerequisites for all images
 
-- [Packer](https://www.packer.io/docs/installation.html)
+- [Packer](https://www.packer.io/intro/getting-started/install.html)
 - [Ansible](http://docs.ansible.com/ansible/latest/intro_installation.html) version >= 2.4.0.0
+- [goss](https://github.com/YaleUniversity/packer-provisioner-goss)
+
+#### Installing the goss plugin
+
+To install `packer-goss` plugin the following should be executed inside of the
+`build/amis/packer` directory:
+
+```bash
+make plugins
+```
 
 ### Prerequisites for Amazon Web Services
 
@@ -21,8 +31,8 @@ This directory contains tooling for building base images for use as nodes in Kub
 The following variables can be overriden when building images using the `-var` option when calling `packer build`:
 
 | Variable               | Default   | Description                   |
-| ---------------------- | --------- | ----------------------------- |
-| kubernetes_version     | 1.13.2-00 | Kubernetes Version to install |
+|------------------------|-----------|-------------------------------|
+| kubernetes_version     | 1.13.3-00 | Kubernetes Version to install |
 | kubernetes_cni_version | 0.6.0-00  | CNI Version to install        |
 
 For example, to build all images for use with Kubernetes 1.11.3 for build version 1:

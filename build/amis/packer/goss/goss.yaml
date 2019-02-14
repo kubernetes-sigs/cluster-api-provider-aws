@@ -1,9 +1,12 @@
 package:
-{{range $name, $vers := index .Vars "packages"}}
-  {{$name}}:
+  cloud-init:
     installed: true
     versions:
-    {{range $vers}}
-      - {{.}}
-    {{end}}
-{{end}}
+      - "{{ .Vars.cloud_init_version }}"
+service:
+  containerd:
+    enabled: true
+    running: true
+command:
+  crictl ps:
+    exit-status: 0

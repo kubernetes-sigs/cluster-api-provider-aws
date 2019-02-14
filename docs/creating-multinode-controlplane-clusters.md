@@ -28,8 +28,8 @@ Now that you have a cluster with a single instance control plane, more control p
       set: controlplane
   spec:
     versions:
-      kubelet: v1.13.2
-      controlPlane: v1.13.2
+      kubelet: v1.13.3
+      controlPlane: v1.13.3
     providerSpec:
       value:
         apiVersion: awsprovider/v1alpha1
