@@ -166,7 +166,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	scope.MachineStatus.InstanceID = &i.ID
-	scope.MachineStatus.InstanceState = aws.String(string(i.State))
+	scope.MachineStatus.InstanceState = &i.State
 
 	if machine.Annotations == nil {
 		machine.Annotations = map[string]string{}
@@ -405,6 +405,8 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 	default:
 		return false, nil
 	}
+
+	scope.MachineStatus.InstanceState = &instance.State
 
 	if err := a.reconcileLBAttachment(scope, machine, instance); err != nil {
 		return true, err

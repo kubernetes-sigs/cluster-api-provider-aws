@@ -165,7 +165,7 @@ func (in *AWSMachineProviderStatus) DeepCopyInto(out *AWSMachineProviderStatus) 
 	}
 	if in.InstanceState != nil {
 		in, out := &in.InstanceState, &out.InstanceState
-		*out = new(string)
+		*out = new(InstanceState)
 		**out = **in
 	}
 	if in.Conditions != nil {
