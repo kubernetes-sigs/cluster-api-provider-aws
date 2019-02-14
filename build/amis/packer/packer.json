@@ -102,6 +102,7 @@
     {
       "type": "goss",
       "vars_file": "goss/redhat-vars.yaml",
+      "use_sudo": true,
       "tests": [
         "goss/goss.yaml"
       ],
@@ -113,6 +114,7 @@
     {
       "type": "goss",
       "vars_file": "goss/ubuntu-vars.yaml",
+      "use_sudo": true,
       "tests": [
         "goss/goss.yaml"
       ],
