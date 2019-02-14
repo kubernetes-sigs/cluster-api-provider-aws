@@ -122,18 +122,7 @@ func createStackCmd() *cobra.Command {
 		Use:   "create-stack",
 		Short: "Create a new AWS CloudFormation stack using the bootstrap template",
 		Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
-
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) >= 1 {
-				fmt.Printf("Error: No arguments are required for create-stack. \n")
-				if err := cmd.Help(); err != nil {
-					return err
-				}
-				os.Exit(400)
-			}
-
-			return nil
-		},
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			stackName := "cluster-api-provider-aws-sigs-k8s-io"
 			fmt.Printf("Attempting to create CloudFormation stack %s\n", stackName)
@@ -141,21 +130,22 @@ func createStackCmd() *cobra.Command {
 				SharedConfigState: session.SharedConfigEnable,
 			})
 			if err != nil {
-				return err
+				fmt.Printf("Error: %v", err)
+				return nil
 			}
 
 			stsSvc := sts.NewService(awssts.New(sess))
 			accountID, stsErr := stsSvc.AccountID()
 			if stsErr != nil {
 				fmt.Printf("Error: %v", stsErr)
-				os.Exit(401)
+				return nil
 			}
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
 			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID)
 			if err != nil {
 				fmt.Printf("Error: %v", err)
-				os.Exit(402)
+				return nil
 			}
 
 			return cfnSvc.ShowStackResources(stackName)
