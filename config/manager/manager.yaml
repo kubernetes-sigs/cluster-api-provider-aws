@@ -18,7 +18,7 @@ spec:
     control-plane: controller-manager
     controller-tools.k8s.io: "1.0"
   ports:
-  - port: 443
+    - port: 443
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -64,8 +64,6 @@ spec:
               mountPath: /etc/kubernetes
             - name: certs
               mountPath: /etc/ssl/certs
-            - name: credentials
-              mountPath: /root/.aws
           resources:
             limits:
               cpu: 100m
@@ -85,7 +83,4 @@ spec:
         - name: certs
           hostPath:
             path: /etc/ssl/certs
-        - name: credentials
-          secret:
-            secretName: manager-bootstrap-credentials
       terminationGracePeriodSeconds: 10

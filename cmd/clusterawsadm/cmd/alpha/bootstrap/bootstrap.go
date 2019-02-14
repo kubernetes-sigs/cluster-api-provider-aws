@@ -37,10 +37,12 @@ import (
 // KubernetesAWSSecret is the template to generate an encoded version of the
 // users' AWS credentials
 // nolint
-const KubernetesAWSSecret = `apiVersion: v1
+const KubernetesAWSSecret = `---
+apiVersion: v1
 kind: Secret
 metadata:
-  name: credentials.cluster-api-provider-aws.sigs.k8s.io
+  name: manager-bootstrap-credentials
+  namespace: aws-provider-system
 type: Opaque
 data:
   credentials: {{ .CredentialsFile }}

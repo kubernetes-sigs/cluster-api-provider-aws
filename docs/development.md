@@ -8,6 +8,7 @@
 - [Setting up](#setting-up)
   - [Base requirements](#base-requirements)
   - [Get the source](#get-the-source)
+  - [Get familiar with basic concepts](#get-familiar-with-basic-concepts)
   - [Dev manifest files](#dev-manifest-files)
   - [Dev images](#dev-images)
     - [Container registry](#container-registry)
@@ -92,7 +93,7 @@ started prerequisites section](./getting-started.md#Prerequisites)
 
 The dev version of the manifests can be generated with
 
-`make manifests-dev examples-dev`
+`make manifests-dev`
 
 #### Building and pushing dev images to GCR
 

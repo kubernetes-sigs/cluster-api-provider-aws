@@ -19,6 +19,8 @@
 - [Deploying a cluster](#deploying-a-cluster)
   - [Setting up the environment](#setting-up-the-environment)
   - [Generating cluster manifests and example cluster](#generating-cluster-manifests-and-example-cluster)
+    - [Cluster name](#cluster-name)
+    - [Using an existing VPC](#using-an-existing-vpc)
   - [Creating a cluster](#creating-a-cluster)
 - [Using the cluster](#using-the-cluster)
 - [Troubleshooting](#troubleshooting)
@@ -32,11 +34,7 @@
 - A set of AWS credentials sufficient to bootstrap the cluster (see [bootstrapping-aws-identity-and-access-management-with-cloudformation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)).
 - An AWS IAM role to give to the Cluster API control plane.
 - [KIND](https://sigs.k8s.io/kind)
-- [kubectl][kubectl]
-- [kustomize][kustomize]
-- make
 - gettext (with `envsubst` in your PATH)
-- bazel
 
 ### Optional
 
@@ -153,17 +151,22 @@ these environment variables in your own way.
 
 ### Generating cluster manifests and example cluster
 
-There is a make target `manifests` that can be used to generate the
-cluster manifests.
+Download the cluster-api-provider-aws-examples.tar file and unpack it.
 
 ```bash
-make manifests
+tar xfv cluster-api-provider-aws-examples.tar
+```
+
+Then run `./generate_yaml.sh` to generate manifests:
+
+```bash
+./aws/generate_yaml.sh
 ```
 
 You should not need to edit the generated manifests, but if you want to do any
 customization now is the time to do it. Take a look at
-`cmd/clusterctl/examples/aws/out/cluster.yaml` and
-`cmd/clusterctl/examples/aws/out/machine.yaml`.
+`./aws/out/cluster.yaml` and
+`./aws/out/machine.yaml`.
 
 Ensure the `region` and `keyName` are set to what you expect.
 
@@ -193,10 +196,10 @@ You can now start the Cluster API controllers and deploy a new cluster in AWS:
 clusterctl create cluster -v 3 \
   --bootstrap-type kind \
   --provider aws \
-  -m ./cmd/clusterctl/examples/aws/out/machines.yaml \
-  -c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
-  -p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
-  -a ./cmd/clusterctl/examples/aws/out/addons.yaml
+  -m ./aws/out/machines.yaml \
+  -c ./aws/out/cluster.yaml \
+  -p ./aws/out/provider-components.yaml \
+  -a ./aws/out/addons.yaml
 
 I0119 12:16:07.521123   38557 plugins.go:39] Registered cluster provisioner "aws"
 I0119 12:16:07.522563   38557 createbootstrapcluster.go:27] Creating bootstrap cluster

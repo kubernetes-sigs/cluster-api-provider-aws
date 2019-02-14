@@ -1,4 +1,10 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_test")
+load("//build:stateful_set_patch.bzl", "stateful_set_patch")
+
+alias(
+    name = "e2e",
+    actual = ":go_default_test",
+)
 
 go_test(
     name = "go_default_test",
@@ -10,19 +16,18 @@ go_test(
     args = [
         "-kindBinary=$(location @io_k8s_sigs_kind//:kind)",
         "-kubectlBinary=$(location @io_k8s_kubernetes//cmd/kubectl:kubectl)",
-        "-awsProviderYAML=$(location //config:aws-provider-yaml)",
-        "-clusterAPIYAML=$(location //vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml)",
+        "-providerComponentsYAML=$(location manifests/provider-components-e2e.yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
-        "-credFile=$(location //config:credential_file)",
-        "-clusterYAML=$(location //cmd/clusterctl/examples/aws:out/cluster.yaml)",
-        "-machineYAML=$(location //cmd/clusterctl/examples/aws:out/machines.yaml)",
+        "-credFile=$(location manifests/provider-credentials.profile)",
+        "-clusterYAML=$(location manifests/cluster.yaml)",
+        "-machineYAML=$(location manifests/machines.yaml)",
     ],
     data = [
-        "//cmd/clusterctl/examples/aws:out/cluster.yaml",
-        "//cmd/clusterctl/examples/aws:out/machines.yaml",
-        "//config:aws-provider-yaml",
-        "//config:credential_file",
-        "//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml",
+        "manifests/addons.yaml",
+        "manifests/cluster.yaml",
+        "manifests/machines.yaml",
+        "manifests/provider-components-e2e.yaml",
+        "manifests/provider-credentials.profile",
         "//cmd/manager:manager-amd64.tar",
         "@io_k8s_kubernetes//cmd/kubectl:kubectl",
         "@io_k8s_sigs_kind//:kind",
@@ -56,4 +61,114 @@ go_test(
         "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machine:go_default_library",
     ],
+)
+
+genrule(
+    name = "manifests",
+    srcs = [
+        "//cmd/clusterctl/examples/aws:addons.yaml",
+        "//cmd/clusterctl/examples/aws:cluster.yaml.template",
+        "//cmd/clusterctl/examples/aws:cluster-network-spec.yaml.template",
+        "//cmd/clusterctl/examples/aws:machines.yaml.template",
+        "//cmd/clusterctl/examples/aws:provider-components-base.yaml",
+        "//cmd/clusterctl/examples/aws:generate-yaml.sh",
+        "manifests/provider-credentials.sh",
+    ],
+    outs = [
+        "manifests/addons.yaml",
+        "manifests/cluster.yaml",
+        "manifests/machines.yaml",
+        "manifests/provider-components.yaml",
+    ],
+    cmd = """source {provider_credentials_env} && \\
+             cp -f {addons} $(@D) && \\
+             cp -f {machines_template} $(@D) && \\
+             cp -f {cluster_template} $(@D) && \\
+             cp -f {cluster_network_template} $(@D) && \\
+             cp -f {provider_components_base} $(@D) && \\
+             ENVSUBST={envsubst} \\
+             CLUSTERAWSADM={clusterawsadm} \\
+             OUTPUT_DIR=$(@D)/manifests \\
+             DIR=$(@D) \\
+             {generate_yaml} -f
+    """.format(
+        addons = "$(location //cmd/clusterctl/examples/aws:addons.yaml)",
+        cluster_template = "$(location //cmd/clusterctl/examples/aws:cluster.yaml.template)",
+        cluster_network_template = "$(location //cmd/clusterctl/examples/aws:cluster-network-spec.yaml.template)",
+        envsubst = "$(location @com_github_a8m_envsubst//cmd/envsubst:envsubst)",
+        clusterawsadm = "$(location //cmd/clusterawsadm)",
+        generate_yaml = "$(location //cmd/clusterctl/examples/aws:generate-yaml.sh)",
+        machines_template = "$(location //cmd/clusterctl/examples/aws:machines.yaml.template)",
+        provider_components_base = "$(location //cmd/clusterctl/examples/aws:provider-components-base.yaml)",
+        provider_credentials_env = "$(location manifests/provider-credentials.sh)",
+    ),
+    tools = [
+        "//cmd/clusterawsadm",
+        "@com_github_a8m_envsubst//cmd/envsubst:envsubst",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "provider_credentials_profile",
+    outs = ["manifests/provider-credentials.profile"],
+    cmd = " && ".join([
+        "touch $@",
+        "export AWS_ACCESS_KEY_ID=$$(grep ^AWS_ACCESS_KEY_ID bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_SECRET_ACCESS_KEY=$$(grep ^AWS_SECRET_ACCESS_KEY bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_SESSION_TOKEN=$$(grep ^AWS_SESSION_TOKEN bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "echo '[default]' >> $@",
+        "echo aws_access_key_id = $$AWS_ACCESS_KEY_ID >> $@",
+        "echo aws_secret_access_key = $$AWS_SECRET_ACCESS_KEY >> $@",
+        "echo aws_session_token = $$AWS_SESSION_TOKEN >> $@",
+    ]),
+    stamp = 1,
+    visibility = ["//visibility:private"],
+)
+
+genrule(
+    name = "provider_credentials_env",
+    outs = ["manifests/provider-credentials.sh"],
+    cmd = " && ".join([
+        "touch $@",
+        "export AWS_ACCESS_KEY_ID=$$(grep ^AWS_ACCESS_KEY_ID bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_SECRET_ACCESS_KEY=$$(grep ^AWS_SECRET_ACCESS_KEY bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_SESSION_TOKEN=$$(grep ^AWS_SESSION_TOKEN bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_REGION=$$(grep ^AWS_REGION bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "echo export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID >> $@",
+        "echo export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY >> $@",
+        "echo export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN >> $@",
+        "echo export AWS_REGION=$$AWS_REGION >> $@",
+    ]),
+    stamp = 1,
+    visibility = ["//visibility:private"],
+)
+
+genrule(
+    name = "e2e-provider-components",
+    srcs = [
+        "kustomization.yaml",
+        "manager-version-patch.yaml",
+        "manifests/provider-components.yaml",
+    ],
+    outs = ["manifests/provider-components-e2e.yaml"],
+    cmd = """cp -f {kustomization} $(@D) && \\
+             cp -f {stateful_set_image_patch} $(@D) && \\
+             {kustomize} build $(@D) > $@
+    """.format(
+        kustomize = "$(location @io_k8s_sigs_kustomize//:kustomize)",
+        kustomization = "$(location kustomization.yaml)",
+        stateful_set_image_patch = "$(location manager-version-patch.yaml)",
+    ),
+    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
+    visibility = ["//visibility:public"],
+)
+
+stateful_set_patch(
+    name = "manager-version-patch",
+    docker_repo_var = "REGISTRY_E2E_SHIM",
+    image_name = "manager",
+    pull_policy = "Never",
+    tag = "manager-amd64",
+    visibility = ["//visibility:public"],
 )
