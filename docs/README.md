@@ -5,7 +5,7 @@
 - [Getting started](getting-started.md)
 - [List of AMIs](amis.md)
 - [Accessing cluster instances](accessing-instances.md)
-- [Packer](packer.md)
+- [Building AMIs with Packer](../build/amis/README.md)
 
 ## Development
 
