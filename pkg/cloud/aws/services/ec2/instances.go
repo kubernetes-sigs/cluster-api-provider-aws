@@ -19,6 +19,8 @@ package ec2
 import (
 	"encoding/base64"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -32,8 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -163,24 +163,29 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		var userData string
-		var err error
 
 		if bootstrapToken != "" {
 			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
 
+			kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.JoinConfiguration)
+			kubeadm.SetControlPlaneJoinConfigurationOverrides(&machine.MachineConfig.JoinConfiguration)
+			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.JoinConfiguration)
+			if err != nil {
+				return nil, err
+			}
+
 			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
-				CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
-				CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
-				CACertHash:       caCertHash,
-				EtcdCACert:       string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
-				EtcdCAKey:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
-				FrontProxyCACert: string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
-				FrontProxyCAKey:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
-				SaCert:           string(s.scope.ClusterConfig.SAKeyPair.Cert),
-				SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
-				BootstrapToken:   bootstrapToken,
-				ELBAddress:       s.scope.Network().APIServerELB.DNSName,
-			}, v1beta1.JoinConfiguration{})
+				CACert:            string(s.scope.ClusterConfig.CAKeyPair.Cert),
+				CAKey:             string(s.scope.ClusterConfig.CAKeyPair.Key),
+				CACertHash:        caCertHash,
+				EtcdCACert:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
+				EtcdCAKey:         string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
+				FrontProxyCACert:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
+				FrontProxyCAKey:   string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
+				SaCert:            string(s.scope.ClusterConfig.SAKeyPair.Cert),
+				SaKey:             string(s.scope.ClusterConfig.SAKeyPair.Key),
+				JoinConfiguration: joinConfigurationYAML,
+			})
 			if err != nil {
 				return input, err
 			}
@@ -192,22 +197,30 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				)
 			}
 
+			kubeadm.SetClusterConfigurationOverrides(machine, &s.scope.ClusterConfig.ClusterConfiguration)
+			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(&s.scope.ClusterConfig.ClusterConfiguration)
+			if err != nil {
+				return nil, err
+			}
+
+			kubeadm.SetInitConfigurationOverrides(&machine.MachineConfig.InitConfiguration)
+			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.InitConfiguration)
+			if err != nil {
+				return nil, err
+			}
+
 			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{
-				CACert:            string(s.scope.ClusterConfig.CAKeyPair.Cert),
-				CAKey:             string(s.scope.ClusterConfig.CAKeyPair.Key),
-				EtcdCACert:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
-				EtcdCAKey:         string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
-				FrontProxyCACert:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
-				FrontProxyCAKey:   string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
-				SaCert:            string(s.scope.ClusterConfig.SAKeyPair.Cert),
-				SaKey:             string(s.scope.ClusterConfig.SAKeyPair.Key),
-				ELBAddress:        s.scope.Network().APIServerELB.DNSName,
-				ClusterName:       s.scope.Name(),
-				PodSubnet:         s.scope.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0],
-				ServiceSubnet:     s.scope.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0],
-				ServiceDomain:     s.scope.Cluster.Spec.ClusterNetwork.ServiceDomain,
-				KubernetesVersion: machine.Machine.Spec.Versions.ControlPlane,
-			}, v1beta1.InitConfiguration{})
+				CACert:               string(s.scope.ClusterConfig.CAKeyPair.Cert),
+				CAKey:                string(s.scope.ClusterConfig.CAKeyPair.Key),
+				EtcdCACert:           string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
+				EtcdCAKey:            string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
+				FrontProxyCACert:     string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
+				FrontProxyCAKey:      string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
+				SaCert:               string(s.scope.ClusterConfig.SAKeyPair.Cert),
+				SaKey:                string(s.scope.ClusterConfig.SAKeyPair.Key),
+				ClusterConfiguration: clusterConfigYAML,
+				InitConfiguration:    initConfigYAML,
+			})
 
 			if err != nil {
 				return input, err
@@ -219,10 +232,14 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	case "node":
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
+		kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.JoinConfiguration)
+		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.JoinConfiguration)
+		if err != nil {
+			return nil, err
+		}
+
 		userData, err := userdata.NewNode(&userdata.NodeInput{
-			CACertHash:     caCertHash,
-			BootstrapToken: bootstrapToken,
-			ELBAddress:     s.scope.Network().APIServerELB.DNSName,
+			JoinConfiguration: joinConfigurationYAML,
 		})
 
 		if err != nil {

@@ -18,14 +18,9 @@ package userdata
 
 import (
 	"encoding/base64"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 const (
@@ -178,22 +173,14 @@ func isKeyPairValid(cert, key string) bool {
 type ControlPlaneInput struct {
 	baseUserData
 
-	CACert            string
-	CAKey             string
-	EtcdCACert        string
-	EtcdCAKey         string
-	FrontProxyCACert  string
-	FrontProxyCAKey   string
-	SaCert            string
-	SaKey             string
-	ELBAddress        string
-	ClusterName       string
-	PodSubnet         string
-	ServiceDomain     string
-	ServiceSubnet     string
-	KubernetesVersion string
-
-	// TODO extract these since they contain values from above (not certs)
+	CACert               string
+	CAKey                string
+	EtcdCACert           string
+	EtcdCAKey            string
+	FrontProxyCACert     string
+	FrontProxyCAKey      string
+	SaCert               string
+	SaKey                string
 	ClusterConfiguration string
 	InitConfiguration    string
 }
@@ -259,50 +246,7 @@ func (cpi *ContolPlaneJoinInput) validateCertificates() error {
 }
 
 // NewControlPlane returns the user data string to be used on a controlplane instance.
-func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitConfiguration) (string, error) {
-	// Override critical variables
-	// TODO(chuckha) add a warning if this is overwriting user input defined
-	// in the configuration.
-	initConfiguration.NodeRegistration.Name = "{{ ds.meta_data.hostname }}"
-	initConfiguration.NodeRegistration.CRISocket = "/var/run/containerd/containerd.sock"
-
-	if initConfiguration.NodeRegistration.KubeletExtraArgs == nil {
-		initConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
-	}
-	initConfiguration.NodeRegistration.KubeletExtraArgs["cloud-provider"] = "aws"
-
-	clusterConfiguration := v1beta1.ClusterConfiguration{
-		APIServer: v1beta1.APIServer{
-			CertSANs: []string{
-				"{{ ds.meta_data.local_ipv4 }}",
-				input.ELBAddress,
-			},
-			ControlPlaneComponent: v1beta1.ControlPlaneComponent{
-				ExtraArgs: map[string]string{
-					"cloud-provider": "aws",
-				},
-			},
-		},
-		ControlPlaneEndpoint: fmt.Sprintf("%s:%d", input.ELBAddress, 6443),
-		ClusterName:          input.ClusterName,
-		Networking: v1beta1.Networking{
-			DNSDomain:     input.ServiceDomain,
-			PodSubnet:     input.PodSubnet,
-			ServiceSubnet: input.ServiceSubnet,
-		},
-		KubernetesVersion: input.KubernetesVersion,
-	}
-	initcfg, err := util.MarshalToYamlForCodecs(&initConfiguration, v1beta1.SchemeGroupVersion, v1alpha1.KubeadmCodecs)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to marshal init configuration")
-	}
-	input.InitConfiguration = string(initcfg)
-
-	clustercfg, err := util.MarshalToYamlForCodecs(&clusterConfiguration, v1beta1.SchemeGroupVersion, v1alpha1.KubeadmCodecs)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to marshal cluster configuration")
-	}
-	input.ClusterConfiguration = string(clustercfg)
+func NewControlPlane(input *ControlPlaneInput) (string, error) {
 	input.Header = cloudConfigHeader
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
@@ -322,26 +266,12 @@ func NewControlPlane(input *ControlPlaneInput, initConfiguration v1beta1.InitCon
 }
 
 // JoinControlPlane returns the user data string to be used on a new contrplplane instance.
-func JoinControlPlane(input *ContolPlaneJoinInput, joinConfiguration v1beta1.JoinConfiguration) (string, error) {
+func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 	input.Header = cloudConfigHeader
 
 	if err := input.validateCertificates(); err != nil {
 		return "", errors.Wrapf(err, "ControlPlaneInput is invalid")
 	}
-
-	joinConfiguration.Discovery.BootstrapToken.Token = input.BootstrapToken
-	joinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = fmt.Sprintf("%s:%d", input.ELBAddress, 6443)
-	joinConfiguration.Discovery.BootstrapToken.CACertHashes = append(joinConfiguration.Discovery.BootstrapToken.CACertHashes, input.CACertHash)
-	joinConfiguration.NodeRegistration.Name = "{{ ds.meta_data.hostname }}"
-	joinConfiguration.NodeRegistration.CRISocket = "/var/run/containerd/containerd.sock"
-	joinConfiguration.NodeRegistration.KubeletExtraArgs["cloud-provider"] = "aws"
-	joinConfiguration.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = "{{ ds.meta_data.local_ipv4 }}"
-	joinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = 6443
-	joincfg, err := util.MarshalToYamlForCodecs(&joinConfiguration, v1beta1.SchemeGroupVersion, v1alpha1.KubeadmCodecs)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to marshal cluster configuration")
-	}
-	input.JoinConfiguration = string(joincfg)
 
 	fMap := map[string]interface{}{
 		"Base64Encode": templateBase64Encode,

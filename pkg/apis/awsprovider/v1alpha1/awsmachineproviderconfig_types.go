@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 )
 
 // +genclient
@@ -72,6 +73,18 @@ type AWSMachineProviderSpec struct {
 	// KeyName is the name of the SSH key to install on the instance.
 	// +optional
 	KeyName string `json:"keyName,omitempty"`
+
+	// JoinConfiguration is used to customize any kubeadm join configuration
+	// parameters.
+	JoinConfiguration v1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
+
+	// InitConfiguration is used to customize any kubeadm init configuration
+	// parameters.
+	// Cannot override certain variables including:
+	// * noderegistration.Name
+	// * noderegistration.criSocket
+	// * apiserver.ExtraArgs[cloud-provider] = aws
+	InitConfiguration v1beta1.InitConfiguration `json:"initConfiguration,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

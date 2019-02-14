@@ -27,6 +27,7 @@ go_library(
         "//pkg/cloud/aws/filter:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/certificates:go_default_library",
+        "//pkg/cloud/aws/services/kubeadm:go_default_library",
         "//pkg/cloud/aws/services/userdata:go_default_library",
         "//pkg/cloud/aws/services/wait:go_default_library",
         "//pkg/cloud/aws/tags:go_default_library",
@@ -35,7 +36,6 @@ go_library(
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/klog:go_default_library",
-        "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
     ],
 )
 
