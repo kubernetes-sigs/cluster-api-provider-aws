@@ -20,10 +20,13 @@ package machine
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
+	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -82,39 +85,36 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
 
-func (a *Actuator) isNodeJoin(controlPlaneMachines []*clusterv1.Machine, newMachine *clusterv1.Machine, cluster *clusterv1.Cluster) (bool, error) {
-	switch newMachine.ObjectMeta.Labels["set"] {
+func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachines []*clusterv1.Machine) (bool, error) {
+	switch set := scope.Machine.ObjectMeta.Labels["set"]; set {
 	case "node":
 		return true, nil
 	case "controlplane":
-		contolPlaneExists := false
 		for _, cm := range controlPlaneMachines {
 			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 				Machine: cm,
-				Cluster: cluster,
+				Cluster: scope.Cluster,
 				Client:  a.client,
 			})
+
 			if err != nil {
 				return false, errors.Wrapf(err, "failed to create machine scope for machine %q", cm.Name)
 			}
 
 			ec2svc := ec2.NewService(m.Scope)
-			contolPlaneExists, err = ec2svc.MachineExists(m)
+
+			ok, err := ec2svc.MachineExists(m)
 			if err != nil {
 				return false, errors.Wrapf(err, "failed to verify existence of machine %q", m.Name())
 			}
-			if contolPlaneExists {
-				break
-			}
+
+			klog.V(2).Infof("Machine %q should join the controlplane: %t", scope.Machine.Name, ok)
+			return true, nil
 		}
 
-		klog.V(2).Infof("Machine %q should join the controlplane: %t", newMachine.Name, contolPlaneExists)
-		return contolPlaneExists, nil
+		return false, nil
 	default:
-		errMsg := fmt.Sprintf("Unknown value %q for label \"set\" on machine %q, skipping machine creation", newMachine.ObjectMeta.Labels["set"], newMachine.Name)
-		klog.Errorf(errMsg)
-		err := errors.Errorf(errMsg)
-		return false, err
+		return false, errors.Errorf("Unknown value %q for label `set` on machine %q, skipping machine creation", set, scope.Machine.Name)
 	}
 }
 
@@ -135,17 +135,24 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
 	}
+
 	controlPlaneMachines := GetControlPlaneMachines(clusterMachines)
-	isNodeJoin, err := a.isNodeJoin(controlPlaneMachines, machine, cluster)
+
+	isNodeJoin, err := a.isNodeJoin(scope, controlPlaneMachines)
 	if err != nil {
 		return errors.Wrapf(err, "failed to determine whether machine %q should join cluster %q", machine.Name, cluster.Name)
 	}
 
 	var bootstrapToken string
 	if isNodeJoin {
-		bootstrapToken, err = a.getNodeJoinToken(cluster)
+		coreClient, err := a.coreV1Client(cluster)
 		if err != nil {
-			return errors.Wrapf(err, "failed to obtain token for node %q to join cluster %q", machine.Name, cluster.Name)
+			return errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", cluster.Name)
+		}
+
+		bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create new bootstrap token")
 		}
 	}
 
@@ -182,17 +189,17 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
-func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster) (string, error) {
+func (a *Actuator) coreV1Client(cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
 	controlPlaneDNSName, err := a.GetIP(cluster, nil)
 	if err != nil {
-		return "", errors.Errorf("failed to retrieve controlplane (GetIP): %+v", err)
+		return nil, errors.Errorf("failed to retrieve controlplane (GetIP): %+v", err)
 	}
 
 	controlPlaneURL := fmt.Sprintf("https://%s:6443", controlPlaneDNSName)
 
 	kubeConfig, err := a.GetKubeConfig(cluster, nil)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to retrieve kubeconfig for cluster %q.", cluster.Name)
+		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig for cluster %q.", cluster.Name)
 	}
 
 	clientConfig, err := clientcmd.BuildConfigFromKubeconfigGetter(controlPlaneURL, func() (*clientcmdapi.Config, error) {
@@ -200,20 +207,10 @@ func (a *Actuator) getNodeJoinToken(cluster *clusterv1.Cluster) (string, error) 
 	})
 
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to get client config for cluster at %q", controlPlaneURL)
+		return nil, errors.Wrapf(err, "failed to get client config for cluster at %q", controlPlaneURL)
 	}
 
-	coreClient, err := corev1.NewForConfig(clientConfig)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to initialize new corev1 client")
-	}
-
-	bootstrapToken, err := tokens.NewBootstrap(coreClient, 10*time.Minute)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to create new bootstrap token")
-	}
-
-	return bootstrapToken, nil
+	return corev1.NewForConfig(clientConfig)
 }
 
 func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clusterv1.Machine, i *v1alpha1.Instance) error {
@@ -413,5 +410,53 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return true, err
 	}
 
+	// Set the Machine NodeRef.
+	if machine.Status.NodeRef == nil {
+		nodeRef, err := a.getNodeReference(scope)
+		if err != nil {
+			klog.Warningf("Failed to set nodeRef: %v", err)
+			return true, nil
+		}
+
+		scope.Machine.Status.NodeRef = nodeRef
+		klog.Infof("Setting machine %q nodeRef to %q", scope.Name(), nodeRef.Name)
+	}
+
 	return true, nil
+}
+
+func (a *Actuator) getNodeReference(scope *actuators.MachineScope) (*apicorev1.ObjectReference, error) {
+	instanceID := *scope.MachineStatus.InstanceID
+
+	coreClient, err := a.coreV1Client(scope.Cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", scope.Cluster.Name)
+	}
+
+	listOpt := metav1.ListOptions{}
+
+	for {
+		nodeList, err := coreClient.Nodes().List(listOpt)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to query cluster nodes")
+		}
+
+		for _, node := range nodeList.Items {
+			// TODO(vincepri): Improve this comparison without relying on substrings.
+			if strings.Contains(node.Spec.ProviderID, instanceID) {
+				return &apicorev1.ObjectReference{
+					Kind:       node.Kind,
+					APIVersion: node.APIVersion,
+					Name:       node.Name,
+				}, nil
+			}
+		}
+
+		listOpt.Continue = nodeList.Continue
+		if listOpt.Continue == "" {
+			break
+		}
+	}
+
+	return nil, errors.Errorf("no node found for machine %q", scope.Name())
 }
