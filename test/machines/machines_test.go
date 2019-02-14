@@ -132,6 +132,11 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			testMachineProviderSpec, err := utils.TestingMachineProviderSpec(awsCredSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderSpec)
+			// Do not drain node (since it does not exist)
+			if testMachine.Annotations == nil {
+				testMachine.Annotations = map[string]string{}
+			}
+			testMachine.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
 
@@ -205,6 +210,11 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			testMachineProviderSpec, err := utils.TestingMachineProviderSpecWithEBS(awsCredSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			testMachine := manifests.TestingMachine(cluster.Name, cluster.Namespace, testMachineProviderSpec)
+			// Do not drain node (since it does not exist)
+			if testMachine.Annotations == nil {
+				testMachine.Annotations = map[string]string{}
+			}
+			testMachine.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
 
@@ -264,6 +274,11 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			masterMachineProviderSpec, err := utils.MasterMachineProviderSpec(awsCredSecret.Name, masterUserDataSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			masterMachine := manifests.MasterMachine(cluster.Name, cluster.Namespace, masterMachineProviderSpec)
+			// Do not drain node by default
+			if masterMachine.Annotations == nil {
+				masterMachine.Annotations = map[string]string{}
+			}
+			masterMachine.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
 			f.CreateMachineAndWait(masterMachine, acw)
 			machinesToDelete.AddMachine(masterMachine, f, acw)
 
@@ -307,6 +322,11 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			workerMachineSetProviderSpec, err := utils.WorkerMachineSetProviderSpec(awsCredSecret.Name, workerUserDataSecret.Name, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			workerMachineSet := manifests.WorkerMachineSet(cluster.Name, cluster.Namespace, workerMachineSetProviderSpec)
+			// Do not drain node by default
+			if workerMachineSet.Annotations == nil {
+				workerMachineSet.Annotations = map[string]string{}
+			}
+			workerMachineSet.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
 			fmt.Printf("workerMachineSet: %#v\n", workerMachineSet)
 			clusterFramework.CreateMachineSetAndWait(workerMachineSet, acw)
 			machinesToDelete.AddMachineSet(workerMachineSet, clusterFramework, acw)

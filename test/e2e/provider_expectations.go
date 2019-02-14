@@ -251,15 +251,6 @@ func (tc *testConfig) ExpectNodeToBeDrainedBeforeDeletingMachine() error {
 		return err
 	}
 
-	glog.Info("Annotate machine with `openshift.io/drain-node` annotation")
-	if machine.ObjectMeta.Annotations == nil {
-		machine.ObjectMeta.Annotations = make(map[string]string)
-	}
-	machine.ObjectMeta.Annotations["openshift.io/drain-node"] = "True"
-	if err := tc.client.Update(context.TODO(), &machine); err != nil {
-		return fmt.Errorf("unable to set `drain-node` annotation")
-	}
-
 	glog.Info("Delete machine and observe node draining")
 	if err := tc.client.Delete(context.TODO(), &machine); err != nil {
 		return fmt.Errorf("unable to delete machine %q", machine.Name)
