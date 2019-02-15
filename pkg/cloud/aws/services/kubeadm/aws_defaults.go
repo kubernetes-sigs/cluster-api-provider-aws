@@ -54,7 +54,7 @@ func SetDefaultClusterConfiguration(machine *actuators.MachineScope, base *kubea
 		base.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", s.Network().APIServerELB.DNSName, apiServerBindPort)
 	}
 	// Add the control plane endpoint to the list of cert SAN
-	base.APIServer.CertSANs = append(base.APIServer.CertSANs, localIPV4Lookup, base.ControlPlaneEndpoint)
+	base.APIServer.CertSANs = append(base.APIServer.CertSANs, localIPV4Lookup, s.Network().APIServerELB.DNSName)
 }
 
 // SetClusterConfigurationOverrides will modify the supplied configuration with certain values

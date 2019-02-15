@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	tags "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
@@ -57,7 +57,7 @@ type AWSClusterProviderSpec struct {
 
 	// ClusterConfiguration holds the cluster-wide information used during a
 	// kubeadm init call.
-	ClusterConfiguration v1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
 }
 
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.
