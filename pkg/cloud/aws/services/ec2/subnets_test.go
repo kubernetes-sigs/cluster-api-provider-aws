@@ -106,15 +106,11 @@ func TestReconcileSubnets(t *testing.T) {
 									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-										Value: aws.String("common"),
+										Value: aws.String("private"),
 									},
 									{
 										Key:   aws.String("Name"),
 										Value: aws.String("test-cluster-subnet-private"),
-									},
-									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/routable"),
-										Value: aws.String("private"),
 									},
 								},
 							},
@@ -444,15 +440,11 @@ func TestReconcileSubnets(t *testing.T) {
 									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-										Value: aws.String("common"),
+										Value: aws.String("public"),
 									},
 									{
 										Key:   aws.String("Name"),
 										Value: aws.String("test-cluster-subnet-public"),
-									},
-									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/routable"),
-										Value: aws.String("public"),
 									},
 								},
 							},

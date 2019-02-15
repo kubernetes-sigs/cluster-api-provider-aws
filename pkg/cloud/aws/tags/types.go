@@ -41,6 +41,12 @@ func (m Map) HasManaged() bool {
 	return ok && value == "true"
 }
 
+// GetRole returns the Cluster API role for the tagged resource
+func (m Map) GetRole() string {
+	return m[NameAWSClusterAPIRole]
+}
+
+
 // Difference returns the difference between this map and the other map.
 // Items are considered equals if key and value are equals.
 func (m Map) Difference(other Map) Map {
@@ -98,4 +104,10 @@ const (
 
 	// ValueCommonRole describes the value for the common role
 	ValueCommonRole = "common"
+
+	// ValuePublicRole describes the value for the public role
+	ValuePublicRole = "public"
+
+	// ValuePrivateRole describes the value for the private role
+	ValuePrivateRole = "private"
 )

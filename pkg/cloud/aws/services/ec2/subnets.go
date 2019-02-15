@@ -36,10 +36,6 @@ const (
 	defaultPublicSubnetCidr  = "10.0.1.0/24"
 )
 
-const (
-	NameSubnetRoutable = tags.NameAWSProviderPrefix + "routable"
-)
-
 func (s *Service) reconcileSubnets() error {
 	klog.V(2).Infof("Reconciling subnets")
 
@@ -193,46 +189,34 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) and if there are any associated NAT gateways.
 	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
 	for _, ec2sn := range out.Subnets {
-		var hasPublicTag bool
-		for _, tag := range ec2sn.Tags {
-			if tag == nil {
-				continue
-			}
-
-			if tag.Key != nil && *tag.Key == NameSubnetRoutable && tag.Value != nil && *tag.Value == "public" {
-				hasPublicTag = true
-			}
+		spec := &v1alpha1.SubnetSpec{
+			ID:               *ec2sn.SubnetId,
+			CidrBlock:        *ec2sn.CidrBlock,
+			AvailabilityZone: *ec2sn.AvailabilityZone,
+			Tags:             converters.TagsToMap(ec2sn.Tags),
 		}
 
-		var hasPublicRoute bool
-		var routeTableId *string
+		// A subnet is public if it's tagged as such...
+		if spec.Tags.GetRole() == tags.ValuePublicRole {
+			spec.IsPublic = true
+		}
+
+		// ... or if it has an internet route
 		rt := routeTables[*ec2sn.SubnetId]
 		if rt != nil {
-			routeTableId = rt.RouteTableId
+			spec.RouteTableID = rt.RouteTableId
 			for _, route := range rt.Routes {
-				if route.GatewayId == nil {
-					continue
-				}
-				if strings.HasPrefix(*route.GatewayId, "igw") {
-					hasPublicRoute = true
+				if route.GatewayId != nil && strings.HasPrefix(*route.GatewayId, "igw") {
+					spec.IsPublic = true
 				}
 			}
 		}
 
 		ngw := natGateways[*ec2sn.SubnetId]
-		var natGatewayId *string
 		if ngw != nil {
-			natGatewayId = ngw.NatGatewayId
+			spec.NatGatewayID = ngw.NatGatewayId
 		}
-		subnets = append(subnets, &v1alpha1.SubnetSpec{
-			ID:               *ec2sn.SubnetId,
-			CidrBlock:        *ec2sn.CidrBlock,
-			AvailabilityZone: *ec2sn.AvailabilityZone,
-			IsPublic:         hasPublicRoute || hasPublicTag,
-			Tags:             converters.TagsToMap(ec2sn.Tags),
-			RouteTableID:     routeTableId,
-			NatGatewayID:     natGatewayId,
-		})
+		subnets = append(subnets, spec)
 	}
 
 	return subnets, nil
@@ -304,26 +288,23 @@ func (s *Service) deleteSubnet(id string) error {
 }
 
 func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
-	var routable string
+	var role string
 	if public {
-		routable = "public"
+		role = tags.ValuePublicRole
 	} else {
-		routable = "private"
+		role = tags.ValuePrivateRole
 	}
 
 	var name strings.Builder
 	name.WriteString(s.scope.Name())
 	name.WriteString("-subnet-")
-	name.WriteString(routable)
+	name.WriteString(role)
 
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   tags.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
-		Role:        aws.String(tags.ValueCommonRole),
-		Additional: tags.Map{
-			NameSubnetRoutable: routable,
-		},
+		Role:        aws.String(role),
 	}
 }
