@@ -73,13 +73,13 @@ func SetClusterConfigurationOverrides(machine *actuators.MachineScope, base *v1b
 		base.APIServer.ControlPlaneComponent.ExtraArgs = map[string]string{}
 	}
 	if cp, ok := base.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"]; ok && cp != cloudProvider {
-		klog.Infof("Overriding cloud provider %q with %q", cp, cloudProvider)
+		klog.Infof("Overriding cloud provider %q with required value %q", cp, cloudProvider)
 	}
 	base.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"] = cloudProvider
 
 	// The kubeadm config clustername must match the provided name of the cluster.
 	if base.ClusterName != "" && base.ClusterName != s.Name() {
-		klog.Infof("Overriding provided cluster name %q with %q", base.ClusterName, s.Name())
+		klog.Infof("Overriding provided cluster name %q with %q. The kubeadm cluster name and cluster-api name must match.", base.ClusterName, s.Name())
 	}
 	base.ClusterName = s.Name()
 
@@ -102,12 +102,13 @@ func SetInitConfigurationOverrides(base *v1beta1.InitConfiguration) {
 	}
 
 	if base.NodeRegistration.Name != "" && base.NodeRegistration.Name != hostnameLookup {
-		klog.Infof("Overriding NodeRegistration name from %q to %q", base.NodeRegistration.Name, hostnameLookup)
+		klog.Infof("Overriding NodeRegistration name from %q to %q. The node registration needs to be dynamically generated in aws.", base.NodeRegistration.Name, hostnameLookup)
 	}
 	base.NodeRegistration.Name = hostnameLookup
 
+	// TODO(chuckha): This may become a default instead of an override.
 	if base.NodeRegistration.CRISocket != "" && base.NodeRegistration.CRISocket != containerdSocket {
-		klog.Infof("Overriding CRISocket from %q to %q", base.NodeRegistration.CRISocket, containerdSocket)
+		klog.Infof("Overriding CRISocket from %q to %q. Containerd is only supported container runtime.", base.NodeRegistration.CRISocket, containerdSocket)
 	}
 	base.NodeRegistration.CRISocket = containerdSocket
 
@@ -115,7 +116,7 @@ func SetInitConfigurationOverrides(base *v1beta1.InitConfiguration) {
 		base.NodeRegistration.KubeletExtraArgs = map[string]string{}
 	}
 	if cp, ok := base.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok && cp != cloudProvider {
-		klog.Infof("Overriding node's cloud-provider to %q", cloudProvider)
+		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
 }
@@ -137,12 +138,13 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 	base.Discovery.BootstrapToken.CACertHashes = append(base.Discovery.BootstrapToken.CACertHashes, caCertHash)
 
 	if base.NodeRegistration.Name != "" && base.NodeRegistration.Name != hostnameLookup {
-		klog.Infof("Overriding NodeRegistration name from %q to %q", base.NodeRegistration.Name, hostnameLookup)
+		klog.Infof("Overriding NodeRegistration name from %q to %q. The node registration needs to be dynamically generated in aws.", base.NodeRegistration.Name, hostnameLookup)
 	}
 	base.NodeRegistration.Name = hostnameLookup
 
+	// TODO(chuckha): This may become a default instead of an override.
 	if base.NodeRegistration.CRISocket != "" && base.NodeRegistration.CRISocket != containerdSocket {
-		klog.Infof("Overriding CRISocket from %q to %q", base.NodeRegistration.CRISocket, containerdSocket)
+		klog.Infof("Overriding CRISocket from %q to %q. Containerd is only supported container runtime.", base.NodeRegistration.CRISocket, containerdSocket)
 	}
 	base.NodeRegistration.CRISocket = containerdSocket
 
@@ -150,7 +152,7 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		base.NodeRegistration.KubeletExtraArgs = map[string]string{}
 	}
 	if cp, ok := base.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok && cp != cloudProvider {
-		klog.Infof("Overriding node's cloud-provider from %q to %q", cp, cloudProvider)
+		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
 }
