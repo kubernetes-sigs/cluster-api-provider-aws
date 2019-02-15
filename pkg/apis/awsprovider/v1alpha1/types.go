@@ -189,6 +189,17 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 	return res
 }
 
+// FilterID returns a single subnet matching the given id or nil.
+func (s Subnets) FilterID(id string) *SubnetSpec {
+	for _, x := range s {
+		if x.ID == id {
+			return x
+		}
+	}
+
+	return nil
+}
+
 // FilterPrivate returns a slice containing all subnets marked as private.
 func (s Subnets) FilterPrivate() (res Subnets) {
 	for _, x := range s {

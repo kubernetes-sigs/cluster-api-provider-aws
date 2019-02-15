@@ -113,6 +113,7 @@ func (m *MachineScope) storeMachineStatus(machine *clusterv1.Machine) (*clusterv
 		return nil, err
 	}
 
+	m.Machine.Status.DeepCopyInto(&machine.Status)
 	machine.Status.ProviderStatus = ext
 	return m.MachineClient.UpdateStatus(machine)
 }
