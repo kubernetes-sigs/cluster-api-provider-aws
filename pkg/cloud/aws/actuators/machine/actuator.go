@@ -44,6 +44,10 @@ import (
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 )
 
+const (
+	defaultTokenTTL = 10 * time.Minute
+)
+
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsmachineproviderconfigs;awsmachineproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status;machinedeployments;machinedeployments/status;machinesets;machinesets/status;machineclasses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -150,7 +154,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 			return errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", cluster.Name)
 		}
 
-		bootstrapToken, err = tokens.NewBootstrap(coreClient, 10*time.Minute)
+		bootstrapToken, err = tokens.NewBootstrap(coreClient, defaultTokenTTL)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create new bootstrap token")
 		}

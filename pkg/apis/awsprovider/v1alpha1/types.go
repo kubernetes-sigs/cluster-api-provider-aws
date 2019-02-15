@@ -189,8 +189,8 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 	return res
 }
 
-// FilterID returns a single subnet matching the given id or nil.
-func (s Subnets) FilterID(id string) *SubnetSpec {
+// FindByID returns a single subnet matching the given id or nil.
+func (s Subnets) FindByID(id string) *SubnetSpec {
 	for _, x := range s {
 		if x.ID == id {
 			return x
