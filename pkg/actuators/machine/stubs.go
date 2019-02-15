@@ -117,6 +117,10 @@ func stubMachine() (*machinev1.Machine, error) {
 				providerconfigv1.MachineRoleLabel: "infra",
 				providerconfigv1.MachineTypeLabel: "master",
 			},
+			Annotations: map[string]string{
+				// skip node draining since it's not mocked
+				ExcludeNodeDrainingAnnotation: "",
+			},
 		},
 
 		Spec: machinev1.MachineSpec{

@@ -91,7 +91,7 @@ build-e2e:
 .PHONY: k8s-e2e
 k8s-e2e: ## Run k8s specific e2e test
 	# KUBECONFIG and SSH_PK dirs needs to be mounted inside a container if tests are run in containers
-	go test -timeout 20m \
+	go test -timeout 30m \
 		-v sigs.k8s.io/cluster-api-provider-aws/test/machines \
 		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
 		-ssh-key $${SSH_PK:-~/.ssh/id_rsa} \

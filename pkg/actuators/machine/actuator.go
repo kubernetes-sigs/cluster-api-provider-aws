@@ -18,6 +18,7 @@ package machine
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -55,6 +56,8 @@ const (
 
 	// MachineCreationFailed indicates that machine creation failed
 	MachineCreationFailed = "MachineCreationFailed"
+	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
+	ExcludeNodeDrainingAnnotation = "machine.openshift.io/exclude-node-draining"
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -254,7 +257,13 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	// Drain node before deleting
-	if machine.ObjectMeta.Annotations["openshift.io/drain-node"] == "True" && machine.Status.NodeRef != nil {
+	if _, exists := machine.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists {
+		if machine.Status.NodeRef == nil {
+			// Draining a node of a machine without a node needs to be explicitely inspected
+			err := errors.New("draining node without a node reference during machine deletion operation is forbidden")
+			glog.Error(err)
+			return err
+		}
 		glog.Infof("Draining node before delete")
 		if a.config == nil {
 			err := fmt.Errorf("missing client config, unable to build kube client")
@@ -283,10 +292,11 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 		); err != nil {
 			// Machine still tries to terminate after drain failure
 			glog.Warningf("drain failed for machine %q: %v", machine.Name, err)
-		} else {
-			glog.Infof("drain successful for machine %q", machine.Name)
-			a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
+			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
+
+		glog.Infof("drain successful for machine %q", machine.Name)
+		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
 	}
 
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
