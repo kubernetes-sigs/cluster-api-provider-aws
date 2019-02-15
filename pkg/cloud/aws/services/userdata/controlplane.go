@@ -87,9 +87,9 @@ write_files:
     permissions: '0640'
     content: |
       ---
-      {{.ClusterConfiguration | Indent 6}}
+{{.ClusterConfiguration | Indent 6}}
       ---
-      {{.InitConfiguration | Indent 6}}
+{{.InitConfiguration | Indent 6}}
 kubeadm:
   operation: init
   config: /tmp/kubeadm.yaml
@@ -158,7 +158,7 @@ write_files:
     owner: root:root
     permissions: '0640'
     content: |
-      {{.JoinConfiguration | Indent 6}}
+{{.JoinConfiguration | Indent 6}}
 kubeadm:
   operation: join
   config: /tmp/kubeadm-controlplane-join-config.yaml
@@ -289,6 +289,5 @@ func templateBase64Encode(s string) string {
 func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")
 	ident := "\n" + strings.Repeat(" ", i)
-	// Don't indent the first line, it's already indented in the template
-	return strings.Join(split, ident)
+	return strings.Repeat(" ", i) + strings.Join(split, ident)
 }

@@ -18,12 +18,11 @@ package kubeadm
 
 import (
 	"github.com/pkg/errors"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/klog"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"k8s.io/kubernetes/cmd/kubeadm/app/util"
-
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 
@@ -35,7 +34,7 @@ func GetCodecs() serializer.CodecFactory {
 	sb.Register(&kubeadmv1beta1.JoinConfiguration{}, &kubeadmv1beta1.InitConfiguration{}, &kubeadmv1beta1.ClusterConfiguration{})
 	kubeadmScheme, err := sb.Build()
 	if err != nil {
-		panic(err)
+		klog.Fatal(err)
 	}
 	return serializer.NewCodecFactory(kubeadmScheme)
 }
