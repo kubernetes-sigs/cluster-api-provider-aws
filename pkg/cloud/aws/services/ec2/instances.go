@@ -166,9 +166,9 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		if bootstrapToken != "" {
 			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
 
-			kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.JoinConfiguration)
-			kubeadm.SetControlPlaneJoinConfigurationOverrides(&machine.MachineConfig.JoinConfiguration)
-			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.JoinConfiguration)
+			kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
+			kubeadm.SetControlPlaneJoinConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Join)
+			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 			if err != nil {
 				return nil, err
 			}
@@ -201,8 +201,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				return nil, err
 			}
 
-			kubeadm.SetInitConfigurationOverrides(&machine.MachineConfig.InitConfiguration)
-			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.InitConfiguration)
+			kubeadm.SetInitConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Init)
+			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
 			if err != nil {
 				return nil, err
 			}
@@ -230,8 +230,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	case "node":
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
-		kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.JoinConfiguration)
-		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.JoinConfiguration)
+		kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
+		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 		if err != nil {
 			return nil, err
 		}

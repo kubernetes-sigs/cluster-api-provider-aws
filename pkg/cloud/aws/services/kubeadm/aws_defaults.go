@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"k8s.io/klog"
-	kubeadmv1beta "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
