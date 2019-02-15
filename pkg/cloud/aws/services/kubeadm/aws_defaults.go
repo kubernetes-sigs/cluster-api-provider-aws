@@ -21,7 +21,6 @@ import (
 
 	"k8s.io/klog"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
-
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 

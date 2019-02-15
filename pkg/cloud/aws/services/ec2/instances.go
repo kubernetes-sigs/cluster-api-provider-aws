@@ -19,8 +19,6 @@ package ec2
 import (
 	"encoding/base64"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -31,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
