@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"k8s.io/klog"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmv1beta "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
@@ -43,9 +43,9 @@ const (
 
 // SetDefaultClusterConfiguration sets default dynamic values without overriding
 // user specified values.
-func SetDefaultClusterConfiguration(machine *actuators.MachineScope, base *v1beta1.ClusterConfiguration) {
+func SetDefaultClusterConfiguration(machine *actuators.MachineScope, base *kubeadmv1beta1.ClusterConfiguration) {
 	if base == nil {
-		base = &v1beta1.ClusterConfiguration{}
+		base = &kubeadmv1beta1.ClusterConfiguration{}
 	}
 	s := machine.Scope
 
@@ -59,9 +59,9 @@ func SetDefaultClusterConfiguration(machine *actuators.MachineScope, base *v1bet
 
 // SetClusterConfigurationOverrides will modify the supplied configuration with certain values
 // that cluster-api-provider-aws requires overriding user specified input.
-func SetClusterConfigurationOverrides(machine *actuators.MachineScope, base *v1beta1.ClusterConfiguration) {
+func SetClusterConfigurationOverrides(machine *actuators.MachineScope, base *kubeadmv1beta1.ClusterConfiguration) {
 	if base == nil {
-		base = &v1beta1.ClusterConfiguration{}
+		base = &kubeadmv1beta1.ClusterConfiguration{}
 	}
 	s := machine.Scope
 
@@ -95,9 +95,9 @@ func SetClusterConfigurationOverrides(machine *actuators.MachineScope, base *v1b
 
 // SetInitConfigurationOverrides overrides user input on particular fields for
 // the kubeadm InitConfiguration.
-func SetInitConfigurationOverrides(base *v1beta1.InitConfiguration) {
+func SetInitConfigurationOverrides(base *kubeadmv1beta1.InitConfiguration) {
 	if base == nil {
-		base = &v1beta1.InitConfiguration{}
+		base = &kubeadmv1beta1.InitConfiguration{}
 	}
 
 	if base.NodeRegistration.Name != "" && base.NodeRegistration.Name != hostnameLookup {
@@ -122,14 +122,14 @@ func SetInitConfigurationOverrides(base *v1beta1.InitConfiguration) {
 
 // SetJoinNodeConfigurationOverrides overrides user input for certain fields of
 // the kubeadm JoinConfiguration during a worker node join.
-func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machine *actuators.MachineScope, base *v1beta1.JoinConfiguration) {
+func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machine *actuators.MachineScope, base *kubeadmv1beta1.JoinConfiguration) {
 	if base == nil {
-		base = &v1beta1.JoinConfiguration{}
+		base = &kubeadmv1beta1.JoinConfiguration{}
 	}
 	s := machine.Scope
 
 	if base.Discovery.BootstrapToken == nil {
-		base.Discovery.BootstrapToken = &v1beta1.BootstrapTokenDiscovery{}
+		base.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
 	}
 	// TODO: should this actually be the cluster's ContolPlaneEndpoint?
 	base.Discovery.BootstrapToken.APIServerEndpoint = s.Network().APIServerELB.DNSName
@@ -158,12 +158,12 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 
 // SetControlPlaneJoinConfigurationOverrides user input for kubeadm join
 // configuration during a control plane join action.
-func SetControlPlaneJoinConfigurationOverrides(base *v1beta1.JoinConfiguration) {
+func SetControlPlaneJoinConfigurationOverrides(base *kubeadmv1beta1.JoinConfiguration) {
 	if base == nil {
-		base = &v1beta1.JoinConfiguration{}
+		base = &kubeadmv1beta1.JoinConfiguration{}
 	}
 	if base.ControlPlane == nil {
-		base.ControlPlane = &v1beta1.JoinControlPlane{}
+		base.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
 	}
 	base.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = localIPV4Lookup
 	base.ControlPlane.LocalAPIEndpoint.BindPort = apiServerBindPort

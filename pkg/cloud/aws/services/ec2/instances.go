@@ -176,7 +176,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
 				CACert:            string(s.scope.ClusterConfig.CAKeyPair.Cert),
 				CAKey:             string(s.scope.ClusterConfig.CAKeyPair.Key),
-				CACertHash:        caCertHash,
 				EtcdCACert:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
 				EtcdCAKey:         string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
 				FrontProxyCACert:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),

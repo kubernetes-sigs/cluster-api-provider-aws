@@ -189,19 +189,16 @@ type ControlPlaneInput struct {
 type ContolPlaneJoinInput struct {
 	baseUserData
 
-	CACertHash       string
-	CACert           string
-	CAKey            string
-	EtcdCACert       string
-	EtcdCAKey        string
-	FrontProxyCACert string
-	FrontProxyCAKey  string
-	SaCert           string
-	SaKey            string
-	BootstrapToken   string
-	ELBAddress       string
-
-	// TODO extract this
+	CACert            string
+	CAKey             string
+	EtcdCACert        string
+	EtcdCAKey         string
+	FrontProxyCACert  string
+	FrontProxyCAKey   string
+	SaCert            string
+	SaKey             string
+	BootstrapToken    string
+	ELBAddress        string
 	JoinConfiguration string
 }
 
