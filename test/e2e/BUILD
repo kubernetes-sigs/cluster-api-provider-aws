@@ -1,5 +1,18 @@
+# Copyright 2019 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 load("@io_bazel_rules_go//go:def.bzl", "go_test")
-load("//build:stateful_set_patch.bzl", "stateful_set_patch")
 
 alias(
     name = "e2e",
@@ -147,8 +160,8 @@ genrule(
 genrule(
     name = "e2e-provider-components",
     srcs = [
-        "kustomization.yaml",
-        "manager-version-patch.yaml",
+        "//test:kustomization.yaml",
+        "//test:manager-version-patch.yaml",
         "manifests/provider-components.yaml",
     ],
     outs = ["manifests/provider-components-e2e.yaml"],
@@ -157,18 +170,9 @@ genrule(
              {kustomize} build $(@D) > $@
     """.format(
         kustomize = "$(location @io_k8s_sigs_kustomize//:kustomize)",
-        kustomization = "$(location kustomization.yaml)",
-        stateful_set_image_patch = "$(location manager-version-patch.yaml)",
+        kustomization = "$(location //test:kustomization.yaml)",
+        stateful_set_image_patch = "$(location //test:manager-version-patch.yaml)",
     ),
     tools = ["@io_k8s_sigs_kustomize//:kustomize"],
-    visibility = ["//visibility:public"],
-)
-
-stateful_set_patch(
-    name = "manager-version-patch",
-    docker_repo_var = "REGISTRY_E2E_SHIM",
-    image_name = "manager",
-    pull_policy = "Never",
-    tag = "manager-amd64",
     visibility = ["//visibility:public"],
 )
