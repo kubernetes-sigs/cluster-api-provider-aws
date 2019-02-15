@@ -46,7 +46,6 @@ func (m Map) GetRole() string {
 	return m[NameAWSClusterAPIRole]
 }
 
-
 // Difference returns the difference between this map and the other map.
 // Items are considered equals if key and value are equals.
 func (m Map) Difference(other Map) Map {
