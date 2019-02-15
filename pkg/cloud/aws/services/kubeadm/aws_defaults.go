@@ -49,6 +49,10 @@ func SetClusterConfigurationOverrides(machine *actuators.MachineScope, base *v1b
 
 	// Set the apiserver cloud provider
 	base.APIServer.CertSANs = append(base.APIServer.CertSANs, localIPV4Lookup, s.Network().APIServerELB.DNSName)
+
+	if base.APIServer.ControlPlaneComponent.ExtraArgs == nil {
+		base.APIServer.ControlPlaneComponent.ExtraArgs = map[string]string{}
+	}
 	if cloudProvider, ok := base.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"]; ok {
 		klog.Infof("Overriding cloud provider %q with 'aws'", cloudProvider)
 	}
@@ -90,6 +94,10 @@ func SetInitConfigurationOverrides(base *v1beta1.InitConfiguration) {
 	if base.NodeRegistration.KubeletExtraArgs == nil {
 		base.NodeRegistration.KubeletExtraArgs = map[string]string{}
 	}
+
+	if base.NodeRegistration.KubeletExtraArgs == nil {
+		base.NodeRegistration.KubeletExtraArgs = map[string]string{}
+	}
 	if _, ok := base.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok {
 		klog.Infof("Overriding node's cloud-provider to 'aws'")
 	}
@@ -102,6 +110,9 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 	}
 	s := machine.Scope
 
+	if base.Discovery.BootstrapToken == nil {
+		base.Discovery.BootstrapToken = &v1beta1.BootstrapTokenDiscovery{}
+	}
 	base.Discovery.BootstrapToken.Token = bootstrapToken
 	base.Discovery.BootstrapToken.APIServerEndpoint = s.Network().APIServerELB.DNSName
 	base.Discovery.BootstrapToken.CACertHashes = append(base.Discovery.BootstrapToken.CACertHashes, caCertHash)
@@ -115,6 +126,9 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 	}
 	base.NodeRegistration.CRISocket = containerdSocket
 
+	if base.NodeRegistration.KubeletExtraArgs == nil {
+		base.NodeRegistration.KubeletExtraArgs = map[string]string{}
+	}
 	if _, ok := base.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok {
 		klog.Infof("Overriding node's cloud-provider to 'aws'")
 	}
