@@ -74,17 +74,20 @@ type AWSMachineProviderSpec struct {
 	// +optional
 	KeyName string `json:"keyName,omitempty"`
 
+	// KubeadmConfiguration holds the kubeadm configuration options
+	// +optional
+	KubeadmConfiguration KubeadmConfiguration `json:"kubeadmConfiguration,omitempty"`
+}
+
+// KubeadmConfiguration holds the various configurations that kubeadm uses
+type KubeadmConfiguration struct {
 	// JoinConfiguration is used to customize any kubeadm join configuration
 	// parameters.
-	JoinConfiguration v1beta1.JoinConfiguration `json:"joinConfiguration,omitempty"`
+	Join v1beta1.JoinConfiguration `json:"join,omitempty"`
 
 	// InitConfiguration is used to customize any kubeadm init configuration
 	// parameters.
-	// Cannot override certain variables including:
-	// * noderegistration.Name
-	// * noderegistration.criSocket
-	// * apiserver.ExtraArgs[cloud-provider] = aws
-	InitConfiguration v1beta1.InitConfiguration `json:"initConfiguration,omitempty"`
+	Init v1beta1.InitConfiguration `json:"init,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
