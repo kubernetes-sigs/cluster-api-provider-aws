@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/kubeadmv1beta1"
 )
 
 // +genclient
@@ -83,11 +83,11 @@ type AWSMachineProviderSpec struct {
 type KubeadmConfiguration struct {
 	// JoinConfiguration is used to customize any kubeadm join configuration
 	// parameters.
-	Join v1beta1.JoinConfiguration `json:"join,omitempty"`
+	Join kubeadmv1beta1.JoinConfiguration `json:"join,omitempty"`
 
 	// InitConfiguration is used to customize any kubeadm init configuration
 	// parameters.
-	Init v1beta1.InitConfiguration `json:"init,omitempty"`
+	Init kubeadmv1beta1.InitConfiguration `json:"init,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
