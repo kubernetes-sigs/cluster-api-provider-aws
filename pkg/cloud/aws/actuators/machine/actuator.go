@@ -113,7 +113,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 			}
 
 			klog.V(2).Infof("Machine %q should join the controlplane: %t", scope.Machine.Name, ok)
-			return true, nil
+			return ok, nil
 		}
 
 		return false, nil
