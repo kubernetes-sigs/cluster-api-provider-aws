@@ -140,7 +140,7 @@ func (tc *testConfig) ExpectNewNodeWhenDeletingMachine() error {
 	var triagedWorkerNode corev1.Node
 MachineLoop:
 	for _, m := range machineList.Items {
-		if m.Labels["machine.openshift.io/cluster-api-machine-role"] == "worker" {
+		if m.Labels["machine.openshift.io/cluster-api-machine-role"] == "worker" || m.Labels["sigs.k8s.io/cluster-api-machine-role"] == "worker" {
 			for _, n := range nodeList.Items {
 				if m.Status.NodeRef == nil {
 					glog.Errorf("no NodeRef found in machine %v", m.Name)
@@ -217,7 +217,7 @@ func (tc *testConfig) ExpectNodeToBeDrainedBeforeDeletingMachine() error {
 		}
 		for _, machineItem := range machineList.Items {
 			// empty or non-worker role skipped
-			if machineItem.Labels["machine.openshift.io/cluster-api-machine-role"] == "worker" {
+			if machineItem.Labels["machine.openshift.io/cluster-api-machine-role"] == "worker" || machineItem.Labels["sigs.k8s.io/cluster-api-machine-role"] == "worker" {
 				if machineItem.Status.NodeRef != nil && machineItem.Status.NodeRef.Name != "" {
 					machine = machineItem
 					nodeName = machineItem.Status.NodeRef.Name
