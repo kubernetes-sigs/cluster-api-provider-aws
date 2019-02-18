@@ -6,7 +6,7 @@ metadata:
   namespace: test
   generateName: vs-worker-
   labels:
-    sigs.k8s.io/cluster-api-cluster: tb-asg-35
+    machine.openshift.io/cluster-api-cluster: tb-asg-35
 spec:
   providerSpec:
     value:
