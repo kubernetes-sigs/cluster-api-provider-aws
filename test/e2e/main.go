@@ -86,5 +86,12 @@ func runSuite() error {
 	}
 	glog.Info("PASS: ExpectNodeToBeDrainedBeforeDeletingMachine")
 
+	glog.Info("RUN: ExpectNodeToBeDrainedBeforeMachineIsDeleted")
+	if err := testConfig.ExpectNodeToBeDrainedBeforeMachineIsDeleted(); err != nil {
+		glog.Errorf("FAIL: ExpectNodeToBeDrainedBeforeMachineIsDeleted: %v", err)
+		return err
+	}
+	glog.Info("PASS: ExpectNodeToBeDrainedBeforeMachineIsDeleted")
+
 	return nil
 }
