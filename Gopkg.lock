@@ -406,7 +406,8 @@
   revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
 
 [[projects]]
-  digest = "1:b9b2d83cfe9f378dfc2cf7b224523d486c23135c3fe6af2e9d05644d84c25b1e"
+  branch = "master"
+  digest = "1:cc2649e5150c4f568adcb5411f10c5c0a751ef9e565f4f28c6faecf08dbf9af6"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/framework",
@@ -414,7 +415,7 @@
     "pkg/types",
   ]
   pruneopts = "T"
-  revision = "71b571e0ba46fae812da42733f926c1df654f666"
+  revision = "93b5b3ac5808c826a9f51f6a2496f379404e60df"
 
 [[projects]]
   branch = "master"
@@ -1038,7 +1039,6 @@
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
     "github.com/openshift/cluster-api/pkg/apis",
-    "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1",
     "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1",
     "github.com/openshift/cluster-api/pkg/controller/error",
     "github.com/openshift/cluster-api/pkg/controller/machine",
