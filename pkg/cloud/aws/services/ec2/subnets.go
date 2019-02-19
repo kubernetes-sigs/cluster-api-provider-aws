@@ -175,15 +175,48 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
 	}
 
+	routeTables, err := s.describeVpcRouteTablesBySubnet()
+	if err != nil {
+		return nil, err
+	}
+
+	natGateways, err := s.describeNatGatewaysBySubnet()
+	if err != nil {
+		return nil, err
+	}
+
 	subnets := make([]*v1alpha1.SubnetSpec, 0, len(out.Subnets))
+	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) and if there are any associated NAT gateways.
+	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
 	for _, ec2sn := range out.Subnets {
-		subnets = append(subnets, &v1alpha1.SubnetSpec{
+		spec := &v1alpha1.SubnetSpec{
 			ID:               *ec2sn.SubnetId,
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
-			IsPublic:         *ec2sn.MapPublicIpOnLaunch,
 			Tags:             converters.TagsToMap(ec2sn.Tags),
-		})
+		}
+
+		// A subnet is public if it's tagged as such...
+		if spec.Tags.GetRole() == tags.ValuePublicRole {
+			spec.IsPublic = true
+		}
+
+		// ... or if it has an internet route
+		rt := routeTables[*ec2sn.SubnetId]
+		if rt != nil {
+			spec.RouteTableID = rt.RouteTableId
+			for _, route := range rt.Routes {
+				if route.GatewayId != nil && strings.HasPrefix(*route.GatewayId, "igw") {
+					spec.IsPublic = true
+				}
+			}
+		}
+
+		ngw := natGateways[*ec2sn.SubnetId]
+		if ngw != nil {
+			spec.NatGatewayID = ngw.NatGatewayId
+		}
+		subnets = append(subnets, spec)
 	}
 
 	return subnets, nil
@@ -255,21 +288,23 @@ func (s *Service) deleteSubnet(id string) error {
 }
 
 func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
-	var name strings.Builder
+	var role string
+	if public {
+		role = tags.ValuePublicRole
+	} else {
+		role = tags.ValuePrivateRole
+	}
 
+	var name strings.Builder
 	name.WriteString(s.scope.Name())
 	name.WriteString("-subnet-")
-	if public {
-		name.WriteString("public")
-	} else {
-		name.WriteString("private")
-	}
+	name.WriteString(role)
 
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   tags.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
-		Role:        aws.String(tags.ValueCommonRole),
+		Role:        aws.String(role),
 	}
 }

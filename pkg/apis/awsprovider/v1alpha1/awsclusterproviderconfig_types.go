@@ -127,18 +127,18 @@ type SubnetSpec struct {
 	// AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
-	// IsPublic defines the subnet as a public subnet. Refer to the AWS documentation for further information.
+	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
 	// +optional
-	IsPublic bool `json:"isPublic,omitempty"`
+	IsPublic bool `json:"isPublic"`
 
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional
 	RouteTableID *string `json:"routeTableId"`
 
 	// NatGatewayID is the NAT gateway id associated with the subnet.
-	// Ignored if the subnet is public.
+	// Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the nat gateway resides. It is then used to determe routes for private subnets in the same AZ as the public subnet.
 	// +optional
-	NatGatewayID *string `json:"natGatewayId"`
+	NatGatewayID *string `json:"natGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
 	Tags tags.Map `json:"tags,omitempty"`

@@ -41,6 +41,11 @@ func (m Map) HasManaged() bool {
 	return ok && value == "true"
 }
 
+// GetRole returns the Cluster API role for the tagged resource
+func (m Map) GetRole() string {
+	return m[NameAWSClusterAPIRole]
+}
+
 // Difference returns the difference between this map and the other map.
 // Items are considered equals if key and value are equals.
 func (m Map) Difference(other Map) Map {
@@ -76,14 +81,19 @@ const (
 	// The tag value is an ownership value
 	NameKubernetesClusterPrefix = "kubernetes.io/cluster/"
 
+	// NameAWSProviderPrefix is the tag prefix we use to differentiate
+	// cluster-api-provider-aws owned components from other tooling that
+	// uses NameKubernetesClusterPrefix
+	NameAWSProviderPrefix = "sigs.k8s.io/cluster-api-provider-aws/"
+
 	// NameAWSProviderManaged is the tag name we use to differentiate
 	// cluster-api-provider-aws owned components from other tooling that
 	// uses NameKubernetesClusterPrefix
-	NameAWSProviderManaged = "sigs.k8s.io/cluster-api-provider-aws/managed"
+	NameAWSProviderManaged = NameAWSProviderPrefix + "managed"
 
 	// NameAWSClusterAPIRole is the tag name we use to mark roles for resources
 	// dedicated to this cluster api provider implementation.
-	NameAWSClusterAPIRole = "sigs.k8s.io/cluster-api-provider-aws/role"
+	NameAWSClusterAPIRole = NameAWSProviderPrefix + "role"
 
 	// ValueAPIServerRole describes the value for the apiserver role
 	ValueAPIServerRole = "apiserver"
@@ -93,4 +103,10 @@ const (
 
 	// ValueCommonRole describes the value for the common role
 	ValueCommonRole = "common"
+
+	// ValuePublicRole describes the value for the public role
+	ValuePublicRole = "public"
+
+	// ValuePrivateRole describes the value for the private role
+	ValuePrivateRole = "private"
 )
