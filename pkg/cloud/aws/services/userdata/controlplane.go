@@ -18,6 +18,7 @@ package userdata
 
 import (
 	"encoding/base64"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -86,29 +87,9 @@ write_files:
     permissions: '0640'
     content: |
       ---
-      apiVersion: kubeadm.k8s.io/v1beta1
-      kind: ClusterConfiguration
-      apiServer:
-        certSANs:
-          - {{ "{{ ds.meta_data.local_ipv4 }}" }}
-          - "{{.ELBAddress}}"
-        extraArgs:
-          cloud-provider: aws
-      controlPlaneEndpoint: "{{.ELBAddress}}:6443"
-      clusterName: "{{.ClusterName}}"
-      networking:
-        dnsDomain: "{{.ServiceDomain}}"
-        podSubnet: "{{.PodSubnet}}"
-        serviceSubnet: "{{.ServiceSubnet}}"
-      kubernetesVersion: "{{.KubernetesVersion}}"
+{{.ClusterConfiguration | Indent 6}}
       ---
-      apiVersion: kubeadm.k8s.io/v1beta1
-      kind: InitConfiguration
-      nodeRegistration:
-        name: {{ "{{ ds.meta_data.hostname }}" }}
-        criSocket: /var/run/containerd/containerd.sock
-        kubeletExtraArgs:
-          cloud-provider: aws
+{{.InitConfiguration | Indent 6}}
 kubeadm:
   operation: init
   config: /tmp/kubeadm.yaml
@@ -177,23 +158,7 @@ write_files:
     owner: root:root
     permissions: '0640'
     content: |
-      apiVersion: kubeadm.k8s.io/v1beta1
-      kind: JoinConfiguration
-      discovery:
-        bootstrapToken:
-          token: "{{.BootstrapToken}}"
-          apiServerEndpoint: "{{.ELBAddress}}:6443"
-          caCertHashes:
-            - "{{.CACertHash}}"
-      nodeRegistration:
-        name: {{ "{{ ds.meta_data.hostname }}" }}
-        criSocket: /var/run/containerd/containerd.sock
-        kubeletExtraArgs:
-          cloud-provider: aws
-      controlPlane:
-        localAPIEndpoint:
-          advertiseAddress: {{ "{{ ds.meta_data.local_ipv4 }}" }}
-          bindPort: 6443
+{{.JoinConfiguration | Indent 6}}
 kubeadm:
   operation: join
   config: /tmp/kubeadm-controlplane-join-config.yaml
@@ -208,6 +173,22 @@ func isKeyPairValid(cert, key string) bool {
 type ControlPlaneInput struct {
 	baseUserData
 
+	CACert               string
+	CAKey                string
+	EtcdCACert           string
+	EtcdCAKey            string
+	FrontProxyCACert     string
+	FrontProxyCAKey      string
+	SaCert               string
+	SaKey                string
+	ClusterConfiguration string
+	InitConfiguration    string
+}
+
+// ContolPlaneJoinInput defines context to generate controlplane instance user data for controlplane node join.
+type ContolPlaneJoinInput struct {
+	baseUserData
+
 	CACert            string
 	CAKey             string
 	EtcdCACert        string
@@ -216,29 +197,9 @@ type ControlPlaneInput struct {
 	FrontProxyCAKey   string
 	SaCert            string
 	SaKey             string
+	BootstrapToken    string
 	ELBAddress        string
-	ClusterName       string
-	PodSubnet         string
-	ServiceDomain     string
-	ServiceSubnet     string
-	KubernetesVersion string
-}
-
-// ContolPlaneJoinInput defines context to generate controlplane instance user data for controlplane node join.
-type ContolPlaneJoinInput struct {
-	baseUserData
-
-	CACertHash       string
-	CACert           string
-	CAKey            string
-	EtcdCACert       string
-	EtcdCAKey        string
-	FrontProxyCACert string
-	FrontProxyCAKey  string
-	SaCert           string
-	SaKey            string
-	BootstrapToken   string
-	ELBAddress       string
+	JoinConfiguration string
 }
 
 func (cpi *ControlPlaneInput) validateCertificates() error {
@@ -290,6 +251,7 @@ func NewControlPlane(input *ControlPlaneInput) (string, error) {
 
 	fMap := map[string]interface{}{
 		"Base64Encode": templateBase64Encode,
+		"Indent":       templateYAMLIndent,
 	}
 
 	userData, err := generateWithFuncs("controlplane", controlPlaneCloudInit, funcMap(fMap), input)
@@ -310,6 +272,7 @@ func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 
 	fMap := map[string]interface{}{
 		"Base64Encode": templateBase64Encode,
+		"Indent":       templateYAMLIndent,
 	}
 
 	userData, err := generateWithFuncs("controlplane", controlPlaneJoinCloudInit, funcMap(fMap), input)
@@ -321,4 +284,10 @@ func JoinControlPlane(input *ContolPlaneJoinInput) (string, error) {
 
 func templateBase64Encode(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
+}
+
+func templateYAMLIndent(i int, input string) string {
+	split := strings.Split(input, "\n")
+	ident := "\n" + strings.Repeat(" ", i)
+	return strings.Repeat(" ", i) + strings.Join(split, ident)
 }

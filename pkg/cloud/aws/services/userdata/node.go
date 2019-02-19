@@ -24,19 +24,7 @@ write_files:
     permissions: '0640'
     content: |
       ---
-      apiVersion: kubeadm.k8s.io/v1beta1
-      kind: JoinConfiguration
-      discovery:
-        bootstrapToken:
-          token: "{{.BootstrapToken}}"
-          apiServerEndpoint: "{{.ELBAddress}}:6443"
-          caCertHashes:
-            - "{{.CACertHash}}"
-      nodeRegistration:
-        name: {{ "{{ ds.meta_data.hostname }}" }}
-        criSocket: /var/run/containerd/containerd.sock
-        kubeletExtraArgs:
-          cloud-provider: aws
+      {{.JoinConfiguration | Indent 6}}
 kubeadm:
   operation: join
   config: /tmp/kubeadm-node.yaml
@@ -47,13 +35,14 @@ kubeadm:
 type NodeInput struct {
 	baseUserData
 
-	CACertHash     string
-	BootstrapToken string
-	ELBAddress     string
+	JoinConfiguration string
 }
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) (string, error) {
 	input.Header = cloudConfigHeader
-	return generate("node", nodeCloudInit, input)
+	fMap := map[string]interface{}{
+		"Indent": templateYAMLIndent,
+	}
+	return generateWithFuncs("node", nodeCloudInit, fMap, input)
 }

@@ -750,12 +750,13 @@
   version = "kubernetes-1.13.1"
 
 [[projects]]
-  digest = "1:cded8487c675439a87cc6a3462ec26d2dd78362a2d89c484f58b1d6c181fb877"
+  digest = "1:c7c02c6f769116c386391a5b8f50058afea7489b39338973ac073f4c28217773"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
+    "pkg/apis/config",
     "pkg/apis/meta/internalversion",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
@@ -791,6 +792,7 @@
     "pkg/util/uuid",
     "pkg/util/validation",
     "pkg/util/validation/field",
+    "pkg/util/version",
     "pkg/util/wait",
     "pkg/util/yaml",
     "pkg/version",
@@ -930,6 +932,33 @@
   packages = ["pkg/util/proto"]
   pruneopts = "UT"
   revision = "d7c86cdc46e3a4fcf892b32dd7bc3aa775e0870e"
+
+[[projects]]
+  digest = "1:42ec0fcf04d4b48fc329f9feb31524ac3a204f9ebf28e35da358818e29fe477e"
+  name = "k8s.io/kubernetes"
+  packages = [
+    "cmd/kubeadm/app/apis/kubeadm",
+    "cmd/kubeadm/app/apis/kubeadm/v1beta1",
+    "cmd/kubeadm/app/constants",
+    "cmd/kubeadm/app/util",
+    "pkg/apis/core",
+    "pkg/kubelet/apis/config",
+    "pkg/proxy/apis/config",
+    "pkg/registry/core/service/allocator",
+    "pkg/registry/core/service/ipallocator",
+    "pkg/version",
+  ]
+  pruneopts = "UT"
+  revision = "721bfa751924da8d1680787490c54b9179b1fed0"
+  version = "v1.13.3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:f268bd5bd086f2db10d350eb84e7fcdce063a460f0e1b64eeb1cb32f9a82999e"
+  name = "k8s.io/utils"
+  packages = ["exec"]
+  pruneopts = "UT"
+  revision = "cdba02414f767c89d729b1b9e61d9891f4e82b35"
 
 [[projects]]
   digest = "1:0dd3be513e09375e3f8fefc718fdfc1aac6924dc57adecb6dddfc7edc96a8dda"
@@ -1096,6 +1125,8 @@
     "k8s.io/cluster-bootstrap/token/util",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/klog",
+    "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1",
+    "k8s.io/kubernetes/cmd/kubeadm/app/util",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",

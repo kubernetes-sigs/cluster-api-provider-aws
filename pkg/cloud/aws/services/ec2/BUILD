@@ -27,6 +27,7 @@ go_library(
         "//pkg/cloud/aws/filter:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/certificates:go_default_library",
+        "//pkg/cloud/aws/services/kubeadm:go_default_library",
         "//pkg/cloud/aws/services/userdata:go_default_library",
         "//pkg/cloud/aws/services/wait:go_default_library",
         "//pkg/cloud/aws/tags:go_default_library",
