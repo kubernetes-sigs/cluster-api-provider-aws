@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//build:stateful_set_patch.bzl", "stateful_set_patch")
+resources:
+  - provider-non-stamped-base.yaml
 
-stateful_set_patch(
-    name = "manager-version-patch",
-    docker_repo_var = "REGISTRY_TEST_SHIM",
-    image_name = "manager",
-    pull_policy = "Never",
-    tag = "manager-amd64",
-    visibility = ["//visibility:public"],
-)
+patchesJson6902:
+  - target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: aws-provider-controller-manager
+    path: manager-version-patch.yaml

@@ -54,21 +54,15 @@ go_test(
 genrule(
     name = "integration-provider-components",
     srcs = [
-        "//test:kustomization.yaml",
+        "kustomization.yaml",
         "//test:manager-version-patch.yaml",
-        "//config:aws_provider.yaml",
+        "//config:provider-non-stamped-base.yaml",
     ],
     outs = ["manifests/provider-components-integration.yaml"],
-    cmd = """cp -f {kustomization} $(@D) && \\
-             cp -f {stateful_set_image_patch} $(@D) && \\
-             cp -f {aws_provider} $(@D)/provider-components.yaml && \\
-             {kustomize} build $(@D) > $@
-    """.format(
-        kustomize = "$(location @io_k8s_sigs_kustomize//:kustomize)",
-        kustomization = "$(location //test:kustomization.yaml)",
-        stateful_set_image_patch = "$(location //test:manager-version-patch.yaml)",
-        aws_provider = "$(location //config:aws_provider.yaml)",
-    ),
+    cmd = " && ".join([
+        "cp -f $(SRCS) $(@D)",
+        "$(location @io_k8s_sigs_kustomize//:kustomize) build $(@D) > $@",
+    ]),
     tools = ["@io_k8s_sigs_kustomize//:kustomize"],
     visibility = ["//visibility:public"],
 )

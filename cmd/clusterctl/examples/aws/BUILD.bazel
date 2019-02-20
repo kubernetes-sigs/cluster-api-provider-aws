@@ -14,31 +14,25 @@
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
 
+KUSTOMIZE = "@io_k8s_sigs_kustomize//:kustomize"
+
+KUSTOMIZE_CMD = "$(location %s) build $(@D) > $@" % KUSTOMIZE
+
 genrule(
     name = "provider-components-base",
     srcs = [
-        "//config:aws_provider.yaml",
+        "//config:provider-non-stamped-base.yaml",
         "provider-components-base/kustomization.yaml",
         "provider-components-base/stateful-set-credentials-patch.yaml",
         "//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml",
         "//cmd/manager:manager-version-patch.yaml",
     ],
     outs = ["provider-components-base.yaml"],
-    cmd = """cp -f {kustomization} $(@D) && \\
-             cp -f {stateful_set_credentials_patch} $(@D) && \\
-             cp -f {stateful_set_image_patch} $(@D) && \\
-             cp -f {base_provider} $(@D)/aws-provider-base.yaml && \\
-             cp -f {cluster_api_base} $(@D)/cluster-api-base.yaml && \\
-             {kustomize} build $(@D) > $@
-    """.format(
-        kustomize = "$(location @io_k8s_sigs_kustomize//:kustomize)",
-        base_provider = "$(location //config:aws_provider.yaml)",
-        cluster_api_base = "$(location //vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml)",
-        kustomization = "$(location provider-components-base/kustomization.yaml)",
-        stateful_set_credentials_patch = "$(location provider-components-base/stateful-set-credentials-patch.yaml)",
-        stateful_set_image_patch = "$(location //cmd/manager:manager-version-patch.yaml)",
-    ),
-    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
+    cmd = " && ".join([
+        "cp -f $(SRCS) $(@D)",
+        KUSTOMIZE_CMD,
+    ]),
+    tools = [KUSTOMIZE],
     visibility = ["//visibility:public"],
 )
 
@@ -50,16 +44,11 @@ genrule(
         "//cmd/manager:manager-version-patch-dev.yaml",
     ],
     outs = ["provider-components-base-dev.yaml"],
-    cmd = """cp -f {kustomization} $(@D) && \\
-             cp -f {stateful_set_image_patch} $(@D) && \\
-             {kustomize} build $(@D) > $@
-    """.format(
-        kustomize = "$(location @io_k8s_sigs_kustomize//:kustomize)",
-        provider_components_base = "$(location provider-components-base.yaml)",
-        kustomization = "$(location provider-components-base-dev/kustomization.yaml)",
-        stateful_set_image_patch = "$(location //cmd/manager:manager-version-patch-dev.yaml)",
-    ),
-    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
+    cmd = " && ".join([
+        "cp -f $(SRCS) $(@D)",
+        KUSTOMIZE_CMD,
+    ]),
+    tools = [KUSTOMIZE],
     visibility = ["//visibility:public"],
 )
 

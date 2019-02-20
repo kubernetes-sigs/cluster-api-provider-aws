@@ -14,6 +14,10 @@
 
 load("@io_bazel_rules_go//go:def.bzl", "go_test")
 
+KUSTOMIZE = "@io_k8s_sigs_kustomize//:kustomize"
+
+KUSTOMIZE_CMD = "$(location %s) build $(@D)" % KUSTOMIZE
+
 alias(
     name = "e2e",
     actual = ":go_default_test",
@@ -29,7 +33,7 @@ go_test(
     args = [
         "-kindBinary=$(location @io_k8s_sigs_kind//:kind)",
         "-kubectlBinary=$(location @io_k8s_kubernetes//cmd/kubectl:kubectl)",
-        "-providerComponentsYAML=$(location manifests/provider-components-e2e.yaml)",
+        "-providerComponentsYAML=$(location provider-components-e2e.yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
         "-credFile=$(location manifests/provider-credentials.profile)",
         "-clusterYAML=$(location manifests/cluster.yaml)",
@@ -39,8 +43,8 @@ go_test(
         "manifests/addons.yaml",
         "manifests/cluster.yaml",
         "manifests/machines.yaml",
-        "manifests/provider-components-e2e.yaml",
         "manifests/provider-credentials.profile",
+        "provider-components-e2e.yaml",
         "//cmd/manager:manager-amd64.tar",
         "@io_k8s_kubernetes//cmd/kubectl:kubectl",
         "@io_k8s_sigs_kind//:kind",
@@ -93,28 +97,17 @@ genrule(
         "manifests/machines.yaml",
         "manifests/provider-components.yaml",
     ],
-    cmd = """source {provider_credentials_env} && \\
-             cp -f {addons} $(@D) && \\
-             cp -f {machines_template} $(@D) && \\
-             cp -f {cluster_template} $(@D) && \\
-             cp -f {cluster_network_template} $(@D) && \\
-             cp -f {provider_components_base} $(@D) && \\
-             ENVSUBST={envsubst} \\
-             CLUSTERAWSADM={clusterawsadm} \\
-             OUTPUT_DIR=$(@D)/manifests \\
-             DIR=$(@D) \\
-             {generate_yaml} -f
-    """.format(
-        addons = "$(location //cmd/clusterctl/examples/aws:addons.yaml)",
-        cluster_template = "$(location //cmd/clusterctl/examples/aws:cluster.yaml.template)",
-        cluster_network_template = "$(location //cmd/clusterctl/examples/aws:cluster-network-spec.yaml.template)",
-        envsubst = "$(location @com_github_a8m_envsubst//cmd/envsubst:envsubst)",
-        clusterawsadm = "$(location //cmd/clusterawsadm)",
-        generate_yaml = "$(location //cmd/clusterctl/examples/aws:generate-yaml.sh)",
-        machines_template = "$(location //cmd/clusterctl/examples/aws:machines.yaml.template)",
-        provider_components_base = "$(location //cmd/clusterctl/examples/aws:provider-components-base.yaml)",
-        provider_credentials_env = "$(location manifests/provider-credentials.sh)",
-    ),
+    cmd = " && ".join([
+        "source $(location manifests/provider-credentials.sh)",
+        "cp -f $(SRCS) $(@D)",
+        " ".join([
+            "ENVSUBST=$(location @com_github_a8m_envsubst//cmd/envsubst:envsubst)",
+            "CLUSTERAWSADM=$(location //cmd/clusterawsadm)",
+            "OUTPUT_DIR=$(@D)/manifests",
+            "DIR=$(@D)",
+            "$(location //cmd/clusterctl/examples/aws:generate-yaml.sh) -f",
+        ]),
+    ]),
     tools = [
         "//cmd/clusterawsadm",
         "@com_github_a8m_envsubst//cmd/envsubst:envsubst",
@@ -160,19 +153,15 @@ genrule(
 genrule(
     name = "e2e-provider-components",
     srcs = [
-        "//test:kustomization.yaml",
+        "kustomization.yaml",
         "//test:manager-version-patch.yaml",
         "manifests/provider-components.yaml",
     ],
-    outs = ["manifests/provider-components-e2e.yaml"],
-    cmd = """cp -f {kustomization} $(@D) && \\
-             cp -f {stateful_set_image_patch} $(@D) && \\
-             {kustomize} build $(@D) > $@
-    """.format(
-        kustomize = "$(location @io_k8s_sigs_kustomize//:kustomize)",
-        kustomization = "$(location //test:kustomization.yaml)",
-        stateful_set_image_patch = "$(location //test:manager-version-patch.yaml)",
-    ),
+    outs = ["provider-components-e2e.yaml"],
+    cmd = " && ".join([
+        "cp -f $(SRCS) $(@D)",
+        "$(location @io_k8s_sigs_kustomize//:kustomize) build $(@D) > $@",
+    ]),
     tools = ["@io_k8s_sigs_kustomize//:kustomize"],
     visibility = ["//visibility:public"],
 )
