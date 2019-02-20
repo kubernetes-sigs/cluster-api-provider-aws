@@ -288,6 +288,9 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 				DeleteLocalData:    true,
 				GracePeriodSeconds: -1,
 				Logger:             info.New(glog.V(0)),
+				// If a pod is not evicted in 20 second, retry the eviction next time the
+				// machine gets reconciled again (to allow other machines to be reconciled)
+				Timeout: 20 * time.Second,
 			},
 		); err != nil {
 			// Machine still tries to terminate after drain failure
