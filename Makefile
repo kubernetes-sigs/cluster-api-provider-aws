@@ -141,7 +141,7 @@ manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml
 
 .PHONY: manifests-dev
 manifests-dev: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml ## Generate example output with developer image
-	$(MAKE) examples
+	$(MAKE) manifests
 
 cmd/clusterctl/examples/aws/provider-components-base.yaml:
 	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_DOCKER_ARGS)
