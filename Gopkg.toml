@@ -22,6 +22,10 @@ required = [
   name = "github.com/aws/aws-sdk-go"
   version = "v1.15.5"
 
+[[constraint]]
+  name = "github.com/openshift/cluster-api-actuator-pkg"
+  branch = "master"
+
 [[override]]
   name = "k8s.io/kube-aggregator"
   branch = "release-1.10"

@@ -688,6 +688,43 @@ func ClusterRoleManifest() *rbacv1.ClusterRole {
 					"secrets",
 				},
 			},
+			{
+				Verbs: []string{
+					"create",
+				},
+				APIGroups: []string{
+					"",
+				},
+				Resources: []string{
+					"pods/eviction",
+				},
+			},
+			{
+				Verbs: []string{
+					"list",
+					"watch",
+					"get",
+				},
+				APIGroups: []string{
+					"",
+				},
+				Resources: []string{
+					"pods",
+				},
+			},
+			{
+				Verbs: []string{
+					"list",
+					"watch",
+					"get",
+				},
+				APIGroups: []string{
+					"extensions",
+				},
+				Resources: []string{
+					"daemonsets",
+				},
+			},
 		},
 	}
 }
