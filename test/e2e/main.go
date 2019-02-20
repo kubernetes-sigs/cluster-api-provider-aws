@@ -58,13 +58,6 @@ func runSuite() error {
 	}
 	glog.Info("PASS: ExpectProviderAvailable")
 
-	glog.Info("RUN: ExpectNoClusterObject")
-	if err := testConfig.ExpectNoClusterObject(); err != nil {
-		glog.Errorf("FAIL: ExpectNoClusterObject: %v", err)
-		return err
-	}
-	glog.Info("PASS: ExpectOneClusterObject")
-
 	glog.Info("RUN: ExpectAllMachinesLinkedToANode")
 	if err := testConfig.ExpectAllMachinesLinkedToANode(); err != nil {
 		glog.Errorf("FAIL: ExpectAllMachinesLinkedToANode: %v", err)
