@@ -136,7 +136,7 @@ type SubnetSpec struct {
 	RouteTableID *string `json:"routeTableId"`
 
 	// NatGatewayID is the NAT gateway id associated with the subnet.
-	// Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the nat gateway resides. It is then used to determe routes for private subnets in the same AZ as the public subnet.
+	// Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
 	// +optional
 	NatGatewayID *string `json:"natGatewayId,omitempty"`
 
