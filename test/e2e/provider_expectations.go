@@ -40,25 +40,6 @@ func (tc *testConfig) ExpectProviderAvailable() error {
 	return err
 }
 
-func (tc *testConfig) ExpectNoClusterObject() error {
-	listOptions := client.ListOptions{
-		Namespace: namespace,
-	}
-	clusterList := mapiv1beta1.ClusterList{}
-
-	err := wait.PollImmediate(1*time.Second, waitShort, func() (bool, error) {
-		if err := tc.client.List(context.TODO(), &listOptions, &clusterList); err != nil {
-			glog.Errorf("error querying api for clusterList object: %v, retrying...", err)
-			return false, nil
-		}
-		if len(clusterList.Items) > 0 {
-			return false, errors.New("a cluster object was found")
-		}
-		return true, nil
-	})
-	return err
-}
-
 func (tc *testConfig) ExpectAllMachinesLinkedToANode() error {
 	machineAnnotationKey := "machine.openshift.io/machine"
 	listOptions := client.ListOptions{
