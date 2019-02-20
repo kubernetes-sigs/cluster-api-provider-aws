@@ -64,8 +64,6 @@ spec:
               mountPath: /etc/kubernetes
             - name: certs
               mountPath: /etc/ssl/certs
-            - name: credentials
-              mountPath: /root/.aws
           resources:
             limits:
               cpu: 100m
@@ -85,7 +83,4 @@ spec:
         - name: certs
           hostPath:
             path: /etc/ssl/certs
-        - name: credentials
-          secret:
-            secretName: manager-bootstrap-credentials
       terminationGracePeriodSeconds: 10

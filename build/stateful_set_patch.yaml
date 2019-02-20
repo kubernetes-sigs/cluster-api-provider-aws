@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-namespace: aws-provider-system
-namePrefix: aws-provider-
+- op: replace
+  path: "/spec/template/spec/containers/0/image"
+  value: <registry>/<image_name>:<tag>
 
-resources:
-  - ../crds/awsprovider_v1alpha1_awsclusterproviderspec.yaml
-  - ../crds/awsprovider_v1alpha1_awsclusterproviderstatus.yaml
-  - ../crds/awsprovider_v1alpha1_awsmachineproviderspec.yaml
-  - ../crds/awsprovider_v1alpha1_awsmachineproviderstatus.yaml
-  - ../rbac/rbac_role.yaml
-  - ../rbac/rbac_role_binding.yaml
-  - ../manager/manager.yaml
-
-patches:
-  - rbac_role_binding_patch.yaml
+- op: replace
+  path: "/spec/template/spec/containers/0/imagePullPolicy"
+  value: <pull_policy>

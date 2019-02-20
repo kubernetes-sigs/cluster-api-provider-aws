@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
 
+	"fmt"
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
@@ -74,6 +75,7 @@ var _ = Describe("AWS", func() {
 		client  *clientset.Clientset
 	)
 	BeforeEach(func() {
+		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", awsRegion)
 		cluster.Setup()
 		cfg := cluster.RestConfig()
 		var err error

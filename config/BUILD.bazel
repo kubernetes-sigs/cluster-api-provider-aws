@@ -14,6 +14,8 @@
 
 load("//build:controller_gen.bzl", "controller_gen")
 
+KUSTOMIZE = "@io_k8s_sigs_kustomize//:kustomize"
+
 controller_gen(
     name = "config",
     api = [
@@ -32,43 +34,24 @@ controller_gen(
     visibility = ["//visibility:public"],
 )
 
+# Produces a provider components manifest without image versioning
+# To be used as a base for release and developer manifests
 genrule(
-    name = "aws-provider-yaml",
+    name = "provider-non-stamped-base",
     srcs = [
         "//config/default:kustomization.yaml",
         "//config/default:rbac_role_binding_patch.yaml",
         "//config/manager:manager.yaml",
-        "//cmd/clusterctl/examples/aws:out/aws_manager_image_patch.yaml",
-        "//cmd/clusterctl/examples/aws:test-credentials",
         "config",
-        ":credential_file",
         "//:WORKSPACE",
     ],
-    outs = ["aws_provider.yaml"],
-    cmd = """install -D $(location :credential_file) $(@D)/../cmd/clusterctl/examples/aws/out/credentials && \\
-             CONFIG_SRCDIR={root_dir}/config && \\
-             cp -R $$CONFIG_SRCDIR/default $(@D)/default && \\
-             cp -R $$CONFIG_SRCDIR/manager $(@D)/manager && \\
-             {kustomize} build $(@D)/default > $@
-    """.format(
-        kustomize = "$(location @io_k8s_sigs_kustomize//:kustomize)",
-        root_dir = "$$(dirname $(location //:WORKSPACE))",
-    ),
-    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
-    visibility = ["//visibility:public"],
-)
-
-genrule(
-    name = "credential_file",
-    outs = ["credentials"],
-    visibility = ["//visibility:public"],
+    outs = ["provider-non-stamped-base.yaml"],
     cmd = " && ".join([
-        "touch $@",
-        "export AWS_ACCESS_KEY_ID=$$(grep ^AWS_ACCESS_KEY_ID bazel-out/volatile-status.txt | cut -f2 -d\" \")",
-        "export AWS_SECRET_ACCESS_KEY=$$(grep ^AWS_SECRET_ACCESS_KEY bazel-out/volatile-status.txt | cut -f2 -d\" \")",
-        "echo '[default]' >> $@",
-        "echo aws_access_key_id = $$AWS_ACCESS_KEY_ID >> $@",
-        "echo aws_secret_access_key = $$AWS_SECRET_ACCESS_KEY >> $@",
+        "CONFIG_SRCDIR=$$(dirname $(location //:WORKSPACE))/config",
+        "cp -R $$CONFIG_SRCDIR/default $(@D)/default",
+        "cp -R $$CONFIG_SRCDIR/manager $(@D)/manager",
+        "$(location %s) build $(@D)/default > $@" % KUSTOMIZE,
     ]),
-    stamp = 1,
+    tools = [KUSTOMIZE],
+    visibility = ["//visibility:public"],
 )

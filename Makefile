@@ -20,12 +20,10 @@
 FASTBUILD ?= n ## Set FASTBUILD=y (case-sensitive) to skip some slow tasks
 
 ## Image URL to use all building/pushing image targets
-STABLE_DOCKER_REPO ?= gcr.io/cluster-api-provider-aws
-MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
-MANAGER_IMAGE_TAG ?= 0.0.4
-MANAGER_IMAGE ?= $(STABLE_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
-DEV_DOCKER_REPO ?= gcr.io/$(shell gcloud config get-value project)
-DEV_MANAGER_IMAGE ?= $(DEV_DOCKER_REPO)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
+REGISTRY_DEV ?= gcr.io/$(shell gcloud config get-value project)
+DEPCACHEAGE ?= 24h # Enables caching for Dep
+BAZEL_ARGS ?=
+BAZEL_DOCKER_ARGS := --define=REGISTRY_DEV=$(REGISTRY_DEV) $(BAZEL_ARGS)
 
 DEPCACHEAGE ?= 24h # Enables caching for Dep
 BAZEL_ARGS ?=
@@ -85,15 +83,17 @@ clusterawsadm: dep-ensure ## Build clusterawsadm binary.
 	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterawsadm $(BAZEL_ARGS)
 	install bazel-bin/cmd/clusterawsadm/${BINARYPATHPATTERN}/clusterawsadm $(shell go env GOPATH)/bin/clusterawsadm
 
-.PHONY: release-binaries
-release-binaries: ## Build release binaries
+.PHONY: release-artifacts
+release-artifacts: ## Build release artifacts
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterctl //cmd/clusterawsadm
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterctl //cmd/clusterawsadm
+	bazel build //cmd/clusterctl/examples/aws
 	mkdir -p out
 	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm out/clusterawsadm-darwin-amd64
 	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm out/clusterawsadm-linux-amd64
 	install bazel-bin/cmd/clusterctl/darwin_amd64_pure_stripped/clusterctl out/clusterctl-darwin-amd64
 	install bazel-bin/cmd/clusterctl/linux_amd64_pure_stripped/clusterctl out/clusterctl-linux-amd64
+	install bazel-bin/cmd/clusterctl/examples/aws/aws.tar out/cluster-api-provider-aws-examples.tar
 
 .PHONY: test verify
 test: generate verify ## Run tests
@@ -106,17 +106,13 @@ verify:
 copy-genmocks: ## Copies generated mocks into the repository
 	cp -Rf bazel-genfiles/pkg/* pkg/
 
-BAZEL_DOCKER_ARGS_COMMON := --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME) --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG) $(BAZEL_ARGS)
-BAZEL_DOCKER_ARGS := --define=DOCKER_REPO=$(STABLE_DOCKER_REPO) $(BAZEL_DOCKER_ARGS_COMMON)
-BAZEL_DOCKER_ARGS_DEV := --define=DOCKER_REPO=$(DEV_DOCKER_REPO) $(BAZEL_DOCKER_ARGS_COMMON)
-
 .PHONY: docker-build
 docker-build: generate ## Build the production docker image
 	bazel run //cmd/manager:manager-image $(BAZEL_DOCKER_ARGS)
 
 .PHONY: docker-build-dev
 docker-build-dev: generate ## Build the development docker image
-	bazel run //cmd/manager:manager-image $(BAZEL_DOCKER_ARGS_DEV)
+	bazel run //cmd/manager:manager-image-dev  $(BAZEL_DOCKER_ARGS)
 
 .PHONY: docker-push
 docker-push: generate ## Push production docker image
@@ -124,7 +120,7 @@ docker-push: generate ## Push production docker image
 
 .PHONY: docker-push-dev
 docker-push-dev: generate ## Push development image
-	bazel run //cmd/manager:manager-push $(BAZEL_DOCKER_ARGS_DEV)
+	bazel run //cmd/manager:manager-push-dev  $(BAZEL_DOCKER_ARGS)
 
 .PHONY: clean
 clean: ## Remove all generated files
@@ -133,35 +129,27 @@ clean: ## Remove all generated files
 	rm -f minikube.kubeconfig
 	rm -f bazel-*
 	rm -rf out/
+	rm -f cmd/clusterctl/examples/aws/provider-components-base-dev.yaml
 
 .PHONY: reset-bazel
 reset-bazel: ## Deep cleaning for bazel
 	bazel clean --expunge
 
-.PHONY: cmd/clusterctl/examples/aws/out
-cmd/clusterctl/examples/aws/out:
+.PHONY: manifests
+manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
-cmd/clusterctl/examples/aws/out/credentials: cmd/clusterctl/examples/aws/out ## Generate k8s secret for AWS credentials
-	clusterawsadm alpha bootstrap generate-aws-default-profile > cmd/clusterctl/examples/aws/out/credentials
-
-.PHONY: examples
-examples: ## Generate example output
-	$(MAKE) cmd/clusterctl/examples/aws/out MANAGER_IMAGE=${MANAGER_IMAGE}
-
-.PHONY: examples-dev
-examples-dev: ## Generate example output with developer image
-	$(MAKE) cmd/clusterctl/examples/aws/out MANAGER_IMAGE=${DEV_MANAGER_IMAGE}
-
-.PHONY: manifests
-manifests: cmd/clusterctl/examples/aws/out/credentials ## Generate manifests for clusterctl
-	kustomize build config/default/ > cmd/clusterctl/examples/aws/out/provider-components.yaml
-	echo "---" >> cmd/clusterctl/examples/aws/out/provider-components.yaml
-	kustomize build vendor/sigs.k8s.io/cluster-api/config/default/ >> cmd/clusterctl/examples/aws/out/provider-components.yaml
-
 .PHONY: manifests-dev
-manifests-dev: dep-ensure dep-install binaries-dev crds ## Builds development manifests
-	MANAGER_IMAGE=$(DEV_MANAGER_IMAGE) MANAGER_IMAGE_PULL_POLICY="Always" $(MAKE) manifests
+manifests-dev: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml ## Generate example output with developer image
+	$(MAKE) manifests
+
+cmd/clusterctl/examples/aws/provider-components-base.yaml:
+	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_DOCKER_ARGS)
+	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base.yaml cmd/clusterctl/examples/aws
+
+cmd/clusterctl/examples/aws/provider-components-base-dev.yaml:
+	bazel build //cmd/clusterctl/examples/aws:provider-components-base-dev $(BAZEL_DOCKER_ARGS)
+	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base-dev.yaml cmd/clusterctl/examples/aws
 
 .PHONY: crds
 crds:

@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-namespace: aws-provider-system
-namePrefix: aws-provider-
-
 resources:
-  - ../crds/awsprovider_v1alpha1_awsclusterproviderspec.yaml
-  - ../crds/awsprovider_v1alpha1_awsclusterproviderstatus.yaml
-  - ../crds/awsprovider_v1alpha1_awsmachineproviderspec.yaml
-  - ../crds/awsprovider_v1alpha1_awsmachineproviderstatus.yaml
-  - ../rbac/rbac_role.yaml
-  - ../rbac/rbac_role_binding.yaml
-  - ../manager/manager.yaml
+  - provider-non-stamped-base.yaml
 
-patches:
-  - rbac_role_binding_patch.yaml
+patchesJson6902:
+  - target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: aws-provider-controller-manager
+    path: manager-version-patch.yaml

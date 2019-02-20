@@ -17,16 +17,14 @@ set -o errexit
 set -o nounset
 
 # Directories.
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+DIR=${DIR:=${SOURCE_DIR}}
 OUTPUT_DIR=${OUTPUT_DIR:-${DIR}/out}
 ENVSUBST=${ENVSUBST:-envsubst}
+CLUSTERAWSADM=${CLUSTERAWSADM:-clusterawsadm}
 
 # Cluster name.
 export CLUSTER_NAME="${CLUSTER_NAME:-test1}"
-
-# Manager image.
-export MANAGER_IMAGE="${MANAGER_IMAGE:-gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.0.4}"
-export MANAGER_IMAGE_PULL_POLICY=${MANAGER_IMAGE_PULL_POLICY:-IfNotPresent}
 
 # Machine settings.
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
@@ -40,9 +38,12 @@ CLUSTER_NETWORKSPEC_TEMPLATE_FILE=${DIR}/cluster-network-spec.yaml.template
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
-MANAGER_PATCH_TEMPLATE_FILE=${DIR}/aws_manager_image_patch.yaml.template
-MANAGER_PATCH_GENERATED_FILE=${OUTPUT_DIR}/aws_manager_image_patch.yaml
 ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
+PROVIDER_COMPONENTS_SRC=${DIR}/provider-components-base.yaml
+PROVIDER_COMPONENTS_SRC_DEV=${DIR}/provider-components-base-dev.yaml
+PROVIDER_COMPONENTS_FILE=${OUTPUT_DIR}/provider-components.yaml
+PROVIDER_COMPONENTS_FILE_DEV=${OUTPUT_DIR}/provider-components-dev.yaml
+CREDENTIALS_FILE=${OUTPUT_DIR}/aws-credentials.yaml
 
 # Overwrite flag.
 OVERWRITE=0
@@ -97,8 +98,22 @@ fi
 $ENVSUBST < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
 echo "Done generating ${MACHINES_GENERATED_FILE}"
 
-$ENVSUBST < $MANAGER_PATCH_TEMPLATE_FILE > "${MANAGER_PATCH_GENERATED_FILE}"
-echo "Done generating ${MANAGER_PATCH_GENERATED_FILE}"
-
 cp  ${DIR}/addons.yaml ${ADDONS_FILE}
 echo "Done copying ${ADDONS_FILE}"
+
+CREDENTIALS="$(${CLUSTERAWSADM} alpha bootstrap encode-aws-credentials)"
+echo "Generated credentials"
+
+PROVIDER_COMPONENTS="$(cat ${PROVIDER_COMPONENTS_SRC})"
+
+echo -e "${PROVIDER_COMPONENTS}\n${CREDENTIALS}" > "${PROVIDER_COMPONENTS_FILE}"
+echo "Done writing ${PROVIDER_COMPONENTS_FILE}"
+echo "WARNING: ${PROVIDER_COMPONENTS_FILE} includes credentials"
+
+if [ -f $PROVIDER_COMPONENTS_SRC_DEV ]; then
+  PROVIDER_COMPONENTS_DEV=$(cat ${PROVIDER_COMPONENTS_SRC_DEV})
+
+  echo -e "${PROVIDER_COMPONENTS_DEV}\n${CREDENTIALS}" > "${PROVIDER_COMPONENTS_FILE_DEV}"
+  echo "Done writing ${PROVIDER_COMPONENTS_FILE_DEV}"
+  echo "WARNING: ${PROVIDER_COMPONENTS_FILE_DEV} includes credentials"
+fi

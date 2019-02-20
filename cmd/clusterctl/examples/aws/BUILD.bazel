@@ -1,0 +1,87 @@
+# Copyright 2019 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+
+KUSTOMIZE = "@io_k8s_sigs_kustomize//:kustomize"
+
+KUSTOMIZE_CMD = "$(location %s) build $(@D) > $@" % KUSTOMIZE
+
+genrule(
+    name = "provider-components-base",
+    srcs = [
+        "//config:provider-non-stamped-base.yaml",
+        "provider-components-base/kustomization.yaml",
+        "provider-components-base/stateful-set-credentials-patch.yaml",
+        "//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml",
+        "//cmd/manager:manager-version-patch.yaml",
+    ],
+    outs = ["provider-components-base.yaml"],
+    cmd = " && ".join([
+        "cp -f $(SRCS) $(@D)",
+        KUSTOMIZE_CMD,
+    ]),
+    tools = [KUSTOMIZE],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "provider-components-base-dev",
+    srcs = [
+        "provider-components-base.yaml",
+        "provider-components-base-dev/kustomization.yaml",
+        "//cmd/manager:manager-version-patch-dev.yaml",
+    ],
+    outs = ["provider-components-base-dev.yaml"],
+    cmd = " && ".join([
+        "cp -f $(SRCS) $(@D)",
+        KUSTOMIZE_CMD,
+    ]),
+    tools = [KUSTOMIZE],
+    visibility = ["//visibility:public"],
+)
+
+exports_files([
+    "addons.yaml",
+    "cluster.yaml.template",
+    "cluster-network-spec.yaml.template",
+    "generate-yaml.sh",
+    "machines.yaml.template",
+])
+
+pkg_tar(
+    name = "aws",
+    srcs = [
+        ".gitignore",
+        "addons.yaml",
+        "cluster.yaml.template",
+        "cluster-network-spec.yaml.template",
+        "generate-yaml.sh",
+        "machines.yaml.template",
+        "provider-components-base.yaml",
+        "//docs:getting-started.md",
+    ],
+    modes = {
+        "addons.yaml": "0644",
+        "cluster.yaml.template": "0644",
+        "cluster-network-spec.yaml.template": "0644",
+        "generate-yaml.sh": "0755",
+        "machines.yaml.template": "0644",
+        "provider-components-base.yaml": "0644",
+        "//docs:getting-started.md": "0644",
+        ".gitignore": "0644",
+    },
+    package_dir = "aws",
+    visibility = ["//visibility:public"],
+)

@@ -27,18 +27,28 @@ import (
 	"strings"
 
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/gomega"
+
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+func init() {
+	// Turn on verbose by default to get spec names
+	config.DefaultReporterConfig.Verbose = true
+
+	// Turn on EmitSpecProgress to get spec progress (especially on interrupt)
+	config.GinkgoConfig.EmitSpecProgress = true
+
+}
+
 var (
-	kindBinary      = flag.String("kindBinary", "kind", "path to the kind binary")
-	kubectlBinary   = flag.String("kubectlBinary", "kubectl", "path to the kubectl binary")
-	awsProviderYAML = flag.String("awsProviderYAML", "", "path to the Kubernetes YAML for the aws provider")
-	clusterAPIYAML  = flag.String("clusterAPIYAML", "", "path to the Kubernetes YAML for the cluster API")
-	managerImageTar = flag.String("managerImageTar", "", "a script to load the manager Docker image into Docker")
+	kindBinary             = flag.String("kindBinary", "kind", "path to the kind binary")
+	kubectlBinary          = flag.String("kubectlBinary", "kubectl", "path to the kubectl binary")
+	providerComponentsYAML = flag.String("providerComponentsYAML", "", "path to the provider components YAML for the cluster API")
+	managerImageTar        = flag.String("managerImageTar", "", "a script to load the manager Docker image into Docker")
 )
 
 const kindContainerName = "kind-1-control-plane"
@@ -55,11 +65,12 @@ func (c *Cluster) Setup() {
 	var err error
 	c.tmpDir, err = ioutil.TempDir("", "kind-home")
 	gomega.Expect(err).To(gomega.BeNil())
-
+	fmt.Fprintln(ginkgo.GinkgoWriter, "creating Kind cluster")
 	c.run(exec.Command(*kindBinary, "create", "cluster"))
 	path := c.runWithOutput(exec.Command(*kindBinary, "get", "kubeconfig-path"))
 	c.kubepath = strings.TrimSpace(string(path))
-	fmt.Fprintf(ginkgo.GinkgoWriter, "kubeconfig path: %q\n", c.kubepath)
+	fmt.Fprintf(ginkgo.GinkgoWriter, "kubeconfig path: %q. Can use the following to access the cluster:\n", c.kubepath)
+	fmt.Fprintf(ginkgo.GinkgoWriter, "export KUBECONFIG=%s\n", c.kubepath)
 
 	if *managerImageTar != "" {
 		c.loadImage()
@@ -70,12 +81,17 @@ func (c *Cluster) Setup() {
 
 func (c *Cluster) loadImage() {
 	// TODO(EKF): once kind supports loading images directly, remove this hack
+	fmt.Fprintf(
+		ginkgo.GinkgoWriter,
+		"loading image %q into nested docker instance\n",
+		*managerImageTar)
 	file, err := os.Open(*managerImageTar)
 	gomega.Expect(err).To(gomega.BeNil())
 
 	// Pipe the tar file into the kind container then docker-load it
 	cmd := exec.Command("docker", "exec", "--interactive", kindContainerName, "docker", "load")
 	cmd.Stdin = file
+	cmd.Stdout = ginkgo.GinkgoWriter
 	c.run(cmd)
 }
 
@@ -85,14 +101,13 @@ func (c *Cluster) Teardown() {
 	os.RemoveAll(c.tmpDir)
 }
 
-// applyYAML takes the provided awsProviderYAML and clusterAPIYAML and applies them to a cluster given by the kubeconfig path kubeConfig.
+// applyYAML takes the provided providerComponentsYAML applies them to a cluster given by the kubeconfig path kubeConfig.
 func (c *Cluster) applyYAML() {
 	c.run(exec.Command(
 		*kubectlBinary,
 		"create",
 		"--kubeconfig="+c.kubepath,
-		"-f", *awsProviderYAML,
-		"-f", *clusterAPIYAML,
+		"-f", *providerComponentsYAML,
 	))
 }
 
