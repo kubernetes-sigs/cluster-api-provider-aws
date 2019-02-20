@@ -113,12 +113,6 @@ go_repository(
 )
 
 go_repository(
-    name = "io_k8s_sigs_kustomize_v2",
-    commit = "e65b45f96964498c45d3b38b23d39c5893024a57",
-    importpath = "sigs.k8s.io/kustomize",
-)
-
-go_repository(
     name = "io_k8s_kubernetes",
     commit = "4ed3216f3ec431b140b1d899130a69fc671678f4",  # v1.12.1
     importpath = "k8s.io/kubernetes",
