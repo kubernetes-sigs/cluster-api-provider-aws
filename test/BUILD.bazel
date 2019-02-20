@@ -18,7 +18,7 @@ stateful_set_patch(
     name = "manager-version-patch",
     image_name = "manager",
     pull_policy = "Never",
-    registry = "$(REGISTRY_TEST_SHIM)",
+    registry = "bazel/cmd",
     tag = "manager-amd64",
     visibility = ["//visibility:public"],
 )

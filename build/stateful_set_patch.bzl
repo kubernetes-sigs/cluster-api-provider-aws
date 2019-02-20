@@ -24,10 +24,10 @@ def _stateful_set_patch_impl(ctx):
         template = ctx.file._template,
         output = ctx.outputs.source_file,
         substitutions = {
-            "<registry>": ctx.attr.registry,
-            "<image_name>": ctx.attr.image_name,
-            "<tag>": ctx.attr.tag,
-            "<pull_policy>": ctx.attr.pull_policy,
+            "<registry>": ctx.expand_make_variables("registry", ctx.attr.registry, {}),
+            "<image_name>": ctx.expand_make_variables("image_name",ctx.attr.image_name, {}),
+            "<tag>": ctx.expand_make_variables("tag", ctx.attr.tag, {}),
+            "<pull_policy>": ctx.expand_make_variables("pull_policy",ctx.attr.pull_policy, {}),
         },
     )
 
