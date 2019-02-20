@@ -108,14 +108,14 @@ docker_push(
 
 stateful_set_patch(
     name = "manager-version-patch",
-    docker_repo_var = "REGISTRY_STABLE",
+    registry = "$(REGISTRY_STABLE)",
     tags = ["generated"],
     visibility = ["//visibility:public"],
 )
 
 stateful_set_patch(
     name = "manager-version-patch-dev",
-    docker_repo_var = "REGISTRY_DEV",
     pull_policy = "Always",
+    registry = "$(REGISTRY_DEV)",
     visibility = ["//visibility:public"],
 )

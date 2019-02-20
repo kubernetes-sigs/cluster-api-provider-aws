@@ -14,7 +14,7 @@
 
 - op: replace
   path: "/spec/template/spec/containers/0/image"
-  value: <docker_repo>/<image_name>:<tag>
+  value: <registry>/<image_name>:<tag>
 
 - op: replace
   path: "/spec/template/spec/containers/0/imagePullPolicy"

@@ -24,7 +24,7 @@ def _stateful_set_patch_impl(ctx):
         template = ctx.file._template,
         output = ctx.outputs.source_file,
         substitutions = {
-            "<docker_repo>": ctx.var[ctx.attr.docker_repo_var],
+            "<registry>": ctx.attr.registry,
             "<image_name>": ctx.attr.image_name,
             "<tag>": ctx.attr.tag,
             "<pull_policy>": ctx.attr.pull_policy,
@@ -42,7 +42,7 @@ def _stateful_set_patch_impl(ctx):
 
 stateful_set_patch = rule(
     attrs = {
-        "docker_repo_var": attr.string(mandatory = True),
+        "registry": attr.string(mandatory = True),
         "pull_policy": attr.string(default = "IfNotPresent"),
         "image_name": attr.string(default = "$(MANAGER_IMAGE_NAME)"),
         "tag": attr.string(default = "$(MANAGER_IMAGE_TAG)"),

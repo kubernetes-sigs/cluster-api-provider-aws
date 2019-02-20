@@ -16,9 +16,9 @@ load("//build:stateful_set_patch.bzl", "stateful_set_patch")
 
 stateful_set_patch(
     name = "manager-version-patch",
-    docker_repo_var = "REGISTRY_TEST_SHIM",
     image_name = "manager",
     pull_policy = "Never",
+    registry = "$(REGISTRY_TEST_SHIM)",
     tag = "manager-amd64",
     visibility = ["//visibility:public"],
 )
