@@ -45,5 +45,6 @@ kubeconfig
 # vscode
 .vscode
 
-# Ignore dev manifests
+# Ignore output manifests
+cmd/clusterctl/examples/aws/out
 cmd/clusterctl/examples/aws/provider-components-base-dev.yaml

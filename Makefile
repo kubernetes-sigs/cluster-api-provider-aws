@@ -143,10 +143,12 @@ manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml
 manifests-dev: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml ## Generate example output with developer image
 	$(MAKE) manifests
 
+.PHONY: cmd/clusterctl/examples/aws/provider-components-base.yaml
 cmd/clusterctl/examples/aws/provider-components-base.yaml:
 	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_DOCKER_ARGS)
 	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base.yaml cmd/clusterctl/examples/aws
 
+.PHONY: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml
 cmd/clusterctl/examples/aws/provider-components-base-dev.yaml:
 	bazel build //cmd/clusterctl/examples/aws:provider-components-base-dev $(BAZEL_DOCKER_ARGS)
 	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base-dev.yaml cmd/clusterctl/examples/aws
@@ -171,7 +173,7 @@ create-cluster: ## Create a Kubernetes cluster on AWS using examples
 	--bootstrap-type kind \
 	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
 	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
-	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
+	-p ./cmd/clusterctl/examples/aws/out/provider-components-dev.yaml \
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 lint-full: dep-ensure ## Run slower linters to detect possible issues
