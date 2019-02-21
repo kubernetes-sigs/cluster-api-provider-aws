@@ -43,6 +43,7 @@ PROVIDER_COMPONENTS_SRC=${DIR}/provider-components-base.yaml
 PROVIDER_COMPONENTS_SRC_DEV=${DIR}/provider-components-base-dev.yaml
 PROVIDER_COMPONENTS_FILE=${OUTPUT_DIR}/provider-components.yaml
 PROVIDER_COMPONENTS_FILE_DEV=${OUTPUT_DIR}/provider-components-dev.yaml
+CREDENTIALS_FILE=${OUTPUT_DIR}/aws-credentials.yaml
 
 # Overwrite flag.
 OVERWRITE=0
@@ -105,14 +106,14 @@ echo "Generated credentials"
 
 PROVIDER_COMPONENTS="$(cat ${PROVIDER_COMPONENTS_SRC})"
 
-echo -e "${PROVIDER_COMPONENTS}\n---\n${CREDENTIALS}" > "${PROVIDER_COMPONENTS_FILE}"
+echo -e "${PROVIDER_COMPONENTS}\n${CREDENTIALS}" > "${PROVIDER_COMPONENTS_FILE}"
 echo "Done writing ${PROVIDER_COMPONENTS_FILE}"
 echo "WARNING: ${PROVIDER_COMPONENTS_FILE} includes credentials"
 
 if [ -f $PROVIDER_COMPONENTS_SRC_DEV ]; then
   PROVIDER_COMPONENTS_DEV=$(cat ${PROVIDER_COMPONENTS_SRC_DEV})
 
-  echo -e "${PROVIDER_COMPONENTS_DEV}\n---\n${CREDENTIALS}" > "${PROVIDER_COMPONENTS_FILE_DEV}"
+  echo -e "${PROVIDER_COMPONENTS_DEV}\n${CREDENTIALS}" > "${PROVIDER_COMPONENTS_FILE_DEV}"
   echo "Done writing ${PROVIDER_COMPONENTS_FILE_DEV}"
   echo "WARNING: ${PROVIDER_COMPONENTS_FILE_DEV} includes credentials"
 fi
