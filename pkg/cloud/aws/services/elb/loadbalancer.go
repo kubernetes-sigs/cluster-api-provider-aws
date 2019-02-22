@@ -348,22 +348,3 @@ func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBala
 
 	return res
 }
-
-func fromSDKTypeToClassicListener(v *elb.Listener) *v1alpha1.ClassicELBListener {
-	return &v1alpha1.ClassicELBListener{
-		Protocol:         v1alpha1.ClassicELBProtocol(*v.Protocol),
-		Port:             *v.LoadBalancerPort,
-		InstanceProtocol: v1alpha1.ClassicELBProtocol(*v.InstanceProtocol),
-		InstancePort:     *v.InstancePort,
-	}
-}
-
-func fromSDKTypeToClassicHealthCheck(v *elb.HealthCheck) *v1alpha1.ClassicELBHealthCheck {
-	return &v1alpha1.ClassicELBHealthCheck{
-		Target:             *v.Target,
-		Interval:           time.Duration(*v.Interval) * time.Second,
-		Timeout:            time.Duration(*v.Timeout) * time.Second,
-		HealthyThreshold:   *v.HealthyThreshold,
-		UnhealthyThreshold: *v.UnhealthyThreshold,
-	}
-}
