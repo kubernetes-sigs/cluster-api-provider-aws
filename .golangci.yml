@@ -15,6 +15,7 @@ linters:
     - nakedret
     - prealloc
     - gosec
+    - deadcode
   disable-all: true
   # Run with --fast=false for more extensive checks
   fast: true
