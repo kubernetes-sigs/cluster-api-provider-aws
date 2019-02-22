@@ -19,6 +19,7 @@ package e2e_test
 import (
 	"flag"
 	"io/ioutil"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -58,16 +59,24 @@ const (
 	clusterName      = "capa-test-cluster"
 	controlPlaneName = "capa-test-control-plane"
 
-	awsRegion   = "us-east-1"
 	stackName   = "cluster-api-provider-aws-sigs-k8s-io"
 	keyPairName = "cluster-api-provider-aws-sigs-k8s-io"
 )
 
 var (
+	region      string
 	credFile    = flag.String("credFile", "", "path to an AWS credentials file")
 	clusterYAML = flag.String("clusterYAML", "", "path to the YAML for the cluster we're creating")
 	machineYAML = flag.String("machineYAML", "", "path to the YAML describing the control plane we're creating")
 )
+
+func init() {
+	if region = os.Getenv("AWS_DEFAULT_REGION"); region == "" {
+		if region = os.Getenv("AWS_REGION"); region == "" {
+			region = "us-east-1"
+		}
+	}
+}
 
 var _ = Describe("AWS", func() {
 	var (
@@ -146,7 +155,7 @@ func makeCluster() *capi.Cluster {
 	awsSpec, err := capa.ClusterConfigFromProviderSpec(cluster.Spec.ProviderSpec)
 	Expect(err).To(BeNil())
 	awsSpec.SSHKeyName = keyPairName
-	awsSpec.Region = awsRegion
+	awsSpec.Region = region
 	cluster.Spec.ProviderSpec.Value, err = capa.EncodeClusterSpec(awsSpec)
 	Expect(err).To(BeNil())
 
@@ -221,7 +230,7 @@ func getSession() client.ConfigProvider {
 	creds := credentials.NewCredentials(&credentials.SharedCredentialsProvider{
 		Filename: *credFile,
 	})
-	sess, err := session.NewSession(aws.NewConfig().WithCredentials(creds).WithRegion(awsRegion))
+	sess, err := session.NewSession(aws.NewConfig().WithCredentials(creds).WithRegion(region))
 	Expect(err).To(BeNil())
 	return sess
 }
