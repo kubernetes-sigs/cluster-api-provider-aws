@@ -159,15 +159,16 @@ crds:
 	cp -R bazel-genfiles/config/crds/* config/crds/
 	cp -R bazel-genfiles/config/rbac/* config/rbac/
 
-# TODO(vincepri): This should move to rebuild Bazel binaries once every
-# make target uses Bazel bins to run operations.
-.PHONY: binaries-dev
-binaries-dev: ## Builds and installs the binaries on the local GOPATH
-	go get -v ./...
-	go install -v ./...
+lint-full: dep-ensure ## Run slower linters to detect possible issues
+	bazel run //:lint-full $(BAZEL_ARGS)
+
+## Define local development targets here
+
+.PHONY: binaries
+binaries: manager clusterawsadm clusterctl ## Builds and installs all binaries
 
 .PHONY: create-cluster
-create-cluster: ## Create a Kubernetes cluster on AWS using examples
+create-cluster: binaries ## Create a Kubernetes cluster on AWS using examples
 	clusterctl create cluster -v 3 \
 	--provider aws \
 	--bootstrap-type kind \
@@ -175,11 +176,6 @@ create-cluster: ## Create a Kubernetes cluster on AWS using examples
 	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
 	-p ./cmd/clusterctl/examples/aws/out/provider-components-dev.yaml \
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
-
-lint-full: dep-ensure ## Run slower linters to detect possible issues
-	bazel run //:lint-full $(BAZEL_ARGS)
-
-## Define kind dependencies here.
 
 kind-reset: ## Destroys the "clusterapi" kind cluster.
 	kind delete cluster --name=clusterapi || true

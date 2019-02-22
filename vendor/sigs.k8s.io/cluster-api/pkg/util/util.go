@@ -18,6 +18,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -40,27 +41,31 @@ import (
 const (
 	// CharSet defines the alphanumeric set for random string generation
 	CharSet = "0123456789abcdefghijklmnopqrstuvwxyz"
+	// MachineListFormatDeprecationMessage notifies the user that the old
+	// MachineList format is no longer supported
+	MachineListFormatDeprecationMessage = "Your MachineList items must include Kind and APIVersion"
 )
 
 var (
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
 
-// RandomToken returns a random token
+// RandomToken returns a random token.
 func RandomToken() string {
 	return fmt.Sprintf("%s.%s", RandomString(6), RandomString(16))
 }
 
-// RandomString returns a random alphanumeric string
+// RandomString returns a random alphanumeric string.
 func RandomString(n int) string {
 	result := make([]byte, n)
 	for i := range result {
-		result[i] = CharSet[r.Intn(len(CharSet))]
+		result[i] = CharSet[rnd.Intn(len(CharSet))]
 	}
 	return string(result)
 }
 
-// GetControlPlaneMachine returns the control plane machine from a slice
+// GetControlPlaneMachine returns a control plane machine from input.
+// Deprecated: use GetControlPlaneMachines.
 func GetControlPlaneMachine(machines []*clusterv1.Machine) *clusterv1.Machine {
 	for _, machine := range machines {
 		if IsControlPlaneMachine(machine) {
@@ -70,7 +75,17 @@ func GetControlPlaneMachine(machines []*clusterv1.Machine) *clusterv1.Machine {
 	return nil
 }
 
-// MachineP converts a slice of machines into a slice of machine pointers
+// GetControlPlaneMachines returns a slice containing control plane machines.
+func GetControlPlaneMachines(machines []*clusterv1.Machine) (res []*clusterv1.Machine) {
+	for _, machine := range machines {
+		if IsControlPlaneMachine(machine) {
+			res = append(res, machine)
+		}
+	}
+	return
+}
+
+// MachineP converts a slice of machines into a slice of machine pointers.
 func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
 	// Convert to list of pointers
 	ret := make([]*clusterv1.Machine, 0, len(machines))
@@ -80,7 +95,7 @@ func MachineP(machines []clusterv1.Machine) []*clusterv1.Machine {
 	return ret
 }
 
-// Home returns the user home directory
+// Home returns the user home directory.
 func Home() string {
 	home := os.Getenv("HOME")
 	if strings.Contains(home, "root") {
@@ -126,13 +141,12 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 	return machine, nil
 }
 
-// IsControlPlaneMachine checks machine is a control plane node
-// TODO(robertbailey): Remove this function
+// IsControlPlaneMachine checks machine is a control plane node.
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
 	return machine.Spec.Versions.ControlPlane != ""
 }
 
-// IsNodeReady returns true if a node is ready
+// IsNodeReady returns true if a node is ready.
 func IsNodeReady(node *v1.Node) bool {
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == v1.NodeReady {
@@ -143,7 +157,7 @@ func IsNodeReady(node *v1.Node) bool {
 	return false
 }
 
-// Copy deep copies a Machine object
+// Copy deep copies a Machine object.
 func Copy(m *clusterv1.Machine) *clusterv1.Machine {
 	ret := &clusterv1.Machine{}
 	ret.APIVersion = m.APIVersion
@@ -156,7 +170,7 @@ func Copy(m *clusterv1.Machine) *clusterv1.Machine {
 	return ret
 }
 
-// ExecCommand Executes a local command in the current shell
+// ExecCommand Executes a local command in the current shell.
 func ExecCommand(name string, args ...string) string {
 	cmdOut, err := exec.Command(name, args...).Output()
 	if err != nil {
@@ -166,7 +180,7 @@ func ExecCommand(name string, args ...string) string {
 	return string(cmdOut)
 }
 
-// Filter filters a list for a string
+// Filter filters a list for a string.
 func Filter(list []string, strToFilter string) (newList []string) {
 	for _, item := range list {
 		if item != strToFilter {
@@ -176,7 +190,7 @@ func Filter(list []string, strToFilter string) (newList []string) {
 	return
 }
 
-// Contains returns true if a list contains a string
+// Contains returns true if a list contains a string.
 func Contains(list []string, strToSearch string) bool {
 	for _, item := range list {
 		if item == strToSearch {
@@ -187,7 +201,7 @@ func Contains(list []string, strToSearch string) bool {
 }
 
 // GetNamespaceOrDefault returns the default namespace if given empty
-// output
+// output.
 func GetNamespaceOrDefault(namespace string) string {
 	if namespace == "" {
 		return v1.NamespaceDefault
@@ -195,10 +209,9 @@ func GetNamespaceOrDefault(namespace string) string {
 	return namespace
 }
 
-// ParseClusterYaml parses a YAML file for cluster objects
+// ParseClusterYaml parses a YAML file for cluster objects.
 func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 	reader, err := os.Open(file)
-
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +226,6 @@ func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 	}
 
 	var cluster clusterv1.Cluster
-
 	if err := json.Unmarshal(bytes[0], &cluster); err != nil {
 		return nil, err
 	}
@@ -221,10 +233,9 @@ func ParseClusterYaml(file string) (*clusterv1.Cluster, error) {
 	return &cluster, nil
 }
 
-// ParseMachinesYaml extracts machine objects from a file
+// ParseMachinesYaml extracts machine objects from a file.
 func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	reader, err := os.Open(file)
-
 	if err != nil {
 		return nil, err
 	}
@@ -232,84 +243,75 @@ func ParseMachinesYaml(file string) ([]*clusterv1.Machine, error) {
 	defer reader.Close()
 
 	decoder := yaml.NewYAMLOrJSONDecoder(reader, 32)
-	machineList, err := decodeMachineLists(decoder)
 
-	if err != nil {
+	var (
+		bytes       [][]byte
+		machineList clusterv1.MachineList
+		machine     clusterv1.Machine
+		machines    = []clusterv1.Machine{}
+	)
+
+	// TODO: use the universal decoder instead of doing this.
+	if bytes, err = decodeClusterV1Kinds(decoder, "MachineList"); err != nil {
+		if isMissingKind(err) {
+			err = errors.New(MachineListFormatDeprecationMessage)
+		}
 		return nil, err
 	}
 
-	// Will reread the file to find items which aren't a list.
-	// TODO: Make the Kind field mandatory on machines.yaml and then use the
-	// universal decoder instead of doing this.
-	// https://github.com/kubernetes-sigs/cluster-api/issues/717
+	// TODO: this is O(n^2) and must be optimized
+	for _, ml := range bytes {
+		if err := json.Unmarshal(ml, &machineList); err != nil {
+			return nil, err
+		}
+		for _, machine := range machineList.Items {
+			if machine.APIVersion == "" || machine.Kind == "" {
+				return nil, errors.New(MachineListFormatDeprecationMessage)
+			}
+			machines = append(machines, machine)
+		}
+	}
+
+	// reset reader to search for discrete Machine definitions
 	if _, err := reader.Seek(0, 0); err != nil {
 		return nil, err
 	}
 
-	bytes, err := decodeClusterV1Kinds(decoder, "Machine")
-
-	// Original set of MachineLists did not have Kind field
-	if err != nil && !isMissingKind(err) {
+	if bytes, err = decodeClusterV1Kinds(decoder, "Machine"); err != nil {
 		return nil, err
 	}
 
-	machines := []clusterv1.Machine{}
-
 	for _, m := range bytes {
-		var machine clusterv1.Machine
-		err = json.Unmarshal(m, &machine)
-		if err != nil {
+		if err := json.Unmarshal(m, &machine); err != nil {
 			return nil, err
 		}
 		machines = append(machines, machine)
 	}
 
-	machinesP := MachineP(machines)
-
-	return append(machinesP, machineList...), nil
-}
-
-// decodeMachineLists extracts MachineLists from a byte reader
-func decodeMachineLists(decoder *yaml.YAMLOrJSONDecoder) ([]*clusterv1.Machine, error) {
-
-	outs := []clusterv1.Machine{}
-
-	for {
-		var out clusterv1.MachineList
-		err := decoder.Decode(&out)
-
-		if err == io.EOF {
-			break
-		}
-		outs = append(outs, out.Items...)
-	}
-	return MachineP(outs), nil
+	return MachineP(machines), nil
 }
 
 // isMissingKind reimplements runtime.IsMissingKind as the YAMLOrJSONDecoder
-// hides the error type
+// hides the error type.
 func isMissingKind(err error) bool {
 	return strings.Contains(err.Error(), "Object 'Kind' is missing in")
 }
 
-// decodeClusterV1Kinds returns a slice of objects matching the clusterv1 kind
+// decodeClusterV1Kinds returns a slice of objects matching the clusterv1 kind.
 func decodeClusterV1Kinds(decoder *yaml.YAMLOrJSONDecoder, kind string) ([][]byte, error) {
-
 	outs := [][]byte{}
 
 	for {
 		var out unstructured.Unstructured
-		err := decoder.Decode(&out)
 
-		if err == io.EOF {
+		if err := decoder.Decode(&out); err == io.EOF {
 			break
 		} else if err != nil {
 			return nil, err
 		}
 
 		if out.GetKind() == kind && out.GetAPIVersion() == clusterv1.SchemeGroupVersion.String() {
-			var marshaled []byte
-			marshaled, err = out.MarshalJSON()
+			marshaled, err := out.MarshalJSON()
 			if err != nil {
 				return outs, err
 			}
