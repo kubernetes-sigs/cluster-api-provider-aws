@@ -64,7 +64,6 @@ exports_files([
 pkg_tar(
     name = "aws",
     srcs = [
-        ".gitignore",
         "addons.yaml",
         "cluster.yaml.template",
         "cluster-network-spec.yaml.template",
