@@ -5,22 +5,22 @@ metadata:
   name: aws-actuator-testing-machine
   namespace: test
   labels:
-    sigs.k8s.io/cluster-api-cluster: tb-asg-35
-    sigs.k8s.io/cluster-api-machine-role: infra
-    sigs.k8s.io/cluster-api-machine-type: master
+    machine.openshift.io/cluster-api-cluster: tb-asg-35
+    machine.openshift.io/cluster-api-machine-role: infra
+    machine.openshift.io/cluster-api-machine-type: master
 spec:
   replicas: 2
   selector:
     matchLabels:
-      sigs.k8s.io/cluster-api-machineset: test-master
-      sigs.k8s.io/cluster-api-cluster: tb-asg-35
+      machine.openshift.io/cluster-api-machineset: test-master
+      machine.openshift.io/cluster-api-cluster: tb-asg-35
   template:
     metadata:
       labels:
-        sigs.k8s.io/cluster-api-machineset: test-master
-        sigs.k8s.io/cluster-api-cluster: tb-asg-35
-        sigs.k8s.io/cluster-api-machine-role: infra
-        sigs.k8s.io/cluster-api-machine-type: master
+        machine.openshift.io/cluster-api-machineset: test-master
+        machine.openshift.io/cluster-api-cluster: tb-asg-35
+        machine.openshift.io/cluster-api-machine-role: infra
+        machine.openshift.io/cluster-api-machine-type: master
     spec:
       providerSpec:
         value:

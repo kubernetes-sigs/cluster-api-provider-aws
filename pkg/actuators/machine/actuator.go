@@ -575,5 +575,9 @@ func (a *Actuator) updateStatus(machine *machinev1.Machine, instance *ec2.Instan
 
 func getClusterID(machine *machinev1.Machine) (string, bool) {
 	clusterID, ok := machine.Labels[providerconfigv1.ClusterIDLabel]
+	// NOTE: This block can be removed after the label renaming transition to machine.openshift.io
+	if !ok {
+		clusterID, ok = machine.Labels["sigs.k8s.io/cluster-api-cluster"]
+	}
 	return clusterID, ok
 }

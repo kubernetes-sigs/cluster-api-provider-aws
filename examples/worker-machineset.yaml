@@ -5,18 +5,18 @@ metadata:
   name: default-worker-machineset
   namespace: test
   labels:
-    sigs.k8s.io/cluster-api-cluster: tb-asg-35
+    machine.openshift.io/cluster-api-cluster: tb-asg-35
 spec:
   replicas: 1
   selector:
     matchLabels:
-      sigs.k8s.io/cluster-api-machineset: worker-machine
-      sigs.k8s.io/cluster-api-cluster: tb-asg-35
+      machine.openshift.io/cluster-api-machineset: worker-machine
+      machine.openshift.io/cluster-api-cluster: tb-asg-35
   template:
     metadata:
       labels:
-        sigs.k8s.io/cluster-api-machineset: worker-machine
-        sigs.k8s.io/cluster-api-cluster: tb-asg-35
+        machine.openshift.io/cluster-api-machineset: worker-machine
+        machine.openshift.io/cluster-api-cluster: tb-asg-35
     spec:
       metadata:
         labels:
