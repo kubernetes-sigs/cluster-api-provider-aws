@@ -2156,6 +2156,15 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+- apiGroups:
   - cluster.k8s.io
   resources:
   - machines
@@ -2316,7 +2325,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        image: gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.1.0
+        image: gcr.io/cluster-api-provider-aws/cluster-api-aws-controller:0.0.4
         imagePullPolicy: IfNotPresent
         name: manager
         resources:
