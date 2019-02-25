@@ -37,12 +37,20 @@ import (
 func main() {
 	klog.InitFlags(nil)
 	flag.Set("logtostderr", "true")
+	watchNamespace := flag.String("namespace", "",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 	flag.Parse()
 
 	cfg := config.GetConfigOrDie()
 
 	// Setup a Manager
-	mgr, err := manager.New(cfg, manager.Options{})
+	var mgrOps manager.Options
+	if *watchNamespace != "" {
+		mgrOps.Namespace = *watchNamespace
+		klog.Infof("Reconciling cluster-api objects in namespace %q", mgrOps.Namespace)
+	}
+
+	mgr, err := manager.New(cfg, mgrOps)
 	if err != nil {
 		klog.Fatalf("Failed to set up overall controller manager: %v", err)
 	}
