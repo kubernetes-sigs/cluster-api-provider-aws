@@ -103,8 +103,8 @@ k8s-e2e: ## Run k8s specific e2e test
 		-args -v 5 -logtostderr true
 
 .PHONY: test-e2e
-test-e2e: ## Run e2e validation/gating test
-	go run ./test/e2e/*.go -alsologtostderr
+test-e2e:
+	go run ./vendor/github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/openshift/*.go -alsologtostderr
 
 .PHONY: lint
 lint: ## Go lint your code
