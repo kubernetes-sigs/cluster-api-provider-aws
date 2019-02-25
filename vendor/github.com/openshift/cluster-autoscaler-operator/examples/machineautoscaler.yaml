@@ -1,0 +1,13 @@
+---
+apiVersion: "autoscaling.openshift.io/v1alpha1"
+kind: "MachineAutoscaler"
+metadata:
+  name: "worker-us-east-1a"
+  namespace: "openshift-machine-api"
+spec:
+  minReplicas: 1
+  maxReplicas: 12
+  scaleTargetRef:
+    apiVersion: cluster.k8s.io/v1alpha1
+    kind: MachineSet
+    name: worker

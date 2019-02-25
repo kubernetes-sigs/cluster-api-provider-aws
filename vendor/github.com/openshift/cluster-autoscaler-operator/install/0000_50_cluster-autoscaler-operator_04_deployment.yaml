@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler-operator
+  namespace: openshift-machine-api
+  labels:
+    k8s-app: cluster-autoscaler-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: cluster-autoscaler-operator
+  template:
+    metadata:
+      labels:
+        k8s-app: cluster-autoscaler-operator
+    spec:
+      serviceAccountName: cluster-autoscaler-operator
+      containers:
+      - name: cluster-autoscaler-operator
+        image: docker.io/openshift/origin-cluster-autoscaler-operator:v4.0
+        command:
+        - cluster-autoscaler-operator
+        args:
+        - -alsologtostderr
+        env:
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_AUTOSCALER_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LEADER_ELECTION_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CLUSTER_AUTOSCALER_IMAGE
+          value: docker.io/openshift/origin-cluster-autoscaler:v4.0
+        resources:
+          limits:
+            cpu: 20m
+            memory: 50Mi
+          requests:
+            cpu: 20m
+            memory: 50Mi
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"

@@ -41,12 +41,32 @@ required = [
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     ]
 
+[[constraint]]
+  name = "github.com/openshift/cluster-api"
+  revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
+
 # We need to specify fsnotify source to avoid dep panic
 [[override]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
 
-[[constraint]]
-  name = "github.com/openshift/cluster-api"
-  revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
 
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/kube-aggregator"
+  branch = "release-1.12"

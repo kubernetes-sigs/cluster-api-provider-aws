@@ -401,6 +401,17 @@
   version = "v1.4.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:3e7d0b300be6939fbf0731edf57ae4af2aefff51d99e6d721f81661f4b2da7cb"
+  name = "github.com/openshift/api"
+  packages = [
+    "config/v1",
+    "security/v1",
+  ]
+  pruneopts = "T"
+  revision = "cec6269883be26556e63500b6df19a0b6691992e"
+
+[[projects]]
   digest = "1:c49c9300cc3bcc68bc1380ac1bad9ccc190f4f53c58dc208d805eda92c3b9279"
   name = "github.com/openshift/cluster-api"
   packages = [
@@ -422,16 +433,35 @@
   revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
 
 [[projects]]
-  branch = "master"
-  digest = "1:cc2649e5150c4f568adcb5411f10c5c0a751ef9e565f4f28c6faecf08dbf9af6"
+  digest = "1:bb7392bb4b4067e08472994f84513caf955ba52742fa50d954e5f2e45d9dc956"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/framework",
+    "pkg/e2e/openshift",
+    "pkg/e2e/openshift/suites",
     "pkg/manifests",
     "pkg/types",
   ]
   pruneopts = "T"
-  revision = "93b5b3ac5808c826a9f51f6a2496f379404e60df"
+  revision = "2620fd63480ea1155c71de87a022f1f564f09ff2"
+
+[[projects]]
+  digest = "1:eb7058f08b175230d9e6a9a040696b909f7641278e9f394b7168f89b1c5a730d"
+  name = "github.com/openshift/cluster-autoscaler-operator"
+  packages = [
+    "pkg/apis",
+    "pkg/apis/autoscaling/v1alpha1",
+  ]
+  pruneopts = "T"
+  revision = "4bcabb30b24b7289ea2b935f5a9cf0b89784835d"
+
+[[projects]]
+  branch = "master"
+  digest = "1:60049abc3f44f250e7eabb8d5857c778ac66a3c94f4d8181f14d3666ef41089a"
+  name = "github.com/openshift/cluster-version-operator"
+  packages = ["lib/resourcemerge"]
+  pruneopts = "T"
+  revision = "70c0232ed95e4b0e0cd78efdcdec6f2410f592bb"
 
 [[projects]]
   branch = "master"
@@ -1002,6 +1032,17 @@
   version = "v0.1.0"
 
 [[projects]]
+  digest = "1:779879d3e5de01bad7d7737371ec648d35d5fb43825e008d364a23d722e99d1f"
+  name = "k8s.io/kube-aggregator"
+  packages = [
+    "pkg/apis/apiregistration",
+    "pkg/apis/apiregistration/v1",
+  ]
+  pruneopts = "T"
+  revision = "4764f3a1991175f477682bbba516e97fab77b19f"
+  version = "kubernetes-1.12.5"
+
+[[projects]]
   branch = "master"
   digest = "1:152cd19bedf58a86d6b8b9ca42a428e4f16a9415f81e248a800b6a46c77dc486"
   name = "k8s.io/kube-openapi"
@@ -1101,6 +1142,7 @@
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/openshift",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
     "github.com/openshift/cluster-api/pkg/apis",
@@ -1115,12 +1157,9 @@
     "github.com/stretchr/testify/assert",
     "golang.org/x/net/context",
     "gopkg.in/yaml.v2",
-    "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
-    "k8s.io/api/policy/v1beta1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/equality",
-    "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
@@ -1128,7 +1167,6 @@
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/errors",
-    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/uuid",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/kubernetes",

@@ -1,0 +1,7 @@
+{
+  "kind": "Test",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "file-json"
+  }
+}
