@@ -1,0 +1,12 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+spec:
+  tags:
+  - name: cluster-autoscaler-operator
+    from:
+      kind: DockerImage
+      name: docker.io/openshift/origin-cluster-autoscaler-operator:v4.0
+  - name: cluster-autoscaler
+    from:
+      kind: DockerImage
+      name: docker.io/openshift/origin-cluster-autoscaler:v4.0
