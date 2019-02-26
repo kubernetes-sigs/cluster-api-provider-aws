@@ -166,7 +166,6 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:DeleteVpc",
 					"ec2:DescribeAddresses",
 					"ec2:DescribeAvailabilityZones",
-					"ec2:DescribeInstances",
 					"ec2:DescribeInternetGateways",
 					"ec2:DescribeImages",
 					"ec2:DescribeNatGateways",
@@ -179,13 +178,6 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:ModifySubnetAttribute",
 					"ec2:ReleaseAddress",
 					"ec2:RevokeSecurityGroupIngress",
-					"ec2:RunInstances",
-					"elasticloadbalancing:CreateLoadBalancer",
-					"elasticloadbalancing:ConfigureHealthCheck",
-					"elasticloadbalancing:DescribeLoadBalancers",
-					"elasticloadbalancing:DescribeLoadBalancerAttributes",
-					"elasticloadbalancing:ModifyLoadBalancerAttributes",
-					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				},
 			},
 			{
@@ -206,6 +198,8 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				Resource: iam.Resources{"*"},
 				Action: iam.Actions{
 					"ec2:CreateTags",
+					"ec2:RunInstances",
+					"elasticloadbalancing:CreateLoadBalancer",
 				},
 				Condition: iam.Conditions{
 					"StringEquals": map[string][]string{
@@ -249,6 +243,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				Resource: iam.Resources{"*"},
 				Action: iam.Actions{
 					"ec2:TerminateInstances",
+					"ec2:DescribeInstances",
 				},
 				Condition: iam.Conditions{
 					"StringEquals": map[string]string{fmt.Sprintf("ec2:ResourceTag/%s", tags.NameAWSProviderManaged): "true"},
@@ -259,6 +254,11 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				Resource: iam.Resources{"*"},
 				Action: iam.Actions{
 					"elasticloadbalancing:DeleteLoadBalancer",
+					"elasticloadbalancing:ConfigureHealthCheck",
+					"elasticloadbalancing:DescribeLoadBalancers",
+					"elasticloadbalancing:DescribeLoadBalancerAttributes",
+					"elasticloadbalancing:ModifyLoadBalancerAttributes",
+					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				},
 				Condition: iam.Conditions{
 					"StringEquals": map[string]string{fmt.Sprintf("elasticloadbalancing:ResourceTag/%s", tags.NameAWSProviderManaged): "true"},
