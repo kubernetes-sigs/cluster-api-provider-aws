@@ -235,6 +235,16 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				},
 			},
 			{
+				Effect: iam.EffectDeny,
+				Resource: iam.Resources{
+					"arn:aws:ec2:::instance/*",
+					"arn:aws:elasicloadbalancing:::loadbalancer/*",
+				},
+				Action: iam.Actions{
+					"ec2:CreateTags",
+				},
+			},
+			{
 				Effect:   iam.EffectAllow,
 				Resource: iam.Resources{"*"},
 				Action: iam.Actions{
