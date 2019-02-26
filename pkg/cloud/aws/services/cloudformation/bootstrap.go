@@ -157,7 +157,6 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:CreateRouteTable",
 					"ec2:CreateSecurityGroup",
 					"ec2:CreateSubnet",
-					"ec2:CreateTags",
 					"ec2:CreateVpc",
 					"ec2:DeleteInternetGateway",
 					"ec2:DeleteNatGateway",
@@ -200,6 +199,39 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				},
 				Condition: iam.Conditions{
 					"StringLike": map[string]string{"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"},
+				},
+			},
+			{
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{"*"},
+				Action: iam.Actions{
+					"ec2:CreateTags",
+				},
+				Condition: iam.Conditions{
+					"StringEquals": map[string][]string{
+						fmt.Sprintf("aws:RequestTag/%s", tags.NameAWSProviderManaged): {"true"},
+						fmt.Sprintf("aws:RequestTag/%s", tags.NameAWSClusterAPIRole): {
+							tags.ValueAPIServerRole,
+							tags.ValueBastionRole,
+							tags.ValueCommonRole,
+							tags.ValuePrivateRole,
+							tags.ValuePublicRole,
+						},
+					},
+					"ForAllValues:StringEquals": map[string][]string{
+						"aws:TagKeys": {
+							tags.NameAWSProviderManaged,
+							tags.NameAWSClusterAPIRole,
+						},
+					},
+					"ForAllValues:StringLike": map[string][]string{
+						"aws:TagKeys": {
+							fmt.Sprintf("%s*", tags.NameKubernetesClusterPrefix),
+							tags.NameAWSClusterAPIRole,
+							tags.NameAWSProviderManaged,
+							"Name",
+						},
+					},
 				},
 			},
 			{
