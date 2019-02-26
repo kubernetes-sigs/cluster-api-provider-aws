@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/iam:go_default_library",
+        "//pkg/cloud/aws/tags:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/cloudformation:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface:go_default_library",

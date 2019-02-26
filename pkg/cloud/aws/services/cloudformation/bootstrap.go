@@ -27,6 +27,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 const (
@@ -180,10 +181,8 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:ReleaseAddress",
 					"ec2:RevokeSecurityGroupIngress",
 					"ec2:RunInstances",
-					"ec2:TerminateInstances",
 					"elasticloadbalancing:CreateLoadBalancer",
 					"elasticloadbalancing:ConfigureHealthCheck",
-					"elasticloadbalancing:DeleteLoadBalancer",
 					"elasticloadbalancing:DescribeLoadBalancers",
 					"elasticloadbalancing:DescribeLoadBalancerAttributes",
 					"elasticloadbalancing:ModifyLoadBalancerAttributes",
@@ -201,6 +200,26 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				},
 				Condition: iam.Conditions{
 					"StringLike": map[string]string{"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"},
+				},
+			},
+			{
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{"*"},
+				Action: iam.Actions{
+					"ec2:TerminateInstances",
+				},
+				Condition: iam.Conditions{
+					"StringEquals": map[string]string{fmt.Sprintf("ec2:ResourceTag/%s", tags.NameAWSProviderManaged): "true"},
+				},
+			},
+			{
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{"*"},
+				Action: iam.Actions{
+					"elasticloadbalancing:DeleteLoadBalancer",
+				},
+				Condition: iam.Conditions{
+					"StringEquals": map[string]string{fmt.Sprintf("elasticloadbalancing:ResourceTag/%s", tags.NameAWSProviderManaged): "true"},
 				},
 			},
 			{
