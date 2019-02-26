@@ -25,6 +25,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -154,6 +155,7 @@ func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region st
 	if err != nil {
 		return nil, err
 	}
+	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
 
 	return &awsClient{
 		ec2Client:   ec2.New(s),
@@ -178,10 +180,18 @@ func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error
 	if err != nil {
 		return nil, err
 	}
+	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
 
 	return &awsClient{
 		ec2Client:   ec2.New(s),
 		elbClient:   elb.New(s),
 		elbv2Client: elbv2.New(s),
 	}, nil
+}
+
+// addProviderVersionToUserAgent is a named handler that will add cluster-api-provider-aws
+// version information to requests made by the AWS SDK.
+var addProviderVersionToUserAgent = request.NamedHandler{
+	Name: "openshift.io/cluster-api-provider-aws",
+	Fn:   request.MakeAddToUserAgentHandler("openshift.io cluster-api-provider-aws", "dummy"),
 }
