@@ -17,9 +17,9 @@ limitations under the License.
 package e2e_test
 
 import (
+	"bytes"
 	"flag"
 	"io/ioutil"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -41,6 +41,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"fmt"
+
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
@@ -64,18 +65,20 @@ const (
 )
 
 var (
-	region      string
 	credFile    = flag.String("credFile", "", "path to an AWS credentials file")
 	clusterYAML = flag.String("clusterYAML", "", "path to the YAML for the cluster we're creating")
 	machineYAML = flag.String("machineYAML", "", "path to the YAML describing the control plane we're creating")
+	regionFile  = flag.String("regionFile", "", "The path to a text file containing the AWS region")
+	region      string
 )
 
-func init() {
-	if region = os.Getenv("AWS_DEFAULT_REGION"); region == "" {
-		if region = os.Getenv("AWS_REGION"); region == "" {
-			region = "us-east-1"
-		}
+func initRegion() error {
+	data, err := ioutil.ReadFile(*regionFile)
+	if err != nil {
+		return fmt.Errorf("error reading AWS region file: %v", err)
 	}
+	region = string(bytes.TrimSpace(data))
+	return nil
 }
 
 var _ = Describe("AWS", func() {
@@ -84,7 +87,7 @@ var _ = Describe("AWS", func() {
 		client  *clientset.Clientset
 	)
 	BeforeEach(func() {
-		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", awsRegion)
+		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", region)
 		cluster.Setup()
 		cfg := cluster.RestConfig()
 		var err error

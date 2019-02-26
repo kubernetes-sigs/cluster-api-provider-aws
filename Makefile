@@ -102,6 +102,19 @@ test: generate verify ## Run tests
 verify:
 	./hack/verify_boilerplate.py
 
+.PHONY: integration
+integration: generate verify ## Run integraion tests
+	bazel test --define='gotags=integration' --test_output all //test/integration/...
+
+JANITOR_ENABLED ?= 0
+.PHONY: e2e
+e2e: # generate verify ## Run e2e tests
+	JANITOR_ENABLED=$(JANITOR_ENABLED) ./hack/e2e.sh
+
+.PHONY: e2e-janitor
+e2e-janitor:
+	./hack/e2e-aws-janitor.sh
+
 .PHONY: copy-genmocks
 copy-genmocks: ## Copies generated mocks into the repository
 	cp -Rf bazel-genfiles/pkg/* pkg/

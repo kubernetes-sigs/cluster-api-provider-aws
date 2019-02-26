@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     body = json.load(resp)
     conn.close()
-    print 'export BOSKOS_RESOURCE_NAME="%s"' % body['name']
-    print 'export AWS_ACCESS_KEY_ID="%s"' % body['userdata']['access-key-id']
-    print 'export AWS_SECRET_ACCESS_KEY="%s"' % body['userdata']['secret-access-key']
+    print 'export BOSKOS_RESOURCE_NAME="%s";' % body['name']
+    print 'export AWS_ACCESS_KEY_ID="%s";' % body['userdata']['access-key-id']
+    print 'export AWS_SECRET_ACCESS_KEY="%s";' % body['userdata']['secret-access-key']
 
