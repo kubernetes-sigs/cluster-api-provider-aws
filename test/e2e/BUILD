@@ -38,6 +38,7 @@ go_test(
         "-credFile=$(location manifests/provider-credentials.profile)",
         "-clusterYAML=$(location manifests/cluster.yaml)",
         "-machineYAML=$(location manifests/machines.yaml)",
+        "-regionFile=$(location region.txt)",
     ],
     data = [
         "manifests/addons.yaml",
@@ -45,6 +46,7 @@ go_test(
         "manifests/machines.yaml",
         "manifests/provider-credentials.profile",
         "provider-components-e2e.yaml",
+        "region.txt",
         "//cmd/manager:manager-amd64.tar",
         "@io_k8s_kubernetes//cmd/kubectl:kubectl",
         "@io_k8s_sigs_kind//:kind",
@@ -119,9 +121,9 @@ genrule(
     outs = ["manifests/provider-credentials.profile"],
     cmd = " && ".join([
         "touch $@",
-        "export AWS_ACCESS_KEY_ID=$$(grep ^AWS_ACCESS_KEY_ID bazel-out/volatile-status.txt | cut -f2 -d\" \")",
-        "export AWS_SECRET_ACCESS_KEY=$$(grep ^AWS_SECRET_ACCESS_KEY bazel-out/volatile-status.txt | cut -f2 -d\" \")",
-        "export AWS_SESSION_TOKEN=$$(grep ^AWS_SESSION_TOKEN bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_ACCESS_KEY_ID=$$(grep ^STABLE_AWS_ACCESS_KEY_ID bazel-out/stable-status.txt | cut -f2 -d\" \")",
+        "export AWS_SECRET_ACCESS_KEY=$$(grep ^STABLE_AWS_SECRET_ACCESS_KEY bazel-out/stable-status.txt | cut -f2 -d\" \")",
+        "export AWS_SESSION_TOKEN=$$(grep ^STABLE_AWS_SESSION_TOKEN bazel-out/stable-status.txt | cut -f2 -d\" \")",
         "echo '[default]' >> $@",
         "echo aws_access_key_id = $$AWS_ACCESS_KEY_ID >> $@",
         "echo aws_secret_access_key = $$AWS_SECRET_ACCESS_KEY >> $@",
@@ -136,13 +138,15 @@ genrule(
     outs = ["manifests/provider-credentials.sh"],
     cmd = " && ".join([
         "touch $@",
-        "export AWS_ACCESS_KEY_ID=$$(grep ^AWS_ACCESS_KEY_ID bazel-out/volatile-status.txt | cut -f2 -d\" \")",
-        "export AWS_SECRET_ACCESS_KEY=$$(grep ^AWS_SECRET_ACCESS_KEY bazel-out/volatile-status.txt | cut -f2 -d\" \")",
-        "export AWS_SESSION_TOKEN=$$(grep ^AWS_SESSION_TOKEN bazel-out/volatile-status.txt | cut -f2 -d\" \")",
-        "export AWS_REGION=$$(grep ^AWS_REGION bazel-out/volatile-status.txt | cut -f2 -d\" \")",
+        "export AWS_ACCESS_KEY_ID=$$(grep ^STABLE_AWS_ACCESS_KEY_ID bazel-out/stable-status.txt | cut -f2 -d\" \")",
+        "export AWS_SECRET_ACCESS_KEY=$$(grep ^STABLE_AWS_SECRET_ACCESS_KEY bazel-out/stable-status.txt | cut -f2 -d\" \")",
+        "export AWS_SESSION_TOKEN=$$(grep ^STABLE_AWS_SESSION_TOKEN bazel-out/stable-status.txt | cut -f2 -d\" \")",
+        "export AWS_DEFAULT_REGION=$$(grep ^STABLE_AWS_DEFAULT_REGION bazel-out/stable-status.txt | cut -f2 -d\" \")",
+        "export AWS_REGION=$$(grep ^STABLE_AWS_REGION bazel-out/stable-status.txt | cut -f2 -d\" \")",
         "echo export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID >> $@",
         "echo export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY >> $@",
         "echo export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN >> $@",
+        "echo export AWS_DEFAULT_REGION=$$AWS_DEFAULT_REGION >> $@",
         "echo export AWS_REGION=$$AWS_REGION >> $@",
     ]),
     stamp = 1,
@@ -163,4 +167,16 @@ genrule(
     ]),
     tools = ["@io_k8s_sigs_kustomize//:kustomize"],
     visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "e2e-region",
+    outs = ["region.txt"],
+    cmd = " && ".join([
+        "touch $@",
+        "export AWS_DEFAULT_REGION=$$(grep ^STABLE_AWS_DEFAULT_REGION bazel-out/stable-status.txt | cut -f2 -d\" \")",
+        "echo $$AWS_DEFAULT_REGION >> $@",
+    ]),
+    stamp = 1,
+    visibility = ["//visibility:private"],
 )

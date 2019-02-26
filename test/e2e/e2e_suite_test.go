@@ -24,6 +24,9 @@ import (
 )
 
 func TestE2e(t *testing.T) {
+	if err := initRegion(); err != nil {
+		t.Fatal(err)
+	}
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "e2e Suite")
 }
