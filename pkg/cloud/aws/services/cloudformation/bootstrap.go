@@ -37,10 +37,15 @@ const (
 	ControlPlanePolicy = "AWSIAMManagedPolicyCloudProviderControlPlane"
 	// NodePolicy is the IAM Managed Policy for worker nodes
 	NodePolicy = "AWSIAMManagedPolicyCloudProviderNodes"
+	// CloudProvider is the resource prefix for AWS Cloud Provider related resources
+	CloudProvider = "cloud-provider-aws.k8s.io"
 )
 
 // ManagedIAMPolicyNames slice of managed IAM policies
 var ManagedIAMPolicyNames = [...]string{ControllersPolicy, ControlPlanePolicy, NodePolicy}
+
+// DefaultPath is the IAM path to be used
+var DefaultPath = "/" + tags.NameAWSProviderPrefix
 
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS
@@ -49,6 +54,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 
 	template.Resources[ControllersPolicy] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("controllers"),
+		Path:              DefaultPath,
 		Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
 		PolicyDocument:    controllersPolicy(accountID),
 		Groups: []string{
@@ -61,7 +67,8 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 	}
 
 	template.Resources[ControlPlanePolicy] = cloudformation.AWSIAMManagedPolicy{
-		ManagedPolicyName: iam.NewManagedName("control-plane"),
+		ManagedPolicyName: NewCloudProviderManagedName("control-plane"),
+		Path:              DefaultPath,
 		Description:       `For the Kubernetes Cloud Provider AWS Control Plane`,
 		PolicyDocument:    cloudProviderControlPlaneAwsPolicy(),
 		Roles: []string{
@@ -70,7 +77,8 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 	}
 
 	template.Resources[NodePolicy] = cloudformation.AWSIAMManagedPolicy{
-		ManagedPolicyName: iam.NewManagedName("nodes"),
+		ManagedPolicyName: NewCloudProviderManagedName("nodes"),
+		Path:              DefaultPath,
 		Description:       `For the Kubernetes Cloud Provider AWS nodes`,
 		PolicyDocument:    cloudProviderNodeAwsPolicy(),
 		Roles: []string{
@@ -81,6 +89,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 
 	template.Resources["AWSIAMUserBootstrapper"] = cloudformation.AWSIAMUser{
 		UserName: iam.NewManagedName("bootstrapper"),
+		Path:     DefaultPath,
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
@@ -88,25 +97,30 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 
 	template.Resources["AWSIAMGroupBootstrapper"] = cloudformation.AWSIAMGroup{
 		GroupName: iam.NewManagedName("bootstrapper"),
+		Path:      DefaultPath,
 	}
 
 	template.Resources["AWSIAMRoleControlPlane"] = cloudformation.AWSIAMRole{
 		RoleName:                 iam.NewManagedName("control-plane"),
+		Path:                     DefaultPath,
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
 	template.Resources["AWSIAMRoleControllers"] = cloudformation.AWSIAMRole{
 		RoleName:                 iam.NewManagedName("controllers"),
+		Path:                     DefaultPath,
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
 	template.Resources["AWSIAMRoleNodes"] = cloudformation.AWSIAMRole{
 		RoleName:                 iam.NewManagedName("nodes"),
+		Path:                     DefaultPath,
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
 	template.Resources["AWSIAMInstanceProfileControlPlane"] = cloudformation.AWSIAMInstanceProfile{
 		InstanceProfileName: iam.NewManagedName("control-plane"),
+		Path:                DefaultPath,
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
 		},
@@ -114,6 +128,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 
 	template.Resources["AWSIAMInstanceProfileControllers"] = cloudformation.AWSIAMInstanceProfile{
 		InstanceProfileName: iam.NewManagedName("controllers"),
+		Path:                DefaultPath,
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControllers"),
 		},
@@ -121,6 +136,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 
 	template.Resources["AWSIAMInstanceProfileNodes"] = cloudformation.AWSIAMInstanceProfile{
 		InstanceProfileName: iam.NewManagedName("nodes"),
+		Path:                DefaultPath,
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleNodes"),
 		},
@@ -140,6 +156,12 @@ func ec2AssumeRolePolicy() *iam.PolicyDocument {
 			},
 		},
 	}
+}
+
+// NewCloudProviderManagedName creates an IAM acceptable name suffixed with
+// the AWS Cloud Provider suffix
+func NewCloudProviderManagedName(prefix string) string {
+	return fmt.Sprintf("%s.%s", prefix, CloudProvider)
 }
 
 func tagRequestStringEqualityConditions() map[string][]string {
@@ -201,6 +223,26 @@ func tagRequestForExistingObjectConditions(service string) *iam.Conditions {
 
 func secureTransportCondition() map[string][]string {
 	return map[string][]string{"aws:SecureTransport": {"true"}}
+}
+
+func resourceNamespace(resourceType string, accountID string) string {
+	return fmt.Sprintf(
+		"arn:aws:iam::%s:%s/%s*",
+		resourceType,
+		accountID,
+		tags.NameAWSProviderPrefix,
+	)
+}
+
+func ec2RunInstanceConditions(accountID string) *iam.Conditions {
+	return &iam.Conditions{
+		"StringEquals": tagRequestStringEqualityConditions(),
+		"StringLike": map[string]string{
+			"ec2:InstanceProfile": resourceNamespace(accountID, "instance-profile"),
+		},
+		"ForAnyValue:StringLike": tagMandatoryPresenceConditions(),
+		"Bool":                   secureTransportCondition(),
+	}
 }
 
 func controllersPolicy(accountID string) *iam.PolicyDocument {
@@ -270,6 +312,14 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				Condition: *tagRequestForNewObjectConditions(),
 			},
 			{
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{"*"},
+				Action: iam.Actions{
+					"ec2:RunInstances",
+				},
+				Condition: *ec2RunInstanceConditions(accountID),
+			},
+			{
 				Effect: iam.EffectAllow,
 				Resource: iam.Resources{
 					"arn:aws:ec2:::instance/*",
@@ -302,12 +352,8 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				Condition: *taggedObjectRequestCondition("elasticloadbalancing"),
 			},
 			{
-				Effect: iam.EffectAllow,
-				Resource: iam.Resources{fmt.Sprintf(
-					"arn:aws:iam::%s:role/%s",
-					accountID,
-					iam.NewManagedName("*"),
-				)},
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{resourceNamespace(accountID, "role")},
 				Action: iam.Actions{
 					"iam:PassRole",
 				},
