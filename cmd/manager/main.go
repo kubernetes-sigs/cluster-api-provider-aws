@@ -44,13 +44,13 @@ func main() {
 	cfg := config.GetConfigOrDie()
 
 	// Setup a Manager
-	var mgrOps manager.Options
+	var opts manager.Options
 	if *watchNamespace != "" {
-		mgrOps.Namespace = *watchNamespace
-		klog.Infof("Reconciling cluster-api objects in namespace %q", mgrOps.Namespace)
+		opts.Namespace = *watchNamespace
+		klog.Infof("Watching cluster-api objects in only in namespace %q for reconciliation.", opts.Namespace)
 	}
 
-	mgr, err := manager.New(cfg, mgrOps)
+	mgr, err := manager.New(cfg, opts)
 	if err != nil {
 		klog.Fatalf("Failed to set up overall controller manager: %v", err)
 	}
