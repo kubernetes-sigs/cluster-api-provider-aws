@@ -110,5 +110,5 @@ func NewManagedName(prefix string) string {
 // objects with Condition as per the AWS IAM policy schema as a work-around for
 // https://github.com/awslabs/goformation/issues/157
 func ProcessPolicyDocument(p string) string {
-	return strings.Replace(p, "IAMConditions", "Condition", 1)
+	return strings.Replace(p, "IAMConditions", "Condition", -1)
 }
