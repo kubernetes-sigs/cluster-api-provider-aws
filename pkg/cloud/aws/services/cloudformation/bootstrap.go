@@ -31,9 +31,12 @@ import (
 )
 
 const (
-	ControllersPolicy  = "AWSIAMManagedPolicyControllers"
+	// ControllersPolicy is the IAM Managed Policy for Cluster API AWS Controllers
+	ControllersPolicy = "AWSIAMManagedPolicyControllers"
+	// ControlPlanePolicy is the IAM Managed Policy for master nodes
 	ControlPlanePolicy = "AWSIAMManagedPolicyCloudProviderControlPlane"
-	NodePolicy         = "AWSIAMManagedPolicyCloudProviderNodes"
+	// NodePolicy is the IAM Managed Policy for worker nodes
+	NodePolicy = "AWSIAMManagedPolicyCloudProviderNodes"
 )
 
 // ManagedIAMPolicyNames slice of managed IAM policies
@@ -139,6 +142,67 @@ func ec2AssumeRolePolicy() *iam.PolicyDocument {
 	}
 }
 
+func tagRequestStringEqualityConditions() map[string][]string {
+	return map[string][]string{
+		fmt.Sprintf("aws:RequestTag/%s", tags.NameAWSProviderManaged): {"true"},
+		fmt.Sprintf("aws:RequestTag/%s", tags.NameAWSClusterAPIRole): {
+			tags.ValueAPIServerRole,
+			tags.ValueBastionRole,
+			tags.ValueCommonRole,
+			tags.ValuePrivateRole,
+			tags.ValuePublicRole,
+		},
+	}
+}
+
+func tagMandatoryPresenceConditions() map[string][]string {
+	return map[string][]string{
+		"aws:TagKeys": {
+			fmt.Sprintf("%s*", tags.NameKubernetesClusterPrefix),
+			tags.NameAWSProviderManaged,
+			tags.NameAWSClusterAPIRole,
+			"Name",
+		},
+	}
+}
+
+func tagExistingObjectPresenceConditions(service string) map[string][]string {
+	return map[string][]string{
+		fmt.Sprintf("%s:ResourceTag/%s", service, tags.NameAWSProviderManaged): {"true"},
+	}
+}
+
+func tagRequestForNewObjectConditions() *iam.Conditions {
+	return &iam.Conditions{
+		"StringEquals":           tagRequestStringEqualityConditions(),
+		"ForAnyValue:StringLike": tagMandatoryPresenceConditions(),
+		"Bool":                   secureTransportCondition(),
+	}
+}
+
+func taggedObjectRequestCondition(service string) *iam.Conditions {
+	return &iam.Conditions{
+		"StringEquals": tagExistingObjectPresenceConditions(service),
+		"Bool":         secureTransportCondition(),
+	}
+}
+
+func tagRequestForExistingObjectConditions(service string) *iam.Conditions {
+	equalityTests := tagExistingObjectPresenceConditions(service)
+	for k, v := range tagRequestStringEqualityConditions() {
+		equalityTests[k] = v
+	}
+	return &iam.Conditions{
+		"StringEquals":           equalityTests,
+		"ForAnyValue:StringLike": tagMandatoryPresenceConditions(),
+		"Bool":                   secureTransportCondition(),
+	}
+}
+
+func secureTransportCondition() map[string][]string {
+	return map[string][]string{"aws:SecureTransport": {"true"}}
+}
+
 func controllersPolicy(accountID string) *iam.PolicyDocument {
 	return &iam.PolicyDocument{
 		Version: iam.CurrentVersion,
@@ -179,6 +243,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:ReleaseAddress",
 					"ec2:RevokeSecurityGroupIngress",
 				},
+				Condition: iam.Conditions{"Bool": secureTransportCondition()},
 			},
 			{
 				Effect: iam.EffectAllow,
@@ -191,6 +256,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				},
 				Condition: iam.Conditions{
 					"StringLike": map[string]string{"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"},
+					"Bool":       secureTransportCondition(),
 				},
 			},
 			{
@@ -201,42 +267,17 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:RunInstances",
 					"elasticloadbalancing:CreateLoadBalancer",
 				},
-				Condition: iam.Conditions{
-					"StringEquals": map[string][]string{
-						fmt.Sprintf("aws:RequestTag/%s", tags.NameAWSProviderManaged): {"true"},
-						fmt.Sprintf("aws:RequestTag/%s", tags.NameAWSClusterAPIRole): {
-							tags.ValueAPIServerRole,
-							tags.ValueBastionRole,
-							tags.ValueCommonRole,
-							tags.ValuePrivateRole,
-							tags.ValuePublicRole,
-						},
-					},
-					"ForAllValues:StringEquals": map[string][]string{
-						"aws:TagKeys": {
-							tags.NameAWSProviderManaged,
-							tags.NameAWSClusterAPIRole,
-						},
-					},
-					"ForAllValues:StringLike": map[string][]string{
-						"aws:TagKeys": {
-							fmt.Sprintf("%s*", tags.NameKubernetesClusterPrefix),
-							tags.NameAWSClusterAPIRole,
-							tags.NameAWSProviderManaged,
-							"Name",
-						},
-					},
-				},
+				Condition: *tagRequestForNewObjectConditions(),
 			},
 			{
-				Effect: iam.EffectDeny,
+				Effect: iam.EffectAllow,
 				Resource: iam.Resources{
 					"arn:aws:ec2:::instance/*",
-					"arn:aws:elasicloadbalancing:::loadbalancer/*",
 				},
 				Action: iam.Actions{
 					"ec2:CreateTags",
 				},
+				Condition: *tagRequestForExistingObjectConditions("ec2"),
 			},
 			{
 				Effect:   iam.EffectAllow,
@@ -245,9 +286,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:TerminateInstances",
 					"ec2:DescribeInstances",
 				},
-				Condition: iam.Conditions{
-					"StringEquals": map[string]string{fmt.Sprintf("ec2:ResourceTag/%s", tags.NameAWSProviderManaged): "true"},
-				},
+				Condition: *taggedObjectRequestCondition("ec2"),
 			},
 			{
 				Effect:   iam.EffectAllow,
@@ -260,9 +299,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"elasticloadbalancing:ModifyLoadBalancerAttributes",
 					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				},
-				Condition: iam.Conditions{
-					"StringEquals": map[string]string{fmt.Sprintf("elasticloadbalancing:ResourceTag/%s", tags.NameAWSProviderManaged): "true"},
-				},
+				Condition: *taggedObjectRequestCondition("elasticloadbalancing"),
 			},
 			{
 				Effect: iam.EffectAllow,
@@ -274,6 +311,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 				Action: iam.Actions{
 					"iam:PassRole",
 				},
+				Condition: iam.Conditions{"Bool": secureTransportCondition()},
 			},
 		},
 	}
