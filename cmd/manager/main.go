@@ -47,7 +47,7 @@ func main() {
 	var opts manager.Options
 	if *watchNamespace != "" {
 		opts.Namespace = *watchNamespace
-		klog.Infof("Watching cluster-api objects in only in namespace %q for reconciliation.", opts.Namespace)
+		klog.Infof("Watching cluster-api objects only in namespace %q for reconciliation.", opts.Namespace)
 	}
 
 	mgr, err := manager.New(cfg, opts)
