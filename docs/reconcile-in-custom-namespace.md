@@ -17,7 +17,7 @@ reconciliation to a single namespace and this document tells you how.
   AWS accounts. These credentials can be created as kubernetes secret and be
   mounted in the pod at `/root/.aws`.
 - Grouping clusters into a namespace based on their environment, (test,
-  qualification, canary, production) will allow a phased rolling out
+  qualification, canary, production) will allow a phased rolling out of
   `cluster-api-provider-aws` releases.
 - Grouping clusters into a namespace based on the infrastructure provider will
   allow running multiple cluster-api provider implementations side-by-side and
@@ -33,7 +33,6 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Namespace
 metadata:
-  labels:
   name: my-pet-clusters #edit if necessary
 EOF
 ```
