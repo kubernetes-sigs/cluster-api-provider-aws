@@ -11,6 +11,11 @@
 
 - [Development instructions](development.md)
 
+## Special use cases
+
+- [Creating multinode control plane clusters](creating-multinode-controlplane-clusters.md)
+- [Reconcile Cluster-API objects in a restricted namespace](reconcile-in-custom-namespace.md)
+
 ## Project Documentation
 
 - [Initial feature model](proposal/features.md)
