@@ -10,6 +10,22 @@
   version = "v0.31.0"
 
 [[projects]]
+  digest = "1:bd3632deea7c224314b504dc51fbd244a59163e89c0cb730877d51bb13f5f74a"
+  name = "github.com/PuerkitoBio/purell"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "44968752391892e1b0d0b821ee79e9a85fa13049"
+  version = "v1.1.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c739832d67eb1e9cc478a19cc1a1ccd78df0397bf8a32978b759152e205f644b"
+  name = "github.com/PuerkitoBio/urlesc"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "de5bf2ad457846296e2031421a34e2568e304e35"
+
+[[projects]]
   branch = "master"
   digest = "1:95197dfe44157a59ca91bffb8faa59a14f220806a3ed394d35a39c72180f8e36"
   name = "github.com/alecthomas/template"
@@ -133,6 +149,38 @@
   pruneopts = "T"
   revision = "7536572e8d55209135cd5e7ccf7fce43dca217ab"
   version = "v0.1.0"
+
+[[projects]]
+  digest = "1:701ec53dfa0182bf25e5c09e664906f11d697e779b59461a2607dbd4dc75a4f9"
+  name = "github.com/go-openapi/jsonpointer"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "ef5f0afec364d3b9396b7b77b43dbe26bf1f8004"
+  version = "v0.18.0"
+
+[[projects]]
+  digest = "1:3f17ebd557845adeb347c9e398394e96ebc18e0ec94cc04972be87851a4679e0"
+  name = "github.com/go-openapi/jsonreference"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "8483a886a90412cd6858df4ea3483dce9c8e35a3"
+  version = "v0.18.0"
+
+[[projects]]
+  digest = "1:aab0bf9ea37838fc396fa23a503c51f12335e3f571fe78e0025d35e498bf7689"
+  name = "github.com/go-openapi/spec"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "5b6cdde3200976e3ecceb2868706ee39b6aff3e4"
+  version = "v0.18.0"
+
+[[projects]]
+  digest = "1:1b0d6468099d6a5b331ce46f5a398ef368abc6220d79825baf03a672f9d4e816"
+  name = "github.com/go-openapi/swag"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "1d29f06aebd59ccdf11ae04aa0334ded96e2d909"
+  version = "v0.18.0"
 
 [[projects]]
   digest = "1:883149c2b3962c5e30d79d7d717c341260cb579baef61202723745e8e23954e8"
@@ -311,6 +359,18 @@
   version = "v1.0.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:173c1a4b67a54fb4d76311e3fb7eb8a586df8146ab39ca054ec330b6cc72f0cb"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    "buffer",
+    "jlexer",
+    "jwriter",
+  ]
+  pruneopts = "T"
+  revision = "6243d8e04c3f819e79757e8bc3faa15c3cb27003"
+
+[[projects]]
   digest = "1:3804a3a02964db8e6db3e5e7960ac1c1a9b12835642dd4f4ac4e56c749ec73eb"
   name = "github.com/markbates/inflect"
   packages = ["."]
@@ -412,7 +472,7 @@
   revision = "cec6269883be26556e63500b6df19a0b6691992e"
 
 [[projects]]
-  digest = "1:c49c9300cc3bcc68bc1380ac1bad9ccc190f4f53c58dc208d805eda92c3b9279"
+  digest = "1:a6e8f781678c5936540153af83838657342f4a6d5478ad9c3f527ce864a8be0c"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis",
@@ -426,34 +486,41 @@
     "pkg/client/clientset_generated/clientset/typed/machine/v1beta1",
     "pkg/controller/error",
     "pkg/controller/machine",
+    "pkg/controller/node",
+    "pkg/controller/noderefutil",
     "pkg/errors",
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
+  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
 
 [[projects]]
-  digest = "1:bb7392bb4b4067e08472994f84513caf955ba52742fa50d954e5f2e45d9dc956"
+  branch = "master"
+  digest = "1:eaea9bd99a16cae8d58a2c91d40c46b902deb76a1ab850ec4b75ce90ebdbc9f0"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
+    "pkg/e2e",
+    "pkg/e2e/actuators",
+    "pkg/e2e/autoscaler",
     "pkg/e2e/framework",
-    "pkg/e2e/openshift",
-    "pkg/e2e/openshift/suites",
+    "pkg/e2e/infra",
+    "pkg/e2e/operators",
     "pkg/manifests",
     "pkg/types",
   ]
-  pruneopts = "T"
-  revision = "2620fd63480ea1155c71de87a022f1f564f09ff2"
+  pruneopts = ""
+  revision = "46c9e34b233ddc7e2f952e74226bb6af792748cc"
 
 [[projects]]
-  digest = "1:eb7058f08b175230d9e6a9a040696b909f7641278e9f394b7168f89b1c5a730d"
+  branch = "master"
+  digest = "1:431bada388129ea31e4997b196dc40730c5c9edd442b8df7b741d143b7b809c4"
   name = "github.com/openshift/cluster-autoscaler-operator"
   packages = [
     "pkg/apis",
     "pkg/apis/autoscaling/v1alpha1",
   ]
   pruneopts = "T"
-  revision = "4bcabb30b24b7289ea2b935f5a9cf0b89784835d"
+  revision = "1df9eecb2d95391e36a0269669e199c2943fde66"
 
 [[projects]]
   branch = "master"
@@ -723,6 +790,7 @@
     "unicode/cldr",
     "unicode/norm",
     "unicode/rangetable",
+    "width",
   ]
   pruneopts = "T"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
@@ -1046,7 +1114,10 @@
   branch = "master"
   digest = "1:152cd19bedf58a86d6b8b9ca42a428e4f16a9415f81e248a800b6a46c77dc486"
   name = "k8s.io/kube-openapi"
-  packages = ["pkg/util/proto"]
+  packages = [
+    "pkg/common",
+    "pkg/util/proto",
+  ]
   pruneopts = "T"
   revision = "72693cb1fadd73ae2742f6fe29af77d1aecdd8cd"
 
@@ -1127,6 +1198,7 @@
   input-imports = [
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/credentials",
+    "github.com/aws/aws-sdk-go/aws/request",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/ec2",
     "github.com/aws/aws-sdk-go/service/ec2/ec2iface",
@@ -1141,8 +1213,13 @@
     "github.com/golang/mock/gomock",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/openshift/api/config/v1",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/actuators",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
-    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/openshift",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",
+    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/operators",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
     "github.com/openshift/cluster-api/pkg/apis",
@@ -1150,6 +1227,7 @@
     "github.com/openshift/cluster-api/pkg/controller/error",
     "github.com/openshift/cluster-api/pkg/controller/machine",
     "github.com/openshift/cluster-api/pkg/errors",
+    "github.com/openshift/cluster-autoscaler-operator/pkg/apis",
     "github.com/openshift/kubernetes-drain",
     "github.com/prometheus/common/log",
     "github.com/spf13/cobra",

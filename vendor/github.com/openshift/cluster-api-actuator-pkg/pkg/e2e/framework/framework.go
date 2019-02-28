@@ -1,6 +1,7 @@
 package framework
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os/exec"
@@ -9,18 +10,17 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/client-go/tools/clientcmd"
-
+	"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	// apiregistrationclientset "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
-
-	"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
-	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -43,8 +43,6 @@ const (
 	TimeoutPoolMachineRunningInterval = 10 * time.Minute
 )
 
-var kubeconfig string
-
 // ClusterID set by -cluster-id flag
 var ClusterID string
 
@@ -61,8 +59,17 @@ var nodelinkControllerImage string
 var libvirtURI string
 var libvirtPK string
 
+type TestContextType struct {
+	KubeConfig          string
+	MachineApiNamespace string
+	Host                string
+}
+
+var TestContext TestContextType
+
 func init() {
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "kubeconfig file")
+	flag.StringVar(&TestContext.KubeConfig, "kubeconfig", "", "kubeconfig file")
+	flag.StringVar(&TestContext.MachineApiNamespace, "machine-api-namespace", "openshift-machine-api", "Default machine API namespace")
 	flag.StringVar(&ClusterID, "cluster-id", "", "cluster ID")
 	flag.StringVar(&sshkey, "ssh-key", "", "Path to private ssh to connect to instances (e.g. to download kubeconfig or copy docker images)")
 	flag.StringVar(&sshuser, "ssh-user", "ec2-user", "Ssh user to connect to instances")
@@ -113,11 +120,11 @@ func NewFramework() (*Framework, error) {
 	if sshkey == "" {
 		return nil, fmt.Errorf("-sshkey not set")
 	}
-	if kubeconfig == "" {
+	if TestContext.KubeConfig == "" {
 		return nil, fmt.Errorf("-kubeconfig not set")
 	}
 	f := &Framework{
-		Kubeconfig: kubeconfig,
+		Kubeconfig: TestContext.KubeConfig,
 		SSH: &SSHConfig{
 			Key:  sshkey,
 			User: sshuser,
@@ -371,4 +378,65 @@ func (f *Framework) UploadDockerImageToInstance(image, targetMachine string) err
 	}
 	glog.V(2).Info(string(out))
 	return nil
+}
+
+// RestclientConfig builds a REST client config
+func RestclientConfig() (*clientcmdapi.Config, error) {
+	glog.Infof(">>> kubeConfig: %s", TestContext.KubeConfig)
+	if TestContext.KubeConfig == "" {
+		return nil, fmt.Errorf("KubeConfig must be specified to load client config")
+	}
+	c, err := clientcmd.LoadFromFile(TestContext.KubeConfig)
+	if err != nil {
+		return nil, fmt.Errorf("error loading KubeConfig: %v", err.Error())
+	}
+	return c, nil
+}
+
+// LoadConfig builds config from kubernetes config
+func LoadConfig() (*rest.Config, error) {
+	c, err := RestclientConfig()
+	if err != nil {
+		if TestContext.KubeConfig == "" {
+			return rest.InClusterConfig()
+		}
+		return nil, err
+	}
+	return clientcmd.NewDefaultClientConfig(*c, &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: TestContext.Host}}).ClientConfig()
+}
+
+// LoadClient builds controller runtime client that accepts any registered type
+func LoadClient() (runtimeclient.Client, error) {
+	config, err := LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error creating client: %v", err.Error())
+	}
+	return runtimeclient.New(config, runtimeclient.Options{})
+}
+
+func IsNodeReady(node *corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
+func WaitUntilAllNodesAreReady(client runtimeclient.Client) error {
+	return wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
+		nodeList := corev1.NodeList{}
+		if err := client.List(context.TODO(), &runtimeclient.ListOptions{}, &nodeList); err != nil {
+			glog.Errorf("error querying api for nodeList object: %v, retrying...", err)
+			return false, nil
+		}
+		// All nodes needs to be ready
+		for _, node := range nodeList.Items {
+			if !IsNodeReady(&node) {
+				glog.Errorf("Node %q is not ready", node.Name)
+				return false, nil
+			}
+		}
+		return true, nil
+	})
 }

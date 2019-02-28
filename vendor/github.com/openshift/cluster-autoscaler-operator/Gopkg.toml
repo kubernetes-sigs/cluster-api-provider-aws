@@ -39,6 +39,18 @@ required = [
   name = "sigs.k8s.io/controller-runtime"
   version = "v0.1.4"
 
+[[override]]
+  name = "github.com/openshift/api"
+  branch = "master"
+
+[[override]]
+  name = "github.com/openshift/client-go"
+  branch = "master"
+
+[[override]]
+  name = "github.com/openshift/cluster-version-operator"
+  branch = "master"
+
 [prune]
   go-tests = true
   non-go = true

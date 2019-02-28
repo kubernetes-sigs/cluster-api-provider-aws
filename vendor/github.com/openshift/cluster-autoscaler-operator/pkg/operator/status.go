@@ -1,8 +1,10 @@
 package operator
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/golang/glog"
 	configv1 "github.com/openshift/api/config/v1"
 	osconfig "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/openshift/cluster-autoscaler-operator/pkg/version"
@@ -23,13 +25,16 @@ const (
 // StatusReporter reports the status of the operator to the OpenShift
 // cluster-version-operator via ClusterOperator resource status.
 type StatusReporter struct {
-	client *osconfig.Clientset
+	client         osconfig.Interface
+	relatedObjects []configv1.ObjectReference
 }
 
 // NewStatusReporter returns a new StatusReporter instance.
-func NewStatusReporter(cfg *rest.Config) (*StatusReporter, error) {
+func NewStatusReporter(cfg *rest.Config, relatedObjects []configv1.ObjectReference) (*StatusReporter, error) {
 	var err error
-	reporter := &StatusReporter{}
+	reporter := &StatusReporter{
+		relatedObjects: relatedObjects,
+	}
 
 	// Create a client for OpenShift config objects.
 	reporter.client, err = osconfig.NewForConfig(cfg)
@@ -63,7 +68,13 @@ func (r *StatusReporter) GetOrCreateClusterOperator() (*configv1.ClusterOperator
 // resource's status.
 func (r *StatusReporter) ApplyConditions(conds []configv1.ClusterOperatorStatusCondition) error {
 	status := configv1.ClusterOperatorStatus{
-		Version: version.Raw,
+		Versions: []configv1.OperandVersion{
+			{
+				Name:    "cluster-autoscaler",
+				Version: version.Raw,
+			},
+		},
+		RelatedObjects: r.relatedObjects,
 	}
 
 	for _, c := range conds {
@@ -142,7 +153,7 @@ func (r *StatusReporter) Report(stopCh <-chan struct{}) error {
 	pollFunc := func() (bool, error) {
 		ok, err := r.CheckMachineAPI()
 		if err != nil {
-			r.Fail(ReasonMissingDependency, "error checking machine-api-operator status")
+			r.Fail(ReasonMissingDependency, fmt.Sprintf("error checking machine-api operator status %v", err))
 			return false, nil
 		}
 
@@ -151,7 +162,7 @@ func (r *StatusReporter) Report(stopCh <-chan struct{}) error {
 			return true, nil
 		}
 
-		r.Fail(ReasonMissingDependency, "machine-api-operator not ready")
+		r.Fail(ReasonMissingDependency, "machine-api operator not ready")
 		return false, nil
 	}
 
@@ -163,9 +174,10 @@ func (r *StatusReporter) Report(stopCh <-chan struct{}) error {
 // and not failing.
 func (r *StatusReporter) CheckMachineAPI() (bool, error) {
 	mao, err := r.client.ConfigV1().ClusterOperators().
-		Get("machine-api-operator", metav1.GetOptions{})
+		Get("machine-api", metav1.GetOptions{})
 
 	if err != nil {
+		glog.Errorf("failed to get dependency machine-api status: %v", err)
 		return false, err
 	}
 
@@ -176,5 +188,6 @@ func (r *StatusReporter) CheckMachineAPI() (bool, error) {
 		return true, nil
 	}
 
+	glog.Infof("machine-api-operator not ready yet")
 	return false, nil
 }

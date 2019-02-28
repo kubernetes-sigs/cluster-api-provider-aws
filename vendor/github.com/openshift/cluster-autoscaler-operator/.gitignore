@@ -1,5 +1,6 @@
 /bin/
 /build/
+/deploy/
 
 # Temporary Build Files
 build/_output

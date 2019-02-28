@@ -1,6 +1,7 @@
 package operator
 
 import (
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/cluster-autoscaler-operator/pkg/apis"
 	"github.com/openshift/cluster-autoscaler-operator/pkg/controller/clusterautoscaler"
 	"github.com/openshift/cluster-autoscaler-operator/pkg/controller/machineautoscaler"
@@ -10,7 +11,7 @@ import (
 )
 
 // OperatorName is the name of this operator.
-const OperatorName = "cluster-autoscaler-operator"
+const OperatorName = "cluster-autoscaler"
 
 // Operator represents an instance of the cluster-autoscaler-operator.
 type Operator struct {
@@ -30,7 +31,19 @@ func New(cfg *Config) (*Operator, error) {
 		return nil, err
 	}
 
-	operator.status, err = NewStatusReporter(clientConfig)
+	// track set of related namespaces for openshift-must-gather diagnostics
+	relatedNamespaces := map[string]string{}
+	relatedNamespaces[cfg.WatchNamespace] = ""
+	relatedNamespaces[cfg.LeaderElectionNamespace] = ""
+	relatedNamespaces[cfg.ClusterAutoscalerNamespace] = ""
+	relatedObjects := []configv1.ObjectReference{}
+	for k := range relatedNamespaces {
+		relatedObjects = append(relatedObjects, configv1.ObjectReference{
+			Resource: "namespaces",
+			Name:     k,
+		})
+	}
+	operator.status, err = NewStatusReporter(clientConfig, relatedObjects)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +83,7 @@ func (o *Operator) AddControllers() error {
 		Replicas:      o.config.ClusterAutoscalerReplicas,
 		Namespace:     o.config.ClusterAutoscalerNamespace,
 		CloudProvider: o.config.ClusterAutoscalerCloudProvider,
+		Verbosity:     o.config.ClusterAutoscalerVerbosity,
 	})
 
 	if err := ca.AddToManager(o.manager); err != nil {

@@ -1,0 +1,22 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler-operator
+  namespace: openshift-cluster-api
+spec:
+  template:
+    spec:
+      containers:
+      - name: cluster-autoscaler-operator
+        image: quay.io/openshift/origin-cluster-autoscaler-operator:v4.0
+        env:
+        - name: WATCH_NAMESPACE
+          value: kube-system
+          valueFrom:
+        - name: CLUSTER_AUTOSCALER_NAMESPACE
+          value: kube-system
+          valueFrom:
+        - name: LEADER_ELECTION_NAMESPACE
+          value: kube-system
+          valueFrom:

@@ -10,6 +10,15 @@ rules:
   - "*"
   verbs:
   - "*"
+- apiGroups:
+  - config.openshift.io
+  resources:
+  - clusteroperators
+  - clusteroperators/status
+  verbs:
+  - create
+  - get
+  - update
 
 ---
 kind: Role

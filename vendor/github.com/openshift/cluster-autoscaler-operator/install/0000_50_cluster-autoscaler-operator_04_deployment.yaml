@@ -16,6 +16,7 @@ spec:
       labels:
         k8s-app: cluster-autoscaler-operator
     spec:
+      priorityClassName: system-node-critical
       serviceAccountName: cluster-autoscaler-operator
       containers:
       - name: cluster-autoscaler-operator
@@ -40,9 +41,6 @@ spec:
         - name: CLUSTER_AUTOSCALER_IMAGE
           value: docker.io/openshift/origin-cluster-autoscaler:v4.0
         resources:
-          limits:
-            cpu: 20m
-            memory: 50Mi
           requests:
             cpu: 20m
             memory: 50Mi

@@ -43,13 +43,16 @@ required = [
 
 [[constraint]]
   name = "github.com/openshift/cluster-api"
-  revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
+  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
+
+[[constraint]]
+  name = "github.com/openshift/cluster-autoscaler-operator"
+  branch = "master"
 
 # We need to specify fsnotify source to avoid dep panic
 [[override]]
   name = "gopkg.in/fsnotify.v1"
   source = "https://github.com/fsnotify/fsnotify.git"
-
 
 [[override]]
   name = "k8s.io/api"

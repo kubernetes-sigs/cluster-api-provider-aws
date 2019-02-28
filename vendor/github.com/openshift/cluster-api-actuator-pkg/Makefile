@@ -25,7 +25,7 @@ check: fmt vet lint test ## Check your code
 
 .PHONY: test
 test: # Run unit test
-	$(DOCKER_CMD) go test -race -cover ./pkg/...
+	$(DOCKER_CMD) go test -race -cover `go list ./... | grep -v github.com/openshift/cluster-api-actuator-pkg/pkg/e2e`
 
 .PHONY: lint
 lint: ## Go lint your code
@@ -38,6 +38,25 @@ fmt: ## Go fmt your code
 .PHONY: vet
 vet: ## Apply go vet to all go files
 	hack/go-vet.sh ./...
+
+.PHONY: test-e2e
+test-e2e: ## Run openshift specific e2e test
+	go test -timeout 60m \
+		-v github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
+		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
+		-machine-api-namespace $${NAMESPACE:-openshift-machine-api} \
+		-ginkgo.v \
+		-args -v 5 -logtostderr true
+
+.PHONY: k8s-e2e
+k8s-e2e: ## Run k8s specific e2e test
+	go test -timeout 30m \
+		-v github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
+		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
+		-machine-api-namespace $${NAMESPACE:-kube-system} \
+		-ginkgo.v \
+		-args -v 5 -logtostderr true
+
 
 .PHONY: help
 help:

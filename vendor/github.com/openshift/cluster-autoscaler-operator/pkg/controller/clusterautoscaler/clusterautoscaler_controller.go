@@ -51,6 +51,8 @@ type Config struct {
 	Replicas int32
 	// The name of the CloudProvider.
 	CloudProvider string
+	// The log verbosity level for the cluster-autoscaler.
+	Verbosity int
 }
 
 var _ reconcile.Reconciler = &Reconciler{}
