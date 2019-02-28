@@ -25,6 +25,7 @@ type ClusterAutoscalerStatus struct {
 
 // ClusterAutoscaler is the Schema for the clusterautoscalers API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 type ClusterAutoscaler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,6 +44,7 @@ type ClusterAutoscalerList struct {
 }
 
 type ResourceLimits struct {
+	// +kubebuilder:validation:Minimum=0
 	MaxNodesTotal *int32         `json:"maxNodesTotal,omitempty"`
 	Cores         *ResourceRange `json:"cores,omitempty"`
 	Memory        *ResourceRange `json:"memory,omitempty"`
@@ -50,19 +52,26 @@ type ResourceLimits struct {
 }
 
 type GPULimit struct {
+	// TODO: Should this match on known GPU types?
+	// +kubebuilder:validation:MinLength=1
 	Type string `json:"type"`
 	ResourceRange
 }
 
 type ResourceRange struct {
+	// +kubebuilder:validation:Minimum=0
 	Min int32 `json:"min"`
 	Max int32 `json:"max"`
 }
 
 type ScaleDownConfig struct {
-	Enabled           bool   `json:"enabled"`
-	DelayAfterAdd     string `json:"delayAfterAdd"`
-	DelayAfterDelete  string `json:"delayAfterDelete"`
-	DelayAfterFailure string `json:"delayAfterFailure"`
-	UnneededTime      string `json:"unneededTime,omitempty"`
+	Enabled bool `json:"enabled"`
+	// +kubebuilder:validation:Pattern=([0-9]*(\.[0-9]*)?[a-z]+)+
+	DelayAfterAdd *string `json:"delayAfterAdd,omitempty"`
+	// +kubebuilder:validation:Pattern=([0-9]*(\.[0-9]*)?[a-z]+)+
+	DelayAfterDelete *string `json:"delayAfterDelete,omitempty"`
+	// +kubebuilder:validation:Pattern=([0-9]*(\.[0-9]*)?[a-z]+)+
+	DelayAfterFailure *string `json:"delayAfterFailure,omitempty"`
+	// +kubebuilder:validation:Pattern=([0-9]*(\.[0-9]*)?[a-z]+)+
+	UnneededTime *string `json:"unneededTime,omitempty"`
 }

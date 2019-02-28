@@ -10,7 +10,9 @@ func init() {
 
 // MachineAutoscalerSpec defines the desired state of MachineAutoscaler
 type MachineAutoscalerSpec struct {
-	MinReplicas    int32                       `json:"minReplicas"`
+	// +kubebuilder:validation:Minimum=0
+	MinReplicas int32 `json:"minReplicas"`
+	// +kubebuilder:validation:Minimum=1
 	MaxReplicas    int32                       `json:"maxReplicas"`
 	ScaleTargetRef CrossVersionObjectReference `json:"scaleTargetRef"`
 }
@@ -24,6 +26,7 @@ type MachineAutoscalerStatus struct {
 
 // MachineAutoscaler is the Schema for the machineautoscalers API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 type MachineAutoscaler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -44,7 +47,9 @@ type MachineAutoscalerList struct {
 // CrossVersionObjectReference identifies another object by name, API version,
 // and kind.
 type CrossVersionObjectReference struct {
-	Kind       string `json:"kind"`
-	Name       string `json:"name"`
 	APIVersion string `json:"apiVersion,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	Kind string `json:"kind"`
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
 }

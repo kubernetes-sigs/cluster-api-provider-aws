@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"strings"
 
 	"github.com/golang/glog"
+	osconfigv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/cluster-autoscaler-operator/pkg/apis"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -11,9 +13,16 @@ import (
 )
 
 const (
-	namespace = "openshift-machine-api"
-	caName    = "default"
+	caName = "default"
 )
+
+var focus string
+var namespace string
+
+func init() {
+	flag.StringVar(&focus, "focus", "[openshift]", "If set, run only tests containing focus string. E.g. [k8s]")
+	flag.StringVar(&namespace, "namespace", "openshift-machine-api", "cluster-autoscaler-operator namespace")
+}
 
 var F *Framework
 
@@ -45,6 +54,10 @@ func main() {
 		glog.Fatal(err)
 	}
 
+	if err := osconfigv1.AddToScheme(scheme.Scheme); err != nil {
+		glog.Fatal(err)
+	}
+
 	if err := newClient(); err != nil {
 		glog.Fatal(err)
 	}
@@ -55,23 +68,44 @@ func main() {
 }
 
 func runSuite() error {
-	if err := ExpectOperatorAvailable(); err != nil {
-		glog.Errorf("FAIL: ExpectOperatorAvailable: %v", err)
-		return err
-	}
-	glog.Info("PASS: ExpectOperatorAvailable")
 
-	if err := CreateClusterAutoscaler(); err != nil {
-		glog.Errorf("FAIL: CreateClusterAutoscaler: %v", err)
-		return err
+	expectations := []struct {
+		expect func() error
+		name   string
+	}{
+		{
+			expect: ExpectOperatorAvailable,
+			name:   "[k8s][openshift] Expect operator to be available",
+		},
+		{
+			expect: ExpectClusterOperatorStatusAvailable,
+			name:   "[openshift] Expect Cluster Operator status to be available",
+		},
+		{
+			expect: CreateClusterAutoscaler,
+			name:   "[openshift] Create Cluster Autoscaler resource",
+		},
+		{
+			expect: ExpectClusterAutoscalerAvailable,
+			name:   "[openshift] Expect Cluster Autoscaler available",
+		},
+		{
+			expect: ExpectToScaleUpAndDown,
+			name:   "[k8s] Expect to scale up and down",
+		},
 	}
-	glog.Info("PASS: CreateClusterAutoscaler")
 
-	if err := ExpectClusterAutoscalerAvailable(); err != nil {
-		glog.Errorf("FAIL: ExpectClusterAutoscalerAvailable: %v", err)
-		return err
+	for _, tc := range expectations {
+		if strings.HasPrefix(tc.name, focus) {
+			if err := tc.expect(); err != nil {
+				glog.Errorf("FAIL: %v: %v", tc.name, err)
+				return err
+			}
+			glog.Infof("PASS: %v", tc.name)
+		} else {
+			glog.Infof("SKIPPING: %v", tc.name)
+		}
 	}
-	glog.Info("PASS: ExpectClusterAutoscalerAvailable")
 
 	return nil
 }

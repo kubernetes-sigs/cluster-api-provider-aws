@@ -47,6 +47,7 @@ const (
 	CoresTotalArg                   AutoscalerArg = "--cores-total"
 	MemoryTotalArg                  AutoscalerArg = "--memory-total"
 	GPUTotalArg                     AutoscalerArg = "--gpu-total"
+	VerbosityArg                    AutoscalerArg = "--v"
 )
 
 // AutoscalerArgs returns a slice of strings representing command line arguments
@@ -57,6 +58,7 @@ func AutoscalerArgs(ca *v1alpha1.ClusterAutoscaler, cfg *Config) []string {
 
 	args := []string{
 		LogToStderrArg.String(),
+		VerbosityArg.Value(cfg.Verbosity),
 		CloudProviderArg.Value(cfg.CloudProvider),
 		NamespaceArg.Value(cfg.Namespace),
 	}
@@ -87,18 +89,27 @@ func AutoscalerArgs(ca *v1alpha1.ClusterAutoscaler, cfg *Config) []string {
 // ScaleDownConfig object.
 func ScaleDownArgs(sd *v1alpha1.ScaleDownConfig) []string {
 	if !sd.Enabled {
-		return []string{ScaleDownEnabledArg.Value("false")}
+		return []string{ScaleDownEnabledArg.Value(false)}
 	}
 
 	args := []string{
-		ScaleDownEnabledArg.Value("true"),
-		ScaleDownDelayAfterAddArg.Value(sd.DelayAfterAdd),
-		ScaleDownDelayAfterDeleteArg.Value(sd.DelayAfterDelete),
-		ScaleDownDelayAfterFailureArg.Value(sd.DelayAfterFailure),
+		ScaleDownEnabledArg.Value(true),
 	}
 
-	if sd.UnneededTime != "" {
-		args = append(args, ScaleDownUnneededTimeArg.Value(sd.UnneededTime))
+	if sd.DelayAfterAdd != nil {
+		args = append(args, ScaleDownDelayAfterAddArg.Value(*sd.DelayAfterAdd))
+	}
+
+	if sd.DelayAfterDelete != nil {
+		args = append(args, ScaleDownDelayAfterDeleteArg.Value(*sd.DelayAfterDelete))
+	}
+
+	if sd.DelayAfterFailure != nil {
+		args = append(args, ScaleDownDelayAfterFailureArg.Value(*sd.DelayAfterFailure))
+	}
+
+	if sd.UnneededTime != nil {
+		args = append(args, ScaleDownUnneededTimeArg.Value(*sd.UnneededTime))
 	}
 
 	return args

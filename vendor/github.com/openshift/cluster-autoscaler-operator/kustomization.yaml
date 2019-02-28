@@ -11,3 +11,6 @@ resources:
 - install/0000_50_cluster-autoscaler-operator_02_machineautoscaler.crd.yaml
 - install/0000_50_cluster-autoscaler-operator_03_rbac.yaml
 - install/0000_50_cluster-autoscaler-operator_04_deployment.yaml
+
+patches:
+- cluster-autoscaler-operator-patch.yaml

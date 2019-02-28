@@ -8,6 +8,6 @@ spec:
   minReplicas: 1
   maxReplicas: 12
   scaleTargetRef:
-    apiVersion: cluster.k8s.io/v1alpha1
+    apiVersion: machine.openshift.io/v1beta1
     kind: MachineSet
-    name: worker
+    name: worker-us-east-1a

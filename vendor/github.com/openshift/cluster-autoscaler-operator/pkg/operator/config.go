@@ -43,6 +43,10 @@ const (
 	// DefaultClusterAutoscalerCloudProvider is the default name for
 	// the CloudProvider beeing used.
 	DefaultClusterAutoscalerCloudProvider = "openshift-machine-api"
+
+	// DefaultClusterAutoscalerVerbosity is the default logging
+	// verbosity level for ClusterAutoscaler deployments.
+	DefaultClusterAutoscalerVerbosity = 1
 )
 
 // Config represents the runtime configuration for the operator.
@@ -80,6 +84,10 @@ type Config struct {
 	// ClusterAutoscalerCloudProvider is the name for the
 	// CloudProvider beeing used.
 	ClusterAutoscalerCloudProvider string
+
+	// ClusterAutoscalerVerbosity is the logging verbosity level for
+	// ClusterAutoscaler deployments.
+	ClusterAutoscalerVerbosity int
 }
 
 // NewConfig returns a new Config object with defaults set.
@@ -94,6 +102,7 @@ func NewConfig() *Config {
 		ClusterAutoscalerImage:         DefaultClusterAutoscalerImage,
 		ClusterAutoscalerReplicas:      DefaultClusterAutoscalerReplicas,
 		ClusterAutoscalerCloudProvider: DefaultClusterAutoscalerCloudProvider,
+		ClusterAutoscalerVerbosity:     DefaultClusterAutoscalerVerbosity,
 	}
 }
 
@@ -138,6 +147,16 @@ func ConfigFromEnvironment() *Config {
 
 	if caNamespace, ok := os.LookupEnv("CLUSTER_AUTOSCALER_NAMESPACE"); ok {
 		config.ClusterAutoscalerNamespace = caNamespace
+	}
+
+	if caVerbosity, ok := os.LookupEnv("CLUSTER_AUTOSCALER_VERBOSITY"); ok {
+		v, err := strconv.Atoi(caVerbosity)
+		if err != nil {
+			v = DefaultClusterAutoscalerVerbosity
+			glog.Errorf("Error parsing CLUSTER_AUTOSCALER_VERBOSITY environment variable: %v", err)
+		}
+
+		config.ClusterAutoscalerVerbosity = v
 	}
 
 	return config
