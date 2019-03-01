@@ -55,33 +55,4 @@ genrule(
 
 exports_files([
     "addons.yaml",
-    "cluster.yaml.template",
-    "cluster-network-spec.yaml.template",
-    "generate-yaml.sh",
-    "machines.yaml.template",
 ])
-
-pkg_tar(
-    name = "aws",
-    srcs = [
-        "addons.yaml",
-        "cluster.yaml.template",
-        "cluster-network-spec.yaml.template",
-        "generate-yaml.sh",
-        "machines.yaml.template",
-        "provider-components-base.yaml",
-        "//docs:getting-started.md",
-    ],
-    modes = {
-        "addons.yaml": "0644",
-        "cluster.yaml.template": "0644",
-        "cluster-network-spec.yaml.template": "0644",
-        "generate-yaml.sh": "0755",
-        "machines.yaml.template": "0644",
-        "provider-components-base.yaml": "0644",
-        "//docs:getting-started.md": "0644",
-        ".gitignore": "0644",
-    },
-    package_dir = "aws",
-    visibility = ["//visibility:public"],
-)

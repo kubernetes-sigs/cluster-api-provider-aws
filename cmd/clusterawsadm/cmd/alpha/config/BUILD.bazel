@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:vfs_dir.bzl", "vfs_dir")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "assets_vfsdata.go",
+        "config.go",
+    ],
+    importpath = "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/config",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/template:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/github.com/shurcool/httpfs/vfsutil:go_default_library",
+        "//vendor/github.com/spf13/cobra:go_default_library",
+    ],
+)
+
+vfs_dir(
+    name = "assets",
+    src = "//examples/templates",
+    importpath = "github.com/sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/config",
+)

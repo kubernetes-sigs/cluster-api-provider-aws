@@ -6,7 +6,7 @@ items:
     metadata:
       name: controlplane-0
       labels:
-        cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+        cluster.k8s.io/cluster-name: {{.ClusterName}}
         set: controlplane
     spec:
       versions:
@@ -16,15 +16,15 @@ items:
         value:
           apiVersion: awsprovider/v1alpha1
           kind: AWSMachineProviderSpec
-          instanceType: "${CONTROL_PLANE_MACHINE_TYPE}"
+          instanceType: "{{.ControlPlaneMachineType}}"
           iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
-          keyName: "${SSH_KEY_NAME}"
+          keyName: "{{.SshKeyName}}"
   - apiVersion: "cluster.k8s.io/v1alpha1"
     kind: Machine
     metadata:
       generateName: node-
       labels:
-        cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+        cluster.k8s.io/cluster-name: {{.ClusterName}}
         set: node
     spec:
       versions:
@@ -33,6 +33,6 @@ items:
         value:
           apiVersion: awsprovider/v1alpha1
           kind: AWSMachineProviderSpec
-          instanceType: "${NODE_MACHINE_TYPE}"
+          instanceType: "{{.NodeMachineType}}"
           iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
-          keyName: "${SSH_KEY_NAME}"
+          keyName: "{{.SshKeyName}}"

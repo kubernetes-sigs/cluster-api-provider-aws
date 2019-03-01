@@ -162,6 +162,11 @@ crds:
 lint-full: dep-ensure ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
 
+.PHONY: assets
+assets:
+	bazel build //cmd/clusterawsadm/cmd/alpha/config:assets
+	install bazel-genfiles/cmd/clusterawsadm/cmd/alpha/config/assets_vfsdata.go cmd/clusterawsadm/cmd/alpha/config/assets_vfsdata.go
+
 ## Define local development targets here
 
 .PHONY: binaries

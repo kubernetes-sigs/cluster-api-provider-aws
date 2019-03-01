@@ -137,3 +137,15 @@ git_repository(
     commit = "b4bc4f1552c7fc1d4654753ca9b0e5e13883429f",
     remote = "https://github.com/kubernetes/repo-infra.git",
 )
+
+go_repository(
+    name = "com_github_shurcool_vfsgen",
+    commit = "a97a25d856cadfe6481325baeb35a70d6723ca0c",
+    importpath = "github.com/shurcool/vfsgen",
+)
+
+go_repository(
+    name = "com_github_shurcool_httpfs",
+    commit = "809beceb23714880abc4a382a00c05f89d13b1cc",
+    importpath = "github.com/shurcooL/httpfs",
+)

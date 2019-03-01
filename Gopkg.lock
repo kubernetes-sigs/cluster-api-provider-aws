@@ -545,6 +545,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:68cecd4c1137f77dfa2db1f13a0ceef2b5606d6b69d66fa69f7df1b2f2fe9afc"
+  name = "github.com/shurcool/httpfs"
+  packages = ["vfsutil"]
+  pruneopts = "UT"
+  revision = "74dc9339e414ad069a8d04bba7e7aafd08043a25"
+
+[[projects]]
   digest = "1:3e39bafd6c2f4bf3c76c3bfd16a2e09e016510ad5db90dc02b88e2f565d6d595"
   name = "github.com/spf13/afero"
   packages = [
@@ -1275,6 +1283,7 @@
     "github.com/onsi/gomega/gstruct",
     "github.com/onsi/gomega/types",
     "github.com/pkg/errors",
+    "github.com/shurcool/httpfs/vfsutil",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "golang.org/x/net/context",

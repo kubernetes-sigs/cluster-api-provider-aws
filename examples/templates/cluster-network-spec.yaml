@@ -1,7 +1,7 @@
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: Cluster
 metadata:
-  name: ${CLUSTER_NAME}
+  name: {{.ClusterName}}
 spec:
   clusterNetwork:
     services:
@@ -13,5 +13,8 @@ spec:
     value:
       apiVersion: "awsprovider/v1alpha1"
       kind: "AWSClusterProviderSpec"
-      region: "${AWS_REGION}"
-      sshKeyName: "${SSH_KEY_NAME}"
+      region: {{.AwsRegion}}
+      sshKeyName: {{.SshKeyName}}
+      networkSpec:
+        vpc:
+          id: "{{.VpcID}}"
