@@ -87,13 +87,13 @@ clusterawsadm: dep-ensure ## Build clusterawsadm binary.
 release-artifacts: ## Build release artifacts
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterctl //cmd/clusterawsadm
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterctl //cmd/clusterawsadm
-	bazel build //cmd/clusterctl/examples/aws
-	mkdir -p out
-	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm out/clusterawsadm-darwin-amd64
-	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm out/clusterawsadm-linux-amd64
-	install bazel-bin/cmd/clusterctl/darwin_amd64_pure_stripped/clusterctl out/clusterctl-darwin-amd64
-	install bazel-bin/cmd/clusterctl/linux_amd64_pure_stripped/clusterctl out/clusterctl-linux-amd64
-	install bazel-bin/cmd/clusterctl/examples/aws/aws.tar out/cluster-api-provider-aws-examples.tar
+	bazel build //cmd/clusterctl/examples/aws:provider-components-base
+	mkdir -p dist/darwin_amd64
+	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm dist/darwin_amd64/clusterawsadm-darwin-amd64
+	install bazel-bin/cmd/clusterctl/darwin_amd64_pure_stripped/clusterctl dist/darwin_amd64/clusterctl-darwin-amd64
+	mkdir -p dist/linux_amd64
+	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm dist/linux_amd64/clusterawsadm-linux-amd64
+	install bazel-bin/cmd/clusterctl/linux_amd64_pure_stripped/clusterctl dist/linux_amd64/clusterctl-linux-amd64
 
 .PHONY: test verify
 test: generate verify ## Run tests

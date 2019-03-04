@@ -1,0 +1,45 @@
+# Consider this for container image release.
+# before:
+#   hooks:
+#     - make docker-push
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd/noop/main.go
+    binary: clusterctl
+    goarch:
+      - amd64
+    hooks:
+      post: make release-artifacts
+archive:
+  replacements:
+    darwin: Darwin
+    linux: Linux
+    windows: Windows
+    386: i386
+    amd64: x86_64
+  files:
+    - cmd/clusterctl/examples/aws/addons.yaml
+    - cmd/clusterctl/examples/aws/cluster-network-spec.yaml.template
+    - cmd/clusterctl/examples/aws/cluster.yaml.template
+    - cmd/clusterctl/examples/aws/generate-yaml.sh
+    - cmd/clusterctl/examples/aws/machines.yaml.template
+    - cmd/clusterctl/examples/aws/provider-components-base.yaml
+    - docs/getting-started.md
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+release:
+  github:
+    owner: kubernetes-sigs
+    name: cluster-api-provider-aws
+  draft: true
+  # consider turning this off if we use complex versioning e.g. (v0.1.0-capi-v0.2.0)
+  prerelease: auto
