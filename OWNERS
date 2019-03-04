@@ -10,3 +10,4 @@ approvers:
 reviewers:
   - cluster-api-maintainers
   - cluster-api-aws-maintainers
+  - cluster-api-aws-reviewers

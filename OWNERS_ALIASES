@@ -36,3 +36,5 @@ aliases:
     - ingvagabund
     - vincepri
     - randomvariable
+  cluster-api-aws-reviewers:
+    - ashish-amarnath
