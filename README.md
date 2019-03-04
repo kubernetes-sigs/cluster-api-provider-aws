@@ -67,7 +67,7 @@ This repository uses the Kubernetes bots.  See a full list of the commands [here
 
 ### Implementer office hours
 
-Maintainers hold office hours every fortnight, with sessions open to al
+Maintainers hold office hours every two weeks, with sessions open to all
 developers working on this project.
 
 Office hours are hosted on a zoom video chat every 2 Mondays
