@@ -15,7 +15,7 @@
 # TODO: Move this to Kubebuilder repository
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("@io_kubernetes_build//defs:go.bzl", "go_genrule")
+load("@io_k8s_repo_infra//defs:go.bzl", "go_genrule")
 
 CONTROLLER_GEN = "//vendor/sigs.k8s.io/controller-tools/cmd/controller-gen"
 

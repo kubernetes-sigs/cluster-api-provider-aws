@@ -13,18 +13,25 @@
 # limitations under the License.
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("@io_kubernetes_build//defs:go.bzl", "go_genrule")
+load("@io_k8s_repo_infra//defs:go.bzl", "go_genrule")
 
 MOCKGEN = "@com_github_golang_mock//mockgen"
+
 MOCKGEN_LIBS = [
-  "@com_github_golang_mock//mockgen/model:go_default_library",
-  "//vendor/github.com/golang/mock/gomock:go_default_library",
+    "@com_github_golang_mock//mockgen/model:go_default_library",
+    "//vendor/github.com/golang/mock/gomock:go_default_library",
 ]
+
 ASM_SHIM = "//build/asm_shim"
+
 ASM_SHIM_LIB = "%s:go_default_library" % ASM_SHIM
+
 TEXTFLAG_SHIM = "%s:textflag.h" % ASM_SHIM
+
 SDK_INCLUDE_DIR = "$$GOROOT/pkg/include"
+
 BOILERPLATE = "//hack:boilerplate/boilerplate.go.txt"
+
 GO_FLAGS = "CGO_ENABLED=0"
 
 def _qualified_genfile(label):
@@ -57,7 +64,9 @@ def go_mock(name, importpath, visibility, mocks, deps):
 
       full_deps = [ASM_SHIM_LIB] + MOCKGEN_LIBS + deps + extra_dep
 
-      cmd = """mkdir -p {source_package} && \\
+      cmd = """
+export GOCACHE=$$(dirname {qualified_out})/.gocache && \\
+mkdir -p {source_package} && \\
 mkdir -p {generated_package} && \\
 mkdir -p {sdk_include_dir} && \\
 cp {textflag_shim} {sdk_include_dir} && \\

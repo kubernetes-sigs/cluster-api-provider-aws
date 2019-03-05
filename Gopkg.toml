@@ -42,7 +42,7 @@ required = [
 
 [[constraint]]
   name = "github.com/golang/mock"
-  branch = "master"
+  version = "v1.2.0"
 
 [[constraint]]
   name = "github.com/awslabs/goformation"

@@ -52,6 +52,7 @@ func (m *MockELBInterface) EXPECT() *MockELBInterfaceMockRecorder {
 
 // DeleteLoadbalancers mocks base method
 func (m *MockELBInterface) DeleteLoadbalancers() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteLoadbalancers")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -59,11 +60,13 @@ func (m *MockELBInterface) DeleteLoadbalancers() error {
 
 // DeleteLoadbalancers indicates an expected call of DeleteLoadbalancers
 func (mr *MockELBInterfaceMockRecorder) DeleteLoadbalancers() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).DeleteLoadbalancers))
 }
 
 // GetAPIServerDNSName mocks base method
 func (m *MockELBInterface) GetAPIServerDNSName() (string, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAPIServerDNSName")
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
@@ -72,11 +75,13 @@ func (m *MockELBInterface) GetAPIServerDNSName() (string, error) {
 
 // GetAPIServerDNSName indicates an expected call of GetAPIServerDNSName
 func (mr *MockELBInterfaceMockRecorder) GetAPIServerDNSName() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAPIServerDNSName", reflect.TypeOf((*MockELBInterface)(nil).GetAPIServerDNSName))
 }
 
 // ReconcileLoadbalancers mocks base method
 func (m *MockELBInterface) ReconcileLoadbalancers() error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReconcileLoadbalancers")
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -84,11 +89,13 @@ func (m *MockELBInterface) ReconcileLoadbalancers() error {
 
 // ReconcileLoadbalancers indicates an expected call of ReconcileLoadbalancers
 func (mr *MockELBInterfaceMockRecorder) ReconcileLoadbalancers() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLoadbalancers", reflect.TypeOf((*MockELBInterface)(nil).ReconcileLoadbalancers))
 }
 
 // RegisterInstanceWithAPIServerELB mocks base method
 func (m *MockELBInterface) RegisterInstanceWithAPIServerELB(arg0 string) error {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterInstanceWithAPIServerELB", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -96,5 +103,6 @@ func (m *MockELBInterface) RegisterInstanceWithAPIServerELB(arg0 string) error {
 
 // RegisterInstanceWithAPIServerELB indicates an expected call of RegisterInstanceWithAPIServerELB
 func (mr *MockELBInterfaceMockRecorder) RegisterInstanceWithAPIServerELB(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstanceWithAPIServerELB", reflect.TypeOf((*MockELBInterface)(nil).RegisterInstanceWithAPIServerELB), arg0)
 }
