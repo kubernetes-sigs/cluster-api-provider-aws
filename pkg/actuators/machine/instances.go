@@ -36,12 +36,12 @@ func removeDuplicatedTags(tags []*ec2.Tag) []*ec2.Tag {
 func removeStoppedMachine(machine *machinev1.Machine, client awsclient.Client) error {
 	instances, err := getStoppedInstances(machine, client)
 	if err != nil {
-		glog.Errorf("error getting stopped instances: %v", err)
+		glog.Errorf("Error getting stopped instances: %v", err)
 		return fmt.Errorf("error getting stopped instances: %v", err)
 	}
 
 	if len(instances) == 0 {
-		glog.Infof("no stopped instances found for machine %v", machine.Name)
+		glog.Infof("No stopped instances found for machine %v", machine.Name)
 		return nil
 	}
 
@@ -188,11 +188,11 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 	}
 	describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 	if err != nil {
-		glog.Errorf("error describing AMI: %v", err)
+		glog.Errorf("Error describing AMI: %v", err)
 		return nil, fmt.Errorf("error describing AMI: %v", err)
 	}
 	if len(describeAMIResult.Images) < 1 {
-		glog.Errorf("no image for given AMI was found")
+		glog.Errorf("No image for given AMI was found")
 		return nil, fmt.Errorf("no image for given AMI not found")
 	}
 	deviceName := describeAMIResult.Images[0].RootDeviceName
@@ -249,7 +249,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 
 	clusterID, ok := getClusterID(machine)
 	if !ok {
-		glog.Errorf("unable to get cluster ID for machine: %q", machine.Name)
+		glog.Errorf("Unable to get cluster ID for machine: %q", machine.Name)
 		return nil, err
 	}
 	// Add tags to the created machine
@@ -307,12 +307,12 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 	}
 	runResult, err := client.RunInstances(&inputConfig)
 	if err != nil {
-		glog.Errorf("error creating EC2 instance: %v", err)
+		glog.Errorf("Error creating EC2 instance: %v", err)
 		return nil, fmt.Errorf("error creating EC2 instance: %v", err)
 	}
 
 	if runResult == nil || len(runResult.Instances) != 1 {
-		glog.Errorf("unexpected reservation creating instances: %v", runResult)
+		glog.Errorf("Unexpected reservation creating instances: %v", runResult)
 		return nil, fmt.Errorf("unexpected reservation creating instance")
 	}
 

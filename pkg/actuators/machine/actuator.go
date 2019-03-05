@@ -311,8 +311,9 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 	}
 	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
-		glog.Errorf("error getting EC2 client: %v", err)
-		return fmt.Errorf("error getting EC2 client: %v", err)
+		errMsg := fmt.Errorf("error getting EC2 client: %v", err)
+		glog.Error(errMsg)
+		return errMsg
 	}
 
 	instances, err := getRunningInstances(machine, client)
@@ -353,8 +354,9 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 	}
 	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
-		glog.Errorf("error getting EC2 client: %v", err)
-		return fmt.Errorf("unable to obtain EC2 client: %v", err)
+		errMsg := fmt.Errorf("error getting EC2 client: %v", err)
+		glog.Error(errMsg)
+		return errMsg
 	}
 
 	instances, err := getRunningInstances(machine, client)
@@ -376,8 +378,9 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 			return err
 		}
 
-		glog.Errorf("attempted to update machine but no instances found")
-		return fmt.Errorf("attempted to update machine but no instances found")
+		errMsg := "attempted to update machine but no instances found"
+		glog.Error(errMsg)
+		return fmt.Errorf(errMsg)
 	}
 
 	glog.Info("instance found")
@@ -397,7 +400,7 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 
 	err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance)
 	if err != nil {
-		a.handleMachineError(machine, apierrors.CreateMachine("error updating load balancers: %v", err), noEventAction)
+		a.handleMachineError(machine, apierrors.CreateMachine("Error updating load balancers: %v", err), noEventAction)
 		return err
 	}
 
@@ -408,34 +411,34 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 // Exists determines if the given machine currently exists. For AWS we query for instances in
 // running state, with a matching name tag, to determine a match.
 func (a *Actuator) Exists(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) (bool, error) {
-	glog.Info("checking if machine exists")
+	glog.Info("Checking if machine exists")
 
 	instances, err := a.getMachineInstances(cluster, machine)
 	if err != nil {
-		glog.Errorf("error getting running instances: %v", err)
+		glog.Errorf("Error getting running instances: %v", err)
 		return false, err
 	}
 	if len(instances) == 0 {
-		glog.Info("instance does not exist")
+		glog.Info("Instance does not exist")
 		return false, nil
 	}
 
 	// If more than one result was returned, it will be handled in Update.
-	glog.Infof("instance exists as %q", *instances[0].InstanceId)
+	glog.Infof("Instance exists as %q", *instances[0].InstanceId)
 	return true, nil
 }
 
 // Describe provides information about machine's instance(s)
 func (a *Actuator) Describe(cluster *machinev1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
-	glog.Infof("checking if machine exists")
+	glog.Infof("Checking if machine exists")
 
 	instances, err := a.getMachineInstances(cluster, machine)
 	if err != nil {
-		glog.Errorf("error getting running instances: %v", err)
+		glog.Errorf("Error getting running instances: %v", err)
 		return nil, err
 	}
 	if len(instances) == 0 {
-		glog.Info("instance does not exist")
+		glog.Info("Instance does not exist")
 		return nil, nil
 	}
 
@@ -445,7 +448,7 @@ func (a *Actuator) Describe(cluster *machinev1.Cluster, machine *machinev1.Machi
 func (a *Actuator) getMachineInstances(cluster *machinev1.Cluster, machine *machinev1.Machine) ([]*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
-		glog.Errorf("error decoding MachineProviderConfig: %v", err)
+		glog.Errorf("Error decoding MachineProviderConfig: %v", err)
 		return nil, err
 	}
 
@@ -456,7 +459,7 @@ func (a *Actuator) getMachineInstances(cluster *machinev1.Cluster, machine *mach
 	}
 	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
-		glog.Errorf("error getting EC2 client: %v", err)
+		glog.Errorf("Error getting EC2 client: %v", err)
 		return nil, fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
@@ -485,14 +488,14 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 	if len(classicLoadBalancerNames) > 0 {
 		err := registerWithClassicLoadBalancers(client, classicLoadBalancerNames, instance)
 		if err != nil {
-			glog.Errorf("failed to register classic load balancers: %v", err)
+			glog.Errorf("Failed to register classic load balancers: %v", err)
 			errs = append(errs, err)
 		}
 	}
 	if len(networkLoadBalancerNames) > 0 {
 		err = registerWithNetworkLoadBalancers(client, networkLoadBalancerNames, instance)
 		if err != nil {
-			glog.Errorf("failed to register network load balancers: %v", err)
+			glog.Errorf("Failed to register network load balancers: %v", err)
 			errs = append(errs, err)
 		}
 	}
@@ -505,12 +508,12 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 // updateStatus calculates the new machine status, checks if anything has changed, and updates if so.
 func (a *Actuator) updateStatus(machine *machinev1.Machine, instance *ec2.Instance) error {
 
-	glog.Info("updating status")
+	glog.Info("Updating status")
 
 	// Starting with a fresh status as we assume full control of it here.
 	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
 	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, awsStatus); err != nil {
-		glog.Errorf("error decoding machine provider status: %v", err)
+		glog.Errorf("Error decoding machine provider status: %v", err)
 		return err
 	}
 
@@ -567,7 +570,7 @@ func (a *Actuator) updateStatus(machine *machinev1.Machine, instance *ec2.Instan
 	// attempting to update status until it hits a more permanent state. This will ensure
 	// we get a public IP populated more quickly.
 	if awsStatus.InstanceState != nil && *awsStatus.InstanceState == ec2.InstanceStateNamePending {
-		glog.Infof("instance state still pending, returning an error to requeue")
+		glog.Infof("Instance state still pending, returning an error to requeue")
 		return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 	}
 	return nil
