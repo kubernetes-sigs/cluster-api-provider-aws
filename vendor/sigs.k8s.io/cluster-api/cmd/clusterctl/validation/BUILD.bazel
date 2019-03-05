@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["validate_cluster_api_objects.go"],
+    srcs = [
+        "validate_cluster_api_objects.go",
+        "validate_pods.go",
+    ],
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/validation",
     importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl/validation",
     visibility = ["//visibility:public"],

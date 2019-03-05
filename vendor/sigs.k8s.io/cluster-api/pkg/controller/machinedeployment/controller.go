@@ -21,14 +21,17 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -42,15 +45,19 @@ var (
 	controllerKind = v1alpha1.SchemeGroupVersion.WithKind("MachineDeployment")
 )
 
+// controllerName is the name of this controller
+const controllerName = "machinedeployment-controller"
+
 // ReconcileMachineDeployment reconciles a MachineDeployment object.
 type ReconcileMachineDeployment struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineDeployment {
-	return &ReconcileMachineDeployment{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileMachineDeployment{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
 }
 
 // Add creates a new MachineDeployment Controller and adds it to the Manager with default RBAC.
@@ -62,7 +69,7 @@ func Add(mgr manager.Manager) error {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFunc) error {
 	// Create a new controller.
-	c, err := controller.New("machinedeployment-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -106,15 +113,9 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 		return nil, err
 	}
 
-	// TODO: flush out machine set adoption.
-
 	filteredMS := make([]*v1alpha1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
-		if metav1.GetControllerOf(ms) == nil || (metav1.GetControllerOf(ms) != nil && !metav1.IsControlledBy(ms, d)) {
-			klog.V(4).Infof("%s not controlled by %v", ms.Name, d.Name)
-			continue
-		}
 
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
@@ -133,10 +134,28 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 			continue
 		}
 
+		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
+		if metav1.GetControllerOf(ms) == nil {
+			if err := r.adoptOrphan(d, ms); err != nil {
+				klog.Warningf("Failed to adopt MachineSet %q into MachineDeployment %q: %v", ms.Name, d.Name, err)
+				continue
+			}
+		}
+
+		if !metav1.IsControlledBy(ms, d) {
+			continue
+		}
+
 		filteredMS = append(filteredMS, ms)
 	}
 
 	return filteredMS, nil
+}
+
+func (r *ReconcileMachineDeployment) adoptOrphan(deployment *v1alpha1.MachineDeployment, machineSet *v1alpha1.MachineSet) error {
+	newRef := *metav1.NewControllerRef(deployment, controllerKind)
+	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
+	return r.Client.Update(context.Background(), machineSet)
 }
 
 // Reconcile reads that state of the cluster for a MachineDeployment object and makes changes based on the state read
@@ -145,6 +164,7 @@ func (r *ReconcileMachineDeployment) getMachineSetsForDeployment(d *v1alpha1.Mac
 func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineDeployment instance
 	d := &v1alpha1.MachineDeployment{}
+	ctx := context.TODO()
 	if err := r.Get(context.TODO(), request.NamespacedName, d); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
@@ -154,7 +174,16 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	result, err := r.reconcile(ctx, d)
+	if err != nil {
+		klog.Errorf("Failed to reconcile MachineDeployment %q: %v", request.NamespacedName, err)
+		r.recorder.Eventf(d, corev1.EventTypeWarning, "ReconcileError", "%v", err)
+	}
 
+	return result, err
+}
+
+func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1alpha1.MachineDeployment) (reconcile.Result, error) {
 	v1alpha1.PopulateDefaultsMachineDeployment(d)
 
 	everything := metav1.LabelSelector{}
@@ -178,6 +207,40 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 
 	if !selector.Matches(labels.Set(d.Spec.Template.Labels)) {
 		return reconcile.Result{}, errors.Errorf("failed validation on MachineDeployment %q label selector, cannot match any machines ", d.Name)
+	}
+
+	// Cluster might be nil as some providers might not require a cluster object
+	// for machine management.
+	cluster, err := r.getCluster(d)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Set the ownerRef with foreground deletion if there is a linked cluster.
+	if cluster != nil && len(d.OwnerReferences) == 0 {
+		blockOwnerDeletion := true
+		d.OwnerReferences = append(d.OwnerReferences, metav1.OwnerReference{
+			APIVersion:         cluster.APIVersion,
+			Kind:               cluster.Kind,
+			Name:               cluster.Name,
+			UID:                cluster.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
+		})
+	}
+
+	// Add foregroundDeletion finalizer if MachineDeployment isn't deleted and linked to a cluster.
+	if cluster != nil && d.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
+			d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
+		}
+
+		if err := r.Client.Update(context.Background(), d); err != nil {
+			klog.Infof("Failed to add finalizers to MachineSet %q: %v", d.Name, err)
+			return reconcile.Result{}, err
+		}
+
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{}, nil
 	}
 
 	msList, err := r.getMachineSetsForDeployment(d)
@@ -204,6 +267,25 @@ func (r *ReconcileMachineDeployment) Reconcile(request reconcile.Request) (recon
 	}
 
 	return reconcile.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
+}
+
+func (r *ReconcileMachineDeployment) getCluster(d *v1alpha1.MachineDeployment) (*v1alpha1.Cluster, error) {
+	if d.Spec.Template.Labels[v1alpha1.MachineClusterLabelName] == "" {
+		klog.Infof("Deployment %q in namespace %q doesn't specify %q label, assuming nil cluster", d.Name, v1alpha1.MachineClusterLabelName, d.Namespace)
+		return nil, nil
+	}
+
+	cluster := &v1alpha1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: d.Namespace,
+		Name:      d.Spec.Template.Labels[v1alpha1.MachineClusterLabelName],
+	}
+
+	if err := r.Client.Get(context.Background(), key, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
 }
 
 // getMachineDeploymentsForMachineSet returns a list of Deployments that potentially

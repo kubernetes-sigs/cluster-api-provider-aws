@@ -24,10 +24,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -48,6 +50,9 @@ var (
 	// stateConfirmationInterval is the amount of time between polling for the desired state.
 	// The polling is against a local memory cache.
 	stateConfirmationInterval = 100 * time.Millisecond
+
+	// controllerName is the name of this controller
+	controllerName = "machineset-controller"
 )
 
 // Add creates a new MachineSet Controller and adds it to the Manager with default RBAC.
@@ -59,13 +64,13 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler.
 func newReconciler(mgr manager.Manager) *ReconcileMachineSet {
-	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileMachineSet{Client: mgr.GetClient(), scheme: mgr.GetScheme(), recorder: mgr.GetRecorder(controllerName)}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFunc) error {
 	// Create a new controller.
-	c, err := controller.New("machineset-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -98,7 +103,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 // ReconcileMachineSet reconciles a MachineSet object
 type ReconcileMachineSet struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconcile.Request {
@@ -138,8 +144,9 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 // +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineSet instance
+	ctx := context.TODO()
 	machineSet := &clusterv1alpha1.MachineSet{}
-	if err := r.Get(context.TODO(), request.NamespacedName, machineSet); err != nil {
+	if err := r.Get(ctx, request.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
 			// For additional cleanup logic use finalizers.
@@ -149,6 +156,15 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
+	result, err := r.reconcile(ctx, machineSet)
+	if err != nil {
+		klog.Errorf("Failed to reconcile MachineSet %q: %v", request.NamespacedName, err)
+		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
+	}
+	return result, err
+}
+
+func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *clusterv1alpha1.MachineSet) (reconcile.Result, error) {
 	klog.V(4).Infof("Reconcile machineset %v", machineSet.Name)
 	allMachines := &clusterv1alpha1.MachineList{}
 
@@ -167,6 +183,40 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, errors.Errorf("failed validation on MachineSet %q label selector, cannot match any machines ", machineSet.Name)
 	}
 
+	// Cluster might be nil as some providers might not require a cluster object
+	// for machine management.
+	cluster, err := r.getCluster(machineSet)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Set the ownerRef with foreground deletion if there is a linked cluster.
+	if cluster != nil && len(machineSet.OwnerReferences) == 0 {
+		blockOwnerDeletion := true
+		machineSet.OwnerReferences = append(machineSet.OwnerReferences, metav1.OwnerReference{
+			APIVersion:         cluster.APIVersion,
+			Kind:               cluster.Kind,
+			Name:               cluster.Name,
+			UID:                cluster.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
+		})
+	}
+
+	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
+	if cluster != nil && machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
+			machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
+		}
+
+		if err := r.Client.Update(context.Background(), machineSet); err != nil {
+			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)
+			return reconcile.Result{}, err
+		}
+
+		// Since adding the finalizer updates the object return to avoid later update issues
+		return reconcile.Result{}, nil
+	}
+
 	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
 	filteredMachines := make([]*clusterv1alpha1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
@@ -175,10 +225,10 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 			continue
 		}
 
-		// Attempt to adopt machine if it meets previous conditions and it has no controller ref.
+		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(machineSet, machine); err != nil {
-				klog.Warningf("failed to adopt machine %v into machineset %v. %v", machine.Name, machineSet.Name, err)
+				klog.Warningf("Failed to adopt MachineSet %q into MachineSet %q: %v", machine.Name, machineSet.Name, err)
 				continue
 			}
 		}
@@ -222,6 +272,25 @@ func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Re
 	return reconcile.Result{}, nil
 }
 
+func (r *ReconcileMachineSet) getCluster(ms *clusterv1alpha1.MachineSet) (*clusterv1alpha1.Cluster, error) {
+	if ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName] == "" {
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, clusterv1alpha1.MachineClusterLabelName, ms.Namespace)
+		return nil, nil
+	}
+
+	cluster := &clusterv1alpha1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: ms.Namespace,
+		Name:      ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName],
+	}
+
+	if err := r.Client.Get(context.Background(), key, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
+}
+
 // syncReplicas essentially scales machine resources up and down.
 func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machines []*clusterv1alpha1.Machine) error {
 	if ms.Spec.Replicas == nil {
@@ -238,12 +307,12 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		var machineList []*clusterv1alpha1.Machine
 		var errstrings []string
 		for i := 0; i < diff; i++ {
-			klog.Infof("creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
+			klog.Infof("Creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
 				i+1, diff, *(ms.Spec.Replicas), len(machines))
 
 			machine := r.createMachine(ms)
 			if err := r.Client.Create(context.Background(), machine); err != nil {
-				klog.Errorf("unable to create a machine = %s, due to %v", machine.Name, err)
+				klog.Errorf("Unable to create Machine %q: %v", machine.Name, err)
 				errstrings = append(errstrings, err.Error())
 				continue
 			}
@@ -272,7 +341,7 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 				defer wg.Done()
 				err := r.Client.Delete(context.Background(), targetMachine)
 				if err != nil {
-					klog.Errorf("unable to delete a machine = %s, due to %v", targetMachine.Name, err)
+					klog.Errorf("Unable to delete Machine %s: %v", targetMachine.Name, err)
 					errCh <- err
 				}
 			}(machine)
@@ -333,22 +402,9 @@ func shouldExcludeMachine(machineSet *clusterv1alpha1.MachineSet, machine *clust
 }
 
 func (r *ReconcileMachineSet) adoptOrphan(machineSet *clusterv1alpha1.MachineSet, machine *clusterv1alpha1.Machine) error {
-	// Add controller reference.
-	ownerRefs := machine.ObjectMeta.GetOwnerReferences()
-	if ownerRefs == nil {
-		ownerRefs = []metav1.OwnerReference{}
-	}
-
 	newRef := *metav1.NewControllerRef(machineSet, controllerKind)
-	ownerRefs = append(ownerRefs, newRef)
-	machine.ObjectMeta.SetOwnerReferences(ownerRefs)
-
-	if err := r.Client.Update(context.Background(), machine); err != nil {
-		klog.Warningf("Failed to update machine owner reference. %v", err)
-		return err
-	}
-
-	return nil
+	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
+	return r.Client.Update(context.Background(), machine)
 }
 
 func (r *ReconcileMachineSet) waitForMachineCreation(machineList []*clusterv1alpha1.Machine) error {
