@@ -1,3 +1,6 @@
+run:
+  skip-files:
+    - build/asm_shim/c.go
 linters:
   enable:
     - golint
