@@ -164,6 +164,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:DeleteSecurityGroup",
 					"ec2:DeleteSubnet",
 					"ec2:DeleteVpc",
+					"ec2:DescribeAccountAttributes",
 					"ec2:DescribeAddresses",
 					"ec2:DescribeAvailabilityZones",
 					"ec2:DescribeInstances",
