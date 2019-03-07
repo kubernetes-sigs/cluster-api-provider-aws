@@ -21,14 +21,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-log/log/info"
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 
@@ -41,8 +39,6 @@ import (
 
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	kubedrain "github.com/openshift/kubernetes-drain"
 )
 
 const (
@@ -55,8 +51,6 @@ const (
 
 	// MachineCreationFailed indicates that machine creation failed
 	MachineCreationFailed = "MachineCreationFailed"
-	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
-	ExcludeNodeDrainingAnnotation = "machine.openshift.io/exclude-node-draining"
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -255,50 +249,6 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
-	// Drain node before deleting
-	// If a machine is not linked to a node, just delete the machine. Since a node
-	// can be unlinked from a machine when the node goes NotReady and is removed
-	// by cloud controller manager. In that case some machines would never get
-	// deleted without a manual intervention.
-	if _, exists := machine.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && machine.Status.NodeRef != nil {
-		glog.Infof("Draining node before delete")
-		if a.config == nil {
-			err := fmt.Errorf("missing client config, unable to build kube client")
-			glog.Error(err)
-			return err
-		}
-		kubeClient, err := kubernetes.NewForConfig(a.config)
-		if err != nil {
-			return fmt.Errorf("unable to build kube client: %v", err)
-		}
-		node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
-		}
-
-		if err := kubedrain.Drain(
-			kubeClient,
-			[]*corev1.Node{node},
-			&kubedrain.DrainOptions{
-				Force:              true,
-				IgnoreDaemonsets:   true,
-				DeleteLocalData:    true,
-				GracePeriodSeconds: -1,
-				Logger:             info.New(glog.V(0)),
-				// If a pod is not evicted in 20 second, retry the eviction next time the
-				// machine gets reconciled again (to allow other machines to be reconciled)
-				Timeout: 20 * time.Second,
-			},
-		); err != nil {
-			// Machine still tries to terminate after drain failure
-			glog.Warningf("drain failed for machine %q: %v", machine.Name, err)
-			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
-		}
-
-		glog.Infof("drain successful for machine %q", machine.Name)
-		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
-	}
-
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)

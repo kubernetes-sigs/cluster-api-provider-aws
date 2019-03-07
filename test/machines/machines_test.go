@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 
 	MachineV1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -136,7 +137,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			if testMachine.Annotations == nil {
 				testMachine.Annotations = map[string]string{}
 			}
-			testMachine.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
+			testMachine.Annotations[machinecontroller.ExcludeNodeDrainingAnnotation] = ""
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
 
@@ -214,7 +215,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			if testMachine.Annotations == nil {
 				testMachine.Annotations = map[string]string{}
 			}
-			testMachine.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
+			testMachine.Annotations[machinecontroller.ExcludeNodeDrainingAnnotation] = ""
 			f.CreateMachineAndWait(testMachine, acw)
 			machinesToDelete.AddMachine(testMachine, f, acw)
 
@@ -278,7 +279,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			if masterMachine.Annotations == nil {
 				masterMachine.Annotations = map[string]string{}
 			}
-			masterMachine.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
+			masterMachine.Annotations[machinecontroller.ExcludeNodeDrainingAnnotation] = ""
 			f.CreateMachineAndWait(masterMachine, acw)
 			machinesToDelete.AddMachine(masterMachine, f, acw)
 
@@ -326,7 +327,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			if workerMachineSet.Annotations == nil {
 				workerMachineSet.Annotations = map[string]string{}
 			}
-			workerMachineSet.Annotations[machineutils.ExcludeNodeDrainingAnnotation] = ""
+			workerMachineSet.Annotations[machinecontroller.ExcludeNodeDrainingAnnotation] = ""
 			fmt.Printf("workerMachineSet: %#v\n", workerMachineSet)
 			clusterFramework.CreateMachineSetAndWait(workerMachineSet, acw)
 			machinesToDelete.AddMachineSet(workerMachineSet, clusterFramework, acw)
