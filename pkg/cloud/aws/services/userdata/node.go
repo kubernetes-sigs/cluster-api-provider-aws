@@ -24,7 +24,7 @@ write_files:
     permissions: '0640'
     content: |
       ---
-      {{.JoinConfiguration | Indent 6}}
+{{.JoinConfiguration | Indent 6}}
 kubeadm:
   operation: join
   config: /tmp/kubeadm-node.yaml
