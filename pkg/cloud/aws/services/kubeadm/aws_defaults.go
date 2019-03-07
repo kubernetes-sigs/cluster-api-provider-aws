@@ -132,7 +132,7 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		base.Discovery.BootstrapToken = &kubeadmv1beta1.BootstrapTokenDiscovery{}
 	}
 	// TODO: should this actually be the cluster's ContolPlaneEndpoint?
-	base.Discovery.BootstrapToken.APIServerEndpoint = s.Network().APIServerELB.DNSName
+	base.Discovery.BootstrapToken.APIServerEndpoint = fmt.Sprintf("%s:%d", s.Network().APIServerELB.DNSName, apiServerBindPort)
 	base.Discovery.BootstrapToken.Token = bootstrapToken
 	base.Discovery.BootstrapToken.CACertHashes = append(base.Discovery.BootstrapToken.CACertHashes, caCertHash)
 
