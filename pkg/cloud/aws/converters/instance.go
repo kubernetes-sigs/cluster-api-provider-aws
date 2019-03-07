@@ -17,6 +17,8 @@ limitations under the License.
 package converters
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
@@ -36,13 +38,11 @@ func SDKToInstance(v *ec2.Instance) *v1alpha1.Instance {
 		EBSOptimized: v.EbsOptimized,
 	}
 
+	i.IAMProfile = strings.Split(aws.StringValue(v.IamInstanceProfile.Arn), "instance-profile/")[1]
+
 	for _, sg := range v.SecurityGroups {
 		i.SecurityGroupIDs = append(i.SecurityGroupIDs, *sg.GroupId)
 	}
-
-	// TODO: Handle returned IAM instance profile, since we are currently
-	// using a string representing the name, but the InstanceProfile returned
-	// from the sdk only returns ARN and ID.
 
 	if len(v.Tags) > 0 {
 		i.Tags = TagsToMap(v.Tags)
