@@ -27,7 +27,9 @@ const (
 	// which tracks the SecurityGroups that the machine actuator is responsible
 	// for. These are the SecurityGroups that have been handled by the
 	// AdditionalTags in the Machine Provider Config.
-	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws/last-applied/tags"
+	// See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+	// for annotation formatting rules.
+	TagsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws-last-applied-tags"
 )
 
 // Ensure that the tags of the machine are correct

@@ -31,7 +31,9 @@ const (
 	// annotation which tracks the SecurityGroups that the machine actuator is
 	// responsible for. These are the SecurityGroups that have been handled by
 	// the AdditionalSecurityGroups in the Machine Provider Config.
-	SecurityGroupsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws/last-applied/security-groups"
+	// See https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+	// for annotation formatting rules.
+	SecurityGroupsLastAppliedAnnotation = "sigs.k8s.io/cluster-api-provider-aws-last-applied-security-groups"
 )
 
 // Ensures that the security groups of the machine are correct
