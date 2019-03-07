@@ -1,7 +1,7 @@
 # Release process
 
 1. Create a draft release in github
-3. Tag the repository and push the tag
+3. Tag the repository and push the tag `git tag -s $VERSION `
 4. Run `make release-artifacts`
 5. Attach the tarball to the drafted release
 6. Attach `clusterawsadm` and `clusterctl` to the drafted release (for darwin
@@ -11,6 +11,7 @@
    personal gcr registry to the production one, or have them build and push the
    container image themselves.
 9. Publish release
+10. Email `kubernetes-dev@googlegroups.com` to announce the release
 
 ## Expected artifacts
 
@@ -20,6 +21,7 @@
 3. `clusterctl`
 4. `clusterawsadm`
 5. Release notes
+6. Email to `kubernetes-dev@googlegroups.com` announcing the release
 
 ## Output locations
 
