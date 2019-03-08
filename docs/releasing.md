@@ -2,7 +2,7 @@
 
 ## Semi-automatic
 
-1. make the release artifacts `make release artifacts`
+1. make the release artifacts `make release-artifacts`
 2. Run the release tool found in `cmd/release`
 3. Pick up the manual steps starting with step 6
 
