@@ -38,7 +38,17 @@ func SDKToInstance(v *ec2.Instance) *v1alpha1.Instance {
 		EBSOptimized: v.EbsOptimized,
 	}
 
-	i.IAMProfile = strings.Split(aws.StringValue(v.IamInstanceProfile.Arn), "instance-profile/")[1]
+	// Extract IAM Instance Profile name from ARN
+	// TODO: Handle this comparison more safely, perhaps by querying IAM for the
+	// instance profile ARN and comparing to the ARN returned by EC2
+	if v.IamInstanceProfile.Arn != nil {
+		split := strings.Split(aws.StringValue(v.IamInstanceProfile.Arn), "instance-profile/")
+		if len(split) > 1 {
+			if split[1] != "" {
+				i.IAMProfile = split[1]
+			}
+		}
+	}
 
 	for _, sg := range v.SecurityGroups {
 		i.SecurityGroupIDs = append(i.SecurityGroupIDs, *sg.GroupId)
