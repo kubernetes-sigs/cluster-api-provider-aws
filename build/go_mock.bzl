@@ -20,7 +20,7 @@ MOCKGEN_LIBS = [
   "@com_github_golang_mock//mockgen/model:go_default_library",
   "//vendor/github.com/golang/mock/gomock:go_default_library",
 ]
-ASM_SHIM = "//build/asm_shim"
+ASM_SHIM = "//build/asmshim"
 ASM_SHIM_LIB = "%s:go_default_library" % ASM_SHIM
 TEXTFLAG_SHIM = "%s:textflag.h" % ASM_SHIM
 SDK_INCLUDE_DIR = "$$GOROOT/pkg/include"
