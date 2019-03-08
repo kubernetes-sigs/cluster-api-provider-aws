@@ -414,6 +414,14 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return true, err
 	}
 
+	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
+		// TODO: This should be unified with the logic for getting the nodeRef, and
+		// should potentially leverage the code that already exists in
+		// kubernetes/cloud-provider-aws
+		providerID := fmt.Sprintf("aws:////%s", *scope.MachineStatus.InstanceID)
+		scope.Machine.Spec.ProviderID = &providerID
+	}
+
 	// Set the Machine NodeRef.
 	if machine.Status.NodeRef == nil {
 		nodeRef, err := a.getNodeReference(scope)
