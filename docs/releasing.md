@@ -1,17 +1,25 @@
 # Release process
 
+## Semi-automatic
+
+1. make the release artifacts `make release-artifacts`
+2. Run the release tool found in `cmd/release`
+3. Pick up the manual steps starting with step 6
+
+## Manual
+
 1. Create a draft release in github
-3. Tag the repository and push the tag `git tag -s $VERSION `
-4. Run `make release-artifacts`
-5. Attach the tarball to the drafted release
-6. Attach `clusterawsadm` and `clusterctl` to the drafted release (for darwin
+2. Tag the repository and push the tag `git tag -s $VERSION `
+3. Run `make release-artifacts`
+4. Attach the tarball to the drafted release
+5. Attach `clusterawsadm` and `clusterctl` to the drafted release (for darwin
    and linux architectures)
-7. Write the release notes (see note below on release notes)
-8. Get someone with permission to copy the container image from your own
+6. Write the release notes (see note below on release notes)
+7. Get someone with permission to copy the container image from your own
    personal gcr registry to the production one, or have them build and push the
    container image themselves.
-9. Publish release
-10. Email `kubernetes-dev@googlegroups.com` to announce the release
+8. Publish release
+9. Email `kubernetes-dev@googlegroups.com` to announce the release
 
 ## Expected artifacts
 
