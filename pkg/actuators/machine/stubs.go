@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 )
@@ -119,7 +120,7 @@ func stubMachine() (*machinev1.Machine, error) {
 			},
 			Annotations: map[string]string{
 				// skip node draining since it's not mocked
-				ExcludeNodeDrainingAnnotation: "",
+				machinecontroller.ExcludeNodeDrainingAnnotation: "",
 			},
 		},
 
