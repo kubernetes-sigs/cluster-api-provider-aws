@@ -86,6 +86,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 const (
 	createEventAction = "Create"
+	updateEventAction = "Update"
 	deleteEventAction = "Delete"
 	noEventAction     = ""
 )
@@ -293,7 +294,7 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 
 	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
 	if err != nil {
-		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), noEventAction)
+		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), updateEventAction)
 	}
 
 	region := machineProviderConfig.Placement.Region
@@ -321,7 +322,7 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 	if len(instances) == 0 {
 		glog.Warningf("attempted to update machine but no instances found")
 
-		a.handleMachineError(machine, apierrors.CreateMachine("no instance found, reason unknown"), noEventAction)
+		a.handleMachineError(machine, apierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
 
 		// Update status to clear out machine details.
 		if err := a.updateStatus(machine, nil); err != nil {
@@ -350,9 +351,11 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 
 	err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance)
 	if err != nil {
-		a.handleMachineError(machine, apierrors.CreateMachine("Error updating load balancers: %v", err), noEventAction)
+		a.handleMachineError(machine, apierrors.CreateMachine("Error updating load balancers: %v", err), updateEventAction)
 		return err
 	}
+
+	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Updated", "Updated machine %v", machine.Name)
 
 	// We do not support making changes to pre-existing instances, just update status.
 	return a.updateStatus(machine, newestInstance)
