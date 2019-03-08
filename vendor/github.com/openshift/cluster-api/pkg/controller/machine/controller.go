@@ -154,6 +154,17 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, err
 		}
 
+		if m.Status.NodeRef != nil {
+			klog.Infof("Deleting node %q", m.Status.NodeRef.Name)
+			var node corev1.Node
+			key := client.ObjectKey{Namespace: "", Name: m.Status.NodeRef.Name}
+			if err := r.Client.Get(ctx, key, &node); err != nil {
+				klog.Warningf("Failed to get node %q: %v", m.Status.NodeRef.Name, err)
+			} else if err := r.Client.Delete(ctx, &node); err != nil {
+				klog.Warningf("Failed to delete node %q: %v", m.Status.NodeRef.Name, err)
+			}
+		}
+
 		// Remove finalizer on successful deletion.
 		klog.Infof("machine object %v deletion successful, removing finalizer.", name)
 		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer)
