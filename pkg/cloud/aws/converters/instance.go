@@ -41,12 +41,10 @@ func SDKToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	// Extract IAM Instance Profile name from ARN
 	// TODO: Handle this comparison more safely, perhaps by querying IAM for the
 	// instance profile ARN and comparing to the ARN returned by EC2
-	if v.IamInstanceProfile.Arn != nil {
+	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Arn != nil {
 		split := strings.Split(aws.StringValue(v.IamInstanceProfile.Arn), "instance-profile/")
-		if len(split) > 1 {
-			if split[1] != "" {
-				i.IAMProfile = split[1]
-			}
+		if len(split) > 1 && split[1] != "" {
+			i.IAMProfile = split[1]
 		}
 	}
 
