@@ -241,6 +241,11 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	ec2svc := ec2.NewService(scope.Scope)
 
+	if scope.MachineStatus.InstanceID == nil {
+		klog.Error("Instance does not have an instance id")
+		return nil
+	}
+
 	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Errorf("failed to get instance: %+v", err)
