@@ -98,6 +98,9 @@ func TestInstanceIfExists(t *testing.T) {
 										InstanceType: aws.String("m5.large"),
 										SubnetId:     aws.String("subnet-1"),
 										ImageId:      aws.String("ami-1"),
+										IamInstanceProfile: &ec2.IamInstanceProfile{
+											Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+										},
 										State: &ec2.InstanceState{
 											Code: aws.Int64(16),
 											Name: aws.String(ec2.StateAvailable),
@@ -367,6 +370,9 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 							{
 								State: &ec2.InstanceState{
 									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:   aws.String("two"),
 								InstanceType: aws.String("m5.large"),
