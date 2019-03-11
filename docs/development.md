@@ -5,6 +5,7 @@
 <!-- Below is generated using VSCode yzhang.markdown-all-in-one >
 
 <!-- TOC depthFrom:2 -->
+
 - [Setting up](#setting-up)
   - [Base requirements](#base-requirements)
   - [Get the source](#get-the-source)
@@ -18,9 +19,12 @@
     - [Setting up the environment](#setting-up-the-environment)
     - [Dev manifests](#dev-manifests)
     - [Building and pushing dev images to GCR](#building-and-pushing-dev-images-to-gcr)
+    - [Building and pushing dev images to custom (non GCR) container registry](#building-and-pushing-dev-images-to-custom-non-gcr-container-registry)
     - [Running clusterctl](#running-clusterctl)
   - [Automated Testing](#automated-testing)
     - [Mocks](#mocks)
+- [Troubleshooting](#troubleshooting)
+  - [`make docker-dev-build` fails](#make-docker-dev-build-fails)
 
 <!-- /TOC -->
 
@@ -99,7 +103,21 @@ The dev version of the manifests can be generated with
 
 1. [Install the gcloud cli][gcloud_sdk].
 2. Set project: `gcloud config set project YOUR_PROJECT_NAME`.
-3. Build & push dev images: `make docker-push-dev`.
+3. To build images with custom tags, edit [.bazelrc](./.bazelrc) as follows:
+
+   `build --define=MANAGER_IMAGE_TAG=<YOUR_CUSTOM_TAG_HERE>`
+4. Build & push dev images: `make docker-push-dev`.
+
+#### Building and pushing dev images to custom (non GCR) container registry
+
+1. Login to your container registry using `docker login`.
+
+   E.g. `docker login quay.io`
+2. To build images with custom tags, edit [.bazelrc](./.bazelrc) as follows:
+
+   `build --define=MANAGER_IMAGE_TAG=<YOUR_CUSTOM_TAG_HERE>`
+3. Build dev images: `REGISTRY_DEV=<YOUR_CONTAINER_REGISTRY_HERE> make clean docker-build-dev`
+4. Push your docker images as `docker push <ContainerImage>:<YourTag>`
 
 #### Running clusterctl
 
@@ -117,6 +135,23 @@ Mocks are set up using Bazel, see [build](../../build)
 If you then want to use these mocks with `go test ./...`, run
 
 `make copy-genmocks`
+
+## Troubleshooting
+
+Troubleshooting steps and workarounds for commonly encountered errors
+encountered in doing development work.
+
+### `make docker-dev-build` fails
+
+```(bash)
+ERROR: Analysis of target '//cmd/manager:manager-image-dev' failed; build aborted: no such package '@golang-image//image': Pull command failed
+```
+
+This is caused by Python2 not being the version of active python in the shell. Bazel
+requires [Python 2](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/development.md#base-requirements)
+for its docker rules to succeed.
+
+See Issue: [624](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/624)
 
 <!-- References -->
 
