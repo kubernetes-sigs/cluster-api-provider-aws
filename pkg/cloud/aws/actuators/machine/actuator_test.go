@@ -314,7 +314,8 @@ func TestImmutableStateChange(t *testing.T) {
 		name        string
 		machineSpec v1alpha1.AWSMachineProviderSpec
 		instance    v1alpha1.Instance
-		expected    bool
+		// expected length of returned errors
+		expected int
 	}{
 		{
 			name: "instance type is unchanged",
@@ -324,7 +325,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				Type: "t2.micro",
 			},
-			expected: false,
+			expected: 0,
 		},
 		{
 			name: "instance type is changed",
@@ -334,7 +335,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				Type: "t2.micro",
 			},
-			expected: true,
+			expected: 1,
 		},
 		{
 			name: "iam profile is unchanged",
@@ -344,7 +345,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				IAMProfile: "test-profile",
 			},
-			expected: false,
+			expected: 0,
 		},
 		{
 			name: "iam profile is changed",
@@ -354,7 +355,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				IAMProfile: "test-profile",
 			},
-			expected: true,
+			expected: 1,
 		},
 		{
 			name: "keyname is unchanged",
@@ -364,7 +365,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				KeyName: aws.String("SSHKey"),
 			},
-			expected: false,
+			expected: 0,
 		},
 		{
 			name: "keyname is changed",
@@ -374,7 +375,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				KeyName: aws.String("SSHKey"),
 			},
-			expected: true,
+			expected: 1,
 		},
 		{
 			name: "instance with public ip is unchanged",
@@ -385,7 +386,7 @@ func TestImmutableStateChange(t *testing.T) {
 				// This IP chosen from RFC5737 TEST-NET-1
 				PublicIP: aws.String("192.0.2.1"),
 			},
-			expected: false,
+			expected: 0,
 		},
 		{
 			name: "instance with public ip is changed",
@@ -396,7 +397,7 @@ func TestImmutableStateChange(t *testing.T) {
 				// This IP chosen from RFC5737 TEST-NET-1
 				PublicIP: aws.String("192.0.2.1"),
 			},
-			expected: true,
+			expected: 1,
 		},
 		{
 			name: "instance without public ip is unchanged",
@@ -406,7 +407,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				PublicIP: aws.String(""),
 			},
-			expected: false,
+			expected: 0,
 		},
 		{
 			name: "instance without public ip is changed",
@@ -416,7 +417,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				PublicIP: aws.String(""),
 			},
-			expected: true,
+			expected: 1,
 		},
 		{
 			name: "subnetid is unchanged",
@@ -428,7 +429,7 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				SubnetID: "subnet-abcdef",
 			},
-			expected: false,
+			expected: 0,
 		},
 		{
 			name: "subnetid is changed",
@@ -440,14 +441,27 @@ func TestImmutableStateChange(t *testing.T) {
 			instance: v1alpha1.Instance{
 				SubnetID: "subnet-abcdef",
 			},
-			expected: true,
+			expected: 1,
+		},
+		{
+			name: "multiple immutable changes",
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
+				IAMInstanceProfile: "test-profile-updated",
+				PublicIP:           aws.Bool(false),
+			},
+			instance: v1alpha1.Instance{
+				IAMProfile: "test-profile",
+				// This IP chosen from RFC5737 TEST-NET-1
+				PublicIP: aws.String("192.0.2.1"),
+			},
+			expected: 2,
 		},
 	}
 
 	testActuator := NewActuator(ActuatorParams{})
 
 	for _, tc := range testCases {
-		changed := testActuator.isMachineOutdated(&tc.machineSpec, &tc.instance)
+		changed := len(testActuator.isMachineOutdated(&tc.machineSpec, &tc.instance))
 
 		if tc.expected != changed {
 			t.Fatalf("[%s] Expected MachineSpec [%+v], NOT Equal Instance [%+v]",

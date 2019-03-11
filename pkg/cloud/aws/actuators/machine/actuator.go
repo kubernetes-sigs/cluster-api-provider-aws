@@ -275,20 +275,22 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 // Returns a bool indicating if an attempt to change immutable state occurred.
 //  - true:  An attempt to change immutable state occurred.
 //  - false: Immutable state was untouched.
-func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) bool {
+func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) []error {
+	var errs []error
+
 	// Instance Type
 	if machineSpec.InstanceType != instance.Type {
-		return true
+		errs = append(errs, errors.Errorf("(input instance type \"%s\" != existing \"%s\")", machineSpec.InstanceType, instance.Type))
 	}
 
 	// IAM Profile
 	if machineSpec.IAMInstanceProfile != instance.IAMProfile {
-		return true
+		errs = append(errs, errors.Errorf("(input instance profile \"%s\" != existing \"%s\")", machineSpec.IAMInstanceProfile, instance.IAMProfile))
 	}
 
 	// SSH Key Name
 	if machineSpec.KeyName != aws.StringValue(instance.KeyName) {
-		return true
+		errs = append(errs, errors.Errorf("(input SSH key name \"%s\" != existing \"%s\")", machineSpec.KeyName, aws.StringValue(instance.KeyName)))
 	}
 
 	// Subnet ID
@@ -297,7 +299,7 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 	// as a *string, so do the same here.
 	if machineSpec.Subnet != nil {
 		if aws.StringValue(machineSpec.Subnet.ID) != instance.SubnetID {
-			return true
+			errs = append(errs, errors.Errorf("(input subnet ID \"%s\" != existing \"%s\")", aws.StringValue(machineSpec.Subnet.ID), instance.SubnetID))
 		}
 	}
 
@@ -314,11 +316,10 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 	}
 
 	if aws.BoolValue(machineSpec.PublicIP) != instanceHasPublicIP {
-		return true
+		errs = append(errs, errors.Errorf("(input public IP setting \"%v\" != existing \"%v\")", aws.BoolValue(machineSpec.PublicIP), instanceHasPublicIP))
 	}
 
-	// No immutable state changes found.
-	return false
+	return errs
 }
 
 // Update updates a machine and is invoked by the Machine Controller.
@@ -345,8 +346,8 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// We can now compare the various AWS state to the state we were passed.
 	// We will check immutable state first, in order to fail quickly before
 	// moving on to state that we can mutate.
-	if a.isMachineOutdated(scope.MachineConfig, instanceDescription) {
-		return errors.Errorf("found attempt to change immutable state")
+	if errs := a.isMachineOutdated(scope.MachineConfig, instanceDescription); len(errs) > 0 {
+		return errors.Errorf("found attempt to change immutable state for machine %s: %v", machine.Name, errs)
 	}
 
 	// Ensure that the security groups are correct.
