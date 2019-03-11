@@ -103,21 +103,25 @@ The dev version of the manifests can be generated with
 
 1. [Install the gcloud cli][gcloud_sdk].
 2. Set project: `gcloud config set project YOUR_PROJECT_NAME`.
-3. To build images with custom tags, edit [.bazelrc](./.bazelrc) as follows:
+3. To build images with custom tags, run the `make docker-push-dev` as follows:
 
-   `build --define=MANAGER_IMAGE_TAG=<YOUR_CUSTOM_TAG_HERE>`
-4. Build & push dev images: `make docker-push-dev`.
+```(bash)
+BAZEL_ARGS="--define=MANAGER_IMAGE_TAG=<YOUR_TAG_HERE> make docker-push-dev
+```
 
 #### Building and pushing dev images to custom (non GCR) container registry
 
 1. Login to your container registry using `docker login`.
 
    E.g. `docker login quay.io`
-2. To build images with custom tags, edit [.bazelrc](./.bazelrc) as follows:
+2. To build images with custom tags and push to your custom image registry,
+   run the `make docker-build-dev` as follows::
 
-   `build --define=MANAGER_IMAGE_TAG=<YOUR_CUSTOM_TAG_HERE>`
-3. Build dev images: `REGISTRY_DEV=<YOUR_CONTAINER_REGISTRY_HERE> make clean docker-build-dev`
-4. Push your docker images as `docker push <ContainerImage>:<YourTag>`
+```(bash)
+BAZEL_ARGS="--define=MANAGER_IMAGE_TAG=<YOUR_TAG_HERE> --define=REGISTRY_DEV=<YOUR_REGISTRY_HERE>" make docker-build-dev
+```
+
+3. Push your docker images as `docker push <ContainerImage>:<YourTag>`
 
 #### Running clusterctl
 
