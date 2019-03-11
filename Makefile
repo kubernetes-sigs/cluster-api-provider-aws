@@ -192,6 +192,7 @@ generate: gazelle dep-ensure ## Run go generate
 		//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library \
 		//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library
 	cp -Rf bazel-genfiles/pkg/* pkg/
+	$(MAKE) crds
 
 .PHONY: lint
 lint: dep-ensure ## Lint codebase
