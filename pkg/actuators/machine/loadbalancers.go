@@ -48,19 +48,19 @@ func registerWithNetworkLoadBalancers(client awsclient.Client, names []string, i
 	}
 	lbsResponse, err := client.ELBv2DescribeLoadBalancers(lbsRequest)
 	if err != nil {
-		glog.Errorf("failed to describe load balancers %v: %v", names, err)
+		glog.Errorf("Failed to describe load balancers %v: %v", names, err)
 		return err
 	}
 	// Use a map for target groups to get unique target group entries across load balancers
 	targetGroups := map[string]*elbv2.TargetGroup{}
 	for _, loadBalancer := range lbsResponse.LoadBalancers {
-		glog.V(4).Infof("retrieving target groups for load balancer %q", *loadBalancer.LoadBalancerName)
+		glog.V(4).Infof("Retrieving target groups for load balancer %q", *loadBalancer.LoadBalancerName)
 		targetGroupsInput := &elbv2.DescribeTargetGroupsInput{
 			LoadBalancerArn: loadBalancer.LoadBalancerArn,
 		}
 		targetGroupsOutput, err := client.ELBv2DescribeTargetGroups(targetGroupsInput)
 		if err != nil {
-			glog.Errorf("failed to retrieve load balancer target groups for %q: %v", *loadBalancer.LoadBalancerName, err)
+			glog.Errorf("Failed to retrieve load balancer target groups for %q: %v", *loadBalancer.LoadBalancerName, err)
 			return err
 		}
 		for _, targetGroup := range targetGroupsOutput.TargetGroups {
@@ -72,7 +72,7 @@ func registerWithNetworkLoadBalancers(client awsclient.Client, names []string, i
 		for arn := range targetGroups {
 			targetGroupArns = append(targetGroupArns, fmt.Sprintf("%q", arn))
 		}
-		glog.Infof("registering instance %q with target groups: %v", *instance.InstanceId, strings.Join(targetGroupArns, ","))
+		glog.Infof("Registering instance %q with target groups: %v", *instance.InstanceId, strings.Join(targetGroupArns, ","))
 	}
 	errs := []error{}
 	for _, targetGroup := range targetGroups {
@@ -93,7 +93,7 @@ func registerWithNetworkLoadBalancers(client awsclient.Client, names []string, i
 		}
 		_, err := client.ELBv2RegisterTargets(registerTargetsInput)
 		if err != nil {
-			glog.Errorf("failed to register instance %q with target group %q: %v", *instance.InstanceId, *targetGroup.TargetGroupArn, err)
+			glog.Errorf("Failed to register instance %q with target group %q: %v", *instance.InstanceId, *targetGroup.TargetGroupArn, err)
 			errs = append(errs, fmt.Errorf("%s: %v", *targetGroup.TargetGroupArn, err))
 		}
 	}

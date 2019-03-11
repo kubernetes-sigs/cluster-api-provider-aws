@@ -285,7 +285,7 @@ func bootstrapCommand() *cobra.Command {
 			}
 			result, err := actuator.CreateMachine(testCluster, masterMachine)
 			if err != nil {
-				glog.Errorf("unable to create machine: %v", err)
+				glog.Errorf("Unable to create machine: %v", err)
 				return fmt.Errorf("unable to create machine: %v", err)
 			}
 
@@ -300,7 +300,7 @@ func bootstrapCommand() *cobra.Command {
 					return false, nil
 				}
 
-				glog.Infof("PublicDnsName: %v\n", *result.PublicDnsName)
+				glog.Infof("PublicDNSName: %v", *result.PublicDnsName)
 				if *result.PublicDnsName == "" {
 					return false, nil
 				}

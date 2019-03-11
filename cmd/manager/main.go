@@ -45,35 +45,34 @@ func main() {
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatalf("Error getting configuration: %v", err)
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(cfg, manager.Options{})
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatalf("Error creating manager: %v", err)
 	}
-
-	glog.Info("Registering Components.")
 
 	// Setup Scheme for all resources
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
-		glog.Fatal(err)
+		glog.Fatalf("Error setting up scheme: %v", err)
 	}
 
 	machineActuator, err := initActuator(mgr)
 	if err != nil {
-		glog.Fatal(err)
+		glog.Fatalf("Error initializing actuator: %v", err)
 	}
 
 	if err := machine.AddWithActuator(mgr, machineActuator); err != nil {
-		glog.Fatal(err)
+		glog.Fatalf("Error adding actuator: %v", err)
 	}
 
-	glog.Info("Starting the Cmd.")
-
 	// Start the Cmd
-	glog.Fatal(mgr.Start(signals.SetupSignalHandler()))
+	err = mgr.Start(signals.SetupSignalHandler())
+	if err != nil {
+		glog.Fatalf("Error starting manager: %v", err)
+	}
 }
 
 func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {

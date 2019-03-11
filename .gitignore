@@ -24,3 +24,5 @@
 
 # Auto-generated manifests
 tfManifests/
+
+bin/

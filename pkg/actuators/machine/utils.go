@@ -146,7 +146,7 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 	}
 	_, err := client.TerminateInstances(terminateInstancesRequest)
 	if err != nil {
-		glog.Errorf("error terminating instances: %v", err)
+		glog.Errorf("Error terminating instances: %v", err)
 		return fmt.Errorf("error terminating instances: %v", err)
 	}
 	return nil
