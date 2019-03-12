@@ -15,7 +15,7 @@ reconciliation to a single namespace and this document tells you how.
   managing clusters across multiple AWS accounts. This will require each
   `cluster-api-provider-aws` controller to have credentials to their respective
   AWS accounts. These credentials can be created as kubernetes secret and be
-  mounted in the pod at `/root/.aws` or as environment variables.
+  mounted in the pod at `/home/.aws` or as environment variables.
 - Grouping clusters into a namespace based on their environment, (test,
   qualification, canary, production) will allow a phased rolling out of
   `cluster-api-provider-aws` releases.
