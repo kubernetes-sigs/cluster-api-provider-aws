@@ -472,7 +472,7 @@
   revision = "cec6269883be26556e63500b6df19a0b6691992e"
 
 [[projects]]
-  digest = "1:a6e8f781678c5936540153af83838657342f4a6d5478ad9c3f527ce864a8be0c"
+  digest = "1:b09422e6139c31a6e7561e143071fd330317125f53ab3fd0012e4706665cca68"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis",
@@ -492,7 +492,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
+  revision = "eaaebe5a6fdf7fa96203bbdb9e2cf1165dd6ac1f"
 
 [[projects]]
   branch = "master"
@@ -1208,7 +1208,6 @@
     "github.com/aws/aws-sdk-go/service/elbv2/elbv2iface",
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
-    "github.com/go-log/log/info",
     "github.com/golang/glog",
     "github.com/golang/mock/gomock",
     "github.com/onsi/ginkgo",
@@ -1228,7 +1227,6 @@
     "github.com/openshift/cluster-api/pkg/controller/machine",
     "github.com/openshift/cluster-api/pkg/errors",
     "github.com/openshift/cluster-autoscaler-operator/pkg/apis",
-    "github.com/openshift/kubernetes-drain",
     "github.com/prometheus/common/log",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",

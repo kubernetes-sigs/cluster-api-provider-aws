@@ -34,7 +34,7 @@ required = [
 
 [[override]]
   name = "github.com/openshift/cluster-api"
-  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
+  revision = "eaaebe5a6fdf7fa96203bbdb9e2cf1165dd6ac1f"
 
 [[override]]
   name = "k8s.io/code-generator"
