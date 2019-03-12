@@ -18,6 +18,7 @@ package clusterclient
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -387,17 +388,18 @@ func (c *client) GetMachinesForCluster(cluster *clusterv1.Cluster) ([]*clusterv1
 		return nil, errors.Wrapf(err, "error listing Machines for Cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 	var machines []*clusterv1.Machine
-	for _, m := range machineslist.Items {
+
+	for i := 0; i < len(machineslist.Items); i++ {
+		m := &machineslist.Items[i]
+
 		for _, or := range m.GetOwnerReferences() {
 			if or.Kind == cluster.Kind && or.Name == cluster.Name {
-				machines = append(machines, &m)
-				continue
+				machines = append(machines, m)
+				break
 			}
 		}
 	}
-	for i := 0; i < len(machineslist.Items); i++ {
-		machines = append(machines, &machineslist.Items[i])
-	}
+
 	return machines, nil
 }
 
@@ -763,7 +765,7 @@ func (c *client) waitForKubectlApply(manifest string) error {
 		klog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
-			if strings.Contains(err.Error(), "refused") {
+			if err.Error() == io.EOF.Error() || strings.Contains(err.Error(), "refused") {
 				// Connection was refused, probably because the API server is not ready yet.
 				klog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
 				return false, nil
