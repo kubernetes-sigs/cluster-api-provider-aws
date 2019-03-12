@@ -62,7 +62,7 @@ type EC2ClusterInterface interface {
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
 type EC2MachineInterface interface {
-	InstanceIfExists(id string) (*providerv1.Instance, error)
+	InstanceIfExists(id *string) (*providerv1.Instance, error)
 	TerminateInstance(id string) error
 	CreateOrGetMachine(machine *actuators.MachineScope, token, kubeConfig string) (*providerv1.Instance, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error

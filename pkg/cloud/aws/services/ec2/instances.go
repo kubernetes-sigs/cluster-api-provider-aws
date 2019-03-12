@@ -69,11 +69,16 @@ func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Ins
 }
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(id string) (*v1alpha1.Instance, error) {
-	klog.V(2).Infof("Looking for instance %q", id)
+func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
+	if id == nil {
+		klog.Error("Instance does not have an instance id")
+		return nil, nil
+	}
+
+	klog.V(2).Infof("Looking for instance %q", *id)
 
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{aws.String(id)},
+		InstanceIds: []*string{id},
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(s.scope.VPC().ID),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
@@ -85,7 +90,7 @@ func (s *Service) InstanceIfExists(id string) (*v1alpha1.Instance, error) {
 	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
-		return nil, errors.Wrapf(err, "failed to describe instance: %q", id)
+		return nil, errors.Wrapf(err, "failed to describe instance: %q", *id)
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
@@ -309,7 +314,7 @@ func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
 	var err error
 	var instance *v1alpha1.Instance
 	if machine.MachineStatus.InstanceID != nil {
-		instance, err = s.InstanceIfExists(*machine.MachineStatus.InstanceID)
+		instance, err = s.InstanceIfExists(machine.MachineStatus.InstanceID)
 	} else {
 		instance, err = s.InstanceByTags(machine)
 	}
@@ -331,7 +336,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 	if machine.MachineStatus.InstanceID != nil {
 		klog.V(2).Infof("Looking up machine %q by id %q", machine.Name(), *machine.MachineStatus.InstanceID)
 
-		instance, err := s.InstanceIfExists(*machine.MachineStatus.InstanceID)
+		instance, err := s.InstanceIfExists(machine.MachineStatus.InstanceID)
 		if err != nil && !awserrors.IsNotFound(err) {
 			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", machine.Name(), *machine.MachineStatus.InstanceID)
 		} else if err == nil && instance != nil {

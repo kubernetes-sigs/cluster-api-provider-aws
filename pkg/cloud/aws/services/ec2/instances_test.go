@@ -180,7 +180,7 @@ func TestInstanceIfExists(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
-			instance, err := s.InstanceIfExists(tc.instanceID)
+			instance, err := s.InstanceIfExists(&tc.instanceID)
 			tc.check(instance, err)
 		})
 	}
