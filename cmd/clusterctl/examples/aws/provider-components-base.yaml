@@ -2337,7 +2337,7 @@ spec:
             cpu: 100m
             memory: 20Mi
         volumeMounts:
-        - mountPath: /root/.aws
+        - mountPath: /home/.aws
           name: credentials
       terminationGracePeriodSeconds: 10
       tolerations:
