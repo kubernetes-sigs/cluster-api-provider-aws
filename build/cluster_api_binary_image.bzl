@@ -26,7 +26,6 @@ load("@io_bazel_rules_docker//container:container.bzl", "container_bundle")
 def cluster_api_binary_image(name):
     go_image(
         name = name + "-amd64",
-        base = "@golang-image//image",
         embed = [":go_default_library"],
         goarch = "amd64",
         goos = "linux",

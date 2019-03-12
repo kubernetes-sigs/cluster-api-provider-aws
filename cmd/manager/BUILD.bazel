@@ -49,7 +49,6 @@ go_binary(
 
 go_image(
     name = "manager-amd64",
-    base = "@golang-image//image",
     embed = [":go_default_library"],
     goarch = "amd64",
     goos = "linux",

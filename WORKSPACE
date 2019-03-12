@@ -17,8 +17,8 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "ade51a315fa17347e5c31201fdc55aa5ffb913377aa315dceb56ee9725e620ee",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.16.6/rules_go-0.16.6.tar.gz",
+    sha256 = "301c8b39b0808c49f98895faa6aa8c92cbd605ab5ad4b6a3a652da33a1a2ba2e",
+    url = "https://github.com/bazelbuild/rules_go/releases/download/0.18.0/rules_go-0.18.0.tar.gz",
 )
 
 http_archive(
@@ -41,7 +41,7 @@ http_archive(
     urls = ["https://github.com/kubernetes/repo-infra/archive/e8f2f7c3decf03e1fde9f30d249e39b8328aa8b0.tar.gz"],
 )
 
-load("@io_bazel_rules_go//go:def.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 go_rules_dependencies()
 
@@ -68,20 +68,18 @@ load(
     "@io_bazel_rules_docker//container:container.bzl",
     "container_pull",
 )
-
-container_pull(
-    name = "golang-image",
-    registry = "registry.hub.docker.com",
-    repository = "library/golang",
-    tag = "1.10-alpine",
+load(
+    "@io_bazel_rules_docker//go:image.bzl",
+    _go_image_repos = "repositories",
 )
+
+_go_image_repos()
 
 go_repository(
     name = "com_github_golang_dep",
     build_file_generation = "on",
     importpath = "github.com/golang/dep",
-    strip_prefix = "dep-22125cfaa6ddc71e145b1535d4b7ee9744fefff2",
-    urls = ["https://github.com/golang/dep/archive/22125cfaa6ddc71e145b1535d4b7ee9744fefff2.zip"],
+    tag = "v0.5.1",
 )
 
 go_repository(
@@ -95,32 +93,31 @@ go_repository(
     name = "com_github_golang_mock",
     build_file_generation = "on",
     importpath = "github.com/golang/mock",
-    strip_prefix = "mock-8a44ef6e8be577e050008c7886f24fc705d709fb",
-    urls = ["https://github.com/golang/mock/archive/8a44ef6e8be577e050008c7886f24fc705d709fb.zip"],
+    tag = "v1.2.0",
 )
 
 go_repository(
     name = "io_k8s_sigs_kind",
-    commit = "1284e993a84a56c994ea541dbcb97486a7b86b50",
     importpath = "sigs.k8s.io/kind",
+    tag = "0.1.0",
 )
 
 go_repository(
     name = "io_k8s_sigs_kustomize",
-    commit = "58492e2d83c59ed63881311f46ad6251f77dabc3",
     importpath = "sigs.k8s.io/kustomize",
+    tag = "v1.0.11",
 )
 
 go_repository(
     name = "io_k8s_kubernetes",
-    commit = "4ed3216f3ec431b140b1d899130a69fc671678f4",  # v1.12.1
     importpath = "k8s.io/kubernetes",
+    tag = "v1.13.4",
 )
 
 go_repository(
     name = "com_github_a8m_envsubst",
-    commit = "41dec2456c86b2a9fa51a22a808b7084b8d52c64",  # v1.1.0
     importpath = "github.com/a8m/envsubst",
+    tag = "v1.1.0",
 )
 
 # for @io_k8s_kubernetes
