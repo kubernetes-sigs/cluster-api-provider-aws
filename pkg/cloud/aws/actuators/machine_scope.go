@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -30,9 +31,10 @@ import (
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
 	AWSClients
-	Cluster *clusterv1.Cluster
-	Machine *clusterv1.Machine
-	Client  client.ClusterV1alpha1Interface
+	Cluster    *clusterv1.Cluster
+	Machine    *clusterv1.Machine
+	Client     client.ClusterV1alpha1Interface
+	CoreClient v1.CoreV1Interface
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
@@ -58,12 +60,18 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		machineClient = params.Client.Machines(params.Machine.Namespace)
 	}
 
+	var coreClient v1.CoreV1Interface
+	if params.Client != nil {
+		coreClient = params.CoreClient
+	}
+
 	return &MachineScope{
 		Scope:         scope,
 		Machine:       params.Machine,
 		MachineClient: machineClient,
 		MachineConfig: machineConfig,
 		MachineStatus: machineStatus,
+		CoreClient:    coreClient,
 	}, nil
 }
 
@@ -75,6 +83,7 @@ type MachineScope struct {
 	MachineClient client.MachineInterface
 	MachineConfig *v1alpha1.AWSMachineProviderSpec
 	MachineStatus *v1alpha1.AWSMachineProviderStatus
+	CoreClient    v1.CoreV1Interface
 }
 
 // Name returns the machine name.

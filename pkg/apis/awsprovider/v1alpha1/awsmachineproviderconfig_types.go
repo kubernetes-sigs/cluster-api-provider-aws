@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 )
@@ -77,6 +78,11 @@ type AWSMachineProviderSpec struct {
 	// KubeadmConfiguration holds the kubeadm configuration options
 	// +optional
 	KubeadmConfiguration KubeadmConfiguration `json:"kubeadmConfiguration,omitempty"`
+
+	// UserDataSecret contains a local reference to a secret that contains the
+	// UserData to apply to the instance
+	// + optional
+	UserDataSecret *corev1.LocalObjectReference `json:"userDataSecret,omitempty"`
 }
 
 // KubeadmConfiguration holds the various configurations that kubeadm uses

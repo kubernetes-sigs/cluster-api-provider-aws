@@ -18,9 +18,12 @@ package userdata
 
 import (
 	"bytes"
+	"encoding/base64"
 	"text/template"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
 const (
@@ -89,4 +92,22 @@ func funcMap(funcs map[string]interface{}) template.FuncMap {
 	}
 
 	return funcMap
+}
+
+func GetUserDataFromSecret(machine *actuators.MachineScope) (string, error) {
+	if machine.MachineConfig.UserDataSecret != nil {
+		userData := []byte{}
+		userDataSecret, err := machine.CoreClient.Secrets(machine.Namespace()).Get(machine.MachineConfig.UserDataSecret.Name, metav1.GetOptions{})
+		if err != nil {
+			return "", errors.Errorf("failed to get userData secret %q", machine.MachineConfig.UserDataSecret.Name)
+		}
+		if data, exists := userDataSecret.Data["userData"]; exists {
+			userData = data
+		} else {
+			return "", errors.Errorf("secret %q does not have field %q", machine.MachineConfig.UserDataSecret.Name, "userData")
+		}
+		encodedUserData := base64.StdEncoding.EncodeToString(userData)
+		return encodedUserData, nil
+	}
+	return "", nil
 }

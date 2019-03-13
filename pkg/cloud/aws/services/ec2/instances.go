@@ -164,7 +164,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			errors.Errorf("failed to get userData for machine %q", machine.Name()),
 		)
 	}
-	input.UserData = userData
+	input.UserData = &userData
 
 	securityGroupID, err := s.getSecurityGroupID(machine)
 	if err != nil {
@@ -209,6 +209,15 @@ func (s *Service) getSecurityGroupID(machine *actuators.MachineScope) (string, e
 
 func (s *Service) getUserData(machine *actuators.MachineScope, bootstrapToken, caCertHash string, kubeConfig string) (string, error) {
 	var userData string
+
+	userData, err := userdata.GetUserDataFromSecret(machine)
+	if err != nil {
+		return "", errors.Errorf("failed getting userData from secret %v", err)
+	}
+	if userData != "" {
+		return userData, nil
+	}
+
 	switch machine.Role() {
 	case "controlplane":
 		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
