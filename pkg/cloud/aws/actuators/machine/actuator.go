@@ -275,9 +275,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 // Returns a bool indicating if an attempt to change immutable state occurred.
 //  - true:  An attempt to change immutable state occurred.
 //  - false: Immutable state was untouched.
-func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) []error {
-	var errs []error
-
+func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) (errs []error) {
 	// Instance Type
 	if machineSpec.InstanceType != instance.Type {
 		errs = append(errs, errors.Errorf("(instance type cannot be mutated from %q to %q)", instance.Type, machineSpec.InstanceType))
