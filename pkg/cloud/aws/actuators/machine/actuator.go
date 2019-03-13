@@ -272,9 +272,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 // isMachineOudated checks that no immutable fields have been updated in an
 // Update request.
-// Returns a bool indicating if an attempt to change immutable state occurred.
-//  - true:  An attempt to change immutable state occurred.
-//  - false: Immutable state was untouched.
+// Returns a slice of errors representing attempts to change immutable state
 func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) (errs []error) {
 	// Instance Type
 	if machineSpec.InstanceType != instance.Type {
