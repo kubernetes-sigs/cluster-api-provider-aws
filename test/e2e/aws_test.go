@@ -41,6 +41,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"fmt"
+
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
@@ -50,7 +51,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
 	capi "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	mc "sigs.k8s.io/cluster-api/pkg/controller/machine"
 )
 
 const (
@@ -84,7 +84,7 @@ var _ = Describe("AWS", func() {
 		client  *clientset.Clientset
 	)
 	BeforeEach(func() {
-		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", awsRegion)
+		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", region)
 		cluster.Setup()
 		cfg := cluster.RestConfig()
 		var err error
@@ -177,7 +177,7 @@ func makeMachine() *capi.Machine {
 
 	machine := machines[0]
 	machine.ObjectMeta.Name = controlPlaneName
-	machine.ObjectMeta.Labels[mc.MachineClusterLabelName] = clusterName
+	machine.ObjectMeta.Labels[capi.MachineClusterLabelName] = clusterName
 
 	awsSpec, err := actuators.MachineConfigFromProviderSpec(nil, machine.Spec.ProviderSpec)
 	Expect(err).To(BeNil())
