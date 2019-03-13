@@ -247,9 +247,14 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	if instance == nil {
-		// The machine hasn't been created yet
-		klog.Info("Instance is nil and therefore does not exist")
-		return nil
+		instance, err = ec2svc.InstanceByTags(scope)
+		if err != nil {
+			return errors.Errorf("failed to query instance by tags: %+v", err)
+		} else if instance == nil {
+			// The machine hasn't been created yet
+			klog.V(3).Info("Instance is nil and therefore does not exist")
+			return nil
+		}
 	}
 
 	// Check the instance state. If it's already shutting down or terminated,
@@ -261,7 +266,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 		klog.Infof("instance %q is shutting down or already terminated", machine.Name)
 		return nil
 	default:
-		if err := ec2svc.TerminateInstance(aws.StringValue(scope.MachineStatus.InstanceID)); err != nil {
+		if err := ec2svc.TerminateInstance(instance.ID); err != nil {
 			return errors.Errorf("failed to terminate instance: %+v", err)
 		}
 	}

@@ -50,7 +50,7 @@ required = [
 
 [[constraint]]
   name = "sigs.k8s.io/cluster-api"
-  revision = "af298a2a480fb7143786cf4f9990e741855f08e9"
+  revision = "c488193251e8e0cc557cbe9bbf09a61fb97bd8ba"
 
 # For dependency below: Refer to issue https://github.com/golang/dep/issues/1799
 [[override]]

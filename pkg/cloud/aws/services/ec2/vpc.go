@@ -130,10 +130,11 @@ func (s *Service) deleteVPC() error {
 	_, err := s.scope.EC2.DeleteVpc(input)
 	if err != nil {
 		// Ignore if it's already deleted
-		if code, ok := awserrors.Code(err); code != "InvalidVpcID.NotFound" && ok {
-			return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
+		if code, ok := awserrors.Code(err); code == "InvalidVpcID.NotFound" && ok {
+			klog.V(4).Info("Skipping VPC deletion, VPC not found")
+			return nil
 		}
-		return err
+		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
 
 	klog.V(2).Infof("Deleted VPC %q", vpc.ID)
