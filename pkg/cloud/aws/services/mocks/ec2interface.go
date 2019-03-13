@@ -96,7 +96,7 @@ func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork() *gomock.Call {
 }
 
 // InstanceIfExists mocks base method
-func (m *MockEC2Interface) InstanceIfExists(arg0 string) (*v1alpha1.Instance, error) {
+func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1alpha1.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
 	ret0, _ := ret[0].(*v1alpha1.Instance)
