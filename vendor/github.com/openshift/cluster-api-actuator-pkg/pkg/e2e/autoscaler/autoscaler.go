@@ -26,7 +26,6 @@ func newWorkLoad() *batchv1.Job {
 	backoffLimit := int32(4)
 	completions := int32(50)
 	parallelism := int32(50)
-	activeDeadlineSeconds := int64(100)
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "workload",
@@ -67,10 +66,9 @@ func newWorkLoad() *batchv1.Job {
 					},
 				},
 			},
-			ActiveDeadlineSeconds: &activeDeadlineSeconds,
-			BackoffLimit:          &backoffLimit,
-			Completions:           &completions,
-			Parallelism:           &parallelism,
+			BackoffLimit: &backoffLimit,
+			Completions:  &completions,
+			Parallelism:  &parallelism,
 		},
 	}
 }
@@ -302,6 +300,7 @@ var _ = g.Describe("[Feature:Machines] Autoscaler should", func() {
 					glog.Errorf("Machine %q does not have node reference set", machine.Name)
 					return false, nil
 				}
+				glog.Infof("Machine %q is linked to node %q", machine.Name, machine.Status.NodeRef.Name)
 				nodeCounter++
 			}
 

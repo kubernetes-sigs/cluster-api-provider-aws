@@ -36,7 +36,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"k8s.io/klog/glog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -170,40 +169,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		// by cloud controller manager. In that case some machines would never get
 		// deleted without a manual intervention.
 		if _, exists := m.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && m.Status.NodeRef != nil {
-			if err := func() error {
-				kubeClient, err := kubernetes.NewForConfig(r.config)
-				if err != nil {
-					return fmt.Errorf("unable to build kube client: %v", err)
-				}
-				node, err := kubeClient.CoreV1().Nodes().Get(m.Status.NodeRef.Name, metav1.GetOptions{})
-				if err != nil {
-					return fmt.Errorf("unable to get node %q: %v", m.Status.NodeRef.Name, err)
-				}
-
-				if err := kubedrain.Drain(
-					kubeClient,
-					[]*corev1.Node{node},
-					&kubedrain.DrainOptions{
-						Force:              true,
-						IgnoreDaemonsets:   true,
-						DeleteLocalData:    true,
-						GracePeriodSeconds: -1,
-						Logger:             info.New(glog.V(0)),
-						// If a pod is not evicted in 20 second, retry the eviction next time the
-						// machine gets reconciled again (to allow other machines to be reconciled)
-						Timeout: 20 * time.Second,
-					},
-				); err != nil {
-					// Machine still tries to terminate after drain failure
-					glog.Warningf("drain failed for machine %q: %v", m.Name, err)
-					return &controllerError.RequeueAfterError{RequeueAfter: 20 * time.Second}
-				}
-
-				glog.Infof("drain successful for machine %q", m.Name)
-				r.eventRecorder.Eventf(m, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
-
-				return nil
-			}(); err != nil {
+			if err := r.drainNode(m); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
@@ -218,13 +184,10 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if m.Status.NodeRef != nil {
-			klog.Infof("Deleting node %q", m.Status.NodeRef.Name)
-			var node corev1.Node
-			key := client.ObjectKey{Namespace: "", Name: m.Status.NodeRef.Name}
-			if err := r.Client.Get(ctx, key, &node); err != nil {
-				klog.Warningf("Failed to get node %q: %v", m.Status.NodeRef.Name, err)
-			} else if err := r.Client.Delete(ctx, &node); err != nil {
-				klog.Warningf("Failed to delete node %q: %v", m.Status.NodeRef.Name, err)
+			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+			if err := r.deleteNode(ctx, m.Status.NodeRef.Name); err != nil {
+				klog.Errorf("Error deleting node %q for machine %q", name, err)
+				return reconcile.Result{}, err
 			}
 		}
 
@@ -265,6 +228,41 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
+	kubeClient, err := kubernetes.NewForConfig(r.config)
+	if err != nil {
+		return fmt.Errorf("unable to build kube client: %v", err)
+	}
+	node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
+	}
+
+	if err := kubedrain.Drain(
+		kubeClient,
+		[]*corev1.Node{node},
+		&kubedrain.DrainOptions{
+			Force:              true,
+			IgnoreDaemonsets:   true,
+			DeleteLocalData:    true,
+			GracePeriodSeconds: -1,
+			Logger:             info.New(klog.V(0)),
+			// If a pod is not evicted in 20 second, retry the eviction next time the
+			// machine gets reconciled again (to allow other machines to be reconciled)
+			Timeout: 20 * time.Second,
+		},
+	); err != nil {
+		// Machine still tries to terminate after drain failure
+		klog.Warningf("drain failed for machine %q: %v", machine.Name, err)
+		return &controllerError.RequeueAfterError{RequeueAfter: 20 * time.Second}
+	}
+
+	klog.Infof("drain successful for machine %q", machine.Name)
+	r.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Node %q drained", node.Name)
+
+	return nil
 }
 
 func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Machine) (*machinev1.Cluster, error) {
@@ -311,4 +309,17 @@ func (r *ReconcileMachine) isDeleteAllowed(machine *machinev1.Machine) bool {
 	// delete the machine this machine-controller is running on. Return false to not allow machine controller to delete its
 	// own machine.
 	return node.UID != machine.Status.NodeRef.UID
+}
+
+func (r *ReconcileMachine) deleteNode(ctx context.Context, name string) error {
+	var node corev1.Node
+	if err := r.Client.Get(ctx, client.ObjectKey{Name: name}, &node); err != nil {
+		if apierrors.IsNotFound(err) {
+			klog.V(2).Infof("Node %q not found", name)
+			return nil
+		}
+		klog.Errorf("Failed to get node %q: %v", name, err)
+		return err
+	}
+	return r.Client.Delete(ctx, &node)
 }

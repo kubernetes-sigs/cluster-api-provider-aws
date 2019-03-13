@@ -367,15 +367,12 @@
   branch = "master"
   digest = "1:7c3defaa4c171d552da0ccedce06992efad4d102ea39cd37f8444a0403b5913c"
   name = "github.com/openshift/api"
-  packages = [
-    "config/v1",
-    "security/v1",
-  ]
+  packages = ["config/v1"]
   pruneopts = ""
   revision = "af79befc50a8223c8122e9e654f65763dd17a87e"
 
 [[projects]]
-  digest = "1:49d7d6c861c157a8fa965983d85d2766fda04cf3a7fdf9c2b080564911238554"
+  digest = "1:1a6c1522af42be78c04c706ebeb86148536ebaae1e320ca0fa4781d2e38a0de5"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis/cluster/common",
@@ -391,7 +388,7 @@
     "pkg/util",
   ]
   pruneopts = ""
-  revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
+  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
 
 [[projects]]
   branch = "master"
@@ -405,11 +402,12 @@
   revision = "73c46659d0e2c0ac03e6e207d52ff0c025b04786"
 
 [[projects]]
-  digest = "1:daf50f3575d80f3788ed91f9c14f8b77eb941aa47f0ce352028d45be29581caf"
-  name = "github.com/openshift/cluster-version-operator"
-  packages = ["lib/resourcemerge"]
+  branch = "master"
+  digest = "1:8e51979e3c18f776e3199c091ea603b09cce802fe5d2afa7fbc6bb01f0370675"
+  name = "github.com/openshift/library-go"
+  packages = ["pkg/config/clusteroperator/v1helpers"]
   pruneopts = ""
-  revision = "701ca7e4606eb364a23b0e7bd0bd2adaaec96b8e"
+  revision = "cd621d02d319d52b9ac1297674b9bd743ebe2687"
 
 [[projects]]
   digest = "1:a5484d4fa43127138ae6e7b2299a6a52ae006c7f803d98d717f60abf3e97192e"
@@ -938,17 +936,6 @@
   version = "v0.1.0"
 
 [[projects]]
-  branch = "release-1.12"
-  digest = "1:2478e01b3c6604f441b0e10c69edbc7f745f9d7d17d5cf6df46571358c0b97b2"
-  name = "k8s.io/kube-aggregator"
-  packages = [
-    "pkg/apis/apiregistration",
-    "pkg/apis/apiregistration/v1",
-  ]
-  pruneopts = ""
-  revision = "599783d2af7259d1825fc6cb39e57df496ed6454"
-
-[[projects]]
   branch = "master"
   digest = "1:bb17aab96138a89eb0550fbf135a9812f6be8bc9805080e36c9efe50f607261e"
   name = "k8s.io/kube-openapi"
@@ -958,6 +945,14 @@
   ]
   pruneopts = ""
   revision = "5d05df014ac640f14b5e777958248251c2ef5e86"
+
+[[projects]]
+  branch = "master"
+  digest = "1:7200c2caa8e1069ec0bafe674980ff78d4ad287733fc23f020baa8a5e2720854"
+  name = "k8s.io/utils"
+  packages = ["pointer"]
+  pruneopts = ""
+  revision = "c2654d5206da6b7b6ace12841e8f359bb89b443c"
 
 [[projects]]
   digest = "0:"
@@ -1044,7 +1039,7 @@
     "github.com/openshift/cluster-api/pkg/controller/node",
     "github.com/openshift/cluster-autoscaler-operator/pkg/apis",
     "github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1alpha1",
-    "github.com/openshift/cluster-version-operator/lib/resourcemerge",
+    "github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers",
     "golang.org/x/crypto/ssh",
     "k8s.io/api/apps/v1",
     "k8s.io/api/apps/v1beta2",
@@ -1067,9 +1062,11 @@
     "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
     "k8s.io/client-go/rest",
+    "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/utils/pointer",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",

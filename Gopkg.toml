@@ -1,7 +1,5 @@
 required = [
     "github.com/emicklei/go-restful",
-    "github.com/onsi/ginkgo", # for test framework
-    "github.com/onsi/gomega", # for test matchers
     "k8s.io/client-go/plugin/pkg/client/auth/gcp", # for development against gcp
     "k8s.io/code-generator/cmd/deepcopy-gen", # for go generate
     "sigs.k8s.io/controller-tools/cmd/controller-gen", # for crd/rbac generation
@@ -13,7 +11,6 @@ required = [
     "sigs.k8s.io/controller-runtime/pkg/source",
     "sigs.k8s.io/testing_frameworks/integration", # for integration testing
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
-	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/actuators",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",
@@ -34,7 +31,7 @@ required = [
 
 [[override]]
   name = "github.com/openshift/cluster-api"
-  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
+  revision = "eaaebe5a6fdf7fa96203bbdb9e2cf1165dd6ac1f"
 
 [[override]]
   name = "k8s.io/code-generator"
