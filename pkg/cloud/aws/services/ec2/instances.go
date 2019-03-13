@@ -158,15 +158,64 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	}
 
 	// apply values based on the role of the machine
+	userData, err := s.getUserData(machine, bootstrapToken, caCertHash, kubeConfig)
+	if err != nil {
+		return nil, awserrors.NewFailedDependency(
+			errors.Errorf("failed to get userData for machine %q", machine.Name()),
+		)
+	}
+	input.UserData = userData
+
+	securityGroupID, err := s.getSecurityGroupID(machine)
+	if err != nil {
+		return nil, awserrors.NewFailedDependency(
+			errors.Errorf("failed to get securityGroup ID for machine %q", machine.Name()),
+		)
+	}
+	input.SecurityGroupIDs = append(input.SecurityGroupIDs, securityGroupID)
+
+	// Pick SSH key, if any.
+	if machine.MachineConfig.KeyName != "" {
+		input.KeyName = aws.String(machine.MachineConfig.KeyName)
+	} else {
+		input.KeyName = aws.String(defaultSSHKeyName)
+	}
+
+	out, err := s.runInstance(machine.Role(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
+	return out, nil
+}
+
+func (s *Service) getSecurityGroupID(machine *actuators.MachineScope) (string, error) {
 	switch machine.Role() {
 	case "controlplane":
 		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
-			return nil, awserrors.NewFailedDependency(
+			return "", awserrors.NewFailedDependency(
 				errors.New("failed to run controlplane, security group not available"),
 			)
 		}
+		return s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID, nil
+	case "node":
+		return s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID, nil
+	default:
+		return "", errors.Errorf("Unknown node role %q", machine.Role())
+	}
+	return "", nil
+}
 
-		var userData string
+func (s *Service) getUserData(machine *actuators.MachineScope, bootstrapToken, caCertHash string, kubeConfig string) (string, error) {
+	var userData string
+	switch machine.Role() {
+	case "controlplane":
+		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
+			return "", awserrors.NewFailedDependency(
+				errors.New("failed to run controlplane, security group not available"),
+			)
+		}
 
 		if bootstrapToken != "" {
 			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
@@ -175,7 +224,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			kubeadm.SetControlPlaneJoinConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Join)
 			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 
 			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
@@ -190,12 +239,12 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				JoinConfiguration: joinConfigurationYAML,
 			})
 			if err != nil {
-				return input, err
+				return userData, err
 			}
 		} else {
 			klog.V(2).Infof("Machine %q is the first controlplane machine for cluster %q", machine.Name(), s.scope.Name())
 			if !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
-				return nil, awserrors.NewFailedDependency(
+				return "", awserrors.NewFailedDependency(
 					errors.New("failed to run controlplane, missing CAPrivateKey"),
 				)
 			}
@@ -203,13 +252,13 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			kubeadm.SetClusterConfigurationOverrides(machine, &s.scope.ClusterConfig.ClusterConfiguration)
 			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(&s.scope.ClusterConfig.ClusterConfiguration)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 
 			kubeadm.SetInitConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Init)
 			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 
 			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{
@@ -226,19 +275,14 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			})
 
 			if err != nil {
-				return input, err
+				return "", err
 			}
 		}
-
-		input.UserData = aws.String(userData)
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID)
 	case "node":
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
-
 		kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
 		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		userData, err := userdata.NewNode(&userdata.NodeInput{
@@ -246,29 +290,15 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		})
 
 		if err != nil {
-			return input, err
+			return "", err
 		}
-
-		input.UserData = aws.String(userData)
+		userData = userData
 
 	default:
-		return nil, errors.Errorf("Unknown node role %q", machine.Role())
+		return "", errors.Errorf("Unknown node role %q", machine.Role())
 	}
 
-	// Pick SSH key, if any.
-	if machine.MachineConfig.KeyName != "" {
-		input.KeyName = aws.String(machine.MachineConfig.KeyName)
-	} else {
-		input.KeyName = aws.String(defaultSSHKeyName)
-	}
-
-	out, err := s.runInstance(machine.Role(), input)
-	if err != nil {
-		return nil, err
-	}
-
-	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
-	return out, nil
+	return userData, nil
 }
 
 // TerminateInstance terminates an EC2 instance.
