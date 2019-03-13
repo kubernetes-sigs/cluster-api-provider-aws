@@ -241,7 +241,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	ec2svc := ec2.NewService(scope.Scope)
 
-	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Errorf("failed to get instance: %+v", err)
 	}
@@ -337,7 +337,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	ec2svc := ec2.NewService(scope.Scope)
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
+	instanceDescription, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return errors.Errorf("failed to get instance: %+v", err)
 	}
@@ -388,7 +388,7 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return false, nil
 	}
 
-	instance, err := ec2svc.InstanceIfExists(*scope.MachineStatus.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
 	if err != nil {
 		return false, errors.Errorf("failed to retrieve instance: %+v", err)
 	}
