@@ -345,7 +345,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// We will check immutable state first, in order to fail quickly before
 	// moving on to state that we can mutate.
 	if errs := a.isMachineOutdated(scope.MachineConfig, instanceDescription); len(errs) > 0 {
-		return errors.Errorf("found attempt to change immutable state for machine %s: %v", machine.Name, errs)
+		return errors.Errorf("found attempt to change immutable state for machine %q: %v", machine.Name, errs)
 	}
 
 	// Ensure that the security groups are correct.
