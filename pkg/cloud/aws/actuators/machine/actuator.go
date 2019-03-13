@@ -278,17 +278,17 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpec, instance *v1alpha1.Instance) (errs []error) {
 	// Instance Type
 	if machineSpec.InstanceType != instance.Type {
-		errs = append(errs, errors.Errorf("(instance type cannot be mutated from %q to %q)", instance.Type, machineSpec.InstanceType))
+		errs = append(errs, errors.Errorf("instance type cannot be mutated from %q to %q", instance.Type, machineSpec.InstanceType))
 	}
 
 	// IAM Profile
 	if machineSpec.IAMInstanceProfile != instance.IAMProfile {
-		errs = append(errs, errors.Errorf("(instance IAM profile cannot be mutated from %q to %q)", instance.IAMProfile, machineSpec.IAMInstanceProfile))
+		errs = append(errs, errors.Errorf("instance IAM profile cannot be mutated from %q to %q", instance.IAMProfile, machineSpec.IAMInstanceProfile))
 	}
 
 	// SSH Key Name
 	if machineSpec.KeyName != aws.StringValue(instance.KeyName) {
-		errs = append(errs, errors.Errorf("(SSH key name cannot be mutated from %q to %q)", aws.StringValue(instance.KeyName), machineSpec.KeyName))
+		errs = append(errs, errors.Errorf("SSH key name cannot be mutated from %q to %q", aws.StringValue(instance.KeyName), machineSpec.KeyName))
 	}
 
 	// Subnet ID
@@ -297,7 +297,7 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 	// as a *string, so do the same here.
 	if machineSpec.Subnet != nil {
 		if aws.StringValue(machineSpec.Subnet.ID) != instance.SubnetID {
-			errs = append(errs, errors.Errorf("(machine subnet ID cannot be mutated from %q to %q)", instance.SubnetID, aws.StringValue(machineSpec.Subnet.ID)))
+			errs = append(errs, errors.Errorf("machine subnet ID cannot be mutated from %q to %q", instance.SubnetID, aws.StringValue(machineSpec.Subnet.ID)))
 		}
 	}
 
@@ -314,7 +314,7 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 	}
 
 	if aws.BoolValue(machineSpec.PublicIP) != instanceHasPublicIP {
-		errs = append(errs, errors.Errorf("(public IP setting cannot be mutated from \"%v\" to \"%v\")", instanceHasPublicIP, aws.BoolValue(machineSpec.PublicIP)))
+		errs = append(errs, errors.Errorf(`public IP setting cannot be mutated from "%v" to "%v"`, instanceHasPublicIP, aws.BoolValue(machineSpec.PublicIP)))
 	}
 
 	return errs
@@ -345,7 +345,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// We will check immutable state first, in order to fail quickly before
 	// moving on to state that we can mutate.
 	if errs := a.isMachineOutdated(scope.MachineConfig, instanceDescription); len(errs) > 0 {
-		return errors.Errorf("found attempt to change immutable state for machine %q: %v", machine.Name, errs)
+		return errors.Errorf("found attempt to change immutable state for machine %q: %+q", machine.Name, errs)
 	}
 
 	// Ensure that the security groups are correct.
