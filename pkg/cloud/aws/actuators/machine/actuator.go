@@ -280,12 +280,12 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 
 	// Instance Type
 	if machineSpec.InstanceType != instance.Type {
-		errs = append(errs, errors.Errorf("(instance type cannot be mutated from  %q to %q")",  instance.Type, machineSpec.InstanceType))
+		errs = append(errs, errors.Errorf("(instance type cannot be mutated from %q to %q)", instance.Type, machineSpec.InstanceType))
 	}
 
 	// IAM Profile
 	if machineSpec.IAMInstanceProfile != instance.IAMProfile {
-		errs = append(errs, errors.Errorf("(instance IAM profile cannot be mutated from %q to %q)",  instance.IAMProfile, machineSpec.IAMInstanceProfile))
+		errs = append(errs, errors.Errorf("(instance IAM profile cannot be mutated from %q to %q)", instance.IAMProfile, machineSpec.IAMInstanceProfile))
 	}
 
 	// SSH Key Name
