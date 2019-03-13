@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	tags "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
@@ -134,6 +135,11 @@ func (in *AWSMachineProviderSpec) DeepCopyInto(out *AWSMachineProviderSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	in.KubeadmConfiguration.DeepCopyInto(&out.KubeadmConfiguration)
+	if in.UserDataSecret != nil {
+		in, out := &in.UserDataSecret, &out.UserDataSecret
+		*out = new(v1.LocalObjectReference)
+		**out = **in
+	}
 	return
 }
 

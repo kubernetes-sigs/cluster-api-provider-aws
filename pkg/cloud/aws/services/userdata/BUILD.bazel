@@ -10,7 +10,11 @@ go_library(
     ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/github.com/pkg/errors:go_default_library"],
+    deps = [
+        "//pkg/cloud/aws/actuators:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+    ],
 )
 
 go_test(
