@@ -59,7 +59,7 @@ integration: generate verify ## Run integraion tests
 
 JANITOR_ENABLED ?= 0
 .PHONY: e2e
-e2e: # generate verify ## Run e2e tests
+e2e: generate verify ## Run e2e tests
 	JANITOR_ENABLED=$(JANITOR_ENABLED) ./hack/e2e.sh
 
 .PHONY: e2e-janitor
