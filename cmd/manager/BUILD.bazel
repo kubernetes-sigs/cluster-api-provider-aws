@@ -63,16 +63,7 @@ tags = [
 
 images = {
     "{registry}/{name}:{tag}".format(
-        registry = "$(REGISTRY_STABLE)",
-        name = "$(MANAGER_IMAGE_NAME)",
-        tag = tag,
-    ): ":manager-amd64"
-    for tag in tags
-}
-
-images_dev = {
-    "{registry}/{name}:{tag}".format(
-        registry = "$(REGISTRY_DEV)",
+        registry = "$(REGISTRY)",
         name = "$(MANAGER_IMAGE_NAME)",
         tag = tag,
     ): ":manager-amd64"
@@ -86,35 +77,16 @@ container_bundle(
     visibility = ["//visibility:public"],
 )
 
-container_bundle(
-    name = "manager-image-dev",
-    images = images_dev,
-    tags = ["manual"],
-    visibility = ["//visibility:public"],
-)
-
 docker_push(
     name = "manager-push",
     bundle = "manager-image",
     tags = ["manual"],
 )
 
-docker_push(
-    name = "manager-push-dev",
-    bundle = "manager-image-dev",
-    tags = ["manual"],
-)
-
 stateful_set_patch(
     name = "manager-version-patch",
-    registry = "$(REGISTRY_STABLE)",
+    pull_policy = "$(PULL_POLICY)",
+    registry = "$(REGISTRY)",
     tags = ["generated"],
-    visibility = ["//visibility:public"],
-)
-
-stateful_set_patch(
-    name = "manager-version-patch-dev",
-    pull_policy = "Always",
-    registry = "$(REGISTRY_DEV)",
     visibility = ["//visibility:public"],
 )

@@ -36,23 +36,6 @@ genrule(
     visibility = ["//visibility:public"],
 )
 
-genrule(
-    name = "provider-components-base-dev",
-    srcs = [
-        "provider-components-base.yaml",
-        "provider-components-base-dev/kustomization.yaml",
-        "//cmd/manager:manager-version-patch-dev.yaml",
-    ],
-    outs = ["provider-components-base-dev.yaml"],
-    cmd = " && ".join([
-        "cp -f $(location provider-components-base-dev/kustomization.yaml) $(@D)",
-        "cp -f $(location //cmd/manager:manager-version-patch-dev.yaml) $(@D)",
-        KUSTOMIZE_CMD,
-    ]),
-    tools = [KUSTOMIZE],
-    visibility = ["//visibility:public"],
-)
-
 exports_files([
     "addons.yaml",
     "cluster.yaml.template",
