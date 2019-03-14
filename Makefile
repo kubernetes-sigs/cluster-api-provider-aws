@@ -19,13 +19,25 @@
 
 # A release should define this with gcr.io/cluster-api-provider-aws
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
+
 # A release should define this with IfNotPresent
 PULL_POLICY ?= Always
+
+# A release does not need to define this
+MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
+
+# A release should define this with the next version after 0.0.4
+MANAGER_IMAGE_TAG ?= dev
 
 ## Image URL to use all building/pushing image targets
 DEPCACHEAGE ?= 24h # Enables caching for Dep
 BAZEL_ARGS ?=
-BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY) --define=PULL_POLICY=$(PULL_POLICY) $(BAZEL_ARGS)
+
+BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY)\
+ --define=PULL_POLICY=$(PULL_POLICY)\
+ --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME)\
+ --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG)\
+$(BAZEL_ARGS)
 
 # Bazel variables
 BAZEL_VERSION := $(shell command -v bazel 2> /dev/null)
