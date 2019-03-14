@@ -18,10 +18,8 @@
 .DEFAULT_GOAL:=help
 
 ## Image URL to use all building/pushing image targets
-REGISTRY_DEV ?= gcr.io/$(shell gcloud config get-value project)
 DEPCACHEAGE ?= 24h # Enables caching for Dep
 BAZEL_ARGS ?=
-BAZEL_DOCKER_ARGS := --define=REGISTRY_DEV=$(REGISTRY_DEV) $(BAZEL_ARGS)
 
 # Bazel variables
 BAZEL_VERSION := $(shell command -v bazel 2> /dev/null)
@@ -59,19 +57,19 @@ test: generate verify ## Run tests
 
 .PHONY: docker-build
 docker-build: generate ## Build the production docker image
-	bazel run //cmd/manager:manager-image $(BAZEL_DOCKER_ARGS)
+	bazel run //cmd/manager:manager-image $(BAZEL_ARGS)
 
 .PHONY: docker-build-dev
 docker-build-dev: generate ## Build the development docker image
-	bazel run //cmd/manager:manager-image-dev $(BAZEL_DOCKER_ARGS)
+	bazel run //cmd/manager:manager-image $(BAZEL_ARGS) --define=REGISTRY=gcr.io/$(shell gcloud config get-value project)
 
 .PHONY: docker-push
 docker-push: ## Push production docker image
-	bazel run //cmd/manager:manager-push $(BAZEL_DOCKER_ARGS)
+	bazel run //cmd/manager:manager-push $(BAZEL_ARGS)
 
 .PHONY: docker-push-dev
 docker-push-dev: ## Push development image
-	bazel run //cmd/manager:manager-push-dev  $(BAZEL_DOCKER_ARGS)
+	bazel run //cmd/manager:manager-push $(BAZEL_ARGS) --define=REGISTRY=gcr.io/$(shell gcloud config get-value project)
 
 ## --------------------------------------
 ## Cleanup / Verification
@@ -108,13 +106,13 @@ manifests-dev: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml ## 
 
 .PHONY: cmd/clusterctl/examples/aws/provider-components-base.yaml
 cmd/clusterctl/examples/aws/provider-components-base.yaml:
-	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_DOCKER_ARGS)
+	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_ARGS)
 	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base.yaml cmd/clusterctl/examples/aws
 
 .PHONY: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml
 cmd/clusterctl/examples/aws/provider-components-base-dev.yaml:
-	bazel build //cmd/clusterctl/examples/aws:provider-components-base-dev $(BAZEL_DOCKER_ARGS)
-	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base-dev.yaml cmd/clusterctl/examples/aws
+	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_ARGS) --define=PULL_POLICY=Always --define=REGISTRY=gcr.io/$(shell gcloud config get-value project)
+	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base.yaml cmd/clusterctl/examples/aws
 
 ## --------------------------------------
 ## Generate

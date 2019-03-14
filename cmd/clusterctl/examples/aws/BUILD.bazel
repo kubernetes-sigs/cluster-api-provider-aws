@@ -41,12 +41,12 @@ genrule(
     srcs = [
         "provider-components-base.yaml",
         "provider-components-base-dev/kustomization.yaml",
-        "//cmd/manager:manager-version-patch-dev.yaml",
+        "//cmd/manager:manager-version-patch.yaml",
     ],
     outs = ["provider-components-base-dev.yaml"],
     cmd = " && ".join([
         "cp -f $(location provider-components-base-dev/kustomization.yaml) $(@D)",
-        "cp -f $(location //cmd/manager:manager-version-patch-dev.yaml) $(@D)",
+        "cp -f $(location //cmd/manager:manager-version-patch.yaml) $(@D)",
         KUSTOMIZE_CMD,
     ]),
     tools = [KUSTOMIZE],

@@ -25,20 +25,21 @@ def _stateful_set_patch_impl(ctx):
         output = ctx.outputs.source_file,
         substitutions = {
             "<registry>": ctx.expand_make_variables("registry", ctx.attr.registry, {}),
-            "<image_name>": ctx.expand_make_variables("image_name",ctx.attr.image_name, {}),
+            "<image_name>": ctx.expand_make_variables("image_name", ctx.attr.image_name, {}),
             "<tag>": ctx.expand_make_variables("tag", ctx.attr.tag, {}),
-            "<pull_policy>": ctx.expand_make_variables("pull_policy",ctx.attr.pull_policy, {}),
+            "<pull_policy>": ctx.expand_make_variables("pull_policy", ctx.attr.pull_policy, {}),
         },
     )
 
     return [
-      OutputGroupInfo(
-          compilation_outputs = [ctx.outputs.source_file],
-      ),      
-      DefaultInfo(
-        files = depset([ctx.outputs.source_file]),
-        runfiles = ctx.runfiles(files = [ctx.outputs.source_file]),
-    )]    
+        OutputGroupInfo(
+            compilation_outputs = [ctx.outputs.source_file],
+        ),
+        DefaultInfo(
+            files = depset([ctx.outputs.source_file]),
+            runfiles = ctx.runfiles(files = [ctx.outputs.source_file]),
+        ),
+    ]
 
 stateful_set_patch = rule(
     attrs = {
