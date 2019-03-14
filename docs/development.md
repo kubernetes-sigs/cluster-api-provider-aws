@@ -21,6 +21,10 @@
     - [Building and pushing dev images to GCR](#building-and-pushing-dev-images-to-gcr)
     - [Building and pushing dev images to custom (non GCR) container registry](#building-and-pushing-dev-images-to-custom-non-gcr-container-registry)
     - [Running clusterctl](#running-clusterctl)
+    - [Executing unit tests](#executing-unit-tests)
+    - [Executing integration tests](#executing-integration-tests)
+    - [Executing e2e tests](#executing-e2e-tests)
+    - [Executing e2e tests with Boskos](#executing-e2e-tests-with-boskos)
   - [Automated Testing](#automated-testing)
     - [Mocks](#mocks)
 - [Troubleshooting](#troubleshooting)
@@ -129,6 +133,61 @@ BAZEL_ARGS="--define=MANAGER_IMAGE_TAG=<YOUR_TAG_HERE> --define=REGISTRY_DEV=<YO
 manifests creating a target cluster in AWS. After this is finished you will have
 a kubeconfig copied locally. You can debug most issues by SSHing into the
 instances that have been created and reading `/var/log/cloud-init-output.log`.
+
+#### Executing unit tests
+
+`make test` executes the project's unit tests. These tests do not stand up a
+Kubernetes cluster, nor do they have external dependencies.
+
+#### Executing integration tests
+`make integration` executes the project's integration tests. These tests stand
+up a local Kubernetes cluster using Kind in order to deploy the project's CRDs.
+The tested controller is **not** used to deploy Kubernetes to AWS.
+
+These tests depend on the following binaries in the system path:
+* `kind`
+
+#### Executing e2e tests
+`make e2e` executes the project's end-to-end tests with AWS account
+information parsed from the environment.
+
+These tests stand up a local Kubernetes cluster using Kind. The project's CRDs 
+and controllers are deployed to the Kind cluster and are used to deploy
+Kubernetes to AWS.
+
+The AWS janitor is disabled by default. `JANITOR_ENABLED=1 make e2e` executes
+janitor immediately after running the e2e tests.
+
+Please keep in mind that the janitor is highly destructive and should not
+be executed against shared AWS accounts or preferrably AWS accounts not
+dedicated to testing this project.
+
+These tests depend on the following binaries in the system path:
+* `kind`
+* `aws-janitor`
+
+#### Executing e2e tests with Boskos
+`BOSKOS_HOST=http://boskos make e2e` executes the project's end-to-end tests
+with AWS account information acquired from a Boskos host.
+
+These tests stand up a local Kubernetes cluster using Kind. The project's CRDs 
+and controllers are deployed to the Kind cluster and are used to deploy
+Kubernetes to AWS.
+
+The AWS janitor is disabled by default.
+`BOSKOS_HOST=http://boskos JANITOR_ENABLED=1 make e2e` executes
+the janitor immediately after running the e2e tests.
+
+Please keep in mind that the janitor is highly destructive and should not
+be executed against shared AWS accounts or preferrably AWS accounts not
+dedicated to testing this project.
+
+`BOSKOS_HOST=http://boskos make e2e` executes the project's
+end-to-end tests with the janitor disabled.
+
+These tests depend on the following binaries in the system path:
+* `kind`
+* `aws-janitor`
 
 ### Automated Testing
 
