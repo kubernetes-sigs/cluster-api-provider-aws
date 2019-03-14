@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
 	capiCmd "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 // KubernetesAWSSecret is the template to generate an encoded version of the
@@ -294,6 +295,21 @@ func createHaControlPlane() *cobra.Command {
 				return err
 			}
 
+			err = applyCluster(client)
+			if err != nil {
+				return err
+			}
+
+			err = applyMachines(client)
+			if err != nil {
+				return err
+			}
+
+			err = applyAddons(client)
+			if err != nil {
+				return err
+			}
+
 			return nil
 		},
 	}
@@ -301,7 +317,7 @@ func createHaControlPlane() *cobra.Command {
 	return newCmd
 }
 
-func createBootstrapCluster() (*clusterclient.Client, error) {
+func createBootstrapCluster() (clusterclient.Client, error) {
 	var pcbco = &capiCmd.AlphaPhaseCreateBootstrapClusterOptions{}
 	// TODO: take this value from the flag
 	pcbco.Bootstrap.Type = "kind"
@@ -319,17 +335,47 @@ func createBootstrapCluster() (*clusterclient.Client, error) {
 
 	//NOTE: To access access bootstrap kubeconfig: bootstrapProvider.GetKubeconfig()
 
-	return &client, nil
+	return client, nil
 }
 
-func applyClusterAPIComponents(client *clusterclient.Client) error {
+func applyClusterAPIComponents(client clusterclient.Client) error {
 	// TODO: take this from the flag
 	pc, err := getProviderComponents("cmd/clusterctl/examples/aws/out/provider-components.yaml")
 	if err != nil {
 		return err
 	}
 
-	return phases.ApplyClusterAPIComponents(*client, string(pc))
+	return phases.ApplyClusterAPIComponents(client, string(pc))
+}
+
+func applyCluster(client clusterclient.Client) error {
+	cluster, err := util.ParseClusterYaml("cmd/clusterctl/examples/aws/out/cluster.yaml")
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%q", cluster)
+	return phases.ApplyCluster(client, cluster)
+}
+
+func applyMachines(client clusterclient.Client) error {
+	machinesCfg := "cmd/clusterctl/examples/aws/out/machines.yaml"
+	machines, err := util.ParseMachinesYaml(machinesCfg)
+	if err != nil {
+		return err
+	}
+
+	return phases.ApplyMachines(client, "default", machines)
+}
+
+func applyAddons(client clusterclient.Client) error {
+	addonsCfg := "cmd/clusterctl/examples/aws/out/addons.yaml"
+	addons, err := ioutil.ReadFile(addonsCfg)
+	if err != nil {
+		return err
+	}
+
+	return phases.ApplyAddons(client, string(addons))
 }
 
 func getProviderComponents(file string) ([]byte, error) {
