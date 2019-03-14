@@ -76,6 +76,14 @@ func SetClusterConfigurationOverrides(machine *actuators.MachineScope, base *kub
 	}
 	base.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"] = cloudProvider
 
+	if base.ControllerManager.ExtraArgs == nil {
+		base.ControllerManager.ExtraArgs = map[string]string{}
+	}
+	if cp, ok := base.ControllerManager.ExtraArgs["cloud-provider"]; ok && cp != cloudProvider {
+		klog.Infof("Overriding cloud provider %q with required value %q", cp, cloudProvider)
+	}
+	base.ControllerManager.ExtraArgs["cloud-provider"] = cloudProvider
+
 	// The kubeadm config clustername must match the provided name of the cluster.
 	if base.ClusterName != "" && base.ClusterName != s.Name() {
 		klog.Infof("Overriding provided cluster name %q with %q. The kubeadm cluster name and cluster-api name must match.", base.ClusterName, s.Name())
