@@ -17,9 +17,15 @@
 
 .DEFAULT_GOAL:=help
 
+# A release should define this with gcr.io/cluster-api-provider-aws
+REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
+# A release should define this with IfNotPresent
+PULL_POLICY ?= Always
+
 ## Image URL to use all building/pushing image targets
 DEPCACHEAGE ?= 24h # Enables caching for Dep
 BAZEL_ARGS ?=
+BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY) --define=PULL_POLICY=$(PULL_POLICY) $(BAZEL_ARGS)
 
 # Bazel variables
 BAZEL_VERSION := $(shell command -v bazel 2> /dev/null)
@@ -57,19 +63,11 @@ test: generate verify ## Run tests
 
 .PHONY: docker-build
 docker-build: generate ## Build the production docker image
-	bazel run //cmd/manager:manager-image $(BAZEL_ARGS)
-
-.PHONY: docker-build-dev
-docker-build-dev: generate ## Build the development docker image
-	bazel run //cmd/manager:manager-image $(BAZEL_ARGS) --define=REGISTRY=gcr.io/$(shell gcloud config get-value project)
+	bazel run //cmd/manager:manager-image $(BAZEL_BUILD_ARGS)
 
 .PHONY: docker-push
 docker-push: ## Push production docker image
-	bazel run //cmd/manager:manager-push $(BAZEL_ARGS)
-
-.PHONY: docker-push-dev
-docker-push-dev: ## Push development image
-	bazel run //cmd/manager:manager-push $(BAZEL_ARGS) --define=REGISTRY=gcr.io/$(shell gcloud config get-value project)
+	bazel run //cmd/manager:manager-push $(BAZEL_BUILD_ARGS)
 
 ## --------------------------------------
 ## Cleanup / Verification
@@ -100,18 +98,9 @@ verify: ## Runs verification scripts to ensure correct execution
 manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
-.PHONY: manifests-dev
-manifests-dev: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml ## Generate example output with developer image
-	$(MAKE) manifests
-
 .PHONY: cmd/clusterctl/examples/aws/provider-components-base.yaml
 cmd/clusterctl/examples/aws/provider-components-base.yaml:
-	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_ARGS)
-	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base.yaml cmd/clusterctl/examples/aws
-
-.PHONY: cmd/clusterctl/examples/aws/provider-components-base-dev.yaml
-cmd/clusterctl/examples/aws/provider-components-base-dev.yaml:
-	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_ARGS) --define=PULL_POLICY=Always --define=REGISTRY=gcr.io/$(shell gcloud config get-value project)
+	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_BUILD_ARGS)
 	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base.yaml cmd/clusterctl/examples/aws
 
 ## --------------------------------------

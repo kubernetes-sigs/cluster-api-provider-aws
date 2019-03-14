@@ -1,9 +1,6 @@
 build --define=MANAGER_IMAGE_NAME=cluster-api-aws-controller
 build --define=MANAGER_IMAGE_TAG=0.0.4
 
-build --define=REGISTRY=gcr.io/cluster-api-provider-aws
-build --define=PULL_POLICY=IfNotPresent
-
 build --workspace_status_command=./hack/print-workspace-status.sh
 build --verbose_failures
 
