@@ -93,7 +93,7 @@ clean: ## Remove all generated files
 	rm -f minikube.kubeconfig
 	rm -f bazel-*
 	rm -rf out/
-	rm -f cmd/clusterctl/examples/aws/provider-components-base-dev.yaml
+	rm -f cmd/clusterctl/examples/aws/provider-components-base.yaml
 
 .PHONY: check-install
 check-install: ## Checks that you've installed this repository correctly
@@ -209,7 +209,7 @@ create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS u
 	--bootstrap-type kind \
 	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
 	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
-	-p ./cmd/clusterctl/examples/aws/out/provider-components-dev.yaml \
+	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 .PHONY: delete-cluster
@@ -218,7 +218,7 @@ delete-cluster: binaries-dev ## Deletes the development Kubernetes Cluster "test
 	--bootstrap-type kind \
 	--cluster test1 \
 	--kubeconfig ./kubeconfig \
-	-p ./cmd/clusterctl/examples/aws/out/provider-components-dev.yaml \
+	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
 
 kind-reset: ## Destroys the "clusterapi" kind cluster.
 	kind delete cluster --name=clusterapi || true
