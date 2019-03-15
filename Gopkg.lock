@@ -1304,6 +1304,7 @@
     "k8s.io/kubernetes/cmd/kubeadm/app/util",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient",
+    "sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/phases",
     "sigs.k8s.io/cluster-api/pkg/apis",
