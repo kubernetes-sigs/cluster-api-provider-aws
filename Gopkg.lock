@@ -105,6 +105,14 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
+  digest = "1:76c2e7829a529425078ded6db0e72fcb26d9f555fd98a916989629c378a5f9f8"
+  name = "github.com/blang/semver"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
+  version = "v3.5.1"
+
+[[projects]]
   digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -1234,6 +1242,7 @@
     "github.com/aws/aws-sdk-go/service/elb/elbiface",
     "github.com/aws/aws-sdk-go/service/elbv2",
     "github.com/aws/aws-sdk-go/service/elbv2/elbv2iface",
+    "github.com/blang/semver",
     "github.com/emicklei/go-restful",
     "github.com/ghodss/yaml",
     "github.com/golang/glog",
