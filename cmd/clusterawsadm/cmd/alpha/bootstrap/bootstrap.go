@@ -32,12 +32,16 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	capiCmd "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/phases"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
+	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
@@ -285,6 +289,9 @@ func createHaControlPlane() *cobra.Command {
 		Short: "Create a HA control plane",
 		Long:  "Create a HA control plane that consists of three nodes",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			clusterActuator := cluster.NewActuator(cluster.ActuatorParams{})
+			common.RegisterClusterProvisioner("aws", clusterActuator)
+
 			client, err := createBootstrapCluster()
 			if err != nil {
 				return err
@@ -306,6 +313,11 @@ func createHaControlPlane() *cobra.Command {
 			}
 
 			err = applyAddons(client)
+			if err != nil {
+				return err
+			}
+
+			err = getKubeconfig(client)
 			if err != nil {
 				return err
 			}
@@ -336,6 +348,32 @@ func createBootstrapCluster() (clusterclient.Client, error) {
 	//NOTE: To access access bootstrap kubeconfig: bootstrapProvider.GetKubeconfig()
 
 	return client, nil
+}
+
+// NOTE: this is rip-off from sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
+func getProvider(name string) (provider.Deployer, error) {
+	provisioner, err := clustercommon.ClusterProvisioner(name)
+	if err != nil {
+		return nil, err
+	}
+	provider, ok := provisioner.(provider.Deployer)
+	if !ok {
+		return nil, fmt.Errorf("provider for %s does not implement provider.Deployer interface", name)
+	}
+	return provider, nil
+}
+
+func getKubeconfig(client clusterclient.Client) error {
+	provider, err := getProvider("aws")
+	if err != nil {
+		return err
+	}
+
+	if _, err := phases.GetKubeconfig(client, provider, "/tmp/foo", "test1", "default"); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func applyClusterAPIComponents(client clusterclient.Client) error {
