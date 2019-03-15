@@ -40,9 +40,10 @@ const (
 	repository = "cluster-api-provider-aws"
 
 	// TODO move these into config
-	registry        = "gcr.io"
-	managerImageTag = "0.0.5"
-	pullPolicy      = "IfNotPresent"
+	registry         = "gcr.io"
+	managerImageTag  = "0.0.5"
+	managerImageName = "cluster-api-aws-controller"
+	pullPolicy       = "IfNotPresent"
 )
 
 func main() {
@@ -75,23 +76,29 @@ func main() {
 			"clusterctl-darwin-amd64",
 			"clusterctl-linux-amd64",
 		},
+		registry:         fmt.Sprintf("%s/%s", registry, repository),
+		imageName:        managerImageName,
+		imageTag:         managerImageTag,
+		pullPolicy:       pullPolicy,
+		githubRepository: repository,
+		githubUser:       user,
+		gitRemote:        remote,
 	}
 
 	run := &runner{
 		builder: makebuilder{
-			registry:   registry,
-			imageName:  repository,
-			imageTag:   managerImageTag,
-			pullPolicy: pullPolicy,
+			registry:   cfg.registry,
+			imageTag:   cfg.imageTag,
+			pullPolicy: cfg.pullPolicy,
 		},
 		releaser: gothubReleaser{
 			artifactsDir: cfg.artifactDir,
-			user:         user,
-			repository:   repository,
+			user:         cfg.githubUser,
+			repository:   cfg.githubRepository,
 		},
 		tagger: git{
-			repository: repository,
-			remote:     remote,
+			repository: cfg.githubRepository,
+			remote:     cfg.gitRemote,
 		},
 		config: cfg,
 	}
@@ -183,10 +190,29 @@ Examples:
 		./release -remote YOUR_FORK -user YOUR_GITHUB_USER_NAME -version v1.1.1`)
 }
 
+// TODO: split up the config file?
+// config defines all configuration needed to get a release going
 type config struct {
-	version     string
-	artifacts   []string
+	// version is the version being released
+	version string
+	// artifacts are the list of artifacts to attach to the release
+	artifacts []string
+	// artifactsDir is the directory where all artifacts will be found
 	artifactDir string
+	// registry is the image registry where the container image will live
+	registry string
+	// imageName is the name of the container image
+	imageName string
+	// imageTag is the name of the image tag *this is intentionally not version*
+	imageTag string
+	// pullPolicy defines the pull policy of the manager in the provider-components
+	pullPolicy string
+	// githubRepository is the name of the repository on github https://github.com/<org or user>/<repository>
+	githubRepository string
+	// githubUser is the user/org name on github
+	githubUser string
+	// gitRemote is the local name of the remote to push the tag to
+	gitRemote string
 }
 
 type runner struct {
@@ -197,6 +223,7 @@ type runner struct {
 }
 
 // TODO sha512 the artifacts!
+// TODO move fmt.Println into a logr interface
 
 func (r runner) run() error {
 	fmt.Printf("tagging repository %q ", r.config.version)
@@ -211,6 +238,11 @@ func (r runner) run() error {
 	fmt.Println("🐲")
 	fmt.Printf("building artifacts %v ", r.config.artifacts)
 	if err := r.builder.build(); err != nil {
+		return err
+	}
+	fmt.Println("🐲")
+	fmt.Printf("building container image: %s/%s:%s ", r.config.registry, r.config.imageName, r.config.imageTag)
+	if err := r.builder.images(); err != nil {
 		return err
 	}
 	fmt.Println("🐲")
@@ -288,7 +320,7 @@ func (g git) tag(version string) error {
 		// assume this means it doesn't exist
 		cmd = exec.Command("git", "tag", "-s", "-m", fmt.Sprintf("A release of %q for version %q", g.repository, version), version)
 		out, err2 := cmd.CombinedOutput()
-		if err != nil {
+		if err2 != nil {
 			fmt.Println(string(out))
 		}
 		return err2
@@ -317,24 +349,33 @@ func (g git) checkout(version string) error {
 
 type builder interface {
 	build() error
+	images() error
 }
 
 type makebuilder struct {
 	registry   string
-	imageName  string
 	imageTag   string
 	pullPolicy string
 }
 
-func (m makebuilder) build() error {
-	cmd := exec.Command("make", "release-artifacts")
+func (m makebuilder) cmdWithEnv(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("MANAGER_IMAGE_TAG=%v", m.imageTag),
-		fmt.Sprintf("REGISTRY=%v/%v", m.registry, m.imageName),
+		fmt.Sprintf("REGISTRY=%v", m.registry),
 		fmt.Sprintf("PULL_POLICY=%v", m.pullPolicy))
+
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(out))
 	}
 	return err
+}
+
+func (m makebuilder) build() error {
+	return m.cmdWithEnv("make", "release-artifacts")
+}
+
+func (m makebuilder) images() error {
+	return m.cmdWithEnv("make", "docker-build")
 }
