@@ -198,7 +198,7 @@ clusterawsadm: ## Build clusterawsadm binary.
 release-artifacts: ## Build release artifacts
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterctl //cmd/clusterawsadm
 	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterctl //cmd/clusterawsadm
-	bazel build //cmd/clusterctl/examples/aws
+	bazel build //cmd/clusterctl/examples/aws $(BAZEL_BUILD_ARGS)
 	mkdir -p out
 	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm out/clusterawsadm-darwin-amd64
 	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm out/clusterawsadm-linux-amd64

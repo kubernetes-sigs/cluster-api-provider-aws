@@ -38,6 +38,11 @@ github token for modifying release
 const (
 	// TODO(chuckha): figure this out based on directory name
 	repository = "cluster-api-provider-aws"
+
+	// TODO move these into config
+	registry        = "gcr.io"
+	managerImageTag = "0.0.5"
+	pullPolicy      = "IfNotPresent"
 )
 
 func main() {
@@ -73,6 +78,12 @@ func main() {
 	}
 
 	run := &runner{
+		builder: makebuilder{
+			registry:   registry,
+			imageName:  repository,
+			imageTag:   managerImageTag,
+			pullPolicy: pullPolicy,
+		},
 		releaser: gothubReleaser{
 			artifactsDir: cfg.artifactDir,
 			user:         user,
@@ -179,23 +190,36 @@ type config struct {
 }
 
 type runner struct {
+	builder  builder
 	releaser releaser
 	tagger   tagger
 	config   config
 }
 
+// TODO sha512 the artifacts!
+
 func (r runner) run() error {
-	fmt.Print("tagging repository ")
+	fmt.Printf("tagging repository %q ", r.config.version)
 	if err := r.tagger.tag(r.config.version); err != nil {
 		return err
 	}
 	fmt.Println("🐲")
-	fmt.Print("pushing tag ")
+	fmt.Printf("checking out tag %q ", r.config.version)
+	if err := r.tagger.checkout(r.config.version); err != nil {
+		return err
+	}
+	fmt.Println("🐲")
+	fmt.Printf("building artifacts %v ", r.config.artifacts)
+	if err := r.builder.build(); err != nil {
+		return err
+	}
+	fmt.Println("🐲")
+	fmt.Printf("pushing tag %q ", r.config.version)
 	if err := r.tagger.pushTag(r.config.version); err != nil {
 		return err
 	}
 	fmt.Println("🐲")
-	fmt.Print("drafting a release ")
+	fmt.Printf("drafting a release for tag %q ", r.config.version)
 	if err := r.releaser.draft(r.config.version); err != nil {
 		return err
 	}
@@ -244,6 +268,7 @@ func (g gothubReleaser) upload(version, file string) error {
 type tagger interface {
 	tag(string) error
 	pushTag(string) error
+	checkout(string) error
 }
 
 type git struct {
@@ -255,7 +280,25 @@ type git struct {
 }
 
 func (g git) tag(version string) error {
-	cmd := exec.Command("git", "tag", "-s", "-m", fmt.Sprintf("A release of %q for version %q", g.repository, version), version)
+	// if the tag exists then return nil; if it doesn't create it
+	cmd := exec.Command("git", "rev-parse", "--quiet", "--verify", version)
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+		// TODO: in go 1.12 use ExitError and ExitCode()
+		// assume this means it doesn't exist
+		cmd = exec.Command("git", "tag", "-s", "-m", fmt.Sprintf("A release of %q for version %q", g.repository, version), version)
+		out, err2 := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Println(string(out))
+		}
+		return err2
+	}
+	return nil
+}
+
+func (g git) pushTag(version string) error {
+	// TODO(chuckha): this shouldn't exit if it fails because the tag already
+	cmd := exec.Command("git", "push", g.remote, version)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(out))
@@ -263,9 +306,32 @@ func (g git) tag(version string) error {
 	return err
 }
 
-func (g git) pushTag(version string) error {
-	// TODO(chuckha): this shouldn't exit if it fails because the tag already
-	cmd := exec.Command("git", "push", g.remote, version)
+func (g git) checkout(version string) error {
+	cmd := exec.Command("git", "checkout", version)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(out))
+	}
+	return err
+}
+
+type builder interface {
+	build() error
+}
+
+type makebuilder struct {
+	registry   string
+	imageName  string
+	imageTag   string
+	pullPolicy string
+}
+
+func (m makebuilder) build() error {
+	cmd := exec.Command("make", "release-artifacts")
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("MANAGER_IMAGE_TAG=%v", m.imageTag),
+		fmt.Sprintf("REGISTRY=%v/%v", m.registry, m.imageName),
+		fmt.Sprintf("PULL_POLICY=%v", m.pullPolicy))
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(out))
