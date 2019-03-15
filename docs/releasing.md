@@ -2,20 +2,25 @@
 
 ## Semi-automatic
 
-1. make the release artifacts `make release-artifacts`
-2. Run the release tool found in `cmd/release`
-3. Pick up the manual steps starting with step 6
+1. Make sure your repo is clean by git's standards
+2. If the controller has changed, it would be good to bump the version of the controller image. Look in `cmd/release/main.go`.
+3. run `go run cmd/release/main.go -version v0.1.2` but replace the version with the version you'd like.
+4. push the docker images that were generated with this release tool
+5. Edit the release notes and make sure the binaries uploaded return the correct version
+6. Publish draft
+7. If it's a major release, notify `kubernetes-dev@googlegroups.com`
 
 ## Manual
 
-1. Create a draft release in github
-2. Tag the repository and push the tag `git tag -s $VERSION `
+1. Tag the repository and push the tag `git tag -s $VERSION`
+1. Create a draft release in github and associate it with the tag that was just created
+2. Checkout the tag you've just created and make sure git is in a clean state
 3. Run `make release-artifacts`
 4. Attach the tarball to the drafted release
 5. Attach `clusterawsadm` and `clusterctl` to the drafted release (for darwin
    and linux architectures)
 6. Write the release notes (see note below on release notes)
-7. Get someone with permission to copy the container image from your own
+7. Get someone with permission (any ex heptio) to copy the container image from your own
    personal gcr registry to the production one, or have them build and push the
    container image themselves.
 8. Publish release
