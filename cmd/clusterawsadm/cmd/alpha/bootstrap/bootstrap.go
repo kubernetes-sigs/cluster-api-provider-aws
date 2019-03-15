@@ -392,7 +392,6 @@ func applyCluster(client clusterclient.Client) error {
 		return err
 	}
 
-	fmt.Printf("%q", cluster)
 	return phases.ApplyCluster(client, cluster)
 }
 
