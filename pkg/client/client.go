@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -193,5 +194,5 @@ func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error
 // version information to requests made by the AWS SDK.
 var addProviderVersionToUserAgent = request.NamedHandler{
 	Name: "openshift.io/cluster-api-provider-aws",
-	Fn:   request.MakeAddToUserAgentHandler("openshift.io cluster-api-provider-aws", "dummy"),
+	Fn:   request.MakeAddToUserAgentHandler("openshift.io cluster-api-provider-aws", version.Version.String()),
 }

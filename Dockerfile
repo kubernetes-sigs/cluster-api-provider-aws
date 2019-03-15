@@ -1,8 +1,9 @@
 FROM registry.svc.ci.openshift.org/openshift/release:golang-1.10 AS builder
 WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-aws
 COPY . .
-RUN go build -o ./machine-controller-manager ./cmd/manager
-RUN go build -o ./manager ./vendor/github.com/openshift/cluster-api/cmd/manager
+# VERSION env gets set in the openshift/release image and refers to the golang version, which interfers with our own
+RUN unset VERSION \
+ && NO_DOCKER=1 make build
 
 FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
 RUN INSTALL_PKGS=" \
@@ -11,5 +12,5 @@ RUN INSTALL_PKGS=" \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all
-COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/manager /
-COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/machine-controller-manager /
+COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/bin/manager /
+COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/bin/machine-controller-manager /

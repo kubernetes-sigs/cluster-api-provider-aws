@@ -19,6 +19,8 @@ GOGCFLAGS ?= -gcflags=all="-N -l"
 endif
 
 VERSION     ?= $(shell git describe --always --abbrev=7)
+REPO_PATH   ?= sigs.k8s.io/cluster-api-provider-aws
+LD_FLAGS    ?= -X $(REPO_PATH)/pkg/version.Raw=$(VERSION) -extldflags "-static"
 MUTABLE_TAG ?= latest
 IMAGE        = origin-aws-machine-controllers
 
@@ -58,8 +60,10 @@ bin:
 
 .PHONY: build
 build: ## build binaries
-	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/machine-controller-manager -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/cmd/manager
-	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/openshift/cluster-api/cmd/manager
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/machine-controller-manager" \
+               -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' \
+               "$(REPO_PATH)/vendor/github.com/openshift/cluster-api/cmd/manager"
 
 aws-actuator:
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
