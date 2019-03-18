@@ -459,9 +459,10 @@ func (a *Actuator) getNodeReference(scope *actuators.MachineScope) (*apicorev1.O
 			// TODO(vincepri): Improve this comparison without relying on substrings.
 			if strings.Contains(node.Spec.ProviderID, instanceID) {
 				return &apicorev1.ObjectReference{
-					Kind:       node.Kind,
-					APIVersion: node.APIVersion,
+					Kind:       "Node",
+					APIVersion: apicorev1.SchemeGroupVersion.String(),
 					Name:       node.Name,
+					UID:        node.UID,
 				}, nil
 			}
 		}
