@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"time"
 
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
@@ -44,7 +45,11 @@ func main() {
 	cfg := config.GetConfigOrDie()
 
 	// Setup a Manager
-	var opts manager.Options
+	syncPeriod := 10 * time.Minute
+	opts := manager.Options{
+		SyncPeriod: &syncPeriod,
+	}
+
 	if *watchNamespace != "" {
 		opts.Namespace = *watchNamespace
 		klog.Infof("Watching cluster-api objects only in namespace %q for reconciliation.", opts.Namespace)
