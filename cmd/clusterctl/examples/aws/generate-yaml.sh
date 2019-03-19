@@ -39,8 +39,10 @@ CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
 HA_CONTROL_PLANE_MACHINES_TEMPLATE_FILE=${DIR}/machines-ha-controlplane.yaml.template
-ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
 HA_CONTROL_PLANE_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/ha-controlplane-machines
+HA_NODE_MACHINES_TEMPLATE_FILE=${DIR}/machines-ha-nodes.yaml.template
+HA_NODE_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines-ha-node.yaml
+ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
 PROVIDER_COMPONENTS_SRC=${DIR}/provider-components-base.yaml
 PROVIDER_COMPONENTS_FILE=${OUTPUT_DIR}/provider-components.yaml
 CREDENTIALS_FILE=${OUTPUT_DIR}/aws-credentials.yaml
@@ -85,6 +87,11 @@ if [ $OVERWRITE -ne 1 ] && [ -f $HA_CONTROL_PLANE_MACHINES_GENERATED_FILE ]; the
   exit 1
 fi
 
+if [ $OVERWRITE -ne 1 ] && [ -f $HA_NODE_MACHINES_GENERATED_FILE ]; then
+  echo File $HA_NODE_MACHINES_GENERATED_FILE already exists. Delete it manually before running this script.
+  exit 1
+fi
+
 if [ $OVERWRITE -ne 1 ] && [ -f $CLUSTER_GENERATED_FILE ]; then
   echo File $CLUSTER_GENERATED_FILE already exists. Delete it manually before running this script.
   exit 1
@@ -102,6 +109,9 @@ fi
 
 $ENVSUBST < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
 echo "Done generating ${MACHINES_GENERATED_FILE}"
+
+$ENVSUBST < $HA_NODE_MACHINES_TEMPLATE_FILE > "${HA_NODE_MACHINES_GENERATED_FILE}"
+echo "Done generating ${HA_NODE_MACHINES_GENERATED_FILE}"
 
 for i in 0 1 2
 do
