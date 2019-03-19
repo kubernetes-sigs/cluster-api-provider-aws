@@ -17,9 +17,9 @@
 - [Developing](#developing)
   - [Manual Testing](#manual-testing)
     - [Setting up the environment](#setting-up-the-environment)
-    - [Dev manifests](#dev-manifests)
     - [Building and pushing dev images to GCR](#building-and-pushing-dev-images-to-gcr)
     - [Building and pushing dev images to custom (non GCR) container registry](#building-and-pushing-dev-images-to-custom-non-gcr-container-registry)
+    - [Build manifests](#build-manifests)
     - [Running clusterctl](#running-clusterctl)
     - [Executing unit tests](#executing-unit-tests)
     - [Executing integration tests](#executing-integration-tests)
@@ -78,8 +78,8 @@ releases.
 Instructions for setting up a Google Container Registry (GCR) are below, but
 GCR is not required. The requirement is any public container registry.
 
-AWS Elastic Container Registry (ECR) isn't recommended as public images are required
-for the provider manifests.
+AWS Elastic Container Registry (ECR) isn't recommended as public images are
+required for the provider manifests.
 
 ##### Setting up a Google Container Registry
 
@@ -97,20 +97,15 @@ Change some code!
 Your environment must have your the AWS credentials as outlined in the [getting
 started prerequisites section](./getting-started.md#Prerequisites)
 
-#### Dev manifests
-
-The dev version of the manifests can be generated with
-
-`make manifests-dev`
 
 #### Building and pushing dev images to GCR
 
 1. [Install the gcloud cli][gcloud_sdk].
 2. Set project: `gcloud config set project YOUR_PROJECT_NAME`.
-3. To build images with custom tags, run the `make docker-push-dev` as follows:
+3. To build images with custom tags, run the `make docker-push` as follows:
 
 ```(bash)
-BAZEL_ARGS="--define=MANAGER_IMAGE_TAG=<YOUR_TAG_HERE> make docker-push-dev
+make docker-push MANAGER_IMAGE_TAG=<YOUR_TAG_HERE>
 ```
 
 #### Building and pushing dev images to custom (non GCR) container registry
@@ -119,13 +114,29 @@ BAZEL_ARGS="--define=MANAGER_IMAGE_TAG=<YOUR_TAG_HERE> make docker-push-dev
 
    E.g. `docker login quay.io`
 2. To build images with custom tags and push to your custom image registry,
-   run the `make docker-build-dev` as follows::
+   run the `make docker-build` as follows::
 
 ```(bash)
-BAZEL_ARGS="--define=MANAGER_IMAGE_TAG=<YOUR_TAG_HERE> --define=REGISTRY_DEV=<YOUR_REGISTRY_HERE>" make docker-build-dev
+make docker-push REGISTRY="your repo"
 ```
 
 3. Push your docker images as `docker push <ContainerImage>:<YourTag>`
+
+#### Build manifests
+
+Whenever you are working on a branch, you will need to generate manifests
+using:
+
+```(bash)
+make manifests
+```
+
+It's expected that some set of AWS credentials are available at the time, either
+as environment variable, a CLI profile or other SDK-supported method.
+
+You will then have a sample cluster and machine manifest in:
+`/cmd/clusterctl/examples/aws/out` and a provider components file to use with clusterctl in
+`cmd/clusterctl/examples/aws/out/provider-components.yaml`
 
 #### Running clusterctl
 
@@ -151,7 +162,7 @@ These tests depend on the following binaries in the system path:
 `make e2e` executes the project's end-to-end tests with AWS account
 information parsed from the environment.
 
-These tests stand up a local Kubernetes cluster using Kind. The project's CRDs 
+These tests stand up a local Kubernetes cluster using Kind. The project's CRDs
 and controllers are deployed to the Kind cluster and are used to deploy
 Kubernetes to AWS.
 
@@ -170,7 +181,7 @@ These tests depend on the following binaries in the system path:
 `BOSKOS_HOST=http://boskos make e2e` executes the project's end-to-end tests
 with AWS account information acquired from a Boskos host.
 
-These tests stand up a local Kubernetes cluster using Kind. The project's CRDs 
+These tests stand up a local Kubernetes cluster using Kind. The project's CRDs
 and controllers are deployed to the Kind cluster and are used to deploy
 Kubernetes to AWS.
 
