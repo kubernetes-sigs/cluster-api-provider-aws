@@ -32,6 +32,7 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/iam"
@@ -292,12 +293,14 @@ func createHaControlPlane() *cobra.Command {
 			clusterActuator := cluster.NewActuator(cluster.ActuatorParams{})
 			common.RegisterClusterProvisioner("aws", clusterActuator)
 
+			providerComponents := cmd.Flag("provider-components").Value.String()
+
 			client, err := createBootstrapCluster()
 			if err != nil {
 				return err
 			}
 
-			err = applyClusterAPIComponents(client)
+			err = applyClusterAPIComponents(client, providerComponents)
 			if err != nil {
 				return err
 			}
@@ -325,6 +328,9 @@ func createHaControlPlane() *cobra.Command {
 			return nil
 		},
 	}
+
+	newCmd.PersistentFlags().String("provider-components", "", "path to provider components file")
+	viper.BindPFlag("provider-components", newCmd.PersistentFlags().Lookup("provider-components"))
 
 	return newCmd
 }
@@ -376,9 +382,10 @@ func getKubeconfig(client clusterclient.Client) error {
 	return nil
 }
 
-func applyClusterAPIComponents(client clusterclient.Client) error {
+func applyClusterAPIComponents(client clusterclient.Client, providerComponents string) error {
 	// TODO: take this from the flag
-	pc, err := getProviderComponents("cmd/clusterctl/examples/aws/out/provider-components.yaml")
+	//pc, err := getProviderComponents("cmd/clusterctl/examples/aws/out/provider-components.yaml")
+	pc, err := ioutil.ReadFile(providerComponents)
 	if err != nil {
 		return err
 	}
