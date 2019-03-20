@@ -39,9 +39,13 @@ fmt: ## Go fmt your code
 vet: ## Apply go vet to all go files
 	hack/go-vet.sh ./...
 
+.PHONY: build-e2e
+build-e2e:
+	go test -c -o bin/e2e github.com/openshift/cluster-api-actuator-pkg/pkg/e2e
+
 .PHONY: test-e2e
 test-e2e: ## Run openshift specific e2e test
-	go test -timeout 60m \
+	go test -timeout 90m \
 		-v github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
 		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
 		-machine-api-namespace $${NAMESPACE:-openshift-machine-api} \

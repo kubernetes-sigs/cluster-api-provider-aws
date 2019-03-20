@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
-
 	"github.com/openshift/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 	"github.com/openshift/cluster-api/cmd/clusterctl/phases"
 	"github.com/pkg/errors"

@@ -1,0 +1,109 @@
+# Force dep to vendor the code generators, which aren't imported just used at dev time.
+required = [
+  "k8s.io/code-generator/cmd/defaulter-gen",
+  "k8s.io/code-generator/cmd/deepcopy-gen",
+  "k8s.io/code-generator/cmd/conversion-gen",
+  "k8s.io/code-generator/cmd/client-gen",
+  "k8s.io/code-generator/cmd/lister-gen",
+  "k8s.io/code-generator/cmd/informer-gen",
+  "k8s.io/code-generator/cmd/openapi-gen",
+  "k8s.io/gengo/args",
+  "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e",
+  "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/actuators",
+  "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
+  "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",
+  "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/operators",
+  "github.com/openshift/cluster-autoscaler-operator/pkg/apis",
+  "github.com/onsi/ginkgo",
+  "github.com/onsi/gomega",
+]
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[override]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.3"
+
+[[override]]
+  name = "github.com/spf13/pflag"
+  version = "1.0.2"
+
+[[override]]
+  name = "github.com/openshift/cluster-version-operator"
+  branch = "master"
+
+[[override]]
+  name = "k8s.io/kube-aggregator"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "github.com/openshift/cluster-api"
+  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
+
+[[override]]
+  name = "github.com/openshift/cluster-api-actuator-pkg"
+  branch = "master"
+
+[[override]]
+  name = "github.com/openshift/api"
+  branch = "master"
+
+[[override]]
+  name = "github.com/openshift/client-go"
+  branch = "master"
+
+[[override]]
+  name = "k8s.io/code-generator"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/apiextensions-apiserver"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.12.5"
+
+[[override]]
+  name = "sigs.k8s.io/controller-runtime"
+  # version = "v0.1.8" # does not work, still pulls v.1.10 instead
+  revision = "c63ebda0bf4be5f0a8abd4003e4ea546032545ba"
+
+
+[[constraint]]
+  name = "github.com/operator-framework/operator-sdk"
+  # The version rule is used for a specific release and the master branch for in between releases.
+  branch = "master" #osdk_branch_annotation
+  # version = "=v0.1.1" #osdk_version_annotation
+
+# We need to specify fsnotify source to avoid dep panic
+# https://github.com/golang/dep/issues/1799
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "https://github.com/fsnotify/fsnotify.git"
+
+[prune]
+  go-tests = true
+  unused-packages = true
+  non-go = true
+
+  [[prune.project]]
+    name = "k8s.io/code-generator"
+    unused-packages = false
+    non-go = false
+
+  [[prune.project]]
+    name = "github.com/openshift/cluster-api-actuator-pkg"
+    unused-packages = false
+    non-go = false
+    go-tests = false

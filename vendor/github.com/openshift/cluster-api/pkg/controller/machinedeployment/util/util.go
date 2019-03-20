@@ -25,6 +25,8 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/openshift/cluster-api/pkg/apis/machine/common"
+	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -33,9 +35,6 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/util/integer"
 	"k8s.io/klog"
-
-	"github.com/openshift/cluster-api/pkg/apis/machine/common"
-	"github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 )
 
 const (
@@ -429,7 +428,7 @@ func FindNewMachineSet(deployment *v1beta1.MachineDeployment, msList []*v1beta1.
 //  - the second contains all old machine sets
 func FindOldMachineSets(deployment *v1beta1.MachineDeployment, msList []*v1beta1.MachineSet) ([]*v1beta1.MachineSet, []*v1beta1.MachineSet) {
 	var requiredMSs []*v1beta1.MachineSet
-	var allMSs []*v1beta1.MachineSet
+	allMSs := make([]*v1beta1.MachineSet, 0, len(msList))
 	newMS := FindNewMachineSet(deployment, msList)
 	for _, ms := range msList {
 		// Filter out new machine set
@@ -524,7 +523,7 @@ func NewMSNewReplicas(deployment *v1beta1.MachineDeployment, allMSs []*v1beta1.M
 		// Scale up.
 		scaleUpCount := maxTotalMachines - currentMachineCount
 		// Do not exceed the number of desired replicas.
-		scaleUpCount = int32(integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas)))
+		scaleUpCount = integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas))
 		return *(newMS.Spec.Replicas) + scaleUpCount, nil
 	default:
 		// Check if we can scale up.
@@ -542,7 +541,7 @@ func NewMSNewReplicas(deployment *v1beta1.MachineDeployment, allMSs []*v1beta1.M
 		// Scale up.
 		scaleUpCount := maxTotalMachines - currentMachineCount
 		// Do not exceed the number of desired replicas.
-		scaleUpCount = int32(integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas)))
+		scaleUpCount = integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas))
 		return *(newMS.Spec.Replicas) + scaleUpCount, nil
 		// -- return 0, errors.Errorf("deployment type %v isn't supported", deployment.Spec.Strategy.Type)
 	}

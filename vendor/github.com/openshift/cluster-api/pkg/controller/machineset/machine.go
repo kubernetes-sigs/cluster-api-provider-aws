@@ -35,14 +35,6 @@ func (c *ReconcileMachineSet) getMachineSetsForMachine(m *v1beta1.Machine) []*v1
 	msList := &v1beta1.MachineSetList{}
 	listOptions := &client.ListOptions{
 		Namespace: m.Namespace,
-		// This is set so the fake client can be used for unit test. See:
-		// https://github.com/kubernetes-sigs/controller-runtime/issues/168
-		Raw: &metav1.ListOptions{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: v1beta1.SchemeGroupVersion.String(),
-				Kind:       "MachineSet",
-			},
-		},
 	}
 
 	err := c.Client.List(context.Background(), listOptions, msList)
@@ -68,14 +60,17 @@ func hasMatchingLabels(machineSet *v1beta1.MachineSet, machine *v1beta1.Machine)
 		klog.Warningf("unable to convert selector: %v", err)
 		return false
 	}
+
 	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 	if selector.Empty() {
 		klog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
 		return false
 	}
+
 	if !selector.Matches(labels.Set(machine.Labels)) {
 		klog.V(4).Infof("%v machine has mismatch labels", machine.Name)
 		return false
 	}
+
 	return true
 }

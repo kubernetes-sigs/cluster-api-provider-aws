@@ -1,0 +1,6 @@
+{
+  "clusterAPIControllerAWS": "docker.io/openshift/origin-aws-machine-controllers:v4.0.0",
+  "clusterAPIControllerOpenStack": "docker.io/openshift/origin-openstack-machine-controllers:v4.0.0",
+  "clusterAPIControllerLibvirt": "docker.io/openshift/origin-libvirt-machine-controllers:v4.0.0",
+  "machineAPIOperator": "docker.io/openshift/origin-machine-api-operator:v4.0.0"
+}

@@ -11,10 +11,13 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
+	healthcheckingclient "github.com/openshift/machine-api-operator/pkg/generated/clientset/versioned"
+	kappsapi "k8s.io/api/apps/v1"
 	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -95,9 +98,11 @@ type SSHConfig struct {
 
 // Framework supports common operations used by tests
 type Framework struct {
-	KubeClient         *kubernetes.Clientset
-	CAPIClient         *clientset.Clientset
-	APIExtensionClient *apiextensionsclientset.Clientset
+	KubeClient           *kubernetes.Clientset
+	CAPIClient           *clientset.Clientset
+	APIExtensionClient   *apiextensionsclientset.Clientset
+	HealthCheckingClient *healthcheckingclient.Clientset
+
 	// APIRegistrationClient *apiregistrationclientset.Clientset
 	Kubeconfig string
 	RestConfig *rest.Config
@@ -204,6 +209,13 @@ func (f *Framework) buildClientsets() error {
 
 	if f.APIExtensionClient == nil {
 		f.APIExtensionClient, err = apiextensionsclientset.NewForConfig(f.RestConfig)
+		if err != nil {
+			return err
+		}
+	}
+
+	if f.HealthCheckingClient == nil {
+		f.HealthCheckingClient, err = healthcheckingclient.NewForConfig(f.RestConfig)
 		if err != nil {
 			return err
 		}
@@ -439,4 +451,22 @@ func WaitUntilAllNodesAreReady(client runtimeclient.Client) error {
 		}
 		return true, nil
 	})
+}
+
+func IsKubemarkProvider(client runtimeclient.Client) (bool, error) {
+	key := types.NamespacedName{
+		Namespace: TestContext.MachineApiNamespace,
+		Name:      "machineapi-kubemark-controllers",
+	}
+	glog.Infof("Checking if deployment %q exists", key.Name)
+	d := &kappsapi.Deployment{}
+	if err := client.Get(context.TODO(), key, d); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			glog.Infof("Deployment %q does not exists", key.Name)
+			return false, nil
+		}
+		return false, fmt.Errorf("Error querying api for Deployment object %q: %v", key.Name, err)
+	}
+	glog.Infof("Deployment %q exists", key.Name)
+	return true, nil
 }

@@ -1,0 +1,131 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: machine-api-manager
+rules:
+  - apiGroups:
+      - cluster.k8s.io
+    resources:
+      - '*'
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - machine.openshift.io
+    resources:
+      - '*'
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - healthchecking.openshift.io
+    resources:
+      - '*'
+    verbs:
+      - '*'
+
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - clusteroperators
+      - clusteroperators/status
+    verbs:
+      - create
+      - get
+      - update
+
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups:
+      - ""
+    resources:
+      - pods/eviction
+    verbs:
+      - create
+
+  - apiGroups:
+      - extensions
+    resources:
+      - daemonsets
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: machine-api-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: machine-api-manager
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: openshift-machine-api

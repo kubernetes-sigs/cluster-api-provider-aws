@@ -34,12 +34,18 @@ https://github.com/openshift/autoscaler
 
 ## Implementation
 
-We use [ginkgo](https://onsi.github.io/ginkgo/)
+- We use [ginkgo](https://onsi.github.io/ginkgo/)
 
-These tests assume the existence of the system to be validated, i.e an OpenShift cluster and a Kubeconfig file
+- These tests assume the existence of the system to be validated, i.e an OpenShift cluster and a Kubeconfig file
 
-Product expectations should be as implementation agnostic as possible e.g "When the workload increases I expect my cluster to grow".
+- Product expectations should be as implementation agnostic as possible e.g "When the workload increases I expect my cluster to grow".
 The API Group used for this to happen and the implementation details might vary. The user expectation remains the same
+
+- We are developing a reusable library for manipulating machine API resources that should be leveraged for writing e2e expectations
+
+- Product expectations should be simple, easy to read and avoid details. To this end:
+  - They must leverage the common library for manipulating machine API resources so this is done in a consistent manner across all e2e, e.g https://github.com/openshift/cluster-api-actuator-pkg/blob/a086b6d5db86e7e48a6ebce24343e461be233440/pkg/e2e/infra/utils.go#L113
+  - Polling logic should be expressed at the Ginkgo level leveraging the common library. E.g https://github.com/openshift/cluster-api-actuator-pkg/blob/a086b6d5db86e7e48a6ebce24343e461be233440/pkg/e2e/infra/infra.go#L184 
 
 ## Run it
 
