@@ -16,6 +16,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 	clusterapis "github.com/openshift/cluster-api/pkg/apis"
@@ -49,7 +50,10 @@ func main() {
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{})
+	syncPeriod := 10 * time.Minute
+	mgr, err := manager.New(cfg, manager.Options{
+		SyncPeriod: &syncPeriod,
+	})
 	if err != nil {
 		glog.Fatalf("Error creating manager: %v", err)
 	}
