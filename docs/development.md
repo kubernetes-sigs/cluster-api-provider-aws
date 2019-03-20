@@ -10,7 +10,6 @@
   - [Base requirements](#base-requirements)
   - [Get the source](#get-the-source)
   - [Get familiar with basic concepts](#get-familiar-with-basic-concepts)
-  - [Dev manifest files](#dev-manifest-files)
   - [Dev images](#dev-images)
     - [Container registry](#container-registry)
       - [Setting up a Google Container Registry](#setting-up-a-google-container-registry)
@@ -19,6 +18,8 @@
     - [Setting up the environment](#setting-up-the-environment)
     - [Building and pushing dev images to GCR](#building-and-pushing-dev-images-to-gcr)
     - [Building and pushing dev images to custom (non GCR) container registry](#building-and-pushing-dev-images-to-custom-non-gcr-container-registry)
+  - [Ensuring latest versions of clusterawsadm and clusterctl](#ensuring-latest-versions-of-clusterawsadm-and-clusterctl)
+  - [Dev manifest files](#dev-manifest-files)
     - [Build manifests](#build-manifests)
     - [Running clusterctl](#running-clusterctl)
     - [Executing unit tests](#executing-unit-tests)
@@ -28,7 +29,7 @@
   - [Automated Testing](#automated-testing)
     - [Mocks](#mocks)
 - [Troubleshooting](#troubleshooting)
-  - [`make docker-dev-build` fails](#make-docker-dev-build-fails)
+  - [`make docker-build` fails](#make-docker-build-fails)
 
 <!-- /TOC -->
 
@@ -64,12 +65,6 @@ make dep-ensure
 
 This provider is modeled after the upstream cluster-api project. To get familiar
 with resources, concepts and conventions refer to the [upstream gitbook](https://kubernetes-sigs.github.io/cluster-api/).
-
-### Dev manifest files
-
-Part of running cluster-api-provider-aws is generating manifests to run.
-Generating dev manifests allows you to test dev images instead of the default
-releases.
 
 ### Dev images
 
@@ -121,6 +116,25 @@ make docker-push REGISTRY="your repo"
 ```
 
 3. Push your docker images as `docker push <ContainerImage>:<YourTag>`
+
+### Ensuring latest versions of clusterawsadm and clusterctl
+
+Always make sure that the version of `clusterawsadm` and `clusterctl` is
+valid for the code you're working on.
+
+Assuming `${GOPATH}/bin` is also in your `$PATH`, running the following
+ensures you have binaries that match your workspace:
+
+```
+make clusterawsadm clusterctl
+```
+
+### Dev manifest files
+
+Part of running cluster-api-provider-aws is generating manifests to run.
+Generating dev manifests allows you to test dev images instead of the default
+releases.
+
 
 #### Build manifests
 
@@ -215,17 +229,16 @@ If you then want to use these mocks with `go test ./...`, run
 Troubleshooting steps and workarounds for commonly encountered errors
 encountered in doing development work.
 
-### `make docker-dev-build` fails
+### `make docker-build` fails
 
 ```(bash)
-ERROR: Analysis of target '//cmd/manager:manager-image-dev' failed; build aborted: no such package '@golang-image//image': Pull command failed
+ERROR: Analysis of target '//cmd/manager:manager-image' failed; build aborted: no such package '@golang-image//image': Pull command failed
 ```
 
-This is caused by Python2 not being the version of active python in the shell. Bazel
-requires [Python 2](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/development.md#base-requirements)
-for its docker rules to succeed.
-
-See Issue: [624](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/624)
+This is caused by Python2 not being the version of active python in the shell.
+[Bazel rules_docker][bazel-rules-docker] uses [Google Container
+Registry][gcr-lib] libraries which currently require [Python 2][Python2] for its
+docker rules to succeed. We are tracking this in [issue 624][issue-624].
 
 <!-- References -->
 
@@ -238,4 +251,8 @@ See Issue: [624](https://github.com/kubernetes-sigs/cluster-api-provider-aws/iss
 [kind]: https://sigs.k8s.io/kind
 [aws_cli]: https://docs.aws.amazon.com/cli/latest/userguide/installing.html
 [bazel]: https://docs.bazel.build/versions/master/install.html
+[bazel-rules-docker]: https://github.com/bazelbuild/rules_docker
 [pyenv]: https://github.com/pyenv/pyenv
+[Python2]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/development.md#base-requirements
+[gcr-lib]: https://github.com/google/containerregistry
+[issue-624]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/624
