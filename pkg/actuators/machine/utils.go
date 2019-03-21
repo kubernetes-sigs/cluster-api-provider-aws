@@ -188,11 +188,26 @@ func providerConfigFromMachine(client client.Client, machine *machinev1.Machine,
 }
 
 // isMaster returns true if the machine is part of a cluster's control plane
-func isMaster(machine *machinev1.Machine) bool {
-	if machineType, exists := machine.ObjectMeta.Labels[providerconfigv1.MachineTypeLabel]; exists && machineType == "master" {
-		return true
+func (a *Actuator) isMaster(machine *machinev1.Machine) (bool, error) {
+	if machine.Status.NodeRef == nil {
+		glog.Errorf("NodeRef not found in machine %s", machine.Name)
+		return false, nil
 	}
-	return false
+	node := &corev1.Node{}
+	nodeKey := types.NamespacedName{
+		Namespace: machine.Status.NodeRef.Namespace,
+		Name:      machine.Status.NodeRef.Name,
+	}
+
+	err := a.client.Get(context.Background(), nodeKey, node)
+	if err != nil {
+		return false, fmt.Errorf("failed to get node from machine %s", machine.Name)
+	}
+
+	if _, exists := node.Labels["node-role.kubernetes.io/master"]; exists {
+		return true, nil
+	}
+	return false, nil
 }
 
 // updateConditionCheck tests whether a condition should be updated from the

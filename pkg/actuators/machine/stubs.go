@@ -114,9 +114,7 @@ func stubMachine() (*machinev1.Machine, error) {
 			Name:      "aws-actuator-testing-machine",
 			Namespace: defaultNamespace,
 			Labels: map[string]string{
-				providerconfigv1.ClusterIDLabel:   clusterID,
-				providerconfigv1.MachineRoleLabel: "infra",
-				providerconfigv1.MachineTypeLabel: "master",
+				providerconfigv1.ClusterIDLabel: clusterID,
 			},
 			Annotations: map[string]string{
 				// skip node draining since it's not mocked
@@ -125,6 +123,12 @@ func stubMachine() (*machinev1.Machine, error) {
 		},
 
 		Spec: machinev1.MachineSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"node-role.kubernetes.io/master": "",
+					"node-role.kubernetes.io/infra":  "",
+				},
+			},
 			ProviderSpec: *providerSpec,
 		},
 	}

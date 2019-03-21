@@ -25,9 +25,7 @@ import (
 const (
 	// ClusterIDLabel is the label that a machineset must have to identify the
 	// cluster to which it belongs.
-	ClusterIDLabel   = "machine.openshift.io/cluster-api-cluster"
-	MachineRoleLabel = "machine.openshift.io/cluster-api-machine-role"
-	MachineTypeLabel = "machine.openshift.io/cluster-api-machine-type"
+	ClusterIDLabel = "machine.openshift.io/cluster-api-cluster"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
