@@ -60,7 +60,7 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
   exit 1
 fi
 
-bazel test --define='gotags=e2e' --test_output all //test/e2e/...
+bazel test --define='gotags=e2e' --test_output all //test/e2e/... $@
 bazel_status="${?}"
 
 # If the artifacts environment variable is set then coalesce the test results.
@@ -70,7 +70,7 @@ bazel_status="${?}"
 [ -z "${BOSKOS_HOST:-}" ] || hack/checkin_account.py
 
 # The janitor is typically not run as part of the e2e process, but rather
-# in a parallel process via a service on the same cluster that runs Prow and 
+# in a parallel process via a service on the same cluster that runs Prow and
 # Boskos.
 #
 # However, setting JANITOR_ENABLED=1 tells this program to run the janitor
