@@ -42,15 +42,15 @@ cluster on AWS.
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-||Cluster API 0.1|
+||Cluster API v1alpha1 (v0.1)|
 |-|-|
-|AWS Provider 0.1|✓|
+|AWS Provider 0.2|✓|
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
 ||Kubernetes 1.13|Kubernetes 1.14 (unreleased)|
 |-|-|-|
-|AWS Provider 0.1|✓|? (Currently untested)|
+|AWS Provider 0.2|✓|? (Currently untested)|
 
 In general, Cluster API for AWS will remain in lock-step with Cluster API versioning in terms of support e.g., AWS
 Provider `v0.x` will maintain compatibility with Cluster API `v0.x`.
