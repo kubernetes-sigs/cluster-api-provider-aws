@@ -38,6 +38,31 @@ cluster on AWS.
 
 ------
 
+## Compatibility with Cluster API and Kubernetes Versions
+
+This provider's versions are compatible with the following versions of Cluster API:
+
+||Cluster API 0.1|
+|-|-|
+|AWS Provider 0.1|✓|
+
+This provider's versions are able to install and manage the following versions of Kubernetes:
+
+||Kubernetes 1.13|Kubernetes 1.14 (unreleased)|
+|-|-|-|
+|AWS Provider 0.1|✓|? (Currently untested)|
+
+In general, Cluster API for AWS will remain in lock-step with Cluster API versioning in terms of support e.g., AWS
+Provider `v0.x` will maintain compatibility with Cluster API `v0.x`.
+
+Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.1`
+may support Kubernetes 1.13 and Kubernetes 1.14.
+
+**NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this
+policy may be made to more closely align with other providers in the Cluster API ecosystem.
+
+-----
+
 ## Documentation
 
 Documentation is in the `/docs` directory, and the [index is here](docs/README.md).
