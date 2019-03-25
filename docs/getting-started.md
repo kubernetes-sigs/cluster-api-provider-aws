@@ -33,7 +33,7 @@
 - Linux or MacOS (Windows isn't supported at the moment)
 - A set of AWS credentials sufficient to bootstrap the cluster (see [bootstrapping-aws-identity-and-access-management-with-cloudformation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)).
 - An AWS IAM role to give to the Cluster API control plane.
-- [KIND](https://sigs.k8s.io/kind)
+- [KIND >= v0.1](https://sigs.k8s.io/kind)
 - gettext (with `envsubst` in your PATH)
 
 ### Optional
@@ -41,7 +41,7 @@
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
 - [Homebrew][brew] (MacOS)
 - [jq][jq]
-- [Go](https://golang.org/dl/)
+- [Go >= v1.11](https://golang.org/dl/)
 
 ## Prerequisites
 
