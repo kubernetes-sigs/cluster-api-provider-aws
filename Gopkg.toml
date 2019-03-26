@@ -26,7 +26,7 @@ required = [
 
 [[override]]
   name = "k8s.io/kube-aggregator"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "github.com/openshift/cluster-api"
@@ -38,28 +38,27 @@ required = [
 
 [[override]]
   name = "k8s.io/code-generator"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "sigs.k8s.io/controller-runtime"
-  # version = "v0.1.8" # does not work, still pulls v.1.10 instead
-  revision = "c63ebda0bf4be5f0a8abd4003e4ea546032545ba"
+  version = "v0.1.10"
 
 [[constraint]]
   name="sigs.k8s.io/controller-tools"
