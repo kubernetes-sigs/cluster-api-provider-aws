@@ -10,8 +10,8 @@ items:
         set: controlplane
     spec:
       versions:
-        kubelet: v1.13.3
-        controlPlane: v1.13.3
+        kubelet: v1.13.5
+        controlPlane: v1.13.5
       providerSpec:
         value:
           apiVersion: awsprovider/v1alpha1
@@ -28,7 +28,7 @@ items:
         set: node
     spec:
       versions:
-        kubelet: v1.13.3
+        kubelet: v1.13.5
       providerSpec:
         value:
           apiVersion: awsprovider/v1alpha1
