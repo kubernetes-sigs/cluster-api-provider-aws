@@ -39,6 +39,7 @@ go_test(
         "@io_k8s_sigs_kind//:kind",
     ],
     rundir = ".",
+    tags = ["external"],
     deps = [
         "//test/e2e/util/kind:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",

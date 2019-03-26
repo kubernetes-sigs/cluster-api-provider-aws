@@ -52,6 +52,7 @@ go_test(
         "@io_k8s_sigs_kind//:kind",
     ],
     rundir = ".",
+    tags = ["external"],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/aws/actuators:go_default_library",
