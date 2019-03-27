@@ -32,13 +32,13 @@ The following variables can be overriden when building images using the `-var` o
 
 | Variable               | Default   | Description                   |
 |------------------------|-----------|-------------------------------|
-| kubernetes_version     | 1.13.3-00 | Kubernetes Version to install |
-| kubernetes_cni_version | 0.6.0-00  | CNI Version to install        |
+| kubernetes_version     | 1.13.5-00 | Kubernetes Version to install |
+| kubernetes_cni_version | 0.7.5-00  | CNI Version to install        |
 
-For example, to build all images for use with Kubernetes 1.11.3 for build version 1:
+For example, to build all images for use with Kubernetes 1.14.0 for build version 1:
 
 ```sh
-packer build -var kubernetes_version=1.11.3-00
+packer build -var kubernetes_version=1.14.0-00
 ```
 
 There are additional variables that may be set that affect the behavior of specific builds or packer post-processors. `packer inspect packer.json` will list all available variables and their default values.
@@ -116,7 +116,7 @@ packer build -var-file base-images-us-east-1.json packer.json
 The output of this command is a list of created AMIs. To format them you can
 copy the output and pipe it through this to get a desired table:
 
-```
+```sh
 echo 'us-fake-1: ami-123
 us-fake-2: ami-234' | column -t | sed 's/^/| /g' | sed 's/: //g' | sed 's/ami/| ami/g' | sed 's/$/ |/g'
 ```

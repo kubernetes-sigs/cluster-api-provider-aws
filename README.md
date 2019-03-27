@@ -48,9 +48,9 @@ This provider's versions are compatible with the following versions of Cluster A
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
-||Kubernetes 1.13|Kubernetes 1.14 (unreleased)|
+||Kubernetes 1.13|Kubernetes 1.14|
 |-|-|-|
-|AWS Provider v1alpha1 (v0.2)|✓|? (Currently untested)|
+|AWS Provider v1alpha1 (v0.2)|✓|✓|
 
 Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.2`
 may support Kubernetes 1.13 and Kubernetes 1.14.
@@ -58,7 +58,7 @@ may support Kubernetes 1.13 and Kubernetes 1.14.
 **NOTE:** As the versioning for this project is tied to the versioning of Cluster API, future modifications to this
 policy may be made to more closely align with other providers in the Cluster API ecosystem.
 
------
+------
 
 ## Documentation
 
@@ -126,7 +126,6 @@ We also use the issue tracker to track features. If you have an idea for a featu
 - After the new feature is well understood, and the design agreed upon we can
   start coding the feature. We would love for you to code it. So please open
   up a **WIP** *(work in progress)* pull request, and happy coding.
-
 
 >“Amazon Web Services, AWS, and the “Powered by AWS” logo materials are
 trademarks of Amazon.com, Inc. or its affiliates in the United States
