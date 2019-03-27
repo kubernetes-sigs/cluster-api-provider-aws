@@ -39,6 +39,9 @@ const (
 	apiServerBindPort = 6443
 
 	cloudProvider = "aws"
+
+	controlPlaneRole = "node-role.kubernetes.io/master="
+	nodeRole         = "node-role.kubernetes.io/node="
 )
 
 // SetDefaultClusterConfiguration sets default dynamic values without overriding
@@ -126,6 +129,7 @@ func SetInitConfigurationOverrides(base *kubeadmv1beta1.InitConfiguration) {
 		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
+	base.NodeRegistration.KubeletExtraArgs["node-labels"] = controlPlaneRole
 }
 
 // SetJoinNodeConfigurationOverrides overrides user input for certain fields of
@@ -162,6 +166,11 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
+	if machine.Machine.Labels["set"] == "node" {
+		base.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
+	} else {
+		base.NodeRegistration.KubeletExtraArgs["node-labels"] = controlPlaneRole
+	}
 }
 
 // SetControlPlaneJoinConfigurationOverrides user input for kubeadm join
