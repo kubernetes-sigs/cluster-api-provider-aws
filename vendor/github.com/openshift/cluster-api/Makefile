@@ -22,7 +22,8 @@ export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 
 # Image URL to use all building/pushing image targets
-IMG ?= gcr.io/k8s-cluster-api/cluster-api-controller:latest
+export CONTROLLER_IMG ?= gcr.io/k8s-cluster-api/cluster-api-controller:latest
+export EXAMPLE_PROVIDER_IMG ?= gcr.io/k8s-cluster-api/example-provider-controller:latest
 
 all: test manager clusterctl
 
@@ -41,7 +42,7 @@ dep-ensure: ## Runs dep-ensure and rebuilds Bazel gazelle files.
 
 .PHONY: test
 test: gazelle verify generate fmt vet manifests ## Run tests
-	go test -v -tags=integration ./pkg/... ./cmd/...
+	go test -v -timeout=20m -tags=integration ./pkg/... ./cmd/...
 
 .PHONY: manager
 manager: generate fmt vet ## Build manager binary
@@ -57,12 +58,13 @@ run: generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kub
 
 .PHONY: deploy
 deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-	kustomize build config/default | kubectl apply -f -
-
+	kustomize build config | kubectl apply -f -
 
 .PHONY: manifests
 manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	cp -f ./config/rbac/rbac*.yaml ./config/ci/rbac/
+	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd --domain openshift.io
 	git checkout config/crds/cluster_v1alpha1_*
 
@@ -74,9 +76,17 @@ fmt: ## Run go fmt against code
 vet: ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
+.PHONY: lint
+lint: dep-ensure ## Lint codebase
+	bazel run //:lint $(BAZEL_ARGS)
+
+lint-full: dep-ensure ## Run slower linters to detect possible issues
+	bazel run //:lint-full $(BAZEL_ARGS)
+
 .PHONY: generate
 generate: clientset dep-ensure ## Generate code
 	go generate ./pkg/... ./cmd/...
+	$(MAKE) gazelle
 
 .PHONY: clientset
 clientset: ## Generate a typed clientset
@@ -93,16 +103,31 @@ clientset: ## Generate a typed clientset
 		--listers-package github.com/openshift/cluster-api/pkg/client/listers_generated \
 		--output-package github.com/openshift/cluster-api/pkg/client/informers_generated \
 		--go-header-file=./hack/boilerplate.go.txt
+	$(MAKE) gazelle
+
+.PHONY: clean
+clean: ## Remove all generated files
+	rm -f bazel-*
 
 .PHONY: docker-build
-docker-build: generate fmt vet manifests ## Build the docker image
-	docker build . -t ${IMG}
+docker-build: generate fmt vet manifests ## Build the docker image for controller-manager
+	docker build . -t ${CONTROLLER_IMG}
 	@echo "updating kustomize image patch file for manager resource"
-	sed -i'' -e 's@image: .*@image: '"${IMG}"'@' ./config/default/manager_image_patch.yaml
+	sed -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}"'@' ./config/default/manager_image_patch.yaml
 
 .PHONY: docker-push
-docker-push: ## Push the docker image
-	docker push ${IMG}
+docker-push: docker-build ## Push the docker image
+	docker push "$(CONTROLLER_IMG)"
+
+.PHONY: docker-build-ci
+docker-build-ci: generate fmt vet manifests ## Build the docker image for example provider
+	docker build . -f ./pkg/provider/example/container/Dockerfile -t ${EXAMPLE_PROVIDER_IMG}
+	@echo "updating kustomize image patch file for ci"
+	sed -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}"'@' ./config/ci/manager_image_patch.yaml
+
+.PHONY: docker-push-ci
+docker-push-ci: docker-build-ci  ## Build the docker image for ci
+	docker push "$(EXAMPLE_PROVIDER_IMG)"
 
 .PHONY: verify
 verify:

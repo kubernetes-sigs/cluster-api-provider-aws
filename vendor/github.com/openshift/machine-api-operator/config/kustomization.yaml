@@ -1,0 +1,6 @@
+resources:
+# Install kubemark RBAC rules and namespace so mao can properly deploy kubemark actuator if configured
+# Pulled from https://github.com/openshift/cluster-api-provider-kubemark/blob/master/config/rbac/kubemark_rbac.yaml
+- kubemark_rbac.yaml
+# Pulled from https://github.com/openshift/cluster-api-provider-kubemark/blob/master/config/controllers/kubemark.yaml
+- kubemark.yaml

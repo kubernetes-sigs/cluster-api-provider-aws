@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clusterapi-manager-controllers
+  namespace: {{ .TargetNamespace }}
+  labels:
+    api: clusterapi
+    k8s-app: controller
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+  selector:
+    matchLabels:
+      api: clusterapi
+      k8s-app: controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        api: clusterapi
+        k8s-app: controller
+    spec:
+      priorityClassName: system-node-critical
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/notReady
+        operator: Exists
+      - effect: NoExecute
+        key: node.alpha.kubernetes.io/unreachable
+        operator: Exists
+      containers:
+      - name: controller-manager
+        image: {{ .Controllers.Provider }}
+        command:
+          - "./manager"
+        args:
+          - --logtostderr=true
+          - --v=3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20Mi
+      - name: machine-controller
+        image: {{ .Controllers.Provider }}
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        command:
+          - /machine-controller-manager
+        args:
+          - --logtostderr=true
+          - --v=3
+      - name: nodelink-controller
+        image: {{ .Controllers.NodeLink }}
+        command:
+          - /nodelink-controller
+        args:
+          - --logtostderr=true
+          - --v=3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20Mi
+      - name: machine-healthcheck
+        image: {{ .Controllers.MachineHealthCheck }}
+        command:
+          - /machine-healthcheck
+        args:
+          - --logtostderr=true
+          - --v=3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 20Mi

@@ -1,0 +1,24 @@
+# Adds namespace to all resources.
+namespace: kube-system
+
+# Each entry in this list must resolve to an existing
+# resource definition in YAML.  These are the resource
+# files that kustomize reads, modifies and emits as a
+# YAML string, with resources separated by document
+# markers ("---").
+resources:
+# Install CVO clusteroperator CRD required by mao (so it can report its status)
+# Pulled from https://github.com/openshift/cluster-version-operator/blob/master/install/0000_00_cluster-version-operator_01_clusteroperator.crd.yaml
+# and updated (delete depricated clusteroperators.operatorstatus.openshift.io CRD)
+- config/0000_00_cluster-version-operator_01_clusteroperator.crd.yaml
+# Install mao namespaces, CRDS and other resources to properly deploy machine API stack
+- install/0000_30_machine-api-operator_00_namespace.yaml
+- install/0000_30_machine-api-operator_01_images.configmap.yaml
+- install/0000_30_machine-api-operator_02_machine.crd.yaml
+- install/0000_30_machine-api-operator_03_machineset.crd.yaml
+- install/0000_30_machine-api-operator_04_machinedeployment.crd.yaml
+- install/0000_30_machine-api-operator_05_cluster.crd.yaml
+- install/0000_30_machine-api-operator_06_machineclass.crd.yaml
+- install/0000_30_machine-api-operator_07_machinehealthcheck.crd.yaml
+- install/0000_30_machine-api-operator_08_rbac.yaml
+- install/0000_30_machine-api-operator_09_deployment.yaml

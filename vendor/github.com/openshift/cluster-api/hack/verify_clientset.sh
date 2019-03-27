@@ -39,7 +39,6 @@ make clientset
 echo "diffing ${DIFFROOT} against freshly generated codegen"
 ret=0
 diff -Naupr "${DIFFROOT}" "${TMP_DIFFROOT}" -x '*.bazel' -x 'BUILD' || ret=$?
-cp -a "${TMP_DIFFROOT}"/* "${DIFFROOT}"
 if [[ $ret -eq 0 ]]
 then
     echo "${DIFFROOT} up to date."

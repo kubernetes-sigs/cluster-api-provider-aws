@@ -10,7 +10,7 @@ feedback on the API types themselves. All of the code here is to experiment with
 the API and demo its abilities, in order to drive more technical feedback to the
 API design. Because of this, all of the prototype code is rapidly changing.
 
-![Cluster API Architecture](architecture.png "Cluster API Architecture")
+![Cluster API Architecture](./docs/book/common_code/architecture.svg "Cluster API Architecture")
 
 To learn more, see the [Cluster API KEP][cluster-api-kep].
 
@@ -39,6 +39,7 @@ are also sponsored by SIG-cluster-lifecycle:
   * AWS/Openshift, https://github.com/openshift/cluster-operator
   * Azure, https://github.com/kubernetes-sigs/cluster-api-provider-azure
   * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
+  * Bare Metal, https://github.com/metalkube/cluster-api-provider-baremetal
   * DigitalOcean, https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean
   * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
@@ -54,6 +55,11 @@ Following are the implementations managed by third-parties adopting the standard
   * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
 
 ## Getting Started
+
+### Resources
+
+* GitBook: [kubernetes-sigs.github.io/cluster-api](https://kubernetes-sigs.github.io/cluster-api)
+
 ### Prerequisites
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)

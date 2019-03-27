@@ -19,7 +19,7 @@ setenforce 0
 yum install -y docker
 systemctl enable docker
 systemctl start docker
-yum install -y kubelet-1.11.3 kubeadm-1.11.3 kubectl-1.11.3 --disableexcludes=kubernetes
+yum install -y kubelet-1.12.3 kubeadm-1.12.3 kubectl-1.12.3 kubernetes-cni-0.6.0-0 --disableexcludes=kubernetes
 
 cat <<EOF > /etc/default/kubelet
 KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=systemd
@@ -31,6 +31,12 @@ kubeadm init --apiserver-bind-port 8443 --token 2iqzqm.85bs0x6miyx1nm7l {{range 
 
 # Enable networking by default.
 kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml --kubeconfig /etc/kubernetes/admin.conf
+
+# Binaries expected under /opt/cni/bin are actually under /usr/libexec/cni
+mkdir -p /opt/cni/bin
+pushd /usr/libexec/cni
+cp bridge loopback host-local /opt/cni/bin
+popd
 
 mkdir -p /root/.kube
 cp -i /etc/kubernetes/admin.conf /root/.kube/config
@@ -64,7 +70,7 @@ setenforce 0
 yum install -y docker
 systemctl enable docker
 systemctl start docker
-yum install -y kubelet-1.11.3 kubeadm-1.11.3 --disableexcludes=kubernetes
+yum install -y kubelet-1.12.3 kubeadm-1.12.3 kubernetes-cni-0.6.0-0 --disableexcludes=kubernetes
 
 cat <<EOF > /etc/default/kubelet
 KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=systemd

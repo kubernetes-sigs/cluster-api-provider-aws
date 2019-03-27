@@ -17,6 +17,15 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+- apiGroups:
   - machine.openshift.io
   resources:
   - machines
@@ -80,6 +89,7 @@ rules:
   - machine.openshift.io
   resources:
   - machines
+  - machines/status
   verbs:
   - get
   - list

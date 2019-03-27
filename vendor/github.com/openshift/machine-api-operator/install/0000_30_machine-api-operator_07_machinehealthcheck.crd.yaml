@@ -1,0 +1,22 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: machinehealthchecks.healthchecking.openshift.io
+spec:
+  group: healthchecking.openshift.io
+  names:
+    kind: MachineHealthCheck
+    listKind: MachineHealthCheckList
+    plural: machinehealthchecks
+    singular: machinehealthcheck
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+  version: v1alpha1

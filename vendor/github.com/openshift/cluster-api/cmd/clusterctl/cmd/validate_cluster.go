@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/openshift/cluster-api/pkg/apis"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	tcmd "k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -73,10 +75,12 @@ func RunValidateCluster() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create client")
 	}
-	if err = validation.ValidateClusterAPIObjects(os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
+	if err := validation.ValidateClusterAPIObjects(context.TODO(), os.Stdout, c, vco.KubeconfigOverrides.Context.Cluster, vco.KubeconfigOverrides.Context.Namespace); err != nil {
+		return err
+	}
+	if err := validation.ValidatePods(context.TODO(), os.Stdout, c, metav1.NamespaceSystem); err != nil {
 		return err
 	}
 
-	// TODO(wangzhen127): Also validate the cluster in addition to the cluster API objects. https://github.com/kubernetes-sigs/cluster-api/issues/168
 	return nil
 }

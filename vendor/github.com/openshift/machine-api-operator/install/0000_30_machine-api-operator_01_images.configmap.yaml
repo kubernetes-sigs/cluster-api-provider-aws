@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: machine-api-operator-images
+  namespace: openshift-machine-api
+data:
+  images.json: '{"machineAPIOperator": "docker.io/openshift/origin-machine-api-operator:v4.0.0", "clusterAPIControllerAWS": "docker.io/openshift/origin-aws-machine-controllers:v4.0.0", "clusterAPIControllerOpenStack": "docker.io/openshift/origin-openstack-machine-controllers:v4.0.0", "clusterAPIControllerLibvirt": "docker.io/openshift/origin-libvirt-machine-controllers:v4.0.0", "clusterAPIControllerKubemark": "docker.io/gofed/kubemark-machine-controllers:v1.0"}'

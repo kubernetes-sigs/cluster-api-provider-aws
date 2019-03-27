@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = ["validate_cluster_api_objects.go"],
+    srcs = [
+        "validate_cluster_api_objects.go",
+        "validate_pods.go",
+    ],
     importpath = "github.com/openshift/cluster-api/cmd/clusterctl/validation",
     visibility = ["//visibility:public"],
     deps = [
@@ -21,6 +24,7 @@ go_test(
     srcs = [
         "validate_cluster_api_objects_suite_test.go",
         "validate_cluster_api_objects_test.go",
+        "validate_pods_test.go",
     ],
     data = glob(["testdata/**"]),
     embed = [":go_default_library"],

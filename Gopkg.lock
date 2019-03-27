@@ -469,7 +469,8 @@
   revision = "cec6269883be26556e63500b6df19a0b6691992e"
 
 [[projects]]
-  digest = "1:b09422e6139c31a6e7561e143071fd330317125f53ab3fd0012e4706665cca68"
+  branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
+  digest = "1:52f0339a0be1369fa60d87e1bb17df13ede0b1d99685b6030383214f60939f7c"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis",
@@ -489,14 +490,13 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "eaaebe5a6fdf7fa96203bbdb9e2cf1165dd6ac1f"
+  revision = "5c833e464afbd8a9b3aca3f1d09943478bd90521"
 
 [[projects]]
   branch = "master"
-  digest = "1:77491e9c761fde6516f53b1467c56f03501cef8a61551949c4cb498cabdc834d"
+  digest = "1:e30245f45255c47bff6fdd42267f488124e61f21654095ab826427a5b7e7cf2b"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
-    "pkg/e2e/actuators",
     "pkg/e2e/autoscaler",
     "pkg/e2e/framework",
     "pkg/e2e/infra",
@@ -505,7 +505,7 @@
     "pkg/types",
   ]
   pruneopts = ""
-  revision = "6da15dab1653f3bc0d878366ce9f7c91e4ba08d0"
+  revision = "696fb4358f85c8b7aa1fcfae179a407e1456b202"
 
 [[projects]]
   branch = "master"
@@ -533,6 +533,20 @@
   packages = ["pkg/config/clusteroperator/v1helpers"]
   pruneopts = "T"
   revision = "51a1e47ef123a462296101395ff83998715da643"
+
+[[projects]]
+  digest = "1:b8fec16794e7d426d17af8c201367278369aee7ea1de19d6c1b701787e03df79"
+  name = "github.com/openshift/machine-api-operator"
+  packages = [
+    "pkg/apis/healthchecking",
+    "pkg/apis/healthchecking/v1alpha1",
+    "pkg/generated/clientset/versioned",
+    "pkg/generated/clientset/versioned/scheme",
+    "pkg/generated/clientset/versioned/typed/healthchecking/v1alpha1",
+    "pkg/util/conditions",
+  ]
+  pruneopts = "T"
+  revision = "9650e16c98802a4b57b7551201b0973fcae2f738"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
@@ -965,6 +979,7 @@
     "pkg/util/mergepatch",
     "pkg/util/naming",
     "pkg/util/net",
+    "pkg/util/rand",
     "pkg/util/runtime",
     "pkg/util/sets",
     "pkg/util/strategicpatch",
@@ -1185,14 +1200,6 @@
   pruneopts = "T"
   revision = "5818a3a284a11812aaed11d5ca0bcadec2c50e83"
 
-[[projects]]
-  digest = "1:7719608fe0b52a4ece56c2dde37bedd95b938677d1ab0f84b8a7852e4c59f849"
-  name = "sigs.k8s.io/yaml"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
-  version = "v1.1.0"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -1214,7 +1221,6 @@
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/openshift/api/config/v1",
-    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/actuators",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",

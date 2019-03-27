@@ -1,0 +1,42 @@
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: clusteroperators.config.openshift.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.version
+    description: The version the operator is at.
+    name: Version
+    type: string
+  - JSONPath: .status.conditions[?(@.type=="Available")].status
+    description: Whether the operator is running and stable.
+    name: Available
+    type: string
+  - JSONPath: .status.conditions[?(@.type=="Progressing")].status
+    description: Whether the operator is processing changes.
+    name: Progressing
+    type: string
+  - JSONPath: .status.conditions[?(@.type=="Failing")].status
+    description: Whether the operator is failing changes.
+    name: Failing
+    type: string
+  - JSONPath: .status.conditions[?(@.type=="Available")].lastTransitionTime
+    description: The time the operator's Available status last changed.
+    name: Since
+    type: date
+  group: config.openshift.io
+  names:
+    kind: ClusterOperator
+    listKind: ClusterOperatorList
+    plural: clusteroperators
+    singular: clusteroperator
+    shortNames:
+    - co
+  scope: Cluster
+  subresources:
+    status: {}
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true

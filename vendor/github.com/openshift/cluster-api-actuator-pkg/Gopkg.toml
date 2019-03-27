@@ -43,11 +43,15 @@ required = [
 
 [[constraint]]
   name = "github.com/openshift/cluster-api"
-  revision = "0c3e884db79556cf786aa8436f5be977ef10c211"
+  revision = "8b6a416a1830212712a6b03c5431afbd4f586d62"
 
 [[constraint]]
   name = "github.com/openshift/cluster-autoscaler-operator"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/openshift/machine-api-operator"
+  revision = "9650e16c98802a4b57b7551201b0973fcae2f738"
 
 # We need to specify fsnotify source to avoid dep panic
 [[override]]
