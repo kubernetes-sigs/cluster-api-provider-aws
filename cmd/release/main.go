@@ -41,7 +41,6 @@ const (
 
 	// TODO move these into config
 	registry         = "gcr.io"
-	managerImageTag  = "0.0.5"
 	managerImageName = "cluster-api-aws-controller"
 	pullPolicy       = "IfNotPresent"
 )
@@ -78,7 +77,6 @@ func main() {
 		},
 		registry:         fmt.Sprintf("%s/%s", registry, repository),
 		imageName:        managerImageName,
-		imageTag:         managerImageTag,
 		pullPolicy:       pullPolicy,
 		githubRepository: repository,
 		githubUser:       user,
@@ -88,7 +86,7 @@ func main() {
 	run := &runner{
 		builder: makebuilder{
 			registry:   cfg.registry,
-			imageTag:   cfg.imageTag,
+			imageTag:   cfg.version,
 			pullPolicy: cfg.pullPolicy,
 		},
 		releaser: gothubReleaser{
@@ -203,8 +201,6 @@ type config struct {
 	registry string
 	// imageName is the name of the container image
 	imageName string
-	// imageTag is the name of the image tag *this is intentionally not version*
-	imageTag string
 	// pullPolicy defines the pull policy of the manager in the provider-components
 	pullPolicy string
 	// githubRepository is the name of the repository on github https://github.com/<org or user>/<repository>
@@ -241,7 +237,7 @@ func (r runner) run() error {
 		return err
 	}
 	fmt.Println("🐲")
-	fmt.Printf("building container image: %s/%s:%s ", r.config.registry, r.config.imageName, r.config.imageTag)
+	fmt.Printf("building container image: %s/%s:%s ", r.config.registry, r.config.imageName, r.config.version)
 	if err := r.builder.images(); err != nil {
 		return err
 	}
