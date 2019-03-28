@@ -18,6 +18,7 @@ package kubeadm
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api/pkg/util"
 
 	"k8s.io/klog"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
@@ -40,7 +41,6 @@ const (
 
 	cloudProvider = "aws"
 
-	controlPlaneRole = "node-role.kubernetes.io/master="
 	nodeRole         = "node-role.kubernetes.io/node="
 )
 
@@ -129,7 +129,6 @@ func SetInitConfigurationOverrides(base *kubeadmv1beta1.InitConfiguration) {
 		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
-	base.NodeRegistration.KubeletExtraArgs["node-labels"] = controlPlaneRole
 }
 
 // SetJoinNodeConfigurationOverrides overrides user input for certain fields of
@@ -166,10 +165,8 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
-	if machine.Machine.Labels["set"] == "node" {
+	if util.IsControlPlaneMachine(machine.Machine) {
 		base.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
-	} else {
-		base.NodeRegistration.KubeletExtraArgs["node-labels"] = controlPlaneRole
 	}
 }
 
