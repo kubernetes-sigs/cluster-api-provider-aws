@@ -165,7 +165,7 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
-	if util.IsControlPlaneMachine(machine.Machine) {
+	if !util.IsControlPlaneMachine(machine.Machine) {
 		base.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
 	}
 }
