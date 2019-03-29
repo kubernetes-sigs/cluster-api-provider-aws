@@ -191,7 +191,11 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 	}
 
 	// We explicitly do NOT want to remove stopped masters.
-	if !isMaster(machine) {
+	isMaster, err := a.isMaster(machine)
+	if err != nil {
+		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error determining if machine is master: %v", err), createEventAction)
+	}
+	if !isMaster {
 		// Prevent having a lot of stopped nodes sitting around.
 		err = removeStoppedMachine(machine, awsClient)
 		if err != nil {

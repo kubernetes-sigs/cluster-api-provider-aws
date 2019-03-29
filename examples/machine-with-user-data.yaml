@@ -7,9 +7,11 @@ metadata:
   generateName: vs-master-
   labels:
     machine.openshift.io/cluster-api-cluster: tb-asg-35
-    machine.openshift.io/cluster-api-machine-role: infra
-    machine.openshift.io/cluster-api-machine-type: master
 spec:
+  metadata:
+    labels:
+      node-role.kubernetes.io/master: ""
+      node-role.kubernetes.io/infra: ""
   providerSpec:
     value:
       apiVersion: awsproviderconfig.k8s.io/v1alpha1

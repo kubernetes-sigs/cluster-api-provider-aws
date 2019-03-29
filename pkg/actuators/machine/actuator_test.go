@@ -56,7 +56,7 @@ func TestMachineEvents(t *testing.T) {
 	machineInvalidProviderConfig.Spec.ProviderSpec.ValueFrom = nil
 
 	workerMachine := machine.DeepCopy()
-	workerMachine.Labels[providerconfigv1.MachineTypeLabel] = "worker"
+	workerMachine.Spec.Labels["node-role.kubernetes.io/worker"] = ""
 
 	cases := []struct {
 		name                    string
