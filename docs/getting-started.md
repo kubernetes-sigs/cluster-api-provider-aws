@@ -157,10 +157,10 @@ Download the cluster-api-provider-aws-examples.tar file and unpack it.
 tar xfv cluster-api-provider-aws-examples.tar
 ```
 
-Then run `./generate_yaml.sh` to generate manifests:
+Then run `./generate-yaml.sh` to generate manifests:
 
 ```bash
-./aws/generate_yaml.sh
+./aws/generate-yaml.sh
 ```
 
 You should not need to edit the generated manifests, but if you want to do any
