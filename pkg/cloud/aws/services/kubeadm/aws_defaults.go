@@ -18,6 +18,7 @@ package kubeadm
 
 import (
 	"fmt"
+
 	"sigs.k8s.io/cluster-api/pkg/util"
 
 	"k8s.io/klog"
@@ -41,7 +42,7 @@ const (
 
 	cloudProvider = "aws"
 
-	nodeRole         = "node-role.kubernetes.io/node="
+	nodeRole = "node-role.kubernetes.io/node="
 )
 
 // SetDefaultClusterConfiguration sets default dynamic values without overriding
