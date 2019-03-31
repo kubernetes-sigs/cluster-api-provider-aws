@@ -45,6 +45,9 @@ kubeconfig
 # vscode
 .vscode
 
+# goland
+.idea
+
 # Ignore output manifests
 cmd/clusterctl/examples/aws/out
 cmd/clusterctl/examples/aws/provider-components-base.yaml
