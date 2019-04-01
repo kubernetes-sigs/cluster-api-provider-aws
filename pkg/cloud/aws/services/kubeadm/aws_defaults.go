@@ -19,6 +19,8 @@ package kubeadm
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api/pkg/util"
+
 	"k8s.io/klog"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
@@ -39,6 +41,8 @@ const (
 	apiServerBindPort = 6443
 
 	cloudProvider = "aws"
+
+	nodeRole = "node-role.kubernetes.io/node="
 )
 
 // SetDefaultClusterConfiguration sets default dynamic values without overriding
@@ -162,6 +166,9 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		klog.Infof("Overriding node's cloud-provider to the required value of %q.", cloudProvider)
 	}
 	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = cloudProvider
+	if !util.IsControlPlaneMachine(machine.Machine) {
+		base.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
+	}
 }
 
 // SetControlPlaneJoinConfigurationOverrides user input for kubeadm join
