@@ -203,10 +203,11 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 	}
 
 	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
-	if cluster != nil && machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
-			machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		}
+	if cluster != nil &&
+		machineSet.ObjectMeta.DeletionTimestamp.IsZero() &&
+		!util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
+
+		machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 
 		if err := r.Client.Update(context.Background(), machineSet); err != nil {
 			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)
@@ -329,8 +330,13 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d",
 			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
+		deletePriorityFunc, err := getDeletePriorityFunc(ms)
+		if err != nil {
+			return err
+		}
+		klog.Infof("Found %s delete policy", ms.Spec.DeletePolicy)
 		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
 		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)
