@@ -119,17 +119,3 @@ go_repository(
     importpath = "github.com/a8m/envsubst",
     tag = "v1.1.0",
 )
-
-# for @io_k8s_kubernetes
-http_archive(
-    name = "io_kubernetes_build",
-    sha256 = "1188feb932cefad328b0a3dd75b3ebd1d79dd26dbdd723f019ceb760e27ba6d8",
-    strip_prefix = "repo-infra-84d52408a061e87d45aebf5a0867246bdf66d180",
-    urls = ["https://github.com/kubernetes/repo-infra/archive/84d52408a061e87d45aebf5a0867246bdf66d180.tar.gz"],
-)
-
-git_repository(
-    name = "io_kubernetes_repo_infra",
-    commit = "b4bc4f1552c7fc1d4654753ca9b0e5e13883429f",
-    remote = "https://github.com/kubernetes/repo-infra.git",
-)
