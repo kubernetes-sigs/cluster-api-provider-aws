@@ -411,13 +411,22 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) error {
 	klog.V(2).Infof("Attempting to update security groups on instance %q", instanceID)
 
-	input := &ec2.ModifyInstanceAttributeInput{
-		InstanceId: aws.String(instanceID),
-		Groups:     aws.StringSlice(ids),
+	enis, err := s.getInstanceENIs(instanceID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get ENIs for instance %q", instanceID)
 	}
 
-	if _, err := s.scope.EC2.ModifyInstanceAttribute(input); err != nil {
-		return errors.Wrapf(err, "failed to modify instance %q security groups", instanceID)
+	klog.V(3).Infof("Found %v ENIs on instance %q", len(enis), instanceID)
+
+	for _, eni := range enis {
+		input := &ec2.ModifyNetworkInterfaceAttributeInput{
+			NetworkInterfaceId: eni.NetworkInterfaceId,
+			Groups:             aws.StringSlice(ids),
+		}
+
+		if _, err := s.scope.EC2.ModifyNetworkInterfaceAttribute(input); err != nil {
+			return errors.Wrapf(err, "failed to modify interface %q on instance %q", aws.StringValue(eni.NetworkInterfaceId), instanceID)
+		}
 	}
 
 	return nil
@@ -469,4 +478,22 @@ func (s *Service) UpdateResourceTags(resourceID *string, create map[string]strin
 	}
 
 	return nil
+}
+
+func (s *Service) getInstanceENIs(instanceID string) ([]*ec2.NetworkInterface, error) {
+	input := &ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("attachment.instance-id"),
+				Values: []*string{aws.String(instanceID)},
+			},
+		},
+	}
+
+	output, err := s.scope.EC2.DescribeNetworkInterfaces(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return output.NetworkInterfaces, nil
 }
