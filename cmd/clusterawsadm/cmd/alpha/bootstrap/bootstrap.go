@@ -19,6 +19,7 @@ package bootstrap
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -70,6 +71,18 @@ region = {{ .Region }}
 aws_session_token = {{ .SessionToken }}
 {{end}}
 `
+
+type haControlPlane struct {
+	addonsYaml             string
+	providerComponentsYaml string
+	clusterYaml            string
+	controlPlaneMachines   []string
+	kubeconfigOutputFile   string
+	kubeConfig             string
+	providerComponents     string
+	bootstrapClient        clusterclient.Client
+	targetClusterClient    clusterclient.Client
+}
 
 // RootCmd is the root of the `alpha bootstrap command`
 func RootCmd() *cobra.Command {
@@ -293,7 +306,41 @@ func createHaControlPlane() *cobra.Command {
 			clusterActuator := cluster.NewActuator(cluster.ActuatorParams{})
 			common.RegisterClusterProvisioner("aws", clusterActuator)
 
+			var (
+				//targetKubeconfig    string
+				//targetClusterClient clusterclient.Client
+
+				errNoProviderComponentsFlag   = errors.New("provider-components flag not set")
+				errNoClusterFlag              = errors.New("cluster flag not set")
+				errNoAddonsFlag               = errors.New("addons flag not set")
+				errNoControlPlaneMachinesFlag = errors.New("control-plane-machines flag not set")
+			)
+			kubeconfigOutputFile := cmd.Flag("kubeconfig-out").Value.String()
 			providerComponents := cmd.Flag("provider-components").Value.String()
+			if providerComponents == "" {
+				return errNoProviderComponentsFlag
+			}
+
+			clusterYaml := cmd.Flag("cluster").Value.String()
+			if clusterYaml == "" {
+				return errNoClusterFlag
+			}
+
+			addonsYaml := cmd.Flag("addons").Value.String()
+			if addonsYaml == "" {
+				return errNoAddonsFlag
+			}
+
+			controlPlaneMachines, err := cmd.PersistentFlags().GetStringSlice("control-plane-machines")
+			if err != nil {
+				return err
+			}
+
+			if len(controlPlaneMachines) == 0 {
+				return errNoControlPlaneMachinesFlag
+			}
+
+			fmt.Println(controlPlaneMachines)
 
 			client, err := createBootstrapCluster()
 			if err != nil {
@@ -305,23 +352,23 @@ func createHaControlPlane() *cobra.Command {
 				return err
 			}
 
-			err = applyCluster(client)
+			err = applyCluster(client, clusterYaml)
 			if err != nil {
 				return err
 			}
 
-			err = applyMachines(client)
-			if err != nil {
+			targetCluster := haControlPlane{}
+			targetCluster.kubeconfigOutputFile = kubeconfigOutputFile
+			targetCluster.controlPlaneMachines = controlPlaneMachines
+			targetCluster.addonsYaml = addonsYaml
+			targetCluster.providerComponents = providerComponents
+			targetCluster.bootstrapClient = client
+
+			if err = targetCluster.applyControlplaneMachines(); err != nil {
 				return err
 			}
 
-			err = applyAddons(client)
-			if err != nil {
-				return err
-			}
-
-			err = getKubeconfig(client)
-			if err != nil {
+			if err = targetCluster.pivotCluster(); err != nil {
 				return err
 			}
 
@@ -329,10 +376,64 @@ func createHaControlPlane() *cobra.Command {
 		},
 	}
 
-	newCmd.PersistentFlags().String("provider-components", "", "path to provider components file")
+	newCmd.PersistentFlags().String("provider-components", "", "A yaml file contining provider components definition. Required.")
+	newCmd.PersistentFlags().String("cluster", "", "A yaml file containing cluster object definition. Required.")
+	newCmd.PersistentFlags().StringSlice("control-plane-machines", []string{}, "Yaml files containing machines definition for control plane. Required.")
+	newCmd.PersistentFlags().String("addons", "", "A yaml file containing addons object definitions. Required.")
+	newCmd.PersistentFlags().String("kubeconfig-out", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
 	viper.BindPFlag("provider-components", newCmd.PersistentFlags().Lookup("provider-components"))
+	viper.BindPFlag("cluster", newCmd.PersistentFlags().Lookup("cluster"))
+	viper.BindPFlag("control-plane-machines", newCmd.PersistentFlags().Lookup("control-plane-machines"))
+	viper.BindPFlag("addons", newCmd.PersistentFlags().Lookup("addons"))
+	viper.BindPFlag("kubeconfig-out", newCmd.PersistentFlags().Lookup("kubeconfig-out"))
 
 	return newCmd
+}
+
+func (cp *haControlPlane) applyControlplaneMachines() error {
+	// Remove the Kubeconfig file first. phases.GetKubeconfig() has to
+	// be called only after the first control plane node is running.
+	_ = os.Remove(cp.kubeconfigOutputFile)
+	for i, machine := range cp.controlPlaneMachines {
+		if err := applyMachines(cp.bootstrapClient, machine); err != nil {
+			return err
+		}
+
+		if _, err := os.Stat(cp.kubeconfigOutputFile); os.IsNotExist(err) {
+			cp.kubeConfig, err = getKubeconfig(cp.bootstrapClient, cp.kubeconfigOutputFile)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err := cp.bootstrapClient.WaitForClusterV1alpha1Ready(); err != nil {
+			return err
+		}
+
+		// Make sure to apply addons just once
+		if i == 0 {
+			cl, err := clusterclient.New(cp.kubeConfig)
+			if err != nil {
+				return err
+			}
+			cp.targetClusterClient = cl
+
+			if err := applyAddons(cp.targetClusterClient, cp.addonsYaml); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (cp *haControlPlane) pivotCluster() error {
+	pc, err := ioutil.ReadFile(cp.providerComponents)
+	if err != nil {
+		return err
+	}
+
+	return phases.Pivot(cp.bootstrapClient, cp.targetClusterClient, string(pc))
 }
 
 func createBootstrapCluster() (clusterclient.Client, error) {
@@ -369,17 +470,18 @@ func getProvider(name string) (provider.Deployer, error) {
 	return provider, nil
 }
 
-func getKubeconfig(client clusterclient.Client) error {
+func getKubeconfig(client clusterclient.Client, kubeconfigOutputFile string) (string, error) {
 	provider, err := getProvider("aws")
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	if _, err := phases.GetKubeconfig(client, provider, "/tmp/foo", "test1", "default"); err != nil {
-		return err
+	targetKubeconfig, err := phases.GetKubeconfig(client, provider, kubeconfigOutputFile, "test1", "default")
+	if err != nil {
+		return "", err
 	}
 
-	return nil
+	return targetKubeconfig, nil
 }
 
 func applyClusterAPIComponents(client clusterclient.Client, providerComponents string) error {
@@ -393,18 +495,25 @@ func applyClusterAPIComponents(client clusterclient.Client, providerComponents s
 	return phases.ApplyClusterAPIComponents(client, string(pc))
 }
 
-func applyCluster(client clusterclient.Client) error {
-	cluster, err := util.ParseClusterYaml("cmd/clusterctl/examples/aws/out/cluster.yaml")
+func applyCluster(client clusterclient.Client, clusterYaml string) error {
+	cluster, err := util.ParseClusterYaml(clusterYaml)
 	if err != nil {
 		return err
 	}
 
-	return phases.ApplyCluster(client, cluster)
+	if err = phases.ApplyCluster(client, cluster); err != nil {
+		return err
+	}
+
+	if err = client.WaitForClusterV1alpha1Ready(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func applyMachines(client clusterclient.Client) error {
-	machinesCfg := "cmd/clusterctl/examples/aws/out/machines.yaml"
-	machines, err := util.ParseMachinesYaml(machinesCfg)
+func applyMachines(client clusterclient.Client, machinesYaml string) error {
+	machines, err := util.ParseMachinesYaml(machinesYaml)
 	if err != nil {
 		return err
 	}
@@ -412,14 +521,17 @@ func applyMachines(client clusterclient.Client) error {
 	return phases.ApplyMachines(client, "default", machines)
 }
 
-func applyAddons(client clusterclient.Client) error {
-	addonsCfg := "cmd/clusterctl/examples/aws/out/addons.yaml"
-	addons, err := ioutil.ReadFile(addonsCfg)
+func applyAddons(client clusterclient.Client, addonsYaml string) error {
+	addons, err := ioutil.ReadFile(addonsYaml)
 	if err != nil {
 		return err
 	}
 
-	return phases.ApplyAddons(client, string(addons))
+	if err = phases.ApplyAddons(client, string(addons)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getProviderComponents(file string) ([]byte, error) {
