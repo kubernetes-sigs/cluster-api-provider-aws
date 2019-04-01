@@ -112,7 +112,7 @@ make docker-push MANAGER_IMAGE_TAG=<YOUR_TAG_HERE>
    run the `make docker-build` as follows::
 
 ```(bash)
-make docker-push REGISTRY="your repo"
+make docker-build REGISTRY="your repo"
 ```
 
 3. Push your docker images as `docker push <ContainerImage>:<YourTag>`
