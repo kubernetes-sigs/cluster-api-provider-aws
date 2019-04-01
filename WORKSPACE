@@ -36,9 +36,9 @@ http_archive(
 
 http_archive(
     name = "io_kubernetes_build",
-    sha256 = "66a44fd5f6357268340d66fbd8a502065445a7c022732fe5f6fd84d9a20f75a3",
-    strip_prefix = "repo-infra-e8f2f7c3decf03e1fde9f30d249e39b8328aa8b0",
-    urls = ["https://github.com/kubernetes/repo-infra/archive/e8f2f7c3decf03e1fde9f30d249e39b8328aa8b0.tar.gz"],
+    sha256 = "4a8384320fba401cbf21fef177aa113ed8fe35952ace98e00b796cac87ae7868",
+    strip_prefix = "repo-infra-df02ded38f9506e5bbcbf21702034b4fef815f2f",
+    urls = ["https://github.com/kubernetes/repo-infra/archive/df02ded38f9506e5bbcbf21702034b4fef815f2f.tar.gz"],
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -118,18 +118,4 @@ go_repository(
     name = "com_github_a8m_envsubst",
     importpath = "github.com/a8m/envsubst",
     tag = "v1.1.0",
-)
-
-# for @io_k8s_kubernetes
-http_archive(
-    name = "io_kubernetes_build",
-    sha256 = "1188feb932cefad328b0a3dd75b3ebd1d79dd26dbdd723f019ceb760e27ba6d8",
-    strip_prefix = "repo-infra-84d52408a061e87d45aebf5a0867246bdf66d180",
-    urls = ["https://github.com/kubernetes/repo-infra/archive/84d52408a061e87d45aebf5a0867246bdf66d180.tar.gz"],
-)
-
-git_repository(
-    name = "io_kubernetes_repo_infra",
-    commit = "b4bc4f1552c7fc1d4654753ca9b0e5e13883429f",
-    remote = "https://github.com/kubernetes/repo-infra.git",
 )
