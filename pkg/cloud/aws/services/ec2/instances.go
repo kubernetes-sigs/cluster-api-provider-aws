@@ -231,7 +231,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		input.UserData = aws.String(userData)
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID)
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 	case "node":
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
