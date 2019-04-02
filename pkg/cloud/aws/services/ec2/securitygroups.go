@@ -352,17 +352,27 @@ func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
 	}
 
 	for _, cidr := range i.CidrBlocks {
-		res.IpRanges = append(res.IpRanges, &ec2.IpRange{
-			Description: aws.String(i.Description),
-			CidrIp:      aws.String(cidr),
-		})
+		ipRange := &ec2.IpRange{
+			CidrIp: aws.String(cidr),
+		}
+
+		if i.Description != "" {
+			ipRange.Description = aws.String(i.Description)
+		}
+
+		res.IpRanges = append(res.IpRanges, ipRange)
 	}
 
 	for _, groupID := range i.SourceSecurityGroupIDs {
-		res.UserIdGroupPairs = append(res.UserIdGroupPairs, &ec2.UserIdGroupPair{
-			Description: aws.String(i.Description),
-			GroupId:     aws.String(groupID),
-		})
+		userIDGroupPair := &ec2.UserIdGroupPair{
+			GroupId: aws.String(groupID),
+		}
+
+		if i.Description != "" {
+			userIDGroupPair.Description = aws.String(i.Description)
+		}
+
+		res.UserIdGroupPairs = append(res.UserIdGroupPairs, userIDGroupPair)
 	}
 
 	return res
@@ -371,7 +381,7 @@ func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
 func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
 	var res *v1alpha1.IngressRule
 	switch *v.IpProtocol {
-	case "tcp", "udp", "icmp", "58" /* ICMPv6 */:
+	case "tcp", "udp", "icmp", "58" /* ICMPv6 */ :
 		res = &v1alpha1.IngressRule{
 			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
