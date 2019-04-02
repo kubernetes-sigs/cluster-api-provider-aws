@@ -274,6 +274,9 @@ var (
 
 	// SecurityGroupProtocolICMP represents the ICMP protocol in ingress rules
 	SecurityGroupProtocolICMP = SecurityGroupProtocol("icmp")
+
+	// SecurityGroupProtocolICMPv6 represents the ICMPv6 protocol in ingress rules
+	SecurityGroupProtocolICMPv6 = SecurityGroupProtocol("58")
 )
 
 // IngressRule defines an AWS ingress rule for security groups.

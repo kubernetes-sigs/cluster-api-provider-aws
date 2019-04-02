@@ -334,10 +334,21 @@ func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityG
 }
 
 func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
-	res := &ec2.IpPermission{
-		IpProtocol: aws.String(string(i.Protocol)),
-		FromPort:   aws.Int64(i.FromPort),
-		ToPort:     aws.Int64(i.ToPort),
+	var res *ec2.IpPermission
+	switch i.Protocol {
+	case v1alpha1.SecurityGroupProtocolTCP,
+		v1alpha1.SecurityGroupProtocolUDP,
+		v1alpha1.SecurityGroupProtocolICMP,
+		v1alpha1.SecurityGroupProtocolICMPv6:
+		res = &ec2.IpPermission{
+			IpProtocol: aws.String(string(i.Protocol)),
+			FromPort:   aws.Int64(i.FromPort),
+			ToPort:     aws.Int64(i.ToPort),
+		}
+	default:
+		res = &ec2.IpPermission{
+			IpProtocol: aws.String(string(i.Protocol)),
+		}
 	}
 
 	for _, cidr := range i.CidrBlocks {
@@ -358,10 +369,18 @@ func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
 }
 
 func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
-	res := &v1alpha1.IngressRule{
-		Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
-		FromPort: *v.FromPort,
-		ToPort:   *v.ToPort,
+	var res *v1alpha1.IngressRule
+	switch *v.IpProtocol {
+	case "tcp", "udp", "icmp", "58" /* ICMPv6 */:
+		res = &v1alpha1.IngressRule{
+			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
+			FromPort: *v.FromPort,
+			ToPort:   *v.ToPort,
+		}
+	default:
+		res = &v1alpha1.IngressRule{
+			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
+		}
 	}
 
 	for _, ec2range := range v.IpRanges {
