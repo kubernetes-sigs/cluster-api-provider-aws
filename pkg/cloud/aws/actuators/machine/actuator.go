@@ -124,6 +124,9 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if cluster == nil {
+		return errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
+	}
 	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
@@ -230,6 +233,9 @@ func (a *Actuator) reconcileLBAttachment(scope *actuators.MachineScope, m *clust
 
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if cluster == nil {
+		return errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
+	}
 	klog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
@@ -327,6 +333,10 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 // If the Update attempts to mutate any immutable state, the method will error
 // and no updates will be performed.
 func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+	if cluster == nil {
+		return errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
+	}
+
 	klog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
@@ -374,6 +384,10 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 // Exists test for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+	if cluster == nil {
+		return false, errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
+	}
+
 	klog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
