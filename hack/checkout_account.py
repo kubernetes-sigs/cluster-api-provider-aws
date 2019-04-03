@@ -40,7 +40,7 @@ if __name__ == "__main__":
     )
     resp = conn.getresponse()
     if resp.status != 200:
-        sys.exit("Got invalid response %d" % resp.status)
+        sys.exit("Got invalid response %d: %s" % (resp.status, resp.reason))
 
     body = json.load(resp)
     conn.close()
