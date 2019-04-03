@@ -31,6 +31,20 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 )
 
+const (
+	// IpProtocolTCP is how EC2 represents the TCP protocol in ingress rules
+	IpProtocolTCP = "tcp"
+
+	// IpProtocolUDP is how EC2 represents the UDP protocol in ingress rules
+	IpProtocolUDP = "udp"
+
+	// IpProtocolICMP is how EC2 represents the ICMP protocol in ingress rules
+	IpProtocolICMP = "icmp"
+
+	// IpProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules
+	IpProtocolICMPv6 = "58"
+)
+
 func (s *Service) reconcileSecurityGroups() error {
 	klog.V(2).Infof("Reconciling security groups")
 
@@ -333,8 +347,7 @@ func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityG
 	}
 }
 
-func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
-	var res *ec2.IpPermission
+func ingressRuleToSDKType(i *v1alpha1.IngressRule) (res *ec2.IpPermission) {
 	switch i.Protocol {
 	case v1alpha1.SecurityGroupProtocolTCP,
 		v1alpha1.SecurityGroupProtocolUDP,
@@ -375,13 +388,19 @@ func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
 		res.UserIdGroupPairs = append(res.UserIdGroupPairs, userIDGroupPair)
 	}
 
-	return res
+	return
 }
 
-func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
-	var res *v1alpha1.IngressRule
+func ingressRuleFromSDKType(v *ec2.IpPermission) (res *v1alpha1.IngressRule) {
+	// Ports are only well-defined for TCP and UDP protocols, but EC2 overloads the port range
+	// in the case of ICMP(v6) traffic to indicate which codes are allowed. For all other protocols,
+	// including the custom "-1" All Traffic protcol, FromPort and ToPort are omitted from the response.
+	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
 	switch *v.IpProtocol {
-	case "tcp", "udp", "icmp", "58" /* ICMPv6 */ :
+	case IpProtocolTCP,
+		IpProtocolUDP,
+		IpProtocolICMP,
+		IpProtocolICMPv6:
 		res = &v1alpha1.IngressRule{
 			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
@@ -413,5 +432,5 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
 		res.SourceSecurityGroupIDs = append(res.SourceSecurityGroupIDs, *pair.GroupId)
 	}
 
-	return res
+	return
 }
