@@ -397,10 +397,10 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) (res *v1alpha1.IngressRule) {
 	// including the custom "-1" All Traffic protcol, FromPort and ToPort are omitted from the response.
 	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
 	switch *v.IpProtocol {
-	case IpProtocolTCP,
-		IpProtocolUDP,
-		IpProtocolICMP,
-		IpProtocolICMPv6:
+	case IPProtocolTCP,
+		IPProtocolUDP,
+		IPProtocolICMP,
+		IPProtocolICMPv6:
 		res = &v1alpha1.IngressRule{
 			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
