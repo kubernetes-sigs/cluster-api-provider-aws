@@ -32,17 +32,17 @@ import (
 )
 
 const (
-	// IpProtocolTCP is how EC2 represents the TCP protocol in ingress rules
-	IpProtocolTCP = "tcp"
+	// IPProtocolTCP is how EC2 represents the TCP protocol in ingress rules
+	IPProtocolTCP = "tcp"
 
-	// IpProtocolUDP is how EC2 represents the UDP protocol in ingress rules
-	IpProtocolUDP = "udp"
+	// IPProtocolUDP is how EC2 represents the UDP protocol in ingress rules
+	IPProtocolUDP = "udp"
 
-	// IpProtocolICMP is how EC2 represents the ICMP protocol in ingress rules
-	IpProtocolICMP = "icmp"
+	// IPProtocolICMP is how EC2 represents the ICMP protocol in ingress rules
+	IPProtocolICMP = "icmp"
 
-	// IpProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules
-	IpProtocolICMPv6 = "58"
+	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules
+	IPProtocolICMPv6 = "58"
 )
 
 func (s *Service) reconcileSecurityGroups() error {
@@ -388,7 +388,7 @@ func ingressRuleToSDKType(i *v1alpha1.IngressRule) (res *ec2.IpPermission) {
 		res.UserIdGroupPairs = append(res.UserIdGroupPairs, userIDGroupPair)
 	}
 
-	return
+	return res
 }
 
 func ingressRuleFromSDKType(v *ec2.IpPermission) (res *v1alpha1.IngressRule) {
@@ -432,5 +432,5 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) (res *v1alpha1.IngressRule) {
 		res.SourceSecurityGroupIDs = append(res.SourceSecurityGroupIDs, *pair.GroupId)
 	}
 
-	return
+	return res
 }
