@@ -77,6 +77,7 @@ type haControlPlane struct {
 	providerComponentsYaml string
 	clusterYaml            string
 	controlPlaneMachines   []string
+	workerNodeMachinesYaml string
 	kubeconfigOutputFile   string
 	kubeConfig             string
 	providerComponents     string
@@ -314,6 +315,7 @@ func createHaControlPlane() *cobra.Command {
 				errNoClusterFlag              = errors.New("cluster flag not set")
 				errNoAddonsFlag               = errors.New("addons flag not set")
 				errNoControlPlaneMachinesFlag = errors.New("control-plane-machines flag not set")
+				errNoWorkerNodesFlag          = errors.New("worker-machines flag not set")
 			)
 			kubeconfigOutputFile := cmd.Flag("kubeconfig-out").Value.String()
 			providerComponents := cmd.Flag("provider-components").Value.String()
@@ -340,7 +342,10 @@ func createHaControlPlane() *cobra.Command {
 				return errNoControlPlaneMachinesFlag
 			}
 
-			fmt.Println(controlPlaneMachines)
+			workerNodeMachinesYaml := cmd.Flag("worker-machines").Value.String()
+			if workerNodeMachinesYaml == "" {
+				return errNoWorkerNodesFlag
+			}
 
 			client, err := createBootstrapCluster()
 			if err != nil {
@@ -363,12 +368,17 @@ func createHaControlPlane() *cobra.Command {
 			targetCluster.addonsYaml = addonsYaml
 			targetCluster.providerComponents = providerComponents
 			targetCluster.bootstrapClient = client
+			targetCluster.workerNodeMachinesYaml = workerNodeMachinesYaml
 
 			if err = targetCluster.applyControlplaneMachines(); err != nil {
 				return err
 			}
 
 			if err = targetCluster.pivotCluster(); err != nil {
+				return err
+			}
+
+			if err = targetCluster.applyNodeMachines(); err != nil {
 				return err
 			}
 
@@ -379,15 +389,29 @@ func createHaControlPlane() *cobra.Command {
 	newCmd.PersistentFlags().String("provider-components", "", "A yaml file contining provider components definition. Required.")
 	newCmd.PersistentFlags().String("cluster", "", "A yaml file containing cluster object definition. Required.")
 	newCmd.PersistentFlags().StringSlice("control-plane-machines", []string{}, "Yaml files containing machines definition for control plane. Required.")
+	newCmd.PersistentFlags().String("worker-machines", "", "a yaml file containing worker nodes object definition. Required.")
 	newCmd.PersistentFlags().String("addons", "", "A yaml file containing addons object definitions. Required.")
 	newCmd.PersistentFlags().String("kubeconfig-out", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
 	viper.BindPFlag("provider-components", newCmd.PersistentFlags().Lookup("provider-components"))
 	viper.BindPFlag("cluster", newCmd.PersistentFlags().Lookup("cluster"))
 	viper.BindPFlag("control-plane-machines", newCmd.PersistentFlags().Lookup("control-plane-machines"))
+	viper.BindPFlag("worker-machines", newCmd.PersistentFlags().Lookup("worker-machines"))
 	viper.BindPFlag("addons", newCmd.PersistentFlags().Lookup("addons"))
 	viper.BindPFlag("kubeconfig-out", newCmd.PersistentFlags().Lookup("kubeconfig-out"))
 
 	return newCmd
+}
+
+func (cp *haControlPlane) applyNodeMachines() error {
+	if err := applyMachines(cp.targetClusterClient, cp.workerNodeMachinesYaml); err != nil {
+		return err
+	}
+
+	if err := cp.bootstrapClient.WaitForClusterV1alpha1Ready(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (cp *haControlPlane) applyControlplaneMachines() error {
