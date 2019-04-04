@@ -55,7 +55,7 @@ if __name__ == "__main__":
     if status != 200:
         sys.exit("Got invalid response %d: %s" % (status, reason))
 
-    body = json.load(result)
+    body = json.loads(result)
     print 'export BOSKOS_RESOURCE_NAME="%s";' % body['name']
     print 'export AWS_ACCESS_KEY_ID="%s";' % body['userdata']['access-key-id']
     print 'export AWS_SECRET_ACCESS_KEY="%s";' % body['userdata']['secret-access-key']
