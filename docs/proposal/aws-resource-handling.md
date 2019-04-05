@@ -44,8 +44,6 @@ Resources handled by these components fall into one of three categories:
 2. Resources whose management is shared with the in-cluster aws cloud provider,, such as a security group for load balancer ingress rules. These resources should be tagged with `sigs.k8s.io/cluster-api-provider/<name or id>=owned` and `kubernetes.io/cluster/<name or id>=owned`, with the latter being the tag defined by the cloud provider. These resources are create/delete only: that is to say their ongoing management is "handed off" to the cloud provider.
 3. Unmanaged resources that are provided by config (such as a common VPC). These resources should be tagged with neither `sigs.k8s.io/cluster-api-provider-aws/managed=true` nor `sigs.k8s.io/cluster-api-provider/<name or id>=owned`. It is expected that the provider will avoid changing these resources as much as is possible.
 
-Resources that are managed by the controllers/actuators should be tagged with: `kubernetes.io/cluster/<name or id>=owned` and `sigs.k8s.io/cluster-api-provider-aws=true`. The latter tag being used to differentiate from resources managed by other tools/components that make use of the common tag.
-
 TODO: Define additional tags that can be used to provide additional metadata about the resource configuration/usage by the actuator. This is would allow us to rebuild status without relying on polluting the object config.
 
 ## Handling of AWS api errors
