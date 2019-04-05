@@ -348,6 +348,9 @@ func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityG
 }
 
 func ingressRuleToSDKType(i *v1alpha1.IngressRule) (res *ec2.IpPermission) {
+	// AWS seems to ignore the From/To port when set on protocols where it doesn't apply, but
+	// we avoid serializing it out for clarity's sake.
+	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
 	switch i.Protocol {
 	case v1alpha1.SecurityGroupProtocolTCP,
 		v1alpha1.SecurityGroupProtocolUDP,
