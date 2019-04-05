@@ -289,6 +289,13 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
 				},
 			},
+			{
+				Description: "IP-in-IP (calico)",
+				Protocol:    v1alpha1.SecurityGroupProtocolIPinIP,
+				FromPort:    1,
+				ToPort:      65535,
+				CidrBlocks:  []string{anyIPv4CidrBlock},
+			},
 		}, nil
 
 	case v1alpha1.SecurityGroupNode:
