@@ -73,7 +73,7 @@ func TestReconcileVPC(t *testing.T) {
 										Value: aws.String("test-cluster-vpc"),
 									},
 									{
-										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 									{
@@ -101,7 +101,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 						{
 							Name:   aws.String("tag-key"),
-							Values: aws.StringSlice([]string{"kubernetes.io/cluster/test-cluster"}),
+							Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 						},
 					},
 				})).

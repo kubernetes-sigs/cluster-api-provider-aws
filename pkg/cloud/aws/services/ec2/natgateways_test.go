@@ -253,7 +253,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								Value: aws.String("test-cluster-nat"),
 							},
 							{
-								Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 								Value: aws.String("owned"),
 							},
 						},

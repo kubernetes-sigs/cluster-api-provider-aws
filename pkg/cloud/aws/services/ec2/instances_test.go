@@ -314,6 +314,9 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 						v1alpha1.SecurityGroupNode: {
 							ID: "2",
 						},
+						v1alpha1.SecurityGroupLB: {
+							ID: "3",
+						},
 					},
 					APIServerELB: v1alpha1.ClassicELB{
 						DNSName: "test-apiserver.us-east-1.aws",

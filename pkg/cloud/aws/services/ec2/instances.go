@@ -114,6 +114,9 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		Lifecycle:   tags.ResourceLifecycleOwned,
 		Name:        aws.String(machine.Name()),
 		Role:        aws.String(machine.Role()),
+		Additional: tags.Map{
+			tags.ClusterAWSCloudProviderKey(s.scope.Name()): string(tags.ResourceLifecycleOwned),
+		},
 	})
 
 	var err error
@@ -231,9 +234,16 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		input.UserData = aws.String(userData)
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs,
+			s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
+			s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+			s.scope.SecurityGroups()[v1alpha1.SecurityGroupLB].ID,
+		)
 	case "node":
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs,
+			s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+			s.scope.SecurityGroups()[v1alpha1.SecurityGroupLB].ID,
+		)
 
 		kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
 		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)

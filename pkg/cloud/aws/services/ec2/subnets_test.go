@@ -97,7 +97,7 @@ func TestReconcileSubnets(t *testing.T) {
 								MapPublicIpOnLaunch: aws.Bool(false),
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 									{
@@ -431,7 +431,7 @@ func TestReconcileSubnets(t *testing.T) {
 								CidrBlock:        aws.String("10.0.10.0/24"),
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
 									{
