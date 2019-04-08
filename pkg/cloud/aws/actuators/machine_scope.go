@@ -97,6 +97,16 @@ func (m *MachineScope) Region() string {
 	return m.Scope.Region()
 }
 
+// GetMachine returns the machine wrapped in the scope.
+func (m *MachineScope) GetMachine() *clusterv1.Machine {
+	return m.Machine
+}
+
+// GetScope() returns the scope that is wrapping the machine.
+func (m *MachineScope) GetScope() *Scope {
+	return m.Scope
+}
+
 func (m *MachineScope) storeMachineSpec(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
 	ext, err := v1alpha1.EncodeMachineSpec(m.MachineConfig)
 	if err != nil {

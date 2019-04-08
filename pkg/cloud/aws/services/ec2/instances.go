@@ -171,7 +171,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		if bootstrapToken != "" {
 			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
 
-			kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
+			machine.MachineConfig.KubeadmConfiguration.Join = kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
 			kubeadm.SetControlPlaneJoinConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Join)
 			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 			if err != nil {
