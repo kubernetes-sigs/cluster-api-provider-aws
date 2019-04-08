@@ -240,7 +240,7 @@ var (
 	// SecurityGroupControlPlane defines a Kubernetes control plane node role
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 
-	// SecurityGroupLB defines a container for the cloud provider to inject its load balnacer ingress rules
+	// SecurityGroupLB defines a container for the cloud provider to inject its load balancer ingress rules
 	SecurityGroupLB = SecurityGroupRole("lb")
 )
 
