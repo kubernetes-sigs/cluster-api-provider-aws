@@ -31,6 +31,20 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 )
 
+const (
+	// IPProtocolTCP is how EC2 represents the TCP protocol in ingress rules
+	IPProtocolTCP = "tcp"
+
+	// IPProtocolUDP is how EC2 represents the UDP protocol in ingress rules
+	IPProtocolUDP = "udp"
+
+	// IPProtocolICMP is how EC2 represents the ICMP protocol in ingress rules
+	IPProtocolICMP = "icmp"
+
+	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules
+	IPProtocolICMPv6 = "58"
+)
+
 func (s *Service) reconcileSecurityGroups() error {
 	klog.V(2).Infof("Reconciling security groups")
 
@@ -333,35 +347,72 @@ func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityG
 	}
 }
 
-func ingressRuleToSDKType(i *v1alpha1.IngressRule) *ec2.IpPermission {
-	res := &ec2.IpPermission{
-		IpProtocol: aws.String(string(i.Protocol)),
-		FromPort:   aws.Int64(i.FromPort),
-		ToPort:     aws.Int64(i.ToPort),
+func ingressRuleToSDKType(i *v1alpha1.IngressRule) (res *ec2.IpPermission) {
+	// AWS seems to ignore the From/To port when set on protocols where it doesn't apply, but
+	// we avoid serializing it out for clarity's sake.
+	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
+	switch i.Protocol {
+	case v1alpha1.SecurityGroupProtocolTCP,
+		v1alpha1.SecurityGroupProtocolUDP,
+		v1alpha1.SecurityGroupProtocolICMP,
+		v1alpha1.SecurityGroupProtocolICMPv6:
+		res = &ec2.IpPermission{
+			IpProtocol: aws.String(string(i.Protocol)),
+			FromPort:   aws.Int64(i.FromPort),
+			ToPort:     aws.Int64(i.ToPort),
+		}
+	default:
+		res = &ec2.IpPermission{
+			IpProtocol: aws.String(string(i.Protocol)),
+		}
 	}
 
 	for _, cidr := range i.CidrBlocks {
-		res.IpRanges = append(res.IpRanges, &ec2.IpRange{
-			Description: aws.String(i.Description),
-			CidrIp:      aws.String(cidr),
-		})
+		ipRange := &ec2.IpRange{
+			CidrIp: aws.String(cidr),
+		}
+
+		if i.Description != "" {
+			ipRange.Description = aws.String(i.Description)
+		}
+
+		res.IpRanges = append(res.IpRanges, ipRange)
 	}
 
 	for _, groupID := range i.SourceSecurityGroupIDs {
-		res.UserIdGroupPairs = append(res.UserIdGroupPairs, &ec2.UserIdGroupPair{
-			Description: aws.String(i.Description),
-			GroupId:     aws.String(groupID),
-		})
+		userIDGroupPair := &ec2.UserIdGroupPair{
+			GroupId: aws.String(groupID),
+		}
+
+		if i.Description != "" {
+			userIDGroupPair.Description = aws.String(i.Description)
+		}
+
+		res.UserIdGroupPairs = append(res.UserIdGroupPairs, userIDGroupPair)
 	}
 
 	return res
 }
 
-func ingressRuleFromSDKType(v *ec2.IpPermission) *v1alpha1.IngressRule {
-	res := &v1alpha1.IngressRule{
-		Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
-		FromPort: *v.FromPort,
-		ToPort:   *v.ToPort,
+func ingressRuleFromSDKType(v *ec2.IpPermission) (res *v1alpha1.IngressRule) {
+	// Ports are only well-defined for TCP and UDP protocols, but EC2 overloads the port range
+	// in the case of ICMP(v6) traffic to indicate which codes are allowed. For all other protocols,
+	// including the custom "-1" All Traffic protcol, FromPort and ToPort are omitted from the response.
+	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
+	switch *v.IpProtocol {
+	case IPProtocolTCP,
+		IPProtocolUDP,
+		IPProtocolICMP,
+		IPProtocolICMPv6:
+		res = &v1alpha1.IngressRule{
+			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
+			FromPort: *v.FromPort,
+			ToPort:   *v.ToPort,
+		}
+	default:
+		res = &v1alpha1.IngressRule{
+			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
+		}
 	}
 
 	for _, ec2range := range v.IpRanges {
