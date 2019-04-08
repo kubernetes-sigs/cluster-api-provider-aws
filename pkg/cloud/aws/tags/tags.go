@@ -92,10 +92,6 @@ func Build(params BuildParams) Map {
 	}
 
 	tags[ClusterKey(params.ClusterName)] = string(params.Lifecycle)
-	if params.Lifecycle == ResourceLifecycleOwned {
-		tags[NameAWSProviderManaged] = "true"
-	}
-
 	if params.Role != nil {
 		tags[NameAWSClusterAPIRole] = *params.Role
 	}

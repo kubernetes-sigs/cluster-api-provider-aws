@@ -31,7 +31,7 @@ import (
 )
 
 func (s *Service) reconcileInternetGateways() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsProvided(s.scope.Name()) {
 		klog.V(4).Info("Skipping internet gateways reconcile in unmanaged mode")
 		return nil
 	}
@@ -40,7 +40,7 @@ func (s *Service) reconcileInternetGateways() error {
 
 	igs, err := s.describeVpcInternetGateways()
 	if awserrors.IsNotFound(err) {
-		if s.scope.VPC().IsProvided() {
+		if s.scope.VPC().IsProvided(s.scope.Name()) {
 			return errors.Errorf("failed to validate network: no internet gateways found in VPC %q", s.scope.VPC().ID)
 		}
 
@@ -70,7 +70,7 @@ func (s *Service) reconcileInternetGateways() error {
 }
 
 func (s *Service) deleteInternetGateways() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsProvided(s.scope.Name()) {
 		klog.V(4).Info("Skipping internet gateway deletion in unmanaged mode")
 		return nil
 	}

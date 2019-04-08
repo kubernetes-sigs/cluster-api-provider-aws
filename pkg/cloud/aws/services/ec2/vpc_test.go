@@ -76,10 +76,6 @@ func TestReconcileVPC(t *testing.T) {
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 										Value: aws.String("owned"),
 									},
-									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
-										Value: aws.String("true"),
-									},
 								},
 							},
 						},

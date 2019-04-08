@@ -241,10 +241,6 @@ func TestReconcileNatGateways(t *testing.T) {
 						SubnetId:     aws.String("subnet-1"),
 						Tags: []*ec2.Tag{
 							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
-								Value: aws.String("true"),
-							},
-							{
 								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 								Value: aws.String("common"),
 							},
@@ -309,7 +305,7 @@ func TestReconcileNatGateways(t *testing.T) {
 					VPC: v1alpha1.VPCSpec{
 						ID: subnetsVPCID,
 						Tags: tags.Map{
-							tags.NameAWSProviderManaged: "true",
+							tags.ClusterKey("test-cluster"): "owned",
 						},
 					},
 					Subnets: tc.input,

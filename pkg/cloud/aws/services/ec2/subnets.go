@@ -59,7 +59,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 
 		if len(subnets.FilterPrivate()) == 0 {
-			if s.scope.VPC().IsProvided() {
+			if s.scope.VPC().IsProvided(s.scope.Name()) {
 				return errors.New("expected at least one private subnet available for use, got 0")
 			}
 
@@ -71,7 +71,7 @@ func (s *Service) reconcileSubnets() error {
 		}
 
 		if len(subnets.FilterPublic()) == 0 {
-			if s.scope.VPC().IsProvided() {
+			if s.scope.VPC().IsProvided(s.scope.Name()) {
 				return errors.New("expected at least one public subnet available for use, got 0")
 			}
 
@@ -90,7 +90,7 @@ LoopExisting:
 			// Two subnets are defined equal to each other if their id is equal
 			// or if they are in the same vpc and the cidr block is the same.
 			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.CidrBlock == exsn.CidrBlock) {
-				if s.scope.VPC().IsProvided() {
+				if s.scope.VPC().IsProvided(s.scope.Name()) {
 					// TODO(vincepri): Validate provided subnet passes some basic checks.
 					exsn.DeepCopyInto(sn)
 					continue LoopExisting
@@ -117,7 +117,7 @@ LoopExisting:
 	}
 
 	// Proceed to create the rest of the subnets that don't have an ID.
-	if !s.scope.VPC().IsProvided() {
+	if !s.scope.VPC().IsProvided(s.scope.Name()) {
 		for _, subnet := range subnets {
 			if subnet.ID != "" {
 				continue
@@ -137,7 +137,7 @@ LoopExisting:
 }
 
 func (s *Service) deleteSubnets() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsProvided(s.scope.Name()) {
 		klog.V(4).Info("Skipping subnets deletion in unmanaged mode")
 		return nil
 	}

@@ -34,7 +34,7 @@ const (
 )
 
 func (s *Service) reconcileRouteTables() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsProvided(s.scope.Name()) {
 		klog.V(4).Info("Skipping routing tables reconcile in unmanaged mode")
 		return nil
 	}
@@ -122,7 +122,7 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 }
 
 func (s *Service) deleteRouteTables() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsProvided(s.scope.Name()) {
 		klog.V(4).Info("Skipping routing tables deletion in unmanaged mode")
 		return nil
 	}
@@ -159,7 +159,7 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 		filter.EC2.VPC(s.scope.VPC().ID),
 	}
 
-	if !s.scope.VPC().IsProvided() {
+	if !s.scope.VPC().IsProvided(s.scope.Name()) {
 		filters = append(filters, filter.EC2.Cluster(s.scope.Name()))
 	}
 

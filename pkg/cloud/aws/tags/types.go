@@ -40,13 +40,6 @@ func (m Map) HasAWSCloudProviderOwned(cluster string) bool {
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
-
-// HasManaged returns true if the map contains NameAWSProviderManaged key set to true.
-func (m Map) HasManaged() bool {
-	value, ok := m[NameAWSProviderManaged]
-	return ok && value == "true"
-}
-
 // GetRole returns the Cluster API role for the tagged resource
 func (m Map) GetRole() string {
 	return m[NameAWSClusterAPIRole]
@@ -94,10 +87,10 @@ const (
 	// uses NameKubernetesClusterPrefix
 	NameAWSProviderPrefix = "sigs.k8s.io/cluster-api-provider-aws/"
 
-	// NameAWSProviderManaged is the tag name we use to differentiate
+	// NameAWSProviderOwned is the tag name we use to differentiate
 	// cluster-api-provider-aws owned components from other tooling that
 	// uses NameKubernetesClusterPrefix
-	NameAWSProviderManaged = NameAWSProviderPrefix + "managed"
+	NameAWSProviderOwned = NameAWSProviderPrefix + "cluster/"
 
 	// NameAWSClusterAPIRole is the tag name we use to mark roles for resources
 	// dedicated to this cluster api provider implementation.
