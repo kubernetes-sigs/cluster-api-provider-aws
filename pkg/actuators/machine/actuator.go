@@ -29,6 +29,7 @@ import (
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
@@ -192,15 +193,20 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 
 	// We explicitly do NOT want to remove stopped masters.
 	isMaster, err := a.isMaster(machine)
+	// Unable to determine if a machine is a master machine.
+	// Yet, it's only used to delete stopped machines that are not masters.
+	// So we can safely continue to create a new machine since in the worst case
+	// we just don't delete any stopped machine.
 	if err != nil {
-		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error determining if machine is master: %v", err), createEventAction)
-	}
-	if !isMaster {
-		// Prevent having a lot of stopped nodes sitting around.
-		err = removeStoppedMachine(machine, awsClient)
-		if err != nil {
-			glog.Errorf("unable to remove stopped machines: %v", err)
-			return nil, fmt.Errorf("unable to remove stopped nodes: %v", err)
+		klog.Errorf("Error determining if machine is master: %v", err)
+	} else {
+		if !isMaster {
+			// Prevent having a lot of stopped nodes sitting around.
+			err = removeStoppedMachine(machine, awsClient)
+			if err != nil {
+				glog.Errorf("unable to remove stopped machines: %v", err)
+				return nil, fmt.Errorf("unable to remove stopped nodes: %v", err)
+			}
 		}
 	}
 
