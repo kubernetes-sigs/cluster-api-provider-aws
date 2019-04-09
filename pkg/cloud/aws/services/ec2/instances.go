@@ -17,6 +17,8 @@ limitations under the License.
 package ec2
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/base64"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -364,11 +366,21 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 		EbsOptimized: i.EBSOptimized,
 		MaxCount:     aws.Int64(1),
 		MinCount:     aws.Int64(1),
-		UserData:     i.UserData,
 	}
 
 	if i.UserData != nil {
-		input.UserData = aws.String(base64.StdEncoding.EncodeToString([]byte(*i.UserData)))
+		var buf bytes.Buffer
+
+		gz := gzip.NewWriter(&buf)
+		if _, err := gz.Write([]byte(*i.UserData)); err != nil {
+			return nil, errors.Wrap(err, "failed to gzip userdata")
+		}
+
+		if err := gz.Close(); err != nil {
+			return nil, errors.Wrap(err, "failed to gzip userdata")
+		}
+
+		input.UserData = aws.String(base64.StdEncoding.EncodeToString(buf.Bytes()))
 	}
 
 	if len(i.SecurityGroupIDs) > 0 {
