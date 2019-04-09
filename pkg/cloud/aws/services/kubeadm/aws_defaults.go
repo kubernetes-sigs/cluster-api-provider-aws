@@ -48,102 +48,108 @@ const (
 	nodeRole = "node-role.kubernetes.io/node="
 )
 
-// SetDefaultClusterConfiguration sets default dynamic values without overriding
-// user specified values.
-func SetDefaultClusterConfiguration(machine *actuators.MachineScope, base *kubeadmv1beta1.ClusterConfiguration) {
-	if base == nil {
-		base = &kubeadmv1beta1.ClusterConfiguration{}
-	}
-	s := machine.Scope
-
-	// Only set the control plane endpoint if the user hasn't specified one.
-	if base.ControlPlaneEndpoint == "" {
-		base.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", s.Network().APIServerELB.DNSName, APIServerBindPort)
-	}
-	// Add the control plane endpoint to the list of cert SAN
-	base.APIServer.CertSANs = append(base.APIServer.CertSANs, localIPV4Lookup, s.Network().APIServerELB.DNSName)
-}
-
-// SetClusterConfigurationOverrides will modify the supplied configuration with certain values
-// that cluster-api-provider-aws requires overriding user specified input.
-func SetClusterConfigurationOverrides(machine *actuators.MachineScope, base *kubeadmv1beta1.ClusterConfiguration) {
-	if base == nil {
-		base = &kubeadmv1beta1.ClusterConfiguration{}
-	}
-	s := machine.Scope
-
-	SetDefaultClusterConfiguration(machine, base)
-
-	// cloud-provider for the APIServer must be set to 'aws'.
-	if base.APIServer.ControlPlaneComponent.ExtraArgs == nil {
-		base.APIServer.ControlPlaneComponent.ExtraArgs = map[string]string{}
-	}
-	if cp, ok := base.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
-		klog.Infof("Overriding cloud provider %q with required value %q", cp, CloudProvider)
-	}
-	base.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"] = CloudProvider
-
-	if base.ControllerManager.ExtraArgs == nil {
-		base.ControllerManager.ExtraArgs = map[string]string{}
-	}
-	if cp, ok := base.ControllerManager.ExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
-		klog.Infof("Overriding cloud provider %q with required value %q", cp, CloudProvider)
-	}
-	base.ControllerManager.ExtraArgs["cloud-provider"] = CloudProvider
-
-	// The kubeadm config clustername must match the provided name of the cluster.
-	if base.ClusterName != "" && base.ClusterName != s.Name() {
-		klog.Infof("Overriding provided cluster name %q with %q. The kubeadm cluster name and cluster-api name must match.", base.ClusterName, s.Name())
-	}
-	base.ClusterName = s.Name()
-
-	// The networking values provided by the Cluster object must equal the
-	// kubeadm networking configuration.
-	base.Networking.DNSDomain = s.Cluster.Spec.ClusterNetwork.ServiceDomain
-	base.Networking.PodSubnet = s.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0]
-	base.Networking.ServiceSubnet = s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0]
-
-	// The kubernetes version that kubeadm is using must be the same as the
-	// requested version in the config
-	base.KubernetesVersion = machine.Machine.Spec.Versions.ControlPlane
-}
-
-// SetInitConfigurationOverrides overrides user input on particular fields for
-// the kubeadm InitConfiguration.
-func SetInitConfigurationOverrides(base *kubeadmv1beta1.InitConfiguration) {
-	if base == nil {
-		base = &kubeadmv1beta1.InitConfiguration{}
-	}
-
-	if base.NodeRegistration.Name != "" && base.NodeRegistration.Name != HostnameLookup {
-		klog.Infof("Overriding NodeRegistration name from %q to %q. The node registration needs to be dynamically generated in aws.", base.NodeRegistration.Name, HostnameLookup)
-	}
-	base.NodeRegistration.Name = HostnameLookup
-
-	// TODO(chuckha): This may become a default instead of an override.
-	if base.NodeRegistration.CRISocket != "" && base.NodeRegistration.CRISocket != ContainerdSocket {
-		klog.Infof("Overriding CRISocket from %q to %q. Containerd is only supported container runtime.", base.NodeRegistration.CRISocket, ContainerdSocket)
-	}
-	base.NodeRegistration.CRISocket = ContainerdSocket
-
-	if base.NodeRegistration.KubeletExtraArgs == nil {
-		base.NodeRegistration.KubeletExtraArgs = map[string]string{}
-	}
-	if cp, ok := base.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
-		klog.Infof("Overriding node's cloud-provider to the required value of %q.", CloudProvider)
-	}
-	base.NodeRegistration.KubeletExtraArgs["cloud-provider"] = CloudProvider
-}
-
-// joinMachine is a local interface scoping down exactly what SetJoinNodeConfigurationOverrides needs
+// joinMachine is a local interface to scope down dependencies
 type joinMachine interface {
 	GetScope() *actuators.Scope
 	GetMachine() *v1alpha1.Machine
 }
 
+// SetDefaultClusterConfiguration sets default dynamic values without overriding
+// user specified values.
+func SetDefaultClusterConfiguration(machine joinMachine, base *kubeadmv1beta1.ClusterConfiguration) *kubeadmv1beta1.ClusterConfiguration {
+	if base == nil {
+		base = &kubeadmv1beta1.ClusterConfiguration{}
+	}
+	out := base.DeepCopy()
+
+	s := machine.GetScope()
+
+	// Only set the control plane endpoint if the user hasn't specified one.
+	if out.ControlPlaneEndpoint == "" {
+		out.ControlPlaneEndpoint = fmt.Sprintf("%s:%d", s.Network().APIServerELB.DNSName, APIServerBindPort)
+	}
+	// Add the control plane endpoint to the list of cert SAN
+	out.APIServer.CertSANs = append(out.APIServer.CertSANs, localIPV4Lookup, s.Network().APIServerELB.DNSName)
+	return out
+}
+
+// SetClusterConfigurationOverrides will modify the supplied configuration with certain values
+// that cluster-api-provider-aws requires overriding user specified input.
+func SetClusterConfigurationOverrides(machine joinMachine, base *kubeadmv1beta1.ClusterConfiguration) *kubeadmv1beta1.ClusterConfiguration {
+	if base == nil {
+		base = &kubeadmv1beta1.ClusterConfiguration{}
+	}
+	s := machine.GetScope()
+
+	out := SetDefaultClusterConfiguration(machine, base.DeepCopy())
+
+	// cloud-provider for the APIServer must be set to 'aws'.
+	if out.APIServer.ControlPlaneComponent.ExtraArgs == nil {
+		out.APIServer.ControlPlaneComponent.ExtraArgs = map[string]string{}
+	}
+	if cp, ok := out.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
+		klog.Infof("Overriding cloud provider %q with required value %q", cp, CloudProvider)
+	}
+	out.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"] = CloudProvider
+
+	if out.ControllerManager.ExtraArgs == nil {
+		out.ControllerManager.ExtraArgs = map[string]string{}
+	}
+	if cp, ok := out.ControllerManager.ExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
+		klog.Infof("Overriding cloud provider %q with required value %q", cp, CloudProvider)
+	}
+	out.ControllerManager.ExtraArgs["cloud-provider"] = CloudProvider
+
+	// The kubeadm config clustername must match the provided name of the cluster.
+	if out.ClusterName != "" && out.ClusterName != s.Name() {
+		klog.Infof("Overriding provided cluster name %q with %q. The kubeadm cluster name and cluster-api name must match.", out.ClusterName, s.Name())
+	}
+	out.ClusterName = s.Name()
+
+	// The networking values provided by the Cluster object must equal the
+	// kubeadm networking configuration.
+	out.Networking.DNSDomain = s.Cluster.Spec.ClusterNetwork.ServiceDomain
+	out.Networking.PodSubnet = s.Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0]
+	out.Networking.ServiceSubnet = s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0]
+
+	// The kubernetes version that kubeadm is using must be the same as the
+	// requested version in the config
+	out.KubernetesVersion = machine.GetMachine().Spec.Versions.ControlPlane
+	return out
+}
+
+// SetInitConfigurationOverrides overrides user input on particular fields for
+// the kubeadm InitConfiguration.
+func SetInitConfigurationOverrides(base *kubeadmv1beta1.InitConfiguration) *kubeadmv1beta1.InitConfiguration {
+	if base == nil {
+		base = &kubeadmv1beta1.InitConfiguration{}
+	}
+	out := base.DeepCopy()
+
+	if out.NodeRegistration.Name != "" && out.NodeRegistration.Name != HostnameLookup {
+		klog.Infof("Overriding NodeRegistration name from %q to %q. The node registration needs to be dynamically generated in aws.", out.NodeRegistration.Name, HostnameLookup)
+	}
+	out.NodeRegistration.Name = HostnameLookup
+
+	// TODO(chuckha): This may become a default instead of an override.
+	if out.NodeRegistration.CRISocket != "" && out.NodeRegistration.CRISocket != ContainerdSocket {
+		klog.Infof("Overriding CRISocket from %q to %q. Containerd is only supported container runtime.", out.NodeRegistration.CRISocket, ContainerdSocket)
+	}
+	out.NodeRegistration.CRISocket = ContainerdSocket
+
+	if out.NodeRegistration.KubeletExtraArgs == nil {
+		out.NodeRegistration.KubeletExtraArgs = map[string]string{}
+	}
+	if cp, ok := out.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
+		klog.Infof("Overriding node's cloud-provider to the required value of %q.", CloudProvider)
+	}
+	out.NodeRegistration.KubeletExtraArgs["cloud-provider"] = CloudProvider
+	return out
+}
+
 // SetJoinNodeConfigurationOverrides overrides user input for certain fields of
 // the kubeadm JoinConfiguration during a worker node join.
-func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machine joinMachine, base *kubeadmv1beta1.JoinConfiguration) kubeadmv1beta1.JoinConfiguration {
+func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machine joinMachine, base *kubeadmv1beta1.JoinConfiguration) *kubeadmv1beta1.JoinConfiguration {
 	if base == nil {
 		base = &kubeadmv1beta1.JoinConfiguration{}
 	}
@@ -178,18 +184,21 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 	if !util.IsControlPlaneMachine(machine.GetMachine()) {
 		out.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
 	}
-	return *out
+	return out
 }
 
 // SetControlPlaneJoinConfigurationOverrides user input for kubeadm join
 // configuration during a control plane join action.
-func SetControlPlaneJoinConfigurationOverrides(base *kubeadmv1beta1.JoinConfiguration) {
+func SetControlPlaneJoinConfigurationOverrides(base *kubeadmv1beta1.JoinConfiguration) *kubeadmv1beta1.JoinConfiguration {
 	if base == nil {
 		base = &kubeadmv1beta1.JoinConfiguration{}
 	}
-	if base.ControlPlane == nil {
-		base.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
+	out := base.DeepCopy()
+
+	if out.ControlPlane == nil {
+		out.ControlPlane = &kubeadmv1beta1.JoinControlPlane{}
 	}
-	base.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = localIPV4Lookup
-	base.ControlPlane.LocalAPIEndpoint.BindPort = APIServerBindPort
+	out.ControlPlane.LocalAPIEndpoint.AdvertiseAddress = localIPV4Lookup
+	out.ControlPlane.LocalAPIEndpoint.BindPort = APIServerBindPort
+	return out
 }
