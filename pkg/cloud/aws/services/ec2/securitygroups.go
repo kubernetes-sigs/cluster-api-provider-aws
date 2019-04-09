@@ -87,7 +87,7 @@ func (s *Service) reconcileSecurityGroups() error {
 	// the specified ingress rules.
 	for role, sg := range s.scope.SecurityGroups() {
 		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) {
-			// skip rule reconciliation
+			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
 			continue
 		}
 		current := sg.IngressRules
@@ -311,7 +311,7 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 			},
 		}, nil
 	case v1alpha1.SecurityGroupLB:
-		// We ignore these
+		// We hand this group off to the in-cluster cloud provider, so these rules aren't used
 		return v1alpha1.IngressRules{}, nil
 	}
 
