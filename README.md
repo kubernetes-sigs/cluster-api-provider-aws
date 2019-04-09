@@ -60,6 +60,19 @@ policy may be made to more closely align with other providers in the Cluster API
 
 ------
 
+## Kubernetes versions with published AMIs
+
+Note: These AMIs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you wish to run. For production-like environments, it is highly recommended to build and use your own custom images.
+
+| Kubernetes minor version | Kubernetes full version |
+|-|-|
+| v1.13                    | v1.13.3                 |
+|                          | v1.13.5                 |
+| v1.14                    | v1.14.0                 |
+|                          | v1.14.1                 |
+
+------
+
 ## Documentation
 
 Documentation is in the `/docs` directory, and the [index is here](docs/README.md).
