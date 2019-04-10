@@ -43,6 +43,9 @@ const (
 
 	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules
 	IPProtocolICMPv6 = "58"
+
+	// IPProtocolIPv4 is how EC2 represents IP in IP protocol
+	IPProtocolIPv4 = "4"
 )
 
 func (s *Service) reconcileSecurityGroups() error {
@@ -417,7 +420,8 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) (res *v1alpha1.IngressRule) {
 	case IPProtocolTCP,
 		IPProtocolUDP,
 		IPProtocolICMP,
-		IPProtocolICMPv6:
+		IPProtocolICMPv6,
+		IPProtocolIPv4:
 		res = &v1alpha1.IngressRule{
 			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
