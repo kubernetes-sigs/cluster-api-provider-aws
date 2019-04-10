@@ -295,9 +295,9 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 			{
 				Description: "IP-in-IP (calico)",
 				Protocol:    v1alpha1.SecurityGroupProtocolIPinIP,
-				FromPort:    1,
+				FromPort:    -1,
 				ToPort:      65535,
-				CidrBlocks:  []string{anyIPv4CidrBlock},
+				CidrBlocks:  []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID},
 			},
 		}, nil
 
@@ -331,9 +331,9 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 			{
 				Description: "IP-in-IP (calico)",
 				Protocol:    v1alpha1.SecurityGroupProtocolIPinIP,
-				FromPort:    1,
+				FromPort:    -1,
 				ToPort:      65535,
-				CidrBlocks:  []string{anyIPv4CidrBlock},
+				CidrBlocks:  []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
 			},
 		}, nil
 	}
