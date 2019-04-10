@@ -266,6 +266,9 @@ var (
 	// SecurityGroupProtocolAll is a wildcard for all IP protocols
 	SecurityGroupProtocolAll = SecurityGroupProtocol("-1")
 
+	// SecurityGroupProtocolIPinIP represents the IP in IP protocol in ingress rules
+	SecurityGroupProtocolIPinIP = SecurityGroupProtocol("4")
+
 	// SecurityGroupProtocolTCP represents the TCP protocol in ingress rules
 	SecurityGroupProtocolTCP = SecurityGroupProtocol("tcp")
 
