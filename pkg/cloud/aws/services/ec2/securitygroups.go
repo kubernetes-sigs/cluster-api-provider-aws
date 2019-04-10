@@ -43,9 +43,6 @@ const (
 
 	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules
 	IPProtocolICMPv6 = "58"
-
-	// IPProtocolIPv4 is how EC2 represents IP in IP protocol
-	IPProtocolIPv4 = "4"
 )
 
 func (s *Service) reconcileSecurityGroups() error {
@@ -297,7 +294,10 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 				Protocol:    v1alpha1.SecurityGroupProtocolIPinIP,
 				FromPort:    -1,
 				ToPort:      65535,
-				CidrBlocks:  []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID},
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+				},
 			},
 		}, nil
 
@@ -333,7 +333,10 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 				Protocol:    v1alpha1.SecurityGroupProtocolIPinIP,
 				FromPort:    -1,
 				ToPort:      65535,
-				CidrBlocks:  []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
+				},
 			},
 		}, nil
 	}
@@ -420,8 +423,7 @@ func ingressRuleFromSDKType(v *ec2.IpPermission) (res *v1alpha1.IngressRule) {
 	case IPProtocolTCP,
 		IPProtocolUDP,
 		IPProtocolICMP,
-		IPProtocolICMPv6,
-		IPProtocolIPv4:
+		IPProtocolICMPv6:
 		res = &v1alpha1.IngressRule{
 			Protocol: v1alpha1.SecurityGroupProtocol(*v.IpProtocol),
 			FromPort: *v.FromPort,
