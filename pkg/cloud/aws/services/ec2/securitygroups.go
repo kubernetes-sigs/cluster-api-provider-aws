@@ -289,6 +289,16 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
 				},
 			},
+			{
+				Description: "IP-in-IP (calico)",
+				Protocol:    v1alpha1.SecurityGroupProtocolIPinIP,
+				FromPort:    -1,
+				ToPort:      65535,
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+				},
+			},
 		}, nil
 
 	case v1alpha1.SecurityGroupNode:
@@ -316,6 +326,16 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 				SourceSecurityGroupIDs: []string{
 					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
 					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+				},
+			},
+			{
+				Description: "IP-in-IP (calico)",
+				Protocol:    v1alpha1.SecurityGroupProtocolIPinIP,
+				FromPort:    -1,
+				ToPort:      65535,
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
 				},
 			},
 		}, nil
