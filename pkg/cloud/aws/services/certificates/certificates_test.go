@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
-func TestGetOrGenerateCACert(t *testing.T) {
+func TestGenerateCACert(t *testing.T) {
 	testCases := []struct {
 		name             string
 		inputKeyPair     *v1alpha1.KeyPair
@@ -69,7 +69,7 @@ func TestGetOrGenerateCACert(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		actualKeyPair, actualError := getOrGenerateCACert(tc.inputKeyPair, tc.inputUser)
+		actualKeyPair, actualError := generateCACert(tc.inputKeyPair, tc.inputUser)
 		if tc.expectedError != nil {
 			if tc.expectedError.Error() != actualError.Error() {
 				t.Fatalf("[%s], Unexpected error, Want [%v], Got: [%v]", tc.name, tc.expectedError, actualError)
@@ -96,7 +96,7 @@ func TestGetOrGenerateCACert(t *testing.T) {
 	}
 }
 
-func TestGetOrGenerateServiceAccountKeys(t *testing.T) {
+func TestGenerateServiceAccountKeys(t *testing.T) {
 	testCases := []struct {
 		name             string
 		inputKeyPair     *v1alpha1.KeyPair
@@ -141,7 +141,7 @@ func TestGetOrGenerateServiceAccountKeys(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		actualKeyPair, actualError := getOrGenerateServiceAccountKeys(tc.inputKeyPair, tc.inputUser)
+		actualKeyPair, actualError := generateServiceAccountKeys(tc.inputKeyPair, tc.inputUser)
 		if tc.expectedError != nil {
 			if tc.expectedError.Error() != actualError.Error() {
 				t.Fatalf("[%s], Unexpected error, Want [%v], Got: [%v]", tc.name, tc.expectedError, actualError)

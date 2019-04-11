@@ -22,7 +22,6 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 
-	"k8s.io/klog"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
@@ -88,7 +87,7 @@ func SetClusterConfigurationOverrides(machine joinMachine, base *kubeadmv1beta1.
 		out.APIServer.ControlPlaneComponent.ExtraArgs = map[string]string{}
 	}
 	if cp, ok := out.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
-		klog.Infof("Overriding cloud provider %q with required value %q", cp, CloudProvider)
+		machine.GetScope().Logger.Info("Overriding cloud provider with required value", "provided-cloud-provider", cp, "required-cloud-provider", CloudProvider)
 	}
 	out.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"] = CloudProvider
 
@@ -96,13 +95,15 @@ func SetClusterConfigurationOverrides(machine joinMachine, base *kubeadmv1beta1.
 		out.ControllerManager.ExtraArgs = map[string]string{}
 	}
 	if cp, ok := out.ControllerManager.ExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
-		klog.Infof("Overriding cloud provider %q with required value %q", cp, CloudProvider)
+		machine.GetScope().Logger.Info("Overriding cloud provider with required value", "provided-cloud-provider", cp, "required-cloud-provider", CloudProvider)
 	}
 	out.ControllerManager.ExtraArgs["cloud-provider"] = CloudProvider
 
 	// The kubeadm config clustername must match the provided name of the cluster.
 	if out.ClusterName != "" && out.ClusterName != s.Name() {
-		klog.Infof("Overriding provided cluster name %q with %q. The kubeadm cluster name and cluster-api name must match.", out.ClusterName, s.Name())
+		machine.GetScope().Logger.Info("Overriding provided cluster name. The kubeadm cluster name and cluster-api name must match.",
+			"provided-cluster-name", out.ClusterName,
+			"required-cluster-name", s.Name())
 	}
 	out.ClusterName = s.Name()
 
@@ -120,20 +121,24 @@ func SetClusterConfigurationOverrides(machine joinMachine, base *kubeadmv1beta1.
 
 // SetInitConfigurationOverrides overrides user input on particular fields for
 // the kubeadm InitConfiguration.
-func SetInitConfigurationOverrides(base *kubeadmv1beta1.InitConfiguration) *kubeadmv1beta1.InitConfiguration {
+func SetInitConfigurationOverrides(machine joinMachine, base *kubeadmv1beta1.InitConfiguration) *kubeadmv1beta1.InitConfiguration {
 	if base == nil {
 		base = &kubeadmv1beta1.InitConfiguration{}
 	}
 	out := base.DeepCopy()
 
 	if out.NodeRegistration.Name != "" && out.NodeRegistration.Name != HostnameLookup {
-		klog.Infof("Overriding NodeRegistration name from %q to %q. The node registration needs to be dynamically generated in aws.", out.NodeRegistration.Name, HostnameLookup)
+		machine.GetScope().Info("Overriding NodeRegistration name. The node registration needs to be dynamically generated in aws.",
+			"provided-node-registration-name", out.NodeRegistration.Name,
+			"required-node-registration-name", HostnameLookup)
 	}
 	out.NodeRegistration.Name = HostnameLookup
 
 	// TODO(chuckha): This may become a default instead of an override.
 	if out.NodeRegistration.CRISocket != "" && out.NodeRegistration.CRISocket != ContainerdSocket {
-		klog.Infof("Overriding CRISocket from %q to %q. Containerd is only supported container runtime.", out.NodeRegistration.CRISocket, ContainerdSocket)
+		machine.GetScope().Info("Overriding CRISocket. Containerd is only supported container runtime.",
+			"provided-container-runtime-socket", out.NodeRegistration.CRISocket,
+			"required-container-runtime-socket", ContainerdSocket)
 	}
 	out.NodeRegistration.CRISocket = ContainerdSocket
 
@@ -141,7 +146,7 @@ func SetInitConfigurationOverrides(base *kubeadmv1beta1.InitConfiguration) *kube
 		out.NodeRegistration.KubeletExtraArgs = map[string]string{}
 	}
 	if cp, ok := out.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
-		klog.Infof("Overriding node's cloud-provider to the required value of %q.", CloudProvider)
+		machine.GetScope().Info("Overriding node's cloud-provider", "provided-cloud-provider", cp, "required-cloud-provider", CloudProvider)
 	}
 	out.NodeRegistration.KubeletExtraArgs["cloud-provider"] = CloudProvider
 	return out
@@ -164,13 +169,17 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 	out.Discovery.BootstrapToken.CACertHashes = append(out.Discovery.BootstrapToken.CACertHashes, caCertHash)
 
 	if out.NodeRegistration.Name != "" && out.NodeRegistration.Name != HostnameLookup {
-		klog.Infof("Overriding NodeRegistration name from %q to %q. The node registration needs to be dynamically generated in aws.", out.NodeRegistration.Name, HostnameLookup)
+		machine.GetScope().Logger.Info("Overriding NodeRegistration name . The node registration needs to be dynamically generated in aws.",
+			"provided-node-registration-name", out.NodeRegistration.Name,
+			"required-node-registration-name", HostnameLookup)
 	}
 	out.NodeRegistration.Name = HostnameLookup
 
 	// TODO(chuckha): This may become a default instead of an override.
 	if out.NodeRegistration.CRISocket != "" && out.NodeRegistration.CRISocket != ContainerdSocket {
-		klog.Infof("Overriding CRISocket from %q to %q. Containerd is only supported container runtime.", out.NodeRegistration.CRISocket, ContainerdSocket)
+		machine.GetScope().Logger.Info("Overriding CRISocket. Containerd is only supported container runtime.",
+			"provided-container-runtime-socket", out.NodeRegistration.CRISocket,
+			"required-container-runtime-socket", ContainerdSocket)
 	}
 	out.NodeRegistration.CRISocket = ContainerdSocket
 
@@ -178,7 +187,9 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		out.NodeRegistration.KubeletExtraArgs = map[string]string{}
 	}
 	if cp, ok := out.NodeRegistration.KubeletExtraArgs["cloud-provider"]; ok && cp != CloudProvider {
-		klog.Infof("Overriding node's cloud-provider to the required value of %q.", CloudProvider)
+		machine.GetScope().Logger.Info("Overriding node's cloud-provider to the required value",
+			"provided-cloud-provider", cp,
+			"required-cloud-provider", CloudProvider)
 	}
 	out.NodeRegistration.KubeletExtraArgs["cloud-provider"] = CloudProvider
 	if !util.IsControlPlaneMachine(machine.GetMachine()) {
