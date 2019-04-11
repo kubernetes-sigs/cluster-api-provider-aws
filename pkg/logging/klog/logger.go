@@ -36,8 +36,8 @@ type Logger struct {
 	values []interface{}
 }
 
-func (l *Logger) clone() *Logger {
-	return &Logger{
+func (l Logger) clone() Logger {
+	return Logger{
 		level:  l.level,
 		prefix: l.prefix,
 		values: copySlice(l.values),
@@ -102,7 +102,7 @@ func pretty(value interface{}) string {
 }
 
 // Info logs an informational message.
-func (l *Logger) Info(msg string, kvList ...interface{}) {
+func (l Logger) Info(msg string, kvList ...interface{}) {
 	if l.Enabled() {
 		lvlStr := flatten("level", l.level)
 		msgStr := flatten("msg", msg)
@@ -113,12 +113,12 @@ func (l *Logger) Info(msg string, kvList ...interface{}) {
 }
 
 // Enabled returns true if the logger is enabled.
-func (l *Logger) Enabled() bool {
+func (l Logger) Enabled() bool {
 	return bool(klog.V(klog.Level(l.level)))
 }
 
 // Error logs an error.
-func (l *Logger) Error(err error, msg string, kvList ...interface{}) {
+func (l Logger) Error(err error, msg string, kvList ...interface{}) {
 	msgStr := flatten("msg", msg)
 	var loggableErr interface{}
 	if err != nil {
@@ -131,7 +131,7 @@ func (l *Logger) Error(err error, msg string, kvList ...interface{}) {
 }
 
 // V defines the verbosity level of the logging.
-func (l *Logger) V(level int) logr.InfoLogger {
+func (l Logger) V(level int) logr.InfoLogger {
 	new := l.clone()
 	new.level = level
 	return new
@@ -140,7 +140,7 @@ func (l *Logger) V(level int) logr.InfoLogger {
 // WithName returns a new logr.Logger with the specified name appended.  klogr
 // uses '/' characters to separate name elements.  Callers should not pass '/'
 // in the provided name string, but this library does not actually enforce that.
-func (l *Logger) WithName(name string) logr.Logger {
+func (l Logger) WithName(name string) logr.Logger {
 	new := l.clone()
 	if len(l.prefix) > 0 {
 		new.prefix = l.prefix + "/"
@@ -150,7 +150,7 @@ func (l *Logger) WithName(name string) logr.Logger {
 }
 
 // WithValues adds key-value pairs to the logging context.
-func (l *Logger) WithValues(kvList ...interface{}) logr.Logger {
+func (l Logger) WithValues(kvList ...interface{}) logr.Logger {
 	new := l.clone()
 	new.values = append(new.values, kvList...)
 	return new
