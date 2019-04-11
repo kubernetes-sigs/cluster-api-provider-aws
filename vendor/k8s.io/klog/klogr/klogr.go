@@ -1,22 +1,6 @@
-/*
-Copyright 2019 The Kubernetes Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-// Package klog implements logr using klog.
-// This particular implementation is mostly copy pasta'd from https://github.com/go-logr/glogr/blob/master/glogr.go
-package klog
+// Package klogr implements github.com/go-logr/logr.Logger in terms of
+// k8s.io/klog.
+package klogr
 
 import (
 	"bytes"
@@ -29,15 +13,23 @@ import (
 	"k8s.io/klog"
 )
 
-// Logger wraps klog behind a well-known interface.
-type Logger struct {
+// New returns a logr.Logger which is implemented by klog.
+func New() logr.Logger {
+	return klogger{
+		level:  0,
+		prefix: "",
+		values: nil,
+	}
+}
+
+type klogger struct {
 	level  int
 	prefix string
 	values []interface{}
 }
 
-func (l Logger) clone() Logger {
-	return Logger{
+func (l klogger) clone() klogger {
+	return klogger{
 		level:  l.level,
 		prefix: l.prefix,
 		values: copySlice(l.values),
@@ -101,8 +93,7 @@ func pretty(value interface{}) string {
 	return string(jb)
 }
 
-// Info logs an informational message.
-func (l Logger) Info(msg string, kvList ...interface{}) {
+func (l klogger) Info(msg string, kvList ...interface{}) {
 	if l.Enabled() {
 		lvlStr := flatten("level", l.level)
 		msgStr := flatten("msg", msg)
@@ -112,13 +103,11 @@ func (l Logger) Info(msg string, kvList ...interface{}) {
 	}
 }
 
-// Enabled returns true if the logger is enabled.
-func (l Logger) Enabled() bool {
+func (l klogger) Enabled() bool {
 	return bool(klog.V(klog.Level(l.level)))
 }
 
-// Error logs an error.
-func (l Logger) Error(err error, msg string, kvList ...interface{}) {
+func (l klogger) Error(err error, msg string, kvList ...interface{}) {
 	msgStr := flatten("msg", msg)
 	var loggableErr interface{}
 	if err != nil {
@@ -130,8 +119,7 @@ func (l Logger) Error(err error, msg string, kvList ...interface{}) {
 	klog.ErrorDepth(framesToCaller(), l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
 }
 
-// V defines the verbosity level of the logging.
-func (l Logger) V(level int) logr.InfoLogger {
+func (l klogger) V(level int) logr.InfoLogger {
 	new := l.clone()
 	new.level = level
 	return new
@@ -140,7 +128,7 @@ func (l Logger) V(level int) logr.InfoLogger {
 // WithName returns a new logr.Logger with the specified name appended.  klogr
 // uses '/' characters to separate name elements.  Callers should not pass '/'
 // in the provided name string, but this library does not actually enforce that.
-func (l Logger) WithName(name string) logr.Logger {
+func (l klogger) WithName(name string) logr.Logger {
 	new := l.clone()
 	if len(l.prefix) > 0 {
 		new.prefix = l.prefix + "/"
@@ -149,12 +137,11 @@ func (l Logger) WithName(name string) logr.Logger {
 	return new
 }
 
-// WithValues adds key-value pairs to the logging context.
-func (l Logger) WithValues(kvList ...interface{}) logr.Logger {
+func (l klogger) WithValues(kvList ...interface{}) logr.Logger {
 	new := l.clone()
 	new.values = append(new.values, kvList...)
 	return new
 }
 
-var _ logr.Logger = &Logger{}
-var _ logr.InfoLogger = &Logger{}
+var _ logr.Logger = klogger{}
+var _ logr.InfoLogger = klogger{}

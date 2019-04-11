@@ -20,12 +20,12 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/logging"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -50,11 +50,10 @@ type ActuatorParams struct {
 
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) *Actuator {
-	log := &logging.Log{}
 	return &Actuator{
 		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
 		client:   params.Client,
-		log:      log.WithName(params.LoggingContext),
+		log:      klogr.New().WithName(params.LoggingContext),
 	}
 }
 
