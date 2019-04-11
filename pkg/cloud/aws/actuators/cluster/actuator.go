@@ -17,8 +17,10 @@ limitations under the License.
 package cluster
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
@@ -37,11 +39,13 @@ type Actuator struct {
 	*deployer.Deployer
 
 	client client.ClusterV1alpha1Interface
+	log    logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
-	Client client.ClusterV1alpha1Interface
+	Client         client.ClusterV1alpha1Interface
+	LoggingContext string
 }
 
 // NewActuator creates a new Actuator
@@ -49,6 +53,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
 		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
 		client:   params.Client,
+		log:      klogr.New().WithName(params.LoggingContext),
 	}
 }
 
