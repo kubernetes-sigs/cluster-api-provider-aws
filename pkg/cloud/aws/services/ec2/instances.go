@@ -173,9 +173,9 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		if bootstrapToken != "" {
 			klog.V(2).Infof("Allowing machine %q to join control plane for cluster %q", machine.Name(), s.scope.Name())
 
-			machine.MachineConfig.KubeadmConfiguration.Join = kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
-			kubeadm.SetControlPlaneJoinConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Join)
-			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
+			updatedJoinConfiguration := kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
+			updatedJoinConfiguration = kubeadm.SetControlPlaneJoinConfigurationOverrides(updatedJoinConfiguration)
+			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(updatedJoinConfiguration)
 			if err != nil {
 				return nil, err
 			}
@@ -202,14 +202,14 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				)
 			}
 
-			kubeadm.SetClusterConfigurationOverrides(machine, &s.scope.ClusterConfig.ClusterConfiguration)
-			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(&s.scope.ClusterConfig.ClusterConfiguration)
+			clusterConfiguration := kubeadm.SetClusterConfigurationOverrides(machine, &s.scope.ClusterConfig.ClusterConfiguration)
+			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(clusterConfiguration)
 			if err != nil {
 				return nil, err
 			}
 
-			kubeadm.SetInitConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Init)
-			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
+			initConfiguration := kubeadm.SetInitConfigurationOverrides(&machine.MachineConfig.KubeadmConfiguration.Init)
+			initConfigYAML, err := kubeadm.ConfigurationToYAML(initConfiguration)
 			if err != nil {
 				return nil, err
 			}
@@ -237,8 +237,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	case "node":
 		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
-		kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
-		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
+		joinConfiguration := kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
+		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(joinConfiguration)
 		if err != nil {
 			return nil, err
 		}
