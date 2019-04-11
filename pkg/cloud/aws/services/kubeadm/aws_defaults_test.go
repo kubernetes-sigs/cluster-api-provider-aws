@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
@@ -152,6 +153,266 @@ func TestSetJoinNodeConfigurationOverrides(t *testing.T) {
 		})
 	}
 }
+
+func TestSetControlPlaneJoinConfigurationOverrides(t *testing.T) {
+	testcases := []struct {
+		name       string
+		joinconfig *kubeadmv1beta1.JoinConfiguration
+	}{
+		{
+			name: "simple override test",
+			joinconfig: &kubeadmv1beta1.JoinConfiguration{
+				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
+					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
+						AdvertiseAddress: "fake.endpoint",
+						BindPort:         420,
+					},
+				},
+			},
+		},
+		{
+			name: "nil join config",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := kubeadm.SetControlPlaneJoinConfigurationOverrides(tc.joinconfig)
+
+			// ignore assertions if nil was passed in
+			if tc.joinconfig == nil {
+				return
+			}
+
+			// Assertion assumes the test case does not start with the override value
+			if tc.joinconfig.ControlPlane.LocalAPIEndpoint.AdvertiseAddress == out.ControlPlane.LocalAPIEndpoint.AdvertiseAddress {
+				t.Fatal("did not properly override the local api endpoint advertise address")
+			}
+			if tc.joinconfig.ControlPlane.LocalAPIEndpoint.BindPort == out.ControlPlane.LocalAPIEndpoint.BindPort {
+				t.Fatal("did not properly override the local api endpoint bind port")
+			}
+		})
+	}
+}
+
+func TestSetDefaultClusterConfiguration(t *testing.T) {
+	testcases := []struct {
+		name                 string
+		joinMachine          *jm
+		clusterConfiguration *kubeadmv1beta1.ClusterConfiguration
+	}{
+		{
+			name: "simple",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{
+					ClusterStatus: &v1alpha1.AWSClusterProviderStatus{},
+				},
+				Machine: &clusterv1.Machine{},
+			},
+			clusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{},
+		},
+		{
+			name: "handle nil",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{
+					ClusterStatus: &v1alpha1.AWSClusterProviderStatus{},
+				},
+				Machine: &clusterv1.Machine{},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			out := kubeadm.SetDefaultClusterConfiguration(tc.joinMachine, tc.clusterConfiguration)
+
+			// Ignore the assertions of the base is nil
+			if tc.clusterConfiguration == nil {
+				return
+			}
+
+			// Assertion: set a control plane only if the user hasn't specified one
+			if tc.clusterConfiguration.ControlPlaneEndpoint == "" {
+				if out.ControlPlaneEndpoint == "" {
+					t.Fatal("Failed to set a control plane endpoint when one was not provided")
+				}
+			}
+
+			if tc.clusterConfiguration.ControlPlaneEndpoint != "" && out.ControlPlaneEndpoint != tc.clusterConfiguration.ControlPlaneEndpoint {
+				t.Fatal("Overrode ControlPlaneEndpoint. This user supplied value should not be overridden")
+			}
+
+			// Assertion: always add local ipv4 lookup and the ELB's DNS name to the CertSANs
+			if len(out.APIServer.CertSANs)-len(tc.clusterConfiguration.APIServer.CertSANs) != 2 {
+				t.Fatal("expected one additional CertSAN in the output")
+			}
+		})
+	}
+}
+
+func TestSetInitConfigurationOverrides(t *testing.T) {
+	testcasts := []struct {
+		name              string
+		initConfiguration *kubeadmv1beta1.InitConfiguration
+	}{
+		// Assumption: Do not use any default values as input values for testcases.
+		{
+			name:              "assertions pass with an empty configuration",
+			initConfiguration: &kubeadmv1beta1.InitConfiguration{},
+		},
+		{
+			name: "nil configuration should not break",
+		},
+		{
+			name: "overrides actually work",
+			initConfiguration: &kubeadmv1beta1.InitConfiguration{
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "moonshine",
+					CRISocket: "/dev/null",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "gcp",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcasts {
+		t.Run(tc.name, func(t *testing.T) {
+			out := kubeadm.SetInitConfigurationOverrides(tc.initConfiguration)
+
+			// Ignore assertions if the initConfiguration is nil
+			if tc.initConfiguration == nil {
+				return
+			}
+
+			// Assertion: Override the user provided value, if any, to the dynamic lookup value
+			if tc.initConfiguration.NodeRegistration.Name != "" && tc.initConfiguration.NodeRegistration.Name == out.NodeRegistration.Name {
+				t.Fatal("Provided node name was not properly overridden")
+			}
+
+			// Assertion: Override the user provided CRI socket with containerd's CRI socket
+			if tc.initConfiguration.NodeRegistration.CRISocket != "" && tc.initConfiguration.NodeRegistration.CRISocket == out.NodeRegistration.CRISocket {
+				t.Fatal("Provided CRISocket was not properly overridden")
+			}
+
+			// Assertion: Kubelet extra args are populated with the aws cloud provier
+			if out.NodeRegistration.KubeletExtraArgs["cloud-provider"] != kubeadm.CloudProvider {
+				t.Fatal("Cloud provider was not successfully set to aws")
+			}
+
+		})
+	}
+}
+
+func TestSetClusterConfigurationOverrides(t *testing.T) {
+	testcases := []struct {
+		name                 string
+		joinMachine          *jm
+		clusterConfiguration *kubeadmv1beta1.ClusterConfiguration
+	}{
+		{
+			name: "simple test",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{
+					ClusterStatus: &v1alpha1.AWSClusterProviderStatus{},
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "hello",
+						},
+						Spec: clusterv1.ClusterSpec{
+							ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+								ServiceDomain: "hogwarts",
+								Pods: clusterv1.NetworkRanges{
+									CIDRBlocks: []string{"123/127"},
+								},
+								Services: clusterv1.NetworkRanges{
+									CIDRBlocks: []string{"456/128"},
+								},
+							},
+						},
+					},
+				},
+				Machine: &clusterv1.Machine{},
+			},
+			clusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+				ClusterName: "some test",
+				APIServer: kubeadmv1beta1.APIServer{
+					ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+						ExtraArgs: map[string]string{"cloud-provider": "not-aws"},
+					},
+				},
+				ControllerManager: kubeadmv1beta1.ControlPlaneComponent{
+					ExtraArgs: map[string]string{"cloud-provider": "azure"},
+				},
+			},
+		},
+		{
+			name: "nil cluster configuration test",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{
+					ClusterStatus: &v1alpha1.AWSClusterProviderStatus{},
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "hello",
+						},
+						Spec: clusterv1.ClusterSpec{
+							ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+								ServiceDomain: "hogwarts",
+								Pods: clusterv1.NetworkRanges{
+									CIDRBlocks: []string{"123/127"},
+								},
+								Services: clusterv1.NetworkRanges{
+									CIDRBlocks: []string{"456/128"},
+								},
+							},
+						},
+					},
+				},
+				Machine: &clusterv1.Machine{},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			out := kubeadm.SetClusterConfigurationOverrides(tc.joinMachine, tc.clusterConfiguration)
+			// Assertion: Forces apiserver cloud-provider to aws
+			if out.APIServer.ControlPlaneComponent.ExtraArgs["cloud-provider"] != kubeadm.CloudProvider {
+				t.Fatal("cloud-provider argument was not set properly on the apiserver")
+			}
+
+			// Assertion: Forces controller-manager cloud-provider to aws
+			if out.ControllerManager.ExtraArgs["cloud-provider"] != kubeadm.CloudProvider {
+				t.Fatal("cloud-provider argument was not set properly on the controller-manager")
+			}
+
+			// Assertion: Sets the kubeadm cluster name to match the cluster-api cluster name
+			if out.ClusterName != tc.joinMachine.GetScope().Name() {
+				t.Fatal("The cluster name was not set properly")
+			}
+
+			// Assertion: Sets necessary networking attributes from the ClusterSpec
+			if out.Networking.DNSDomain != tc.joinMachine.GetScope().Cluster.Spec.ClusterNetwork.ServiceDomain {
+				t.Fatal("Failed to set the DNSDomain properly")
+			}
+			if out.Networking.PodSubnet != tc.joinMachine.GetScope().Cluster.Spec.ClusterNetwork.Pods.CIDRBlocks[0] {
+				t.Fatal("Failed to set the pod subnet")
+			}
+			if out.Networking.ServiceSubnet != tc.joinMachine.GetScope().Cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0] {
+				t.Fatal("Failed to set the service subnet")
+			}
+
+			// Assertion: Sets the Kubernetes version from the ClusterSpec
+			if out.KubernetesVersion != tc.joinMachine.GetMachine().Spec.Versions.ControlPlane {
+				t.Fatal("Failed to set the kubernetes version properly")
+			}
+		})
+	}
+}
+
+/** Helpers **/
 
 func contains(haystack []string, needle string) bool {
 	for _, hay := range haystack {
