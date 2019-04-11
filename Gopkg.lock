@@ -1269,6 +1269,7 @@
     "github.com/aws/aws-sdk-go/service/sts/stsiface",
     "github.com/awslabs/goformation/cloudformation",
     "github.com/emicklei/go-restful",
+    "github.com/go-logr/logr",
     "github.com/golang/mock/gomock",
     "github.com/onsi/ginkgo",
     "github.com/onsi/ginkgo/config",
