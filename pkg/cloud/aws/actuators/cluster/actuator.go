@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
@@ -24,6 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/logging"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
@@ -37,18 +39,22 @@ type Actuator struct {
 	*deployer.Deployer
 
 	client client.ClusterV1alpha1Interface
+	log    logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
-	Client client.ClusterV1alpha1Interface
+	Client         client.ClusterV1alpha1Interface
+	LoggingContext string
 }
 
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) *Actuator {
+	log := &logging.Log{}
 	return &Actuator{
 		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
 		client:   params.Client,
+		log:      log.WithName(params.LoggingContext),
 	}
 }
 
