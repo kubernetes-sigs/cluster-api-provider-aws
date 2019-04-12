@@ -305,6 +305,11 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 		errs = append(errs, errors.Errorf("SSH key name cannot be mutated from %q to %q", aws.StringValue(instance.KeyName), machineSpec.KeyName))
 	}
 
+	// Root Device Size
+	if machineSpec.RootDeviceSize != instance.RootDeviceSize {
+		errs = append(errs, errors.Errorf("Root volume size cannot be mutated from %v to %v", instance.RootDeviceSize, machineSpec.RootDeviceSize))
+	}
+
 	// Subnet ID
 	// machineSpec.Subnet is a *AWSResourceReference and could technically be
 	// a *string, ARN or Filter. However, elsewhere in the code it is only used
