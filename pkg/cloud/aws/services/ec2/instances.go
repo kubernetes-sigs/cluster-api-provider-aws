@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -62,7 +63,7 @@ func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Ins
 	// match
 	for _, res := range out.Reservations {
 		for _, inst := range res.Instances {
-			return s.sdkToInstance(inst)
+			return s.SDKToInstance(inst)
 		}
 	}
 
@@ -95,7 +96,7 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
 	}
 
 	if len(out.Reservations) > 0 && len(out.Reservations[0].Instances) > 0 {
-		return s.sdkToInstance(out.Reservations[0].Instances[0])
+		return s.SDKToInstance(out.Reservations[0].Instances[0])
 	}
 
 	return nil, nil
@@ -434,14 +435,9 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 		return nil, errors.Errorf("no instance returned for reservation %v", out.GoString())
 	}
 
-<<<<<<< HEAD
-	err = s.scope.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
-	return converters.SDKToInstance(out.Instances[0]), err
-=======
 	s.scope.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
 
-	return s.sdkToInstance(out.Instances[0])
->>>>>>> feat: support customizing root device size
+	return s.SDKToInstance(out.Instances[0])
 }
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given
@@ -576,18 +572,47 @@ func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, err
 	return nil, nil
 }
 
-// sdkToInstance converts an AWS EC2 SDK instance to the CAPA instance type.
+// SDKToInstance converts an AWS EC2 SDK instance to the CAPA instance type.
 // converters.SDKToInstance populates all instance fields except for rootVolumeSize,
 // because EC2.DescribeInstances does not return the size of storage devices. An
 // additional call to EC2 is required to get this value.
-func (s *Service) sdkToInstance(v *ec2.Instance) (*v1alpha1.Instance, error) {
-	instance := converters.SDKToInstance(v)
+func (s *Service) SDKToInstance(v *ec2.Instance) (*v1alpha1.Instance, error) {
+	i := &v1alpha1.Instance{
+		ID:           aws.StringValue(v.InstanceId),
+		State:        v1alpha1.InstanceState(*v.State.Name),
+		Type:         aws.StringValue(v.InstanceType),
+		SubnetID:     aws.StringValue(v.SubnetId),
+		ImageID:      aws.StringValue(v.ImageId),
+		KeyName:      v.KeyName,
+		PrivateIP:    v.PrivateIpAddress,
+		PublicIP:     v.PublicIpAddress,
+		ENASupport:   v.EnaSupport,
+		EBSOptimized: v.EbsOptimized,
+	}
+
+	// Extract IAM Instance Profile name from ARN
+	// TODO: Handle this comparison more safely, perhaps by querying IAM for the
+	// instance profile ARN and comparing to the ARN returned by EC2
+	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Arn != nil {
+		split := strings.Split(aws.StringValue(v.IamInstanceProfile.Arn), "instance-profile/")
+		if len(split) > 1 && split[1] != "" {
+			i.IAMProfile = split[1]
+		}
+	}
+
+	for _, sg := range v.SecurityGroups {
+		i.SecurityGroupIDs = append(i.SecurityGroupIDs, *sg.GroupId)
+	}
+
+	if len(v.Tags) > 0 {
+		i.Tags = converters.TagsToMap(v.Tags)
+	}
 
 	rootSize, err := s.getInstanceRootDeviceSize(v)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get root volume size for instance: %q", aws.StringValue(v.InstanceId))
 	}
 
-	instance.RootDeviceSize = aws.Int64Value(rootSize)
-	return instance, nil
+	i.RootDeviceSize = aws.Int64Value(rootSize)
+	return i, nil
 }
