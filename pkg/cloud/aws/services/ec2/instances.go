@@ -576,6 +576,10 @@ func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, err
 	return nil, nil
 }
 
+// sdkToInstance converts an AWS EC2 SDK instance to the CAPA instance type.
+// converters.SDKToInstance populates all instance fields except for rootVolumeSize,
+// because EC2.DescribeInstances does not return the size of storage devices. An
+// additional call to EC2 is required to get this value.
 func (s *Service) sdkToInstance(v *ec2.Instance) (*v1alpha1.Instance, error) {
 	instance := converters.SDKToInstance(v)
 
