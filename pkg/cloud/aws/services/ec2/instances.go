@@ -403,7 +403,7 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 		}
 
 		input.BlockDeviceMappings = []*ec2.BlockDeviceMapping{
-			&ec2.BlockDeviceMapping{
+			{
 				DeviceName: rootDeviceName,
 				Ebs: &ec2.EbsBlockDevice{
 					DeleteOnTermination: aws.Bool(true),
