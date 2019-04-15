@@ -311,7 +311,7 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 		}
 	}
 
-	if out == nil && len(out.LoadBalancerDescriptions) == 0 {
+	if out != nil && len(out.LoadBalancerDescriptions) == 0 {
 		return nil, NewNotFound(fmt.Errorf("no classic load balancer found with name %q", name))
 	}
 
