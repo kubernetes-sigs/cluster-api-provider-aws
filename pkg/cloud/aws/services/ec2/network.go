@@ -16,13 +16,9 @@ limitations under the License.
 
 package ec2
 
-import (
-	"k8s.io/klog"
-)
-
 // ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork() (err error) {
-	klog.V(2).Infof("Reconciling network for cluster %q", s.scope.Cluster.Name)
+	s.scope.V(2).Info("Reconciling network for cluster", "cluster-name", s.scope.Cluster.Name, "cluster-namespace", s.scope.Cluster.Namespace)
 
 	// VPC.
 	if err := s.reconcileVPC(); err != nil {
@@ -54,13 +50,13 @@ func (s *Service) ReconcileNetwork() (err error) {
 		return err
 	}
 
-	klog.V(2).Info("Reconcile network completed successfully")
+	s.scope.V(2).Info("Reconcile network completed successfully")
 	return nil
 }
 
 // DeleteNetwork deletes the network of the given cluster.
 func (s *Service) DeleteNetwork() (err error) {
-	klog.V(2).Info("Deleting network")
+	s.scope.V(2).Info("Deleting network")
 
 	// Security groups.
 	if err := s.deleteSecurityGroups(); err != nil {
@@ -97,6 +93,6 @@ func (s *Service) DeleteNetwork() (err error) {
 		return err
 	}
 
-	klog.V(2).Info("Delete network completed successfully")
+	s.scope.V(2).Info("Delete network completed successfully")
 	return nil
 }

@@ -22,8 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/klog"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -86,7 +84,7 @@ func (s *Service) defaultAMILookup(baseOS, baseOSVersion, kubernetesVersion stri
 		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
 	latestImage := getLatestImage(out.Images)
-	klog.V(2).Infof("Using AMI: %q", aws.StringValue(latestImage.ImageId))
+	s.scope.V(2).Info("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
 	return aws.StringValue(latestImage.ImageId), nil
 }
 
@@ -99,15 +97,14 @@ func (i images) Len() int {
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
+// TODO(chuckha) Ignoring errors until this causes a problem
 func (i images) Less(k, j int) bool {
 	firstTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[k].CreationDate))
 	if err != nil {
-		klog.Infof("unable to parse an AMI creation timestamp: %q", aws.StringValue(i[k].CreationDate))
 		return false
 	}
 	secondTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[j].CreationDate))
 	if err != nil {
-		klog.Infof("unable to parse an AMI creation timestamp: %q", aws.StringValue(i[j].CreationDate))
 		return false
 	}
 	return firstTime.Before(secondTime)

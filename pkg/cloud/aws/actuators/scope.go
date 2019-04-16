@@ -21,8 +21,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -33,6 +34,7 @@ type ScopeParams struct {
 	AWSClients
 	Cluster *clusterv1.Cluster
 	Client  client.ClusterV1alpha1Interface
+	Logger  logr.Logger
 }
 
 // NewScope creates a new Scope from the supplied parameters.
@@ -70,12 +72,17 @@ func NewScope(params ScopeParams) (*Scope, error) {
 		clusterClient = params.Client.Clusters(params.Cluster.Namespace)
 	}
 
+	if params.Logger == nil {
+		params.Logger = klogr.New().WithName("default-logger")
+	}
+
 	return &Scope{
 		AWSClients:    params.AWSClients,
 		Cluster:       params.Cluster,
 		ClusterClient: clusterClient,
 		ClusterConfig: clusterConfig,
 		ClusterStatus: clusterStatus,
+		Logger:        params.Logger.WithName(params.Cluster.APIVersion).WithName(params.Cluster.Namespace).WithName(params.Cluster.Name),
 	}, nil
 }
 
@@ -86,6 +93,7 @@ type Scope struct {
 	ClusterClient client.ClusterInterface
 	ClusterConfig *v1alpha1.AWSClusterProviderSpec
 	ClusterStatus *v1alpha1.AWSClusterProviderStatus
+	logr.Logger
 }
 
 // Network returns the cluster network object.
@@ -151,12 +159,12 @@ func (s *Scope) Close() {
 
 	latestCluster, err := s.storeClusterConfig(s.Cluster)
 	if err != nil {
-		klog.Errorf("[scope] failed to store provider config for cluster %q in namespace %q: %v", s.Cluster.Name, s.Cluster.Namespace, err)
+		s.Error(err, "failed to store provider config")
 		return
 	}
 
 	_, err = s.storeClusterStatus(latestCluster)
 	if err != nil {
-		klog.Errorf("[scope] failed to store provider status for cluster %q in namespace %q: %v", s.Cluster.Name, s.Cluster.Namespace, err)
+		s.Error(err, "failed to store provider status")
 	}
 }

@@ -26,7 +26,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 )
@@ -46,7 +45,7 @@ const (
 )
 
 func (s *Service) reconcileSecurityGroups() error {
-	klog.V(2).Infof("Reconciling security groups")
+	s.scope.V(2).Info("Reconciling security groups")
 
 	if s.scope.Network().SecurityGroups == nil {
 		s.scope.Network().SecurityGroups = make(map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup)
@@ -78,7 +77,7 @@ func (s *Service) reconcileSecurityGroups() error {
 				ID:   *sg.GroupId,
 				Name: *sg.GroupName,
 			}
-			klog.V(2).Infof("Security group for role %q: %v", role, s.scope.SecurityGroups()[role])
+			s.scope.V(2).Info("Created security group for role", "role", role, "security-group", s.scope.SecurityGroups()[role])
 			continue
 		}
 
@@ -112,7 +111,7 @@ func (s *Service) reconcileSecurityGroups() error {
 				return errors.Wrapf(err, "failed to revoke security group ingress rules for %q", sg.ID)
 			}
 
-			klog.V(2).Infof("Revoked ingress rules %v from security group %q", toRevoke, sg)
+			s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", toRevoke, "security-group-id", sg.ID)
 		}
 
 		toAuthorize := want.Difference(current)
@@ -121,7 +120,7 @@ func (s *Service) reconcileSecurityGroups() error {
 				return err
 			}
 
-			klog.V(2).Infof("Authorized ingress rules %v in security group %q", toAuthorize, sg)
+			s.scope.V(2).Info("Authorized ingress rules in security group", "authorized-ingress-rules", toAuthorize, "security-group-id", sg.ID)
 		}
 	}
 
@@ -136,7 +135,7 @@ func (s *Service) deleteSecurityGroups() error {
 			return err
 		}
 
-		klog.V(2).Infof("Revoked ingress rules %v from security group %q", current, sg.ID)
+		s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", current, "security-group-id", sg.ID)
 	}
 
 	for _, sg := range s.scope.SecurityGroups() {
@@ -148,7 +147,7 @@ func (s *Service) deleteSecurityGroups() error {
 			return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
 		}
 
-		klog.V(2).Infof("Deleted security group security group %q", sg.ID)
+		s.scope.V(2).Info("Deleted security group security group", "security-group-id", sg.ID)
 	}
 
 	return nil

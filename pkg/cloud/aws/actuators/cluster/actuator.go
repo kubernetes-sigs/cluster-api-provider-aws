@@ -19,7 +19,6 @@ package cluster
 import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
@@ -59,9 +58,9 @@ func NewActuator(params ActuatorParams) *Actuator {
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
-	klog.Infof("Reconciling cluster %v", cluster.Name)
+	a.log.Info("Reconciling Cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 
-	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client})
+	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client, Logger: a.log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -94,9 +93,13 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
-	klog.Infof("Deleting cluster %v.", cluster.Name)
+	a.log.Info("Deleting cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 
-	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client})
+	scope, err := actuators.NewScope(actuators.ScopeParams{
+		Cluster: cluster,
+		Client:  a.client,
+		Logger:  a.log,
+	})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -115,7 +118,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	}
 
 	if err := ec2svc.DeleteNetwork(); err != nil {
-		klog.Errorf("Error deleting cluster %v: %v.", cluster.Name, err)
+		a.log.Error(err, "Error deleting cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 		return &controllerError.RequeueAfterError{
 			RequeueAfter: 5 * 1000 * 1000 * 1000,
 		}

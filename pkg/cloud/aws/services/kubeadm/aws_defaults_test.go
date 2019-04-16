@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"testing"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
@@ -108,6 +110,7 @@ func TestSetJoinNodeConfigurationOverrides(t *testing.T) {
 							},
 						},
 					},
+					Logger: &cloudtest.Log{},
 				},
 				Machine: &clusterv1.Machine{},
 			},
@@ -126,6 +129,7 @@ func TestSetJoinNodeConfigurationOverrides(t *testing.T) {
 			joinMachine: &jm{
 				Scope: &actuators.Scope{
 					ClusterStatus: &v1alpha1.AWSClusterProviderStatus{},
+					Logger:        &cloudtest.Log{},
 				},
 				Machine: &clusterv1.Machine{},
 			},
@@ -253,11 +257,15 @@ func TestSetDefaultClusterConfiguration(t *testing.T) {
 func TestSetInitConfigurationOverrides(t *testing.T) {
 	testcasts := []struct {
 		name              string
+		joinMachine       *jm
 		initConfiguration *kubeadmv1beta1.InitConfiguration
 	}{
 		// Assumption: Do not use any default values as input values for testcases.
 		{
-			name:              "assertions pass with an empty configuration",
+			name: "assertions pass with an empty configuration",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{},
+			},
 			initConfiguration: &kubeadmv1beta1.InitConfiguration{},
 		},
 		{
@@ -265,6 +273,11 @@ func TestSetInitConfigurationOverrides(t *testing.T) {
 		},
 		{
 			name: "overrides actually work",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{
+					Logger: &cloudtest.Log{},
+				},
+			},
 			initConfiguration: &kubeadmv1beta1.InitConfiguration{
 				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 					Name:      "moonshine",
@@ -279,7 +292,7 @@ func TestSetInitConfigurationOverrides(t *testing.T) {
 
 	for _, tc := range testcasts {
 		t.Run(tc.name, func(t *testing.T) {
-			out := kubeadm.SetInitConfigurationOverrides(tc.initConfiguration)
+			out := kubeadm.SetInitConfigurationOverrides(tc.joinMachine, tc.initConfiguration)
 
 			// Ignore assertions if the initConfiguration is nil
 			if tc.initConfiguration == nil {
@@ -332,6 +345,7 @@ func TestSetClusterConfigurationOverrides(t *testing.T) {
 							},
 						},
 					},
+					Logger: &cloudtest.Log{},
 				},
 				Machine: &clusterv1.Machine{},
 			},
