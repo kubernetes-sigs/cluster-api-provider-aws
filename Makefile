@@ -120,7 +120,7 @@ verify: ## Runs verification scripts to ensure correct execution
 ## --------------------------------------
 
 .PHONY: manifests
-manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml ## Build example set of manifests from the current source
+manifests: clusterawsadm cmd/clusterctl/examples/aws/provider-components-base.yaml ## Build example set of manifests from the current source
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
 .PHONY: cmd/clusterctl/examples/aws/provider-components-base.yaml
