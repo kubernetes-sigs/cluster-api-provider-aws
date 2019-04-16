@@ -61,7 +61,7 @@ func newWorkLoad() *batchv1.Job {
 					},
 					RestartPolicy: corev1.RestartPolicy("Never"),
 					NodeSelector: map[string]string{
-						"node-role.kubernetes.io/worker": "",
+						e2e.WorkerNodeRoleLabel: "",
 					},
 					Tolerations: []corev1.Toleration{
 						{

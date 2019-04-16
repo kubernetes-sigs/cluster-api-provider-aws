@@ -57,49 +57,23 @@ var _ = Describe("[Feature:MachineHealthCheck] MachineHealthCheck controller", f
 		client, err = e2e.LoadClient()
 		Expect(err).ToNot(HaveOccurred())
 
-		isKubemarkProvider, err := e2e.IsKubemarkProvider(client)
-		Expect(err).ToNot(HaveOccurred())
-		if isKubemarkProvider {
-			glog.V(2).Info("Can not run this tests with the 'KubeMark' provider")
-			Skip("Can not run this tests with the 'KubeMark' provider")
-		}
+		// TODO: enable once https://github.com/openshift/cluster-api-actuator-pkg/pull/61 is fixed
+		glog.V(2).Info("Skipping machine health checking test")
+		Skip("Skipping machine health checking test")
 
-		listOptions := runtimeclient.ListOptions{
-			Namespace: e2e.TestContext.MachineApiNamespace,
-		}
-		listOptions.SetLabelSelector(fmt.Sprintf("%s=", e2e.NodeWorkerLabel))
-		workers := &corev1.NodeList{}
-		err = client.List(context.TODO(), &listOptions, workers)
+		workerNodes, err := e2e.GetWorkerNodes(client)
 		Expect(err).ToNot(HaveOccurred())
 
-		numberOfReadyWorkers = 0
-		workerNode = nil
-		for i, w := range workers.Items {
-			readyCond := conditions.GetNodeCondition(&w, corev1.NodeReady)
-			if readyCond.Status == corev1.ConditionTrue {
-				numberOfReadyWorkers++
-				if workerNode == nil {
-					workerNode = &workers.Items[i]
-					glog.V(2).Infof("Worker node %s", workerNode.Name)
-				}
-			}
-		}
-		Expect(workerNode).ToNot(BeNil())
+		readyWorkerNodes := e2e.FilterReadyNodes(workerNodes)
+		Expect(readyWorkerNodes).ToNot(BeEmpty())
 
-		listOptions = runtimeclient.ListOptions{
-			Namespace: e2e.TestContext.MachineApiNamespace,
-		}
-		machineList := &mapiv1beta1.MachineList{}
-		err = client.List(context.TODO(), &listOptions, machineList)
+		numberOfReadyWorkers = len(readyWorkerNodes)
+		workerNode = &readyWorkerNodes[0]
+		glog.V(2).Infof("Worker node %s", workerNode.Name)
+
+		workerMachine, err = e2e.GetMachineFromNode(client, workerNode)
 		Expect(err).ToNot(HaveOccurred())
-
-		for i, m := range machineList.Items {
-			if m.Status.NodeRef != nil && m.Status.NodeRef.Name == workerNode.Name {
-				workerMachine = &machineList.Items[i]
-				glog.V(2).Infof("Worker machine %s", workerMachine.Name)
-			}
-		}
-		Expect(workerMachine).ToNot(BeNil())
+		glog.V(2).Infof("Worker machine %s", workerMachine.Name)
 
 		glog.V(2).Infof("Create machine health check with label selector: %s", workerMachine.Labels)
 		err = e2e.CreateMachineHealthCheck(workerMachine.Labels)
@@ -138,12 +112,9 @@ var _ = Describe("[Feature:MachineHealthCheck] MachineHealthCheck controller", f
 	})
 
 	AfterEach(func() {
-		isKubemarkProvider, err := e2e.IsKubemarkProvider(client)
-		Expect(err).ToNot(HaveOccurred())
-		if isKubemarkProvider {
-			glog.V(2).Info("Can not run this tests with the 'KubeMark' provider")
-			Skip("Can not run this tests with the 'KubeMark' provider")
-		}
+		// TODO: enable once https://github.com/openshift/cluster-api-actuator-pkg/pull/61 is fixed
+		glog.V(2).Info("Skipping machine health checking test")
+		Skip("Skipping machine health checking test")
 
 		waitForWorkersToGetReady(numberOfReadyWorkers)
 		deleteMachineHealthCheck(e2e.MachineHealthCheckName)
@@ -176,28 +147,16 @@ func waitForWorkersToGetReady(numberOfReadyWorkers int) {
 	client, err := e2e.LoadClient()
 	Expect(err).ToNot(HaveOccurred())
 
-	listOptions := runtimeclient.ListOptions{
-		Namespace: e2e.TestContext.MachineApiNamespace,
-	}
-	listOptions.SetLabelSelector(fmt.Sprintf("%s=", e2e.NodeWorkerLabel))
-	workers := &corev1.NodeList{}
 	glog.V(2).Infof("Wait until the environment will have %d ready workers", numberOfReadyWorkers)
 	Eventually(func() bool {
-		err := client.List(context.TODO(), &listOptions, workers)
+		workerNodes, err := e2e.GetWorkerNodes(client)
 		if err != nil {
 			return false
 		}
 
-		readyWorkers := 0
-		for _, w := range workers.Items {
-			readyCond := conditions.GetNodeCondition(&w, corev1.NodeReady)
-			if readyCond.Status == corev1.ConditionTrue {
-				readyWorkers++
-			}
-		}
-
-		glog.V(2).Infof("Number of ready workers %d", readyWorkers)
-		return readyWorkers == numberOfReadyWorkers
+		readyWorkerNodes := e2e.FilterReadyNodes(workerNodes)
+		glog.V(2).Infof("Number of ready workers %d", len(readyWorkerNodes))
+		return len(readyWorkerNodes) == numberOfReadyWorkers
 	}, 15*time.Minute, 10*time.Second).Should(BeTrue())
 }
 
@@ -225,7 +184,7 @@ func deleteKubeletKillerPods() {
 	listOptions := runtimeclient.ListOptions{
 		Namespace: e2e.TestContext.MachineApiNamespace,
 	}
-	listOptions.SetLabelSelector(fmt.Sprintf("%s=", e2e.KubeletKillerPodName))
+	listOptions.MatchingLabels(map[string]string{e2e.KubeletKillerPodName: ""})
 	podList := &corev1.PodList{}
 	err = client.List(context.TODO(), &listOptions, podList)
 	Expect(err).ToNot(HaveOccurred())

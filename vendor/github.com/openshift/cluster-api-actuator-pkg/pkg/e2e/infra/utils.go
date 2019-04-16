@@ -19,16 +19,14 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/scale"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/pointer"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 const (
-	nodeWorkerRoleLabel = "node-role.kubernetes.io/worker"
-	machineRoleLabel    = "machine.openshift.io/cluster-api-machine-role"
-	machineAPIGroup     = "machine.openshift.io"
+	machineRoleLabel = "machine.openshift.io/cluster-api-machine-role"
+	machineAPIGroup  = "machine.openshift.io"
 )
 
 func isOneMachinePerNode(client runtimeclient.Client) bool {
@@ -124,29 +122,6 @@ func getMachinesFromMachineSet(client runtimeclient.Client, machineSet mapiv1bet
 	return machinesForSet, nil
 }
 
-// getMachineFromNode returns the machine referenced by the "controllernode.MachineAnnotationKey" annotation in the given node
-func getMachineFromNode(client runtimeclient.Client, node *corev1.Node) (*mapiv1beta1.Machine, error) {
-	machineNamespaceKey, ok := node.Annotations[controllernode.MachineAnnotationKey]
-	if !ok {
-		return nil, fmt.Errorf("node %q does not have a MachineAnnotationKey %q", node.Name, controllernode.MachineAnnotationKey)
-	}
-	namespace, machineName, err := cache.SplitMetaNamespaceKey(machineNamespaceKey)
-	if err != nil {
-		return nil, fmt.Errorf("machine annotation format is incorrect %v: %v", machineNamespaceKey, err)
-	}
-
-	if namespace != e2e.TestContext.MachineApiNamespace {
-		return nil, fmt.Errorf("Machine %q is forbidden to live outside of default %v namespace", machineNamespaceKey, e2e.TestContext.MachineApiNamespace)
-	}
-
-	machine, err := e2e.GetMachine(context.TODO(), client, machineName)
-	if err != nil {
-		return nil, fmt.Errorf("error querying api for machine object: %v", err)
-	}
-
-	return machine, nil
-}
-
 // deleteMachine deletes a specific machine and returns an error otherwise
 func deleteMachine(client runtimeclient.Client, machine *mapiv1beta1.Machine) error {
 	return wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
@@ -191,28 +166,6 @@ func getNodeFromMachine(client runtimeclient.Client, machine *mapiv1beta1.Machin
 
 	glog.Infof("Machine %q is backing node %q", machine.Name, node.Name)
 	return &node, nil
-}
-
-// getWorkerNode returns a node with the nodeWorkerRoleLabel label
-func getWorkerNode(client runtimeclient.Client) (*corev1.Node, error) {
-	nodeList := corev1.NodeList{}
-	listOptions := runtimeclient.ListOptions{}
-	listOptions.MatchingLabels(map[string]string{nodeWorkerRoleLabel: ""})
-	if err := wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
-		if err := client.List(context.TODO(), &listOptions, &nodeList); err != nil {
-			glog.Errorf("Error querying api for nodeList object: %v, retrying...", err)
-			return false, nil
-		}
-		if len(nodeList.Items) < 1 {
-			glog.Errorf("No nodes were found with label %q", nodeWorkerRoleLabel)
-			return false, nil
-		}
-		return true, nil
-	}); err != nil {
-		glog.Errorf("Error calling getWorkerMachine: %v", err)
-		return nil, err
-	}
-	return &nodeList.Items[0], nil
 }
 
 // nodesAreReady returns true if an array of nodes are all ready
@@ -373,7 +326,7 @@ func waitUntilNodesAreReady(client runtimeclient.Client, listOpt *runtimeclient.
 		// expecting nodeGroupSize nodes
 		readyNodes := 0
 		for _, node := range nodes.Items {
-			if _, exists := node.Labels[e2e.WorkerRoleLabel]; !exists {
+			if _, exists := node.Labels[e2e.WorkerNodeRoleLabel]; !exists {
 				continue
 			}
 
@@ -404,7 +357,7 @@ func waitUntilNodesAreDeleted(client runtimeclient.Client, listOpt *runtimeclien
 		// expecting nodeGroupSize nodes
 		nodeCounter := 0
 		for _, node := range nodes.Items {
-			if _, exists := node.Labels[e2e.WorkerRoleLabel]; !exists {
+			if _, exists := node.Labels[e2e.WorkerNodeRoleLabel]; !exists {
 				continue
 			}
 

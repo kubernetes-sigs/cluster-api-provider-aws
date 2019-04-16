@@ -43,7 +43,7 @@ required = [
 
 [[constraint]]
   name = "github.com/openshift/cluster-api"
-  revision = "8b6a416a1830212712a6b03c5431afbd4f586d62"
+  branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
 
 [[constraint]]
   name = "github.com/openshift/cluster-autoscaler-operator"
@@ -60,20 +60,20 @@ required = [
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.12.5"
+  version = "kubernetes-1.13.1"
 
 [[override]]
   name = "k8s.io/kube-aggregator"
-  branch = "release-1.12"
+  branch = "release-1.13"

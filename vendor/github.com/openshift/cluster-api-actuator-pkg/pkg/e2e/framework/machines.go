@@ -2,6 +2,7 @@ package framework
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 
@@ -9,12 +10,19 @@ import (
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
 	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	mapiv1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	controllernode "github.com/openshift/cluster-api/pkg/controller/node"
+
 	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (f *Framework) DeleteMachineAndWait(machine *machinev1beta1.Machine, client types.CloudProviderClient) {
@@ -240,6 +248,29 @@ func (f *Framework) WaitForNodesToGetReady(count int) error {
 
 		return true, nil
 	})
+}
+
+// GetMachineFromNode returns the machine referenced by the "controllernode.MachineAnnotationKey" annotation in the given node
+func GetMachineFromNode(client runtimeclient.Client, node *corev1.Node) (*mapiv1beta1.Machine, error) {
+	machineNamespaceKey, ok := node.Annotations[controllernode.MachineAnnotationKey]
+	if !ok {
+		return nil, fmt.Errorf("node %q does not have a MachineAnnotationKey %q", node.Name, controllernode.MachineAnnotationKey)
+	}
+	namespace, machineName, err := cache.SplitMetaNamespaceKey(machineNamespaceKey)
+	if err != nil {
+		return nil, fmt.Errorf("machine annotation format is incorrect %v: %v", machineNamespaceKey, err)
+	}
+
+	if namespace != TestContext.MachineApiNamespace {
+		return nil, fmt.Errorf("Machine %q is forbidden to live outside of default %v namespace", machineNamespaceKey, TestContext.MachineApiNamespace)
+	}
+
+	machine, err := GetMachine(context.TODO(), client, machineName)
+	if err != nil {
+		return nil, fmt.Errorf("error querying api for machine object: %v", err)
+	}
+
+	return machine, nil
 }
 
 func ReadKubeconfigFromServer(sshConfig *SSHConfig) (string, error) {
