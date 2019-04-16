@@ -22,7 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
@@ -35,11 +34,11 @@ const (
 
 func (s *Service) reconcileRouteTables() error {
 	if s.scope.VPC().IsProvided() {
-		klog.V(4).Info("Skipping routing tables reconcile in unmanaged mode")
+		s.scope.V(4).Info("Skipping routing tables reconcile in unmanaged mode")
 		return nil
 	}
 
-	klog.V(2).Infof("Reconciling routing tables")
+	s.scope.V(2).Info("Reconciling routing tables")
 
 	subnetRouteMap, err := s.describeVpcRouteTablesBySubnet()
 	if err != nil {
@@ -48,7 +47,7 @@ func (s *Service) reconcileRouteTables() error {
 
 	for _, sn := range s.scope.Subnets() {
 		if igw, ok := subnetRouteMap[sn.ID]; ok {
-			klog.V(2).Infof("Subnet %q is already associated with route table %q", sn.ID, *igw.RouteTableId)
+			s.scope.V(2).Info("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *igw.RouteTableId)
 			// TODO(vincepri): if the route table ids are both non-empty and they don't match, replace the association.
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 
@@ -92,7 +91,7 @@ func (s *Service) reconcileRouteTables() error {
 			return err
 		}
 
-		klog.V(2).Infof("Subnet %q has been associated with route table %q", sn.ID, rt.ID)
+		s.scope.V(2).Info("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 
@@ -123,7 +122,7 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 
 func (s *Service) deleteRouteTables() error {
 	if s.scope.VPC().IsProvided() {
-		klog.V(4).Info("Skipping routing tables deletion in unmanaged mode")
+		s.scope.V(4).Info("Skipping routing tables deletion in unmanaged mode")
 		return nil
 	}
 
@@ -142,14 +141,14 @@ func (s *Service) deleteRouteTables() error {
 				return errors.Wrapf(err, "failed to disassociate route table %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
 			}
 
-			klog.Infof("Deleted association between route table %q and subnet %q", *rt.RouteTableId, *as.SubnetId)
+			s.scope.Info("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
 		}
 
 		if _, err := s.scope.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
 			return errors.Wrapf(err, "failed to delete route table %q", *rt.RouteTableId)
 		}
 
-		klog.Infof("Deleted route table %q", *rt.RouteTableId)
+		s.scope.Info("Deleted route table", "route-table-id", *rt.RouteTableId)
 	}
 	return nil
 }

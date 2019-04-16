@@ -60,6 +60,7 @@ go_test(
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/cloudformation:go_default_library",
         "//pkg/cloud/aws/services/sts:go_default_library",
+        "//pkg/cloudtest:go_default_library",
         "//test/e2e/util/kind:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/client:go_default_library",

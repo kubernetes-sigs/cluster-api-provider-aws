@@ -30,13 +30,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
 func (s *Service) ReconcileLoadbalancers() error {
-	klog.V(2).Info("Reconciling load balancers")
+	s.scope.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
 	spec := s.getAPIServerClassicELBSpec()
@@ -49,7 +48,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 			return err
 		}
 
-		klog.V(2).Infof("Created new classic load balancer for apiserver: %v", apiELB)
+		s.scope.V(2).Info("Created new classic load balancer for apiserver", "api-server-elb-name", apiELB.Name)
 	} else if err != nil {
 		return err
 	}
@@ -63,9 +62,9 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 	// TODO(vincepri): check if anything has changed and reconcile as necessary.
 	apiELB.DeepCopyInto(&s.scope.Network().APIServerELB)
-	klog.V(2).Infof("Control plane load balancer: %+v", apiELB)
+	s.scope.V(4).Info("Control plane load balancer", "api-server-elb", apiELB)
 
-	klog.V(2).Info("Reconcile load balancers completed successfully")
+	s.scope.V(2).Info("Reconcile load balancers completed successfully")
 	return nil
 }
 
@@ -82,7 +81,7 @@ func (s *Service) GetAPIServerDNSName() (string, error) {
 
 // DeleteLoadbalancers deletes the load balancers for the given cluster.
 func (s *Service) DeleteLoadbalancers() error {
-	klog.V(2).Info("Deleting load balancers")
+	s.scope.V(2).Info("Deleting load balancers")
 
 	// Get default api server spec.
 	spec := s.getAPIServerClassicELBSpec()
@@ -100,7 +99,7 @@ func (s *Service) DeleteLoadbalancers() error {
 		return err
 	}
 
-	klog.V(2).Info("Deleting load balancers completed successfully")
+	s.scope.V(2).Info("Deleting load balancers completed successfully")
 	return nil
 }
 
@@ -218,7 +217,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 		}
 	}
 
-	klog.V(2).Infof("Created classic load balancer with dns name: %q", *out.DNSName)
+	s.scope.V(2).Info("Created classic load balancer", "dns-name", *out.DNSName)
 
 	res := spec.DeepCopy()
 	res.DNSName = *out.DNSName

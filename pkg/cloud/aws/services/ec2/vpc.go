@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
@@ -37,7 +36,7 @@ const (
 )
 
 func (s *Service) reconcileVPC() error {
-	klog.V(2).Infof("Reconciling VPC")
+	s.scope.V(2).Info("Reconciling VPC")
 
 	vpc, err := s.describeVPC()
 	if awserrors.IsNotFound(err) {
@@ -53,7 +52,7 @@ func (s *Service) reconcileVPC() error {
 
 	if vpc.IsProvided() {
 		vpc.DeepCopyInto(s.scope.VPC())
-		klog.V(2).Infof("Working on unmanaged VPC %q", vpc.ID)
+		s.scope.V(2).Info("Working on unmanaged VPC", "vpc-id", vpc.ID)
 		return nil
 	}
 
@@ -68,7 +67,7 @@ func (s *Service) reconcileVPC() error {
 	}
 
 	vpc.DeepCopyInto(s.scope.VPC())
-	klog.V(2).Infof("Working on managed VPC %q", vpc.ID)
+	s.scope.V(2).Info("Working on managed VPC", "vpc-id", vpc.ID)
 	return nil
 }
 
@@ -95,7 +94,7 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
-	klog.V(2).Infof("Created new VPC %q with cidr %q", *out.Vpc.VpcId, *out.Vpc.CidrBlock)
+	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 	record.Eventf(s.scope.Cluster, "CreatedVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 
 	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
@@ -119,7 +118,7 @@ func (s *Service) deleteVPC() error {
 	vpc := s.scope.VPC()
 
 	if vpc.IsProvided() {
-		klog.V(4).Info("Skipping VPC deletion in unmanaged mode")
+		s.scope.V(4).Info("Skipping VPC deletion in unmanaged mode")
 		return nil
 	}
 
@@ -131,13 +130,13 @@ func (s *Service) deleteVPC() error {
 	if err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); code == "InvalidVpcID.NotFound" && ok {
-			klog.V(4).Info("Skipping VPC deletion, VPC not found")
+			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
 			return nil
 		}
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
 
-	klog.V(2).Infof("Deleted VPC %q", vpc.ID)
+	s.scope.V(2).Info("Deleted VPC", "vpc-id", vpc.ID)
 	record.Eventf(s.scope.Cluster, "DeletedVPC", "Deleted managed VPC %q", vpc.ID)
 	return nil
 }

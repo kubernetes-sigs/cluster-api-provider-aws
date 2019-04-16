@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +32,7 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
@@ -58,11 +59,13 @@ type Actuator struct {
 	*deployer.Deployer
 
 	client client.ClusterV1alpha1Interface
+	log    logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	Client client.ClusterV1alpha1Interface
+	Client         client.ClusterV1alpha1Interface
+	LoggingContext string
 }
 
 // NewActuator returns an actuator.
@@ -70,6 +73,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
 		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
 		client:   params.Client,
+		log:      klogr.New().WithName(params.LoggingContext),
 	}
 }
 
@@ -99,6 +103,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 				Machine: cm,
 				Cluster: scope.Cluster,
 				Client:  a.client,
+				Logger:  a.log,
 			})
 
 			if err != nil {
@@ -112,7 +117,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 				return false, errors.Wrapf(err, "failed to verify existence of machine %q", m.Name())
 			}
 
-			klog.V(2).Infof("Machine %q should join the controlplane: %t", scope.Machine.Name, ok)
+			a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", ok)
 			return ok, nil
 		}
 
@@ -127,9 +132,9 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if cluster == nil {
 		return errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
 	}
-	klog.Infof("Creating machine %v for cluster %v", machine.Name, cluster.Name)
+	a.log.Info("Creating machine in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -171,7 +176,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken, kubeConfig)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
-			klog.Errorf("network not ready to launch instances yet: %+v", err)
+			a.log.Error(err, "network not ready to launch instances yet")
 			return &controllerError.RequeueAfterError{
 				RequeueAfter: time.Minute,
 			}
@@ -192,7 +197,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if err := a.reconcileLBAttachment(scope, machine, i); err != nil {
 		return errors.Errorf("failed to reconcile LB attachment: %+v", err)
 	}
-
+	a.log.Info("Create completed", "machine-name", machine.Name)
 	return nil
 }
 
@@ -236,9 +241,9 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if cluster == nil {
 		return errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
 	}
-	klog.Infof("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
+	a.log.Info("Deleting machine in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -258,7 +263,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 			return errors.Errorf("failed to query instance by tags: %+v", err)
 		} else if instance == nil {
 			// The machine hasn't been created yet
-			klog.V(3).Info("Instance is nil and therefore does not exist")
+			a.log.V(3).Info("Instance is nil and therefore does not exist")
 			return nil
 		}
 	}
@@ -269,7 +274,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
-		klog.Infof("instance %q is shutting down or already terminated", machine.Name)
+		a.log.Info("Machine instance is shutting down or already terminated", "machine-name", machine.Name, "machine-namespace", machine.Namespace)
 		return nil
 	default:
 		if err := ec2svc.TerminateInstance(instance.ID); err != nil {
@@ -277,7 +282,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 		}
 	}
 
-	klog.Info("shutdown signal was sent. Shutting down machine.")
+	a.log.Info("Shutdown signal was sent. Shutting down machine.")
 	return nil
 }
 
@@ -337,9 +342,9 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
 	}
 
-	klog.Infof("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
+	a.log.Info("Updating machine in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -388,9 +393,9 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return false, errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
 	}
 
-	klog.Infof("Checking if machine %v for cluster %v exists", machine.Name, cluster.Name)
+	a.log.Info("Checking if machine exists in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
 	if err != nil {
 		return false, errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -413,13 +418,13 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return false, nil
 	}
 
-	klog.Infof("Found instance for machine %q: %v", machine.Name, instance)
+	a.log.Info("Found instance for machine", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "instance", instance)
 
 	switch instance.State {
 	case v1alpha1.InstanceStateRunning:
-		klog.Infof("Machine %v is running", *scope.MachineStatus.InstanceID)
+		a.log.Info("Machine instance is running", "instance-id", *scope.MachineStatus.InstanceID)
 	case v1alpha1.InstanceStatePending:
-		klog.Infof("Machine %v is pending", *scope.MachineStatus.InstanceID)
+		a.log.Info("Machine instance is pending", "instance-id", *scope.MachineStatus.InstanceID)
 	default:
 		return false, nil
 	}
@@ -442,12 +447,13 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if machine.Status.NodeRef == nil {
 		nodeRef, err := a.getNodeReference(scope)
 		if err != nil {
-			klog.Warningf("Failed to set nodeRef: %v", err)
+			// non critical error
+			a.log.Info("Failed to set nodeRef", "error", err)
 			return true, nil
 		}
 
 		scope.Machine.Status.NodeRef = nodeRef
-		klog.Infof("Setting machine %q nodeRef to %q", scope.Name(), nodeRef.Name)
+		a.log.Info("Setting machine's nodeRef", "machine-name", scope.Name(), "machine-namespace", scope.Namespace(), "nodeRef", nodeRef.Name)
 	}
 
 	return true, nil

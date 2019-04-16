@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
@@ -37,7 +36,7 @@ const (
 )
 
 func (s *Service) reconcileSubnets() error {
-	klog.V(2).Infof("Reconciling subnets")
+	s.scope.V(2).Info("Reconciling subnets")
 
 	subnets := s.scope.Subnets()
 	defer func() {
@@ -132,13 +131,13 @@ LoopExisting:
 		}
 	}
 
-	klog.V(2).Infof("Subnets available: %v", subnets)
+	s.scope.V(2).Info("Subnets available", "subnets", subnets)
 	return nil
 }
 
 func (s *Service) deleteSubnets() error {
 	if s.scope.VPC().IsProvided() {
-		klog.V(4).Info("Skipping subnets deletion in unmanaged mode")
+		s.scope.V(4).Info("Skipping subnets deletion in unmanaged mode")
 		return nil
 	}
 
@@ -260,8 +259,11 @@ func (s *Service) createSubnet(sn *v1alpha1.SubnetSpec) (*v1alpha1.SubnetSpec, e
 		}
 	}
 
-	klog.V(2).Infof("Created new subnet %q in VPC %q with cidr %q and availability zone %q",
-		*out.Subnet.SubnetId, *out.Subnet.VpcId, *out.Subnet.CidrBlock, *out.Subnet.AvailabilityZone)
+	s.scope.V(2).Info("Created new subnet in VPC with cidr and availability zone ",
+		"subnet-id", *out.Subnet.SubnetId,
+		"vpc-id", *out.Subnet.VpcId,
+		"cidr-block", *out.Subnet.CidrBlock,
+		"availability-zone", *out.Subnet.AvailabilityZone)
 
 	record.Eventf(s.scope.Cluster, "CreatedSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
 
@@ -282,7 +284,7 @@ func (s *Service) deleteSubnet(id string) error {
 		return errors.Wrapf(err, "failed to delete subnet %q", id)
 	}
 
-	klog.V(2).Infof("Deleted subnet %q in vpc %q", id, s.scope.VPC().ID)
+	s.scope.V(2).Info("Deleted subnet in vpc", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
 	record.Eventf(s.scope.Cluster, "DeletedSubnet", "Deleted managed Subnet %q", id)
 	return nil
 }

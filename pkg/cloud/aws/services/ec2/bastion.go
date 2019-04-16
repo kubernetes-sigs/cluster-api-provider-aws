@@ -23,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
@@ -39,15 +38,15 @@ const (
 // ReconcileBastion ensures a bastion is created for the cluster
 func (s *Service) ReconcileBastion() error {
 	if s.scope.VPC().IsProvided() {
-		klog.V(4).Info("Skipping bastion reconcile in unmanaged mode")
+		s.scope.V(4).Info("Skipping bastion reconcile in unmanaged mode")
 		return nil
 	}
 
-	klog.V(2).Info("Reconciling bastion host")
+	s.scope.V(2).Info("Reconciling bastion host")
 
 	subnets := s.scope.Subnets()
 	if len(subnets.FilterPrivate()) == 0 {
-		klog.V(2).Info("No private subnets available, skipping bastion host")
+		s.scope.V(2).Info("No private subnets available, skipping bastion host")
 		return nil
 	} else if len(subnets.FilterPublic()) == 0 {
 		return errors.New("failed to reconcile bastion host, no public subnets are available")
@@ -63,7 +62,7 @@ func (s *Service) ReconcileBastion() error {
 			return err
 		}
 
-		klog.V(2).Infof("Created new bastion host: %+v", instance)
+		s.scope.V(2).Info("Created new bastion host", "instance", instance)
 
 	} else if err != nil {
 		return err
@@ -72,21 +71,21 @@ func (s *Service) ReconcileBastion() error {
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
 	instance.DeepCopyInto(&s.scope.ClusterStatus.Bastion)
-	klog.V(2).Info("Reconcile bastion completed successfully")
+	s.scope.V(2).Info("Reconcile bastion completed successfully")
 	return nil
 }
 
 // DeleteBastion deletes the Bastion instance
 func (s *Service) DeleteBastion() error {
 	if s.scope.VPC().IsProvided() {
-		klog.V(4).Info("Skipping bastion deletion in unmanaged mode")
+		s.scope.V(4).Info("Skipping bastion deletion in unmanaged mode")
 		return nil
 	}
 
 	instance, err := s.describeBastionInstance()
 	if err != nil {
 		if awserrors.IsNotFound(err) {
-			klog.V(2).Info("bastion instance does not exist")
+			s.scope.V(2).Info("bastion instance does not exist", "instance-id", instance.ID)
 			return nil
 		}
 		return errors.Wrap(err, "unable to describe bastion instance")
