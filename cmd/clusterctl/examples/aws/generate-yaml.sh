@@ -38,6 +38,8 @@ CLUSTER_NETWORKSPEC_TEMPLATE_FILE=${DIR}/cluster-network-spec.yaml.template
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
+HA_MACHINES_TEMPLATE_FILE=${DIR}/machines-ha.yaml.template
+HA_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines-ha.yaml
 ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
 PROVIDER_COMPONENTS_SRC=${DIR}/provider-components-base.yaml
 PROVIDER_COMPONENTS_FILE=${OUTPUT_DIR}/provider-components.yaml
@@ -78,6 +80,11 @@ if [ $OVERWRITE -ne 1 ] && [ -f $MACHINES_GENERATED_FILE ]; then
   exit 1
 fi
 
+if [ $OVERWRITE -ne 1 ] && [ -f $HA_MACHINES_GENERATED_FILE ]; then
+  echo File $HA_MACHINES_GENERATED_FILE already exists. Delete it manually before running this script.
+  exit 1
+fi
+
 if [ $OVERWRITE -ne 1 ] && [ -f $CLUSTER_GENERATED_FILE ]; then
   echo File $CLUSTER_GENERATED_FILE already exists. Delete it manually before running this script.
   exit 1
@@ -95,6 +102,9 @@ fi
 
 $ENVSUBST < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
 echo "Done generating ${MACHINES_GENERATED_FILE}"
+
+$ENVSUBST < $HA_MACHINES_TEMPLATE_FILE > "${HA_MACHINES_GENERATED_FILE}"
+echo "Done generating ${HA_MACHINES_GENERATED_FILE}"
 
 cp  ${DIR}/addons.yaml ${ADDONS_FILE}
 echo "Done copying ${ADDONS_FILE}"
