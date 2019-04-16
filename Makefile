@@ -145,10 +145,10 @@ gazelle: ## Run Bazel Gazelle
 generate: ## Generate mocks, CRDs and runs `go generate` through Bazel
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
-	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:go_mock_interfaces \
-		//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library \
-		//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library
-	cp -Rf bazel-genfiles/pkg/* pkg/
+	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:mocks \
+		//pkg/cloud/aws/services/ec2/mock_ec2iface:mocks \
+		//pkg/cloud/aws/services/elb/mock_elbiface:mocks
+	./hack/copy-bazel-mocks.sh
 	$(MAKE) generate-crds
 
 .PHONY: generate-crds
