@@ -396,6 +396,10 @@ spec:
             IP. Precedence for this setting is as follows: 1. This field if set 2.
             Cluster/flavor setting 3. Subnet default'
           type: boolean
+        rootDeviceSize:
+          description: RootDeviceSize is the size of the root volume.
+          format: int64
+          type: integer
         subnet:
           description: Subnet is a reference to the subnet to use for this instance.
             If not specified, the cluster subnet will be used.

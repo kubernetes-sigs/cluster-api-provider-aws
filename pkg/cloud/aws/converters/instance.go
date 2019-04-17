@@ -24,6 +24,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
+// SDKToInstance converts an EC2 instance type to the CAPA
+// instance type.
+// Note: This does not return a complete instance, as rootVolumeSize
+// can not be determined via the output of EC2.DescribeInstances.
 func SDKToInstance(v *ec2.Instance) *v1alpha1.Instance {
 	i := &v1alpha1.Instance{
 		ID:           aws.StringValue(v.InstanceId),
