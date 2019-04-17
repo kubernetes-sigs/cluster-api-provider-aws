@@ -37,6 +37,9 @@ type AWSMachineProviderSpec struct {
 	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AWSResourceReference `json:"ami,omitempty"`
 
+	// ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.
+	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
+
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType,omitempty"`
 

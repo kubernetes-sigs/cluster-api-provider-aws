@@ -76,7 +76,7 @@ func TestAMIs(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
-			id, err := s.defaultAMILookup("base os", "baseos version", "1.11.1")
+			id, err := s.defaultAMILookup("", "base os", "baseos version", "1.11.1")
 			if err != nil {
 				t.Fatalf("did not expect error calling a mock: %v", err)
 			}

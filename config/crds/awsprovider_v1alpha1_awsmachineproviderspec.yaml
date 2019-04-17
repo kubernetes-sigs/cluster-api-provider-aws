@@ -95,6 +95,10 @@ spec:
           description: IAMInstanceProfile is a name of an IAM instance profile to
             assign to the instance
           type: string
+        imageLookupOrg:
+          description: ImageLookupOrg is the AWS Organization ID to use for image
+            lookup if AMI is not set.
+          type: string
         instanceType:
           description: 'InstanceType is the type of instance to create. Example: m4.xlarge'
           type: string
