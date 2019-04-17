@@ -77,6 +77,10 @@ type AWSMachineProviderSpec struct {
 	// +optional
 	KeyName string `json:"keyName,omitempty"`
 
+	// RootDeviceSize is the size of the root volume.
+	// +optional
+	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
+
 	// KubeadmConfiguration holds the kubeadm configuration options
 	// +optional
 	KubeadmConfiguration KubeadmConfiguration `json:"kubeadmConfiguration,omitempty"`
