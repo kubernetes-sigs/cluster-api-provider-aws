@@ -51,7 +51,7 @@ func (s *Service) reconcileVPC() error {
 		return errors.Wrap(err, "failed to describe VPCs")
 	}
 
-	if vpc.IsProvided(s.scope.Name()) {
+	if vpc.IsUnmanaged(s.scope.Name()) {
 		vpc.DeepCopyInto(s.scope.VPC())
 		klog.V(2).Infof("Working on unmanaged VPC %q", vpc.ID)
 		return nil
@@ -73,7 +73,7 @@ func (s *Service) reconcileVPC() error {
 }
 
 func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
-	if s.scope.VPC().IsProvided(s.scope.Name()) {
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		return nil, errors.Errorf("cannot create a managed vpc in unmanaged mode")
 	}
 
@@ -118,7 +118,7 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 func (s *Service) deleteVPC() error {
 	vpc := s.scope.VPC()
 
-	if vpc.IsProvided(s.scope.Name()) {
+	if vpc.IsUnmanaged(s.scope.Name()) {
 		klog.V(4).Info("Skipping VPC deletion in unmanaged mode")
 		return nil
 	}

@@ -111,8 +111,8 @@ func (v *VPCSpec) String() string {
 	return fmt.Sprintf("id=%s", v.ID)
 }
 
-// IsProvided returns true if the VPC is unmanaged.
-func (v *VPCSpec) IsProvided(clusterName string) bool {
+// IsUnmanaged returns true if the VPC is unmanaged.
+func (v *VPCSpec) IsUnmanaged(clusterName string) bool {
 	return v.ID != "" && !v.Tags.HasOwned(clusterName)
 }
 
