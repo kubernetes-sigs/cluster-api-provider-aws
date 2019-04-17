@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	// machineAMIOwnerID is a heptio/VMware owned account. Please see:
+	// defaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
 	defaultMachineAMIOwnerID = "258751437250"
 
