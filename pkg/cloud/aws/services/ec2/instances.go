@@ -122,7 +122,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	if machine.MachineConfig.AMI.ID != nil {
 		input.ImageID = *machine.MachineConfig.AMI.ID
 	} else {
-		input.ImageID, err = s.defaultAMILookup("ubuntu", "18.04", machine.Machine.Spec.Versions.Kubelet)
+		input.ImageID, err = s.defaultAMILookup(machine.MachineConfig.ImageLookupOrg, "ubuntu", "18.04", machine.Machine.Spec.Versions.Kubelet)
 		if err != nil {
 			return nil, err
 		}
