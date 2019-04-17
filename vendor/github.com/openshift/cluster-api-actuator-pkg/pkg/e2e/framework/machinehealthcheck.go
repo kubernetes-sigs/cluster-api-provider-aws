@@ -16,8 +16,6 @@ import (
 const (
 	// KubeletKillerPodName contains the name of the pod that stops kubelet process
 	KubeletKillerPodName = "kubelet-killer"
-	// NodeWorkerLabel contains label that every worker node has
-	NodeWorkerLabel = "node-role.kubernetes.io/worker"
 	// MachineHealthCheckName contains the name of the machinehealthcheck used for tests
 	MachineHealthCheckName = "workers-check"
 )

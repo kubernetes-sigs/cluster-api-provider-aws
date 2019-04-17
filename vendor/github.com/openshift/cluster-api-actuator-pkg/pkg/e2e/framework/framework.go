@@ -436,7 +436,7 @@ func IsNodeReady(node *corev1.Node) bool {
 }
 
 func WaitUntilAllNodesAreReady(client runtimeclient.Client) error {
-	return wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
+	return wait.PollImmediate(1*time.Second, PoolNodesReadyTimeout, func() (bool, error) {
 		nodeList := corev1.NodeList{}
 		if err := client.List(context.TODO(), &runtimeclient.ListOptions{}, &nodeList); err != nil {
 			glog.Errorf("error querying api for nodeList object: %v, retrying...", err)

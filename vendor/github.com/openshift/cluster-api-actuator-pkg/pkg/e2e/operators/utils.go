@@ -45,7 +45,7 @@ func deleteDeployment(client runtimeclient.Client, deployment *kappsapi.Deployme
 }
 
 func isDeploymentAvailable(client runtimeclient.Client, name string) bool {
-	if err := wait.PollImmediate(1*time.Second, e2e.WaitShort, func() (bool, error) {
+	if err := wait.PollImmediate(1*time.Second, e2e.WaitLong, func() (bool, error) {
 		d, err := getDeployment(client, name)
 		if err != nil {
 			glog.Errorf("Error getting deployment: %v", err)
