@@ -158,7 +158,8 @@ func (m *MachineScope) Close() {
 			return err
 		}
 		m.V(5).Info("Latest machine", "machine", latest)
-		// The machine may have status (nodeRef) that the latest doesn't yet have.
+		// The machine may have status (nodeRef) that the latest doesn't yet
+		// have, however some timestamps may be rolled back a bit with this copy.
 		m.Machine.Status.DeepCopyInto(&latest.Status)
 		latest.Status.ProviderStatus = status
 		_, err = m.MachineClient.UpdateStatus(latest)
