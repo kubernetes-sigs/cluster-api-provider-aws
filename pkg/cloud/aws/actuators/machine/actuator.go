@@ -306,7 +306,7 @@ func (a *Actuator) isMachineOutdated(machineSpec *v1alpha1.AWSMachineProviderSpe
 	}
 
 	// Root Device Size
-	if machineSpec.RootDeviceSize != instance.RootDeviceSize {
+	if machineSpec.RootDeviceSize > 0 && machineSpec.RootDeviceSize != instance.RootDeviceSize {
 		errs = append(errs, errors.Errorf("Root volume size cannot be mutated from %v to %v", instance.RootDeviceSize, machineSpec.RootDeviceSize))
 	}
 
