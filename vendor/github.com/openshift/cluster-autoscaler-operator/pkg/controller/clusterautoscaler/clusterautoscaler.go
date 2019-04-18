@@ -3,7 +3,7 @@ package clusterautoscaler
 import (
 	"fmt"
 
-	v1alpha1 "github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1alpha1"
+	v1 "github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1"
 )
 
 // AutoscalerArg represents a command line argument to the cluster-autoscaler
@@ -53,7 +53,7 @@ const (
 // AutoscalerArgs returns a slice of strings representing command line arguments
 // to the cluster-autoscaler corresponding to the values in the given
 // ClusterAutoscaler resource.
-func AutoscalerArgs(ca *v1alpha1.ClusterAutoscaler, cfg *Config) []string {
+func AutoscalerArgs(ca *v1.ClusterAutoscaler, cfg *Config) []string {
 	s := &ca.Spec
 
 	args := []string{
@@ -87,7 +87,7 @@ func AutoscalerArgs(ca *v1alpha1.ClusterAutoscaler, cfg *Config) []string {
 // ScaleDownArgs returns a slice of strings representing command line arguments
 // to the cluster-autoscaler corresponding to the values in the given
 // ScaleDownConfig object.
-func ScaleDownArgs(sd *v1alpha1.ScaleDownConfig) []string {
+func ScaleDownArgs(sd *v1.ScaleDownConfig) []string {
 	if !sd.Enabled {
 		return []string{ScaleDownEnabledArg.Value(false)}
 	}
@@ -118,7 +118,7 @@ func ScaleDownArgs(sd *v1alpha1.ScaleDownConfig) []string {
 // ResourceArgs returns a slice of strings representing command line arguments
 // to the cluster-autoscaler corresponding to the values in the given
 // ResourceLimits object.
-func ResourceArgs(rl *v1alpha1.ResourceLimits) []string {
+func ResourceArgs(rl *v1.ResourceLimits) []string {
 	args := []string{}
 
 	if rl.MaxNodesTotal != nil {

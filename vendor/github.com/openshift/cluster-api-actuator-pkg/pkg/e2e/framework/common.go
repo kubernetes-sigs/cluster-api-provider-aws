@@ -6,7 +6,8 @@ import (
 	"time"
 
 	mapiv1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
-	caov1alpha1 "github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1alpha1"
+	caov1 "github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1"
+	caov1beta1 "github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,8 +89,8 @@ func GetMachine(ctx context.Context, client runtimeclient.Client, machineName st
 
 // DeleteObjectsByLabels list all objects of a given kind by labels and deletes them.
 // Currently supported kinds:
-// - caov1alpha1.MachineAutoscalerList
-// - caov1alpha1.ClusterAutoscalerList
+// - caov1beta1.MachineAutoscalerList
+// - caov1.ClusterAutoscalerList
 // - batchv1.JobList
 func DeleteObjectsByLabels(ctx context.Context, client runtimeclient.Client, labels map[string]string, list runtime.Object) error {
 	if err := client.List(ctx, runtimeclient.MatchingLabels(labels), list); err != nil {
@@ -99,11 +100,11 @@ func DeleteObjectsByLabels(ctx context.Context, client runtimeclient.Client, lab
 	// TODO(jchaloup): find a way how to list the items independent of a kind
 	var objs []runtime.Object
 	switch d := list.(type) {
-	case *caov1alpha1.MachineAutoscalerList:
+	case *caov1beta1.MachineAutoscalerList:
 		for _, item := range d.Items {
 			objs = append(objs, runtime.Object(&item))
 		}
-	case *caov1alpha1.ClusterAutoscalerList:
+	case *caov1.ClusterAutoscalerList:
 		for _, item := range d.Items {
 			objs = append(objs, runtime.Object(&item))
 		}

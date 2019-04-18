@@ -1,4 +1,4 @@
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,10 +52,13 @@ type ResourceLimits struct {
 }
 
 type GPULimit struct {
-	// TODO: Should this match on known GPU types?
 	// +kubebuilder:validation:MinLength=1
 	Type string `json:"type"`
-	ResourceRange
+
+	// +kubebuilder:validation:Minimum=0
+	Min int32 `json:"min"`
+	// +kubebuilder:validation:Minimum=1
+	Max int32 `json:"max"`
 }
 
 type ResourceRange struct {

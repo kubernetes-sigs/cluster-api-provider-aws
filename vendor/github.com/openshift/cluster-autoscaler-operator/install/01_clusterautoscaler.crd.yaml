@@ -48,11 +48,21 @@ spec:
                 gpus:
                   items:
                     properties:
+                      max:
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      min:
+                        format: int32
+                        minimum: 0
+                        type: integer
                       type:
                         minLength: 1
                         type: string
                     required:
                     - type
+                    - min
+                    - max
                     type: object
                   type: array
                 maxNodesTotal:
@@ -95,8 +105,8 @@ spec:
           type: object
         status:
           type: object
-  version: v1alpha1
+  version: v1
   versions:
-  - name: v1alpha1
+  - name: v1
     served: true
     storage: true

@@ -469,16 +469,15 @@
   version = "v1.4.2"
 
 [[projects]]
-  branch = "master"
-  digest = "1:3e7d0b300be6939fbf0731edf57ae4af2aefff51d99e6d721f81661f4b2da7cb"
+  digest = "1:bec734dc3474457e6cfa4b2723db944c81d2b354ca3a55200ee551d7ad5d1eea"
   name = "github.com/openshift/api"
   packages = ["config/v1"]
   pruneopts = "T"
-  revision = "cec6269883be26556e63500b6df19a0b6691992e"
+  revision = "8e476cb7322e59919cbb6482fd076ec5a214df25"
 
 [[projects]]
   branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
-  digest = "1:bc3ef9dcff2f279b59f5de2a3b98617948e4eec6fbeea6068f779ad09fb07c7e"
+  digest = "1:fdddf352fc7677bb205bc1a84a8c4205c92ca2b1b8cf50e862a7cbbf26da4b10"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis",
@@ -498,34 +497,34 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "34fb0d070a2ed877b1df06a2b79bbc4f92bcad2d"
+  revision = "9839db3a35e26b97dccc223fc7b7310e4fb48544"
 
 [[projects]]
   branch = "master"
-  digest = "1:ada209c942e97be1ee2b8310da6f393df8b5789175eca2b580184b81eb469b39"
+  digest = "1:7cbcae314ea9375bebbecfc8b520bbce9786f9c4d1b42824f2a1613695e3faad"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/autoscaler",
     "pkg/e2e/framework",
     "pkg/e2e/infra",
-    "pkg/e2e/machinehealthcheck",
     "pkg/e2e/operators",
     "pkg/manifests",
     "pkg/types",
   ]
   pruneopts = ""
-  revision = "480b54695c31cb66af3b8d0925d5c3adef044b05"
+  revision = "59a034672129ff21181ac38871a47dabbc900c7f"
 
 [[projects]]
   branch = "master"
-  digest = "1:431bada388129ea31e4997b196dc40730c5c9edd442b8df7b741d143b7b809c4"
+  digest = "1:4e2b5e8a9ae67c0c8c25c6a93bbf5b710baac24b20e6843a81ee75f18ac57a85"
   name = "github.com/openshift/cluster-autoscaler-operator"
   packages = [
     "pkg/apis",
-    "pkg/apis/autoscaling/v1alpha1",
+    "pkg/apis/autoscaling/v1",
+    "pkg/apis/autoscaling/v1beta1",
   ]
   pruneopts = "T"
-  revision = "1df9eecb2d95391e36a0269669e199c2943fde66"
+  revision = "17350a84b40565851a3f1bd21c6f8a6763b8eacb"
 
 [[projects]]
   branch = "master"
@@ -1245,7 +1244,6 @@
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",
-    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/machinehealthcheck",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/operators",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
@@ -1255,7 +1253,6 @@
     "github.com/openshift/cluster-api/pkg/controller/machine",
     "github.com/openshift/cluster-api/pkg/errors",
     "github.com/openshift/cluster-autoscaler-operator/pkg/apis",
-    "github.com/openshift/machine-api-operator/pkg/apis/healthchecking/v1alpha1",
     "github.com/prometheus/common/log",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",

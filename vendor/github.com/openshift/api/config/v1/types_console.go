@@ -13,14 +13,16 @@ type Console struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +required
 	Spec ConsoleSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
+	// +optional
 	Status ConsoleStatus `json:"status"`
 }
 
 type ConsoleSpec struct {
 	// +optional
-	Authentication ConsoleAuthentication `json:"authentication,omitempty"`
+	Authentication ConsoleAuthentication `json:"authentication"`
 }
 
 type ConsoleStatus struct {
@@ -34,7 +36,7 @@ type ConsoleStatus struct {
 type ConsoleList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []Console `json:"items"`
 }
 
@@ -50,5 +52,6 @@ type ConsoleAuthentication struct {
 	// provides the user the option to perform single logout (SLO) through the identity
 	// provider to destroy their single sign-on session.
 	// +optional
+	// +kubebuilder:validation:Pattern=^$|^((https):\/\/?)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/?))$
 	LogoutRedirect string `json:"logoutRedirect,omitempty"`
 }

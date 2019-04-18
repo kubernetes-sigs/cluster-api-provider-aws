@@ -16,7 +16,6 @@ const OperatorName = "cluster-autoscaler"
 // Operator represents an instance of the cluster-autoscaler-operator.
 type Operator struct {
 	config  *Config
-	status  *StatusReporter
 	manager manager.Manager
 }
 
@@ -27,23 +26,6 @@ func New(cfg *Config) (*Operator, error) {
 
 	// Get a config to talk to the apiserver.
 	clientConfig, err := config.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// track set of related namespaces for openshift-must-gather diagnostics
-	relatedNamespaces := map[string]string{}
-	relatedNamespaces[cfg.WatchNamespace] = ""
-	relatedNamespaces[cfg.LeaderElectionNamespace] = ""
-	relatedNamespaces[cfg.ClusterAutoscalerNamespace] = ""
-	relatedObjects := []configv1.ObjectReference{}
-	for k := range relatedNamespaces {
-		relatedObjects = append(relatedObjects, configv1.ObjectReference{
-			Resource: "namespaces",
-			Name:     k,
-		})
-	}
-	operator.status, err = NewStatusReporter(clientConfig, relatedObjects)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +52,42 @@ func New(cfg *Config) (*Operator, error) {
 		return nil, err
 	}
 
+	statusConfig := &StatusReporterConfig{
+		ClusterAutoscalerName:      cfg.ClusterAutoscalerName,
+		ClusterAutoscalerNamespace: cfg.ClusterAutoscalerNamespace,
+		ReleaseVersion:             cfg.ReleaseVersion,
+		RelatedObjects:             operator.RelatedObjects(),
+	}
+
+	statusReporter, err := NewStatusReporter(operator.manager, statusConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	operator.manager.Add(statusReporter)
+
 	return operator, nil
+}
+
+// RelatedObjects returns a list of objects related to the operator and its
+// operands.  These are used in the ClusterOperator status.
+func (o *Operator) RelatedObjects() []configv1.ObjectReference {
+	relatedNamespaces := map[string]string{}
+
+	relatedNamespaces[o.config.WatchNamespace] = ""
+	relatedNamespaces[o.config.LeaderElectionNamespace] = ""
+	relatedNamespaces[o.config.ClusterAutoscalerNamespace] = ""
+
+	relatedObjects := []configv1.ObjectReference{}
+
+	for namespace := range relatedNamespaces {
+		relatedObjects = append(relatedObjects, configv1.ObjectReference{
+			Resource: "namespaces",
+			Name:     namespace,
+		})
+	}
+
+	return relatedObjects
 }
 
 // AddControllers configures the various controllers and adds them to
@@ -78,12 +95,14 @@ func New(cfg *Config) (*Operator, error) {
 func (o *Operator) AddControllers() error {
 	// Setup ClusterAutoscaler controller.
 	ca := clusterautoscaler.NewReconciler(o.manager, &clusterautoscaler.Config{
-		Name:          o.config.ClusterAutoscalerName,
-		Image:         o.config.ClusterAutoscalerImage,
-		Replicas:      o.config.ClusterAutoscalerReplicas,
-		Namespace:     o.config.ClusterAutoscalerNamespace,
-		CloudProvider: o.config.ClusterAutoscalerCloudProvider,
-		Verbosity:     o.config.ClusterAutoscalerVerbosity,
+		ReleaseVersion: o.config.ReleaseVersion,
+		Name:           o.config.ClusterAutoscalerName,
+		Image:          o.config.ClusterAutoscalerImage,
+		Replicas:       o.config.ClusterAutoscalerReplicas,
+		Namespace:      o.config.ClusterAutoscalerNamespace,
+		CloudProvider:  o.config.ClusterAutoscalerCloudProvider,
+		Verbosity:      o.config.ClusterAutoscalerVerbosity,
+		ExtraArgs:      o.config.ClusterAutoscalerExtraArgs,
 	})
 
 	if err := ca.AddToManager(o.manager); err != nil {
@@ -92,7 +111,8 @@ func (o *Operator) AddControllers() error {
 
 	// Setup MachineAutoscaler controller.
 	ma := machineautoscaler.NewReconciler(o.manager, &machineautoscaler.Config{
-		Namespace: o.config.ClusterAutoscalerNamespace,
+		Namespace:           o.config.ClusterAutoscalerNamespace,
+		SupportedTargetGVKs: machineautoscaler.DefaultSupportedTargetGVKs(),
 	})
 
 	if err := ma.AddToManager(o.manager); err != nil {
@@ -105,9 +125,6 @@ func (o *Operator) AddControllers() error {
 // Start starts the operator's controller-manager.
 func (o *Operator) Start() error {
 	stopCh := signals.SetupSignalHandler()
-
-	// Report status to the CVO.
-	go o.status.Report(stopCh)
 
 	return o.manager.Start(stopCh)
 }

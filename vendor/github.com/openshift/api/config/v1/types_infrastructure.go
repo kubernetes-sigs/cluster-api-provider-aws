@@ -13,24 +13,35 @@ type Infrastructure struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +required
 	Spec InfrastructureSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
+	// +optional
 	Status InfrastructureStatus `json:"status"`
 }
 
 // InfrastructureSpec contains settings that apply to the cluster infrastructure.
 type InfrastructureSpec struct {
-	// secret reference?
-	// configmap reference to file?
+	// cloudConfig is a reference to a ConfigMap containing the cloud provider configuration file.
+	// This configuration file is used to configure the Kubernetes cloud provider integration
+	// when using the built-in cloud provider integration or the external cloud controller manager.
+	// The namespace for this config map is openshift-config.
+	// +optional
+	CloudConfig ConfigMapFileReference `json:"cloudConfig"`
 }
 
 // InfrastructureStatus describes the infrastructure the cluster is leveraging.
 type InfrastructureStatus struct {
+	// infrastructureName uniquely identifies a cluster with a human friendly name.
+	// Once set it should not be changed. Must be of max length 27 and must have only
+	// alphanumeric or hyphen characters.
+	InfrastructureName string `json:"infrastructureName"`
+
 	// platform is the underlying infrastructure provider for the cluster. This
 	// value controls whether infrastructure automation such as service load
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
-	// enabled. Allowed values are "AWS", "Azure", "GCP", "Libvirt",
+	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
 	// "OpenStack", "VSphere", and "None". Individual components may not support
 	// all platforms, and must handle unrecognized platforms as None if they do
 	// not support that platform.
@@ -51,26 +62,29 @@ type InfrastructureStatus struct {
 type PlatformType string
 
 const (
-	// AWSPlatform represents Amazon Web Services infrastructure.
-	AWSPlatform PlatformType = "AWS"
+	// AWSPlatformType represents Amazon Web Services infrastructure.
+	AWSPlatformType PlatformType = "AWS"
 
-	// AzurePlatform represents Microsoft Azure infrastructure.
-	AzurePlatform PlatformType = "Azure"
+	// AzurePlatformType represents Microsoft Azure infrastructure.
+	AzurePlatformType PlatformType = "Azure"
 
-	// GCPPlatform represents Google Cloud Platform infrastructure.
-	GCPPlatform PlatformType = "GCP"
+	// BareMetalPlatformType represents managed bare metal infrastructure.
+	BareMetalPlatformType PlatformType = "BareMetal"
 
-	// LibvirtPlatform represents libvirt infrastructure.
-	LibvirtPlatform PlatformType = "Libvirt"
+	// GCPPlatformType represents Google Cloud Platform infrastructure.
+	GCPPlatformType PlatformType = "GCP"
 
-	// OpenStackPlatform represents OpenStack infrastructure.
-	OpenStackPlatform PlatformType = "OpenStack"
+	// LibvirtPlatformType represents libvirt infrastructure.
+	LibvirtPlatformType PlatformType = "Libvirt"
 
-	// NonePlatform means there is no infrastructure provider.
-	NonePlatform PlatformType = "None"
+	// OpenStackPlatformType represents OpenStack infrastructure.
+	OpenStackPlatformType PlatformType = "OpenStack"
 
-	// VSpherePlatform represents VMWare vSphere infrastructure.
-	VSpherePlatform PlatformType = "VSphere"
+	// NonePlatformType means there is no infrastructure provider.
+	NonePlatformType PlatformType = "None"
+
+	// VSpherePlatformType represents VMWare vSphere infrastructure.
+	VSpherePlatformType PlatformType = "VSphere"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -79,6 +93,6 @@ const (
 type InfrastructureList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []Infrastructure `json:"items"`
 }

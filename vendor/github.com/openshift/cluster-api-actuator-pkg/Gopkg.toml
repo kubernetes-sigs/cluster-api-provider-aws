@@ -42,6 +42,10 @@ required = [
     ]
 
 [[constraint]]
+  name = "github.com/openshift/api"
+  revision = "8e476cb7322e59919cbb6482fd076ec5a214df25"
+
+[[constraint]]
   name = "github.com/openshift/cluster-api"
   branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
 
