@@ -84,8 +84,8 @@ func isStatusAvailable(client runtimeclient.Client, name string) bool {
 			glog.Errorf("Condition: %q is true", osconfigv1.OperatorProgressing)
 			return false, nil
 		}
-		if cov1helpers.IsStatusConditionTrue(clusterOperator.Status.Conditions, osconfigv1.OperatorFailing) {
-			glog.Errorf("Condition: %q is true", osconfigv1.OperatorFailing)
+		if cov1helpers.IsStatusConditionTrue(clusterOperator.Status.Conditions, osconfigv1.OperatorFailing) || cov1helpers.IsStatusConditionTrue(clusterOperator.Status.Conditions, osconfigv1.OperatorDegraded) {
+			glog.Errorf("Condition: %q is true", osconfigv1.OperatorDegraded)
 			return false, nil
 		}
 		return true, nil

@@ -1,5 +1,5 @@
 ---
-apiVersion: "autoscaling.openshift.io/v1alpha1"
+apiVersion: "autoscaling.openshift.io/v1beta1"
 kind: "MachineAutoscaler"
 metadata:
   name: "worker-us-east-1a"

@@ -41,18 +41,18 @@ depend-update:
 generate: ## Code generation (requires operator-sdk >= v0.5.0)
 	mkdir -p deploy/crds
 
-	cp install/0000_50_cluster-autoscaler-operator_01_clusterautoscaler.crd.yaml \
-	  deploy/crds/autoscaling_v1alpha1_clusterautoscaler_crd.yaml
-	cp install/0000_50_cluster-autoscaler-operator_02_machineautoscaler.crd.yaml \
-	  deploy/crds/autoscaling_v1alpha1_machineautoscaler_crd.yaml
+	cp install/01_clusterautoscaler.crd.yaml \
+	  deploy/crds/autoscaling_v1_clusterautoscaler_crd.yaml
+	cp install/02_machineautoscaler.crd.yaml \
+	  deploy/crds/autoscaling_v1beta1_machineautoscaler_crd.yaml
 
 	operator-sdk generate k8s
 	operator-sdk generate openapi
 
-	cp deploy/crds/autoscaling_v1alpha1_clusterautoscaler_crd.yaml \
-	  install/0000_50_cluster-autoscaler-operator_01_clusterautoscaler.crd.yaml
-	cp deploy/crds/autoscaling_v1alpha1_machineautoscaler_crd.yaml \
-	  install/0000_50_cluster-autoscaler-operator_02_machineautoscaler.crd.yaml
+	cp deploy/crds/autoscaling_v1_clusterautoscaler_crd.yaml \
+	  install/01_clusterautoscaler.crd.yaml
+	cp deploy/crds/autoscaling_v1beta1_machineautoscaler_crd.yaml \
+	  install/02_machineautoscaler.crd.yaml
 
 .PHONY: build
 build: ## build binaries
@@ -70,13 +70,23 @@ push:
 .PHONY: check
 check: fmt vet lint test ## Check your code
 
+.PHONY: check-pkg
+check-pkg:
+	./hack/verify-actuator-pkg.sh
+
 .PHONY: test
 test: ## Run unit tests
 	$(DOCKER_CMD) go test -race -cover ./...
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
-	 go run ./test/e2e/*.go -alsologtostderr $${NAMESPACE:+--namespace=$${NAMESPACE}} $${FOCUS:+--focus=$${FOCUS}}
+	go test -timeout 60m \
+		-v $(REPO_PATH)/vendor/github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
+		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
+		-machine-api-namespace $${NAMESPACE:-openshift-machine-api} \
+		-ginkgo.v \
+		-ginkgo.noColor=true \
+		-args -v 5 -logtostderr true
 
 .PHONY: lint
 lint: ## Go lint your code

@@ -30,14 +30,9 @@ var (
 	ErrTargetBadOwner = errors.New("incorrectly formatted owner annotation")
 )
 
-// MachineTargetFromObject converts a runtime.Object to a MachineTarget.
+// MachineTargetFromObject converts a runtime.Object to a MachineTarget.  Note
+// that this does not validate the object is a supported target type.
 func MachineTargetFromObject(obj runtime.Object) (*MachineTarget, error) {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-
-	if !SupportedTarget(gvk) {
-		return nil, ErrUnsupportedTarget
-	}
-
 	u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return nil, err
@@ -213,4 +208,12 @@ func (mt *MachineTarget) Finalize() bool {
 	ownerModified := mt.RemoveOwner()
 
 	return limitsModified || ownerModified
+}
+
+// NamespacedName returns a NamespacedName for the target.
+func (mt *MachineTarget) NamespacedName() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      mt.GetName(),
+		Namespace: mt.GetNamespace(),
+	}
 }

@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -51,6 +51,10 @@ const (
 
 // Config represents the runtime configuration for the operator.
 type Config struct {
+	// ReleaseVersion is the version the operator is expected
+	// to report once it has reached level.
+	ReleaseVersion string
+
 	// WatchNamespace is the namespace the operator will watch for
 	// ClusterAutoscaler and MachineAutoscaler instances.
 	WatchNamespace string
@@ -88,6 +92,15 @@ type Config struct {
 	// ClusterAutoscalerVerbosity is the logging verbosity level for
 	// ClusterAutoscaler deployments.
 	ClusterAutoscalerVerbosity int
+
+	// ClusterAutoscalerExtraArgs is a string of additional arguments
+	// passed to all ClusterAutoscaler deployments.
+	//
+	// This is not exposed in the CRD.  It is only configurable via
+	// environment variable, and in a normal OpenShift install the CVO
+	// will remove it if set manually.  It is only for development and
+	// debugging purposes.
+	ClusterAutoscalerExtraArgs string
 }
 
 // NewConfig returns a new Config object with defaults set.
@@ -111,6 +124,10 @@ func NewConfig() *Config {
 func ConfigFromEnvironment() *Config {
 	config := NewConfig()
 
+	if releaseVersion, ok := os.LookupEnv("RELEASE_VERSION"); ok {
+		config.ReleaseVersion = releaseVersion
+	}
+
 	if watchNamespace, ok := os.LookupEnv("WATCH_NAMESPACE"); ok {
 		config.WatchNamespace = watchNamespace
 	}
@@ -119,7 +136,7 @@ func ConfigFromEnvironment() *Config {
 		le, err := strconv.ParseBool(leaderElection)
 		if err != nil {
 			le = DefaultLeaderElection
-			glog.Errorf("Error parsing LEADER_ELECTION environment variable: %v", err)
+			klog.Errorf("Error parsing LEADER_ELECTION environment variable: %v", err)
 		}
 
 		config.LeaderElection = le
@@ -153,10 +170,14 @@ func ConfigFromEnvironment() *Config {
 		v, err := strconv.Atoi(caVerbosity)
 		if err != nil {
 			v = DefaultClusterAutoscalerVerbosity
-			glog.Errorf("Error parsing CLUSTER_AUTOSCALER_VERBOSITY environment variable: %v", err)
+			klog.Errorf("Error parsing CLUSTER_AUTOSCALER_VERBOSITY environment variable: %v", err)
 		}
 
 		config.ClusterAutoscalerVerbosity = v
+	}
+
+	if caExtraArgs, ok := os.LookupEnv("CLUSTER_AUTOSCALER_EXTRA_ARGS"); ok {
+		config.ClusterAutoscalerExtraArgs = caExtraArgs
 	}
 
 	return config

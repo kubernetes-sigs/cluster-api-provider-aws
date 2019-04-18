@@ -412,7 +412,7 @@ func verifyNodeDraining(client runtimeclient.Client, targetMachine *mapiv1beta1.
 			return false, nil
 		}
 		if machine.Status.NodeRef == nil || machine.Status.NodeRef.Kind != "Node" {
-			glog.Error("Machine %q not linked to a node", machine.Name)
+			glog.Errorf("Machine %q not linked to a node", machine.Name)
 			return false, nil
 		}
 

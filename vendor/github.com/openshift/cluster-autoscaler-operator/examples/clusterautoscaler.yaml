@@ -1,5 +1,5 @@
 ---
-apiVersion: "autoscaling.openshift.io/v1alpha1"
+apiVersion: "autoscaling.openshift.io/v1"
 kind: "ClusterAutoscaler"
 metadata:
   name: "default"
@@ -13,6 +13,7 @@ spec:
     memory:
       min: 4
       max: 256
+    # GPU is optional and can be omitted
     gpus:
       - type: nvidia.com/gpu
         min: 0
@@ -22,6 +23,9 @@ spec:
         max: 4
   scaleDown:
     enabled: true
+    # How long after scale up that scale down evaluation resumes - if omitted defaults to 10 minutes
     delayAfterAdd: 10s
+    # How long after node deletion that scale down evaluation resumes - if omitted defaults to 10 seconds
     delayAfterDelete: 10s
+    # How long after scale down failure that scale down evaluation resumes - if omitted defaults to 3 minutes
     delayAfterFailure: 10s

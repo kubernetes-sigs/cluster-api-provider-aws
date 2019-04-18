@@ -2,4 +2,7 @@ apiVersion: config.openshift.io/v1
 kind: ClusterOperator
 metadata:
   name: cluster-autoscaler
-spec: {}
+status:
+  versions:
+  - name: operator
+    version: "0.0.1-snapshot"
