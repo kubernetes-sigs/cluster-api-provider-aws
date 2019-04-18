@@ -1,4 +1,4 @@
-**Creating clusters using cross account role assumption using kiam**
+# Creating clusters using cross account role assumption using kiam
 
 This document outlines the list of steps to create the target cluster via cross account role assumption using KIAM. 
 KIAM lets the controller pod(s) to assume an AWS role that enables them create AWS resources necessary to create an
@@ -7,18 +7,17 @@ supply AWS credentials to the CAPA controller. This is automatically taken care 
 Note: If you dont want to use KIAM and rather want to mount the credentials as secrets, you may still achieve cross 
 account role assumption by using multiple profiles. (TODO add this section at the bottom) 
 
-**Glossory**
+### Glossory
 
-* Trusting Account - The account where the cluster is created
-* Trusted Account - The AWS account where the CAPA controller runs. The "Trusting" account trusts the "Trusted" account
-to create a new cluster in "Trusting" account. 
+* Target Account - The account where the cluster is created
+* Source Account - The AWS account where the CAPA controller runs. 
 
-**Assumptions:**
+## Assumptions
 1. The CAPA controllers are running in 1 AWS account and you want to create the target cluster in another AWS account.
 (We could also use this doc to create a cluster in the same account)
 2. This assumes that you start with no existing clusters. 
 
-**High level steps**
+## High level steps
 
 1. Creating a bootstrap/management cluster in AWS - This can be done by running the phases in clusterctl
     * Uses the existing provider components yaml
@@ -27,7 +26,7 @@ to create a new cluster in "Trusting" account.
 4. Create the target cluster (through kiam)
     * Uses different provider components with no secrets and annotation to indicate the IAM Role to assume. 
 
-**Creating the bootstrap cluster in AWS**
+## 1. Creating the bootstrap cluster in AWS
 Using clusterctl command we can create a new cluster in AWS which in turn will act as the 
 bootstrap cluster to create the target cluster(in a different AWS account. This can be achieved by using the phases in 
 clusterctl to perform all the steps except the pivoting. This will provide us with a bare-bones functioning cluster that 
@@ -70,11 +69,10 @@ the machines example yaml since we are only interested in running the controller
 make kind-reset
 ```
 
-**Setting up cross account roles:**
+## 2. Setting up cross account roles
 
 In this step we will new roles/policy in total across 2 different AWS accounts.
-First lets start by creating the roles in the account where the AWS controller runs. Lets call this the "trusted" 
-account since this account is trusted by the "trusting" account where the cluster is created. Following the directions 
+First lets start by creating the roles in the account where the AWS controller runs. Following the directions 
 posted here:https://github.com/uswitch/kiam/blob/master/docs/IAM.md create a "kiam_server" role
 in AWS that only has a single managed policy with a single permission "sts:AssumeRole". Also add a trust policy on the 
  "kiam_server" role to include the role attached to the Control plane instance as a trusted entity. This looks something
@@ -94,14 +92,302 @@ in AWS that only has a single managed policy with a single permission "sts:Assum
 }
 ```
 
-Next we must establish a link between this "kiam_server" and the role on trusting account that includes the permissions to 
-create new cluster. This is done by using the similar steps as shown above. 
-Sign in to the trusting account.
-This requires running the clusterawsadm cli to create a new stack on the trusting account where the target cluster is 
-created
-
+Next we must establish a link between this "kiam_server" role on source AWS account and the role on target AWS account that has the permissions to create new cluster.
+Begin by running the clusterawsadm cli to create a new stack on the target account where the target cluster is created. Make sure you use the credentials for target AWS account for running this step.
 ```clusterawsadm alpha bootstrap create-stack```
+Then sign-in to the target AWS account to establish the link as mentioned above. Create a new Role with the permission policy set to "controllers.cluster-api-provider-aws.sigs.k8s.io". Lets name this role "cluster-api" for future reference. Add a new trust relationship to include the "kiam_server" role from the source account as trusted entity. This is shown below:
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<SOURCE_AWS_ACCOUNT_NUMBER>:role/kserver"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+## 3. Deploying the Kiam server & agent
+By Now, your target cluster must be up & running. Make sure your KUBECONFIG pointing to the cluster in the target account. 
 
-The last role to be created is the one that is attached to the control plane that runs the CAPA controllers.
-This role must have a minimal set of permissions 
+Create new secrets using the steps outlined here: https://github.com/uswitch/kiam/blob/master/docs/TLS.md 
+Apply the manifest shown below: 
+Make sure you update the argument to include your source AWS account "--assume-role-arn=arn:aws:iam::<SOURCE_AWS_ACCOUNT>:role/kiam_server"
+server.yaml
+```
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  namespace: kube-system
+  name: kiam-server
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9620"
+      labels:
+        app: kiam
+        role: server
+    spec:
+      serviceAccountName: kiam-server
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+      - operator: "Exists"
+      volumes:
+        - name: ssl-certs
+          hostPath:
+            # for AWS linux or RHEL distros
+            # path: /etc/pki/ca-trust/extracted/pem/
+            path: /etc/ssl/certs/
+        - name: tls
+          secret:
+            secretName: kiam-server-tls
+      hostNetwork: true
+      containers:
+        - name: kiam
+          image: quay.io/uswitch/kiam:master # USE A TAGGED RELEASE IN PRODUCTION
+          imagePullPolicy: Always
+          command:
+            - /kiam
+          args:
+            - server
+            - --json-log
+            - --level=warn
+            - --bind=0.0.0.0:443
+            - --cert=/etc/kiam/tls/server.pem
+            - --key=/etc/kiam/tls/server-key.pem
+            - --ca=/etc/kiam/tls/ca.pem
+            - --role-base-arn-autodetect
+            - --assume-role-arn=arn:aws:iam::<SOURCE_AWS_ACCOUNT>:role/kiam_server
+            - --sync=1m
+            - --prometheus-listen-addr=0.0.0.0:9620
+            - --prometheus-sync-interval=5s
+          volumeMounts:
+            - mountPath: /etc/ssl/certs
+              name: ssl-certs
+            - mountPath: /etc/kiam/tls
+              name: tls
+          livenessProbe:
+            exec:
+              command:
+              - /kiam
+              - health
+              - --cert=/etc/kiam/tls/server.pem
+              - --key=/etc/kiam/tls/server-key.pem
+              - --ca=/etc/kiam/tls/ca.pem
+              - --server-address=127.0.0.1:443
+              - --gateway-timeout-creation=1s
+              - --timeout=5s
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - /kiam
+              - health
+              - --cert=/etc/kiam/tls/server.pem
+              - --key=/etc/kiam/tls/server-key.pem
+              - --ca=/etc/kiam/tls/ca.pem
+              - --server-address=127.0.0.1:443
+              - --gateway-timeout-creation=1s
+              - --timeout=5s
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kiam-server
+  namespace: kube-system
+spec:
+  clusterIP: None
+  selector:
+    app: kiam
+    role: server
+  ports:
+  - name: grpclb
+    port: 443
+    targetPort: 443
+    protocol: TCP
+```
+agent.yaml 
+```
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  namespace: kube-system
+  name: kiam-agent
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9620"
+      labels:
+        app: kiam
+        role: agent
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - operator: "Exists"
+      volumes:
+        - name: ssl-certs
+          hostPath:
+            # for AWS linux or RHEL distros
+            #path: /etc/pki/ca-trust/extracted/pem/
+            path: /etc/ssl/certs/
+        - name: tls
+          secret:
+            secretName: kiam-agent-tls
+        - name: xtables
+          hostPath:
+            path: /run/xtables.lock
+            type: FileOrCreate
+      containers:
+        - name: kiam
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          image: quay.io/uswitch/kiam:master # USE A TAGGED RELEASE IN PRODUCTION
+          imagePullPolicy: Always
+          command:
+            - /kiam
+          args:
+            - agent
+            - --iptables
+            - --host-interface=cali+
+            - --json-log
+            - --port=8181
+            - --cert=/etc/kiam/tls/agent.pem
+            - --key=/etc/kiam/tls/agent-key.pem
+            - --ca=/etc/kiam/tls/ca.pem
+            - --server-address=kiam-server:443
+            - --prometheus-listen-addr=0.0.0.0:9620
+            - --prometheus-sync-interval=5s
+            - --gateway-timeout-creation=1s
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          volumeMounts:
+            - mountPath: /etc/ssl/certs
+              name: ssl-certs
+            - mountPath: /etc/kiam/tls
+              name: tls
+            - mountPath: /var/run/xtables.lock
+              name: xtables
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 8181
+            initialDelaySeconds: 3
+            periodSeconds: 3
+```
+server-rbac.yaml
+```
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: kiam-server
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kiam-read
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - pods
+  verbs:
+  - watch
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kiam-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kiam-read
+subjects:
+- kind: ServiceAccount
+  name: kiam-server
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kiam-write
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kiam-write
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kiam-write
+subjects:
+- kind: ServiceAccount
+  name: kiam-server
+  namespace: kube-system
+```
+After Deploying the above components make sure that the kiam_server & kiam_agent pods are up & running. 
 
+## 4. Create the target cluster
+Make sure you create copy of the "aws/out" directory called "out2". To create the target cluster we must update the provider_components.yaml generated in the out2 directory. 
+1. Remove the credentials secret added at the bottom of the provider_components.yaml and do not mount the secret 
+2. Add the following annotation to the template of aws-provider-controller-manager stateful set to specify the new role that was created in target account.
+```
+      annotations:
+        iam.amazonaws.com/role: arn:aws:iam::<TARGET_AWS_ACCOUNT>:role/cluster-api
+```
+3. Also add this below annotation to the "aws-provider-system" namespace 
+```
+  annotations:
+    iam.amazonaws.com/permitted: ".*"
+```
+
+Create a new cluster using the steps similar to the one used to create the source cluster. They are as follows:
+export SOURCE_KUBECONFIG=<PATH_TO_SOURCE_CLUSTER_KUBECONFIG>
+```
+kubectl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out2/provider-components.yaml \
+--kubeconfig $SOURCE_KUBECONFIG
+
+kubectl alpha phases apply-cluster --cluster cmd/clusterctl/examples/aws/out2/cluster.yaml --kubeconfig $SOURCE_KUBECONFIG
+
+kubectl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out2/machines.yaml 
+--kubeconfig $SOURCE_KUBECONFIG
+
+kubectl alpha phases get-kubeconfig --provider aws --cluster-name <TARGET_CLUSTER_NAME> --kubeconfig $SOURCE_KUBECONFIG
+export TARGET_KUBECONFIG=`pwd`/kubeconfig
+
+kubectl alpha phases apply-addons -a cmd/clusterctl/examples/aws/out2/addons.yaml 
+--kubeconfig $TARGET_KUBECONFIG
+
+```
+This creates the new cluster in the target AWS account.
