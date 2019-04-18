@@ -478,7 +478,7 @@
 
 [[projects]]
   branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
-  digest = "1:bc3ef9dcff2f279b59f5de2a3b98617948e4eec6fbeea6068f779ad09fb07c7e"
+  digest = "1:fdddf352fc7677bb205bc1a84a8c4205c92ca2b1b8cf50e862a7cbbf26da4b10"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis",
@@ -498,7 +498,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "34fb0d070a2ed877b1df06a2b79bbc4f92bcad2d"
+  revision = "9839db3a35e26b97dccc223fc7b7310e4fb48544"
 
 [[projects]]
   branch = "master"
@@ -508,7 +508,6 @@
     "pkg/e2e/autoscaler",
     "pkg/e2e/framework",
     "pkg/e2e/infra",
-    "pkg/e2e/machinehealthcheck",
     "pkg/e2e/operators",
     "pkg/manifests",
     "pkg/types",
@@ -1245,7 +1244,6 @@
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/autoscaler",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/infra",
-    "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/machinehealthcheck",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/operators",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
@@ -1255,7 +1253,6 @@
     "github.com/openshift/cluster-api/pkg/controller/machine",
     "github.com/openshift/cluster-api/pkg/errors",
     "github.com/openshift/cluster-autoscaler-operator/pkg/apis",
-    "github.com/openshift/machine-api-operator/pkg/apis/healthchecking/v1alpha1",
     "github.com/prometheus/common/log",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
