@@ -1,6 +1,6 @@
-# Creating clusters using cross account role assumption using kiam
+# Creating clusters using cross account role assumption using KIAM
 
-This document outlines the list of steps to create the target cluster via cross account role assumption using KIAM. 
+This document outlines the list of steps to create the target cluster via cross account role assumption using [KIAM]https://github.com/uswitch/kiam. 
 KIAM lets the controller pod(s) to assume an AWS role that enables them create AWS resources necessary to create an
 operational cluster. This way we wouldn't have to mount any AWS credentials or load environment variables to 
 supply AWS credentials to the CAPA controller. This is automatically taken care by the KIAM components.
@@ -13,17 +13,16 @@ account role assumption by using multiple profiles.
 * Source Account - The AWS account where the CAPA controller runs. 
 
 ## Assumptions
-1. The CAPA controllers are running in 1 AWS account and you want to create the target cluster in another AWS account.
-(We could also use this doc to create a cluster in the same account)
+1. The CAPA controllers are running in an AWS account and you want to create the target cluster in another AWS account.
 2. This assumes that you start with no existing clusters. 
 
 ## High level steps
 
 1. Creating a bootstrap/management cluster in AWS - This can be done by running the phases in clusterctl
     * Uses the existing provider components yaml
-2. Setting up cross account roles
-3. Deploying the Kiam server/agent
-4. Create the target cluster (through kiam)
+2. Setting up cross account IAM roles
+3. Deploying the KIAM server/agent
+4. Create the target cluster (through KIAM)
     * Uses different provider components with no secrets and annotation to indicate the IAM Role to assume. 
 
 ## 1. Creating the bootstrap cluster in AWS
@@ -31,53 +30,60 @@ Using clusterctl command we can create a new cluster in AWS which in turn will a
 bootstrap cluster to create the target cluster(in a different AWS account. This can be achieved by using the phases in 
 clusterctl to perform all the steps except the pivoting. This will provide us with a bare-bones functioning cluster that 
 we can use as a bootstrap cluster. 
-To begin with follow the steps in this getting started guide
-(https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md) to setup the environment
+To begin with follow the steps in this [getting started guide]
+https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md to setup the environment
 except for creating the actual cluster. Instead follow the steps below to create the cluster.
 
 create a new cluster using kind for bootstrapping purpose by running:
-```$xslt
-kind create cluster
+
+```$sh
+kind create cluster --name <CLUSTER_NAME>
 ```
+
 and get its kube config path by running
-```
+
+```$sh
 export KIND_KUBECONFIG=`kind get kubeconfig-path`
 ```
 
-Use the following commands to create new (bootstrap) cluster in AWS
-```
+Use the following commands to create new (bootstrap) cluster in AWS. 
+```$sh
 kubectl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out/provider-components.yaml \
 --kubeconfig $KIND_KUBECONFIG
 
 kubectl alpha phases apply-cluster --cluster cmd/clusterctl/examples/aws/out/cluster.yaml --kubeconfig $KIND_KUBECONFIG
+```
 
-kubectl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out/machines.yaml 
---kubeconfig $KIND_KUBECONFIG
+We only need to create the control plane on the cluster running in AWS source account. Since the example includes definition for a worker node, you may delete it. 
+
+```$sh
+kubectl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out/machines.yaml --kubeconfig $KIND_KUBECONFIG
 
 kubectl alpha phases get-kubeconfig --provider aws --cluster-name <CLUSTER_NAME> --kubeconfig $KIND_KUBECONFIG
-export AWS_KUBECONFIG=`pwd`/kubeconfig
 
-kubectl alpha phases apply-addons -a cmd/clusterctl/examples/aws/out/addons.yaml 
---kubeconfig $AWS_KUBECONFIG
+export AWS_KUBECONFIG=$PWD/kubeconfig
 
+kubectl alpha phases apply-addons -a cmd/clusterctl/examples/aws/out/addons.yaml --kubeconfig $AWS_KUBECONFIG
 ```
 
 Verify that all the pods in the kube-system namespace are running smoothly. Also you may remove the additional node in 
 the machines example yaml since we are only interested in running the controllers that runs in control plane node
 (although its not required to make any changes there). You can destroy your local kind cluster by running 
-```$xslt
-make kind-reset
+
+```$sh
+kind delete cluster --name <CLUSTER_NAME>
 ```
 
 ## 2. Setting up cross account roles
 
-In this step we will new roles/policy in total across 2 different AWS accounts.
-First lets start by creating the roles in the account where the AWS controller runs. Following the directions 
-posted here:https://github.com/uswitch/kiam/blob/master/docs/IAM.md create a "kiam_server" role
+In this step we will create new roles/policy in across 2 different AWS accounts.
+Let us start by creating the roles in the account where the AWS controller runs. Following the directions 
+posted in [KIAM repo]https://github.com/uswitch/kiam/blob/master/docs/IAM.md create a "kiam_server" role
 in AWS that only has a single managed policy with a single permission "sts:AssumeRole". Also add a trust policy on the 
  "kiam_server" role to include the role attached to the Control plane instance as a trusted entity. This looks something
  like this:
- ```$xslt
+ 
+ ```$json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -93,10 +99,13 @@ in AWS that only has a single managed policy with a single permission "sts:Assum
 ```
 
 Next we must establish a link between this "kiam_server" role on source AWS account and the role on target AWS account that has the permissions to create new cluster.
-Begin by running the clusterawsadm cli to create a new stack on the target account where the target cluster is created. Make sure you use the credentials for target AWS account for running this step.
+Begin by running the clusterawsadm cli to create a new stack on the target account where the target cluster is created. Make sure you use the credentials for target AWS account before creating the stack.
+
 ```clusterawsadm alpha bootstrap create-stack```
+
 Then sign-in to the target AWS account to establish the link as mentioned above. Create a new Role with the permission policy set to "controllers.cluster-api-provider-aws.sigs.k8s.io". Lets name this role "cluster-api" for future reference. Add a new trust relationship to include the "kiam_server" role from the source account as trusted entity. This is shown below:
-```
+
+```$json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -110,13 +119,15 @@ Then sign-in to the target AWS account to establish the link as mentioned above.
   ]
 }
 ```
-## 3. Deploying the Kiam server & agent
-By Now, your target cluster must be up & running. Make sure your KUBECONFIG pointing to the cluster in the target account. 
 
-Create new secrets using the steps outlined here: https://github.com/uswitch/kiam/blob/master/docs/TLS.md 
+## 3. Deploying the KIAM server & agent
+By now, your target cluster must be up & running. Make sure your KUBECONFIG pointing to the cluster in the target account. 
+
+Create new secrets using the steps outlined [here]https://github.com/uswitch/kiam/blob/master/docs/TLS.md 
 Apply the manifest shown below: 
 Make sure you update the argument to include your source AWS account "--assume-role-arn=arn:aws:iam::<SOURCE_AWS_ACCOUNT>:role/kiam_server"
 server.yaml
+
 ```
 ---
 apiVersion: extensions/v1beta1
@@ -218,7 +229,9 @@ spec:
     targetPort: 443
     protocol: TCP
 ```
+
 agent.yaml 
+
 ```
 apiVersion: extensions/v1beta1
 kind: DaemonSet
@@ -293,7 +306,9 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 3
 ```
+
 server-rbac.yaml
+
 ```
 ---
 kind: ServiceAccount
@@ -356,7 +371,8 @@ subjects:
   name: kiam-server
   namespace: kube-system
 ```
-After Deploying the above components make sure that the kiam_server & kiam_agent pods are up & running. 
+
+After deploying the above components make sure that the kiam_server & kiam_agent pods are up & running. 
 
 ## 4. Create the target cluster
 Make sure you create copy of the "aws/out" directory called "out2". To create the target cluster we must update the provider_components.yaml generated in the out2 directory. 
@@ -380,13 +396,13 @@ kubectl alpha phases apply-cluster-api-components --provider-components cmd/clus
 
 kubectl alpha phases apply-cluster --cluster cmd/clusterctl/examples/aws/out2/cluster.yaml --kubeconfig $SOURCE_KUBECONFIG
 
-kubectl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out2/machines.yaml 
+kubectl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out2/machines.yaml \
 --kubeconfig $SOURCE_KUBECONFIG
 
 kubectl alpha phases get-kubeconfig --provider aws --cluster-name <TARGET_CLUSTER_NAME> --kubeconfig $SOURCE_KUBECONFIG
 export TARGET_KUBECONFIG=`pwd`/kubeconfig
 
-kubectl alpha phases apply-addons -a cmd/clusterctl/examples/aws/out2/addons.yaml 
+kubectl alpha phases apply-addons -a cmd/clusterctl/examples/aws/out2/addons.yaml \
 --kubeconfig $TARGET_KUBECONFIG
 
 ```
