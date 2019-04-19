@@ -147,13 +147,13 @@ func (m *MachineScope) Close() {
 		m.V(6).Info("Machine status before update", "machine-status", m.Machine.Status)
 		latest, err := m.MachineClient.Update(m.Machine)
 		if err != nil {
-			m.Error(err, "error updating machine")
+			m.V(3).Info("Machine resource version is out of date")
+			// Fetch and update the latest resource version
 			newestMachine, err2 := m.MachineClient.Get(m.Machine.Name, metav1.GetOptions{})
 			if err2 != nil {
 				m.Error(err2, "failed to fetch latest Machine")
 				return err2
 			}
-			// Error if anything but the machine resource version changes
 			m.Machine.ResourceVersion = newestMachine.ResourceVersion
 			return err
 		}

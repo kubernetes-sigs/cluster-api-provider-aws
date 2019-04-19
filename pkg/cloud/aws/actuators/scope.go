@@ -156,13 +156,13 @@ func (s *Scope) Close() {
 		s.V(6).Info("Cluster status before update", "cluster-status", s.Cluster.Status)
 		latest, err := s.ClusterClient.Update(s.Cluster)
 		if err != nil {
-			s.Error(err, "error updating cluster")
+			s.V(3).Info("Cluster resource version is out of date")
+			// Fetch and update the latest resource version
 			newestCluster, err2 := s.ClusterClient.Get(s.Cluster.Name, metav1.GetOptions{})
 			if err2 != nil {
 				s.Error(err2, "failed to fetch latest cluster")
 				return err2
 			}
-			// Error if anything but the cluster resource version changes
 			s.Cluster.ResourceVersion = newestCluster.ResourceVersion
 			return err
 		}
