@@ -68,8 +68,6 @@ func getStoppedInstances(machine *machinev1.Machine, client awsclient.Client) ([
 // and cluster ID.
 func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {
 
-	machineName := machine.Name
-
 	clusterID, ok := getClusterID(machine)
 	if !ok {
 		return []*ec2.Instance{}, fmt.Errorf("unable to get cluster ID for machine: %q", machine.Name)
@@ -77,13 +75,10 @@ func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceS
 
 	requestFilters := []*ec2.Filter{
 		{
-			Name:   aws.String("tag:Name"),
-			Values: []*string{&machineName},
+			Name:   awsTagFilter("Name"),
+			Values: aws.StringSlice([]string{machine.Name}),
 		},
-		{
-			Name:   aws.String("tag:clusterid"),
-			Values: []*string{&clusterID},
-		},
+		clusterFilter(clusterID),
 	}
 
 	if instanceStateFilter != nil {

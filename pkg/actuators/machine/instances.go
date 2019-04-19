@@ -258,7 +258,6 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 		rawTagList = append(rawTagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
 	}
 	rawTagList = append(rawTagList, []*ec2.Tag{
-		{Key: aws.String("clusterid"), Value: aws.String(clusterID)},
 		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
 		{Key: aws.String("Name"), Value: aws.String(machine.Name)},
 	}...)

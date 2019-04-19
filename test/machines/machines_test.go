@@ -195,7 +195,6 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 					"sub-host-type":                                    "default",
 					"host-type":                                        "master",
 					"Name":                                             testMachine.Name,
-					"clusterid":                                        clusterID,
 				}))
 			})
 
