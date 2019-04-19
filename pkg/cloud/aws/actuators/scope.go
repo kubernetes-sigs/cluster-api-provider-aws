@@ -23,6 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -131,40 +133,46 @@ func (s *Scope) Region() string {
 	return s.ClusterConfig.Region
 }
 
-func (s *Scope) storeClusterConfig(cluster *clusterv1.Cluster) (*clusterv1.Cluster, error) {
-	ext, err := v1alpha1.EncodeClusterSpec(s.ClusterConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	cluster.Spec.ProviderSpec.Value = ext
-	return s.ClusterClient.Update(cluster)
-}
-
-func (s *Scope) storeClusterStatus(cluster *clusterv1.Cluster) (*clusterv1.Cluster, error) {
-	ext, err := v1alpha1.EncodeClusterStatus(s.ClusterStatus)
-	if err != nil {
-		return nil, err
-	}
-
-	cluster.Status.ProviderStatus = ext
-	return s.ClusterClient.UpdateStatus(cluster)
-}
-
 // Close closes the current scope persisting the cluster configuration and status.
 func (s *Scope) Close() {
 	if s.ClusterClient == nil {
 		return
 	}
-
-	latestCluster, err := s.storeClusterConfig(s.Cluster)
+	ext, err := v1alpha1.EncodeClusterSpec(s.ClusterConfig)
 	if err != nil {
-		s.Error(err, "failed to store provider config")
+		s.Error(err, "failed encoding cluster spec")
+		return
+	}
+	status, err := v1alpha1.EncodeClusterStatus(s.ClusterStatus)
+	if err != nil {
+		s.Error(err, "failed encoding cluster status")
 		return
 	}
 
-	_, err = s.storeClusterStatus(latestCluster)
-	if err != nil {
-		s.Error(err, "failed to store provider status")
+	// Update the resource version and try again if there is a conflict saving the object.
+	if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		s.V(2).Info("Updating cluster", "cluster-resource-version", s.Cluster.ResourceVersion)
+		s.Cluster.Spec.ProviderSpec.Value = ext
+		s.V(6).Info("Cluster status before update", "cluster-status", s.Cluster.Status)
+		latest, err := s.ClusterClient.Update(s.Cluster)
+		if err != nil {
+			s.V(3).Info("Cluster resource version is out of date")
+			// Fetch and update the latest resource version
+			newestCluster, err2 := s.ClusterClient.Get(s.Cluster.Name, metav1.GetOptions{})
+			if err2 != nil {
+				s.Error(err2, "failed to fetch latest cluster")
+				return err2
+			}
+			s.Cluster.ResourceVersion = newestCluster.ResourceVersion
+			return err
+		}
+		s.V(5).Info("Latest cluster status", "cluster-status", latest.Status)
+		s.Cluster.Status.DeepCopyInto(&latest.Status)
+		latest.Status.ProviderStatus = status
+		_, err = s.ClusterClient.UpdateStatus(latest)
+		return err
+	}); err != nil {
+		s.Error(err, "failed to retry on conflict")
 	}
+	s.V(2).Info("Successfully updated cluster")
 }

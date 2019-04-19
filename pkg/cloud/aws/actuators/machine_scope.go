@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -109,30 +110,9 @@ func (m *MachineScope) GetMachine() *clusterv1.Machine {
 	return m.Machine
 }
 
-// GetScope() returns the scope that is wrapping the machine.
+// GetScope returns the scope that is wrapping the machine.
 func (m *MachineScope) GetScope() *Scope {
 	return m.Scope
-}
-
-func (m *MachineScope) storeMachineSpec(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
-	ext, err := v1alpha1.EncodeMachineSpec(m.MachineConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	machine.Spec.ProviderSpec.Value = ext
-	return m.MachineClient.Update(machine)
-}
-
-func (m *MachineScope) storeMachineStatus(machine *clusterv1.Machine) (*clusterv1.Machine, error) {
-	ext, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
-	if err != nil {
-		return nil, err
-	}
-
-	m.Machine.Status.DeepCopyInto(&machine.Status)
-	machine.Status.ProviderStatus = ext
-	return m.MachineClient.UpdateStatus(machine)
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
@@ -140,17 +120,54 @@ func (m *MachineScope) Close() {
 	if m.MachineClient == nil {
 		return
 	}
-
-	latestMachine, err := m.storeMachineSpec(m.Machine)
+	ext, err := v1alpha1.EncodeMachineSpec(m.MachineConfig)
 	if err != nil {
-		m.Error(err, "failed to update machine")
+		m.Error(err, "failed to encode machine spec")
+		return
+	}
+	status, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
+	if err != nil {
+		m.Error(err, "failed to encode machine status")
 		return
 	}
 
-	_, err = m.storeMachineStatus(latestMachine)
-	if err != nil {
-		m.Error(err, "failed to store machine provider status")
+	// Sometimes when an object gets updated the local copy is out of date with
+	// the copy stored on the server. In the case of cluster-api this will
+	// always be because the local copy will have an out-of-date resource
+	// version. This is because something else has updated the resource version
+	// on the server and thus the local copy is behind.
+	// This retry function will update the resource version if the local copy is
+	// behind and try again.
+	// This retry function will *only* update the resource version. If some
+	// other data has changed then there is a problem. Nothing else should be
+	// updating the object and this function will (correctly) fail.
+	if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		m.V(2).Info("Updating machine", "machine-resource-version", m.Machine.ResourceVersion, "node-ref", m.Machine.Status.NodeRef)
+		m.Machine.Spec.ProviderSpec.Value = ext
+		m.V(6).Info("Machine status before update", "machine-status", m.Machine.Status)
+		latest, err := m.MachineClient.Update(m.Machine)
+		if err != nil {
+			m.V(3).Info("Machine resource version is out of date")
+			// Fetch and update the latest resource version
+			newestMachine, err2 := m.MachineClient.Get(m.Machine.Name, metav1.GetOptions{})
+			if err2 != nil {
+				m.Error(err2, "failed to fetch latest Machine")
+				return err2
+			}
+			m.Machine.ResourceVersion = newestMachine.ResourceVersion
+			return err
+		}
+		m.V(5).Info("Latest machine", "machine", latest)
+		// The machine may have status (nodeRef) that the latest doesn't yet
+		// have, however some timestamps may be rolled back a bit with this copy.
+		m.Machine.Status.DeepCopyInto(&latest.Status)
+		latest.Status.ProviderStatus = status
+		_, err = m.MachineClient.UpdateStatus(latest)
+		return err
+	}); err != nil {
+		m.Error(err, "error retrying on conflict")
 	}
+	m.V(2).Info("Successfully updated machine")
 }
 
 // MachineConfigFromProviderSpec tries to decode the JSON-encoded spec, falling back on getting a MachineClass if the value is absent.
