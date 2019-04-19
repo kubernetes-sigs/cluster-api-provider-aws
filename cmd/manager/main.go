@@ -16,6 +16,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang/glog"
@@ -26,15 +27,25 @@ import (
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
 func main() {
+	var printVersion bool
+	flag.BoolVar(&printVersion, "version", false, "print version and exit")
+
 	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(klogFlags)
 	flag.Parse()
+
+	if printVersion {
+		fmt.Println(version.String)
+		os.Exit(0)
+	}
+
 	flag.VisitAll(func(f1 *flag.Flag) {
 		f2 := klogFlags.Lookup(f1.Name)
 		if f2 != nil {
