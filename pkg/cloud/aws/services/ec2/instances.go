@@ -23,7 +23,9 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
@@ -435,9 +437,22 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 		return nil, errors.Errorf("no instance returned for reservation %v", out.GoString())
 	}
 
-	s.scope.EC2.WaitUntilInstanceRunning(&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}})
+	s.scope.V(2).Info("Waiting for instance to run", "instance-id", *out.Instances[0].InstanceId)
+	err = s.scope.EC2.WaitUntilInstanceRunningWithContext(
+		aws.BackgroundContext(),
+		&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}},
+		request.WithWaiterLogger(&awslog{s.scope.Logger}),
+	)
+	return converters.SDKToInstance(out.Instances[0]), err
+}
 
-	return s.SDKToInstance(out.Instances[0])
+// An internal type to satisfy aws' log interface.
+type awslog struct {
+	logr.Logger
+}
+
+func (a *awslog) Log(args ...interface{}) {
+	a.WithName("aws-logger").Info("AWS context", args...)
 }
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given

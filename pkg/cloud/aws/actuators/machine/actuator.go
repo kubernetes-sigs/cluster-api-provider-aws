@@ -452,13 +452,13 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if machine.Status.NodeRef == nil {
 		nodeRef, err := a.getNodeReference(scope)
 		if err != nil {
-			// non critical error
 			a.log.Info("Failed to set nodeRef", "error", err)
+			// non critical error
 			return true, nil
 		}
 
 		scope.Machine.Status.NodeRef = nodeRef
-		a.log.Info("Setting machine's nodeRef", "machine-name", scope.Name(), "machine-namespace", scope.Namespace(), "nodeRef", nodeRef.Name)
+		a.log.V(2).Info("Setting machine's nodeRef", "machine-name", scope.Name(), "machine-namespace", scope.Namespace(), "nodeRef", nodeRef.Name)
 	}
 
 	return true, nil
