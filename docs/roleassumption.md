@@ -5,7 +5,7 @@ KIAM lets the controller pod(s) to assume an AWS role that enables them create A
 operational cluster. This way we wouldn't have to mount any AWS credentials or load environment variables to 
 supply AWS credentials to the CAPA controller. This is automatically taken care by the KIAM components.
 Note: If you dont want to use KIAM and rather want to mount the credentials as secrets, you may still achieve cross 
-account role assumption by using multiple profiles. (TODO add this section at the bottom) 
+account role assumption by using multiple profiles. 
 
 ### Glossory
 
