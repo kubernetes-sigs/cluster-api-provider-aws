@@ -83,6 +83,8 @@ in AWS that only has a single managed policy with a single permission "sts:Assum
  "kiam_server" role to include the role attached to the Control plane instance as a trusted entity. This looks something
  like this:
  
+ In "kiam_server" role (Source AWS account):
+ 
  ```$json
 {
   "Version": "2012-10-17",
@@ -104,6 +106,8 @@ Begin by running the clusterawsadm cli to create a new stack on the target accou
 ```clusterawsadm alpha bootstrap create-stack```
 
 Then sign-in to the target AWS account to establish the link as mentioned above. Create a new Role with the permission policy set to "controllers.cluster-api-provider-aws.sigs.k8s.io". Lets name this role "cluster-api" for future reference. Add a new trust relationship to include the "kiam_server" role from the source account as trusted entity. This is shown below:
+
+In "controllers.cluster-api-provider-aws.sigs.k8s.io" role(target AWS account)
 
 ```$json
 {
@@ -389,8 +393,9 @@ Make sure you create copy of the "aws/out" directory called "out2". To create th
 ```
 
 Create a new cluster using the steps similar to the one used to create the source cluster. They are as follows:
-export SOURCE_KUBECONFIG=<PATH_TO_SOURCE_CLUSTER_KUBECONFIG>
 ```
+export SOURCE_KUBECONFIG=<PATH_TO_SOURCE_CLUSTER_KUBECONFIG>
+
 kubectl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out2/provider-components.yaml \
 --kubeconfig $SOURCE_KUBECONFIG
 
