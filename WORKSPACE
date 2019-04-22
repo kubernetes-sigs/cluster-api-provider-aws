@@ -40,6 +40,20 @@ http_archive(
     urls = ["https://github.com/kubernetes/repo-infra/archive/df02ded38f9506e5bbcbf21702034b4fef815f2f.tar.gz"],
 )
 
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "2ef429f5d7ce7111263289644d233707dba35e39696377ebab8b0bc701f7818e",
+    type = "tar.gz",
+    url = "https://github.com/bazelbuild/bazel-skylib/releases/download/0.8.0/bazel-skylib.0.8.0.tar.gz",
+)
+
+load("@bazel_skylib//:lib.bzl", "versions")
+
+versions.check(
+    minimum_bazel_version = "0.21.0",
+    maximum_bazel_version = "1.0.0",
+)  # fails if not within range
+
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 go_rules_dependencies()
