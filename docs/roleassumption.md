@@ -1,6 +1,6 @@
 # Creating clusters using cross account role assumption using KIAM
 
-This document outlines the list of steps to create the target cluster via cross account role assumption using [KIAM]https://github.com/uswitch/kiam. 
+This document outlines the list of steps to create the target cluster via cross account role assumption using [KIAM](https://github.com/uswitch/kiam). 
 KIAM lets the controller pod(s) to assume an AWS role that enables them create AWS resources necessary to create an
 operational cluster. This way we wouldn't have to mount any AWS credentials or load environment variables to 
 supply AWS credentials to the CAPA controller. This is automatically taken care by the KIAM components.
@@ -9,29 +9,29 @@ account role assumption by using multiple profiles.
 
 ### Glossory
 
-* Target Account - The account where the cluster is created
-* Source Account - The AWS account where the CAPA controller runs. 
+* Management cluster - The cluster that runs in AWS and is used to create target clusters in different AWS accounts
+* Target account - The account where the target cluster is created
+* Source account - The AWS account where the CAPA controllers for management cluster runs. 
 
-## Assumptions
+## Goals
 1. The CAPA controllers are running in an AWS account and you want to create the target cluster in another AWS account.
 2. This assumes that you start with no existing clusters. 
 
 ## High level steps
 
-1. Creating a bootstrap/management cluster in AWS - This can be done by running the phases in clusterctl
+1. Creating a management cluster in AWS - This can be done by running the phases in clusterctl
     * Uses the existing provider components yaml
 2. Setting up cross account IAM roles
 3. Deploying the KIAM server/agent
 4. Create the target cluster (through KIAM)
     * Uses different provider components with no secrets and annotation to indicate the IAM Role to assume. 
 
-## 1. Creating the bootstrap cluster in AWS
+## 1. Creating the management cluster in AWS
 Using clusterctl command we can create a new cluster in AWS which in turn will act as the 
-bootstrap cluster to create the target cluster(in a different AWS account. This can be achieved by using the phases in 
+management cluster to create the target cluster(in a different AWS account. This can be achieved by using the phases in 
 clusterctl to perform all the steps except the pivoting. This will provide us with a bare-bones functioning cluster that 
-we can use as a bootstrap cluster. 
-To begin with follow the steps in this [getting started guide]
-https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md to setup the environment
+we can use as a management cluster. 
+To begin with follow the steps in this [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/master/docs/getting-started.md) to setup the environment
 except for creating the actual cluster. Instead follow the steps below to create the cluster.
 
 create a new cluster using kind for bootstrapping purpose by running:
@@ -46,7 +46,7 @@ and get its kube config path by running
 export KIND_KUBECONFIG=`kind get kubeconfig-path`
 ```
 
-Use the following commands to create new (bootstrap) cluster in AWS. 
+Use the following commands to create new management cluster in AWS. 
 ```$sh
 kubectl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out/provider-components.yaml \
 --kubeconfig $KIND_KUBECONFIG
@@ -78,7 +78,7 @@ kind delete cluster --name <CLUSTER_NAME>
 
 In this step we will create new roles/policy in across 2 different AWS accounts.
 Let us start by creating the roles in the account where the AWS controller runs. Following the directions 
-posted in [KIAM repo]https://github.com/uswitch/kiam/blob/master/docs/IAM.md create a "kiam_server" role
+posted in [KIAM repo](https://github.com/uswitch/kiam/blob/master/docs/IAM.md) create a "kiam_server" role
 in AWS that only has a single managed policy with a single permission "sts:AssumeRole". Also add a trust policy on the 
  "kiam_server" role to include the role attached to the Control plane instance as a trusted entity. This looks something
  like this:
@@ -127,7 +127,7 @@ In "controllers.cluster-api-provider-aws.sigs.k8s.io" role(target AWS account)
 ## 3. Deploying the KIAM server & agent
 By now, your target cluster must be up & running. Make sure your KUBECONFIG pointing to the cluster in the target account. 
 
-Create new secrets using the steps outlined [here]https://github.com/uswitch/kiam/blob/master/docs/TLS.md 
+Create new secrets using the steps outlined [here](https://github.com/uswitch/kiam/blob/master/docs/TLS.md) 
 Apply the manifest shown below: 
 Make sure you update the argument to include your source AWS account "--assume-role-arn=arn:aws:iam::<SOURCE_AWS_ACCOUNT>:role/kiam_server"
 server.yaml
@@ -376,10 +376,16 @@ subjects:
   namespace: kube-system
 ```
 
-After deploying the above components make sure that the kiam_server & kiam_agent pods are up & running. 
+After deploying the above components make sure that the kiam_server and kiam_agent pods are up and running. 
 
 ## 4. Create the target cluster
-Make sure you create copy of the "aws/out" directory called "out2". To create the target cluster we must update the provider_components.yaml generated in the out2 directory. 
+Make sure you create copy of the "aws/out" directory called "out2". To create the target cluster we must update the provider_components.yaml generated in the out2 directory as shown below (to be run from the repository root directory):
+
+```
+cp cmd/clusterctl/examples/aws/out cmd/clusterctl/examples/aws/out2
+vi cmd/clusterctl/examples/aws/out2/provider-components.yaml
+```
+
 1. Remove the credentials secret added at the bottom of the provider_components.yaml and do not mount the secret 
 2. Add the following annotation to the template of aws-provider-controller-manager stateful set to specify the new role that was created in target account.
 ```
