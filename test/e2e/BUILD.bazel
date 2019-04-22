@@ -90,6 +90,7 @@ genrule(
         "//cmd/clusterctl/examples/aws:cluster.yaml.template",
         "//cmd/clusterctl/examples/aws:cluster-network-spec.yaml.template",
         "//cmd/clusterctl/examples/aws:machines.yaml.template",
+        "//cmd/clusterctl/examples/aws:machines-ha.yaml.template",
         "//cmd/clusterctl/examples/aws:provider-components-base.yaml",
         "//cmd/clusterctl/examples/aws:generate-yaml.sh",
         "manifests/provider-credentials.sh",
@@ -98,6 +99,7 @@ genrule(
         "manifests/addons.yaml",
         "manifests/cluster.yaml",
         "manifests/machines.yaml",
+        "manifests/machines-ha.yaml",
         "manifests/provider-components.yaml",
     ],
     cmd = " && ".join([
