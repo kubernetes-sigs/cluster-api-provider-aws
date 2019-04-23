@@ -96,11 +96,11 @@ Supported versions: %v`, supportedVersions),
 func getResourcesByCluster(svc *awstags.ResourceGroupsTaggingAPI, name string) ([]*string, error) {
 	input := &awstags.GetResourcesInput{
 		TagFilters: []*awstags.TagFilter{
-			&awstags.TagFilter{
+			{
 				Key:    aws.String(fmt.Sprintf("kubernetes.io/cluster/%s", name)),
 				Values: []*string{aws.String("owned")},
 			},
-			&awstags.TagFilter{
+			{
 				Key:    aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
 				Values: []*string{aws.String("true")},
 			},
