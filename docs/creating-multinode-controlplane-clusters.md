@@ -1,4 +1,5 @@
 # Creating clusters with a multi-node control plane  <!-- omit in toc -->
+
 `clusterctl` only supports creating clusters with a single instance control
 plane. However, cluster-api-provider-aws has the capability to create clusters
 with multiple control plane nodes. This document outlines the steps for standing
@@ -45,27 +46,27 @@ control plane you want to add to your existing cluster.
 
   Copy the following YAML into a file named `control-plane-machine.yaml`.
 
-  ```bash
-  apiVersion: "cluster.k8s.io/v1alpha1"
-  kind: Machine
-  metadata:
-    name: <CONTROLPLANE_MACHINE_NAME>
-    namespace: default # Edit this if necessary
-    labels:
-      cluster.k8s.io/cluster-name: <CLUSTER_NAME>
-      set: controlplane
-  spec:
-    versions:
-      kubelet: v1.13.3
-      controlPlane: v1.13.3
-    providerSpec:
-      value:
-        apiVersion: awsprovider/v1alpha1
-        kind: AWSMachineProviderSpec
-        instanceType: "t2.medium"
-        iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
-        keyName: "cluster-api-provider-aws.sigs.k8s.io"
-  ```
+```yaml
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Machine
+metadata:
+  name: <CONTROLPLANE_MACHINE_NAME>
+  namespace: default # Edit this if necessary
+  labels:
+    cluster.k8s.io/cluster-name: <CLUSTER_NAME>
+    set: controlplane
+spec:
+  versions:
+    kubelet: v1.13.3
+    controlPlane: v1.13.3
+  providerSpec:
+    value:
+      apiVersion: awsprovider/v1alpha1
+      kind: AWSMachineProviderSpec
+      instanceType: "t2.medium"
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      keyName: "cluster-api-provider-aws.sigs.k8s.io"
+```
 
   *Pro tip* 💡: You may refer to the machine's YAML in the release to create the
   above YAML for yourself.
@@ -76,9 +77,9 @@ control plane you want to add to your existing cluster.
 
   For each copy, edit the file with a unique machine name and create the machine object:
 
-    ```bash
-    kubectl apply -f control-plane-machine.yaml
-    ```
+```bash
+kubectl apply -f control-plane-machine.yaml
+```
 
   Note: If you did not specify namespace in the `control-plane-machine.yaml`
   file(s) and your cluster is not in the `default` namespace, you will have to
@@ -89,9 +90,9 @@ control plane you want to add to your existing cluster.
   Watch the newly created machine objects being reconciled by following the logs
   from the `aws-provider-controller-manager-0` pod using this command:
 
-    ```bash
-    kubectl -n aws-provider-system logs -f aws-provider-controller-manager-0
-    ```
+```bash
+kubectl -n aws-provider-system logs -f aws-provider-controller-manager-0
+```
 
    Additionally you can view the new instances initializing in the AWS console.
 
