@@ -127,6 +127,13 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	name := m.Name
 	klog.Infof("Reconciling Machine %q", name)
 
+	if errList := m.Validate(); len(errList) > 0 {
+		err := fmt.Errorf("%q machine validation failed: %v", m.Name, errList.ToAggregate().Error())
+		klog.Error(err)
+		r.eventRecorder.Eventf(m, corev1.EventTypeWarning, "FailedValidate", err.Error())
+		return reconcile.Result{}, err
+	}
+
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
 	cluster, err := r.getCluster(ctx, m)
@@ -178,7 +185,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if !r.isDeleteAllowed(m) {
-			klog.Infof("Skipping reconciling of machine %q", name)
+			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
 			return reconcile.Result{}, nil
 		}
 
