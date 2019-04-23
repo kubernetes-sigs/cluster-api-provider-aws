@@ -948,7 +948,7 @@ func TestingMachine(clusterID string, namespace string, providerSpec machinev1be
 			Namespace:    namespace,
 			GenerateName: "vs-master-",
 			Labels: map[string]string{
-				"sigs.k8s.io/cluster-api-cluster": clusterID,
+				"machine.openshift.io/cluster-api-cluster": clusterID,
 			},
 		},
 		Spec: machinev1beta1.MachineSpec{
@@ -976,7 +976,7 @@ func MasterMachine(clusterID, namespace string, providerSpec machinev1beta1.Prov
 			Namespace:    namespace,
 			GenerateName: "vs-master-",
 			Labels: map[string]string{
-				"sigs.k8s.io/cluster-api-cluster": clusterID,
+				"machine.openshift.io/cluster-api-cluster": clusterID,
 			},
 		},
 		Spec: machinev1beta1.MachineSpec{
@@ -1050,14 +1050,14 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec machinev1beta1.P
 			Namespace:    namespace,
 			GenerateName: clusterID + "-worker-machine-" + randomUUID[:6] + "-",
 			Labels: map[string]string{
-				"sigs.k8s.io/cluster-api-cluster": clusterID,
+				"machine.openshift.io/cluster-api-cluster": clusterID,
 			},
 		},
 		Spec: machinev1beta1.MachineSetSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"sigs.k8s.io/cluster-api-machineset": clusterID + "-worker-machineset-" + randomUUID[:6],
-					"sigs.k8s.io/cluster-api-cluster":    clusterID,
+					"sigs.k8s.io/cluster-api-machineset":       clusterID + "-worker-machineset-" + randomUUID[:6],
+					"machine.openshift.io/cluster-api-cluster": clusterID,
 				},
 			},
 			Replicas: &replicas,
@@ -1065,8 +1065,8 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec machinev1beta1.P
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: clusterID + "-worker-machine-" + randomUUID[:6] + "-",
 					Labels: map[string]string{
-						"sigs.k8s.io/cluster-api-machineset": clusterID + "-worker-machineset-" + randomUUID[:6],
-						"sigs.k8s.io/cluster-api-cluster":    clusterID,
+						"sigs.k8s.io/cluster-api-machineset":       clusterID + "-worker-machineset-" + randomUUID[:6],
+						"machine.openshift.io/cluster-api-cluster": clusterID,
 					},
 				},
 				Spec: machinev1beta1.MachineSpec{
