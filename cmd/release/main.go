@@ -83,22 +83,27 @@ func main() {
 		gitRemote:        remote,
 	}
 
+	logger := &stdoutlogger{}
 	run := &runner{
 		builder: makebuilder{
 			registry:   cfg.registry,
 			imageTag:   cfg.version,
 			pullPolicy: cfg.pullPolicy,
+			logger:     logger,
 		},
 		releaser: gothubReleaser{
 			artifactsDir: cfg.artifactDir,
 			user:         cfg.githubUser,
 			repository:   cfg.githubRepository,
+			logger:       logger,
 		},
 		tagger: git{
 			repository: cfg.githubRepository,
 			remote:     cfg.gitRemote,
+			logger:     logger,
 		},
 		config: cfg,
+		logger: logger,
 	}
 
 	if err := run.run(); err != nil {
@@ -216,48 +221,47 @@ type runner struct {
 	releaser releaser
 	tagger   tagger
 	config   config
+	logger   logger
 }
 
 // TODO sha512 the artifacts!
-// TODO move fmt.Println into a logr interface
-
 func (r runner) run() error {
-	fmt.Printf("tagging repository %q ", r.config.version)
+	r.logger.Infof("tagging repository %q ", r.config.version)
 	if err := r.tagger.tag(r.config.version); err != nil {
 		return err
 	}
-	fmt.Println("🐲")
-	fmt.Printf("checking out tag %q ", r.config.version)
+	r.logger.Info("🐲")
+	r.logger.Infof("checking out tag %q ", r.config.version)
 	if err := r.tagger.checkout(r.config.version); err != nil {
 		return err
 	}
-	fmt.Println("🐲")
-	fmt.Printf("building artifacts %v ", r.config.artifacts)
+	r.logger.Info("🐲")
+	r.logger.Infof("building artifacts %v ", r.config.artifacts)
 	if err := r.builder.build(); err != nil {
 		return err
 	}
-	fmt.Println("🐲")
-	fmt.Printf("building container image: %s/%s:%s ", r.config.registry, r.config.imageName, r.config.version)
+	r.logger.Info("🐲")
+	r.logger.Infof("building container image: %s/%s:%s ", r.config.registry, r.config.imageName, r.config.version)
 	if err := r.builder.images(); err != nil {
 		return err
 	}
-	fmt.Println("🐲")
-	fmt.Printf("pushing tag %q ", r.config.version)
+	r.logger.Info("🐲")
+	r.logger.Infof("pushing tag %q ", r.config.version)
 	if err := r.tagger.pushTag(r.config.version); err != nil {
 		return err
 	}
-	fmt.Println("🐲")
-	fmt.Printf("drafting a release for tag %q ", r.config.version)
+	r.logger.Info("🐲")
+	r.logger.Infof("drafting a release for tag %q ", r.config.version)
 	if err := r.releaser.draft(r.config.version); err != nil {
 		return err
 	}
-	fmt.Println("🐲")
+	r.logger.Info("🐲")
 	for _, artifact := range r.config.artifacts {
-		fmt.Printf("uploading %q ", artifact)
+		r.logger.Infof("uploading %q ", artifact)
 		if err := r.releaser.upload(r.config.version, artifact); err != nil {
 			return err
 		}
-		fmt.Println("🐲")
+		r.logger.Info("🐲")
 	}
 	return nil
 }
@@ -274,13 +278,14 @@ type gothubReleaser struct {
 	repository string
 
 	artifactsDir string
+	logger       logger
 }
 
 func (g gothubReleaser) draft(version string) error {
 	cmd := exec.Command("gothub", "release", "--tag", version, "--user", g.user, "--repo", g.repository, "--draft")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		g.logger.Info(string(out))
 	}
 	return err
 }
@@ -288,7 +293,7 @@ func (g gothubReleaser) upload(version, file string) error {
 	cmd := exec.Command("gothub", "upload", "--tag", version, "--user", g.user, "--repo", g.repository, "--file", path.Join(g.artifactsDir, file), "--name", file)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		g.logger.Info(string(out))
 	}
 	return err
 }
@@ -305,6 +310,7 @@ type git struct {
 
 	// remote is the local name of the remote
 	remote string
+	logger logger
 }
 
 func (g git) tag(version string) error {
@@ -317,7 +323,7 @@ func (g git) tag(version string) error {
 		cmd = exec.Command("git", "tag", "-s", "-m", fmt.Sprintf("A release of %q for version %q", g.repository, version), version)
 		out, err2 := cmd.CombinedOutput()
 		if err2 != nil {
-			fmt.Println(string(out))
+			g.logger.Info(string(out))
 		}
 		return err2
 	}
@@ -329,7 +335,7 @@ func (g git) pushTag(version string) error {
 	cmd := exec.Command("git", "push", g.remote, version)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		g.logger.Info(string(out))
 	}
 	return err
 }
@@ -338,7 +344,7 @@ func (g git) checkout(version string) error {
 	cmd := exec.Command("git", "checkout", version)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		g.logger.Info(string(out))
 	}
 	return err
 }
@@ -352,6 +358,7 @@ type makebuilder struct {
 	registry   string
 	imageTag   string
 	pullPolicy string
+	logger     logger
 }
 
 func (m makebuilder) cmdWithEnv(command string, args ...string) error {
@@ -363,7 +370,7 @@ func (m makebuilder) cmdWithEnv(command string, args ...string) error {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		m.logger.Info(string(out))
 	}
 	return err
 }
@@ -374,4 +381,18 @@ func (m makebuilder) build() error {
 
 func (m makebuilder) images() error {
 	return m.cmdWithEnv("make", "docker-build")
+}
+
+type logger interface {
+	Infof(string, ...interface{})
+	Info(...interface{})
+}
+
+type stdoutlogger struct{}
+
+func (s *stdoutlogger) Infof(msg string, args ...interface{}) {
+	fmt.Printf(msg, args...)
+}
+func (s *stdoutlogger) Info(msgs ...interface{}) {
+	fmt.Println(msgs...)
 }

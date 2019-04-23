@@ -270,6 +270,9 @@ var (
 	// SecurityGroupProtocolAll is a wildcard for all IP protocols
 	SecurityGroupProtocolAll = SecurityGroupProtocol("-1")
 
+	// SecurityGroupProtocolIPinIP represents the IP in IP protocol in ingress rules
+	SecurityGroupProtocolIPinIP = SecurityGroupProtocol("4")
+
 	// SecurityGroupProtocolTCP represents the TCP protocol in ingress rules
 	SecurityGroupProtocolTCP = SecurityGroupProtocol("tcp")
 
@@ -278,6 +281,9 @@ var (
 
 	// SecurityGroupProtocolICMP represents the ICMP protocol in ingress rules
 	SecurityGroupProtocolICMP = SecurityGroupProtocol("icmp")
+
+	// SecurityGroupProtocolICMPv6 represents the ICMPv6 protocol in ingress rules
+	SecurityGroupProtocolICMPv6 = SecurityGroupProtocol("58")
 )
 
 // IngressRule defines an AWS ingress rule for security groups.
@@ -420,6 +426,9 @@ type Instance struct {
 
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
 	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
+
+	// Specifies size (in Gi) of the root storage device
+	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
 
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`

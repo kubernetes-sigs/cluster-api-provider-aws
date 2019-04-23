@@ -60,6 +60,7 @@ go_test(
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/cloudformation:go_default_library",
         "//pkg/cloud/aws/services/sts:go_default_library",
+        "//pkg/cloudtest:go_default_library",
         "//test/e2e/util/kind:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/client:go_default_library",
@@ -89,6 +90,7 @@ genrule(
         "//cmd/clusterctl/examples/aws:cluster.yaml.template",
         "//cmd/clusterctl/examples/aws:cluster-network-spec.yaml.template",
         "//cmd/clusterctl/examples/aws:machines.yaml.template",
+        "//cmd/clusterctl/examples/aws:machines-ha.yaml.template",
         "//cmd/clusterctl/examples/aws:provider-components-base.yaml",
         "//cmd/clusterctl/examples/aws:generate-yaml.sh",
         "manifests/provider-credentials.sh",
@@ -97,6 +99,7 @@ genrule(
         "manifests/addons.yaml",
         "manifests/cluster.yaml",
         "manifests/machines.yaml",
+        "manifests/machines-ha.yaml",
         "manifests/provider-components.yaml",
     ],
     cmd = " && ".join([

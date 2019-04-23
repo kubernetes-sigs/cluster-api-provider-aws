@@ -19,6 +19,7 @@ package e2e_test
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -39,15 +40,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
-
-	"fmt"
-
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/sts"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
 	capi "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
@@ -181,7 +180,7 @@ func makeMachine() *capi.Machine {
 	machine.ObjectMeta.Name = controlPlaneName
 	machine.ObjectMeta.Labels[capi.MachineClusterLabelName] = clusterName
 
-	awsSpec, err := actuators.MachineConfigFromProviderSpec(nil, machine.Spec.ProviderSpec)
+	awsSpec, err := actuators.MachineConfigFromProviderSpec(nil, machine.Spec.ProviderSpec, &cloudtest.Log{})
 	Expect(err).To(BeNil())
 	awsSpec.KeyName = keyPairName
 	machine.Spec.ProviderSpec.Value, err = capa.EncodeMachineSpec(awsSpec)

@@ -1094,9 +1094,12 @@
   revision = "0689ccc1d7d65d9dd1bedcc3b0b1ed7df91ba266"
 
 [[projects]]
-  digest = "1:72fd56341405f53c745377e0ebc4abeff87f1a048e0eea6568a20212650f5a82"
+  digest = "1:ed455ccc8731bfd9299cbdaebd7a96da8097f5399f15ee4ec5d3ea3bcdff9f91"
   name = "k8s.io/klog"
-  packages = ["."]
+  packages = [
+    ".",
+    "klogr",
+  ]
   pruneopts = "UT"
   revision = "71442cd4037d612096940ceb0f3fec3f7fff66e0"
   version = "v0.2.0"
@@ -1137,7 +1140,8 @@
   revision = "c2654d5206da6b7b6ace12841e8f359bb89b443c"
 
 [[projects]]
-  digest = "1:bc04752ec8a48d212a0db41c2085bb468ae7c8c34bcb317f552b68f4fe34865b"
+  branch = "release-0.1"
+  digest = "1:f533e4944f03eb4169dc77e4b04ee462e2b99f339b385044d914e196dc3e26ec"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
@@ -1165,8 +1169,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "29fee0a9ef590af33bbaa167ed17a8be50825679"
-  version = "0.1.0"
+  revision = "872d75c97d0610ab695d3b758375f7ae12cd1165"
 
 [[projects]]
   digest = "1:4e97dc637c467531240326f56e253c6d42b519424b6a89d80664ef0f3ed4f721"
@@ -1273,6 +1276,7 @@
     "github.com/aws/aws-sdk-go/service/sts/stsiface",
     "github.com/awslabs/goformation/cloudformation",
     "github.com/emicklei/go-restful",
+    "github.com/go-logr/logr",
     "github.com/golang/mock/gomock",
     "github.com/onsi/ginkgo",
     "github.com/onsi/ginkgo/config",
@@ -1300,10 +1304,12 @@
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/util/retry",
     "k8s.io/cluster-bootstrap/token/api",
     "k8s.io/cluster-bootstrap/token/util",
     "k8s.io/code-generator/cmd/deepcopy-gen",
     "k8s.io/klog",
+    "k8s.io/klog/klogr",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1",
     "k8s.io/kubernetes/cmd/kubeadm/app/util",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
