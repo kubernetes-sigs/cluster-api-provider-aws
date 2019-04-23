@@ -94,8 +94,6 @@ Supported versions: %v`, supportedVersions),
 }
 
 func getResourcesByCluster(svc *awstags.ResourceGroupsTaggingAPI, name string) ([]*string, error) {
-	var arns []*string
-
 	input := &awstags.GetResourcesInput{
 		TagFilters: []*awstags.TagFilter{
 			&awstags.TagFilter{
@@ -114,6 +112,7 @@ func getResourcesByCluster(svc *awstags.ResourceGroupsTaggingAPI, name string) (
 		return nil, err
 	}
 
+	arns := make([]*string, 0, len(out.ResourceTagMappingList))
 	for _, resource := range out.ResourceTagMappingList {
 		arns = append(arns, resource.ResourceARN)
 	}
