@@ -7,7 +7,7 @@ supply AWS credentials to the CAPA controller. This is automatically taken care 
 Note: If you dont want to use KIAM and rather want to mount the credentials as secrets, you may still achieve cross 
 account role assumption by using multiple profiles. 
 
-### Glossory
+### Glossary
 
 * Management cluster - The cluster that runs in AWS and is used to create target clusters in different AWS accounts
 * Target account - The account where the target cluster is created
@@ -48,22 +48,22 @@ export KIND_KUBECONFIG=`kind get kubeconfig-path`
 
 Use the following commands to create new management cluster in AWS. 
 ```$sh
-kubectl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out/provider-components.yaml \
+clusterctl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out/provider-components.yaml \
 --kubeconfig $KIND_KUBECONFIG
 
-kubectl alpha phases apply-cluster --cluster cmd/clusterctl/examples/aws/out/cluster.yaml --kubeconfig $KIND_KUBECONFIG
+clusterctl alpha phases apply-cluster --cluster cmd/clusterctl/examples/aws/out/cluster.yaml --kubeconfig $KIND_KUBECONFIG
 ```
 
 We only need to create the control plane on the cluster running in AWS source account. Since the example includes definition for a worker node, you may delete it. 
 
 ```$sh
-kubectl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out/machines.yaml --kubeconfig $KIND_KUBECONFIG
+clusterctl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out/machines.yaml --kubeconfig $KIND_KUBECONFIG
 
-kubectl alpha phases get-kubeconfig --provider aws --cluster-name <CLUSTER_NAME> --kubeconfig $KIND_KUBECONFIG
+clusterctl alpha phases get-kubeconfig --provider aws --cluster-name <CLUSTER_NAME> --kubeconfig $KIND_KUBECONFIG
 
 export AWS_KUBECONFIG=$PWD/kubeconfig
 
-kubectl alpha phases apply-addons -a cmd/clusterctl/examples/aws/out/addons.yaml --kubeconfig $AWS_KUBECONFIG
+kubectl apply -f cmd/clusterctl/examples/aws/out/addons.yaml --kubeconfig $AWS_KUBECONFIG
 ```
 
 Verify that all the pods in the kube-system namespace are running smoothly. Also you may remove the additional node in 
@@ -134,7 +134,7 @@ server.yaml
 
 ```
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   namespace: kube-system
@@ -166,7 +166,7 @@ spec:
       hostNetwork: true
       containers:
         - name: kiam
-          image: quay.io/uswitch/kiam:master # USE A TAGGED RELEASE IN PRODUCTION
+          image: quay.io/uswitch/kiam:v3.2
           imagePullPolicy: Always
           command:
             - /kiam
@@ -237,7 +237,7 @@ spec:
 agent.yaml 
 
 ```
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   namespace: kube-system
@@ -274,7 +274,7 @@ spec:
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]
-          image: quay.io/uswitch/kiam:master # USE A TAGGED RELEASE IN PRODUCTION
+          image: quay.io/uswitch/kiam:v3.2
           imagePullPolicy: Always
           command:
             - /kiam
@@ -321,7 +321,7 @@ metadata:
   name: kiam-server
   namespace: kube-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: kiam-read
@@ -336,7 +336,7 @@ rules:
   - get
   - list
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: kiam-read
@@ -349,7 +349,7 @@ subjects:
   name: kiam-server
   namespace: kube-system
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: kiam-write
@@ -362,7 +362,7 @@ rules:
   - create
   - patch
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: kiam-write
@@ -399,22 +399,20 @@ vi cmd/clusterctl/examples/aws/out2/provider-components.yaml
 ```
 
 Create a new cluster using the steps similar to the one used to create the source cluster. They are as follows:
-```
+```$sh
 export SOURCE_KUBECONFIG=<PATH_TO_SOURCE_CLUSTER_KUBECONFIG>
 
-kubectl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out2/provider-components.yaml \
+clusterctl alpha phases apply-cluster-api-components --provider-components cmd/clusterctl/examples/aws/out2/provider-components.yaml \
 --kubeconfig $SOURCE_KUBECONFIG
 
-kubectl alpha phases apply-cluster --cluster cmd/clusterctl/examples/aws/out2/cluster.yaml --kubeconfig $SOURCE_KUBECONFIG
+kubectl -f apply cmd/clusterctl/examples/aws/out2/cluster.yaml --kubeconfig $SOURCE_KUBECONFIG
 
-kubectl alpha phases apply-machines --machines cmd/clusterctl/examples/aws/out2/machines.yaml \
---kubeconfig $SOURCE_KUBECONFIG
+kubectl apply -f cmd/clusterctl/examples/aws/out2/machines.yaml --kubeconfig $SOURCE_KUBECONFIG
 
-kubectl alpha phases get-kubeconfig --provider aws --cluster-name <TARGET_CLUSTER_NAME> --kubeconfig $SOURCE_KUBECONFIG
-export TARGET_KUBECONFIG=`pwd`/kubeconfig
+clusterctl alpha phases get-kubeconfig --provider aws --cluster-name <TARGET_CLUSTER_NAME> --kubeconfig $SOURCE_KUBECONFIG
+export KUBECONFIG=$PWD/kubeconfig
 
-kubectl alpha phases apply-addons -a cmd/clusterctl/examples/aws/out2/addons.yaml \
---kubeconfig $TARGET_KUBECONFIG
+kubectl apply -f cmd/clusterctl/examples/aws/out2/addons.yaml
 
 ```
 This creates the new cluster in the target AWS account.
