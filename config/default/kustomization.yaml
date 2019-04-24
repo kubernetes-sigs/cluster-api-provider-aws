@@ -15,14 +15,10 @@
 namespace: aws-provider-system
 namePrefix: aws-provider-
 
-resources:
-  - ../crds/awsprovider_v1alpha1_awsclusterproviderspec.yaml
-  - ../crds/awsprovider_v1alpha1_awsclusterproviderstatus.yaml
-  - ../crds/awsprovider_v1alpha1_awsmachineproviderspec.yaml
-  - ../crds/awsprovider_v1alpha1_awsmachineproviderstatus.yaml
-  - ../rbac/rbac_role.yaml
-  - ../rbac/rbac_role_binding.yaml
-  - ../manager/manager.yaml
+bases:
+  - ../crds/
+  - ../rbac/
+  - ../manager/
 
 patches:
   - rbac_role_binding_patch.yaml
