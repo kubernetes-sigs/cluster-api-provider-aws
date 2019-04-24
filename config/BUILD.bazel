@@ -52,7 +52,6 @@ genrule(
         "//config:manager/manager.yaml",
         "config",
         "//config:default/kustomization.yaml",
-        #"//config:rbac/kustomization.yaml",
         ":kustomize-yaml",
         "//:WORKSPACE",
     ],
