@@ -374,7 +374,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// Ensure that the security groups are correct.
 	_, err = a.ensureSecurityGroups(
 		ec2svc,
-		machine,
+		scope,
 		*scope.MachineStatus.InstanceID,
 		scope.MachineConfig.AdditionalSecurityGroups,
 		instanceDescription.SecurityGroupIDs,

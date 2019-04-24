@@ -169,12 +169,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	// apply values based on the role of the machine
 	switch machine.Role() {
 	case "controlplane":
-		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
-			return nil, awserrors.NewFailedDependency(
-				errors.New("failed to run controlplane, security group not available"),
-			)
-		}
-
 		var userData string
 
 		if bootstrapToken != "" {
@@ -240,17 +234,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		input.UserData = aws.String(userData)
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs,
-			s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
-			s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
-			s.scope.SecurityGroups()[v1alpha1.SecurityGroupLB].ID,
-		)
 	case "node":
 		s.scope.V(2).Info("Joining a worker node to the cluster")
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs,
-			s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
-			s.scope.SecurityGroups()[v1alpha1.SecurityGroupLB].ID,
-		)
 
 		joinConfiguration := kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
 		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(joinConfiguration)
@@ -272,6 +257,14 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		return nil, errors.Errorf("Unknown node role %q", machine.Role())
 	}
 
+	ids, err := s.GetCoreSecurityGroups(machine)
+	if err != nil {
+		return nil, err
+	}
+	input.SecurityGroupIDs = append(input.SecurityGroupIDs,
+		ids...,
+	)
+
 	// Pick SSH key, if any.
 	if machine.MachineConfig.KeyName != "" {
 		input.KeyName = aws.String(machine.MachineConfig.KeyName)
@@ -287,6 +280,32 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
 	return out, nil
+}
+
+func (s *Service) GetCoreSecurityGroups(machine *actuators.MachineScope) ([]string, error) {
+	// These are common across both controlplane and node machines
+	sgRoles := []v1alpha1.SecurityGroupRole{
+		v1alpha1.SecurityGroupNode,
+		v1alpha1.SecurityGroupLB,
+	}
+	switch machine.Role() {
+	case "node":
+		// Just the common security groups above
+	case "controlplane":
+		sgRoles = append(sgRoles, v1alpha1.SecurityGroupControlPlane)
+	default:
+		return nil, errors.Errorf("Unknown node role %q", machine.Role())
+	}
+	var ids []string
+	for _, sg := range sgRoles {
+		if s.scope.SecurityGroups()[sg] == nil {
+			return nil, awserrors.NewFailedDependency(
+				errors.Errorf("%s security group not available", sg),
+			)
+		}
+		ids = append(ids, s.scope.SecurityGroups()[sg].ID)
+	}
+	return ids, nil
 }
 
 // TerminateInstance terminates an EC2 instance.
