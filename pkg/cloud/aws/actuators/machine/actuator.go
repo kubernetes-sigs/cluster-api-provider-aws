@@ -58,22 +58,25 @@ const (
 type Actuator struct {
 	*deployer.Deployer
 
-	client client.ClusterV1alpha1Interface
-	log    logr.Logger
+	coreClient    corev1.CoreV1Interface
+	clusterClient client.ClusterV1alpha1Interface
+	log           logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	Client         client.ClusterV1alpha1Interface
+	CoreClient     corev1.CoreV1Interface
+	ClusterClient  client.ClusterV1alpha1Interface
 	LoggingContext string
 }
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
-		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
-		client:   params.Client,
-		log:      klogr.New().WithName(params.LoggingContext),
+		Deployer:      deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
+		coreClient:    params.CoreClient,
+		clusterClient: params.ClusterClient,
+		log:           klogr.New().WithName(params.LoggingContext),
 	}
 }
 
@@ -102,7 +105,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 				Machine: cm,
 				Cluster: scope.Cluster,
-				Client:  a.client,
+				Client:  a.clusterClient,
 				Logger:  a.log,
 			})
 
@@ -134,7 +137,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 	a.log.Info("Creating machine in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.clusterClient, Logger: a.log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -243,7 +246,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 	a.log.Info("Deleting machine in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.clusterClient, Logger: a.log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -349,7 +352,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	a.log.Info("Updating machine in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.clusterClient, Logger: a.log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -400,7 +403,7 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	a.log.Info("Checking if machine exists in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.client, Logger: a.log})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.clusterClient, Logger: a.log})
 	if err != nil {
 		return false, errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -451,14 +454,12 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// Set the Machine NodeRef.
 	if machine.Status.NodeRef == nil {
 		nodeRef, err := a.getNodeReference(scope)
-		if err != nil {
-			a.log.Info("Failed to set nodeRef", "error", err)
-			// non critical error
-			return true, nil
+		if err == nil {
+			scope.Machine.Status.NodeRef = nodeRef
+			a.log.V(2).Info("Setting machine's nodeRef", "machine-name", scope.Name(), "machine-namespace", scope.Namespace(), "nodeRef", nodeRef.Name)
+		} else {
+			a.log.Info("Cannot set nodeRef", "error", err)
 		}
-
-		scope.Machine.Status.NodeRef = nodeRef
-		a.log.V(2).Info("Setting machine's nodeRef", "machine-name", scope.Name(), "machine-namespace", scope.Namespace(), "nodeRef", nodeRef.Name)
 	}
 
 	return true, nil
@@ -467,15 +468,10 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 func (a *Actuator) getNodeReference(scope *actuators.MachineScope) (*apicorev1.ObjectReference, error) {
 	instanceID := *scope.MachineStatus.InstanceID
 
-	coreClient, err := a.coreV1Client(scope.Cluster)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", scope.Cluster.Name)
-	}
-
 	listOpt := metav1.ListOptions{}
 
 	for {
-		nodeList, err := coreClient.Nodes().List(listOpt)
+		nodeList, err := a.coreClient.Nodes().List(listOpt)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to query cluster nodes")
 		}
