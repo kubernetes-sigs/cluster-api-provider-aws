@@ -51,8 +51,6 @@ var (
 	managerImageTar        = flag.String("managerImageTar", "", "a script to load the manager Docker image into Docker")
 )
 
-const kindContainerName = "kind-1-control-plane"
-
 // Cluster represents the running state of a KIND cluster.
 // An empty struct is enough to call Setup() on.
 type Cluster struct {
@@ -73,26 +71,14 @@ func (c *Cluster) Setup() {
 	fmt.Fprintf(ginkgo.GinkgoWriter, "export KUBECONFIG=%s\n", c.kubepath)
 
 	if *managerImageTar != "" {
-		c.loadImage()
+		fmt.Fprintf(
+			ginkgo.GinkgoWriter,
+			"loading image %q into Kind node\n",
+			*managerImageTar)
+		c.run(exec.Command(*kindBinary, "load", "image-archive", *managerImageTar))
 	}
 
 	c.applyYAML()
-}
-
-func (c *Cluster) loadImage() {
-	// TODO(EKF): once kind supports loading images directly, remove this hack
-	fmt.Fprintf(
-		ginkgo.GinkgoWriter,
-		"loading image %q into nested docker instance\n",
-		*managerImageTar)
-	file, err := os.Open(*managerImageTar)
-	gomega.Expect(err).To(gomega.BeNil())
-
-	// Pipe the tar file into the kind container then docker-load it
-	cmd := exec.Command("docker", "exec", "--interactive", kindContainerName, "docker", "load")
-	cmd.Stdin = file
-	cmd.Stdout = ginkgo.GinkgoWriter
-	c.run(cmd)
 }
 
 // Teardown attempts to delete the KIND cluster

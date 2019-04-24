@@ -104,7 +104,7 @@ go_repository(
 go_repository(
     name = "io_k8s_sigs_kind",
     importpath = "sigs.k8s.io/kind",
-    tag = "0.1.0",
+    tag = "0.2.1",
 )
 
 go_repository(
