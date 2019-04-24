@@ -49,7 +49,6 @@ genrule(
     name = "provider-non-stamped-base",
     srcs = [
         "//config:default/rbac_role_binding_patch.yaml",
-        "//config:manager/manager.yaml",
         "config",
         "//config:default/kustomization.yaml",
         ":kustomize-yaml",
