@@ -178,13 +178,87 @@ func machineAutoscalerResource(targetMachineSet *mapiv1beta1.MachineSet, minRepl
 
 var _ = g.Describe("[Feature:Machines] Autoscaler should", func() {
 	defer g.GinkgoRecover()
+	scaleUpFunc := func(client runtimeclient.Client, targetMachineSet mapiv1beta1.MachineSet, nodeTestLabel string, initialNumberOfReplicas int32, expectedReplicas int32) {
+		g.By(fmt.Sprintf("Creating MachineAutoscaler object for targetMachineSet %q", targetMachineSet.Name))
+		machineAutoscaler := machineAutoscalerResource(&targetMachineSet, 1, expectedReplicas)
+		err := client.Create(context.TODO(), machineAutoscaler)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Waiting for cluster to scale out number of replicas of targetMachineSet %q", targetMachineSet.Name))
+		err = wait.PollImmediate(5*time.Second, e2e.WaitLong, func() (bool, error) {
+			ms, err := e2e.GetMachineSet(context.TODO(), client, targetMachineSet.Name)
+			if err != nil {
+				glog.Errorf("error getting machineset object: %v, retrying...", err)
+				return false, nil
+			}
+			glog.Infof("MachineSet %q. Initial number of replicas: %d. Current number of replicas: %d", targetMachineSet.Name, initialNumberOfReplicas, pointer.Int32PtrDerefOr(ms.Spec.Replicas, e2e.DefaultMachineSetReplicas))
+			return pointer.Int32PtrDerefOr(ms.Spec.Replicas, e2e.DefaultMachineSetReplicas) == expectedReplicas, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Waiting for cluster to scale up nodes for targetMachineSet %q", targetMachineSet.Name))
+		err = wait.PollImmediate(5*time.Second, e2e.WaitLong, func() (bool, error) {
+			scaledMachines := mapiv1beta1.MachineList{}
+			if err := client.List(context.TODO(), runtimeclient.MatchingLabels(targetMachineSet.Spec.Selector.MatchLabels), &scaledMachines); err != nil {
+				glog.Errorf("Error querying api for machineset object: %v, retrying...", err)
+				return false, nil
+			}
+
+			// get all linked nodes and label them
+			nodeCounter := 0
+			for _, machine := range scaledMachines.Items {
+				if machine.Status.NodeRef == nil {
+					glog.Errorf("Machine %q does not have node reference set", machine.Name)
+					return false, nil
+				}
+				glog.Infof("Machine %q is linked to node %q", machine.Name, machine.Status.NodeRef.Name)
+				nodeCounter++
+			}
+
+			glog.Infof("Expecting %d nodes. Current number of nodes in the group: %d", expectedReplicas, nodeCounter)
+			return nodeCounter == int(expectedReplicas), nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By(fmt.Sprintf("Labeling all nodes belonging to the machineset %q (after scale up phase)", targetMachineSet.Name))
+		err = labelMachineSetNodes(client, &targetMachineSet, nodeTestLabel)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+
+	scaleDownFunc := func(client runtimeclient.Client, targetMachineSet string, nodeTestLabel string, initialNumberOfReplicas int32) {
+		g.By(fmt.Sprintf("Waiting for machineset %q to have at most initial number of replicas", targetMachineSet))
+		err := wait.PollImmediate(5*time.Second, e2e.WaitLong, func() (bool, error) {
+			ms, err := e2e.GetMachineSet(context.TODO(), client, targetMachineSet)
+			if err != nil {
+				glog.Errorf("error getting machineset object: %v, retrying...", err)
+				return false, nil
+			}
+			msReplicas := pointer.Int32PtrDerefOr(ms.Spec.Replicas, e2e.DefaultMachineSetReplicas)
+			glog.Infof("Initial number of replicas: %d. Current number of replicas: %d", initialNumberOfReplicas, msReplicas)
+			if msReplicas > initialNumberOfReplicas {
+				return false, nil
+			}
+
+			// Make sure all scaled down nodes are really gone (so they don't affect tests to be run next)
+			scaledNodes := corev1.NodeList{}
+			if err := client.List(context.TODO(), runtimeclient.MatchingLabels(map[string]string{nodeTestLabel: ""}), &scaledNodes); err != nil {
+				glog.Errorf("Error querying api for node objects: %v, retrying...", err)
+				return false, nil
+			}
+			scaledNodesLen := int32(len(scaledNodes.Items))
+			glog.Infof("Current number of replicas: %d. Current number of nodes: %d", msReplicas, scaledNodesLen)
+			return scaledNodesLen <= msReplicas && scaledNodesLen <= initialNumberOfReplicas, nil
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 
 	g.It("scale out", func() {
 		var err error
 		client, err := e2e.LoadClient()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		nodeTestLabel := fmt.Sprintf("machine.openshift.io/autoscaling-test-%v", string(uuid.NewUUID()))
+		nodeTestLabel0 := fmt.Sprintf("machine.openshift.io/autoscaling-test-%v", string(uuid.NewUUID()))
+		nodeTestLabel1 := fmt.Sprintf("machine.openshift.io/autoscaling-test-%v", string(uuid.NewUUID()))
 
 		// We want to clean up these objects on any subsequent error.
 		defer func() {
@@ -213,19 +287,25 @@ var _ = g.Describe("[Feature:Machines] Autoscaler should", func() {
 			}
 		}()
 
-		g.By("Getint target machineSet")
+		g.By("Getting target machineSet")
 		machinesets, err := e2e.GetMachineSets(context.TODO(), client)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(machinesets)).To(o.BeNumerically(">", 0))
+		o.Expect(len(machinesets)).To(o.BeNumerically(">", 1))
 
-		targetMachineSet := machinesets[0]
-		glog.Infof("Target machineSet %s", targetMachineSet.Name)
+		targetMachineSet0 := machinesets[0]
+		glog.Infof("Target machineSet0 %q", targetMachineSet0.Name)
+		targetMachineSet1 := machinesets[1]
+		glog.Infof("Target machineSet1 %q", targetMachineSet1.Name)
 
 		// When we add support for machineDeployments on the installer, cluster-autoscaler and cluster-autoscaler-operator
 		// we need to test against deployments instead so we skip this test.
-		if ownerReferences := targetMachineSet.GetOwnerReferences(); len(ownerReferences) > 0 {
+		if ownerReferences0 := targetMachineSet0.GetOwnerReferences(); len(ownerReferences0) > 0 {
 			// glog.Infof("MachineSet %s is owned by a machineDeployment. Please run tests against machineDeployment instead", targetMachineSet.Name)
-			g.Skip(fmt.Sprintf("MachineSet %s is owned by a machineDeployment. Please run tests against machineDeployment instead", targetMachineSet.Name))
+			g.Skip(fmt.Sprintf("MachineSet %q is owned by a machineDeployment. Please run tests against machineDeployment instead", targetMachineSet0.Name))
+		}
+
+		if ownerReferences1 := targetMachineSet1.GetOwnerReferences(); len(ownerReferences1) > 0 {
+			g.Skip(fmt.Sprintf("MachineSet %q is owned by a machineDeployment. Please run tests against machineDeployment instead", targetMachineSet1.Name))
 		}
 
 		g.By("Create ClusterAutoscaler object")
@@ -233,68 +313,17 @@ var _ = g.Describe("[Feature:Machines] Autoscaler should", func() {
 		err = client.Create(context.TODO(), clusterAutoscaler)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		initialNumberOfReplicas := pointer.Int32PtrDerefOr(targetMachineSet.Spec.Replicas, e2e.DefaultMachineSetReplicas)
-
-		g.By("Creating MachineAutoscaler objects")
-		machineAutoscaler := machineAutoscalerResource(&targetMachineSet, 1, initialNumberOfReplicas+1)
-		err = client.Create(context.TODO(), machineAutoscaler)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Labeling all nodes belonging to the machineset (before scale up phase)")
-		err = labelMachineSetNodes(client, &targetMachineSet, nodeTestLabel)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		glog.Info("Get nodeList")
-		nodeList := corev1.NodeList{}
-		err = client.List(context.TODO(), runtimeclient.MatchingLabels(map[string]string{nodeTestLabel: ""}), &nodeList)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		nodeGroupInitialTotalNodes := len(nodeList.Items)
-		glog.Infof("Cluster initial number of nodes in node group %v is %d", targetMachineSet.Name, nodeGroupInitialTotalNodes)
+		initialNumberOfReplicas0 := pointer.Int32PtrDerefOr(targetMachineSet0.Spec.Replicas, e2e.DefaultMachineSetReplicas)
+		initialNumberOfReplicas1 := pointer.Int32PtrDerefOr(targetMachineSet1.Spec.Replicas, e2e.DefaultMachineSetReplicas)
+		glog.Infof("initialNumberOfReplicas0 %d, initialNumberOfReplicas1 %d", initialNumberOfReplicas0, initialNumberOfReplicas1)
+		o.Expect(initialNumberOfReplicas0).To(o.BeNumerically("==", initialNumberOfReplicas1))
 
 		g.By("Creating workload")
 		err = client.Create(context.TODO(), newWorkLoad())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("Waiting for cluster to scale out number of replicas")
-		err = wait.PollImmediate(5*time.Second, e2e.WaitLong, func() (bool, error) {
-			ms, err := e2e.GetMachineSet(context.TODO(), client, targetMachineSet.Name)
-			if err != nil {
-				glog.Errorf("error getting machineset object: %v, retrying...", err)
-				return false, nil
-			}
-			glog.Infof("MachineSet %s. Initial number of replicas: %d. Current number of replicas: %d", targetMachineSet.Name, initialNumberOfReplicas, pointer.Int32PtrDerefOr(ms.Spec.Replicas, e2e.DefaultMachineSetReplicas))
-			return pointer.Int32PtrDerefOr(ms.Spec.Replicas, e2e.DefaultMachineSetReplicas) > initialNumberOfReplicas, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Waiting for cluster to scale up nodes")
-		err = wait.PollImmediate(5*time.Second, e2e.WaitLong, func() (bool, error) {
-			scaledMachines := mapiv1beta1.MachineList{}
-			if err := client.List(context.TODO(), runtimeclient.MatchingLabels(targetMachineSet.Spec.Selector.MatchLabels), &scaledMachines); err != nil {
-				glog.Errorf("Error querying api for machineset object: %v, retrying...", err)
-				return false, nil
-			}
-
-			// get all linked nodes and label them
-			nodeCounter := 0
-			for _, machine := range scaledMachines.Items {
-				if machine.Status.NodeRef == nil {
-					glog.Errorf("Machine %q does not have node reference set", machine.Name)
-					return false, nil
-				}
-				glog.Infof("Machine %q is linked to node %q", machine.Name, machine.Status.NodeRef.Name)
-				nodeCounter++
-			}
-
-			glog.Infof("Expecting at least one new node to come up. Initial number of node group nodes: %d. Current number of nodes in the group: %d", nodeGroupInitialTotalNodes, nodeCounter)
-			return nodeCounter > nodeGroupInitialTotalNodes, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("Labeling all nodes belonging to the machineset (after scale up phase)")
-		err = labelMachineSetNodes(client, &targetMachineSet, nodeTestLabel)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		scaleUpFunc(client, targetMachineSet1, nodeTestLabel1, initialNumberOfReplicas1, initialNumberOfReplicas1+2)
+		scaleUpFunc(client, targetMachineSet0, nodeTestLabel0, initialNumberOfReplicas0, initialNumberOfReplicas1+1)
 
 		// Delete workload
 		g.By("Deleting workload")
@@ -305,30 +334,8 @@ var _ = g.Describe("[Feature:Machines] Autoscaler should", func() {
 		// start to scale down the unneeded nodes. We wait for that
 		// condition; if successful we assert that (a smoke test of)
 		// scale down is functional.
-		g.By("Waiting for cluster to have at most initial number of replicas")
-		err = wait.PollImmediate(5*time.Second, e2e.WaitLong, func() (bool, error) {
-			ms, err := e2e.GetMachineSet(context.TODO(), client, targetMachineSet.Name)
-			if err != nil {
-				glog.Errorf("error getting machineset object: %v, retrying...", err)
-				return false, nil
-			}
-			msReplicas := pointer.Int32PtrDerefOr(ms.Spec.Replicas, e2e.DefaultMachineSetReplicas)
-			glog.Infof("Initial number of replicas: %d. Current number of replicas: %d", initialNumberOfReplicas, msReplicas)
-			if msReplicas > initialNumberOfReplicas {
-				return false, nil
-			}
-
-			// Make sure all scaled down nodes are really gone (so they don't affect tests to be run next)
-			scaledNodes := corev1.NodeList{}
-			if err := client.List(context.TODO(), runtimeclient.MatchingLabels(map[string]string{nodeTestLabel: ""}), &scaledNodes); err != nil {
-				glog.Errorf("Error querying api for node objects: %v, retrying...", err)
-				return false, nil
-			}
-			scaledNodesLen := int32(len(scaledNodes.Items))
-			glog.Infof("Current number of replicas: %d. Current number of nodes: %d", msReplicas, scaledNodesLen)
-			return scaledNodesLen <= msReplicas && scaledNodesLen <= initialNumberOfReplicas, nil
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		scaleDownFunc(client, targetMachineSet0.Name, nodeTestLabel0, initialNumberOfReplicas0)
+		scaleDownFunc(client, targetMachineSet1.Name, nodeTestLabel1, initialNumberOfReplicas1)
 	})
 
 })
