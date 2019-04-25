@@ -98,6 +98,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 	case "node":
 		return true, nil
 	case "controlplane":
+		controlplaneExists := false
 		for _, cm := range controlPlaneMachines {
 			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 				Machine: cm,
@@ -112,16 +113,21 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 
 			ec2svc := ec2.NewService(m.Scope)
 
-			ok, err := ec2svc.MachineExists(m)
+			controlplaneExists, err = ec2svc.MachineExists(m)
 			if err != nil {
-				return false, errors.Wrapf(err, "failed to verify existence of machine %q", m.Name())
+				a.log.V(2).Info("Could not verify existence of control plane machine, continuing", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Namespace)
+				continue
 			}
 
-			a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", ok)
-			return ok, nil
+			if !controlplaneExists {
+				a.log.V(2).Info("Control plane machine does not exist, continuing", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Namespace)
+				continue
+			}
 		}
 
-		return false, nil
+		a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", controlplaneExists)
+		return controlplaneExists, nil
+
 	default:
 		return false, errors.Errorf("Unknown value %q for label `set` on machine %q, skipping machine creation", set, scope.Machine.Name)
 	}
