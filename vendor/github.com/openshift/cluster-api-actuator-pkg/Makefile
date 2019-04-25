@@ -45,22 +45,21 @@ build-e2e:
 
 .PHONY: test-e2e
 test-e2e: ## Run openshift specific e2e test
-	go test -timeout 90m \
-		-v github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
-		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
-		-machine-api-namespace $${NAMESPACE:-openshift-machine-api} \
-		-ginkgo.v \
-		-args -v 5 -logtostderr true
+	# Run operator tests first to preserve logs for troubleshooting test
+	# failures and flakes.
+	# Feature:Operator tests remove deployments. Thus loosing all the logs
+	# previously acquired.
+	hack/ci-integration.sh -ginkgo.v -ginkgo.noColor=true -ginkgo.focus "Feature:Operators"
+	hack/ci-integration.sh -ginkgo.v -ginkgo.noColor=true -ginkgo.skip "Feature:Operators"
 
 .PHONY: k8s-e2e
 k8s-e2e: ## Run k8s specific e2e test
-	go test -timeout 30m \
-		-v github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
-		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
-		-machine-api-namespace $${NAMESPACE:-kube-system} \
-		-ginkgo.v \
-		-args -v 5 -logtostderr true
-
+	# Run operator tests first to preserve logs for troubleshooting test
+	# failures and flakes.
+	# Feature:Operator tests remove deployments. Thus loosing all the logs
+	# previously acquired.
+	NAMESPACE=kube-system hack/ci-integration.sh -ginkgo.v -ginkgo.noColor=true -ginkgo.focus "Feature:Operators"
+	NAMESPACE=kube-system hack/ci-integration.sh -ginkgo.v -ginkgo.noColor=true -ginkgo.skip "Feature:Operators"
 
 .PHONY: help
 help:
