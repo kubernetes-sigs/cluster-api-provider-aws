@@ -277,15 +277,15 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
 	case v1alpha1.InstanceStateShuttingDown, v1alpha1.InstanceStateTerminated:
-		a.log.Info("Machine instance is shutting down or already terminated", "machine-name", machine.Name, "machine-namespace", machine.Namespace)
+		a.log.Info("Machine instance is shutting down or already terminated")
 		return nil
 	default:
+		a.log.Info("Terminating machine")
 		if err := ec2svc.TerminateInstance(instance.ID); err != nil {
 			return errors.Errorf("failed to terminate instance: %+v", err)
 		}
 	}
 
-	a.log.Info("Shutdown signal was sent. Shutting down machine.")
 	return nil
 }
 
