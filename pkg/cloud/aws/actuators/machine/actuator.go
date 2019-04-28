@@ -93,12 +93,16 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
 
+// isNodeJoin determines if a machine, in scope, should join of the cluster.
 func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachines []*clusterv1.Machine) (bool, error) {
 	switch set := scope.Machine.ObjectMeta.Labels["set"]; set {
 	case "node":
+		// non control plane machines will always join the cluster.
 		return true, nil
 	case "controlplane":
+		// control plane machines will join the cluster if the cluster has an existing control plane.
 		controlplaneExists := false
+		var err error
 		for _, cm := range controlPlaneMachines {
 			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 				Machine: cm,
@@ -115,18 +119,21 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 
 			controlplaneExists, err = ec2svc.MachineExists(m)
 			if err != nil {
-				a.log.V(2).Info("Could not verify existence of control plane machine, continuing", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Namespace)
+				a.log.V(2).Info("Failed to verify existence of control plane machine", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
 				continue
 			}
 
 			if !controlplaneExists {
-				a.log.V(2).Info("Control plane machine does not exist, continuing", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Namespace)
+				a.log.V(2).Info("Control plane machine does not exist", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
 				continue
+			} else {
+				a.log.V(2).Info("Control plane machine exists", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
+				break
 			}
 		}
 
 		a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", controlplaneExists)
-		return controlplaneExists, nil
+		return controlplaneExists, err
 
 	default:
 		return false, errors.Errorf("Unknown value %q for label `set` on machine %q, skipping machine creation", set, scope.Machine.Name)
