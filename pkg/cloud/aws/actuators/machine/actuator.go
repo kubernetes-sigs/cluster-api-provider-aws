@@ -112,7 +112,8 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 			})
 
 			if err != nil {
-				return false, errors.Wrapf(err, "failed to create machine scope for machine %q", cm.Name)
+				a.log.V(2).Info("failed to create machine scope for machine", "machine-name", cm.Name, "machine-namespace", cm.Namespace)
+				continue
 			}
 
 			ec2svc := ec2.NewService(m.Scope)
