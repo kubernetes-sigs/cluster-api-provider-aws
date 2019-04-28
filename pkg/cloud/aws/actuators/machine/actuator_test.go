@@ -17,11 +17,14 @@ limitations under the License.
 package machine
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 )
@@ -486,6 +489,177 @@ func TestImmutableStateChange(t *testing.T) {
 		if tc.expected != changed {
 			t.Fatalf("[%s] Expected MachineSpec [%+v], NOT Equal Instance [%+v]",
 				tc.name, tc.machineSpec, tc.instance)
+		}
+	}
+}
+
+func getTestWorkerMachine() *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "worker-0",
+			Namespace: "awesome-ns",
+			Labels: map[string]string{
+				"set": "node",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			Versions: clusterv1.MachineVersionInfo{
+				Kubelet: "v1.13.0",
+			},
+		},
+	}
+}
+
+func getTestControlplaneMachine() *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "controlplane-0",
+			Namespace: "awesome-ns",
+			Labels: map[string]string{
+				"set": "controlplane",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			Versions: clusterv1.MachineVersionInfo{
+				Kubelet: "v1.13.0",
+			},
+		},
+	}
+}
+
+func getTestRandoMachine() *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rando-0",
+			Namespace: "awesome-ns",
+			Labels: map[string]string{
+				"set": "rando",
+			},
+		},
+	}
+}
+
+func getTestMachineScope(m *clusterv1.Machine, t *testing.T) *actuators.MachineScope {
+	testCluster := &clusterv1.Cluster{}
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+		Machine: m,
+		Cluster: testCluster,
+		Client:  nil,
+		Logger:  nil,
+	},
+	)
+	if err != nil {
+		t.Fatalf("[getTestMachineScope] failed, Got %q; Want:nil", err)
+	}
+	return scope
+}
+
+func getWorkerMachineScope(t *testing.T) *actuators.MachineScope {
+	return getTestMachineScope(getTestWorkerMachine(), t)
+}
+
+func getControlplaneMachineScope(t *testing.T) *actuators.MachineScope {
+	return getTestMachineScope(getTestControlplaneMachine(), t)
+}
+
+func getRandoMachineScope(t *testing.T) *actuators.MachineScope {
+	return getTestMachineScope(getTestRandoMachine(), t)
+}
+
+func getTestControlplaneMachines() []*clusterv1.Machine {
+	return []*clusterv1.Machine{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "master-0",
+				Namespace: "awesome-ns",
+				Labels: map[string]string{
+					"set": "controlplane",
+				},
+			},
+			Spec: clusterv1.MachineSpec{
+				Versions: clusterv1.MachineVersionInfo{
+					Kubelet:      "v1.13.0",
+					ControlPlane: "v1.13.0",
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "master-1",
+				Namespace: "awesome-ns",
+				Labels: map[string]string{
+					"set": "controlplane",
+				},
+			},
+			Spec: clusterv1.MachineSpec{
+				Versions: clusterv1.MachineVersionInfo{
+					Kubelet:      "v1.13.0",
+					ControlPlane: "v1.13.0",
+				},
+			},
+		},
+	}
+}
+
+func getTestMachineProviderStatus(id string, t *testing.T) *runtime.RawExtension {
+	testStatus := &v1alpha1.AWSMachineProviderStatus{
+		InstanceID: &id,
+	}
+	raw, err := v1alpha1.EncodeMachineStatus(testStatus)
+	if err != nil {
+		t.Fatalf("[getTestMachineProviderStatus] Failed, Got error: %q, Want: nil", err)
+	}
+	return raw
+}
+
+func TestIsNodeJoin(t *testing.T) {
+	testCases := []struct {
+		name                      string
+		inputScope                *actuators.MachineScope
+		inputControlplaneMachines []*clusterv1.Machine
+		expectedIsNodeJoin        bool
+		expectedError             error
+	}{
+		{
+			name:                      "worker nodes should always join",
+			inputScope:                getWorkerMachineScope(t),
+			inputControlplaneMachines: nil,
+			expectedIsNodeJoin:        true,
+			expectedError:             nil,
+		},
+		{
+			name:                      "rando machines should not join",
+			inputScope:                getRandoMachineScope(t),
+			inputControlplaneMachines: nil,
+			expectedIsNodeJoin:        false,
+			expectedError:             fmt.Errorf("Unknown value %q for label `set` on machine %q", "rando", "rando-0"),
+		},
+		{
+			name:                      "first controlplane machine should not join",
+			inputScope:                getControlplaneMachineScope(t),
+			inputControlplaneMachines: nil,
+			expectedIsNodeJoin:        false,
+			expectedError:             nil,
+		},
+		{
+			name:                      "controlplane machine should not join when none of controlplane machines exist",
+			inputScope:                getControlplaneMachineScope(t),
+			inputControlplaneMachines: getTestControlplaneMachines(),
+			expectedIsNodeJoin:        false,
+			expectedError:             nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		testActuator := NewActuator(ActuatorParams{})
+		actualIsNodeJoin, actualError := testActuator.isNodeJoin(tc.inputScope, tc.inputControlplaneMachines)
+
+		if tc.expectedIsNodeJoin != actualIsNodeJoin {
+			t.Fatalf("isNodeJoin Failed, [%s], Got: %t, Want: %t", tc.name, actualIsNodeJoin, tc.expectedIsNodeJoin)
+		}
+
+		if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
+			t.Fatalf("isNodeJoin Failed, [%s], Got: %q, Want: %q", tc.name, actualError, tc.expectedError)
 		}
 	}
 }

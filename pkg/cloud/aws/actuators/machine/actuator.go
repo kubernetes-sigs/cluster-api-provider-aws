@@ -137,7 +137,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 		return controlplaneExists, err
 
 	default:
-		return false, errors.Errorf("Unknown value %q for label `set` on machine %q, skipping machine creation", set, scope.Machine.Name)
+		return false, errors.Errorf("Unknown value %q for label `set` on machine %q", set, scope.Machine.Name)
 	}
 }
 
