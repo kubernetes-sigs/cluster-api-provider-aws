@@ -22,7 +22,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -599,17 +598,6 @@ func getTestControlplaneMachines() []*clusterv1.Machine {
 			},
 		},
 	}
-}
-
-func getTestMachineProviderStatus(id string, t *testing.T) *runtime.RawExtension {
-	testStatus := &v1alpha1.AWSMachineProviderStatus{
-		InstanceID: &id,
-	}
-	raw, err := v1alpha1.EncodeMachineStatus(testStatus)
-	if err != nil {
-		t.Fatalf("[getTestMachineProviderStatus] Failed, Got error: %q, Want: nil", err)
-	}
-	return raw
 }
 
 func TestIsNodeJoin(t *testing.T) {
