@@ -507,7 +507,7 @@ func TestImmutableStateChange(t *testing.T) {
 	}
 }
 
-func getTestWorkerMachine() *clusterv1.Machine {
+func getWorkerTestMachine() *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "worker-0",
@@ -524,7 +524,7 @@ func getTestWorkerMachine() *clusterv1.Machine {
 	}
 }
 
-func getTestControlplaneMachine() *clusterv1.Machine {
+func getControlplaneTestMachine() *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "controlplane-0",
@@ -541,14 +541,23 @@ func getTestControlplaneMachine() *clusterv1.Machine {
 	}
 }
 
-func getTestRandoMachine() *clusterv1.Machine {
+func getRandomTestMachine() *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rando-0",
+			Name:      "random-0",
 			Namespace: "awesome-ns",
 			Labels: map[string]string{
-				"set": "rando",
+				"set": "random",
 			},
+		},
+	}
+}
+
+func getNoLabelTestMachine() *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "nolabel-0",
+			Namespace: "awesome-ns",
 		},
 	}
 }
@@ -572,15 +581,19 @@ func getTestMachineScope(m *clusterv1.Machine, t *testing.T, mockEC2 ec2iface.EC
 }
 
 func getWorkerMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	return getTestMachineScope(getTestWorkerMachine(), t, mockEC2)
+	return getTestMachineScope(getWorkerTestMachine(), t, mockEC2)
 }
 
 func getControlplaneMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	return getTestMachineScope(getTestControlplaneMachine(), t, mockEC2)
+	return getTestMachineScope(getControlplaneTestMachine(), t, mockEC2)
 }
 
 func getRandoMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	return getTestMachineScope(getTestRandoMachine(), t, mockEC2)
+	return getTestMachineScope(getRandomTestMachine(), t, mockEC2)
+}
+
+func getNoLabelMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
+	return getTestMachineScope(getNoLabelTestMachine(), t, mockEC2)
 }
 
 func getTestControlplaneMachines() []*clusterv1.Machine {
@@ -618,7 +631,7 @@ func getTestControlplaneMachines() []*clusterv1.Machine {
 	}
 }
 
-func getMockEC2IfaceNonExisting(ne []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
+func getMockEC2APIDescribeInstancesNotFound(ne []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
 	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
 	for _, n := range ne {
 		input := &ec2.DescribeInstancesInput{
@@ -637,6 +650,68 @@ func getMockEC2IfaceNonExisting(ne []string, mockCtrl *gomock.Controller) ec2ifa
 	return mockEC2
 }
 
+func getMockEC2APIDescribeInstancesFail(machineNames []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
+	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
+	for _, mn := range machineNames {
+		dmi := &ec2.DescribeInstancesInput{
+			Filters: []*ec2.Filter{
+				filter.EC2.VPC(""),
+				filter.EC2.ClusterOwned(""),
+				filter.EC2.Name(mn),
+				filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+			},
+		}
+
+		mockEC2.EXPECT().DescribeInstances(dmi).Return(
+			nil,
+			fmt.Errorf("mock API failure")).AnyTimes()
+	}
+
+	return mockEC2
+}
+
+func getMockEC2APIDescribeInstancesPass(machineNames []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
+	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
+	for _, mn := range machineNames {
+		dmi := &ec2.DescribeInstancesInput{
+			Filters: []*ec2.Filter{
+				filter.EC2.VPC(""),
+				filter.EC2.ClusterOwned(""),
+				filter.EC2.Name(mn),
+				filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+			},
+		}
+
+		mockEC2.EXPECT().DescribeInstances(dmi).Return(
+			&ec2.DescribeInstancesOutput{
+				Reservations: []*ec2.Reservation{
+					{
+						Instances: []*ec2.Instance{
+							{
+								InstanceId: aws.String(mn),
+								State: &ec2.InstanceState{
+									Code: aws.Int64(16),
+									Name: aws.String("Running"),
+								},
+								InstanceType:     aws.String("t2.foo"),
+								SubnetId:         aws.String("foo-subnet"),
+								ImageId:          aws.String("foo"),
+								KeyName:          aws.String("foo-key"),
+								PrivateIpAddress: aws.String("1.2.3.4"),
+								PublicIpAddress:  aws.String("5.6.7.8"),
+								EnaSupport:       aws.Bool(true),
+								EbsOptimized:     aws.Bool(true),
+							},
+						},
+					},
+				},
+			},
+			nil).AnyTimes()
+	}
+
+	return mockEC2
+}
+
 func TestIsNodeJoin(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -649,32 +724,62 @@ func TestIsNodeJoin(t *testing.T) {
 		expectedError             error
 	}{
 		{
-			name:                      "worker nodes should always join",
+			name:                      "should always join worker machines",
 			inputScope:                getWorkerMachineScope(t, nil),
 			inputControlplaneMachines: nil,
 			expectedIsNodeJoin:        true,
 			expectedError:             nil,
 		},
 		{
-			name:                      "rando machines should not join",
+			name:                      "should return error for random machines joining",
 			inputScope:                getRandoMachineScope(t, nil),
 			inputControlplaneMachines: nil,
 			expectedIsNodeJoin:        false,
-			expectedError:             fmt.Errorf("Unknown value %q for label `set` on machine %q", "rando", "rando-0"),
+			expectedError:             fmt.Errorf("Unknown value %q for label `set` on machine %q", "random", "random-0"),
 		},
 		{
-			name:                      "first controlplane machine should not join",
+			name:                      "should return error for no `set` label",
+			inputScope:                getNoLabelMachineScope(t, nil),
+			inputControlplaneMachines: nil,
+			expectedIsNodeJoin:        false,
+			expectedError:             fmt.Errorf("Unknown value %q for label `set` on machine %q", "", "nolabel-0"),
+		},
+		{
+			name:                      "should not join first controlplane machine",
 			inputScope:                getControlplaneMachineScope(t, nil),
 			inputControlplaneMachines: nil,
 			expectedIsNodeJoin:        false,
 			expectedError:             nil,
 		},
 		{
-			name: "controlplane machine should not join when none of controlplane machines exist",
-			inputScope: getControlplaneMachineScope(t,
-				getMockEC2IfaceNonExisting([]string{"master-0", "master-1"}, mockCtrl)),
+			name: "should not join controlplane machine when no controlplane machines exist",
+			inputScope: getControlplaneMachineScope(
+				t,
+				getMockEC2APIDescribeInstancesNotFound([]string{"master-0", "master-1"}, mockCtrl),
+			),
 			inputControlplaneMachines: getTestControlplaneMachines(),
 			expectedIsNodeJoin:        false,
+			expectedError:             nil,
+		},
+		{
+			name: "should return error when unable to verify controlplane machine existence",
+			inputScope: getControlplaneMachineScope(
+				t,
+				getMockEC2APIDescribeInstancesFail([]string{"master-0", "master-1"}, mockCtrl),
+			),
+			inputControlplaneMachines: getTestControlplaneMachines(),
+			expectedIsNodeJoin:        false,
+			expectedError: fmt.Errorf(
+				`failed to verify existence of machine "master-0" in namespace "awesome-ns": failed to lookup machine "master-0": failed to describe instances by tags: mock API failure`),
+		},
+		{
+			name: "should join controlplane machine when other controlplane machine exists",
+			inputScope: getControlplaneMachineScope(
+				t,
+				getMockEC2APIDescribeInstancesPass([]string{"master-0", "master-1"}, mockCtrl),
+			),
+			inputControlplaneMachines: getTestControlplaneMachines(),
+			expectedIsNodeJoin:        true,
 			expectedError:             nil,
 		},
 	}
@@ -684,11 +789,19 @@ func TestIsNodeJoin(t *testing.T) {
 		actualIsNodeJoin, actualError := testActuator.isNodeJoin(tc.inputScope, tc.inputControlplaneMachines)
 
 		if tc.expectedIsNodeJoin != actualIsNodeJoin {
-			t.Fatalf("isNodeJoin Failed, [%s], Got: %t, Want: %t", tc.name, actualIsNodeJoin, tc.expectedIsNodeJoin)
+			t.Fatalf("isNodeJoin failed, [%s], Got: %t, Want: %t", tc.name, actualIsNodeJoin, tc.expectedIsNodeJoin)
+		}
+
+		if tc.expectedError == nil && actualError != nil {
+			t.Fatalf("isNodeJoin failed, [%s], GotError: %q, WantError: nil", tc.name, actualError)
+		}
+
+		if tc.expectedError != nil && actualError == nil {
+			t.Fatalf("isNodeJoin failed, [%s], GotError: nil, WantError: %q", tc.name, tc.expectedError)
 		}
 
 		if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
-			t.Fatalf("isNodeJoin Failed, [%s], Got: %q, Want: %q", tc.name, actualError, tc.expectedError)
+			t.Fatalf("isNodeJoin Failed, [%s], GotError: %q, WantError: %q", tc.name, actualError, tc.expectedError)
 		}
 	}
 }

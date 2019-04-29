@@ -124,15 +124,14 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 
 			controlplaneExists, err = ec2svc.MachineExists(m)
 			if err != nil {
-				a.log.V(2).Info("Failed to verify existence of control plane machine", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
-				continue
+				return false, errors.Wrapf(err, "failed to verify existence of machine %q in namespace %q", m.Machine.Name, m.Machine.Namespace)
 			}
 
 			if !controlplaneExists {
-				a.log.V(2).Info("Control plane machine does not exist", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
+				a.log.V(2).Info("Controlplane machine does not exist", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
 				continue
 			} else {
-				a.log.V(2).Info("Control plane machine exists", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
+				a.log.V(2).Info("Controlplane machine exists", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
 				break
 			}
 		}
