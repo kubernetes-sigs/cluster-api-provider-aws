@@ -296,7 +296,7 @@ func (s *Service) GetCoreSecurityGroups(machine *actuators.MachineScope) ([]stri
 	default:
 		return nil, errors.Errorf("Unknown node role %q", machine.Role())
 	}
-	var ids []string
+	ids := make([]string, 0, len(sgRoles))
 	for _, sg := range sgRoles {
 		if s.scope.SecurityGroups()[sg] == nil {
 			return nil, awserrors.NewFailedDependency(
