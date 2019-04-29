@@ -22,6 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
@@ -552,7 +553,7 @@ func getTestRandoMachine() *clusterv1.Machine {
 	}
 }
 
-func getTestMachineScope(m *clusterv1.Machine, t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
+func getTestMachineScope(m *clusterv1.Machine, t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
 	testCluster := &clusterv1.Cluster{}
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 		Machine: m,
@@ -570,15 +571,15 @@ func getTestMachineScope(m *clusterv1.Machine, t *testing.T, mockEC2 *mock_ec2if
 	return scope
 }
 
-func getWorkerMachineScope(t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
+func getWorkerMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
 	return getTestMachineScope(getTestWorkerMachine(), t, mockEC2)
 }
 
-func getControlplaneMachineScope(t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
+func getControlplaneMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
 	return getTestMachineScope(getTestControlplaneMachine(), t, mockEC2)
 }
 
-func getRandoMachineScope(t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
+func getRandoMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
 	return getTestMachineScope(getTestRandoMachine(), t, mockEC2)
 }
 
@@ -617,7 +618,7 @@ func getTestControlplaneMachines() []*clusterv1.Machine {
 	}
 }
 
-func getMockEC2IfaceNonExisting(ne []string, mockCtrl *gomock.Controller) *mock_ec2iface.MockEC2API {
+func getMockEC2IfaceNonExisting(ne []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
 	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
 	for _, n := range ne {
 		input := &ec2.DescribeInstancesInput{
