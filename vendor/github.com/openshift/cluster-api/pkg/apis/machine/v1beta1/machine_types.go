@@ -75,23 +75,6 @@ type MachineSpec struct {
 	// +optional
 	ProviderSpec ProviderSpec `json:"providerSpec"`
 
-	// Versions of key software to use. This field is optional at cluster
-	// creation time, and omitting the field indicates that the cluster
-	// installation tool should select defaults for the user. These
-	// defaults may differ based on the cluster installer, but the tool
-	// should populate the values it uses when persisting Machine objects.
-	// A Machine spec missing this field at runtime is invalid.
-	// +optional
-	Versions MachineVersionInfo `json:"versions,omitempty"`
-
-	// ConfigSource is used to populate in the associated Node for dynamic kubelet config. This
-	// field already exists in Node, so any updates to it in the Machine
-	// spec will be automatically copied to the linked NodeRef from the
-	// status. The rest of dynamic kubelet config support should then work
-	// as-is.
-	// +optional
-	ConfigSource *corev1.NodeConfigSource `json:"configSource,omitempty"`
-
 	// ProviderID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.
 	// This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
@@ -118,22 +101,6 @@ type MachineStatus struct {
 	// LastUpdated identifies when this status was last observed.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
-
-	// Versions specifies the current versions of software on the corresponding Node (if it
-	// exists). This is provided for a few reasons:
-	//
-	// 1) It is more convenient than checking the NodeRef, traversing it to
-	//    the Node, and finding the appropriate field in Node.Status.NodeInfo
-	//    (which uses different field names and formatting).
-	// 2) It removes some of the dependency on the structure of the Node,
-	//    so that if the structure of Node.Status.NodeInfo changes, only
-	//    machine controllers need to be updated, rather than every client
-	//    of the Machines API.
-	// 3) There is no other simple way to check the control plane
-	//    version. A client would have to connect directly to the apiserver
-	//    running on the target node in order to find out its version.
-	// +optional
-	Versions *MachineVersionInfo `json:"versions,omitempty"`
 
 	// ErrorReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
@@ -184,14 +151,6 @@ type MachineStatus struct {
 	// +optional
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
-	// Conditions lists the conditions synced from the node conditions of the corresponding node-object.
-	// Machine-controller is responsible for keeping conditions up-to-date.
-	// MachineSet controller will be taking these conditions as a signal to decide if
-	// machine is healthy or needs to be replaced.
-	// Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition
-	// +optional
-	Conditions []corev1.NodeCondition `json:"conditions,omitempty"`
-
 	// LastOperation describes the last-operation performed by the machine-controller.
 	// This API should be useful as a history in terms of the latest operation performed on the
 	// specific machine. It should also convey the state of the latest-operation for example if
@@ -222,20 +181,6 @@ type LastOperation struct {
 	Type *string `json:"type,omitempty"`
 }
 
-/// [MachineStatus]
-
-/// [MachineVersionInfo]
-type MachineVersionInfo struct {
-	// Kubelet is the semantic version of kubelet to run
-	Kubelet string `json:"kubelet"`
-
-	// ControlPlane is the semantic version of the Kubernetes control plane to
-	// run. This should only be populated when the machine is a
-	// control plane.
-	// +optional
-	ControlPlane string `json:"controlPlane,omitempty"`
-}
-
 /// [MachineVersionInfo]
 
 func (m *Machine) Validate() field.ErrorList {
@@ -248,8 +193,8 @@ func (m *Machine) Validate() field.ErrorList {
 	}
 
 	// validate provider config is set
-	if m.Spec.ProviderSpec.Value == nil && m.Spec.ProviderSpec.ValueFrom == nil {
-		errors = append(errors, field.Invalid(fldPath.Child("spec").Child("providerspec"), m.Spec.ProviderSpec, "at least one of value or valueFrom fields must be set"))
+	if m.Spec.ProviderSpec.Value == nil {
+		errors = append(errors, field.Invalid(fldPath.Child("spec").Child("providerspec"), m.Spec.ProviderSpec, "value field must be set"))
 	}
 
 	return errors

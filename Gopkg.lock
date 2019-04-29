@@ -485,7 +485,7 @@
 
 [[projects]]
   branch = "openshift-4.0-cluster-api-0.0.0-alpha.4"
-  digest = "1:22cd3b43b4d813a4961b8774e13f7c8b7a8a3d0bfd6246290e956667a03d8086"
+  digest = "1:43b90c55a82c4be0bb8524534a92f2c7bd909e041a51e7b1ed6d52300978ef6a"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis",
@@ -505,11 +505,11 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "88d73f06ea7453ec900d043a2c4c35794abf4998"
+  revision = "d8958b539e331bf5ebb056b7f872541e13fb8e01"
 
 [[projects]]
   branch = "master"
-  digest = "1:10a5ccf52b9b2af2f8e9bf51ef8e67324e9e999f73099ddea1c849ae5295ced8"
+  digest = "1:c51e502153acd32f728210817c40fc8e1d6851d2b64a0be0b5c0186ee32218ac"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/autoscaler",
@@ -520,7 +520,7 @@
     "pkg/types",
   ]
   pruneopts = ""
-  revision = "7405f6233af2dd7ff0bc6ac815d4a7e954af8ade"
+  revision = "286578aa9fd0510b7c37fbd4b4ab9c0eab7b03eb"
 
 [[projects]]
   branch = "master"
@@ -1257,6 +1257,7 @@
     "github.com/openshift/cluster-api-actuator-pkg/pkg/manifests",
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
     "github.com/openshift/cluster-api/pkg/apis",
+    "github.com/openshift/cluster-api/pkg/apis/machine/common",
     "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1",
     "github.com/openshift/cluster-api/pkg/controller/error",
     "github.com/openshift/cluster-api/pkg/controller/machine",
@@ -1272,13 +1273,16 @@
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/equality",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/apis/meta/v1/validation",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/errors",
+    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/uuid",
+    "k8s.io/apimachinery/pkg/util/validation/field",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
