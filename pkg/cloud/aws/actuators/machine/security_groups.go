@@ -39,7 +39,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (a *Actuator) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scope *actuators.MachineScope, instanceID string, additional []v1alpha1.AWSResourceReference, existing []string) (bool, error) {
+func (a *Actuator) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scope *actuators.MachineScope, instanceID string, additional []v1alpha1.AWSResourceReference, existing map[string][]string) (bool, error) {
 	annotation, err := a.machineAnnotationJSON(scope.Machine, SecurityGroupsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -72,7 +72,7 @@ func (a *Actuator) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scop
 }
 
 // securityGroupsChanged determines which security groups to delete and which to add.
-func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, core []string, additional []v1alpha1.AWSResourceReference, existing []string) (bool, []string) {
+func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, core []string, additional []v1alpha1.AWSResourceReference, existing map[string][]string) (bool, []string) {
 	state := map[string]bool{}
 	for _, s := range additional {
 		state[*s.ID] = true
@@ -99,26 +99,20 @@ func (a *Actuator) securityGroupsChanged(annotation map[string]interface{}, core
 		}
 	}
 
-	// Add groups managed externally (i.e. not in the state).
-	for _, id := range existing {
-		if _, ok := state[id]; !ok {
-			res = append(res, id)
+	for _, actual := range existing {
+		if len(actual) != len(res) {
+			return true, res
 		}
-	}
 
-	changed := len(existing) != len(res)
-
-	if !changed {
 		// Length is the same, check if the ids are the same too.
-		sort.Strings(existing)
+		sort.Strings(actual)
 		sort.Strings(res)
 		for i, id := range res {
-			if existing[i] != id {
-				changed = true
-				break
+			if actual[i] != id {
+				return true, res
 			}
 		}
 	}
 
-	return changed, res
+	return false, res
 }

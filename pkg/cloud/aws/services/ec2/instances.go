@@ -484,6 +484,25 @@ func (a *awslog) Log(args ...interface{}) {
 	a.WithName("aws-logger").Info("AWS context", args...)
 }
 
+// GetInstanceSecurityGroups returns a map from ENI id to the security groups applied to that ENI
+// While some security group operations take place at the "instance" level, these are in fact an API convenience for manipulating the first ("primary") ENI's properties.
+func (s *Service) GetInstanceSecurityGroups(instanceID string) (map[string][]string, error) {
+	enis, err := s.getInstanceENIs(instanceID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get ENIs for instance %q", instanceID)
+	}
+
+	out := make(map[string][]string)
+	for _, eni := range enis {
+		var groups []string
+		for _, group := range eni.Groups {
+			groups = append(groups, aws.StringValue(group.GroupId))
+		}
+		out[aws.StringValue(eni.NetworkInterfaceId)] = groups
+	}
+	return out, nil
+}
+
 // UpdateInstanceSecurityGroups modifies the security groups of the given
 // EC2 instance.
 func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) error {
