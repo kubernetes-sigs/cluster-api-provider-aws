@@ -634,7 +634,7 @@ func getTestControlplaneMachines() []*clusterv1.Machine {
 func getMockEC2APIDescribeInstancesNotFound(ne []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
 	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
 	for _, n := range ne {
-		input := &ec2.DescribeInstancesInput{
+		dmi := &ec2.DescribeInstancesInput{
 			Filters: []*ec2.Filter{
 				filter.EC2.VPC(""),
 				filter.EC2.ClusterOwned(""),
@@ -642,7 +642,7 @@ func getMockEC2APIDescribeInstancesNotFound(ne []string, mockCtrl *gomock.Contro
 				filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 			},
 		}
-		mockEC2.EXPECT().DescribeInstances(input).Return(
+		mockEC2.EXPECT().DescribeInstances(dmi).Return(
 			nil,
 			awserrors.NewNotFound(fmt.Errorf("mocked not found"))).Times(1)
 	}
@@ -712,6 +712,58 @@ func getMockEC2APIDescribeInstancesPass(machineNames []string, mockCtrl *gomock.
 	return mockEC2
 }
 
+func getMockEC2APIDescribeInstancesNotFoundAndPass(machineNames []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
+	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
+
+	dmi := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.VPC(""),
+			filter.EC2.ClusterOwned(""),
+			filter.EC2.Name(machineNames[0]),
+			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+		},
+	}
+	mockEC2.EXPECT().DescribeInstances(dmi).Return(
+		nil,
+		awserrors.NewNotFound(fmt.Errorf("mocked not found"))).Times(1)
+
+	dmi = &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.VPC(""),
+			filter.EC2.ClusterOwned(""),
+			filter.EC2.Name(machineNames[1]),
+			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+		},
+	}
+	mockEC2.EXPECT().DescribeInstances(dmi).Return(
+		&ec2.DescribeInstancesOutput{
+			Reservations: []*ec2.Reservation{
+				{
+					Instances: []*ec2.Instance{
+						{
+							InstanceId: aws.String(machineNames[1]),
+							State: &ec2.InstanceState{
+								Code: aws.Int64(16),
+								Name: aws.String("Running"),
+							},
+							InstanceType:     aws.String("t2.foo"),
+							SubnetId:         aws.String("foo-subnet"),
+							ImageId:          aws.String("foo"),
+							KeyName:          aws.String("foo-key"),
+							PrivateIpAddress: aws.String("1.2.3.4"),
+							PublicIpAddress:  aws.String("5.6.7.8"),
+							EnaSupport:       aws.Bool(true),
+							EbsOptimized:     aws.Bool(true),
+						},
+					},
+				},
+			},
+		},
+		nil).Times(1)
+
+	return mockEC2
+}
+
 func TestIsNodeJoin(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -777,6 +829,16 @@ func TestIsNodeJoin(t *testing.T) {
 			inputScope: getControlplaneMachineScope(
 				t,
 				getMockEC2APIDescribeInstancesPass([]string{"master-0", "master-1"}, mockCtrl),
+			),
+			inputControlplaneMachines: getTestControlplaneMachines(),
+			expectedIsNodeJoin:        true,
+			expectedError:             nil,
+		},
+		{
+			name: "should join controlplane machine when first controlplane machine doesn't exist but second controlplane machine exists",
+			inputScope: getControlplaneMachineScope(
+				t,
+				getMockEC2APIDescribeInstancesNotFoundAndPass([]string{"master-0", "master-1"}, mockCtrl),
 			),
 			inputControlplaneMachines: getTestControlplaneMachines(),
 			expectedIsNodeJoin:        true,
