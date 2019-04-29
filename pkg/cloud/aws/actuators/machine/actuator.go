@@ -105,10 +105,11 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 		var err error
 		for _, cm := range controlPlaneMachines {
 			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-				Machine: cm,
-				Cluster: scope.Cluster,
-				Client:  a.client,
-				Logger:  a.log,
+				Machine:    cm,
+				Cluster:    scope.Cluster,
+				Client:     a.client,
+				Logger:     a.log,
+				AWSClients: scope.AWSClients,
 			})
 
 			if err != nil {
