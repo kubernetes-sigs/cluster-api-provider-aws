@@ -85,7 +85,7 @@ func (s *Service) DeleteBastion() error {
 	instance, err := s.describeBastionInstance()
 	if err != nil {
 		if awserrors.IsNotFound(err) {
-			s.scope.V(2).Info("bastion instance does not exist", "instance-id", instance.ID)
+			s.scope.V(2).Info("bastion instance does not exist")
 			return nil
 		}
 		return errors.Wrap(err, "unable to describe bastion instance")

@@ -41,7 +41,7 @@ import (
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Instance, error) {
-	s.scope.V(2).Info("Looking for existing machine instance")
+	s.scope.V(2).Info("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -79,7 +79,7 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
 		return nil, nil
 	}
 
-	s.scope.V(2).Info("Looking for instance", "instance-id", *id)
+	s.scope.V(2).Info("Looking for instance by id", "instance-id", *id)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{id},

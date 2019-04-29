@@ -224,6 +224,16 @@ create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS u
 	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
+.PHONY: create-cluster-ha
+create-cluste-ha: binaries-dev ## Create a development Kubernetes cluster on AWS using HA examples
+	clusterctl create cluster -v 4 \
+	--provider aws \
+	--bootstrap-type kind \
+	-m ./cmd/clusterctl/examples/aws/out/machines-ha.yaml \
+	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
+	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
+	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
+
 .PHONY: delete-cluster
 delete-cluster: binaries-dev ## Deletes the development Kubernetes Cluster "test1"
 	clusterctl delete cluster -v 4 \
