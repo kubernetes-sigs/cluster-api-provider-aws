@@ -617,22 +617,6 @@ func getTestControlplaneMachines() []*clusterv1.Machine {
 	}
 }
 
-func getTestDescribeInstancesInput(instanceID string) *ec2.DescribeInstancesInput {
-	return &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{aws.String(instanceID)},
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: []*string{aws.String("")},
-			},
-			{
-				Name:   aws.String("instance-state-name"),
-				Values: []*string{aws.String("pending"), aws.String("running")},
-			},
-		},
-	}
-}
-
 func getMockEC2IfaceNonExisting(ne []string, mockCtrl *gomock.Controller) *mock_ec2iface.MockEC2API {
 	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
 	for _, n := range ne {
