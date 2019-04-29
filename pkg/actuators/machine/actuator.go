@@ -176,7 +176,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *machinev1.Machine, c
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
 func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
-	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
 	}
@@ -260,7 +260,7 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 
 // DeleteMachine deletes an AWS instance
 func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
-	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
 	}
@@ -302,7 +302,7 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("updating machine")
 
-	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), updateEventAction)
 	}
@@ -409,7 +409,7 @@ func (a *Actuator) Describe(cluster *machinev1.Cluster, machine *machinev1.Machi
 }
 
 func (a *Actuator) getMachineInstances(cluster *machinev1.Cluster, machine *machinev1.Machine) ([]*ec2.Instance, error) {
-	machineProviderConfig, err := providerConfigFromMachine(a.client, machine, a.codec)
+	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		glog.Errorf("Error decoding MachineProviderConfig: %v", err)
 		return nil, err
