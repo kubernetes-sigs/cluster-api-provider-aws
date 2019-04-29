@@ -100,10 +100,10 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachines []*clusterv1.Machine) (bool, error) {
 	switch set := scope.Machine.ObjectMeta.Labels["set"]; set {
 	case "node":
-		// non control plane machines will always join the cluster.
+		// Worker machines, not part of the controlplane, will always join the cluster.
 		return true, nil
 	case "controlplane":
-		// control plane machines will join the cluster if the cluster has an existing control plane.
+		// Controlplane machines will join the cluster if the cluster has an existing control plane.
 		controlplaneExists := false
 		var err error
 		for _, cm := range controlPlaneMachines {
