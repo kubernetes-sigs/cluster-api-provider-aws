@@ -110,7 +110,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 				Machine:    cm,
 				Cluster:    scope.Cluster,
-				Client:     a.client,
+				Client:     a.clusterClient,
 				Logger:     a.log,
 				AWSClients: scope.AWSClients,
 			})
