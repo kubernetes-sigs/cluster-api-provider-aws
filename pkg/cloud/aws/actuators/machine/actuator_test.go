@@ -21,9 +21,14 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 )
@@ -538,13 +543,16 @@ func getTestRandoMachine() *clusterv1.Machine {
 	}
 }
 
-func getTestMachineScope(m *clusterv1.Machine, t *testing.T) *actuators.MachineScope {
+func getTestMachineScope(m *clusterv1.Machine, t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
 	testCluster := &clusterv1.Cluster{}
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
 		Machine: m,
 		Cluster: testCluster,
 		Client:  nil,
 		Logger:  nil,
+		AWSClients: actuators.AWSClients{
+			EC2: mockEC2,
+		},
 	},
 	)
 	if err != nil {
@@ -553,16 +561,16 @@ func getTestMachineScope(m *clusterv1.Machine, t *testing.T) *actuators.MachineS
 	return scope
 }
 
-func getWorkerMachineScope(t *testing.T) *actuators.MachineScope {
-	return getTestMachineScope(getTestWorkerMachine(), t)
+func getWorkerMachineScope(t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
+	return getTestMachineScope(getTestWorkerMachine(), t, mockEC2)
 }
 
-func getControlplaneMachineScope(t *testing.T) *actuators.MachineScope {
-	return getTestMachineScope(getTestControlplaneMachine(), t)
+func getControlplaneMachineScope(t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
+	return getTestMachineScope(getTestControlplaneMachine(), t, mockEC2)
 }
 
-func getRandoMachineScope(t *testing.T) *actuators.MachineScope {
-	return getTestMachineScope(getTestRandoMachine(), t)
+func getRandoMachineScope(t *testing.T, mockEC2 *mock_ec2iface.MockEC2API) *actuators.MachineScope {
+	return getTestMachineScope(getTestRandoMachine(), t, mockEC2)
 }
 
 func getTestControlplaneMachines() []*clusterv1.Machine {
@@ -600,7 +608,45 @@ func getTestControlplaneMachines() []*clusterv1.Machine {
 	}
 }
 
+func getTestDescribeInstancesInput(instanceID string) *ec2.DescribeInstancesInput {
+	return &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{aws.String(instanceID)},
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String("")},
+			},
+			{
+				Name:   aws.String("instance-state-name"),
+				Values: []*string{aws.String("pending"), aws.String("running")},
+			},
+		},
+	}
+}
+
+func getMockEC2IfaceNonExisting(ne []string, mockCtrl *gomock.Controller) *mock_ec2iface.MockEC2API {
+	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
+	for _, n := range ne {
+		input := &ec2.DescribeInstancesInput{
+			Filters: []*ec2.Filter{
+				filter.EC2.VPC(""),
+				filter.EC2.ClusterOwned(""),
+				filter.EC2.Name(n),
+				filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+			},
+		}
+		mockEC2.EXPECT().DescribeInstances(input).Return(
+			nil,
+			awserrors.NewNotFound(fmt.Errorf("mocked not found"))).Times(1)
+	}
+
+	return mockEC2
+}
+
 func TestIsNodeJoin(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
 	testCases := []struct {
 		name                      string
 		inputScope                *actuators.MachineScope
@@ -610,28 +656,29 @@ func TestIsNodeJoin(t *testing.T) {
 	}{
 		{
 			name:                      "worker nodes should always join",
-			inputScope:                getWorkerMachineScope(t),
+			inputScope:                getWorkerMachineScope(t, nil),
 			inputControlplaneMachines: nil,
 			expectedIsNodeJoin:        true,
 			expectedError:             nil,
 		},
 		{
 			name:                      "rando machines should not join",
-			inputScope:                getRandoMachineScope(t),
+			inputScope:                getRandoMachineScope(t, nil),
 			inputControlplaneMachines: nil,
 			expectedIsNodeJoin:        false,
 			expectedError:             fmt.Errorf("Unknown value %q for label `set` on machine %q", "rando", "rando-0"),
 		},
 		{
 			name:                      "first controlplane machine should not join",
-			inputScope:                getControlplaneMachineScope(t),
+			inputScope:                getControlplaneMachineScope(t, nil),
 			inputControlplaneMachines: nil,
 			expectedIsNodeJoin:        false,
 			expectedError:             nil,
 		},
 		{
-			name:                      "controlplane machine should not join when none of controlplane machines exist",
-			inputScope:                getControlplaneMachineScope(t),
+			name: "controlplane machine should not join when none of controlplane machines exist",
+			inputScope: getControlplaneMachineScope(t,
+				getMockEC2IfaceNonExisting([]string{"master-0", "master-1"}, mockCtrl)),
 			inputControlplaneMachines: getTestControlplaneMachines(),
 			expectedIsNodeJoin:        false,
 			expectedError:             nil,
