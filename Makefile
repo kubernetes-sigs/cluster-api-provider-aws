@@ -219,7 +219,7 @@ create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS u
 	clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
-	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
+	-m ./cmd/clusterctl/examples/aws/out/machines-ha.yaml \
 	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
 	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
