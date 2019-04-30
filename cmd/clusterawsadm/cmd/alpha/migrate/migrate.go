@@ -29,6 +29,8 @@ import (
 )
 
 var (
+	// See: https://docs.aws.amazon.com/sdk-for-go/api/service/resourcegroupstaggingapi/#TagResourcesInput
+	maxARNs           = 20
 	supportedVersions = []string{"0.3.0"}
 
 	clusterName string
@@ -122,15 +124,14 @@ func getResourcesByCluster(svc *awstags.ResourceGroupsTaggingAPI, name string) (
 
 func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name string) error {
 
-	// 20 at a time
-	for i := 0; i <= (len(arns) / 20); i++ {
-		end := (i + 1) * 20
-		if i == (len(arns) / 20) {
+	for i := 0; i <= (len(arns) / maxARNs); i++ {
+		end := (i + 1) * maxARNs
+		if i == (len(arns) / maxARNs) {
 			end = len(arns)
 		}
 
 		input := &awstags.TagResourcesInput{
-			ResourceARNList: arns[i*20 : end],
+			ResourceARNList: arns[i*maxARNs : end],
 			Tags: map[string]*string{
 				tags.ClusterKey(name): aws.String("owned"),
 			},
@@ -146,14 +147,14 @@ func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name st
 }
 
 func removeOldTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name string) error {
-	for i := 0; i <= (len(arns) / 20); i++ {
-		end := (i + 1) * 20
-		if i == (len(arns) / 20) {
+	for i := 0; i <= (len(arns) / maxARNs); i++ {
+		end := (i + 1) * maxARNs
+		if i == (len(arns) / maxARNs) {
 			end = len(arns)
 		}
 
 		managedInput := &awstags.UntagResourcesInput{
-			ResourceARNList: arns[i*20 : end],
+			ResourceARNList: arns[i*maxARNs : end],
 			TagKeys: []*string{
 				aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
 			},
@@ -175,14 +176,14 @@ func removeOldTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name s
 		}
 	}
 
-	for i := 0; i <= (len(filteredARNs) / 20); i++ {
-		end := (i + 1) * 20
-		if i == (len(filteredARNs) / 20) {
+	for i := 0; i <= (len(filteredARNs) / maxARNs); i++ {
+		end := (i + 1) * maxARNs
+		if i == (len(filteredARNs) / maxARNs) {
 			end = len(filteredARNs)
 		}
 
 		ownedInput := &awstags.UntagResourcesInput{
-			ResourceARNList: filteredARNs[i*20 : end],
+			ResourceARNList: filteredARNs[i*maxARNs : end],
 			TagKeys: []*string{
 				aws.String(fmt.Sprintf("kubernetes.io/cluster/%s", name)),
 			},
