@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/manifests"
 	"sigs.k8s.io/cluster-api-provider-aws/test/utils"
 
-	MachineV1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	ClusterV1alpha1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,7 +89,7 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 			acw           *machineutils.AwsClientWrapper
 			awsClient     awsclient.Client
 			awsCredSecret *apiv1.Secret
-			cluster       *MachineV1beta1.Cluster
+			cluster       *ClusterV1alpha1.Cluster
 			clusterID     string
 		)
 
@@ -102,17 +102,17 @@ var _ = framework.SigKubeDescribe("Machines", func() {
 				clusterID = "cluster-" + string(uuid.NewUUID())
 			}
 
-			cluster = &MachineV1beta1.Cluster{
+			cluster = &ClusterV1alpha1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterID,
 					Namespace: testNamespace.Name,
 				},
-				Spec: MachineV1beta1.ClusterSpec{
-					ClusterNetwork: MachineV1beta1.ClusterNetworkingConfig{
-						Services: MachineV1beta1.NetworkRanges{
+				Spec: ClusterV1alpha1.ClusterSpec{
+					ClusterNetwork: ClusterV1alpha1.ClusterNetworkingConfig{
+						Services: ClusterV1alpha1.NetworkRanges{
 							CIDRBlocks: []string{"10.0.0.1/24"},
 						},
-						Pods: MachineV1beta1.NetworkRanges{
+						Pods: ClusterV1alpha1.NetworkRanges{
 							CIDRBlocks: []string{"10.0.0.1/24"},
 						},
 						ServiceDomain: "example.com",

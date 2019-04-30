@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
 	apierrors "github.com/openshift/cluster-api/pkg/errors"
@@ -104,7 +105,7 @@ func (a *Actuator) handleMachineError(machine *machinev1.Machine, err *apierrors
 }
 
 // Create runs a new EC2 instance
-func (a *Actuator) Create(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("creating machine")
 	instance, err := a.CreateMachine(cluster, machine)
 	if err != nil {
@@ -175,7 +176,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *machinev1.Machine, c
 }
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
-func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
+func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
@@ -239,7 +240,7 @@ func (a *Actuator) CreateMachine(cluster *machinev1.Cluster, machine *machinev1.
 }
 
 // Delete deletes a machine and updates its finalizer
-func (a *Actuator) Delete(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("deleting machine")
 	if err := a.DeleteMachine(cluster, machine); err != nil {
 		glog.Errorf("error deleting machine: %v", err)
@@ -259,7 +260,7 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 }
 
 // DeleteMachine deletes an AWS instance
-func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
@@ -299,7 +300,7 @@ func (a *Actuator) DeleteMachine(cluster *machinev1.Cluster, machine *machinev1.
 // Update attempts to sync machine state with an existing instance. Today this just updates status
 // for details that may have changed. (IPs and hostnames) We do not currently support making any
 // changes to actual machines in AWS. Instead these will be replaced via MachineDeployments.
-func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	glog.Info("updating machine")
 
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
@@ -373,7 +374,7 @@ func (a *Actuator) Update(context context.Context, cluster *machinev1.Cluster, m
 
 // Exists determines if the given machine currently exists. For AWS we query for instances in
 // running state, with a matching name tag, to determine a match.
-func (a *Actuator) Exists(context context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) (bool, error) {
+func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) (bool, error) {
 	glog.Info("Checking if machine exists")
 
 	instances, err := a.getMachineInstances(cluster, machine)
@@ -392,7 +393,7 @@ func (a *Actuator) Exists(context context.Context, cluster *machinev1.Cluster, m
 }
 
 // Describe provides information about machine's instance(s)
-func (a *Actuator) Describe(cluster *machinev1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
+func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
 	glog.Infof("Checking if machine exists")
 
 	instances, err := a.getMachineInstances(cluster, machine)
@@ -408,7 +409,7 @@ func (a *Actuator) Describe(cluster *machinev1.Cluster, machine *machinev1.Machi
 	return instances[0], nil
 }
 
-func (a *Actuator) getMachineInstances(cluster *machinev1.Cluster, machine *machinev1.Machine) ([]*ec2.Instance, error) {
+func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *machinev1.Machine) ([]*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		glog.Errorf("Error decoding MachineProviderConfig: %v", err)

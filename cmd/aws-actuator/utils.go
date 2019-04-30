@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
@@ -51,13 +52,13 @@ func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*m
 	return machine, nil
 }
 
-func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*machinev1.Cluster, *machinev1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
+func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *machinev1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
 	machine, err := readMachineManifest(manifestParams, machineLoc)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	cluster := &machinev1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	bytes, err := ioutil.ReadFile(clusterLoc)
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)

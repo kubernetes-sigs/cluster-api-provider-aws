@@ -73,7 +73,7 @@ func (f *Framework) DeployClusterAPIStack(clusterAPINamespace, actuatorPrivateKe
 	f.By("Waiting until cluster objects can be listed")
 	err = wait.Poll(PollInterval, PoolClusterAPIDeploymentTimeout, func() (bool, error) {
 		// Any namespace will do just to that one can list cluster objects
-		_, err := f.CAPIClient.MachineV1beta1().Clusters("default").List(metav1.ListOptions{})
+		_, err := f.CAPIClient.ClusterV1alpha1().Clusters("default").List(metav1.ListOptions{})
 		if err != nil {
 			glog.V(2).Infof("unable to list clusters: %v", err)
 			return false, nil
