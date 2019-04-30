@@ -126,7 +126,7 @@ func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name st
 
 	for i := 0; i <= (len(arns) / maxARNs); i++ {
 		end := (i + 1) * maxARNs
-		if i == (len(arns) / maxARNs) {
+		if end > len(arns) {
 			end = len(arns)
 		}
 
@@ -149,7 +149,7 @@ func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name st
 func removeOldTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name string) error {
 	for i := 0; i <= (len(arns) / maxARNs); i++ {
 		end := (i + 1) * maxARNs
-		if i == (len(arns) / maxARNs) {
+		if end > len(arns) {
 			end = len(arns)
 		}
 
