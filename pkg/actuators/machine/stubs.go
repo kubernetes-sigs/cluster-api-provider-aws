@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
@@ -136,8 +137,8 @@ func stubMachine() (*machinev1.Machine, error) {
 	return machine, nil
 }
 
-func stubCluster() *machinev1.Cluster {
-	return &machinev1.Cluster{
+func stubCluster() *clusterv1.Cluster {
+	return &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterID,
 			Namespace: defaultNamespace,

@@ -14,6 +14,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
@@ -43,7 +44,7 @@ runcmd:
 - [ cat, /root/node_bootstrap/node_settings.yaml]
 `
 
-func testMachineAPIResources(clusterID string) (*machinev1.Machine, *machinev1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
+func testMachineAPIResources(clusterID string) (*machinev1.Machine, *clusterv1.Cluster, *apiv1.Secret, *apiv1.Secret, error) {
 	machine := &machinev1.Machine{}
 
 	bytes, err := ioutil.ReadFile(path.Join(os.Getenv("GOPATH"), "/src/sigs.k8s.io/cluster-api-provider-aws/examples/machine.yaml"))
@@ -76,7 +77,7 @@ func testMachineAPIResources(clusterID string) (*machinev1.Machine, *machinev1.C
 		},
 	}
 
-	cluster := &machinev1.Cluster{
+	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterID,
 			Namespace: defaultNamespace,
