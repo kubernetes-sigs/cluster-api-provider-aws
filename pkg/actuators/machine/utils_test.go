@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func init() {
@@ -55,14 +54,6 @@ func TestProviderConfigFromMachine(t *testing.T) {
 		t.Error(err)
 	}
 
-	machineClass := &machinev1.MachineClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "openshift-cluster-api",
-			Name:      "testClass",
-		},
-		ProviderSpec: *encodedProviderSpec.Value,
-	}
-
 	testCases := []struct {
 		machine *machinev1.Machine
 	}{
@@ -83,38 +74,10 @@ func TestProviderConfigFromMachine(t *testing.T) {
 				},
 			},
 		},
-		{
-			machine: &machinev1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "configFromClass",
-					Namespace: "",
-					Labels: map[string]string{
-						"foo": "a",
-					},
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "Machine",
-				},
-				Spec: machinev1.MachineSpec{
-					ProviderSpec: machinev1.ProviderSpec{
-						ValueFrom: &machinev1.ProviderSpecSource{
-							MachineClass: &machinev1.MachineClassRef{
-								ObjectReference: &corev1.ObjectReference{
-									Kind:      "MachineClass",
-									Name:      "testClass",
-									Namespace: "openshift-cluster-api",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
 	}
 
-	client := fake.NewFakeClient(machineClass)
 	for _, tc := range testCases {
-		decodedProviderConfig, err := providerConfigFromMachine(client, tc.machine, codec)
+		decodedProviderConfig, err := providerConfigFromMachine(tc.machine, codec)
 		if err != nil {
 			t.Error(err)
 		}

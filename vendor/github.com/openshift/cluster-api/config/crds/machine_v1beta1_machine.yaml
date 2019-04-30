@@ -30,13 +30,6 @@ spec:
           type: object
         spec:
           properties:
-            configSource:
-              description: ConfigSource is used to populate in the associated Node
-                for dynamic kubelet config. This field already exists in Node, so
-                any updates to it in the Machine spec will be automatically copied
-                to the linked NodeRef from the status. The rest of dynamic kubelet
-                config support should then work as-is.
-              type: object
             metadata:
               description: ObjectMeta will autopopulate the Node created. Use this
                 to indicate what labels, annotations, name prefix, etc., should be
@@ -68,20 +61,6 @@ spec:
                     their own versioned API types that should be serialized/deserialized
                     from this field, akin to component config.
                   type: object
-                valueFrom:
-                  description: Source for the provider configuration. Cannot be used
-                    if value is not empty.
-                  properties:
-                    machineClass:
-                      description: The machine class from which the provider config
-                        should be sourced.
-                      properties:
-                        provider:
-                          description: Provider is the name of the cloud-provider
-                            which MachineClass is intended for.
-                          type: string
-                      type: object
-                  type: object
               type: object
             taints:
               description: Taints is the full, authoritative list of taints to apply
@@ -90,25 +69,6 @@ spec:
               items:
                 type: object
               type: array
-            versions:
-              description: Versions of key software to use. This field is optional
-                at cluster creation time, and omitting the field indicates that the
-                cluster installation tool should select defaults for the user. These
-                defaults may differ based on the cluster installer, but the tool should
-                populate the values it uses when persisting Machine objects. A Machine
-                spec missing this field at runtime is invalid.
-              properties:
-                controlPlane:
-                  description: ControlPlane is the semantic version of the Kubernetes
-                    control plane to run. This should only be populated when the machine
-                    is a control plane.
-                  type: string
-                kubelet:
-                  description: Kubelet is the semantic version of kubelet to run
-                  type: string
-              required:
-              - kubelet
-              type: object
           required:
           - providerSpec
           type: object
@@ -117,15 +77,6 @@ spec:
             addresses:
               description: Addresses is a list of addresses assigned to the machine.
                 Queried from cloud provider, if available.
-              items:
-                type: object
-              type: array
-            conditions:
-              description: 'Conditions lists the conditions synced from the node conditions
-                of the corresponding node-object. Machine-controller is responsible
-                for keeping conditions up-to-date. MachineSet controller will be taking
-                these conditions as a signal to decide if machine is healthy or needs
-                to be replaced. Refer: https://kubernetes.io/docs/concepts/architecture/nodes/#condition'
               items:
                 type: object
               type: array
@@ -199,30 +150,6 @@ spec:
               description: ProviderStatus details a Provider-specific status. It is
                 recommended that providers maintain their own versioned API types
                 that should be serialized/deserialized from this field.
-              type: object
-            versions:
-              description: 'Versions specifies the current versions of software on
-                the corresponding Node (if it exists). This is provided for a few
-                reasons:  1) It is more convenient than checking the NodeRef, traversing
-                it to    the Node, and finding the appropriate field in Node.Status.NodeInfo    (which
-                uses different field names and formatting). 2) It removes some of
-                the dependency on the structure of the Node,    so that if the structure
-                of Node.Status.NodeInfo changes, only    machine controllers need
-                to be updated, rather than every client    of the Machines API. 3)
-                There is no other simple way to check the control plane    version.
-                A client would have to connect directly to the apiserver    running
-                on the target node in order to find out its version.'
-              properties:
-                controlPlane:
-                  description: ControlPlane is the semantic version of the Kubernetes
-                    control plane to run. This should only be populated when the machine
-                    is a control plane.
-                  type: string
-                kubelet:
-                  description: Kubelet is the semantic version of kubelet to run
-                  type: string
-              required:
-              - kubelet
               type: object
           type: object
   version: v1beta1

@@ -23,7 +23,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -32,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // getRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
@@ -149,34 +147,13 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 
 // providerConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func providerConfigFromMachine(client client.Client, machine *machinev1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
-	var providerSpecRawExtention runtime.RawExtension
-
-	providerSpec := machine.Spec.ProviderSpec
-	if providerSpec.Value == nil && providerSpec.ValueFrom == nil {
-		return nil, fmt.Errorf("unable to find machine provider config: neither Spec.ProviderSpec.Value nor Spec.ProviderSpec.ValueFrom set")
-	}
-
-	// If no providerSpec.Value then we lookup for machineClass
-	if providerSpec.Value != nil {
-		providerSpecRawExtention = *providerSpec.Value
-	} else {
-		if providerSpec.ValueFrom.MachineClass == nil {
-			return nil, fmt.Errorf("unable to find MachineClass on Spec.ProviderSpec.ValueFrom")
-		}
-		machineClass := &machinev1.MachineClass{}
-		key := types.NamespacedName{
-			Namespace: providerSpec.ValueFrom.MachineClass.Namespace,
-			Name:      providerSpec.ValueFrom.MachineClass.Name,
-		}
-		if err := client.Get(context.Background(), key, machineClass); err != nil {
-			return nil, err
-		}
-		providerSpecRawExtention = machineClass.ProviderSpec
+func providerConfigFromMachine(machine *machinev1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
+	if machine.Spec.ProviderSpec.Value == nil {
+		return nil, fmt.Errorf("unable to find machine provider config: Spec.ProviderSpec.Value is not set")
 	}
 
 	var config providerconfigv1.AWSMachineProviderConfig
-	if err := codec.DecodeProviderSpec(&machinev1.ProviderSpec{Value: &providerSpecRawExtention}, &config); err != nil {
+	if err := codec.DecodeProviderSpec(&machine.Spec.ProviderSpec, &config); err != nil {
 		return nil, err
 	}
 	return &config, nil

@@ -958,10 +958,6 @@ func TestingMachine(clusterID string, namespace string, providerSpec machinev1be
 				},
 			},
 			ProviderSpec: providerSpec,
-			Versions: machinev1beta1.MachineVersionInfo{
-				Kubelet:      "1.10.1",
-				ControlPlane: "1.10.1",
-			},
 		},
 	}
 
@@ -981,10 +977,6 @@ func MasterMachine(clusterID, namespace string, providerSpec machinev1beta1.Prov
 		},
 		Spec: machinev1beta1.MachineSpec{
 			ProviderSpec: providerSpec,
-			Versions: machinev1beta1.MachineVersionInfo{
-				Kubelet:      "1.10.1",
-				ControlPlane: "1.10.1",
-			},
 		},
 	}
 
@@ -1076,10 +1068,6 @@ func WorkerMachineSet(clusterID, namespace string, providerSpec machinev1beta1.P
 						},
 					},
 					ProviderSpec: providerSpec,
-					Versions: machinev1beta1.MachineVersionInfo{
-						Kubelet:      "1.10.1",
-						ControlPlane: "1.10.1",
-					},
 				},
 			},
 		},

@@ -53,7 +53,6 @@ func TestMachineEvents(t *testing.T) {
 
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
-	machineInvalidProviderConfig.Spec.ProviderSpec.ValueFrom = nil
 
 	workerMachine := machine.DeepCopy()
 	workerMachine.Spec.Labels["node-role.kubernetes.io/worker"] = ""
@@ -232,7 +231,6 @@ func TestActuator(t *testing.T) {
 
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
-	machineInvalidProviderConfig.Spec.ProviderSpec.ValueFrom = nil
 
 	machineNoClusterID := machine.DeepCopy()
 	delete(machineNoClusterID.Labels, providerconfigv1.ClusterIDLabel)
