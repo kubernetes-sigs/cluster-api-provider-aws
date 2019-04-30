@@ -121,28 +121,48 @@ func getResourcesByCluster(svc *awstags.ResourceGroupsTaggingAPI, name string) (
 }
 
 func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name string) error {
-	input := &awstags.TagResourcesInput{
-		ResourceARNList: arns,
-		Tags: map[string]*string{
-			tags.ClusterKey(name): aws.String("owned"),
-		},
+
+	// 20 at a time
+	for i := 0; i <= (len(arns) / 20); i++ {
+		end := (i + 1) * 20
+		if i == (len(arns) / 20) {
+			end = len(arns)
+		}
+
+		input := &awstags.TagResourcesInput{
+			ResourceARNList: arns[i*20 : end],
+			Tags: map[string]*string{
+				tags.ClusterKey(name): aws.String("owned"),
+			},
+		}
+
+		_, err := svc.TagResources(input)
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err := svc.TagResources(input)
-	return err
+	return nil
 }
 
 func removeOldTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name string) error {
-	managedInput := &awstags.UntagResourcesInput{
-		ResourceARNList: arns,
-		TagKeys: []*string{
-			aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
-		},
-	}
+	for i := 0; i <= (len(arns) / 20); i++ {
+		end := (i + 1) * 20
+		if i == (len(arns) / 20) {
+			end = len(arns)
+		}
 
-	_, err := svc.UntagResources(managedInput)
-	if err != nil {
-		return err
+		managedInput := &awstags.UntagResourcesInput{
+			ResourceARNList: arns[i*20 : end],
+			TagKeys: []*string{
+				aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
+			},
+		}
+
+		_, err := svc.UntagResources(managedInput)
+		if err != nil {
+			return err
+		}
 	}
 
 	var filteredARNs []*string
@@ -155,15 +175,26 @@ func removeOldTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name s
 		}
 	}
 
-	ownedInput := &awstags.UntagResourcesInput{
-		ResourceARNList: filteredARNs,
-		TagKeys: []*string{
-			aws.String(fmt.Sprintf("kubernetes.io/cluster/%s", name)),
-		},
+	for i := 0; i <= (len(filteredARNs) / 20); i++ {
+		end := (i + 1) * 20
+		if i == (len(filteredARNs) / 20) {
+			end = len(filteredARNs)
+		}
+
+		ownedInput := &awstags.UntagResourcesInput{
+			ResourceARNList: filteredARNs[i*20 : end],
+			TagKeys: []*string{
+				aws.String(fmt.Sprintf("kubernetes.io/cluster/%s", name)),
+			},
+		}
+
+		_, err := svc.UntagResources(ownedInput)
+		if err != nil {
+			return err
+		}
 	}
 
-	_, err = svc.UntagResources(ownedInput)
-	return err
+	return nil
 }
 
 func isValidVersion(s string) bool {
