@@ -592,6 +592,12 @@ func getRandoMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.Mach
 	return getTestMachineScope(getRandomTestMachine(), t, mockEC2)
 }
 
+func getInvalidMachineScope(t *testing.T) *actuators.MachineScope {
+	is := getTestMachineScope(getControlplaneTestMachine(), t, nil)
+	is.Cluster = nil
+	return is
+}
+
 func getNoLabelMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
 	return getTestMachineScope(getNoLabelTestMachine(), t, mockEC2)
 }
@@ -788,6 +794,13 @@ func TestIsNodeJoin(t *testing.T) {
 			inputControlplaneMachines: nil,
 			expectedIsNodeJoin:        false,
 			expectedError:             fmt.Errorf("Unknown value %q for label `set` on machine %q", "random", "random-0"),
+		},
+		{
+			name:                      "should return error when called with invalid scope",
+			inputScope:                getInvalidMachineScope(t),
+			inputControlplaneMachines: getTestControlplaneMachines(),
+			expectedIsNodeJoin:        false,
+			expectedError:             fmt.Errorf("failed to create machine scope for machine %q in namespace %q: failed to generate new scope from nil cluster", "master-0", "awesome-ns"),
 		},
 		{
 			name:                      "should return error for no `set` label",
