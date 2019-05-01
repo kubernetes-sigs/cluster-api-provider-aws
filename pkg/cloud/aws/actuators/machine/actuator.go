@@ -73,14 +73,6 @@ type ActuatorParams struct {
 	LoggingContext string
 }
 
-// CordonHelper wraps functionality to cordon/uncordon nodes
-type CordonHelper struct {
-	node   *apicorev1.Node
-	status DesiredCordonStatus
-}
-
-type DesiredCordonStatus string
-
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
@@ -375,7 +367,7 @@ func (a *Actuator) getNodeObject(ctx context.Context, cluster *clusterv1.Cluster
 
 		for _, node := range nodeList.Items {
 			a.log.Info("NODE: ", fmt.Sprintf("%v", node))
-			// TODO(vincepri): Improve this comparison without relying on substrings.
+			// TODO(sfzylad): Improve this comparison without relying on substrings.
 			if strings.Contains(node.GetName(), machine.Status.NodeRef.Name) {
 				return &node, nil
 			}
