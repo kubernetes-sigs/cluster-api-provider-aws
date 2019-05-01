@@ -919,13 +919,12 @@
   version = "kubernetes-1.13.1"
 
 [[projects]]
-  digest = "1:c7c02c6f769116c386391a5b8f50058afea7489b39338973ac073f4c28217773"
+  digest = "1:830b130b6ec3f342eedf93f83564fe5e0a5e55730ac02254f5628b54ef5843e8"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
     "pkg/api/meta",
     "pkg/api/resource",
-    "pkg/apis/config",
     "pkg/apis/meta/internalversion",
     "pkg/apis/meta/v1",
     "pkg/apis/meta/v1/unstructured",
@@ -1121,7 +1120,7 @@
   revision = "aa8624f5a2df0ffbc1e8f4c9f37a2ad5cfcba13b"
 
 [[projects]]
-  digest = "1:42ec0fcf04d4b48fc329f9feb31524ac3a204f9ebf28e35da358818e29fe477e"
+  digest = "1:3ef5795c55214c9ef9c6b41c306cb423d941cccfabd2a38a6b8dfebe8add2b7a"
   name = "k8s.io/kubernetes"
   packages = [
     "cmd/kubeadm/app/apis/kubeadm",
@@ -1129,6 +1128,7 @@
     "cmd/kubeadm/app/constants",
     "cmd/kubeadm/app/util",
     "pkg/apis/core",
+    "pkg/kubectl/drain",
     "pkg/kubelet/apis/config",
     "pkg/proxy/apis/config",
     "pkg/registry/core/service/allocator",
@@ -1136,8 +1136,8 @@
     "pkg/version",
   ]
   pruneopts = "UT"
-  revision = "721bfa751924da8d1680787490c54b9179b1fed0"
-  version = "v1.13.3"
+  revision = "b7394102d6ef778017f2ca4046abbaa23b88c290"
+  version = "v1.14.1"
 
 [[projects]]
   branch = "master"
@@ -1319,6 +1319,7 @@
     "k8s.io/klog/klogr",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1",
     "k8s.io/kubernetes/cmd/kubeadm/app/util",
+    "k8s.io/kubernetes/pkg/kubectl/drain",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",

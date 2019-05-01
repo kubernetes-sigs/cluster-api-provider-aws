@@ -29,10 +29,13 @@ import (
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/klogr"
+	"k8s.io/kubernetes/pkg/kubectl/drain"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
@@ -69,6 +72,14 @@ type ActuatorParams struct {
 	ClusterClient  client.ClusterV1alpha1Interface
 	LoggingContext string
 }
+
+// CordonHelper wraps functionality to cordon/uncordon nodes
+type CordonHelper struct {
+	node   *apicorev1.Node
+	status DesiredCordonStatus
+}
+
+type DesiredCordonStatus string
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
@@ -269,6 +280,19 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	defer scope.Close()
 
+	a.log.Info("Cordoning the node", machine.Name)
+	err, patchErr := a.cordon(ctx, cluster, machine, scope)
+	if err != nil {
+		return errors.Errorf("Faild to cordon the node: %+v", err)
+	}
+
+	if patchErr != nil {
+		return errors.Errorf("Faild to cordon the node: %+v", err)
+	}
+
+	// sleep, so I can investigate the state of the node and pods with kubectl
+	time.Sleep(120 * time.Second)
+
 	ec2svc := ec2.NewService(scope.Scope)
 
 	instance, err := ec2svc.InstanceIfExists(scope.MachineStatus.InstanceID)
@@ -303,6 +327,66 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	return nil
+}
+
+func (a *Actuator) cordon(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, scope *actuators.MachineScope) (error, error) {
+	a.log.Info("Inside cordon()")
+
+	node, err := a.getNodeObject(ctx, cluster, machine, scope)
+	if err != nil {
+		a.log.Info("ERROR: ", err.Error())
+		return nil, err
+	}
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		a.log.Info("ERROR: ", err.Error())
+		return nil, err
+	}
+
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		a.log.Info("ERROR: ", err.Error())
+		return nil, err
+	}
+
+	helper := drain.NewCordonHelper(node)
+	if helper.UpdateIfRequired(true) {
+		a.log.Info("CordonHelper: ", node.Name)
+		return helper.PatchOrReplace(clientSet)
+	}
+
+	return nil, nil
+}
+
+func (a *Actuator) getNodeObject(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, scope *actuators.MachineScope) (*apicorev1.Node, error) {
+	coreClient, err := a.coreV1Client(scope.Cluster)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", scope.Cluster.Name)
+	}
+
+	listOpt := metav1.ListOptions{}
+
+	for {
+		nodeList, err := coreClient.Nodes().List(listOpt)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to query cluster nodes")
+		}
+
+		for _, node := range nodeList.Items {
+			a.log.Info("NODE: ", fmt.Sprintf("%v", node))
+			// TODO(vincepri): Improve this comparison without relying on substrings.
+			if strings.Contains(node.GetName(), machine.Status.NodeRef.Name) {
+				return &node, nil
+			}
+		}
+
+		listOpt.Continue = nodeList.Continue
+		if listOpt.Continue == "" {
+			break
+		}
+	}
+	return nil, errors.Errorf("no node found for machine %q", scope.Name())
 }
 
 // isMachineOudated checks that no immutable fields have been updated in an
