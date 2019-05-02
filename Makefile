@@ -211,8 +211,7 @@ release-artifacts: ## Build release artifacts
 ## --------------------------------------
 
 .PHONY: binaries-dev
-binaries-dev: ## Builds and installs all development binaries using go get
-	go get -v ./...
+binaries-dev: generate manager clusterawsadm clusterctl
 
 .PHONY: create-cluster
 create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS using examples
@@ -225,7 +224,7 @@ create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS u
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 .PHONY: create-cluster-ha
-create-cluste-ha: binaries-dev ## Create a development Kubernetes cluster on AWS using HA examples
+create-cluster-ha: binaries-dev ## Create a development Kubernetes cluster on AWS using HA examples
 	clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
