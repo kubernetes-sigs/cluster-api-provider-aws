@@ -18,6 +18,7 @@ package actuators
 
 import (
 	"encoding/json"
+	"reflect"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -149,9 +150,14 @@ func (s *Scope) Close() {
 		s.Error(err, "failed encoding cluster spec")
 		return
 	}
-	status, err := v1alpha1.EncodeClusterStatus(s.ClusterStatus)
+	newStatus, err := v1alpha1.EncodeClusterStatus(s.ClusterStatus)
 	if err != nil {
 		s.Error(err, "failed encoding cluster status")
+		return
+	}
+	oldStatus, err := v1alpha1.ClusterStatusFromProviderStatus(s.ClusterCopy.Status.ProviderStatus)
+	if err != nil {
+		s.Error(err, "failed to get provider status from status")
 		return
 	}
 
@@ -164,22 +170,32 @@ func (s *Scope) Close() {
 		return
 	}
 
-	pb, err := json.MarshalIndent(p, "", "  ")
-	if err != nil {
-		s.Error(err, "failed to json marshal patch")
+	// Do not update Machine if nothing has changed
+	if len(p) != 0 {
+		pb, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			s.Error(err, "failed to json marshal patch")
+			return
+		}
+		s.Logger.V(1).Info("Patching cluster")
+		result, err := s.ClusterClient.Patch(s.Cluster.Name, types.JSONPatchType, pb)
+		if err != nil {
+			s.Error(err, "failed to patch cluster")
+			return
+		}
+		// Keep the resource version updated so the status update can succeed
+		s.Cluster.ResourceVersion = result.ResourceVersion
+	}
+
+	// Do not update status if the statuses are the same
+	if reflect.DeepEqual(s.ClusterStatus, oldStatus) {
 		return
 	}
 
-	updated, err := s.ClusterClient.Patch(s.Cluster.Name, types.JSONPatchType, pb)
-	if err != nil {
-		s.Error(err, "failed to patch cluster")
-		return
-	}
-
-	updated.Status.ProviderStatus = status
-	if _, err := s.ClusterClient.UpdateStatus(updated); err != nil {
+	s.Logger.V(1).Info("Updating cluster status")
+	s.Cluster.Status.ProviderStatus = newStatus
+	if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
 		s.Error(err, "failed to update cluster status")
 		return
 	}
-	s.V(1).Info("Updated cluster")
 }
