@@ -19,6 +19,7 @@ package actuators
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -131,9 +132,14 @@ func (m *MachineScope) Close() {
 		m.Error(err, "failed to encode machine spec")
 		return
 	}
-	status, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
+	newStatus, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
 	if err != nil {
 		m.Error(err, "failed to encode machine status")
+		return
+	}
+	oldStatus, err := v1alpha1.MachineStatusFromProviderStatus(m.MachineCopy.Status.ProviderStatus)
+	if err != nil {
+		m.Error(err, "failed to get machine status from provider status")
 		return
 	}
 
@@ -144,25 +150,35 @@ func (m *MachineScope) Close() {
 		m.Error(err, "failed to create new JSONPatch for machine")
 		return
 	}
-	pb, err := json.MarshalIndent(p, "", "  ")
-	if err != nil {
-		m.Error(err, "failed to json marshal patch for machine")
+
+	if len(p) != 0 {
+		pb, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			m.Error(err, "failed to json marshal patch for machine")
+			return
+		}
+
+		m.Logger.V(1).Info("Patching machine")
+		result, err := m.MachineClient.Patch(m.Machine.Name, types.JSONPatchType, pb)
+		if err != nil {
+			m.Error(err, "failed to patch machine")
+			return
+		}
+		// Keep the resource version updated so the status update can succeed
+		m.Machine.ResourceVersion = result.ResourceVersion
+	}
+
+	// Do not update status if the statuses are the same
+	if reflect.DeepEqual(m.MachineStatus, oldStatus) {
 		return
 	}
 
-	updated, err := m.MachineClient.Patch(m.Machine.Name, types.JSONPatchType, pb)
-	if err != nil {
-		m.Error(err, "failed to patch machine")
+	m.Logger.V(1).Info("Updating machine status")
+	m.Machine.Status.ProviderStatus = newStatus
+	if _, err := m.MachineClient.UpdateStatus(m.Machine); err != nil {
+		m.Error(err, "failed to update machine status")
 		return
 	}
-
-	updated.Status.ProviderStatus = status
-	if _, err := m.MachineClient.UpdateStatus(updated); err != nil {
-		m.Error(err, "failed to update cluster status")
-		return
-	}
-
-	m.V(1).Info("Updated machine")
 }
 
 // MachineConfigFromProviderSpec tries to decode the JSON-encoded spec, falling back on getting a MachineClass if the value is absent.
