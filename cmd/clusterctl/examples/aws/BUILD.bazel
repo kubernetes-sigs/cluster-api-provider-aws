@@ -43,6 +43,7 @@ exports_files([
     "generate-yaml.sh",
     "machines.yaml.template",
     "machines-ha.yaml.template",
+    "machine-deployment.yaml.template",
 ])
 
 pkg_tar(
@@ -54,6 +55,7 @@ pkg_tar(
         "generate-yaml.sh",
         "machines-ha.yaml.template",
         "machines.yaml.template",
+        "machine-deployment.yaml.template",
         "provider-components-base.yaml",
         "//docs:getting-started.md",
     ],
@@ -64,6 +66,7 @@ pkg_tar(
         "generate-yaml.sh": "0755",
         "machines-ha.yaml.template": "0644",
         "machines.yaml.template": "0644",
+        "machine-deployment.yaml.template": "0644",
         "provider-components-base.yaml": "0644",
         "//docs:getting-started.md": "0644",
         ".gitignore": "0644",
