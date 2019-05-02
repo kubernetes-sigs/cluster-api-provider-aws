@@ -132,16 +132,12 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 				return false, errors.Wrapf(err, "failed to verify existence of machine %s/%s", sharedScope.Machine.Namespace, sharedScope.Machine.Name)
 			}
 
-			if !controlplaneExists {
-				a.log.V(2).Info("Controlplane machine does not exist", "machine-name", sharedScope.Machine.Name, "machine-namespace", sharedScope.Machine.Namespace)
-				continue
-			} else {
-				a.log.V(2).Info("Controlplane machine exists", "machine-name", sharedScope.Machine.Name, "machine-namespace", sharedScope.Machine.Namespace)
-				break
+			if controlplaneExists {
+				return controlplaneExists, err
 			}
 		}
 
-		a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", controlplaneExists)
+		a.log.V(2).Info("Will machine join the controlplane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", controlplaneExists)
 		return controlplaneExists, err
 
 	default:
@@ -179,6 +175,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	var bootstrapToken string
 	if isNodeJoin {
+		a.log.V(2).Info("Machine will join the cluster", "cluster", cluster.Name, "machine-name", machine.Name, "machine-namespace", machine.Namespace)
 		coreClient, err := a.coreV1Client(cluster)
 		if err != nil {
 			return errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", cluster.Name)
