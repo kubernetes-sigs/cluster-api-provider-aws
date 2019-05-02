@@ -1076,6 +1076,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:dc54d24e166e75a89145883b6080306f5684db2e8ab7a068625f010dee604c6e"
+  name = "k8s.io/component-base"
+  packages = ["cli/flag"]
+  pruneopts = "UT"
+  revision = "9fe063da3132df1f14a39226ca80374b9fc22ec9"
+
+[[projects]]
+  branch = "master"
   digest = "1:28514fabca4356625720ffb012408790a9d00d31963a9bd9daf7b5ccd894c301"
   name = "k8s.io/gengo"
   packages = [
@@ -1138,7 +1146,7 @@
 
 [[projects]]
   branch = "release-0.1"
-  digest = "1:d92175fcffa434a7440cee734b886f32f586dfb6413702b08b25f701662b2bbb"
+  digest = "1:544e478bb32f15bbaeef4a44c3db17863552b3afd6e33f25ad8771ea62881afc"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
@@ -1166,7 +1174,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "560b000be51c1dc371c901ab84af8070bc29e8dc"
+  revision = "2186e24916f7dd57deb490c19bd453ac4ebfa711"
 
 [[projects]]
   digest = "1:4e97dc637c467531240326f56e253c6d42b519424b6a89d80664ef0f3ed4f721"
