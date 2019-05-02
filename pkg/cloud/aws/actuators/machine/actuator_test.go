@@ -860,23 +860,26 @@ func TestIsNodeJoin(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		testActuator := NewActuator(ActuatorParams{})
-		actualIsNodeJoin, actualError := testActuator.isNodeJoin(tc.inputScope, tc.inputControlplaneMachines)
+		t.Run(tc.name, func(t *testing.T) {
+			testActuator := NewActuator(ActuatorParams{})
+			actualIsNodeJoin, actualError := testActuator.isNodeJoin(tc.inputScope, tc.inputControlplaneMachines)
 
-		if tc.expectedIsNodeJoin != actualIsNodeJoin {
-			t.Fatalf("isNodeJoin failed, [%s], Got: %t, Want: %t", tc.name, actualIsNodeJoin, tc.expectedIsNodeJoin)
-		}
+			if tc.expectedIsNodeJoin != actualIsNodeJoin {
+				t.Fatalf("isNodeJoin failed, [%s], Got: %t, Want: %t", tc.name, actualIsNodeJoin, tc.expectedIsNodeJoin)
+			}
 
-		if tc.expectedError == nil && actualError != nil {
-			t.Fatalf("isNodeJoin failed, [%s], GotError: %q, WantError: nil", tc.name, actualError)
-		}
+			if tc.expectedError == nil && actualError != nil {
+				t.Fatalf("isNodeJoin failed, [%s], GotError: %q, WantError: nil", tc.name, actualError)
+			}
 
-		if tc.expectedError != nil && actualError == nil {
-			t.Fatalf("isNodeJoin failed, [%s], GotError: nil, WantError: %q", tc.name, tc.expectedError)
-		}
+			if tc.expectedError != nil && actualError == nil {
+				t.Fatalf("isNodeJoin failed, [%s], GotError: nil, WantError: %q", tc.name, tc.expectedError)
+			}
 
-		if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
-			t.Fatalf("isNodeJoin Failed, [%s], GotError: %q, WantError: %q", tc.name, actualError, tc.expectedError)
-		}
+			if tc.expectedError != nil && tc.expectedError.Error() != actualError.Error() {
+				t.Fatalf("isNodeJoin Failed, [%s], GotError: %q, WantError: %q", tc.name, actualError, tc.expectedError)
+			}
+
+		})
 	}
 }
