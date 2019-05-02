@@ -97,6 +97,8 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 }
 
 // isNodeJoin determines if a machine, in scope, should join of the cluster.
+// TODO: Make this thread safe kubernetes-sigs/cluster-api#925
+// https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/745#discussion_r280506890
 func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachines []*clusterv1.Machine) (bool, error) {
 	switch set := scope.Machine.ObjectMeta.Labels["set"]; set {
 	case "node":
@@ -106,31 +108,35 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 		// Controlplane machines will join the cluster if the cluster has an existing control plane.
 		controlplaneExists := false
 		var err error
+
+		var sharedScope *actuators.MachineScope
+
 		for _, cm := range controlPlaneMachines {
-			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-				Machine:    cm,
-				Cluster:    scope.Cluster,
-				Client:     a.clusterClient,
-				Logger:     a.log,
-				AWSClients: scope.AWSClients,
-			})
-
-			if err != nil {
-				return false, errors.Wrapf(err, "failed to create machine scope for machine %q in namespace %q", cm.Name, cm.Namespace)
+			if sharedScope == nil {
+				sharedScope, err = actuators.NewMachineScope(actuators.MachineScopeParams{
+					Machine:    cm,
+					Cluster:    scope.Cluster,
+					Client:     a.clusterClient,
+					Logger:     a.log,
+					AWSClients: scope.AWSClients,
+				})
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to create machine scope for machine %q in namespace %q", cm.Name, cm.Namespace)
+				}
 			}
+			sharedScope.Machine = cm
+			ec2svc := ec2.NewService(sharedScope.Scope)
 
-			ec2svc := ec2.NewService(m.Scope)
-
-			controlplaneExists, err = ec2svc.MachineExists(m)
+			controlplaneExists, err = ec2svc.MachineExists(sharedScope)
 			if err != nil {
-				return false, errors.Wrapf(err, "failed to verify existence of machine %q in namespace %q", m.Machine.Name, m.Machine.Namespace)
+				return false, errors.Wrapf(err, "failed to verify existence of machine %s/%s", sharedScope.Machine.Namespace, sharedScope.Machine.Name)
 			}
 
 			if !controlplaneExists {
-				a.log.V(2).Info("Controlplane machine does not exist", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
+				a.log.V(2).Info("Controlplane machine does not exist", "machine-name", sharedScope.Machine.Name, "machine-namespace", sharedScope.Machine.Namespace)
 				continue
 			} else {
-				a.log.V(2).Info("Controlplane machine exists", "machine-name", m.Machine.Name, "machine-namespace", m.Machine.Namespace)
+				a.log.V(2).Info("Controlplane machine exists", "machine-name", sharedScope.Machine.Name, "machine-namespace", sharedScope.Machine.Namespace)
 				break
 			}
 		}

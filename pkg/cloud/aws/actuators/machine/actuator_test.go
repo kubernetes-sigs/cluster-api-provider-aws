@@ -835,7 +835,7 @@ func TestIsNodeJoin(t *testing.T) {
 			inputControlplaneMachines: getTestControlplaneMachines(),
 			expectedIsNodeJoin:        false,
 			expectedError: fmt.Errorf(
-				`failed to verify existence of machine "master-0" in namespace "awesome-ns": failed to lookup machine "master-0": failed to describe instances by tags: mock API failure`),
+				`failed to verify existence of machine awesome-ns/master-0: failed to lookup machine "master-0": failed to describe instances by tags: mock API failure`),
 		},
 		{
 			name: "should join controlplane machine when other controlplane machine exists",
