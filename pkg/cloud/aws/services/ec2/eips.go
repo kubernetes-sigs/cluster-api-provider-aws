@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 )
@@ -123,7 +122,7 @@ func (s *Service) releaseAddresses() error {
 			return errors.Wrapf(err, "failed to release ElasticIP %q", *ip.AllocationId)
 		}
 
-		klog.Infof("released ElasticIP %q with allocation ID %q", *ip.PublicIp, *ip.AllocationId)
+		s.scope.Info("released ElasticIP", "eip", *ip.PublicIp, "allocation-id", *ip.AllocationId)
 	}
 	return nil
 }

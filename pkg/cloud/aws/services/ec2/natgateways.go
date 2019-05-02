@@ -22,7 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
@@ -33,17 +32,17 @@ import (
 
 func (s *Service) reconcileNatGateways() error {
 	if s.scope.VPC().IsProvided() {
-		klog.V(4).Info("Skipping NAT gateway reconcile in unmanaged mode")
+		s.scope.V(4).Info("Skipping NAT gateway reconcile in unmanaged mode")
 		return nil
 	}
 
-	klog.V(2).Infof("Reconciling NAT gateways")
+	s.scope.V(2).Info("Reconciling NAT gateways")
 
 	if len(s.scope.Subnets().FilterPrivate()) == 0 {
-		klog.V(2).Infof("No private subnets available, skipping NAT gateways")
+		s.scope.V(2).Info("No private subnets available, skipping NAT gateways")
 		return nil
 	} else if len(s.scope.Subnets().FilterPublic()) == 0 {
-		klog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		s.scope.V(2).Info("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		return nil
 	}
 
@@ -84,15 +83,15 @@ func (s *Service) reconcileNatGateways() error {
 
 func (s *Service) deleteNatGateways() error {
 	if s.scope.VPC().IsProvided() {
-		klog.V(4).Info("Skipping NAT gateway deletion in unmanaged mode")
+		s.scope.V(4).Info("Skipping NAT gateway deletion in unmanaged mode")
 		return nil
 	}
 
 	if len(s.scope.Subnets().FilterPrivate()) == 0 {
-		klog.V(2).Infof("No private subnets available, skipping NAT gateways")
+		s.scope.V(2).Info("No private subnets available, skipping NAT gateways")
 		return nil
 	} else if len(s.scope.Subnets().FilterPublic()) == 0 {
-		klog.V(2).Infof("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		s.scope.V(2).Info("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		return nil
 	}
 
@@ -178,14 +177,14 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 
-	klog.Infof("Created NAT gateway %q for subnet ID %q, waiting for it to become available...", *out.NatGateway.NatGatewayId, subnetID)
+	s.scope.Info("Created NAT gateway for subnet, waiting for it to become available...", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
 	if err := s.scope.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for nat gateway %q in subnet %q", *out.NatGateway.NatGatewayId, subnetID)
 	}
 
-	klog.Infof("NAT gateway %q for subnet ID %q is now available", *out.NatGateway.NatGatewayId, subnetID)
+	s.scope.Info("NAT gateway for subnet is now available", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
 	record.Eventf(s.scope.Cluster, "CreatedNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 	return out.NatGateway, nil
 }
@@ -232,7 +231,7 @@ func (s *Service) deleteNatGateway(id string) error {
 		return errors.Wrapf(err, "failed to wait for NAT gateway deletion %q", id)
 	}
 
-	klog.Infof("Deleted NAT gateway %q", id)
+	s.scope.Info("Deleted NAT gateway", "nat-gateway-id", id)
 	record.Eventf(s.scope.Cluster, "DeletedNATGateway", "Deleted NAT Gateway %q", id)
 	return nil
 }

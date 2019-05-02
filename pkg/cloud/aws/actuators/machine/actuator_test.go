@@ -444,6 +444,35 @@ func TestImmutableStateChange(t *testing.T) {
 			expected: 1,
 		},
 		{
+			name:        "root device size is omitted",
+			machineSpec: v1alpha1.AWSMachineProviderSpec{},
+			instance: v1alpha1.Instance{
+				// All instances have a root device size, even when we don't set one
+				RootDeviceSize: 12,
+			},
+			expected: 0,
+		},
+		{
+			name: "root device size is unchanged",
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
+				RootDeviceSize: 12,
+			},
+			instance: v1alpha1.Instance{
+				RootDeviceSize: 12,
+			},
+			expected: 0,
+		},
+		{
+			name: "root device size is changed",
+			machineSpec: v1alpha1.AWSMachineProviderSpec{
+				RootDeviceSize: 12,
+			},
+			instance: v1alpha1.Instance{
+				RootDeviceSize: 16,
+			},
+			expected: 1,
+		},
+		{
 			name: "multiple immutable changes",
 			machineSpec: v1alpha1.AWSMachineProviderSpec{
 				IAMInstanceProfile: "test-profile-updated",

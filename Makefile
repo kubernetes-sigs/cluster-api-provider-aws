@@ -120,7 +120,7 @@ verify: ## Runs verification scripts to ensure correct execution
 ## --------------------------------------
 
 .PHONY: manifests
-manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml ## Build example set of manifests from the current source
+manifests: clusterawsadm cmd/clusterctl/examples/aws/provider-components-base.yaml ## Build example set of manifests from the current source
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
 .PHONY: cmd/clusterctl/examples/aws/provider-components-base.yaml
@@ -145,10 +145,10 @@ gazelle: ## Run Bazel Gazelle
 generate: ## Generate mocks, CRDs and runs `go generate` through Bazel
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
 	$(MAKE) dep-ensure
-	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:go_mock_interfaces \
-		//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library \
-		//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library
-	cp -Rf bazel-genfiles/pkg/* pkg/
+	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:mocks \
+		//pkg/cloud/aws/services/ec2/mock_ec2iface:mocks \
+		//pkg/cloud/aws/services/elb/mock_elbiface:mocks
+	./hack/copy-bazel-mocks.sh
 	$(MAKE) generate-crds
 
 .PHONY: generate-crds
@@ -211,8 +211,7 @@ release-artifacts: ## Build release artifacts
 ## --------------------------------------
 
 .PHONY: binaries-dev
-binaries-dev: ## Builds and installs all development binaries using go get
-	go get -v ./...
+binaries-dev: generate manager clusterawsadm clusterctl
 
 .PHONY: create-cluster
 create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS using examples
@@ -220,6 +219,16 @@ create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS u
 	--provider aws \
 	--bootstrap-type kind \
 	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
+	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
+	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
+	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
+
+.PHONY: create-cluster-ha
+create-cluster-ha: binaries-dev ## Create a development Kubernetes cluster on AWS using HA examples
+	clusterctl create cluster -v 4 \
+	--provider aws \
+	--bootstrap-type kind \
+	-m ./cmd/clusterctl/examples/aws/out/machines-ha.yaml \
 	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
 	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml

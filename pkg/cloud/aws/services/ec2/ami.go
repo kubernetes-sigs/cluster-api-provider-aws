@@ -22,17 +22,15 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/klog"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 )
 
 const (
-	// machineAMIOwnerID is a heptio/VMware owned account. Please see:
+	// defaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
-	machineAMIOwnerID = "258751437250"
+	defaultMachineAMIOwnerID = "258751437250"
 
 	// amiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
@@ -52,12 +50,15 @@ func amiName(baseOS, baseOSVersion, kubernetesVersion string) string {
 }
 
 // defaultAMILookup returns the default AMI based on region
-func (s *Service) defaultAMILookup(baseOS, baseOSVersion, kubernetesVersion string) (string, error) {
+func (s *Service) defaultAMILookup(ownerID, baseOS, baseOSVersion, kubernetesVersion string) (string, error) {
+	if ownerID == "" {
+		ownerID = defaultMachineAMIOwnerID
+	}
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("owner-id"),
-				Values: []*string{aws.String(machineAMIOwnerID)},
+				Values: []*string{aws.String(ownerID)},
 			},
 			{
 				Name:   aws.String("name"),
@@ -86,7 +87,7 @@ func (s *Service) defaultAMILookup(baseOS, baseOSVersion, kubernetesVersion stri
 		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
 	latestImage := getLatestImage(out.Images)
-	klog.V(2).Infof("Using AMI: %q", aws.StringValue(latestImage.ImageId))
+	s.scope.V(2).Info("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
 	return aws.StringValue(latestImage.ImageId), nil
 }
 
@@ -99,15 +100,14 @@ func (i images) Len() int {
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
+// TODO(chuckha) Ignoring errors until this causes a problem
 func (i images) Less(k, j int) bool {
 	firstTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[k].CreationDate))
 	if err != nil {
-		klog.Infof("unable to parse an AMI creation timestamp: %q", aws.StringValue(i[k].CreationDate))
 		return false
 	}
 	secondTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[j].CreationDate))
 	if err != nil {
-		klog.Infof("unable to parse an AMI creation timestamp: %q", aws.StringValue(i[j].CreationDate))
 		return false
 	}
 	return firstTime.Before(secondTime)

@@ -1,0 +1,27 @@
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineDeployment
+metadata:
+  name: sample-machinedeployment
+  labels:
+    cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+      set: node
+  template:
+    metadata:
+      labels:
+        cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+        set: node
+    spec:
+      versions:
+        kubelet: v1.13.5
+      providerSpec:
+        value:
+          apiVersion: awsprovider/v1alpha1
+          kind: AWSMachineProviderSpec
+          instanceType: "${NODE_MACHINE_TYPE}"
+          iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+          keyName: "${SSH_KEY_NAME}"

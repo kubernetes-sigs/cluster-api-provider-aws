@@ -381,7 +381,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunning(gomock.Any()).
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			check: func(instance *v1alpha1.Instance, err error) {

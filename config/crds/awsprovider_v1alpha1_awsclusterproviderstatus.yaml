@@ -49,6 +49,10 @@ spec:
             publicIp:
               description: The public IPv4 address assigned to the instance, if applicable.
               type: string
+            rootDeviceSize:
+              description: Specifies size (in Gi) of the root storage device
+              format: int64
+              type: integer
             securityGroupIds:
               description: SecurityGroupIDs are one or more security group IDs this
                 instance belongs to.

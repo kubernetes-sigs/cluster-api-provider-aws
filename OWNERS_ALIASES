@@ -2,39 +2,28 @@
 
 aliases:
   sig-cluster-lifecycle-leads:
-    - lukemarsden
+    - justinsb
     - luxas
-    - roberthbailey
     - timothysc
   cluster-api-admins:
-    - justinsb
-    - krousey
-    - luxas
-    - roberthbailey
-    - kris-nova
-  cluster-api-maintainers:
-    - jessicaochen
-    - k4leung4
-    - karan
-    - kris-nova
-    - krousey
-    - medinatiger
-    - mkjelland
-    - roberthbailey
-    - rsdcastro
-    - spew
-  sig-aws-leads:
-    - justinsb
-    - kris-nova
-    - countspongebob
-  cluster-api-aws-maintainers:
+    - davidewatson
     - detiber
+    - justinsb
+  cluster-api-maintainers:
+    - detiber
+    - justinsb
+    - vincepri
+  sig-aws-leads:
+    - d-nishi
+    - justinsb
+    - kris-nova
+  cluster-api-aws-maintainers:
     - chuckha
     - davidewatson
-    - d-nishi
+    - detiber
     - enxebre
     - ingvagabund
-    - vincepri
     - randomvariable
+    - vincepri
   cluster-api-aws-reviewers:
     - ashish-amarnath

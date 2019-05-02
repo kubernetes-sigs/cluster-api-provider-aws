@@ -27,24 +27,36 @@ BOSKOS_HOST=os.environ.get("BOSKOS_HOST", "boskos")
 RESOURCE_TYPE = "aws-account"
 USER = "cluster-api-provider-aws"
 
-if __name__ == "__main__":
-    conn = httplib.HTTPConnection(BOSKOS_HOST)
-
+def post_request(host, input_state = "clean"):
+    conn = httplib.HTTPConnection(host)
     conn.request("POST", "/acquire?%s" % urllib.urlencode({
         'type': RESOURCE_TYPE,
         'owner': USER,
-        'state': 'free',
+        'state': input_state,
         'dest': 'busy',
     })
 
     )
     resp = conn.getresponse()
-    if resp.status != 200:
-        sys.exit("Got invalid response %d" % resp.status)
-
-    body = json.load(resp)
+    status = resp.status
+    reason = resp.reason
+    body = resp.read()
     conn.close()
+    return status, reason, body
+
+if __name__ == "__main__":
+    status, reason, result = post_request(BOSKOS_HOST)
+    #  we're working around an issue with the data in boskos.
+    #  We'll remove the code that tries both free and clean once all the data is good.
+    #  Afterwards we should just check for free
+    if status == 404:
+        status, reason, result = post_request(BOSKOS_HOST, "free")
+
+    if status != 200:
+        sys.exit("Got invalid response %d: %s" % (status, reason))
+
+    body = json.loads(result)
     print 'export BOSKOS_RESOURCE_NAME="%s";' % body['name']
     print 'export AWS_ACCESS_KEY_ID="%s";' % body['userdata']['access-key-id']
     print 'export AWS_SECRET_ACCESS_KEY="%s";' % body['userdata']['secret-access-key']
-
+    

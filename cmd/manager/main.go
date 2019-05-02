@@ -20,6 +20,7 @@ import (
 	"flag"
 	"time"
 
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
@@ -65,17 +66,25 @@ func main() {
 		klog.Fatalf("Failed to create client from configuration: %v", err)
 	}
 
+	coreClient, err := corev1.NewForConfig(cfg)
+	if err != nil {
+		klog.Fatalf("Failed to create corev1 client from configuration: %v", err)
+	}
+
 	// Initialize event recorder.
 	record.InitFromRecorder(mgr.GetRecorder("aws-controller"))
 
 	// Initialize cluster actuator.
 	clusterActuator := cluster.NewActuator(cluster.ActuatorParams{
-		Client: cs.ClusterV1alpha1(),
+		Client:         cs.ClusterV1alpha1(),
+		LoggingContext: "[cluster-actuator]",
 	})
 
 	// Initialize machine actuator.
 	machineActuator := machine.NewActuator(machine.ActuatorParams{
-		Client: cs.ClusterV1alpha1(),
+		CoreClient:     coreClient,
+		ClusterClient:  cs.ClusterV1alpha1(),
+		LoggingContext: "[machine-actuator]",
 	})
 
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)

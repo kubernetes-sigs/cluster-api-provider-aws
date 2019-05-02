@@ -1,11 +1,11 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@bazel_gomock//:gomock.bzl", "gomock")
 
 go_library(
     name = "go_default_library",
     srcs = [
-        "ec2interface.go",
-        "elbinterface.go",
         "getters.go",
+        "services_mock.go",
     ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/mocks",
     visibility = ["//visibility:public"],
@@ -18,29 +18,14 @@ go_library(
     ],
 )
 
-load("//build:go_mock.bzl", "go_mock")
-
-go_mock(
-    name = "go_mock_interfaces",
-    importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/mocks",
+gomock(
+    name = "mocks",
+    out = "services_mock.go",
+    interfaces = [
+        "EC2Interface",
+        "ELBInterface",
+    ],
+    library = "//pkg/cloud/aws/services:go_default_library",
+    package = "mocks",
     visibility = ["//visibility:public"],
-    mocks = [
-        {
-            "prefix": "sigs.k8s.io/cluster-api-provider-aws",
-            "package": "pkg/cloud/aws/services",
-            "interface": "EC2Interface",
-            "vendored": False,
-        },
-        {
-            "prefix": "sigs.k8s.io/cluster-api-provider-aws",
-            "package": "pkg/cloud/aws/services",
-            "interface": "ELBInterface",
-            "vendored": False,
-        },
-    ],
-    deps = [
-        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
-        "//pkg/cloud/aws/actuators:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
-    ],
 )

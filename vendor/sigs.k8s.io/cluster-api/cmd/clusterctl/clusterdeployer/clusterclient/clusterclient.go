@@ -55,6 +55,10 @@ const (
 	machineClusterLabelName     = "cluster.k8s.io/cluster-name"
 )
 
+const (
+	TimeoutMachineReady = "CLUSTER_API_MACHINE_READY_TIMEOUT"
+)
+
 // Provides interaction with a cluster
 type Client interface {
 	Apply(string) error
@@ -919,7 +923,7 @@ func (c *client) waitForKubectlApply(manifest string) error {
 		klog.V(2).Infof("Waiting for kubectl apply...")
 		err := c.kubectlApply(manifest)
 		if err != nil {
-			if strings.Contains(err.Error(), io.EOF.Error()) || strings.Contains(err.Error(), "refused") {
+			if strings.Contains(err.Error(), io.EOF.Error()) || strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "no such host") {
 				// Connection was refused, probably because the API server is not ready yet.
 				klog.V(4).Infof("Waiting for kubectl apply... server not yet available: %v", err)
 				return false, nil
@@ -968,7 +972,17 @@ func waitForClusterResourceReady(cs clientset.Interface) error {
 }
 
 func waitForMachineReady(cs clientset.Interface, machine *clusterv1.Machine) error {
-	err := util.PollImmediate(retryIntervalResourceReady, timeoutMachineReady, func() (bool, error) {
+	timeout := timeoutMachineReady
+	if p := os.Getenv(TimeoutMachineReady); p != "" {
+		t, err := strconv.Atoi(p)
+		if err == nil {
+			// only valid value will be used
+			timeout = time.Duration(t) * time.Minute
+			klog.V(4).Info("Setting wait for machine timeout value to ", timeout)
+		}
+	}
+
+	err := util.PollImmediate(retryIntervalResourceReady, timeout, func() (bool, error) {
 		klog.V(2).Infof("Waiting for Machine %v to become ready...", machine.Name)
 		m, err := cs.ClusterV1alpha1().Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
 		if err != nil {
@@ -1019,17 +1033,16 @@ func GetClusterAPIObject(client Client, clusterName, namespace string) (*cluster
 		return nil, nil, nil, errors.Wrapf(err, "unable to fetch cluster %s/%s", namespace, clusterName)
 	}
 
-	controlPlane, nodes, err := ExtractControlPlaneMachine(machines)
+	controlPlane, nodes, err := ExtractControlPlaneMachines(machines)
 	if err != nil {
 		return nil, nil, nil, errors.Wrapf(err, "unable to fetch control plane machine in cluster %s/%s", namespace, clusterName)
 	}
-	return cluster, controlPlane, nodes, nil
+	return cluster, controlPlane[0], nodes, nil
 }
 
-// ExtractControlPlaneMachine separates the machines running the control plane (singular) from the incoming machines.
+// ExtractControlPlaneMachines separates the machines running the control plane from the incoming machines.
 // This is currently done by looking at which machine specifies the control plane version.
-// TODO: Cleanup.
-func ExtractControlPlaneMachine(machines []*clusterv1.Machine) (*clusterv1.Machine, []*clusterv1.Machine, error) {
+func ExtractControlPlaneMachines(machines []*clusterv1.Machine) ([]*clusterv1.Machine, []*clusterv1.Machine, error) {
 	nodes := []*clusterv1.Machine{}
 	controlPlaneMachines := []*clusterv1.Machine{}
 	for _, machine := range machines {
@@ -1039,8 +1052,8 @@ func ExtractControlPlaneMachine(machines []*clusterv1.Machine) (*clusterv1.Machi
 			nodes = append(nodes, machine)
 		}
 	}
-	if len(controlPlaneMachines) != 1 {
-		return nil, nil, errors.Errorf("expected one control plane machine, got: %v", len(controlPlaneMachines))
+	if len(controlPlaneMachines) < 1 {
+		return nil, nil, errors.Errorf("expected one or more control plane machines, got: %v", len(controlPlaneMachines))
 	}
-	return controlPlaneMachines[0], nodes, nil
+	return controlPlaneMachines, nodes, nil
 }
