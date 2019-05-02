@@ -1,6 +1,5 @@
-#!/bin/bash
-
-# Copyright 2018 The Kubernetes Authors.
+#!/usr/bin/env sh
+# Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
-set -o nounset
-set -o pipefail
+# this script is a drop in wrapper around gnu-sed that will attempt to only
+# use gnu sed (as opposed to E.G. the default sed on macOS)
 
-REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+# darwin is great
+SED="sed"
+if command -v gsed >/dev/null 2>&1; then
+  SED="gsed"
+fi
+if ! (${SED} --version 2>&1 | grep -q GNU); then
+  echo "!!! GNU sed is required.  If on OS X, use 'brew install gnu-sed'." >&2
+  exit 1
+fi
 
-cd "$REPO_ROOT" && make lint-full docker-build
+"${SED}" "$@"
