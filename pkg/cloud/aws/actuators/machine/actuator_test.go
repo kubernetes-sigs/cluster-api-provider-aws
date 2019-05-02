@@ -800,7 +800,7 @@ func TestIsNodeJoin(t *testing.T) {
 			inputScope:                getInvalidMachineScope(t),
 			inputControlplaneMachines: getTestControlplaneMachines(),
 			expectedIsNodeJoin:        false,
-			expectedError:             fmt.Errorf("failed to create machine scope for machine %q in namespace %q: failed to generate new scope from nil cluster", "master-0", "awesome-ns"),
+			expectedError:             fmt.Errorf("failed to create machine scope for awesome-ns/master-0: failed to generate new scope from nil cluster"),
 		},
 		{
 			name:                      "should return error for no `set` label",

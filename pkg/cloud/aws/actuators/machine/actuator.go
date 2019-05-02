@@ -121,7 +121,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 					AWSClients: scope.AWSClients,
 				})
 				if err != nil {
-					return false, errors.Wrapf(err, "failed to create machine scope for machine %q in namespace %q", cm.Name, cm.Namespace)
+					return false, errors.Wrapf(err, "failed to create machine scope for %s/%s", cm.Namespace, cm.Name)
 				}
 			}
 			sharedScope.Machine = cm
