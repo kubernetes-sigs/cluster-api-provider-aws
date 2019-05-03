@@ -89,6 +89,7 @@ genrule(
         "//cmd/clusterctl/examples/aws:addons.yaml",
         "//cmd/clusterctl/examples/aws:cluster.yaml.template",
         "//cmd/clusterctl/examples/aws:cluster-network-spec.yaml.template",
+        "//cmd/clusterctl/examples/aws:machine-deployment.yaml.template",
         "//cmd/clusterctl/examples/aws:machines.yaml.template",
         "//cmd/clusterctl/examples/aws:machines-ha.yaml.template",
         "//cmd/clusterctl/examples/aws:provider-components-base.yaml",
@@ -98,6 +99,7 @@ genrule(
     outs = [
         "manifests/addons.yaml",
         "manifests/cluster.yaml",
+        "manifests/machine-deployment.yaml",
         "manifests/machines.yaml",
         "manifests/machines-ha.yaml",
         "manifests/provider-components.yaml",

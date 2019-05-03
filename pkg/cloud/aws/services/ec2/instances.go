@@ -19,8 +19,10 @@ package ec2
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -41,7 +43,7 @@ import (
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
 func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Instance, error) {
-	s.scope.V(2).Info("Looking for existing machine instance")
+	s.scope.V(2).Info("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
@@ -79,7 +81,7 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
 		return nil, nil
 	}
 
-	s.scope.V(2).Info("Looking for instance", "instance-id", *id)
+	s.scope.V(2).Info("Looking for instance by id", "instance-id", *id)
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{id},
@@ -437,13 +439,20 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 		return nil, errors.Errorf("no instance returned for reservation %v", out.GoString())
 	}
 
-	s.scope.V(2).Info("Waiting for instance to run", "instance-id", *out.Instances[0].InstanceId)
-	err = s.scope.EC2.WaitUntilInstanceRunningWithContext(
-		aws.BackgroundContext(),
+	waitTimeout := 1 * time.Minute
+	s.scope.V(2).Info("Waiting for instance to be in running state", "instance-id", *out.Instances[0].InstanceId, "timeout", waitTimeout.String())
+	ctx, cancel := context.WithTimeout(aws.BackgroundContext(), waitTimeout)
+	defer cancel()
+
+	if err := s.scope.EC2.WaitUntilInstanceRunningWithContext(
+		ctx,
 		&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}},
 		request.WithWaiterLogger(&awslog{s.scope.Logger}),
-	)
-	return converters.SDKToInstance(out.Instances[0]), err
+	); err != nil {
+		s.scope.V(2).Info("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
+	}
+
+	return converters.SDKToInstance(out.Instances[0]), nil
 }
 
 // An internal type to satisfy aws' log interface.

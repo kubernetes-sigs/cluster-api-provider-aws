@@ -17,16 +17,19 @@ limitations under the License.
 package actuators
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/util/retry"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/patch"
 	"sigs.k8s.io/yaml"
 )
 
@@ -69,6 +72,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	return &MachineScope{
 		Scope:         scope,
 		Machine:       params.Machine,
+		MachineCopy:   params.Machine.DeepCopy(),
 		MachineClient: machineClient,
 		MachineConfig: machineConfig,
 		MachineStatus: machineStatus,
@@ -79,7 +83,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 type MachineScope struct {
 	*Scope
 
-	Machine       *clusterv1.Machine
+	Machine *clusterv1.Machine
+	// MachineCopy is used to generate a patch diff at the end of the scope's lifecycle.
+	MachineCopy   *clusterv1.Machine
 	MachineClient client.MachineInterface
 	MachineConfig *v1alpha1.AWSMachineProviderSpec
 	MachineStatus *v1alpha1.AWSMachineProviderStatus
@@ -120,54 +126,59 @@ func (m *MachineScope) Close() {
 	if m.MachineClient == nil {
 		return
 	}
+
 	ext, err := v1alpha1.EncodeMachineSpec(m.MachineConfig)
 	if err != nil {
 		m.Error(err, "failed to encode machine spec")
 		return
 	}
-	status, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
+	newStatus, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
 	if err != nil {
 		m.Error(err, "failed to encode machine status")
 		return
 	}
-
-	// Sometimes when an object gets updated the local copy is out of date with
-	// the copy stored on the server. In the case of cluster-api this will
-	// always be because the local copy will have an out-of-date resource
-	// version. This is because something else has updated the resource version
-	// on the server and thus the local copy is behind.
-	// This retry function will update the resource version if the local copy is
-	// behind and try again.
-	// This retry function will *only* update the resource version. If some
-	// other data has changed then there is a problem. Nothing else should be
-	// updating the object and this function will (correctly) fail.
-	if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		m.V(2).Info("Updating machine", "machine-resource-version", m.Machine.ResourceVersion, "node-ref", m.Machine.Status.NodeRef)
-		m.Machine.Spec.ProviderSpec.Value = ext
-		m.V(6).Info("Machine status before update", "machine-status", m.Machine.Status)
-		latest, err := m.MachineClient.Update(m.Machine)
-		if err != nil {
-			m.V(3).Info("Machine resource version is out of date")
-			// Fetch and update the latest resource version
-			newestMachine, err2 := m.MachineClient.Get(m.Machine.Name, metav1.GetOptions{})
-			if err2 != nil {
-				m.Error(err2, "failed to fetch latest Machine")
-				return err2
-			}
-			m.Machine.ResourceVersion = newestMachine.ResourceVersion
-			return err
-		}
-		m.V(5).Info("Latest machine", "machine", latest)
-		// The machine may have status (nodeRef) that the latest doesn't yet
-		// have, however some timestamps may be rolled back a bit with this copy.
-		m.Machine.Status.DeepCopyInto(&latest.Status)
-		latest.Status.ProviderStatus = status
-		_, err = m.MachineClient.UpdateStatus(latest)
-		return err
-	}); err != nil {
-		m.Error(err, "error retrying on conflict")
+	oldStatus, err := v1alpha1.MachineStatusFromProviderStatus(m.MachineCopy.Status.ProviderStatus)
+	if err != nil {
+		m.Error(err, "failed to get machine status from provider status")
+		return
 	}
-	m.V(2).Info("Successfully updated machine")
+
+	m.Machine.Spec.ProviderSpec.Value = ext
+
+	p, err := patch.NewJSONPatch(m.MachineCopy, m.Machine)
+	if err != nil {
+		m.Error(err, "failed to create new JSONPatch for machine")
+		return
+	}
+
+	if len(p) != 0 {
+		pb, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			m.Error(err, "failed to json marshal patch for machine")
+			return
+		}
+
+		m.Logger.V(1).Info("Patching machine")
+		result, err := m.MachineClient.Patch(m.Machine.Name, types.JSONPatchType, pb)
+		if err != nil {
+			m.Error(err, "failed to patch machine")
+			return
+		}
+		// Keep the resource version updated so the status update can succeed
+		m.Machine.ResourceVersion = result.ResourceVersion
+	}
+
+	// Do not update status if the statuses are the same
+	if reflect.DeepEqual(m.MachineStatus, oldStatus) {
+		return
+	}
+
+	m.Logger.V(1).Info("Updating machine status")
+	m.Machine.Status.ProviderStatus = newStatus
+	if _, err := m.MachineClient.UpdateStatus(m.Machine); err != nil {
+		m.Error(err, "failed to update machine status")
+		return
+	}
 }
 
 // MachineConfigFromProviderSpec tries to decode the JSON-encoded spec, falling back on getting a MachineClass if the value is absent.

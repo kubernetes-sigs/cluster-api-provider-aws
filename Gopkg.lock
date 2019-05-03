@@ -41,7 +41,7 @@
   version = "1.0.0"
 
 [[projects]]
-  digest = "1:f18ddcba65e65313913ac0443a7c82e9a309fb65c52dea63f12a6976d909466f"
+  digest = "1:1fe4e00b5f0ca95c699c92d097ccc2e96d6c2061cfa7ecc4c9248f1cfb8e217e"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -83,8 +83,8 @@
     "service/sts/stsiface",
   ]
   pruneopts = "UT"
-  revision = "b4d97e9cf75f3815bd694b8e0d6f9d81492c3586"
-  version = "v1.17.5"
+  revision = "2024b98be3d7bca1d26036f16ef34b0275ebb562"
+  version = "v1.19.18"
 
 [[projects]]
   digest = "1:745bc6300190908c71ec4c641b83e903da724bae0c91b9dc539650b833e22fb4"
@@ -1076,6 +1076,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:dc54d24e166e75a89145883b6080306f5684db2e8ab7a068625f010dee604c6e"
+  name = "k8s.io/component-base"
+  packages = ["cli/flag"]
+  pruneopts = "UT"
+  revision = "9fe063da3132df1f14a39226ca80374b9fc22ec9"
+
+[[projects]]
+  branch = "master"
   digest = "1:28514fabca4356625720ffb012408790a9d00d31963a9bd9daf7b5ccd894c301"
   name = "k8s.io/gengo"
   packages = [
@@ -1138,7 +1146,7 @@
 
 [[projects]]
   branch = "release-0.1"
-  digest = "1:d92175fcffa434a7440cee734b886f32f586dfb6413702b08b25f701662b2bbb"
+  digest = "1:544e478bb32f15bbaeef4a44c3db17863552b3afd6e33f25ad8771ea62881afc"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
@@ -1166,7 +1174,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "560b000be51c1dc371c901ab84af8070bc29e8dc"
+  revision = "2186e24916f7dd57deb490c19bd453ac4ebfa711"
 
 [[projects]]
   digest = "1:4e97dc637c467531240326f56e253c6d42b519424b6a89d80664ef0f3ed4f721"
@@ -1300,7 +1308,6 @@
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/clientcmd/api",
     "k8s.io/client-go/tools/record",
-    "k8s.io/client-go/util/retry",
     "k8s.io/cluster-bootstrap/token/api",
     "k8s.io/cluster-bootstrap/token/util",
     "k8s.io/code-generator/cmd/deepcopy-gen",
@@ -1324,6 +1331,7 @@
     "sigs.k8s.io/controller-runtime/pkg/envtest",
     "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
+    "sigs.k8s.io/controller-runtime/pkg/patch",
     "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     "sigs.k8s.io/controller-runtime/pkg/source",
