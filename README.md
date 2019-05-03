@@ -1,23 +1,10 @@
-# Kubernetes cluster-api-provider-aws Project
+# OpenShift cluster-api-provider-aws
 
-This repository hosts an implementation of a provider for AWS for the [cluster-api project](https://sigs.k8s.io/cluster-api).
+This repository hosts an implementation of a provider for AWS for the
+OpenShift [machine-api](https://github.com/openshift/cluster-api).
 
-Note: The additionals PRs are applied on top of  vendored `https://sigs.k8s.io/cluster-api`:
-- [https://github.com/kubernetes-sigs/cluster-api/pull/512](https://github.com/kubernetes-sigs/cluster-api/pull/512)
-- [https://github.com/kubernetes-sigs/cluster-api/pull/513](https://github.com/kubernetes-sigs/cluster-api/pull/513)
-
-## Community, discussion, contribution, and support
-
-Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
-
-You can reach the maintainers of this project at:
-
-- [#cluster-api on Kubernetes Slack](http://slack.k8s.io/messages/cluster-api)
-- [SIG-Cluster-Lifecycle Mailing List](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
-
-### Code of conduct
-
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+This provider runs as a machine-controller deployed by the
+[machine-api-operator](https://github.com/openshift/machine-api-operator)
 
 ### How to build the images in the RH infrastructure
 The Dockerfiles use `as builder` in the `FROM` instruction which is not currently supported
@@ -124,3 +111,10 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
     ```sh
     $ kubectl apply -f examples/machine-set.yaml --validate=false
     ```
+
+# Upstream Implementation
+Other branches of this repository may choose to track the upstream
+Kubernetes [Cluster-API AWS provider](https://github.com/kubernetes-sigs/cluster-api-provider-aws/)
+
+In the future, we may align the master branch with the upstream project as it
+stabilizes within the community.
