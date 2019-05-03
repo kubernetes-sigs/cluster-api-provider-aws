@@ -43,7 +43,7 @@ HA_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines-ha.yaml
 DEPLOYMENT_MACHINES_TEMPLATE_FILE=${DIR}/machine-deployment.yaml.template
 DEPLOYMENT_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machine-deployment.yaml
 ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
-PROVIDER_COMPONENTS_SRC=${DIR}/provider-components-base.yaml
+PROVIDER_COMPONENTS_SRC=${DIR}/provider-components-base/*.yaml
 PROVIDER_COMPONENTS_FILE=${OUTPUT_DIR}/provider-components.yaml
 CREDENTIALS_FILE=${OUTPUT_DIR}/aws-credentials.yaml
 
