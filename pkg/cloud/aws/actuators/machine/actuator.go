@@ -120,7 +120,7 @@ func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachine
 				return false, errors.Wrapf(err, "failed to verify existence of machine %q", m.Name())
 			}
 
-			a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", ok)
+			a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Namespace, "should-join-control-plane", ok)
 			return ok, nil
 		}
 
