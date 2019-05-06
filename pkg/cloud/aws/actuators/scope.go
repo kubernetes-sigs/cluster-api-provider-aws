@@ -19,6 +19,7 @@ package actuators
 import (
 	"encoding/json"
 	"reflect"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -33,6 +34,25 @@ import (
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/patch"
 )
+
+var (
+	sessionCache sync.Map
+)
+
+func sessionForRegion(region string) (*session.Session, error) {
+	s, ok := sessionCache.Load(region)
+	if ok {
+		return s.(*session.Session), nil
+	}
+
+	ns, err := session.NewSession(aws.NewConfig().WithRegion(region))
+	if err != nil {
+		return nil, err
+	}
+
+	sessionCache.Store(region, ns)
+	return ns, nil
+}
 
 // ScopeParams defines the input parameters used to create a new Scope.
 type ScopeParams struct {
@@ -59,7 +79,7 @@ func NewScope(params ScopeParams) (*Scope, error) {
 		return nil, errors.Errorf("failed to load cluster provider status: %v", err)
 	}
 
-	session, err := session.NewSession(aws.NewConfig().WithRegion(clusterConfig.Region))
+	session, err := sessionForRegion(clusterConfig.Region)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
