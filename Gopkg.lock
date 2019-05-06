@@ -509,7 +509,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:38bc22ffe0f83b9fdbf37dc2bc7e203f3e200f989e2975d699d84de739fc2a0e"
+  digest = "1:8ac51ce0543106c1f7ae943463db52e48e816420351886a14fcf799b5fd14be9"
   name = "github.com/openshift/cluster-api-actuator-pkg"
   packages = [
     "pkg/e2e/autoscaler",
@@ -520,7 +520,7 @@
     "pkg/types",
   ]
   pruneopts = ""
-  revision = "120c730b28bcc62907240620828f616edbdae802"
+  revision = "dc2d4c7f4e839792f76b43e4844a5f87a09300b2"
 
 [[projects]]
   branch = "master"

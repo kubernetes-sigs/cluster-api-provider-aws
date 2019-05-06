@@ -316,7 +316,6 @@ var _ = g.Describe("[Feature:Machines] Autoscaler should", func() {
 		initialNumberOfReplicas0 := pointer.Int32PtrDerefOr(targetMachineSet0.Spec.Replicas, e2e.DefaultMachineSetReplicas)
 		initialNumberOfReplicas1 := pointer.Int32PtrDerefOr(targetMachineSet1.Spec.Replicas, e2e.DefaultMachineSetReplicas)
 		glog.Infof("initialNumberOfReplicas0 %d, initialNumberOfReplicas1 %d", initialNumberOfReplicas0, initialNumberOfReplicas1)
-		o.Expect(initialNumberOfReplicas0).To(o.BeNumerically("==", initialNumberOfReplicas1))
 
 		g.By("Creating workload")
 		err = client.Create(context.TODO(), newWorkLoad())

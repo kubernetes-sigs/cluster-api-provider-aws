@@ -269,7 +269,7 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 
 		machineSets, err := e2e.GetMachineSets(context.TODO(), client)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(machineSets)).To(o.BeNumerically(">", 2))
+		o.Expect(len(machineSets)).To(o.BeNumerically(">=", 2))
 		machineSet := machineSets[0]
 		initialReplicasMachineSet := int(pointer.Int32PtrDerefOr(machineSet.Spec.Replicas, e2e.DefaultMachineSetReplicas))
 		scaleOut := 3
@@ -309,7 +309,7 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 		g.By("getting worker machineSets")
 		machineSets, err := e2e.GetMachineSets(context.TODO(), client)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(machineSets)).To(o.BeNumerically(">", 2))
+		o.Expect(len(machineSets)).To(o.BeNumerically(">=", 2))
 		machineSet0 := machineSets[0]
 		initialReplicasMachineSet0 := int(pointer.Int32PtrDerefOr(machineSet0.Spec.Replicas, e2e.DefaultMachineSetReplicas))
 		machineSet1 := machineSets[1]
