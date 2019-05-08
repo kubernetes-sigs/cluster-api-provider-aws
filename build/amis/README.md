@@ -32,7 +32,7 @@ The following variables can be overriden when building images using the `-var` o
 
 | Variable               | Default   | Description                   |
 |------------------------|-----------|-------------------------------|
-| kubernetes_version     | 1.13.5-00 | Kubernetes Version to install |
+| kubernetes_version     | 1.13.6-00 | Kubernetes Version to install |
 | kubernetes_cni_version | 0.7.5-00  | CNI Version to install        |
 
 For example, to build all images for use with Kubernetes 1.14.0 for build version 1:
@@ -149,8 +149,8 @@ As root:
 
 ```sh
 mkdir -p /etc/cni/net.d
-wget -q https://github.com/containernetworking/cni/releases/download/v0.6.0/cni-amd64-v0.6.0.tgz
-tar -xzf cni-amd64-v0.6.0.tgz --directory /etc/cni/net.d
+wget -q https://github.com/containernetworking/cni/releases/download/v0.7.0/cni-amd64-v0.7.0.tgz
+tar -xzf cni-amd64-v0.7.0.tgz --directory /etc/cni/net.d
 cat >/etc/cni/net.d/10-mynet.conf <<EOF
 {
     "cniVersion": "0.2.0",
