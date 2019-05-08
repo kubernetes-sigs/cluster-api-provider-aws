@@ -68,6 +68,7 @@ Note: These AMIs are not updated for security fixes and it is recommended to alw
 |-|-|
 | v1.13                    | v1.13.3                 |
 |                          | v1.13.5                 |
+|                          | v1.13.6                 |
 | v1.14                    | v1.14.0                 |
 |                          | v1.14.1                 |
 
