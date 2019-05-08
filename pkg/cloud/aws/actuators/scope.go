@@ -39,6 +39,8 @@ var (
 	sessionCache sync.Map
 )
 
+const apiEndpointPort = 6443
+
 func sessionForRegion(region string) (*session.Session, error) {
 	s, ok := sessionCache.Load(region)
 	if ok {
@@ -175,11 +177,6 @@ func (s *Scope) Close() {
 		s.Error(err, "failed encoding cluster status")
 		return
 	}
-	oldStatus, err := v1alpha1.ClusterStatusFromProviderStatus(s.ClusterCopy.Status.ProviderStatus)
-	if err != nil {
-		s.Error(err, "failed to get provider status from status")
-		return
-	}
 
 	s.Cluster.Spec.ProviderSpec.Value = ext
 
@@ -207,15 +204,20 @@ func (s *Scope) Close() {
 		s.Cluster.ResourceVersion = result.ResourceVersion
 	}
 
-	// Do not update status if the statuses are the same
-	if reflect.DeepEqual(s.ClusterStatus, oldStatus) {
-		return
+	// Check if API endpoints is not set or has changed.
+	if s.Cluster.Status.APIEndpoints == nil || s.Cluster.Status.APIEndpoints[0].Host != s.ClusterStatus.Network.APIServerELB.DNSName {
+		s.Cluster.Status.APIEndpoints = append(s.Cluster.Status.APIEndpoints, clusterv1.APIEndpoint{
+			Host: s.ClusterStatus.Network.APIServerELB.DNSName,
+			Port: apiEndpointPort,
+		})
 	}
-
-	s.Logger.V(1).Info("Updating cluster status")
 	s.Cluster.Status.ProviderStatus = newStatus
-	if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
-		s.Error(err, "failed to update cluster status")
-		return
+
+	if !reflect.DeepEqual(s.Cluster.Status, s.ClusterCopy.Status) {
+		s.Logger.V(1).Info("updating cluster status")
+		if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
+			s.Error(err, "failed to update cluster status")
+			return
+		}
 	}
 }
