@@ -96,37 +96,52 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
 
+// isNodeJoin determines if a machine, in scope, should join of the cluster.
+// TODO: Make this thread safe kubernetes-sigs/cluster-api#925
+// https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/745#discussion_r280506890
 func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachines []*clusterv1.Machine) (bool, error) {
 	switch set := scope.Machine.ObjectMeta.Labels["set"]; set {
 	case "node":
+		// Worker machines, not part of the controlplane, will always join the cluster.
 		return true, nil
 	case "controlplane":
+		// Controlplane machines will join the cluster if the cluster has an existing control plane.
+		controlplaneExists := false
+		var err error
+
+		var sharedScope *actuators.MachineScope
+
 		for _, cm := range controlPlaneMachines {
-			m, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-				Machine: cm,
-				Cluster: scope.Cluster,
-				Client:  a.clusterClient,
-				Logger:  a.log,
-			})
+			if sharedScope == nil {
+				sharedScope, err = actuators.NewMachineScope(actuators.MachineScopeParams{
+					Machine:    cm,
+					Cluster:    scope.Cluster,
+					Client:     a.clusterClient,
+					Logger:     a.log,
+					AWSClients: scope.AWSClients,
+				})
+				if err != nil {
+					return false, errors.Wrapf(err, "failed to create machine scope for %s/%s", cm.Namespace, cm.Name)
+				}
+			}
+			sharedScope.Machine = cm
+			ec2svc := ec2.NewService(sharedScope.Scope)
 
+			controlplaneExists, err = ec2svc.MachineExists(sharedScope)
 			if err != nil {
-				return false, errors.Wrapf(err, "failed to create machine scope for machine %q", cm.Name)
+				return false, errors.Wrapf(err, "failed to verify existence of machine %s/%s", sharedScope.Machine.Namespace, sharedScope.Machine.Name)
 			}
 
-			ec2svc := ec2.NewService(m.Scope)
-
-			ok, err := ec2svc.MachineExists(m)
-			if err != nil {
-				return false, errors.Wrapf(err, "failed to verify existence of machine %q", m.Name())
+			if controlplaneExists {
+				return controlplaneExists, err
 			}
-
-			a.log.V(2).Info("Machine joining control plane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Namespace, "should-join-control-plane", ok)
-			return ok, nil
 		}
 
-		return false, nil
+		a.log.V(2).Info("Will machine join the controlplane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", controlplaneExists)
+		return controlplaneExists, err
+
 	default:
-		return false, errors.Errorf("Unknown value %q for label `set` on machine %q, skipping machine creation", set, scope.Machine.Name)
+		return false, errors.Errorf("Unknown value %q for label `set` on machine %q", set, scope.Machine.Name)
 	}
 }
 
@@ -160,6 +175,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	var bootstrapToken string
 	if isNodeJoin {
+		a.log.V(2).Info("Machine will join the cluster", "cluster", cluster.Name, "machine-name", machine.Name, "machine-namespace", machine.Namespace)
 		coreClient, err := a.coreV1Client(cluster)
 		if err != nil {
 			return errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", cluster.Name)
