@@ -84,7 +84,7 @@ go_repository(
     name = "com_github_golang_dep",
     build_file_generation = "on",
     importpath = "github.com/golang/dep",
-    tag = "v0.5.1",
+    tag = "0.5.2",
 )
 
 go_repository(
