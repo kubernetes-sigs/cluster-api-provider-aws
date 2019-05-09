@@ -61,6 +61,7 @@ func (s *Service) reconcileSecurityGroups() error {
 		v1alpha1.SecurityGroupBastion,
 		v1alpha1.SecurityGroupControlPlane,
 		v1alpha1.SecurityGroupNode,
+		v1alpha1.SecurityGroupLB,
 	}
 
 	// First iteration makes sure that the security group are valid and fully created.
@@ -98,6 +99,10 @@ func (s *Service) reconcileSecurityGroups() error {
 	// Second iteration creates or updates all permissions on the security group to match
 	// the specified ingress rules.
 	for role, sg := range s.scope.SecurityGroups() {
+		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) {
+			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
+			continue
+		}
 		current := sg.IngressRules
 
 		want, err := s.getSecurityGroupIngressRules(role)
@@ -338,6 +343,9 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 				},
 			},
 		}, nil
+	case v1alpha1.SecurityGroupLB:
+		// We hand this group off to the in-cluster cloud provider, so these rules aren't used
+		return v1alpha1.IngressRules{}, nil
 	}
 
 	return nil, errors.Errorf("Cannot determine ingress rules for unknown security group role %q", role)
@@ -358,11 +366,17 @@ func (s *Service) getDefaultSecurityGroup(role v1alpha1.SecurityGroupRole) *ec2.
 }
 
 func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityGroupRole) tags.BuildParams {
+
+	additional := tags.Map{}
+	if role == v1alpha1.SecurityGroupLB {
+		additional[tags.ClusterAWSCloudProviderKey(s.scope.Name())] = string(tags.ResourceLifecycleOwned)
+	}
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   tags.ResourceLifecycleOwned,
 		Name:        aws.String(name),
 		Role:        aws.String(string(role)),
+		Additional:  additional,
 	}
 }
 

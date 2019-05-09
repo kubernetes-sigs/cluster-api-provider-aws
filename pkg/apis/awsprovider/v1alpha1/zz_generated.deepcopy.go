@@ -596,7 +596,7 @@ func (in *SecurityGroup) DeepCopyInto(out *SecurityGroup) {
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
-		*out = make(map[string]string, len(*in))
+		*out = make(tags.Map, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}

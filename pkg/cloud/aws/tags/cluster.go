@@ -20,5 +20,10 @@ import "fmt"
 
 // ClusterKey generates the key for resources associated with a cluster.
 func ClusterKey(name string) string {
-	return fmt.Sprintf("%s%s", NameKubernetesClusterPrefix, name)
+	return fmt.Sprintf("%s%s", NameAWSProviderOwned, name)
+}
+
+// ClusterAWSCloudProviderKey generates the key for resources associated a cluster's AWS cloud provider.
+func ClusterAWSCloudProviderKey(name string) string {
+	return fmt.Sprintf("%s%s", NameKubernetesAWSCloudProviderPrefix, name)
 }

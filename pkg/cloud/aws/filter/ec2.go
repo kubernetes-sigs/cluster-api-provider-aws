@@ -72,18 +72,10 @@ func (ec2Filters) ClusterShared(clusterName string) *ec2.Filter {
 	}
 }
 
-// ProviderManaged returns a filter using cluster-api-provider-aws managed tag.
-func (ec2Filters) ProviderManaged() *ec2.Filter {
-	return &ec2.Filter{
-		Name:   aws.String(filterNameTagKey),
-		Values: aws.StringSlice([]string{TagNameAWSProviderManaged}),
-	}
-}
-
 // ProviderRole returns a filter using cluster-api-provider-aws role tag.
 func (ec2Filters) ProviderRole(role string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", TagNameAWSClusterAPIRole)),
+		Name:   aws.String(fmt.Sprintf("tag:%s", tags.NameAWSClusterAPIRole)),
 		Values: aws.StringSlice([]string{role}),
 	}
 }

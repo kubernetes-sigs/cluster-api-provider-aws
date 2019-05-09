@@ -121,6 +121,9 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		Lifecycle:   tags.ResourceLifecycleOwned,
 		Name:        aws.String(machine.Name()),
 		Role:        aws.String(machine.Role()),
+		Additional: tags.Map{
+			tags.ClusterAWSCloudProviderKey(s.scope.Name()): string(tags.ResourceLifecycleOwned),
+		},
 	})
 
 	var err error
@@ -168,12 +171,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	// apply values based on the role of the machine
 	switch machine.Role() {
 	case "controlplane":
-		if s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane] == nil {
-			return nil, awserrors.NewFailedDependency(
-				errors.New("failed to run controlplane, security group not available"),
-			)
-		}
-
 		var userData string
 
 		if bootstrapToken != "" {
@@ -239,10 +236,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		input.UserData = aws.String(userData)
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 	case "node":
 		s.scope.V(2).Info("Joining a worker node to the cluster")
-		input.SecurityGroupIDs = append(input.SecurityGroupIDs, s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID)
 
 		joinConfiguration := kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
 		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(joinConfiguration)
@@ -264,6 +259,14 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		return nil, errors.Errorf("Unknown node role %q", machine.Role())
 	}
 
+	ids, err := s.GetCoreSecurityGroups(machine)
+	if err != nil {
+		return nil, err
+	}
+	input.SecurityGroupIDs = append(input.SecurityGroupIDs,
+		ids...,
+	)
+
 	// Pick SSH key, if any.
 	if machine.MachineConfig.KeyName != "" {
 		input.KeyName = aws.String(machine.MachineConfig.KeyName)
@@ -279,6 +282,32 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
 	return out, nil
+}
+
+func (s *Service) GetCoreSecurityGroups(machine *actuators.MachineScope) ([]string, error) {
+	// These are common across both controlplane and node machines
+	sgRoles := []v1alpha1.SecurityGroupRole{
+		v1alpha1.SecurityGroupNode,
+		v1alpha1.SecurityGroupLB,
+	}
+	switch machine.Role() {
+	case "node":
+		// Just the common security groups above
+	case "controlplane":
+		sgRoles = append(sgRoles, v1alpha1.SecurityGroupControlPlane)
+	default:
+		return nil, errors.Errorf("Unknown node role %q", machine.Role())
+	}
+	ids := make([]string, 0, len(sgRoles))
+	for _, sg := range sgRoles {
+		if s.scope.SecurityGroups()[sg] == nil {
+			return nil, awserrors.NewFailedDependency(
+				errors.Errorf("%s security group not available", sg),
+			)
+		}
+		ids = append(ids, s.scope.SecurityGroups()[sg].ID)
+	}
+	return ids, nil
 }
 
 // TerminateInstance terminates an EC2 instance.
@@ -462,6 +491,25 @@ type awslog struct {
 
 func (a *awslog) Log(args ...interface{}) {
 	a.WithName("aws-logger").Info("AWS context", args...)
+}
+
+// GetInstanceSecurityGroups returns a map from ENI id to the security groups applied to that ENI
+// While some security group operations take place at the "instance" level, these are in fact an API convenience for manipulating the first ("primary") ENI's properties.
+func (s *Service) GetInstanceSecurityGroups(instanceID string) (map[string][]string, error) {
+	enis, err := s.getInstanceENIs(instanceID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get ENIs for instance %q", instanceID)
+	}
+
+	out := make(map[string][]string)
+	for _, eni := range enis {
+		var groups []string
+		for _, group := range eni.Groups {
+			groups = append(groups, aws.StringValue(group.GroupId))
+		}
+		out[aws.StringValue(eni.NetworkInterfaceId)] = groups
+	}
+	return out, nil
 }
 
 // UpdateInstanceSecurityGroups modifies the security groups of the given

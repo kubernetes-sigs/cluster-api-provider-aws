@@ -111,9 +111,9 @@ func (v *VPCSpec) String() string {
 	return fmt.Sprintf("id=%s", v.ID)
 }
 
-// IsProvided returns true if the VPC is unmanaged.
-func (v *VPCSpec) IsProvided() bool {
-	return v.ID != "" && !v.Tags.HasManaged()
+// IsUnmanaged returns true if the VPC is unmanaged.
+func (v *VPCSpec) IsUnmanaged(clusterName string) bool {
+	return v.ID != "" && !v.Tags.HasOwned(clusterName)
 }
 
 // SubnetSpec configures an AWS Subnet.

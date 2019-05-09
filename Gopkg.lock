@@ -41,7 +41,7 @@
   version = "1.0.0"
 
 [[projects]]
-  digest = "1:1fe4e00b5f0ca95c699c92d097ccc2e96d6c2061cfa7ecc4c9248f1cfb8e217e"
+  digest = "1:c9f5a5d068a9b13bce0623860177de18d4f5a6cab3968c77fd524811f525dc0e"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -69,6 +69,8 @@
     "internal/shareddefaults",
     "private/protocol",
     "private/protocol/ec2query",
+    "private/protocol/json/jsonutil",
+    "private/protocol/jsonrpc",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
@@ -79,6 +81,7 @@
     "service/ec2/ec2iface",
     "service/elb",
     "service/elb/elbiface",
+    "service/resourcegroupstaggingapi",
     "service/sts",
     "service/sts/stsiface",
   ]
@@ -1276,6 +1279,7 @@
     "github.com/aws/aws-sdk-go/service/ec2/ec2iface",
     "github.com/aws/aws-sdk-go/service/elb",
     "github.com/aws/aws-sdk-go/service/elb/elbiface",
+    "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi",
     "github.com/aws/aws-sdk-go/service/sts",
     "github.com/aws/aws-sdk-go/service/sts/stsiface",
     "github.com/awslabs/goformation/cloudformation",

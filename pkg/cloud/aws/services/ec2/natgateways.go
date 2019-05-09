@@ -31,7 +31,7 @@ import (
 )
 
 func (s *Service) reconcileNatGateways() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		s.scope.V(4).Info("Skipping NAT gateway reconcile in unmanaged mode")
 		return nil
 	}
@@ -82,7 +82,7 @@ func (s *Service) reconcileNatGateways() error {
 }
 
 func (s *Service) deleteNatGateways() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		s.scope.V(4).Info("Skipping NAT gateway deletion in unmanaged mode")
 		return nil
 	}

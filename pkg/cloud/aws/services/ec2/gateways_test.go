@@ -47,7 +47,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
 					Tags: tags.Map{
-						tags.NameAWSProviderManaged: "true",
+						tags.ClusterKey("test-cluster"): "owned",
 					},
 				},
 			},
@@ -77,7 +77,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
 					Tags: tags.Map{
-						tags.NameAWSProviderManaged: "true",
+						tags.ClusterKey("test-cluster"): "owned",
 					},
 				},
 			},

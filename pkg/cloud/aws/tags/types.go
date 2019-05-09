@@ -17,7 +17,6 @@ limitations under the License.
 package tags
 
 import (
-	"path"
 	"reflect"
 )
 
@@ -29,16 +28,16 @@ func (m Map) Equals(other Map) bool {
 	return reflect.DeepEqual(m, other)
 }
 
-// HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster.
+// HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of this management tooling.
 func (m Map) HasOwned(cluster string) bool {
-	value, ok := m[path.Join(NameKubernetesClusterPrefix, cluster)]
+	value, ok := m[ClusterKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
-// HasManaged returns true if the map contains NameAWSProviderManaged key set to true.
-func (m Map) HasManaged() bool {
-	value, ok := m[NameAWSProviderManaged]
-	return ok && value == "true"
+// HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of the in-tree cloud provider.
+func (m Map) HasAWSCloudProviderOwned(cluster string) bool {
+	value, ok := m[ClusterAWSCloudProviderKey(cluster)]
+	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
 // GetRole returns the Cluster API role for the tagged resource
@@ -75,21 +74,23 @@ const (
 	// if the cluster is destroyed.
 	ResourceLifecycleShared = ResourceLifecycle("shared")
 
-	// NameKubernetesClusterPrefix is the tag name we use to differentiate multiple
+	// NameKubernetesClusterPrefix is the tag name used by the cloud provider to logically
+	// separate independent cluster resources. We use it to identify which resources we expect
+	// to be permissive about state changes.
 	// logically independent clusters running in the same AZ.
-	// The tag key = NameKubernetesClusterPrefix + clusterID
+	// The tag key = NameKubernetesAWSCloudProviderPrefix + clusterID
 	// The tag value is an ownership value
-	NameKubernetesClusterPrefix = "kubernetes.io/cluster/"
+	NameKubernetesAWSCloudProviderPrefix = "kubernetes.io/cluster/"
 
 	// NameAWSProviderPrefix is the tag prefix we use to differentiate
 	// cluster-api-provider-aws owned components from other tooling that
 	// uses NameKubernetesClusterPrefix
 	NameAWSProviderPrefix = "sigs.k8s.io/cluster-api-provider-aws/"
 
-	// NameAWSProviderManaged is the tag name we use to differentiate
+	// NameAWSProviderOwned is the tag name we use to differentiate
 	// cluster-api-provider-aws owned components from other tooling that
 	// uses NameKubernetesClusterPrefix
-	NameAWSProviderManaged = NameAWSProviderPrefix + "managed"
+	NameAWSProviderOwned = NameAWSProviderPrefix + "cluster/"
 
 	// NameAWSClusterAPIRole is the tag name we use to mark roles for resources
 	// dedicated to this cluster api provider implementation.

@@ -37,7 +37,7 @@ const (
 
 // ReconcileBastion ensures a bastion is created for the cluster
 func (s *Service) ReconcileBastion() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		s.scope.V(4).Info("Skipping bastion reconcile in unmanaged mode")
 		return nil
 	}
@@ -77,7 +77,7 @@ func (s *Service) ReconcileBastion() error {
 
 // DeleteBastion deletes the Bastion instance
 func (s *Service) DeleteBastion() error {
-	if s.scope.VPC().IsProvided() {
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		s.scope.V(4).Info("Skipping bastion deletion in unmanaged mode")
 		return nil
 	}

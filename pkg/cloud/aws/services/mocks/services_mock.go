@@ -93,6 +93,36 @@ func (mr *MockEC2InterfaceMockRecorder) DeleteNetwork() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockEC2Interface)(nil).DeleteNetwork))
 }
 
+// GetCoreSecurityGroups mocks base method
+func (m *MockEC2Interface) GetCoreSecurityGroups(arg0 *actuators.MachineScope) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCoreSecurityGroups", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCoreSecurityGroups indicates an expected call of GetCoreSecurityGroups
+func (mr *MockEC2InterfaceMockRecorder) GetCoreSecurityGroups(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoreSecurityGroups", reflect.TypeOf((*MockEC2Interface)(nil).GetCoreSecurityGroups), arg0)
+}
+
+// GetInstanceSecurityGroups mocks base method
+func (m *MockEC2Interface) GetInstanceSecurityGroups(arg0 string) (map[string][]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstanceSecurityGroups", arg0)
+	ret0, _ := ret[0].(map[string][]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstanceSecurityGroups indicates an expected call of GetInstanceSecurityGroups
+func (mr *MockEC2InterfaceMockRecorder) GetInstanceSecurityGroups(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceSecurityGroups", reflect.TypeOf((*MockEC2Interface)(nil).GetInstanceSecurityGroups), arg0)
+}
+
 // InstanceIfExists mocks base method
 func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1alpha1.Instance, error) {
 	m.ctrl.T.Helper()

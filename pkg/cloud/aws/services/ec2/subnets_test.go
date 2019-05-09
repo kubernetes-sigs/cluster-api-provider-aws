@@ -52,7 +52,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: tags.Map{
-						tags.NameAWSProviderManaged: "true",
+						tags.ClusterKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: []*v1alpha1.SubnetSpec{
@@ -97,12 +97,8 @@ func TestReconcileSubnets(t *testing.T) {
 								MapPublicIpOnLaunch: aws.Bool(false),
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 										Value: aws.String("owned"),
-									},
-									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
-										Value: aws.String("true"),
 									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
@@ -171,7 +167,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: tags.Map{
-						tags.NameAWSProviderManaged: "true",
+						tags.ClusterKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: []*v1alpha1.SubnetSpec{
@@ -280,7 +276,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: tags.Map{
-						tags.NameAWSProviderManaged: "true",
+						tags.ClusterKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: []*v1alpha1.SubnetSpec{},
@@ -387,7 +383,7 @@ func TestReconcileSubnets(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
 					Tags: tags.Map{
-						tags.NameAWSProviderManaged: "true",
+						tags.ClusterKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: []*v1alpha1.SubnetSpec{
@@ -431,12 +427,8 @@ func TestReconcileSubnets(t *testing.T) {
 								CidrBlock:        aws.String("10.0.10.0/24"),
 								Tags: []*ec2.Tag{
 									{
-										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 										Value: aws.String("owned"),
-									},
-									{
-										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/managed"),
-										Value: aws.String("true"),
 									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),

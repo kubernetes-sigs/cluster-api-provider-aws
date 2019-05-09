@@ -390,13 +390,18 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("found attempt to change immutable state for machine %q: %+q", machine.Name, errs)
 	}
 
+	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*scope.MachineStatus.InstanceID)
+	if err != nil {
+		return err
+	}
+
 	// Ensure that the security groups are correct.
 	_, err = a.ensureSecurityGroups(
 		ec2svc,
-		machine,
+		scope,
 		*scope.MachineStatus.InstanceID,
 		scope.MachineConfig.AdditionalSecurityGroups,
-		instanceDescription.SecurityGroupIDs,
+		existingSecurityGroups,
 	)
 	if err != nil {
 		return errors.Errorf("failed to apply security groups: %+v", err)

@@ -38,7 +38,11 @@ Where possible use [client tokens](https://docs.aws.amazon.com/AWSEC2/latest/API
 
 ## Tagging of resources
 
-Resources that are managed by the controllers/actuators should be tagged with: `kubernetes.io/cluster/<name or id>=owned` and `sigs.k8s.io/cluster-api-provider-aws=true`. The latter tag being used to differentiate from resources managed by other tools/components that make use of the common tag.
+Resources handled by these components fall into one of three categories:
+
+1. Fully-managed resources whose lifecycle is tied to the cluster. These resources should be tagged with `sigs.k8s.io/cluster-api-provider-aws/cluster/<name or id>=owned`, and the actuator is expected to keep these resources as closely in sync with the spec as possible.
+2. Resources whose management is shared with the in-cluster aws cloud provider, such as a security group for load balancer ingress rules. These resources should be tagged with `sigs.k8s.io/cluster-api-provider-aws/cluster/<name or id>=owned` and `kubernetes.io/cluster/<name or id>=owned`, with the latter being the tag defined by the cloud provider. These resources are create/delete only: that is to say their ongoing management is "handed off" to the cloud provider.
+3. Unmanaged resources that are provided by config (such as a common VPC). The provider will avoid changing these resources as much as is possible.
 
 TODO: Define additional tags that can be used to provide additional metadata about the resource configuration/usage by the actuator. This is would allow us to rebuild status without relying on polluting the object config.
 

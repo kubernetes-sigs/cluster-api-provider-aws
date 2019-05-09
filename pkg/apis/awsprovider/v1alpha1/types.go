@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -237,6 +238,9 @@ var (
 
 	// SecurityGroupControlPlane defines a Kubernetes control plane node role
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
+
+	// SecurityGroupLB defines a container for the cloud provider to inject its load balancer ingress rules
+	SecurityGroupLB = SecurityGroupRole("lb")
 )
 
 // SecurityGroup defines an AWS security group.
@@ -251,7 +255,7 @@ type SecurityGroup struct {
 	IngressRules IngressRules `json:"ingressRule"`
 
 	// Tags is a map of tags associated with the security group.
-	Tags map[string]string `json:"tags,omitempty"`
+	Tags tags.Map `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the security group.

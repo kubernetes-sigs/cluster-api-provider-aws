@@ -64,6 +64,8 @@ type EC2ClusterInterface interface {
 type EC2MachineInterface interface {
 	InstanceIfExists(id *string) (*providerv1.Instance, error)
 	TerminateInstance(id string) error
+	GetCoreSecurityGroups(machine *actuators.MachineScope) ([]string, error)
+	GetInstanceSecurityGroups(id string) (map[string][]string, error)
 	CreateOrGetMachine(machine *actuators.MachineScope, token, kubeConfig string) (*providerv1.Instance, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
