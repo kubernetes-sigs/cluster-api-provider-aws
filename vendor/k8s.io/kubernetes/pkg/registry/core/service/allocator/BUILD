@@ -3,7 +3,6 @@ package(default_visibility = ["//visibility:public"])
 load(
     "@io_bazel_rules_go//go:def.bzl",
     "go_library",
-    "go_test",
 )
 
 go_library(
@@ -13,17 +12,8 @@ go_library(
         "interfaces.go",
         "utils.go",
     ],
+    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/kubernetes/pkg/registry/core/service/allocator",
     importpath = "k8s.io/kubernetes/pkg/registry/core/service/allocator",
-)
-
-go_test(
-    name = "go_default_test",
-    srcs = [
-        "bitmap_test.go",
-        "utils_test.go",
-    ],
-    embed = [":go_default_library"],
-    deps = ["//staging/src/k8s.io/apimachinery/pkg/util/sets:go_default_library"],
 )
 
 filegroup(
