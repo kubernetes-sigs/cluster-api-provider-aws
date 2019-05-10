@@ -17,11 +17,13 @@ limitations under the License.
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 )
 
 /*
@@ -193,7 +195,6 @@ Examples:
 		./release -remote YOUR_FORK -user YOUR_GITHUB_USER_NAME -version v1.1.1`)
 }
 
-// TODO: split up the config file?
 // config defines all configuration needed to get a release going
 type config struct {
 	// version is the version being released
@@ -226,42 +227,35 @@ type runner struct {
 
 // TODO sha512 the artifacts!
 func (r runner) run() error {
-	r.logger.Infof("tagging repository %q ", r.config.version)
+	r.logger.Infof("tagging repository %q\n", r.config.version)
 	if err := r.tagger.tag(r.config.version); err != nil {
 		return err
 	}
-	r.logger.Info("🐲")
-	r.logger.Infof("checking out tag %q ", r.config.version)
+	r.logger.Infof("checking out tag %q\n", r.config.version)
 	if err := r.tagger.checkout(r.config.version); err != nil {
 		return err
 	}
-	r.logger.Info("🐲")
-	r.logger.Infof("building artifacts %v ", r.config.artifacts)
+	r.logger.Infof("building artifacts %v\n", r.config.artifacts)
 	if err := r.builder.build(); err != nil {
 		return err
 	}
-	r.logger.Info("🐲")
-	r.logger.Infof("building container image: %s/%s:%s ", r.config.registry, r.config.imageName, r.config.version)
+	r.logger.Infof("building container image: %s/%s:%s\n", r.config.registry, r.config.imageName, r.config.version)
 	if err := r.builder.images(); err != nil {
 		return err
 	}
-	r.logger.Info("🐲")
-	r.logger.Infof("pushing tag %q ", r.config.version)
+	r.logger.Infof("pushing tag %q\n", r.config.version)
 	if err := r.tagger.pushTag(r.config.version); err != nil {
 		return err
 	}
-	r.logger.Info("🐲")
-	r.logger.Infof("drafting a release for tag %q ", r.config.version)
+	r.logger.Infof("drafting a release for tag %q\n", r.config.version)
 	if err := r.releaser.draft(r.config.version); err != nil {
 		return err
 	}
-	r.logger.Info("🐲")
 	for _, artifact := range r.config.artifacts {
-		r.logger.Infof("uploading %q ", artifact)
+		r.logger.Infof("uploading %q\n", artifact)
 		if err := r.releaser.upload(r.config.version, artifact); err != nil {
 			return err
 		}
-		r.logger.Info("🐲")
 	}
 	return nil
 }
@@ -313,31 +307,101 @@ type git struct {
 	logger logger
 }
 
-func (g git) tag(version string) error {
-	// if the tag exists then return nil; if it doesn't create it
-	cmd := exec.Command("git", "rev-parse", "--quiet", "--verify", version)
-	_, err := cmd.CombinedOutput()
-	if err != nil {
-		// TODO: in go 1.12 use ExitError and ExitCode()
-		// assume this means it doesn't exist
-		cmd = exec.Command("git", "tag", "-s", "-m", fmt.Sprintf("A release of %q for version %q", g.repository, version), version)
-		out, err2 := cmd.CombinedOutput()
-		if err2 != nil {
-			g.logger.Info(string(out))
-		}
-		return err2
-	}
-	return nil
-}
-
-func (g git) pushTag(version string) error {
-	// TODO(chuckha): this shouldn't exit if it fails because the tag already
-	cmd := exec.Command("git", "push", g.remote, version)
+func (g git) gitCommand(args ...string) error {
+	cmd := exec.Command("git", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		g.logger.Info(string(out))
 	}
 	return err
+}
+
+func (g git) getUserConfirmation(message string) {
+	g.logger.Info(message)
+	reader := bufio.NewReader(os.Stdin)
+	g.logger.Info("Press return to confirm.")
+	// throwing away the error
+	reader.ReadString('\n')
+}
+
+func (g git) forceUpdateTag(version string) error {
+	g.getUserConfirmation(fmt.Sprintf("You are about to force update the tag %v to reference HEAD.", version))
+	return g.updateTag(version, "-f")
+}
+
+func (g git) updateTag(version string, extraArgs ...string) error {
+	args := append([]string{"tag"}, extraArgs...)
+	args = append(args, "-s", "-m", g.tagMessage(version), version)
+	return g.gitCommand(args...)
+}
+
+func (g git) tagMessage(version string) string {
+	return fmt.Sprintf("A release of %q for version %q", g.repository, version)
+}
+
+func (g git) tag(version string) error {
+	oldRev, err := g.tagCommit(version)
+	// an error getting the tag commit implies the tag does not exist
+	if err != nil {
+		if err := g.updateTag(version); err != nil {
+			g.logger.Infof("failed to create a new tag: %v", version)
+			return err
+		}
+		return nil
+	}
+
+	// if there is no error getting the tag commit that means the tag exists and must be force updated
+	g.logger.Infof("Tag %q references commit %q\n", version, oldRev)
+	if err := g.forceUpdateTag(version); err != nil {
+		g.logger.Infof("failed to force update tag: %v", version)
+		return err
+	}
+	return nil
+}
+
+func (g git) tagCommit(version string) (string, error) {
+	cmd := exec.Command("git", "rev-parse", version)
+	out, err := cmd.Output()
+	if err != nil {
+		// TODO print stderr as well
+		return "", err
+	}
+
+	return strings.TrimSpace(string(out)), err
+}
+
+func (g git) remoteTagExists(version string) bool {
+	cmd := exec.Command("git", "ls-remote", "--tags", "--exit-code", g.remote, version)
+	// the output is unimportant for now. It will contain the ref of the tag if it exists.
+	_, err := cmd.Output()
+	return err == nil
+}
+
+func (g git) push(version string, extraArgs ...string) error {
+	args := append([]string{"push"}, extraArgs...)
+	args = append(args, g.remote, version)
+	return g.gitCommand(args...)
+}
+
+func (g git) forcePush(version string) error {
+	g.getUserConfirmation(fmt.Sprintf("You are about to force push the tag %v.", version))
+	return g.push(version, "-f")
+}
+
+func (g git) pushTag(version string) error {
+	if g.remoteTagExists(version) {
+		if err := g.forcePush(version); err != nil {
+			g.logger.Infof("failed to force push the tag %q", version)
+			return err
+		}
+		return nil
+	}
+
+	if err := g.push(version); err != nil {
+		g.logger.Infof("failed to push tag %q", version)
+		return err
+	}
+	return nil
 }
 
 func (g git) checkout(version string) error {
