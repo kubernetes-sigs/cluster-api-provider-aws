@@ -1149,7 +1149,7 @@
 
 [[projects]]
   branch = "release-0.1"
-  digest = "1:544e478bb32f15bbaeef4a44c3db17863552b3afd6e33f25ad8771ea62881afc"
+  digest = "1:07bf69e67f3e57593c9d9f70be97b11dfb61b53e51cf5c5380437821f6983142"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
@@ -1177,7 +1177,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "2186e24916f7dd57deb490c19bd453ac4ebfa711"
+  revision = "0f911c1f65a59b65791a1afb6e66a9503801f59f"
 
 [[projects]]
   digest = "1:4e97dc637c467531240326f56e253c6d42b519424b6a89d80664ef0f3ed4f721"

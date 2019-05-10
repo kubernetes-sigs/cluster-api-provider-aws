@@ -6,15 +6,14 @@ go_library(
         "doc.go",
         "register.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme",
     importpath = "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/apis/cluster/v1alpha1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
     ],
 )

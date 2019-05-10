@@ -8,13 +8,12 @@ go_library(
         "add_node.go",
         "controller.go",
     ],
-    importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/pkg/controller",
     importpath = "sigs.k8s.io/cluster-api/pkg/controller",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machinedeployment:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/controller/node:go_default_library",
+        "//pkg/controller/machinedeployment:go_default_library",
+        "//pkg/controller/machineset:go_default_library",
+        "//pkg/controller/node:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
     ],
 )
