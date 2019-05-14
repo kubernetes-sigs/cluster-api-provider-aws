@@ -88,7 +88,7 @@ func (s *Service) reconcileSecurityGroups() error {
 		// Make sure tags are up to date.
 		err := tags.Ensure(existing.Tags, &tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
-			BuildParams: s.getSecurityGroupTagParams(existing.Name, role),
+			BuildParams: s.getSecurityGroupTagParams(existing.Name, existing.ID, role),
 		})
 
 		if err != nil {
@@ -361,12 +361,11 @@ func (s *Service) getDefaultSecurityGroup(role v1alpha1.SecurityGroupRole) *ec2.
 	return &ec2.SecurityGroup{
 		GroupName: aws.String(name),
 		VpcId:     aws.String(s.scope.VPC().ID),
-		Tags:      converters.MapToTags(tags.Build(s.getSecurityGroupTagParams(name, role))),
+		Tags:      converters.MapToTags(tags.Build(s.getSecurityGroupTagParams(name, "", role))),
 	}
 }
 
-func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityGroupRole) tags.BuildParams {
-
+func (s *Service) getSecurityGroupTagParams(name string, id string, role v1alpha1.SecurityGroupRole) tags.BuildParams {
 	additional := tags.Map{}
 	if role == v1alpha1.SecurityGroupLB {
 		additional[tags.ClusterAWSCloudProviderKey(s.scope.Name())] = string(tags.ResourceLifecycleOwned)
@@ -375,6 +374,7 @@ func (s *Service) getSecurityGroupTagParams(name string, role v1alpha1.SecurityG
 		ClusterName: s.scope.Name(),
 		Lifecycle:   tags.ResourceLifecycleOwned,
 		Name:        aws.String(name),
+		ResourceID:  id,
 		Role:        aws.String(string(role)),
 		Additional:  additional,
 	}
