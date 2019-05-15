@@ -19,6 +19,7 @@ package main
 import (
 	"flag"
 	"log"
+	"time"
 
 	"github.com/openshift/cluster-api/pkg/apis"
 	"github.com/openshift/cluster-api/pkg/controller"
@@ -32,8 +33,14 @@ import (
 func main() {
 	flag.Set("logtostderr", "true")
 	klog.InitFlags(nil)
-	flag.Parse()
+	watchNamespace := flag.String("namespace", "",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 
+	flag.Parse()
+	if *watchNamespace != "" {
+		log.Printf("Watching cluster-api objects only in namespace %q for reconciliation.", *watchNamespace)
+	}
+	log.Printf("Registering Components.")
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
 	if err != nil {
@@ -41,7 +48,11 @@ func main() {
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{})
+	syncPeriod := 10 * time.Minute
+	mgr, err := manager.New(cfg, manager.Options{
+		SyncPeriod: &syncPeriod,
+		Namespace:  *watchNamespace,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
