@@ -133,8 +133,8 @@ var (
 	OperatorStatusTypeAvailable = "Available"
 	// Progressing indicates that the operator is trying to transition the operand to a different state
 	OperatorStatusTypeProgressing = "Progressing"
-	// Failing indicates that the operator (not the operand) is unable to fulfill the user intent
-	OperatorStatusTypeFailing = "Failing"
+	// Degraded indicates that the operator (not the operand) is unable to fulfill the user intent
+	OperatorStatusTypeDegraded = "Degraded"
 	// PrereqsSatisfied indicates that the things this operator depends on are present and at levels compatible with the
 	// current and desired states.
 	OperatorStatusTypePrereqsSatisfied = "PrereqsSatisfied"
