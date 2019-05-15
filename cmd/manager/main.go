@@ -36,6 +36,7 @@ import (
 func main() {
 	var printVersion bool
 	flag.BoolVar(&printVersion, "version", false, "print version and exit")
+	watchNamespace := flag.String("namespace", "", "Namespace that the controller watches to reconcile machine-api objects. If unspecified, the controller watches for machine-api objects across all namespaces.")
 
 	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(klogFlags)
@@ -60,11 +61,17 @@ func main() {
 		glog.Fatalf("Error getting configuration: %v", err)
 	}
 
-	// Create a new Cmd to provide shared dependencies and start components
+	// Setup a Manager
 	syncPeriod := 10 * time.Minute
-	mgr, err := manager.New(cfg, manager.Options{
+	opts := manager.Options{
 		SyncPeriod: &syncPeriod,
-	})
+	}
+	if *watchNamespace != "" {
+		opts.Namespace = *watchNamespace
+		klog.Infof("Watching machine-api objects only in namespace %q for reconciliation.", opts.Namespace)
+	}
+
+	mgr, err := manager.New(cfg, opts)
 	if err != nil {
 		glog.Fatalf("Error creating manager: %v", err)
 	}
