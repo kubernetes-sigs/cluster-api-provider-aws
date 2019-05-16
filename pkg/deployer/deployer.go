@@ -66,7 +66,7 @@ func (d *Deployer) GetKubeConfig(cluster *clusterv1.Cluster, _ *clusterv1.Machin
 	// Load provider config.
 	config, err := providerv1.ClusterConfigFromProviderSpec(cluster.Spec.ProviderSpec)
 	if err != nil {
-		return "", errors.Errorf("failed to load cluster provider status: %v", err)
+		return "", errors.Errorf("failed to load cluster provider spec: %v", err)
 	}
 
 	cert, err := certificates.DecodeCertPEM(config.CAKeyPair.Cert)
@@ -80,7 +80,7 @@ func (d *Deployer) GetKubeConfig(cluster *clusterv1.Cluster, _ *clusterv1.Machin
 	if err != nil {
 		return "", errors.Wrap(err, "failed to decode private key")
 	} else if key == nil {
-		return "", errors.New("key not found in status")
+		return "", errors.New("CA private key not found")
 	}
 
 	dnsName, err := d.GetIP(cluster, nil)

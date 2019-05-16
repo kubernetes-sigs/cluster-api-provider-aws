@@ -25,14 +25,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apicorev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
@@ -93,61 +94,19 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
 
-// isNodeJoin determines if a machine, in scope, should join of the cluster.
-// TODO: Make this thread safe kubernetes-sigs/cluster-api#925
-// https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/745#discussion_r280506890
-func (a *Actuator) isNodeJoin(scope *actuators.MachineScope, controlPlaneMachines []*clusterv1.Machine) (bool, error) {
-	switch set := scope.Machine.ObjectMeta.Labels["set"]; set {
-	case "node":
-		// Worker machines, not part of the controlplane, will always join the cluster.
-		return true, nil
-	case "controlplane":
-		// Controlplane machines will join the cluster if the cluster has an existing control plane.
-		controlplaneExists := false
-		var err error
-
-		var sharedScope *actuators.MachineScope
-
-		for _, cm := range controlPlaneMachines {
-			if sharedScope == nil {
-				sharedScope, err = actuators.NewMachineScope(actuators.MachineScopeParams{
-					Machine:    cm,
-					Cluster:    scope.Cluster,
-					Client:     a.clusterClient,
-					Logger:     a.log,
-					AWSClients: scope.AWSClients,
-				})
-				if err != nil {
-					return false, errors.Wrapf(err, "failed to create machine scope for %s/%s", cm.Namespace, cm.Name)
-				}
-			}
-			sharedScope.Machine = cm
-			ec2svc := ec2.NewService(sharedScope.Scope)
-
-			controlplaneExists, err = ec2svc.MachineExists(sharedScope)
-			if err != nil {
-				return false, errors.Wrapf(err, "failed to verify existence of machine %s/%s", sharedScope.Machine.Namespace, sharedScope.Machine.Name)
-			}
-
-			if controlplaneExists {
-				return controlplaneExists, err
-			}
-		}
-
-		a.log.V(2).Info("Will machine join the controlplane", "machine-name", scope.Machine.Name, "machine-namespace", scope.Machine.Name, "should-join-control-plane", controlplaneExists)
-		return controlplaneExists, err
-
-	default:
-		return false, errors.Errorf("Unknown value %q for label `set` on machine %q", set, scope.Machine.Name)
-	}
-}
-
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if cluster == nil {
 		return errors.Errorf("missing cluster for machine %s/%s", machine.Namespace, machine.Name)
 	}
-	a.log.Info("Creating machine in cluster", "machine-name", machine.Name, "machine-namespace", machine.Namespace, "cluster-name", cluster.Name)
+
+	log := a.log.WithValues("machine-name", machine.Name, "namespace", machine.Namespace, "cluster-name", cluster.Name)
+	log.Info("Processing machine creation")
+
+	if cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] != "true" {
+		log.Info("Cluster infrastructure is not ready yet - requeuing machine")
+		return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+	}
 
 	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.clusterClient, Logger: a.log})
 	if err != nil {
@@ -158,25 +117,81 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	ec2svc := ec2.NewService(scope.Scope)
 
-	clusterMachines, err := scope.MachineClient.List(v1.ListOptions{})
+	log.Info("Retrieving machines for cluster")
+	clusterMachines, err := scope.MachineClient.List(actuators.ListOptionsForCluster(cluster.Name))
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
 	}
 
 	controlPlaneMachines := GetControlPlaneMachines(clusterMachines)
+	if len(controlPlaneMachines) == 0 {
+		log.Info("No control plane machines exist yet - requeuing")
+		return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+	}
 
-	isNodeJoin, err := a.isNodeJoin(scope, controlPlaneMachines)
-	if err != nil {
-		return errors.Wrapf(err, "failed to determine whether machine %q should join cluster %q", machine.Name, cluster.Name)
+	// Except for the very first control plane machine, everything will be a join, so let's assume we're joining.
+	isNodeJoin := true
+	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != "true" {
+		if machine.Spec.Versions.ControlPlane == "" {
+			// This isn't a control plane machine - have to wait
+			log.Info("No control plane machines exist yet - requeuing")
+			return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+		}
+
+		configMapName := actuators.ControlPlaneConfigMapName(cluster)
+		log.Info("Checking for existence of control plane configmap lock", "configmap-name", configMapName)
+
+		controlPlaneConfigMap, err := a.coreClient.ConfigMaps(cluster.Namespace).Get(configMapName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			controlPlaneConfigMap = &apicorev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: cluster.Namespace,
+					Name:      configMapName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: cluster.APIVersion,
+							Kind:       cluster.Kind,
+							Name:       cluster.Name,
+							UID:        cluster.UID,
+						},
+					},
+				},
+			}
+
+			log.Info("Attempting to create control plane configmap lock")
+			_, err = a.coreClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap)
+			if err != nil {
+				if apierrors.IsAlreadyExists(err) {
+					// Someone else beat us to it
+					log.Info("Control plane configmap lock already exists - requeuing")
+				} else {
+					log.Error(err, "Error creating control plane configmap lock")
+				}
+
+				return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+			}
+
+			// This is the first control plane machine, so it's not a join.
+			isNodeJoin = false
+		} else if err != nil {
+			return errors.Wrap(err, "error getting control plane configmap lock")
+		} else {
+			// err is nil, which means the configmap exists but the control plane isn't ready yet.
+			// Need to requeue.
+			log.Info("Control plane configmap lock already exists but control plane is not ready yet - requeuing")
+			return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+		}
 	}
 
 	var bootstrapToken string
 	if isNodeJoin {
-		a.log.V(2).Info("Machine will join the cluster", "cluster", cluster.Name, "machine-name", machine.Name, "machine-namespace", machine.Namespace)
+		// First control plane machine has already been created. Now we can't proceed until its apiserver is up.
 		coreClient, err := a.coreV1Client(cluster)
 		if err != nil {
-			return errors.Wrapf(err, "failed to retrieve corev1 client for cluster %q", cluster.Name)
+			return errors.Wrap(err, "unable to proceed until control plane is ready (error creating client)")
 		}
+
+		a.log.V(2).Info("Machine will join the cluster", "cluster", cluster.Name, "machine-name", machine.Name, "machine-namespace", machine.Namespace)
 
 		bootstrapToken, err = tokens.NewBootstrap(coreClient, defaultTokenTTL)
 		if err != nil {
@@ -186,13 +201,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
 	if err != nil {
-		if awserrors.IsFailedDependency(errors.Cause(err)) {
-			a.log.Error(err, "network not ready to launch instances yet")
-			return &controllerError.RequeueAfterError{
-				RequeueAfter: time.Minute,
-			}
-		}
-
 		return errors.Errorf("failed to create or get machine: %+v", err)
 	}
 

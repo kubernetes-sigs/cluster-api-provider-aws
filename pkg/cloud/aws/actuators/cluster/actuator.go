@@ -24,7 +24,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
@@ -33,11 +35,13 @@ import (
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
+	"time"
 )
 
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get;watch;list
+//+kubebuilder:rbac:groups=,resources=configmaps,verbs=create;get;delete
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
@@ -67,7 +71,8 @@ func NewActuator(params ActuatorParams) *Actuator {
 
 // Reconcile reconciles a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
-	a.log.Info("Reconciling Cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
+	log := a.log.WithValues("cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
+	log.Info("Reconciling Cluster")
 
 	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client, Logger: a.log})
 	if err != nil {
@@ -97,6 +102,11 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return errors.Wrapf(err, "failed to reconcile load balancers for cluster %q", cluster.Name)
 	}
 
+	if cluster.Annotations == nil {
+		cluster.Annotations = make(map[string]string)
+	}
+	cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] = "true"
+
 	// Store KubeConfig for Cluster API NodeRef controller to use.
 	kubeConfigSecretName := remote.KubeConfigSecretName(cluster.Name)
 	secretClient := a.coreClient.Secrets(cluster.Namespace)
@@ -122,8 +132,55 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return errors.Wrapf(err, "failed to get kubeconfig secret for cluster %q", cluster.Name)
 	}
 
+
+
+	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != "true" {
+		log.Info("Cluster does not have ready annotation - checking for ready control plane machines")
+
+		machines, err := a.client.Machines(cluster.Namespace).List(actuators.ListOptionsForCluster(cluster.Name))
+		if err != nil {
+			return errors.Wrapf(err, "failed to list machines for cluster %q", cluster.Name)
+		}
+
+		controlPlaneMachines := machine.GetControlPlaneMachines(machines)
+
+		machineReady := false
+		for _, machine := range controlPlaneMachines {
+			if machine.Status.NodeRef != nil {
+				machineReady = true
+				break
+			}
+		}
+
+		if machineReady {
+			log.Info("Setting cluster ready annotation")
+			cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] = "true"
+		} else {
+			log.Info("No control plane machines are ready - requeuing cluster")
+			return &controllerError.RequeueAfterError{RequeueAfter: 5*time.Second}
+		}
+	} else {
+		configMapName := actuators.ControlPlaneConfigMapName(cluster)
+		log.Info("Checking for existence of control plane configmap lock", "configmap-name", configMapName)
+
+		_, err := a.coreClient.ConfigMaps(cluster.Namespace).Get(configMapName, metav1.GetOptions{})
+		switch  {
+		case apierrors.IsNotFound(err):
+			// It doesn't exist - no-op
+		case err != nil:
+			return errors.Wrapf(err, "Error retrieving control plane configmap lock %q", configMapName)
+		default:
+			if err := a.coreClient.ConfigMaps(cluster.Namespace).Delete(configMapName, nil); err != nil {
+				return errors.Wrapf(err, "Error deleting control plane configmap lock %q", configMapName)
+			}
+		}
+
+	}
+
 	return nil
 }
+
+
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
