@@ -241,6 +241,7 @@ func stubDescribeTargetGroupsOutput() *elbv2.DescribeTargetGroupsOutput {
 }
 
 func stubReservation(imageID, instanceID string) *ec2.Reservation {
+	az := defaultAvailabilityZone
 	return &ec2.Reservation{
 		Instances: []*ec2.Instance{
 			{
@@ -251,6 +252,9 @@ func stubReservation(imageID, instanceID string) *ec2.Reservation {
 					Code: aws.Int64(16),
 				},
 				LaunchTime: aws.Time(time.Now()),
+				Placement: &ec2.Placement{
+					AvailabilityZone: &az,
+				},
 			},
 		},
 	}
