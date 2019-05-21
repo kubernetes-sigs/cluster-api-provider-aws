@@ -89,10 +89,19 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 		return nil, errors.Wrap(err, "failed to create vpc")
 	}
 
+	// Cannot set both attributes at the same time.
 	attrInput := &ec2.ModifyVpcAttributeInput{
 		VpcId:              out.Vpc.VpcId,
 		EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
-		EnableDnsSupport:   &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
+	}
+
+	if _, err = s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
+		return nil, errors.Wrap(err, "failed to set vpc attributes")
+	}
+
+	attrInput = &ec2.ModifyVpcAttributeInput{
+		VpcId:            out.Vpc.VpcId,
+		EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 	}
 
 	if _, err = s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
