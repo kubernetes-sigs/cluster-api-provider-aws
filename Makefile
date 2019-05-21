@@ -135,7 +135,12 @@ cmd/clusterctl/examples/aws/provider-components-base.yaml:
 .PHONY: dep-ensure
 dep-ensure: check-install ## Ensure dependencies are up to date
 	@${DEP} ensure
+	$(MAKE) remove-vendor-symlinks
 	$(MAKE) gazelle
+
+.PHONY: remove-vendor-symlinks
+remove-vendor-symlinks: ## Remove broken symlinks created by dep
+	find vendor -type l ! -exec test -e {} \; -print0 | xargs -0 rm -v
 
 .PHONY: gazelle
 gazelle: ## Run Bazel Gazelle
