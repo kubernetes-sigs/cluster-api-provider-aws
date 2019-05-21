@@ -29,6 +29,7 @@ rules:
   - machine.openshift.io
   resources:
   - machines
+  - machines/status
   verbs:
   - get
   - list
@@ -89,7 +90,6 @@ rules:
   - machine.openshift.io
   resources:
   - machines
-  - machines/status
   verbs:
   - get
   - list
