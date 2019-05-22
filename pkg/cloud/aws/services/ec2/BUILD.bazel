@@ -48,6 +48,7 @@ go_test(
         "instances_test.go",
         "natgateways_test.go",
         "routetables_test.go",
+        "securitygroups_test.go",
         "subnets_test.go",
         "vpc_test.go",
     ],
