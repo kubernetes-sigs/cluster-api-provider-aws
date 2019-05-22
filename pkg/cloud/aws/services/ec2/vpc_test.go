@@ -112,7 +112,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					}, nil)
 
-				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil)
+				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
 
 				m.WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{aws.String("vpc-new")},
