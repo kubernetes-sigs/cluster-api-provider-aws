@@ -151,9 +151,12 @@ these environment variables in your own way.
 
 ### Generating cluster manifests and example cluster
 
-Download the cluster-api-provider-aws-examples.tar file and unpack it.
+Download the latest cluster-api-provider-aws-examples.tar file from the [Releases page][release] and unpack it.
+
+[release]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
 
 ```bash
+curl -LO https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/<version>/cluster-api-provider-aws-examples.tar
 tar xfv cluster-api-provider-aws-examples.tar
 ```
 
