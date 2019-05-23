@@ -193,7 +193,11 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 	}
 	out.NodeRegistration.KubeletExtraArgs["cloud-provider"] = CloudProvider
 	if !util.IsControlPlaneMachine(machine.GetMachine()) {
-		out.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
+		if labels, ok := out.NodeRegistration.KubeletExtraArgs["node-labels"]; ok {
+			out.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("%s,%s", labels, nodeRole)
+		} else {
+			out.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
+		}
 	}
 	return out
 }
