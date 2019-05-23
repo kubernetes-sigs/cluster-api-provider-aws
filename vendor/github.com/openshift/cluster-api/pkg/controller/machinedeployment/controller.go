@@ -230,10 +230,11 @@ func (r *ReconcileMachineDeployment) reconcile(ctx context.Context, d *v1beta1.M
 	}
 
 	// Add foregroundDeletion finalizer if MachineDeployment isn't deleted and linked to a cluster.
-	if cluster != nil && d.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
-			d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		}
+	if cluster != nil &&
+		d.ObjectMeta.DeletionTimestamp.IsZero() &&
+		!util.Contains(d.Finalizers, metav1.FinalizerDeleteDependents) {
+
+		d.Finalizers = append(d.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 
 		if err := r.Client.Update(context.Background(), d); err != nil {
 			klog.Infof("Failed to add finalizers to MachineSet %q: %v", d.Name, err)
