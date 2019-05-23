@@ -18,6 +18,7 @@ package kubeadm
 
 import (
 	"fmt"
+	"strings"
 
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -193,8 +194,9 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 	}
 	out.NodeRegistration.KubeletExtraArgs["cloud-provider"] = CloudProvider
 	if !util.IsControlPlaneMachine(machine.GetMachine()) {
-		if labels, ok := out.NodeRegistration.KubeletExtraArgs["node-labels"]; ok {
-			out.NodeRegistration.KubeletExtraArgs["node-labels"] = fmt.Sprintf("%s,%s", labels, nodeRole)
+		if val, ok := out.NodeRegistration.KubeletExtraArgs["node-labels"]; ok {
+			labels := append(strings.Split(val, ","), nodeRole)
+			out.NodeRegistration.KubeletExtraArgs["node-labels"] = strings.Join(labels, ",")
 		} else {
 			out.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
 		}
