@@ -135,6 +135,23 @@ func TestSetJoinNodeConfigurationOverrides(t *testing.T) {
 			},
 			joinConfiguration: &kubeadmv1beta1.JoinConfiguration{},
 		},
+		{
+			name: "should append nodeRole label to provided labels",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{
+					ClusterStatus: &v1alpha1.AWSClusterProviderStatus{},
+					Logger:        &cloudtest.Log{},
+				},
+				Machine: &clusterv1.Machine{},
+			},
+			joinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					KubeletExtraArgs: map[string]string{
+						"node-labels": "foo=bar,pizza=pepperoni",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testcases {
@@ -153,6 +170,10 @@ func TestSetJoinNodeConfigurationOverrides(t *testing.T) {
 
 			if out.NodeRegistration.KubeletExtraArgs["cloud-provider"] != kubeadm.CloudProvider {
 				t.Fatal("did not properly set the cloud-provider on the kubelet extra args")
+			}
+
+			if _, ok := tc.joinConfiguration.NodeRegistration.KubeletExtraArgs["node-labels"]; ok && out.NodeRegistration.KubeletExtraArgs["node-labels"] != "foo=bar,pizza=pepperoni,node-role.kubernetes.io/node=" {
+				t.Fatal("did not properly append nodeRole label")
 			}
 		})
 	}
