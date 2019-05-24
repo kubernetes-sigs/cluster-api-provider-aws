@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest"
-
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -65,6 +65,35 @@ func TestSetJoinNodeConfigurationBootstrapSettings(t *testing.T) {
 				Machine: &clusterv1.Machine{},
 			},
 		},
+		{
+			name: "test taint values are passed through",
+			joinMachine: &jm{
+				Scope: &actuators.Scope{
+					ClusterStatus: &v1alpha1.AWSClusterProviderStatus{
+						Network: v1alpha1.Network{
+							APIServerELB: v1alpha1.ClassicELB{
+								DNSName: "test.test",
+							},
+						},
+					},
+				},
+				Machine: &clusterv1.Machine{
+					Spec: clusterv1.MachineSpec{
+						Taints: []corev1.Taint{
+							{
+								Key:    "testKey",
+								Value:  "someValue",
+								Effect: "someEffect",
+							},
+							{
+								Key:   "key",
+								Value: "Value",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testcases {
@@ -86,6 +115,16 @@ func TestSetJoinNodeConfigurationBootstrapSettings(t *testing.T) {
 			// The passed in caCertHash should be appended to the existing hashes
 			if !contains(out.Discovery.BootstrapToken.CACertHashes, tc.caCertHash) {
 				t.Fatalf("did not find %q in %v", tc.caCertHash, out.Discovery.BootstrapToken.CACertHashes)
+			}
+
+			if len(out.NodeRegistration.Taints) != len(tc.joinMachine.Spec.Taints) {
+				t.Fatalf("The config and the machine should have the same number of taints: actual %v and expected %v", out.NodeRegistration.Taints, tc.joinMachine.Spec.Taints)
+			}
+
+			for i, v := range out.NodeRegistration.Taints {
+				if tc.joinMachine.Spec.Taints[i] != v {
+					t.Fatalf("Expected a taint of %v but got %v instead", tc.joinMachine.Spec.Taints[i], v)
+				}
 			}
 		})
 	}
@@ -290,7 +329,8 @@ func TestSetInitConfigurationOverrides(t *testing.T) {
 			initConfiguration: &kubeadmv1beta1.InitConfiguration{},
 		},
 		{
-			name: "nil configuration should not break",
+			name:        "nil configuration should not break",
+			joinMachine: &jm{},
 		},
 		{
 			name: "overrides actually work",

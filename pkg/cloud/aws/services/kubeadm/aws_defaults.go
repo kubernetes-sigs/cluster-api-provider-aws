@@ -150,6 +150,9 @@ func SetInitConfigurationOverrides(machine joinMachine, base *kubeadmv1beta1.Ini
 		machine.GetScope().Info("Overriding node's cloud-provider", "provided-cloud-provider", cp, "required-cloud-provider", CloudProvider)
 	}
 	out.NodeRegistration.KubeletExtraArgs["cloud-provider"] = CloudProvider
+	if machine != nil && machine.GetMachine() != nil {
+		out.NodeRegistration.Taints = machine.GetMachine().Spec.Taints
+	}
 	return out
 }
 
@@ -200,6 +203,9 @@ func SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken string, machin
 		} else {
 			out.NodeRegistration.KubeletExtraArgs["node-labels"] = nodeRole
 		}
+	}
+	if machine != nil && machine.GetMachine() != nil {
+		out.NodeRegistration.Taints = machine.GetMachine().Spec.Taints
 	}
 	return out
 }
