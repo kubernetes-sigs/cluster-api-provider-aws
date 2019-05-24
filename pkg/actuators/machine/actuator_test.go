@@ -642,7 +642,7 @@ func TestAvailabiltyZone(t *testing.T) {
 			if tc.availabilityZone != "" && tc.subnet == "" {
 				placement = &ec2.Placement{AvailabilityZone: aws.String(tc.availabilityZone)}
 			}
-
+			az := "us-east-1a"
 			mockAWSClient.EXPECT().RunInstances(placementMatcher{placement}).Return(
 				&ec2.Reservation{
 					Instances: []*ec2.Instance{
@@ -653,6 +653,9 @@ func TestAvailabiltyZone(t *testing.T) {
 								Name: aws.String("Running"),
 							},
 							LaunchTime: aws.Time(time.Now()),
+							Placement: &ec2.Placement{
+								AvailabilityZone: &az,
+							},
 						},
 					},
 				}, nil)

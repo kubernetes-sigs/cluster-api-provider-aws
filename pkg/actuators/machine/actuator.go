@@ -37,6 +37,7 @@ import (
 	apierrors "github.com/openshift/cluster-api/pkg/errors"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
@@ -116,7 +117,37 @@ func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, m
 		}
 		return err
 	}
-	return a.updateStatus(machine, instance)
+	updatedMachine, err := a.updateProviderID(machine, instance)
+	if err != nil {
+		return fmt.Errorf("failed to update machine object with providerID: %v", err)
+	}
+	return a.updateStatus(updatedMachine, instance)
+}
+
+// updateProviderID adds providerID in the machine spec
+func (a *Actuator) updateProviderID(machine *machinev1.Machine, instance *ec2.Instance) (*machinev1.Machine, error) {
+	existingProviderID := machine.Spec.ProviderID
+	machineCopy := machine.DeepCopy()
+	if instance != nil {
+		providerID := fmt.Sprintf("aws:///%s/%s", aws.StringValue(instance.Placement.AvailabilityZone), aws.StringValue(instance.InstanceId))
+
+		if existingProviderID != nil && *existingProviderID == providerID {
+			glog.Infof("ProviderID already set in the machine Spec with value:%s", *existingProviderID)
+			return machine, nil
+		}
+		machineCopy.Spec.ProviderID = &providerID
+		if err := a.client.Update(context.Background(), machineCopy); err != nil {
+			return nil, fmt.Errorf("error updating machine spec ProviderID: %v", err)
+		}
+		glog.Infof("ProviderID updated at machine spec: %s", providerID)
+	} else {
+		machineCopy.Spec.ProviderID = nil
+		if err := a.client.Update(context.Background(), machineCopy); err != nil {
+			return nil, fmt.Errorf("error updating ProviderID in machine spec: %v", err)
+		}
+		glog.Infof("No instance found so clearing ProviderID field in the machine spec")
+	}
+	return machineCopy, nil
 }
 
 func (a *Actuator) updateMachineStatus(machine *machinev1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, networkAddresses []corev1.NodeAddress) error {
