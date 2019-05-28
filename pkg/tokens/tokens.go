@@ -23,14 +23,9 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
-)
-
-var (
-	MaximumRetries = 5
 )
 
 // NewBootstrap attempts to create a token with the given ID.
@@ -64,32 +59,6 @@ func NewBootstrap(client corev1.SecretsGetter, ttl time.Duration) (string, error
 		},
 	}
 
-	err = TryRunCommand(func() error {
-		_, err := client.Secrets(secretToken.ObjectMeta.Namespace).Create(secretToken)
-		return err
-	}, MaximumRetries)
-
-	if err != nil {
-		return "", errors.Wrap(err, "unable to create secret")
-	}
-
-	return token, nil
-}
-
-// TryRunCommand runs a function a maximum of failureThreshold times, and retries on error. If failureThreshold is hit; the last error is returned
-func TryRunCommand(f func() error, failureThreshold int) error {
-	backoff := wait.Backoff{
-		Duration: 5 * time.Second,
-		Factor:   2, // double the timeout for every failure
-		Steps:    failureThreshold,
-	}
-	return wait.ExponentialBackoff(backoff, func() (bool, error) {
-		err := f()
-		if err != nil {
-			// Retry until the timeout
-			return false, nil
-		}
-		// The last f() call was a success, return cleanly
-		return true, nil
-	})
+	_, err = client.Secrets(secretToken.ObjectMeta.Namespace).Create(secretToken)
+	return token, err
 }
