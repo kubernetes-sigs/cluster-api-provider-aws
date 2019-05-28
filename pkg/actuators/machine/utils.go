@@ -62,6 +62,16 @@ func getStoppedInstances(machine *machinev1.Machine, client awsclient.Client) ([
 	return getInstances(machine, client, stoppedInstanceStateFilter)
 }
 
+func getExistingInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
+	return getInstances(machine, client, []*string{
+		aws.String(ec2.InstanceStateNameRunning),
+		aws.String(ec2.InstanceStateNamePending),
+		aws.String(ec2.InstanceStateNameStopped),
+		aws.String(ec2.InstanceStateNameStopping),
+		aws.String(ec2.InstanceStateNameShuttingDown),
+	})
+}
+
 // getInstances returns all instances that have a tag matching our machine name,
 // and cluster ID.
 func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {

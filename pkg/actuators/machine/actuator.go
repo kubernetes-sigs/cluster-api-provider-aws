@@ -458,7 +458,7 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *mach
 		return nil, fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
-	return getRunningInstances(machine, client)
+	return getExistingInstances(machine, client)
 }
 
 // updateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
