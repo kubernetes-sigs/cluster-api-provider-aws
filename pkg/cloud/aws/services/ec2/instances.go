@@ -21,6 +21,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"time"
 
@@ -39,6 +40,27 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+)
+
+const (
+	// localIPV4lookup resolves via cloudinit and looks up the instance's IP through the provider's metadata service.
+	// See https://cloudinit.readthedocs.io/en/latest/topics/instancedata.html
+	localIPV4Lookup = "{{ ds.meta_data.local_ipv4 }}"
+
+	// hostnameLookup resolves via cloud init and uses cloud provider's metadata service to lookup its own hostname.
+	hostnameLookup = "{{ ds.meta_data.hostname }}"
+
+	// containerdSocket is the path to containerd socket.
+	containerdSocket = "/var/run/containerd/containerd.sock"
+
+	// apiServerBindPort is the default port for the kube-apiserver to bind to.
+	apiServerBindPort = 6443
+
+	// cloudProvider is the name of the cloud provider passed to various kubernetes components.
+	cloudProvider = "aws"
+
+	// nodeRole is the label assigned to every node in the cluster.
+	nodeRole = "node-role.kubernetes.io/node="
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -176,9 +198,26 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		if bootstrapToken != "" {
 			s.scope.V(2).Info("Allowing a machine to join the control plane")
 
-			updatedJoinConfiguration := kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
-			updatedJoinConfiguration = kubeadm.SetControlPlaneJoinConfigurationOverrides(updatedJoinConfiguration)
-			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(updatedJoinConfiguration)
+			kubeadm.SetJoinConfigurationOptions(
+				&machine.MachineConfig.KubeadmConfiguration.Join,
+				kubeadm.WithBootstrapTokenDiscovery(
+					kubeadm.NewBootstrapTokenDiscovery(
+						kubeadm.WithAPIServerEndpoint(fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)),
+						kubeadm.WithToken(bootstrapToken),
+						kubeadm.WithCACertificateHash(caCertHash),
+					),
+				),
+				kubeadm.WithJoinNodeRegistrationOptions(
+					kubeadm.NewNodeRegistration(
+						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
+						kubeadm.WithNodeRegistrationName(hostnameLookup),
+						kubeadm.WithCRISocket(containerdSocket),
+						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+					),
+				),
+				kubeadm.WithLocalAPIEndpointAndPort(localIPV4Lookup, apiServerBindPort),
+			)
+			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 			if err != nil {
 				return nil, err
 			}
@@ -205,14 +244,33 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				)
 			}
 
-			clusterConfiguration := kubeadm.SetClusterConfigurationOverrides(machine, &s.scope.ClusterConfig.ClusterConfiguration)
-			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(clusterConfiguration)
+			kubeadm.SetClusterConfigurationOptions(
+				&s.scope.ClusterConfig.ClusterConfiguration,
+				kubeadm.WithControlPlaneEndpoint(fmt.Sprintf("%s:%d", s.scope.Network().APIServerELB.DNSName, apiServerBindPort)),
+				kubeadm.WithAPIServerCertificateSANs(localIPV4Lookup, s.scope.Network().APIServerELB.DNSName),
+				kubeadm.WithAPIServerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+				kubeadm.WithControllerManagerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+				kubeadm.WithClusterName(s.scope.Name()),
+				kubeadm.WithClusterNetworkFromClusterNetworkingConfig(s.scope.Cluster.Spec.ClusterNetwork),
+				kubeadm.WithKubernetesVersion(machine.GetMachine().Spec.Versions.ControlPlane),
+			)
+			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(&s.scope.ClusterConfig.ClusterConfiguration)
 			if err != nil {
 				return nil, err
 			}
 
-			initConfiguration := kubeadm.SetInitConfigurationOverrides(machine, &machine.MachineConfig.KubeadmConfiguration.Init)
-			initConfigYAML, err := kubeadm.ConfigurationToYAML(initConfiguration)
+			kubeadm.SetInitConfigurationOptions(
+				&machine.MachineConfig.KubeadmConfiguration.Init,
+				kubeadm.WithNodeRegistrationOptions(
+					kubeadm.NewNodeRegistration(
+						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
+						kubeadm.WithNodeRegistrationName(hostnameLookup),
+						kubeadm.WithCRISocket(containerdSocket),
+						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+					),
+				),
+			)
+			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
 			if err != nil {
 				return nil, err
 			}
@@ -239,8 +297,26 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	case "node":
 		s.scope.V(2).Info("Joining a worker node to the cluster")
 
-		joinConfiguration := kubeadm.SetJoinNodeConfigurationOverrides(caCertHash, bootstrapToken, machine, &machine.MachineConfig.KubeadmConfiguration.Join)
-		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(joinConfiguration)
+		kubeadm.SetJoinConfigurationOptions(
+			&machine.MachineConfig.KubeadmConfiguration.Join,
+			kubeadm.WithBootstrapTokenDiscovery(
+				kubeadm.NewBootstrapTokenDiscovery(
+					kubeadm.WithAPIServerEndpoint(fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)),
+					kubeadm.WithToken(bootstrapToken),
+					kubeadm.WithCACertificateHash(caCertHash),
+				),
+			),
+			kubeadm.WithJoinNodeRegistrationOptions(
+				kubeadm.NewNodeRegistration(
+					kubeadm.WithNodeRegistrationName(hostnameLookup),
+					kubeadm.WithCRISocket(containerdSocket),
+					kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+					kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
+					kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
+				),
+			),
+		)
+		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 		if err != nil {
 			return nil, err
 		}
