@@ -2,13 +2,14 @@
 
 ## Semi-automatic
 
-1. Make sure your repo is clean by git's standards
-2. If this is a new minor release, create a new release branch and push to github, for example `release-0.2`
-3. run `go run cmd/release/main.go -version v0.1.2` but replace the version with the version you'd like.
-4. push the docker images that were generated with this release tool
-5. Edit the release notes and make sure the binaries uploaded return the correct version
-6. Publish draft
-7. If it's a major release, notify `kubernetes-dev@googlegroups.com`
+1. associate a gpg key to your github account. See: https://help.github.com/en/articles/signing-commits
+2. Make sure your repo is clean by git's standards
+3. If this is a new minor release, create a new release branch and push to github, for example `release-0.2`
+4. run `go run cmd/release/main.go -version v0.1.2` but replace the version with the version you'd like.
+5. push the docker images that were generated with this release tool
+6. Edit the release notes and make sure the binaries uploaded return the correct version
+7. Publish draft
+8. If it's a major release, notify `kubernetes-dev@googlegroups.com`
 
 ## Manual
 
