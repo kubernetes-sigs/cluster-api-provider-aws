@@ -1078,9 +1078,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:dc54d24e166e75a89145883b6080306f5684db2e8ab7a068625f010dee604c6e"
+  digest = "1:f9f5fb2f170a398ecfd3ec16bf14d478ad3555e2046d321d583f88cfcf32b994"
   name = "k8s.io/component-base"
-  packages = ["cli/flag"]
+  packages = [
+    "cli/flag",
+    "config",
+  ]
   pruneopts = "UT"
   revision = "9fe063da3132df1f14a39226ca80374b9fc22ec9"
 
@@ -1120,7 +1123,7 @@
   revision = "aa8624f5a2df0ffbc1e8f4c9f37a2ad5cfcba13b"
 
 [[projects]]
-  digest = "1:3ef5795c55214c9ef9c6b41c306cb423d941cccfabd2a38a6b8dfebe8add2b7a"
+  digest = "1:b6cc67ab5a216d01599150616de793b73598457fa3157e814ae9020aff61285e"
   name = "k8s.io/kubernetes"
   packages = [
     "cmd/kubeadm/app/apis/kubeadm",
@@ -1128,7 +1131,6 @@
     "cmd/kubeadm/app/constants",
     "cmd/kubeadm/app/util",
     "pkg/apis/core",
-    "pkg/kubectl/drain",
     "pkg/kubelet/apis/config",
     "pkg/proxy/apis/config",
     "pkg/registry/core/service/allocator",
@@ -1304,6 +1306,7 @@
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/json",
+    "k8s.io/apimachinery/pkg/util/strategicpatch",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
@@ -1319,7 +1322,6 @@
     "k8s.io/klog/klogr",
     "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1",
     "k8s.io/kubernetes/cmd/kubeadm/app/util",
-    "k8s.io/kubernetes/pkg/kubectl/drain",
     "sigs.k8s.io/cluster-api/cmd/clusterctl/cmd",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",
