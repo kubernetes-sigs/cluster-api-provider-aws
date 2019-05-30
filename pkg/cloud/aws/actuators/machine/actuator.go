@@ -29,13 +29,15 @@ import (
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/klogr"
-	"k8s.io/kubernetes/pkg/kubectl/drain"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
@@ -56,6 +58,48 @@ const (
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status;machinedeployments;machinedeployments/status;machinesets;machinesets/status;machineclasses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=nodes;events,verbs=get;list;watch;create;update;patch;delete
+
+type cordonHelper struct {
+	node    *apicorev1.Node
+	desired bool
+}
+
+func newCordonHelper(node *apicorev1.Node) *cordonHelper {
+	return &cordonHelper{
+		node: node,
+	}
+}
+
+func (c *cordonHelper) updateIfRequired(desired bool) bool {
+	c.desired = desired
+	if c.node.Spec.Unschedulable == c.desired {
+		return false
+	}
+	return true
+}
+
+func (c *cordonHelper) patch(clientset kubernetes.Interface) error {
+	client := clientset.CoreV1().Nodes()
+
+	oldData, err := json.Marshal(c.node)
+	if err != nil {
+		return err
+	}
+
+	c.node.Spec.Unschedulable = c.desired
+
+	newData, err := json.Marshal(c.node)
+	if err != nil {
+		return err
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, c.node)
+	if err == nil {
+		_, err = client.Patch(c.node.Name, types.StrategicMergePatchType, patchBytes)
+	}
+
+	return err
+}
 
 // Actuator is responsible for performing machine reconciliation.
 type Actuator struct {
@@ -273,12 +317,8 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	defer scope.Close()
 
 	a.log.Info("Cordoning the node", machine.Name)
-	err, patchErr := a.cordon(ctx, cluster, machine, scope)
+	err = a.cordon(ctx, cluster, machine, scope)
 	if err != nil {
-		return errors.Errorf("Faild to cordon the node: %+v", err)
-	}
-
-	if patchErr != nil {
 		return errors.Errorf("Faild to cordon the node: %+v", err)
 	}
 
@@ -321,34 +361,34 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	return nil
 }
 
-func (a *Actuator) cordon(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, scope *actuators.MachineScope) (error, error) {
+func (a *Actuator) cordon(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, scope *actuators.MachineScope) error {
 	a.log.Info("Inside cordon()")
 
 	node, err := a.getNodeObject(ctx, cluster, machine, scope)
 	if err != nil {
 		a.log.Info("ERROR: ", err.Error())
-		return nil, err
+		return err
 	}
 
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		a.log.Info("ERROR: ", err.Error())
-		return nil, err
+		return err
 	}
 
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		a.log.Info("ERROR: ", err.Error())
-		return nil, err
+		return err
 	}
 
-	helper := drain.NewCordonHelper(node)
-	if helper.UpdateIfRequired(true) {
+	helper := newCordonHelper(node)
+	if helper.updateIfRequired(true) {
 		a.log.Info("CordonHelper: ", node.Name)
-		return helper.PatchOrReplace(clientSet)
+		return helper.patch(clientSet)
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (a *Actuator) getNodeObject(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, scope *actuators.MachineScope) (*apicorev1.Node, error) {
