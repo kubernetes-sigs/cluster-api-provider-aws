@@ -3,34 +3,35 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "go_default_library",
     srcs = [
-        "aws_defaults.go",
+        "bootstraptoken.go",
+        "configs.go",
+        "noderegistration.go",
         "scheme.go",
     ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/cloud/aws/actuators:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
         "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/util:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/scheme:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = ["aws_defaults_test.go"],
+    srcs = [
+        "bootstraptoken_test.go",
+        "configs_test.go",
+        "noderegistration_test.go",
+    ],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
-        "//pkg/cloud/aws/actuators:go_default_library",
-        "//pkg/cloudtest:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
     ],
