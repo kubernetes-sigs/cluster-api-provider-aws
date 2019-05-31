@@ -129,7 +129,11 @@ func (a *Actuator) updateProviderID(machine *machinev1.Machine, instance *ec2.In
 	existingProviderID := machine.Spec.ProviderID
 	machineCopy := machine.DeepCopy()
 	if instance != nil {
-		providerID := fmt.Sprintf("aws:///%s/%s", aws.StringValue(instance.Placement.AvailabilityZone), aws.StringValue(instance.InstanceId))
+		availabilityZone := ""
+		if instance.Placement != nil {
+			availabilityZone = aws.StringValue(instance.Placement.AvailabilityZone)
+		}
+		providerID := fmt.Sprintf("aws:///%s/%s", availabilityZone, aws.StringValue(instance.InstanceId))
 
 		if existingProviderID != nil && *existingProviderID == providerID {
 			glog.Infof("ProviderID already set in the machine Spec with value:%s", *existingProviderID)
