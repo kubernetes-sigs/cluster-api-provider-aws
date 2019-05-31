@@ -3,20 +3,45 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cluster-autoscaler-operator
-  namespace: openshift-cluster-api
+  namespace: openshift-machine-api
 spec:
   template:
     spec:
       containers:
+      # TODO: I'm not sure why we patch this to change the image name.
+      # The tests build and tag the image.  It seems they could use
+      # any name they wanted, including the one already present in the
+      # deployment.
       - name: cluster-autoscaler-operator
         image: quay.io/openshift/origin-cluster-autoscaler-operator:v4.0
-        env:
-        - name: WATCH_NAMESPACE
-          value: kube-system
-          valueFrom:
-        - name: CLUSTER_AUTOSCALER_NAMESPACE
-          value: kube-system
-          valueFrom:
-        - name: LEADER_ELECTION_NAMESPACE
-          value: kube-system
-          valueFrom:
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-autoscaler-operator-ca
+  namespace: openshift-machine-api
+data:
+  service-ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIID1jCCAr6gAwIBAgIUCQLpy5FL6KmWrjAYxeem2Y5ahkQwDQYJKoZIhvcNAQEL
+    BQAwgYIxDTALBgNVBAYTBFRFU1QxDTALBgNVBAgTBFRFU1QxDTALBgNVBAcTBFRF
+    U1QxJDAiBgNVBAoTG2NsdXN0ZXItYXV0b3NjYWxlci1vcGVyYXRvcjEtMCsGA1UE
+    AxMkVEVTVCBDQTogY2x1c3Rlci1hdXRvc2NhbGVyLW9wZXJhdG9yMB4XDTE5MDUx
+    NjA4NTAwMFoXDTI0MDUxNDA4NTAwMFowgYIxDTALBgNVBAYTBFRFU1QxDTALBgNV
+    BAgTBFRFU1QxDTALBgNVBAcTBFRFU1QxJDAiBgNVBAoTG2NsdXN0ZXItYXV0b3Nj
+    YWxlci1vcGVyYXRvcjEtMCsGA1UEAxMkVEVTVCBDQTogY2x1c3Rlci1hdXRvc2Nh
+    bGVyLW9wZXJhdG9yMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArAoB
+    Zov4c2IEBAjwbHPSaFNAz4hzCxAgOcjVoNQkz0KvTKHObEPDP9IcGtgMjKAaFriO
+    4Zh1mDZh+eCzR4saynRhYvmvcQAA+0d2F7v4JctBVlO5ppWioRoO16TXj/pIb3+4
+    ocN6JwNob+faqpp1r2q3d24EbhuAcdGPhu6U1py3HkWZ/W4tuQ5H7s6IMkluOl+G
+    t+hrBvlfPikifpSWCX0bphmFrnfhxlujFJ7PDcJfkUZpOdX4dc32wDvMJ/HuKJGo
+    mSxgnCG1ePoF/WTurmsnDbZV375bpQ7v2jPilXgLS2AUTnCjZFPDclbjWdDsunwC
+    S6bASH0IamF3hFvBmQIDAQABo0IwQDAOBgNVHQ8BAf8EBAMCAQYwDwYDVR0TAQH/
+    BAUwAwEB/zAdBgNVHQ4EFgQUv5fmrt1rRaaT0wa+bgK8p9vlGiUwDQYJKoZIhvcN
+    AQELBQADggEBAJRjBzxsJKXS4LGp0Dfsk5GkxA0c+3DhDUkNQei/II4llzf/UfJr
+    1waFaNPcq8vleDaOHOKHNOqq//TAM1Zuzc8Df0D+20gmgbPNuXLNln64FMHDvWJJ
+    cBjn0LQ62uBJYyWLZzZxaVHGilD9eSLBBKquwe9/pb7ehc1is3iBSIGLwSWnzc4P
+    v9MTNcuenYVx215WzSCt/74QzSBS+c9axYfQxE2AuGVKNJ6lTTQRWirCSKrbbKXu
+    f0YiSut6H6Be4o/HGXxXEUT6KeYUVSL1jGjEm5jWt6jmbkX5FSRRhpOgsOn7NXG/
+    p13+LH7xlz5GCyQH/UQ9feWLelzmJhRZtQo=
+    -----END CERTIFICATE-----

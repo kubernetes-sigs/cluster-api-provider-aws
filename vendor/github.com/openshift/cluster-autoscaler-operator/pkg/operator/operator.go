@@ -1,17 +1,29 @@
 package operator
 
 import (
+	"fmt"
+	"path/filepath"
+	"time"
+
 	configv1 "github.com/openshift/api/config/v1"
+
 	"github.com/openshift/cluster-autoscaler-operator/pkg/apis"
 	"github.com/openshift/cluster-autoscaler-operator/pkg/controller/clusterautoscaler"
 	"github.com/openshift/cluster-autoscaler-operator/pkg/controller/machineautoscaler"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // OperatorName is the name of this operator.
 const OperatorName = "cluster-autoscaler"
+
+var (
+	leaderElectionLeaseDuration = 120 * time.Second
+	leaderElectionRenewDeadline = 100 * time.Second
+	leaderElectionRetryPeriod   = 20 * time.Second
+)
 
 // Operator represents an instance of the cluster-autoscaler-operator.
 type Operator struct {
@@ -36,20 +48,31 @@ func New(cfg *Config) (*Operator, error) {
 		LeaderElection:          cfg.LeaderElection,
 		LeaderElectionNamespace: cfg.LeaderElectionNamespace,
 		LeaderElectionID:        cfg.LeaderElectionID,
+		LeaseDuration:           &leaderElectionLeaseDuration,
+		RenewDeadline:           &leaderElectionRenewDeadline,
+		RetryPeriod:             &leaderElectionRetryPeriod,
 	}
 
 	operator.manager, err = manager.New(clientConfig, managerOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create manager: %v", err)
 	}
 
 	// Setup Scheme for all resources.
 	if err := apis.AddToScheme(operator.manager.GetScheme()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to register types: %v", err)
 	}
 
+	// Setup our controllers and add them to the manager.
 	if err := operator.AddControllers(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to add controllers: %v", err)
+	}
+
+	// Setup admission webhooks and add them to the manager.
+	if cfg.WebhooksEnabled {
+		if err := operator.AddWebhooks(); err != nil {
+			return nil, fmt.Errorf("failed to start webhook server: %v", err)
+		}
 	}
 
 	statusConfig := &StatusReporterConfig{
@@ -61,10 +84,12 @@ func New(cfg *Config) (*Operator, error) {
 
 	statusReporter, err := NewStatusReporter(operator.manager, statusConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create status reporter: %v", err)
 	}
 
-	operator.manager.Add(statusReporter)
+	if err := operator.manager.Add(statusReporter); err != nil {
+		return nil, fmt.Errorf("failed to add status reporter to manager: %v", err)
+	}
 
 	return operator, nil
 }
@@ -120,6 +145,34 @@ func (o *Operator) AddControllers() error {
 	}
 
 	return nil
+}
+
+// AddWebhooks sets up the webhook server, registers handlers, and adds the
+// server to operator's manager instance.
+func (o *Operator) AddWebhooks() error {
+	caPath := filepath.Join(o.config.WebhooksCertDir, "service-ca", "ca-cert.pem")
+
+	// Set up the CA updater and add it to the manager.  This will update the
+	// webhook configurations with the proper CA certificate when and if this
+	// instance becomes the leader.
+	caUpdater, err := NewWebhookCAUpdater(o.manager, caPath)
+	if err != nil {
+		return err
+	}
+
+	if err := o.manager.Add(caUpdater); err != nil {
+		return err
+	}
+
+	server := &webhook.Server{
+		Port:    o.config.WebhooksPort,
+		CertDir: o.config.WebhooksCertDir,
+	}
+
+	server.Register("/validate-clusterautoscalers",
+		&webhook.Admission{Handler: &clusterautoscaler.Validator{}})
+
+	return o.manager.Add(server)
 }
 
 // Start starts the operator's controller-manager.

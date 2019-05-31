@@ -11,7 +11,7 @@ Documentation:
 - [Basic controller using builder](https://godoc.org/github.com/kubernetes-sigs/controller-runtime/pkg/builder#example-Builder)
 - [Creating a manager](https://godoc.org/github.com/kubernetes-sigs/controller-runtime/pkg/manager#example-New)
 - [Creating a controller](https://godoc.org/github.com/kubernetes-sigs/controller-runtime/pkg/controller#example-New)
-- [Example `main.go`](https://github.com/kubernetes-sigs/controller-runtime/blob/master/example/main.go)
+- [Examples](https://github.com/kubernetes-sigs/controller-runtime/blob/master/examples)
 
 # Versioning, Maintenance, and Compatibility
 
@@ -21,7 +21,7 @@ Users:
 
 - We follow [Semantic Versioning (semver)](https://semver.org)
 - Use releases with your dependency management to ensure that you get compatible code
-- The master branch contains all the latest code, some of which may break compatibility (so "normal" `go get` is not reccomended)
+- The master branch contains all the latest code, some of which may break compatibility (so "normal" `go get` is not recommended)
 
 Contributors:
 
@@ -33,6 +33,10 @@ Contributors:
   * [Bug fixes](/.github/PULL_REQUEST_TEMPLATE/bug_fix.md)
   * [Documentation Changes](/.github/PULL_REQUEST_TEMPLATE/docs.md)
   * [Test/Build/Other Changes](/.github/PULL_REQUEST_TEMPLATE/other.md)
+
+## FAQ
+
+See [FAQ.md](FAQ.md)
 
 ## Community, discussion, contribution, and support
 

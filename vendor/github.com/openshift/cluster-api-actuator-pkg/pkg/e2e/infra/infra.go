@@ -240,7 +240,7 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 		g.By(fmt.Sprintf("waiting for node object %q to go away", workerNode.Name))
 		nodeList := corev1.NodeList{}
 		o.Eventually(func() bool {
-			if err := client.List(context.TODO(), nil, &nodeList); err != nil {
+			if err := client.List(context.TODO(), &nodeList); err != nil {
 				glog.Errorf("Error querying api for nodeList object: %v, retrying...", err)
 				return false
 			}
@@ -368,19 +368,17 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 				}
 			}
 
-			listOpt := &runtimeclient.ListOptions{}
-			listOpt.MatchingLabels(nodeDrainLabels)
 			// TODO(jchaloup): we need to make sure this gets called no matter what
 			// and waits until all labeled nodes are gone. Though, it it does not
 			// happend in the timeout set, it will not happen ever.
-			err := waitUntilNodesAreDeleted(client, listOpt)
+			err := waitUntilNodesAreDeleted(client, []runtimeclient.ListOptionFunc{runtimeclient.MatchingLabels(nodeDrainLabels)})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}()
 
 		g.By("Taking the first worker machineset (assuming only worker machines are backed by machinesets)")
 		machinesets := mapiv1beta1.MachineSetList{}
 		err = wait.PollImmediate(e2e.RetryMedium, e2e.WaitShort, func() (bool, error) {
-			if err := client.List(context.TODO(), &runtimeclient.ListOptions{}, &machinesets); err != nil {
+			if err := client.List(context.TODO(), &machinesets); err != nil {
 				glog.Errorf("Error querying api for machineset object: %v, retrying...", err)
 				return false, nil
 			}
@@ -416,9 +414,7 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Waiting until both new nodes are ready")
-		listOpt := &runtimeclient.ListOptions{}
-		listOpt.MatchingLabels(nodeDrainLabels)
-		err = waitUntilNodesAreReady(client, listOpt, 2)
+		err = waitUntilNodesAreReady(client, []runtimeclient.ListOptionFunc{runtimeclient.MatchingLabels(nodeDrainLabels)}, 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Creating RC with workload")
@@ -495,7 +491,7 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 		g.By("Waiting for ReconcileError MachineSet event")
 		err = wait.PollImmediate(e2e.RetryMedium, e2e.WaitShort, func() (bool, error) {
 			eventList := corev1.EventList{}
-			if err := client.List(context.TODO(), nil, &eventList); err != nil {
+			if err := client.List(context.TODO(), &eventList); err != nil {
 				glog.Errorf("error querying api for eventList object: %v, retrying...", err)
 				return false, nil
 			}
@@ -518,7 +514,7 @@ var _ = g.Describe("[Feature:Machines] Managed cluster should", func() {
 		// The assumption is once the ReconcileError event is recorded and caught,
 		// the machineset is not reconciled again until it's updated.
 		machineList := &mapiv1beta1.MachineList{}
-		err = client.List(context.TODO(), runtimeclient.MatchingLabels(invalidMachineSet.Spec.Template.Labels), machineList)
+		err = client.List(context.TODO(), machineList, runtimeclient.MatchingLabels(invalidMachineSet.Spec.Template.Labels))
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("Verify no machine from %q machineset were created", invalidMachineSet.Name))

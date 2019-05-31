@@ -61,7 +61,7 @@ func AddWithActuator(mgr manager.Manager, actuator Actuator) error {
 func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler {
 	r := &ReconcileMachine{
 		Client:        mgr.GetClient(),
-		eventRecorder: mgr.GetRecorder("machine-controller"),
+		eventRecorder: mgr.GetEventRecorderFor("machine-controller"),
 		config:        mgr.GetConfig(),
 		scheme:        mgr.GetScheme(),
 		nodeName:      os.Getenv(NodeNameEnvVar),
@@ -78,7 +78,7 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("machine-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("machine_controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -199,6 +199,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		// deleted without a manual intervention.
 		if _, exists := m.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && m.Status.NodeRef != nil {
 			if err := r.drainNode(m); err != nil {
+				klog.Errorf("Failed to drain node for machine %q: %v", name, err)
 				return delayIfRequeueAfterError(err)
 			}
 		}
@@ -259,6 +260,11 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 	}
 	node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// If an admin deletes the node directly, we'll end up here.
+			klog.Infof("Could not find node from noderef, it may have already been deleted: %v", machine.Status.NodeRef.Name)
+			return nil
+		}
 		return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
 	}
 

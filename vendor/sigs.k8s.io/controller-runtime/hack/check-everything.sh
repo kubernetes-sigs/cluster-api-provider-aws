@@ -19,7 +19,7 @@ set -e
 hack_dir=$(dirname ${BASH_SOURCE})
 source ${hack_dir}/common.sh
 
-k8s_version=1.10.1
+k8s_version=1.14.1
 goarch=amd64
 goos="unknown"
 
@@ -48,10 +48,6 @@ SKIP_FETCH_TOOLS=${SKIP_FETCH_TOOLS:-""}
 
 # fetch k8s API gen tools and make it available under kb_root_dir/bin.
 function fetch_kb_tools {
-  if [ -n "$SKIP_FETCH_TOOLS" ]; then
-    return 0
-  fi
-
   header_text "fetching tools"
   kb_tools_archive_name="kubebuilder-tools-$k8s_version-$goos-$goarch.tar.gz"
   kb_tools_download_url="https://storage.googleapis.com/kubebuilder-tools/$kb_tools_archive_name"
@@ -63,18 +59,44 @@ function fetch_kb_tools {
   tar -zvxf "$kb_tools_archive_path" -C "$tmp_root/"
 }
 
+function is_installed {
+  if [ command -v $1 &>/dev/null ]; then
+    return 0
+  fi
+  return 1
+}
+
+function fetch_go_tools {
+  header_text "Checking for gometalinter.v2"
+  if ! is_installed golangci-lint; then
+    header_text "Installing golangci-lint"
+    GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.15.0
+  fi
+
+  header_text "Checking for dep"
+  if ! is_installed dep; then
+    header_text "Installing dep"
+    # can't install dep with modules from source due to an issue with semver,
+    # so install from the compiled binary instead
+    curl -sL -o $(go env GOPATH)/bin/dep https://github.com/golang/dep/releases/download/0.5.2/dep-$(go env GOOS)-$(go env GOARCH)
+  fi
+}
+
 header_text "using tools"
 
-which gometalinter.v2
-which dep
-fetch_kb_tools
+if [ -z "$SKIP_FETCH_TOOLS" ]; then
+  fetch_go_tools
+  fetch_kb_tools
+fi
+
 setup_envs
 
 ${hack_dir}/verify.sh
 ${hack_dir}/test-all.sh
 
-header_text "confirming example compiles (via go install)"
-go install ./example
+header_text "confirming examples compile (via go install)"
+go install ${MOD_OPT} ./examples/builtins
+go install ${MOD_OPT} ./examples/crd
 
 echo "passed"
 exit 0

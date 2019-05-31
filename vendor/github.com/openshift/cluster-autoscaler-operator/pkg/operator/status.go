@@ -167,7 +167,7 @@ func (r *StatusReporter) ApplyStatus(status configv1.ClusterOperatorStatus) erro
 }
 
 // available reports the operator as available, not progressing, and
-// not failing -- optionally setting a reason and message.  This will
+// not degraded -- optionally setting a reason and message.  This will
 // update the reported operator version.  It should only be called if
 // the operands are fully updated and available.
 func (r *StatusReporter) available(reason, message string) error {
@@ -184,7 +184,7 @@ func (r *StatusReporter) available(reason, message string) error {
 				Status: configv1.ConditionFalse,
 			},
 			{
-				Type:   configv1.OperatorFailing,
+				Type:   configv1.OperatorDegraded,
 				Status: configv1.ConditionFalse,
 			},
 		},
@@ -201,9 +201,9 @@ func (r *StatusReporter) available(reason, message string) error {
 	return r.ApplyStatus(status)
 }
 
-// failing reports the operator as failing but available, and not
+// degraded reports the operator as degraded but available, and not
 // progressing -- optionally setting a reason and message.
-func (r *StatusReporter) failing(reason, message string) error {
+func (r *StatusReporter) degraded(reason, message string) error {
 	status := configv1.ClusterOperatorStatus{
 		Conditions: []configv1.ClusterOperatorStatusCondition{
 			{
@@ -215,7 +215,7 @@ func (r *StatusReporter) failing(reason, message string) error {
 				Status: configv1.ConditionFalse,
 			},
 			{
-				Type:    configv1.OperatorFailing,
+				Type:    configv1.OperatorDegraded,
 				Status:  configv1.ConditionTrue,
 				Reason:  reason,
 				Message: message,
@@ -223,13 +223,13 @@ func (r *StatusReporter) failing(reason, message string) error {
 		},
 	}
 
-	klog.Warningf("Operator status failing: %s", message)
+	klog.Warningf("Operator status degraded: %s", message)
 
 	return r.ApplyStatus(status)
 }
 
 // progressing reports the operator as progressing but available, and not
-// failing -- optionally setting a reason and message.
+// degraded -- optionally setting a reason and message.
 func (r *StatusReporter) progressing(reason, message string) error {
 	status := configv1.ClusterOperatorStatus{
 		Conditions: []configv1.ClusterOperatorStatusCondition{
@@ -244,7 +244,7 @@ func (r *StatusReporter) progressing(reason, message string) error {
 				Message: message,
 			},
 			{
-				Type:   configv1.OperatorFailing,
+				Type:   configv1.OperatorDegraded,
 				Status: configv1.ConditionFalse,
 			},
 		},
@@ -284,12 +284,12 @@ func (r *StatusReporter) ReportStatus() (bool, error) {
 	ok, err := r.CheckMachineAPI()
 	if err != nil {
 		msg := fmt.Sprintf("error checking machine-api status: %v", err)
-		r.failing(ReasonMissingDependency, msg)
+		r.degraded(ReasonMissingDependency, msg)
 		return false, nil
 	}
 
 	if !ok {
-		r.failing(ReasonMissingDependency, "machine-api not ready")
+		r.degraded(ReasonMissingDependency, "machine-api not ready")
 		return false, nil
 	}
 
@@ -297,7 +297,7 @@ func (r *StatusReporter) ReportStatus() (bool, error) {
 	ok, err = r.CheckClusterAutoscaler()
 	if err != nil {
 		msg := fmt.Sprintf("error checking autoscaler status: %v", err)
-		r.failing(ReasonCheckAutoscaler, msg)
+		r.degraded(ReasonCheckAutoscaler, msg)
 		return false, nil
 	}
 
@@ -315,7 +315,7 @@ func (r *StatusReporter) ReportStatus() (bool, error) {
 
 // CheckMachineAPI checks the status of the machine-api-operator as
 // reported to the CVO.  It returns true if the operator is available
-// and not failing.
+// and not degraded.
 func (r *StatusReporter) CheckMachineAPI() (bool, error) {
 	mao, err := r.configClient.ConfigV1().ClusterOperators().
 		Get("machine-api", metav1.GetOptions{})
@@ -328,7 +328,7 @@ func (r *StatusReporter) CheckMachineAPI() (bool, error) {
 	conds := mao.Status.Conditions
 
 	if cvorm.IsOperatorStatusConditionTrue(conds, configv1.OperatorAvailable) &&
-		cvorm.IsOperatorStatusConditionFalse(conds, configv1.OperatorFailing) {
+		cvorm.IsOperatorStatusConditionFalse(conds, configv1.OperatorDegraded) {
 		return true, nil
 	}
 

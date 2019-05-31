@@ -53,6 +53,11 @@ type MachineTarget struct {
 	unstructured.Unstructured
 }
 
+// ToUnstructured returns the underlying unstructred object for the target.
+func (mt *MachineTarget) ToUnstructured() *unstructured.Unstructured {
+	return &mt.Unstructured
+}
+
 // NeedsUpdate indicates whether a target needs to be updates to match
 // the given min and max values.  An error may be returned if there
 // was an error parsing the current values.

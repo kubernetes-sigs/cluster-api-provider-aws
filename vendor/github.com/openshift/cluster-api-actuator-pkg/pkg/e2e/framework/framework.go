@@ -426,6 +426,14 @@ func LoadClient() (runtimeclient.Client, error) {
 	return runtimeclient.New(config, runtimeclient.Options{})
 }
 
+func LoadClientset() (*kubernetes.Clientset, error) {
+	config, err := LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error creating client: %v", err.Error())
+	}
+	return kubernetes.NewForConfig(config)
+}
+
 func IsNodeReady(node *corev1.Node) bool {
 	for _, c := range node.Status.Conditions {
 		if c.Type == corev1.NodeReady {
@@ -438,7 +446,7 @@ func IsNodeReady(node *corev1.Node) bool {
 func WaitUntilAllNodesAreReady(client runtimeclient.Client) error {
 	return wait.PollImmediate(1*time.Second, PoolNodesReadyTimeout, func() (bool, error) {
 		nodeList := corev1.NodeList{}
-		if err := client.List(context.TODO(), &runtimeclient.ListOptions{}, &nodeList); err != nil {
+		if err := client.List(context.TODO(), &nodeList); err != nil {
 			glog.Errorf("error querying api for nodeList object: %v, retrying...", err)
 			return false, nil
 		}

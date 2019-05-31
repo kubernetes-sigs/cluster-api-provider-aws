@@ -82,7 +82,7 @@ func NewReconciler(mgr manager.Manager, cfg *Config) *Reconciler {
 	return &Reconciler{
 		client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
-		recorder: mgr.GetRecorder(controllerName),
+		recorder: mgr.GetEventRecorderFor(controllerName),
 		config:   cfg,
 	}
 }
@@ -352,7 +352,7 @@ func (r *Reconciler) UpdateTarget(target *MachineTarget, min, max int) error {
 	if target.NeedsUpdate(min, max) {
 		target.SetLimits(min, max)
 
-		return r.client.Update(context.TODO(), target)
+		return r.client.Update(context.TODO(), target.ToUnstructured())
 	}
 
 	return nil
@@ -363,7 +363,7 @@ func (r *Reconciler) FinalizeTarget(target *MachineTarget) error {
 	modified := target.Finalize()
 
 	if modified {
-		return r.client.Update(context.TODO(), target)
+		return r.client.Update(context.TODO(), target.ToUnstructured())
 	}
 
 	return nil

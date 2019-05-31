@@ -27,11 +27,11 @@ func main() {
 
 	operator, err := operator.New(config)
 	if err != nil {
-		klog.Fatal(err)
+		klog.Fatalf("Failed to create operator: %v", err)
 	}
 
 	klog.Info("Starting cluster-autoscaler-operator")
 	if err := operator.Start(); err != nil {
-		klog.Fatal(err)
+		klog.Fatalf("Failed to start operator: %v", err)
 	}
 }
