@@ -12,6 +12,7 @@ module "vpc" {
   azs             = "${data.aws_availability_zones.azs.names}"
   public_subnets  = "${var.vpc_public_networks}"
   private_subnets = "${var.vpc_private_networks}"
+  version         = "~> 1.66.0"
 
   public_subnet_tags = {
     Name = "${var.environment_id}"
