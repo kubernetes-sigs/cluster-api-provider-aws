@@ -27,3 +27,5 @@ aliases:
     - vincepri
   cluster-api-aws-reviewers:
     - ashish-amarnath
+    - sethp-nr
+    - rudoi
