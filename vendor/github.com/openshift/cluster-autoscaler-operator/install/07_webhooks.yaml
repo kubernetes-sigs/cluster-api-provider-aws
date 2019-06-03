@@ -1,0 +1,28 @@
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: autoscaling.openshift.io
+  labels:
+    k8s-app: cluster-autoscaler-operator
+webhooks:
+- clientConfig:
+    caBundle: ""
+    service:
+      namespace: openshift-machine-api
+      name: cluster-autoscaler-operator
+      path: /validate-clusterautoscalers
+  failurePolicy: Ignore
+  name: clusterautoscalers.autoscaling.openshift.io
+  namespaceSelector: {}
+  rules:
+  - apiGroups:
+    - autoscaling.openshift.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusterautoscalers
+  sideEffects: None

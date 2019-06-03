@@ -9,12 +9,8 @@ import (
 
 // GetWorkerNodes returns all nodes with the nodeWorkerRoleLabel label
 func GetWorkerNodes(client runtimeclient.Client) ([]corev1.Node, error) {
-	listOptions := runtimeclient.ListOptions{
-		Namespace: TestContext.MachineApiNamespace,
-	}
-	listOptions.MatchingLabels(map[string]string{WorkerNodeRoleLabel: ""})
 	workerNodes := &corev1.NodeList{}
-	err := client.List(context.TODO(), &listOptions, workerNodes)
+	err := client.List(context.TODO(), workerNodes, runtimeclient.InNamespace(TestContext.MachineApiNamespace), runtimeclient.MatchingLabels(map[string]string{WorkerNodeRoleLabel: ""}))
 	if err != nil {
 		return nil, err
 	}

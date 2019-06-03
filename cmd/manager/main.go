@@ -108,7 +108,7 @@ func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
 		Config:           mgr.GetConfig(),
 		AwsClientBuilder: awsclient.NewClient,
 		Codec:            codec,
-		EventRecorder:    mgr.GetRecorder("aws-controller"),
+		EventRecorder:    mgr.GetEventRecorderFor("aws-controller"),
 	}
 
 	actuator, err := machineactuator.NewActuator(params)

@@ -181,12 +181,8 @@ func deleteKubeletKillerPods() {
 	client, err := e2e.LoadClient()
 	Expect(err).ToNot(HaveOccurred())
 
-	listOptions := runtimeclient.ListOptions{
-		Namespace: e2e.TestContext.MachineApiNamespace,
-	}
-	listOptions.MatchingLabels(map[string]string{e2e.KubeletKillerPodName: ""})
 	podList := &corev1.PodList{}
-	err = client.List(context.TODO(), &listOptions, podList)
+	err = client.List(context.TODO(), podList, runtimeclient.InNamespace(e2e.TestContext.MachineApiNamespace), runtimeclient.MatchingLabels(map[string]string{e2e.KubeletKillerPodName: ""}))
 	Expect(err).ToNot(HaveOccurred())
 
 	for _, pod := range podList.Items {

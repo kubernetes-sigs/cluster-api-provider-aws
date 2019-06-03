@@ -80,13 +80,7 @@ test: ## Run unit tests
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
-	go test -timeout 60m \
-		-v $(REPO_PATH)/vendor/github.com/openshift/cluster-api-actuator-pkg/pkg/e2e \
-		-kubeconfig $${KUBECONFIG:-~/.kube/config} \
-		-machine-api-namespace $${NAMESPACE:-openshift-machine-api} \
-		-ginkgo.v \
-		-ginkgo.noColor=true \
-		-args -v 5 -logtostderr true
+	hack/e2e.sh
 
 .PHONY: lint
 lint: ## Go lint your code

@@ -47,6 +47,17 @@ const (
 	// DefaultClusterAutoscalerVerbosity is the default logging
 	// verbosity level for ClusterAutoscaler deployments.
 	DefaultClusterAutoscalerVerbosity = 1
+
+	// DefaultWebhooksEnabled is the default value indicating whether the
+	// admission webhook server will be enabled.
+	DefaultWebhooksEnabled = true
+
+	// DefaultWebhooksPort is the default port for the admission webhook server.
+	DefaultWebhooksPort = 8443
+
+	// DefaultWebhooksCertDir is the default directory for admission webhook
+	// server TLS assets.
+	DefaultWebhooksCertDir = "/etc/cluster-autoscaler-operator/tls"
 )
 
 // Config represents the runtime configuration for the operator.
@@ -101,6 +112,16 @@ type Config struct {
 	// will remove it if set manually.  It is only for development and
 	// debugging purposes.
 	ClusterAutoscalerExtraArgs string
+
+	// WebhookEnable indicates whether to enable admission webhooks.
+	WebhooksEnabled bool
+
+	// WebhookPort is the port the webhook server listens on if enabled.
+	WebhooksPort int
+
+	// WebhookCertDir is the directory containing TLS assets for the admission
+	// webhook server.
+	WebhooksCertDir string
 }
 
 // NewConfig returns a new Config object with defaults set.
@@ -116,6 +137,9 @@ func NewConfig() *Config {
 		ClusterAutoscalerReplicas:      DefaultClusterAutoscalerReplicas,
 		ClusterAutoscalerCloudProvider: DefaultClusterAutoscalerCloudProvider,
 		ClusterAutoscalerVerbosity:     DefaultClusterAutoscalerVerbosity,
+		WebhooksEnabled:                DefaultWebhooksEnabled,
+		WebhooksPort:                   DefaultWebhooksPort,
+		WebhooksCertDir:                DefaultWebhooksCertDir,
 	}
 }
 
@@ -178,6 +202,30 @@ func ConfigFromEnvironment() *Config {
 
 	if caExtraArgs, ok := os.LookupEnv("CLUSTER_AUTOSCALER_EXTRA_ARGS"); ok {
 		config.ClusterAutoscalerExtraArgs = caExtraArgs
+	}
+
+	if webhooksEnabled, ok := os.LookupEnv("WEBHOOKS_ENABLED"); ok {
+		enabled, err := strconv.ParseBool(webhooksEnabled)
+		if err != nil {
+			enabled = DefaultWebhooksEnabled
+			klog.Errorf("Error parsing WEBHOOKS_ENABLED environment variable: %v", err)
+		}
+
+		config.WebhooksEnabled = enabled
+	}
+
+	if webhooksPort, ok := os.LookupEnv("WEBHOOKS_PORT"); ok {
+		v, err := strconv.ParseInt(webhooksPort, 10, 32)
+		if err != nil {
+			v = DefaultWebhooksPort
+			klog.Errorf("Error parsing WEBHOOKS_PORT environment variable: %v", err)
+		}
+
+		config.WebhooksPort = int(v)
+	}
+
+	if webhooksCertDir, ok := os.LookupEnv("WEBHOOKS_CERT_DIR"); ok {
+		config.WebhooksCertDir = webhooksCertDir
 	}
 
 	return config

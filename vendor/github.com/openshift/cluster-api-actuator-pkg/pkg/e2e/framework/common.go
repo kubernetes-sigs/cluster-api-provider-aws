@@ -30,12 +30,12 @@ const (
 // GetNodes gets a list of nodes from a running cluster
 // Optionaly, labels may be used to constrain listed nodes.
 func GetNodes(client runtimeclient.Client, labels ...map[string]string) ([]corev1.Node, error) {
+	var listOptFuncs []runtimeclient.ListOptionFunc
 	nodeList := corev1.NodeList{}
-	listOptions := &runtimeclient.ListOptions{}
 	if len(labels) > 0 && len(labels[0]) > 0 {
-		listOptions.MatchingLabels(labels[0])
+		listOptFuncs = append(listOptFuncs, runtimeclient.MatchingLabels(labels[0]))
 	}
-	if err := client.List(context.TODO(), listOptions, &nodeList); err != nil {
+	if err := client.List(context.TODO(), &nodeList, listOptFuncs...); err != nil {
 		return nil, fmt.Errorf("error querying api for nodeList object: %v", err)
 	}
 	return nodeList.Items, nil
@@ -45,11 +45,11 @@ func GetNodes(client runtimeclient.Client, labels ...map[string]string) ([]corev
 // Optionaly, labels may be used to constrain listed machinesets.
 func GetMachineSets(ctx context.Context, client runtimeclient.Client, labels ...map[string]string) ([]mapiv1beta1.MachineSet, error) {
 	machineSetList := &mapiv1beta1.MachineSetList{}
-	listOptions := runtimeclient.InNamespace(TestContext.MachineApiNamespace)
+	listOptFuncs := append([]runtimeclient.ListOptionFunc{}, runtimeclient.InNamespace(TestContext.MachineApiNamespace))
 	if len(labels) > 0 && len(labels[0]) > 0 {
-		listOptions.MatchingLabels(labels[0])
+		listOptFuncs = append(listOptFuncs, runtimeclient.MatchingLabels(labels[0]))
 	}
-	if err := client.List(ctx, listOptions, machineSetList); err != nil {
+	if err := client.List(ctx, machineSetList, listOptFuncs...); err != nil {
 		return nil, fmt.Errorf("error querying api for machineSetList object: %v", err)
 	}
 	return machineSetList.Items, nil
@@ -68,11 +68,11 @@ func GetMachineSet(ctx context.Context, client runtimeclient.Client, machineSetN
 // Optionaly, labels may be used to constrain listed machinesets.
 func GetMachines(ctx context.Context, client runtimeclient.Client, labels ...map[string]string) ([]mapiv1beta1.Machine, error) {
 	machineList := &mapiv1beta1.MachineList{}
-	listOptions := runtimeclient.InNamespace(TestContext.MachineApiNamespace)
+	listOptFuncs := append([]runtimeclient.ListOptionFunc{}, runtimeclient.InNamespace(TestContext.MachineApiNamespace))
 	if len(labels) > 0 && len(labels[0]) > 0 {
-		listOptions.MatchingLabels(labels[0])
+		listOptFuncs = append(listOptFuncs, runtimeclient.MatchingLabels(labels[0]))
 	}
-	if err := client.List(ctx, listOptions, machineList); err != nil {
+	if err := client.List(ctx, machineList, listOptFuncs...); err != nil {
 		return nil, fmt.Errorf("error querying api for machineList object: %v", err)
 	}
 	return machineList.Items, nil
@@ -93,7 +93,7 @@ func GetMachine(ctx context.Context, client runtimeclient.Client, machineName st
 // - caov1.ClusterAutoscalerList
 // - batchv1.JobList
 func DeleteObjectsByLabels(ctx context.Context, client runtimeclient.Client, labels map[string]string, list runtime.Object) error {
-	if err := client.List(ctx, runtimeclient.MatchingLabels(labels), list); err != nil {
+	if err := client.List(ctx, list, runtimeclient.MatchingLabels(labels)); err != nil {
 		return fmt.Errorf("Unable to list objects: %v", err)
 	}
 

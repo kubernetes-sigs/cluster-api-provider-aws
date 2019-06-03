@@ -48,11 +48,11 @@ provides some helpers to make it easy to use
 [Zap](https://go.uber.org/zap) as the implementation.
 
 You can configure the logging implementation using
-`"sigs.k8s.io/controller-runtime/pkg/runtime/log".SetLogger`.  That
+`"sigs.k8s.io/controller-runtime/pkg/log".SetLogger`.  That
 package also contains the convinience functions for setting up Zap.
 
 You can get a handle to the the "root" logger using
-`"sigs.k8s.io/controller-runtime/pkg/runtime/log".Log`, and can then call
+`"sigs.k8s.io/controller-runtime/pkg/log".Log`, and can then call
 `WithName` to create individual named loggers.  You can call `WithName`
 repeatedly to chain names together:
 
@@ -74,7 +74,7 @@ logger.V(1).Info("this is particularly verbose!", "state of the world",
 allKubernetesObjectsEverywhere)
 ```
 
-While it's possible to use higher log levels, it's reccomended that you
+While it's possible to use higher log levels, it's recommended that you
 stick with `V(1)` or V(0)` (which is equivalent to not specifying `V`),
 and then filter later based on key-value pairs or messages; different
 numbers tend to lose meaning easily over time, and you'll be left

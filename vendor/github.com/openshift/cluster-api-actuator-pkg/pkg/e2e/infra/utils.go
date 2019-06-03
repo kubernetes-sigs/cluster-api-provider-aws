@@ -30,18 +30,15 @@ const (
 )
 
 func isOneMachinePerNode(client runtimeclient.Client) bool {
-	listOptions := runtimeclient.ListOptions{
-		Namespace: e2e.TestContext.MachineApiNamespace,
-	}
 	machineList := mapiv1beta1.MachineList{}
 	nodeList := corev1.NodeList{}
 
 	if err := wait.PollImmediate(5*time.Second, e2e.WaitShort, func() (bool, error) {
-		if err := client.List(context.TODO(), &listOptions, &machineList); err != nil {
+		if err := client.List(context.TODO(), &machineList, runtimeclient.InNamespace(e2e.TestContext.MachineApiNamespace)); err != nil {
 			glog.Errorf("Error querying api for machineList object: %v, retrying...", err)
 			return false, nil
 		}
-		if err := client.List(context.TODO(), &listOptions, &nodeList); err != nil {
+		if err := client.List(context.TODO(), &nodeList, runtimeclient.InNamespace(e2e.TestContext.MachineApiNamespace)); err != nil {
 			glog.Errorf("Error querying api for nodeList object: %v, retrying...", err)
 			return false, nil
 		}
@@ -277,7 +274,7 @@ func waitForClusterSizeToBeHealthy(client runtimeclient.Client, targetSize int) 
 func waitUntilAllNodesAreSchedulable(client runtimeclient.Client) error {
 	return wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
 		nodeList := corev1.NodeList{}
-		if err := client.List(context.TODO(), &runtimeclient.ListOptions{}, &nodeList); err != nil {
+		if err := client.List(context.TODO(), &nodeList); err != nil {
 			glog.Errorf("error querying api for nodeList object: %v, retrying...", err)
 			return false, nil
 		}
@@ -316,10 +313,10 @@ func machineFromMachineset(machineset *mapiv1beta1.MachineSet) *mapiv1beta1.Mach
 	return machine
 }
 
-func waitUntilNodesAreReady(client runtimeclient.Client, listOpt *runtimeclient.ListOptions, nodeCount int) error {
+func waitUntilNodesAreReady(client runtimeclient.Client, listOptFncs []runtimeclient.ListOptionFunc, nodeCount int) error {
 	return wait.PollImmediate(e2e.RetryMedium, e2e.WaitLong, func() (bool, error) {
 		nodes := corev1.NodeList{}
-		if err := client.List(context.TODO(), listOpt, &nodes); err != nil {
+		if err := client.List(context.TODO(), &nodes, listOptFncs...); err != nil {
 			glog.Errorf("Error querying api for Node object: %v, retrying...", err)
 			return false, nil
 		}
@@ -347,10 +344,10 @@ func waitUntilNodesAreReady(client runtimeclient.Client, listOpt *runtimeclient.
 	})
 }
 
-func waitUntilNodesAreDeleted(client runtimeclient.Client, listOpt *runtimeclient.ListOptions) error {
+func waitUntilNodesAreDeleted(client runtimeclient.Client, listOptFncs []runtimeclient.ListOptionFunc) error {
 	return wait.PollImmediate(e2e.RetryMedium, e2e.WaitLong, func() (bool, error) {
 		nodes := corev1.NodeList{}
-		if err := client.List(context.TODO(), listOpt, &nodes); err != nil {
+		if err := client.List(context.TODO(), &nodes, listOptFncs...); err != nil {
 			glog.Errorf("Error querying api for Node object: %v, retrying...", err)
 			return false, nil
 		}
@@ -432,9 +429,7 @@ func verifyNodeDraining(client runtimeclient.Client, targetMachine *mapiv1beta1.
 		glog.Infof("Node %q is mark unschedulable as expected", node.Name)
 
 		pods := corev1.PodList{}
-		listOpt := &runtimeclient.ListOptions{}
-		listOpt.MatchingLabels(rc.Spec.Selector)
-		if err := client.List(context.TODO(), listOpt, &pods); err != nil {
+		if err := client.List(context.TODO(), &pods, runtimeclient.MatchingLabels(rc.Spec.Selector)); err != nil {
 			glog.Errorf("Error querying api for Pods object: %v, retrying...", err)
 			return false, nil
 		}

@@ -38,7 +38,7 @@ func NewReconciler(mgr manager.Manager, cfg *Config) *Reconciler {
 	return &Reconciler{
 		client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
-		recorder: mgr.GetRecorder(controllerName),
+		recorder: mgr.GetEventRecorderFor(controllerName),
 		config:   cfg,
 	}
 }

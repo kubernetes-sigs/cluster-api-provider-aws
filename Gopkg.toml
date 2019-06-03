@@ -26,7 +26,7 @@ required = [
 
 [[override]]
   name = "k8s.io/kube-aggregator"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.14.1"
 
 [[override]]
   name = "github.com/openshift/cluster-api"
@@ -38,27 +38,29 @@ required = [
 
 [[override]]
   name = "k8s.io/code-generator"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.14.1"
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.14.1"
 
 [[override]]
   name = "k8s.io/apiextensions-apiserver"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.14.1"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.14.1"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.13.1"
+  version = "kubernetes-1.14.1"
 
 [[override]]
   name = "sigs.k8s.io/controller-runtime"
-  version = "v0.1.10"
+  # Pin the latest master HEAD to get support webhooks
+  # which are not yet released
+  revision="96b67f231945a8e8550dbdd8bfbd550a0c68097b"
 
 [[constraint]]
   name="sigs.k8s.io/controller-tools"

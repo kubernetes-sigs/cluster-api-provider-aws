@@ -10,7 +10,20 @@ resources:
 - install/01_clusterautoscaler.crd.yaml
 - install/02_machineautoscaler.crd.yaml
 - install/03_rbac.yaml
-- install/04_deployment.yaml
+- install/04_service.yaml
+- install/05_configmap.yaml
+- install/06_deployment.yaml
+- install/07_webhooks.yaml
+
+secretGenerator:
+- name: cluster-autoscaler-operator-cert
+  files:
+  - tls.crt=test/insecure-test-cert.pem
+  - tls.key=test/insecure-test-key.pem
+  type: kubernetes.io/tls
+
+generatorOptions:
+  disableNameSuffixHash: true
 
 patches:
 - test/cluster-autoscaler-operator-patch.yaml
