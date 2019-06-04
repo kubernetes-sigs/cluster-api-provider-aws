@@ -63,17 +63,17 @@ the generated cluster YAML.
 
 Once the cluster YAML is sent to the bootstrap API server, the
 cluster-api-provider-aws controllers will talk to the AWS API and create
-infrastructure necessary to run a Kubernetes cluster in AWS. At this point
+infrastructure necessary to run a Kubernetes cluster in AWS. At this point,
 `clusterctl` will apply just the control plane machine node and wait for that to
 become ready.
 
 #### Addons
 
-If addons are specified the addons will now be applied to the target cluster.
+If specified, the addons will now be applied to the target cluster.
 
 #### Pivot
 
-At this point there are two functional clusters, the bootstrap cluster (often
+At this point, there are two functional clusters: the bootstrap cluster (often
 running locally) and a target cluster running in AWS that contains only the
 control plane node(s). `clusterctl` will now move the provider components and
 the Cluster and Machine objects from the bootstrap cluster to the target
