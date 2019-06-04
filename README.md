@@ -1,6 +1,6 @@
 # Kubernetes Cluster API Provider AWS
 
-[![Go Report Card](https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-aws)](https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-aws)
+[![Go Report Card](https://goreportcard.com/badge/kubernetes-sigs/cluster-api-provider-aws)](https://goreportcard.com/report/kubernetes-sigs/cluster-api-provider-aws)
 
 <img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png"  width="100"><a href="https://aws.amazon.com/opensource/"><img hspace="90px" src="https://d0.awsstatic.com/logos/powered-by-aws.png" alt="Powered by AWS Cloud Computing"></a>
 
@@ -123,21 +123,21 @@ If you think you have found a bug please follow the instructions below.
 - Please spend a small amount of time giving due diligence to the issue tracker. Your issue might be a duplicate.
 - Get the logs from the cluster controllers. Please paste this into your issue.
 - Open a [new issue][new_issue].
-- Remember users might be searching for your issue in the future, so please give it a meaningful title to helps others.
-- Feel free to reach out to the cluster-api community on [kubernetes slack][slack_info].
+- Remember that users might be searching for your issue in the future, so please give it a meaningful title to help others.
+- Feel free to reach out to the cluster-api community on the [kubernetes slack][slack_info].
 
 ### Tracking new features
 
 We also use the issue tracker to track features. If you have an idea for a feature, or think you can help kops become even more awesome follow the steps below.
 
 - Open a [new issue][new_issue].
-- Remember users might be searching for your issue in the future, so please
-  give it a meaningful title to helps others.
+- Remember that users might be searching for your issue in the future, so please
+  give it a meaningful title to help others.
 - Clearly define the use case, using concrete examples. EG: I type `this` and
   cluster-api-provider-aws does `that`.
 - Some of our larger features will require some design. If you would like to
   include a technical design for your feature please include it in the issue.
-- After the new feature is well understood, and the design agreed upon we can
+- After the new feature is well understood, and the design agreed upon, we can
   start coding the feature. We would love for you to code it. So please open
   up a **WIP** *(work in progress)* pull request, and happy coding.
 
@@ -150,8 +150,7 @@ and/or other countries."
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
 [gcal]: https://calendar.google.com/calendar/embed?src=cgnt364vd8s86hr2phapfjc6uk%40group.calendar.google.com
-[prow]:
-https://github.com/kubernetes/test-infra/blob/master/commands.md
+[prow]: https://github.com/kubernetes/test-infra/blob/master/commands.md
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
 [slack_info]: https://github.com/kubernetes/community/blob/master/communication.md#social-media
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api

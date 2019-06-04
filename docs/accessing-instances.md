@@ -2,41 +2,41 @@
 
 ## Overview
 
-After running `clusterctl` the new cluster will be deployed. This document
+After running `clusterctl`, the new cluster will be deployed. This document
 explains how to access it's nodes through SSH.
 
 ## Prerequisites
 
 * `clusterctl` was successfully executed and the cluster is up and running in
-an AWS environment
-* the `cluster-api-provider-aws.sigs.k8s.io` has been created in AWS and saved
+an AWS environment.
+* The `cluster-api-provider-aws.sigs.k8s.io` SSH key has been created in AWS and saved
 as `$HOME/.ssh/cluster-api-provider-aws`
 
 ## AWS architecture
 
 After cluster creation none of the cluster instances are exposed to the
 internet, i.e. cannot be accessed. To make it accessible, `clusterctl` also
-creates a bastion node
+creates a bastion node.
 
-### bastion node
+### Bastion node
 
-bastion node is created in a public subnet and provides SSH access from the
+The Bastion node is created in a public subnet and provides SSH access from the
 world. It runs the official Ubuntu 18.04 Linux image.
 
-### cluster nodes
+### Cluster nodes
 
-cluster nodes are either control plane or worker nodes. They all run the
+Cluster nodes are either control plane or worker nodes. They all run the
 official Ubuntu 18.04 Linux image and are deployed in a private subnet.
 
 ## Accessing cluster nodes
 
 Cluster nodes should be accessed through the bastion node that is created
-along with the cluster. `cluster-api-provider-aws.sigs.k8s.io` SSH key
+along with the cluster. The `cluster-api-provider-aws.sigs.k8s.io` SSH key
 should be used for authentication.
 
 ### Setting up the SSH key path
 
-> Assummig the `cluster-api-provider-aws.sigs.k8s.io` is stored in
+> Assumming that the `cluster-api-provider-aws.sigs.k8s.io` SSH key is stored in
 `$HOME/.ssh/cluster-api-provider-aws`
 
 ```bash
@@ -45,7 +45,7 @@ export CLUSTER_SSH_KEY=$HOME/.ssh/cluster-api-provider-aws
 
 ### Obtain public IP address of the bastion node
 
-> Your credentials must let you query EC2 API
+> Your credentials must let you query the EC2 API.
 
 ```bash
 export BASTION_HOST=$(aws ec2 describe-instances --filter='Name=tag:Name,Values=<CLUSTER_NAME>-bastion' \
@@ -57,7 +57,7 @@ export BASTION_HOST=$(aws ec2 describe-instances --filter='Name=tag:Name,Values=
 
 ### Get private IP addresses of nodes in the cluster
 
-> Your credentials must let you query EC2 API
+> Your credentials must let you query the EC2 API.
 
 ```bash
 for type in controlplane node

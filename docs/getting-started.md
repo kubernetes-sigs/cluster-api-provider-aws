@@ -142,7 +142,7 @@ export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq .AccessKey.AccessKeyId -r)
 export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq .AccessKey.SecretAccessKey -r)
 ```
 
-If you did not use `clusterawsadm` to provision your user you will need to set
+If you did not use `clusterawsadm` to provision your user, you will need to set
 these environment variables in your own way.
 
 > To save credentials securely in your environment, [aws-vault][aws-vault] uses
@@ -175,7 +175,7 @@ Ensure the `region` and `keyName` are set to what you expect.
 
 #### Cluster name
 
-By default the cluster name is set `test1` when generating manifests, `CLUSTER_NAME` environment variable is used in `make manifests` to customize the cluster name.
+By default, the cluster name is set to `test1` when generating manifests and the `CLUSTER_NAME` environment variable is used in `make manifests` to override the cluster name.
 
 ```bash
 export CLUSTER_NAME="<pony-unicorns>"
