@@ -1,6 +1,6 @@
 {
   "aws_region": "us-east-1",
-  "ubuntu_18_04_ami": "ami-0a313d6098716f372",
+  "ubuntu_18_04_ami": "ami-024a64a6685d05041",
   "centos_7_ami": "ami-77ec9308",
-  "amazon_2_ami": "ami-0de53d8956e8dcf80"
+  "amazon_2_ami": "ami-0c6b1d09930fac512"
 }
