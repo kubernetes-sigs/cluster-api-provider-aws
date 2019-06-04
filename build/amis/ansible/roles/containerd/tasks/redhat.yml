@@ -16,3 +16,4 @@
   yum:
     name: libseccomp
     state: present
+    lock_timeout: 60

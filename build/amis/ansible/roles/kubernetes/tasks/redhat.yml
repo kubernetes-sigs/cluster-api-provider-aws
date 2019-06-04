@@ -24,6 +24,8 @@
   yum:
     name: "{{ packages }}"
     allow_downgrade: True
+    state: present
+    lock_timeout: 60
   vars:
     packages:
       - "kubelet-{{ kubernetes_version | kube_platform_version('redhat') }}"
