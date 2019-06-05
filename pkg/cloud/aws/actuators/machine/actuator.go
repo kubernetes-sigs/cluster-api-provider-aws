@@ -32,9 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/klogr"
@@ -78,8 +76,8 @@ func (c *cordonHelper) updateIfRequired(desired bool) bool {
 	return true
 }
 
-func (c *cordonHelper) patch(clientset kubernetes.Interface) error {
-	client := clientset.CoreV1().Nodes()
+func (c *cordonHelper) patch(clientset corev1.CoreV1Interface) error {
+	client := clientset.Nodes()
 
 	oldData, err := json.Marshal(c.node)
 	if err != nil {
@@ -319,11 +317,8 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	a.log.Info("Cordoning the node", machine.Name)
 	err = a.cordon(ctx, cluster, machine, scope)
 	if err != nil {
-		return errors.Errorf("Faild to cordon the node: %+v", err)
+		return errors.Wrapf(err, "Faild to cordon the node")
 	}
-
-	// sleep, so I can investigate the state of the node and pods with kubectl
-	time.Sleep(120 * time.Second)
 
 	ec2svc := ec2.NewService(scope.Scope)
 
@@ -362,30 +357,20 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 }
 
 func (a *Actuator) cordon(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, scope *actuators.MachineScope) error {
-	a.log.Info("Inside cordon()")
-
 	node, err := a.getNodeObject(ctx, cluster, machine, scope)
 	if err != nil {
 		a.log.Info("ERROR: ", err.Error())
 		return err
 	}
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		a.log.Info("ERROR: ", err.Error())
-		return err
-	}
-
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		a.log.Info("ERROR: ", err.Error())
-		return err
-	}
+	a.log.Info("cordoning node: ", node.GetName())
 
 	helper := newCordonHelper(node)
 	if helper.updateIfRequired(true) {
-		a.log.Info("CordonHelper: ", node.Name)
-		return helper.patch(clientSet)
+		client, err := a.coreV1Client(cluster)
+		if err != nil {
+			return err
+		}
+		return helper.patch(client)
 	}
 
 	return nil
@@ -406,7 +391,10 @@ func (a *Actuator) getNodeObject(ctx context.Context, cluster *clusterv1.Cluster
 		}
 
 		for _, node := range nodeList.Items {
-			a.log.Info("NODE: ", fmt.Sprintf("%v", node))
+			// prevent nil pointer dereference
+			if machine.Status.NodeRef == nil {
+				return nil, errors.Errorf("nodeRef not found for machine: %q", machine.GetName())
+			}
 			// TODO(sfzylad): Improve this comparison without relying on substrings.
 			if strings.Contains(node.GetName(), machine.Status.NodeRef.Name) {
 				return &node, nil
