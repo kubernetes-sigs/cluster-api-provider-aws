@@ -51,8 +51,19 @@ func getRunningInstance(machine *machinev1.Machine, client awsclient.Client) (*e
 // getRunningInstances returns all running instances that have a tag matching our machine name,
 // and cluster ID.
 func getRunningInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
-	runningInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameRunning), aws.String(ec2.InstanceStateNamePending)}
+	runningInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameRunning)}
 	return getInstances(machine, client, runningInstanceStateFilter)
+}
+
+// getRunningFromInstances returns all running instances from a list of instances.
+func getRunningFromInstances(instances []*ec2.Instance) []*ec2.Instance {
+	var runningInstances []*ec2.Instance
+	for _, instance := range instances {
+		if *instance.State.Name == ec2.InstanceStateNameRunning {
+			runningInstances = append(runningInstances, instance)
+		}
+	}
+	return runningInstances
 }
 
 // getStoppedInstances returns all stopped instances that have a tag matching our machine name,
@@ -60,6 +71,16 @@ func getRunningInstances(machine *machinev1.Machine, client awsclient.Client) ([
 func getStoppedInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
 	stoppedInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameStopped), aws.String(ec2.InstanceStateNameStopping)}
 	return getInstances(machine, client, stoppedInstanceStateFilter)
+}
+
+func getExistingInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
+	return getInstances(machine, client, []*string{
+		aws.String(ec2.InstanceStateNameRunning),
+		aws.String(ec2.InstanceStateNamePending),
+		aws.String(ec2.InstanceStateNameStopped),
+		aws.String(ec2.InstanceStateNameStopping),
+		aws.String(ec2.InstanceStateNameShuttingDown),
+	})
 }
 
 // getInstances returns all instances that have a tag matching our machine name,

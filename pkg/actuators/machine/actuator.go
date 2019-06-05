@@ -48,6 +48,7 @@ const (
 	userDataSecretKey         = "userData"
 	ec2InstanceIDNotFoundCode = "InvalidInstanceID.NotFound"
 	requeueAfterSeconds       = 20
+	requeueAfterFatalSeconds  = 180
 
 	// MachineCreationSucceeded indicates success for machine creation
 	MachineCreationSucceeded = "MachineCreationSucceeded"
@@ -355,17 +356,18 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 		glog.Error(errMsg)
 		return errMsg
 	}
-
-	instances, err := getRunningInstances(machine, client)
+	// Get all instances not terminated.
+	existingInstances, err := getExistingInstances(machine, client)
 	if err != nil {
-		glog.Errorf("error getting running instances: %v", err)
+		glog.Errorf("error getting existing instances: %v", err)
 		return err
 	}
-	glog.Infof("found %d instances for machine", len(instances))
+	existingLen := len(existingInstances)
+	glog.Infof("found %d existing instances for machine", existingLen)
 
 	// Parent controller should prevent this from ever happening by calling Exists and then Create,
 	// but instance could be deleted between the two calls.
-	if len(instances) == 0 {
+	if existingLen == 0 {
 		glog.Warningf("attempted to update machine but no instances found")
 
 		a.handleMachineError(machine, apierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
@@ -374,31 +376,29 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 		if err := a.updateStatus(machine, nil); err != nil {
 			return err
 		}
-
-		errMsg := "attempted to update machine but no instances found"
-		glog.Error(errMsg)
-		return fmt.Errorf(errMsg)
+		// This is an unrecoverable error condition.  We should delay to
+		// minimize unnecessary API calls.
+		return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterFatalSeconds * time.Second}
 	}
+	sortInstances(existingInstances)
+	runningInstances := getRunningFromInstances(existingInstances)
+	runningLen := len(runningInstances)
+	var newestInstance *ec2.Instance
+	if runningLen > 0 {
+		// It would be very unusual to have more than one here, but it is
+		// possible if someone manually provisions a machine with same tag name.
+		glog.Infof("found %d running instances for machine %v", runningLen, machine.Name)
+		newestInstance = runningInstances[0]
 
-	glog.Info("instance found")
-
-	// In very unusual circumstances, there could be more than one machine running matching this
-	// machine name and cluster ID. In this scenario we will keep the newest, and delete all others.
-	sortInstances(instances)
-	if len(instances) > 1 {
-		err = terminateInstances(client, instances[1:])
+		err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance)
 		if err != nil {
-			glog.Errorf("Unable to remove redundant instances: %v", err)
+			a.handleMachineError(machine, apierrors.CreateMachine("Error updating load balancers: %v", err), updateEventAction)
 			return err
 		}
-	}
-
-	newestInstance := instances[0]
-
-	err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance)
-	if err != nil {
-		a.handleMachineError(machine, apierrors.CreateMachine("Error updating load balancers: %v", err), updateEventAction)
-		return err
+	} else {
+		// Didn't find any running instances, just newest existing one.
+		// In most cases, there should only be one existing Instance.
+		newestInstance = existingInstances[0]
 	}
 
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Updated", "Updated machine %v", machine.Name)
@@ -462,7 +462,7 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *mach
 		return nil, fmt.Errorf("error getting EC2 client: %v", err)
 	}
 
-	return getRunningInstances(machine, client)
+	return getExistingInstances(machine, client)
 }
 
 // updateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
