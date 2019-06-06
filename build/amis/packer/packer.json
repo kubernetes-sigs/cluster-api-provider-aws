@@ -3,7 +3,7 @@
     "aws_access_key": "",
     "aws_secret_key": "",
     "build_timestamp": "{{timestamp}}",
-    "kubernetes_version": "1.13.6-00",
+    "kubernetes_version": "1.13.7-00",
     "kubernetes_cni_version": "0.7.5-00",
     "existing_ansible_ssh_args": "{{env `ANSIBLE_SSH_ARGS`}}",
     "ami_groups": "all",
