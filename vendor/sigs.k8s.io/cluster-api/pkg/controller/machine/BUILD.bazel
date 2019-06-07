@@ -4,7 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "actuator.go",
-        "controller.go",
+        "machine_controller.go",
         "testactuator.go",
     ],
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/pkg/controller/machine",
