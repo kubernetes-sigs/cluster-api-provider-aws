@@ -17,7 +17,7 @@ spec:
         set: node
     spec:
       versions:
-        kubelet: v1.13.6
+        kubelet: v1.13.7
       providerSpec:
         value:
           apiVersion: awsprovider/v1alpha1
