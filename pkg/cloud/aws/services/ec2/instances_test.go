@@ -393,6 +393,127 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				}
 			},
 		},
+		{
+			name: "with availability zone",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+			},
+			machineConfig: &v1alpha1.AWSMachineProviderSpec{
+				AMI: v1alpha1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:     "m5.2xlarge",
+				AvailabilityZone: aws.String("us-east-1c"),
+			},
+			clusterStatus: &v1alpha1.AWSClusterProviderStatus{
+				Network: v1alpha1.Network{
+					SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
+						v1alpha1.SecurityGroupControlPlane: {
+							ID: "1",
+						},
+						v1alpha1.SecurityGroupNode: {
+							ID: "2",
+						},
+						v1alpha1.SecurityGroupLB: {
+							ID: "3",
+						},
+					},
+					APIServerELB: v1alpha1.ClassicELB{
+						DNSName: "test-apiserver.us-east-1.aws",
+					},
+				},
+			},
+			clusterConfig: &v1alpha1.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha1.NetworkSpec{
+					Subnets: v1alpha1.Subnets{
+						&v1alpha1.SubnetSpec{
+							ID:               "subnet-1",
+							AvailabilityZone: "us-east-1a",
+							IsPublic:         false,
+						},
+						&v1alpha1.SubnetSpec{
+							ID:               "subnet-2",
+							AvailabilityZone: "us-east-1b",
+							IsPublic:         false,
+						},
+						&v1alpha1.SubnetSpec{
+							ID:               "subnet-3",
+							AvailabilityZone: "us-east-1c",
+							IsPublic:         false,
+						},
+						&v1alpha1.SubnetSpec{
+							ID:               "subnet-3-public",
+							AvailabilityZone: "us-east-1c",
+							IsPublic:         true,
+						},
+					},
+				},
+				CAKeyPair: v1alpha1.KeyPair{
+					Cert: testCaCert,
+					Key:  []byte("y"),
+				},
+			},
+			cluster: clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test1",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+						ServiceDomain: "cluster.local",
+						Services: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+
+				m.
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:   aws.String("two"),
+								InstanceType: aws.String("m5.large"),
+								SubnetId:     aws.String("subnet-3"),
+								ImageId:      aws.String("ami-1"),
+							},
+						},
+					}, nil)
+
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *v1alpha1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if instance.SubnetID != "subnet-3" {
+					t.Fatalf("expected subnet-3 from availability zone us-east-1c, got %q", instance.SubnetID)
+				}
+			},
+		},
 	}
 
 	for _, tc := range testcases {
@@ -423,7 +544,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 
 			scope.Scope.ClusterConfig = tc.clusterConfig
 			scope.Scope.ClusterStatus = tc.clusterStatus
-
+			scope.MachineConfig = tc.machineConfig
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope.Scope)

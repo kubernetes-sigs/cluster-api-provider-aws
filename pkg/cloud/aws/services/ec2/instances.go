@@ -159,10 +159,23 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 	}
 
-	// Pick subnet from the machine configuration, or default to the first private available.
+	// Pick subnet from the machine configuration, or based on the availability zone specified,
+	// or default to the first private subnet available.
+	// TODO(vincepri): Move subnet picking logic to its own function/method.
 	if machine.MachineConfig.Subnet != nil && machine.MachineConfig.Subnet.ID != nil {
 		input.SubnetID = *machine.MachineConfig.Subnet.ID
-	} else {
+	} else if machine.MachineConfig.AvailabilityZone != nil {
+		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*machine.MachineConfig.AvailabilityZone)
+		if len(sns) == 0 {
+			return nil, awserrors.NewFailedDependency(
+				errors.Errorf("failed to run machine %q, no subnets available in availaibility zone %q",
+					machine.Name(),
+					*machine.MachineConfig.AvailabilityZone,
+				),
+			)
+		}
+		input.SubnetID = sns[0].ID
+	} else if input.SubnetID == "" {
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
