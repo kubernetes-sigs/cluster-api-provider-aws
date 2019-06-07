@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,21 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Build the manager binary
-FROM golang:1.12.5 as builder
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# Copy in the go src
-WORKDIR ${GOPATH}/src/sigs.k8s.io/cluster-api
-COPY pkg/    pkg/
-COPY cmd/    cmd/
-COPY vendor/ vendor/
+export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-extldflags "-static"' -o manager sigs.k8s.io/cluster-api/cmd/manager
+cd $KUBE_ROOT
 
-# Copy the controller-manager into a thin image
-FROM gcr.io/distroless/static:latest
-WORKDIR /
-COPY --from=builder /go/src/sigs.k8s.io/cluster-api/manager .
-USER nobody
-ENTRYPOINT ["/manager"]
+pushd docs/book/
+npm install gitbook-cli -g
+npm install phantomjs-prebuilt
+npm ci
+gitbook install
+gitbook build
+popd
