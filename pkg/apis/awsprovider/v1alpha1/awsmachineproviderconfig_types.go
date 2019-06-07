@@ -68,6 +68,11 @@ type AWSMachineProviderSpec struct {
 	// +optional
 	AdditionalSecurityGroups []AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
 
+	// AvailabilityZone is references the AWS availability zone to use for this instance.
+	// If multiple subnets are matched for the availability zone, the first one return is picked.
+	// +optional
+	AvailabilityZone *string `json:"availabilityZone,omitempty"`
+
 	// Subnet is a reference to the subnet to use for this instance. If not specified,
 	// the cluster subnet will be used.
 	// +optional

@@ -221,6 +221,16 @@ func (s Subnets) FilterPublic() (res Subnets) {
 	return
 }
 
+// FilterByZone returns a slice containing all subnets that live in the availability zone specified.
+func (s Subnets) FilterByZone(zone string) (res Subnets) {
+	for _, x := range s {
+		if x.AvailabilityZone == zone {
+			res = append(res, x)
+		}
+	}
+	return
+}
+
 // RouteTable defines an AWS routing table.
 type RouteTable struct {
 	ID string `json:"id"`

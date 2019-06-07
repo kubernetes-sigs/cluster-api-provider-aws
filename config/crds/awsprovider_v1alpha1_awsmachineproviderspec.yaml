@@ -91,6 +91,11 @@ spec:
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
+        availabilityZone:
+          description: AvailabilityZone is references the AWS availability zone to
+            use for this instance. If multiple subnets are matched for the availability
+            zone, the first one return is picked.
+          type: string
         iamInstanceProfile:
           description: IAMInstanceProfile is a name of an IAM instance profile to
             assign to the instance
