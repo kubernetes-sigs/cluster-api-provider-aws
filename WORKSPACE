@@ -84,7 +84,7 @@ go_repository(
     name = "com_github_golang_dep",
     build_file_generation = "on",
     importpath = "github.com/golang/dep",
-    tag = "0.5.2",
+    tag = "v0.5.3",
 )
 
 go_repository(
@@ -98,7 +98,7 @@ go_repository(
     name = "com_github_golang_mock",
     build_file_generation = "on",
     importpath = "github.com/golang/mock",
-    tag = "v1.2.0",
+    tag = "v1.3.1",
 )
 
 go_repository(
@@ -127,6 +127,6 @@ go_repository(
 
 go_repository(
     name = "bazel_gomock",
-    commit = "08cc809a2f68f6d810c2013987970a9a5c1181b4",
+    commit = "e4a4d7dce76eedebd85d1bac72a9c02615c80eff",
     importpath = "github.com/jmhodges/bazel_gomock",
 )
