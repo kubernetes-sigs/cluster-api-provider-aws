@@ -48,7 +48,8 @@ func TestNewNodeRegistration(t *testing.T) {
 					},
 				},
 			},
-			actual: kubeadm.NewNodeRegistration(
+			actual: kubeadm.SetNodeRegistrationOptions(
+				&kubeadmv1beta1.NodeRegistrationOptions{},
 				kubeadm.WithNodeRegistrationName("test name"),
 				kubeadm.WithCRISocket("/test/path/to/socket.sock"),
 				kubeadm.WithTaints([]corev1.Taint{
@@ -68,7 +69,8 @@ func TestNewNodeRegistration(t *testing.T) {
 					"node-labels": "test value one,test value two",
 				},
 			},
-			actual: kubeadm.NewNodeRegistration(
+			actual: kubeadm.SetNodeRegistrationOptions(
+				&kubeadmv1beta1.NodeRegistrationOptions{},
 				kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": "test value one"}),
 				kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": "test value two"}),
 			),
