@@ -1,0 +1,21 @@
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: MachineList
+items:
+  - apiVersion: "cluster.k8s.io/v1alpha1"
+    kind: Machine
+    metadata:
+      name: controlplane-0
+      labels:
+        cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
+        set: controlplane
+    spec:
+      versions:
+        kubelet: v1.13.7
+        controlPlane: v1.13.7
+      providerSpec:
+        value:
+          apiVersion: awsprovider/v1alpha1
+          kind: AWSMachineProviderSpec
+          instanceType: "${CONTROL_PLANE_MACHINE_TYPE}"
+          iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+          keyName: "${SSH_KEY_NAME}"
