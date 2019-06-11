@@ -221,7 +221,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 					),
 				),
 				kubeadm.WithJoinNodeRegistrationOptions(
-					kubeadm.NewNodeRegistration(
+					kubeadm.SetNodeRegistrationOptions(
+						&machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
@@ -275,7 +276,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			kubeadm.SetInitConfigurationOptions(
 				&machine.MachineConfig.KubeadmConfiguration.Init,
 				kubeadm.WithNodeRegistrationOptions(
-					kubeadm.NewNodeRegistration(
+					kubeadm.SetNodeRegistrationOptions(
+						&machine.MachineConfig.KubeadmConfiguration.Init.NodeRegistration,
 						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
@@ -283,6 +285,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 					),
 				),
 			)
+
 			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
 			if err != nil {
 				return nil, err
@@ -320,7 +323,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				),
 			),
 			kubeadm.WithJoinNodeRegistrationOptions(
-				kubeadm.NewNodeRegistration(
+				kubeadm.SetNodeRegistrationOptions(
+					&machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
 					kubeadm.WithCRISocket(containerdSocket),
 					kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
