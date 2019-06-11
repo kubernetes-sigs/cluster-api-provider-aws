@@ -75,6 +75,25 @@ func TestNewNodeRegistration(t *testing.T) {
 				kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": "test value two"}),
 			),
 		},
+		{
+			name: "test starting with non-empty base",
+			expected: kubeadmv1beta1.NodeRegistrationOptions{
+				CRISocket: "/test/path/to/socket.sock",
+				KubeletExtraArgs: map[string]string{
+					"cni-bin-dir":  "/opt/cni/bin",
+					"cni-conf-dir": "/etc/cni/net.d",
+				},
+			},
+			actual: kubeadm.SetNodeRegistrationOptions(
+				&kubeadmv1beta1.NodeRegistrationOptions{
+					KubeletExtraArgs: map[string]string{
+						"cni-bin-dir":  "/opt/cni/bin",
+						"cni-conf-dir": "/etc/cni/net.d",
+					},
+				},
+				kubeadm.WithCRISocket("/test/path/to/socket.sock"),
+			),
+		},
 	}
 
 	for _, tc := range testcases {
