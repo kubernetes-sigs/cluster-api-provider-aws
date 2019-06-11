@@ -238,6 +238,35 @@ create-cluster-ha: binaries-dev ## Create a development Kubernetes cluster on AW
 	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
+.PHONY: create-cluster-management
+create-cluster-management: ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+	kind create cluster --name=clusterapi
+	# Apply provider-components.
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		create -f cmd/clusterctl/examples/aws/out/provider-components.yaml
+	# Create Cluster.
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		create -f cmd/clusterctl/examples/aws/out/cluster.yaml
+	# Create control plane machine.
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		create -f cmd/clusterctl/examples/aws/out/controlplane-machine.yaml
+	# Get KubeConfig using clusterctl.
+	clusterctl alpha phases get-kubeconfig -v=3 \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		--provider=aws \
+		--cluster-name=test1
+	# Apply addons on the target cluster, waiting for the control-plane to become available.
+	clusterctl alpha phases apply-addons -v=3 \
+		--kubeconfig=./kubeconfig \
+		-a cmd/clusterctl/examples/aws/out/addons.yaml
+	# Create a worker node with MachineDeployment.
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		create -f cmd/clusterctl/examples/aws/out/machine-deployment.yaml
+
 .PHONY: delete-cluster
 delete-cluster: binaries-dev ## Deletes the development Kubernetes Cluster "test1"
 	clusterctl delete cluster -v 4 \
