@@ -158,6 +158,7 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 					"ec2:CreateSubnet",
 					"ec2:CreateTags",
 					"ec2:CreateVpc",
+					"ec2:ModifyVpcAttribute",
 					"ec2:DeleteInternetGateway",
 					"ec2:DeleteNatGateway",
 					"ec2:DeleteRouteTable",
