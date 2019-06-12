@@ -316,11 +316,15 @@ func (s *Service) getSecurityGroupIngressRules(role v1alpha1.SecurityGroupRole) 
 				CidrBlocks:  []string{anyIPv4CidrBlock},
 			},
 			{
-				Description:            "Kubelet API",
-				Protocol:               v1alpha1.SecurityGroupProtocolTCP,
-				FromPort:               10250,
-				ToPort:                 10250,
-				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
+				Description: "Kubelet API",
+				Protocol:    v1alpha1.SecurityGroupProtocolTCP,
+				FromPort:    10250,
+				ToPort:      10250,
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID,
+					// This is needed to support metrics-server deployments
+					s.scope.SecurityGroups()[v1alpha1.SecurityGroupNode].ID,
+				},
 			},
 			{
 				Description: "bgp (calico)",
