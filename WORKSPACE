@@ -16,8 +16,11 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "3743a20704efc319070957c45e24ae4626a05ba4b1d6a8961e87520296f1b676",
-    url = "https://github.com/bazelbuild/rules_go/releases/download/0.18.4/rules_go-0.18.4.tar.gz",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.18.6/rules_go-0.18.6.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/0.18.6/rules_go-0.18.6.tar.gz",
+    ],
+    sha256 = "f04d2373bcaf8aa09bccb08a98a57e721306c8f6043a2a0ee610fd6853dcde3d",
 )
 
 http_archive(
@@ -47,19 +50,19 @@ http_archive(
     url = "https://github.com/bazelbuild/bazel-skylib/releases/download/0.8.0/bazel-skylib.0.8.0.tar.gz",
 )
 
-load("@bazel_skylib//:lib.bzl", "versions")
+load("@bazel_skylib//lib:versions.bzl", "versions")
 
 versions.check(
     minimum_bazel_version = "0.21.0",
     maximum_bazel_version = "1.0.0",
 )  # fails if not within range
 
-load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
 
 go_rules_dependencies()
 
 go_register_toolchains(
-    go_version = "1.12.5",
+    go_version = "1.12.6",
 )
 
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
@@ -91,7 +94,7 @@ go_repository(
     name = "com_github_golangci_golangci-lint",
     build_file_generation = "on",
     importpath = "github.com/golangci/golangci-lint",
-    tag = "v1.16.0",
+    tag = "v1.17.1",
 )
 
 go_repository(
