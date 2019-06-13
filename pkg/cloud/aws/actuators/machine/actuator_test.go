@@ -19,6 +19,7 @@ package machine
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -82,6 +83,78 @@ func TestGetControlPlaneMachines(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "master-1",
 							Namespace: "awesome-ns",
+						},
+						Spec: clusterv1.MachineSpec{
+							Versions: clusterv1.MachineVersionInfo{
+								Kubelet:      "v1.13.0",
+								ControlPlane: "v1.13.0",
+							},
+						},
+					},
+				},
+			},
+			expectedOut: []clusterv1.Machine{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "master-0",
+						Namespace: "awesome-ns",
+					},
+					Spec: clusterv1.MachineSpec{
+						Versions: clusterv1.MachineVersionInfo{
+							Kubelet:      "v1.13.0",
+							ControlPlane: "v1.13.0",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "master-1",
+						Namespace: "awesome-ns",
+					},
+					Spec: clusterv1.MachineSpec{
+						Versions: clusterv1.MachineVersionInfo{
+							Kubelet:      "v1.13.0",
+							ControlPlane: "v1.13.0",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "2 controlplane machines, 1 deleted",
+			input: &clusterv1.MachineList{
+				Items: []clusterv1.Machine{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "master-0",
+							Namespace: "awesome-ns",
+						},
+						Spec: clusterv1.MachineSpec{
+							Versions: clusterv1.MachineVersionInfo{
+								Kubelet:      "v1.13.0",
+								ControlPlane: "v1.13.0",
+							},
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "master-1",
+							Namespace: "awesome-ns",
+						},
+						Spec: clusterv1.MachineSpec{
+							Versions: clusterv1.MachineVersionInfo{
+								Kubelet:      "v1.13.0",
+								ControlPlane: "v1.13.0",
+							},
+						},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "master-2",
+							Namespace: "awesome-ns",
+							DeletionTimestamp: &metav1.Time{
+								Time: time.Now(),
+							},
 						},
 						Spec: clusterv1.MachineSpec{
 							Versions: clusterv1.MachineVersionInfo{

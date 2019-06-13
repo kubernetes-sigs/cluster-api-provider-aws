@@ -80,11 +80,11 @@ func NewActuator(params ActuatorParams) *Actuator {
 	}
 }
 
-// GetControlPlaneMachines retrieves all control plane nodes from a MachineList
+// GetControlPlaneMachines retrieves all non-deleted control plane nodes from a MachineList
 func GetControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
 	var cpm []*clusterv1.Machine
 	for _, m := range machineList.Items {
-		if m.Spec.Versions.ControlPlane != "" {
+		if m.DeletionTimestamp.IsZero() && m.Spec.Versions.ControlPlane != "" {
 			cpm = append(cpm, m.DeepCopy())
 		}
 	}
