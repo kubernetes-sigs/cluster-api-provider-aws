@@ -155,7 +155,7 @@ and/or other countries."
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
 [gcal]: https://calendar.google.com/calendar/embed?src=cgnt364vd8s86hr2phapfjc6uk%40group.calendar.google.com
-[prow]: https://github.com/kubernetes/test-infra/blob/master/commands.md
+[prow]: https://go.k8s.io/bot-commands
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
 [slack_info]: https://github.com/kubernetes/community/blob/master/communication.md#social-media
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api
