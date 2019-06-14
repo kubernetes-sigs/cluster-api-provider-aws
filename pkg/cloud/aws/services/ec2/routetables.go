@@ -260,8 +260,8 @@ func (s *Service) getRouteTableTagParams(id string, public bool) tags.BuildParam
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
-		Role:        aws.String(tags.ValueCommonRole),
+		Role:        aws.String(v1alpha1.ValueCommonRole),
 	}
 }

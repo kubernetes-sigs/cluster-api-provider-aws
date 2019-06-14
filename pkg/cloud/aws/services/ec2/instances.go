@@ -140,11 +140,11 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 	input.Tags = tags.Build(tags.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(machine.Name()),
 		Role:        aws.String(machine.Role()),
-		Additional: tags.Map{
-			tags.ClusterAWSCloudProviderKey(s.scope.Name()): string(tags.ResourceLifecycleOwned),
+		Additional: v1alpha1.Map{
+			v1alpha1.ClusterAWSCloudProviderKey(s.scope.Name()): string(v1alpha1.ResourceLifecycleOwned),
 		},
 	})
 

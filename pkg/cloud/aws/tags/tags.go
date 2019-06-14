@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // ApplyParams are function parameters used to apply tags on an aws resource.
@@ -52,7 +53,7 @@ func Apply(params *ApplyParams) error {
 }
 
 // Ensure applies the tags if the current tags differ from the params.
-func Ensure(current Map, params *ApplyParams) error {
+func Ensure(current v1alpha1.Map, params *ApplyParams) error {
 	want := Build(params.BuildParams)
 	if !current.Equals(want) {
 		return Apply(params)
@@ -63,7 +64,7 @@ func Ensure(current Map, params *ApplyParams) error {
 // BuildParams is used to build tags around an aws resource.
 type BuildParams struct {
 	// Lifecycle determines the resource lifecycle.
-	Lifecycle ResourceLifecycle
+	Lifecycle v1alpha1.ResourceLifecycle
 
 	// ClusterName is the cluster associated with the resource.
 	ClusterName string
@@ -81,19 +82,19 @@ type BuildParams struct {
 
 	// Any additional tags to be added to the resource.
 	// +optional
-	Additional Map
+	Additional v1alpha1.Map
 }
 
 // Build builds tags including the cluster tag and returns them in map form.
-func Build(params BuildParams) Map {
-	tags := make(Map)
+func Build(params BuildParams) v1alpha1.Map {
+	tags := make(v1alpha1.Map)
 	for k, v := range params.Additional {
 		tags[k] = v
 	}
 
-	tags[ClusterKey(params.ClusterName)] = string(params.Lifecycle)
+	tags[v1alpha1.ClusterKey(params.ClusterName)] = string(params.Lifecycle)
 	if params.Role != nil {
-		tags[NameAWSClusterAPIRole] = *params.Role
+		tags[v1alpha1.NameAWSClusterAPIRole] = *params.Role
 	}
 
 	if params.Name != nil {

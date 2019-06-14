@@ -101,7 +101,7 @@ func (s *Service) DeleteBastion() error {
 func (s *Service) describeBastionInstance() (*v1alpha1.Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.ProviderRole(tags.ValueBastionRole),
+			filter.EC2.ProviderRole(v1alpha1.ValueBastionRole),
 			filter.EC2.Cluster(s.scope.Name()),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
@@ -145,9 +145,9 @@ func (s *Service) getDefaultBastion() *v1alpha1.Instance {
 		},
 		Tags: tags.Build(tags.BuildParams{
 			ClusterName: s.scope.Name(),
-			Lifecycle:   tags.ResourceLifecycleOwned,
+			Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 			Name:        aws.String(name),
-			Role:        aws.String(tags.ValueBastionRole),
+			Role:        aws.String(v1alpha1.ValueBastionRole),
 		}),
 	}
 

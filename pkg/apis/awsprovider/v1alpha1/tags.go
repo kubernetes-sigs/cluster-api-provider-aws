@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tags
+package v1alpha1
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -111,3 +112,13 @@ const (
 	// ValuePrivateRole describes the value for the private role
 	ValuePrivateRole = "private"
 )
+
+// ClusterKey generates the key for resources associated with a cluster.
+func ClusterKey(name string) string {
+	return fmt.Sprintf("%s%s", NameAWSProviderOwned, name)
+}
+
+// ClusterAWSCloudProviderKey generates the key for resources associated a cluster's AWS cloud provider.
+func ClusterAWSCloudProviderKey(name string) string {
+	return fmt.Sprintf("%s%s", NameKubernetesAWSCloudProviderPrefix, name)
+}

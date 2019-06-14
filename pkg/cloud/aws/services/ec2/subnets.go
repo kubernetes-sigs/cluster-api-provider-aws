@@ -196,7 +196,7 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 		}
 
 		// A subnet is public if it's tagged as such...
-		if spec.Tags.GetRole() == tags.ValuePublicRole {
+		if spec.Tags.GetRole() == v1alpha1.ValuePublicRole {
 			spec.IsPublic = true
 		}
 
@@ -292,9 +292,9 @@ func (s *Service) deleteSubnet(id string) error {
 func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
 	var role string
 	if public {
-		role = tags.ValuePublicRole
+		role = v1alpha1.ValuePublicRole
 	} else {
-		role = tags.ValuePrivateRole
+		role = v1alpha1.ValuePrivateRole
 	}
 
 	var name strings.Builder
@@ -305,7 +305,7 @@ func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
 		Role:        aws.String(role),
 	}

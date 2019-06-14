@@ -208,8 +208,8 @@ func (s *Service) getVPCTagParams(id string) tags.BuildParams {
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(tags.ValueCommonRole),
+		Role:        aws.String(v1alpha1.ValueCommonRole),
 	}
 }

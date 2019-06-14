@@ -59,7 +59,6 @@ go_test(
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library",
         "//pkg/cloud/aws/services/elb/mock_elbiface:go_default_library",
-        "//pkg/cloud/aws/tags:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
         "//vendor/github.com/golang/mock/gomock:go_default_library",

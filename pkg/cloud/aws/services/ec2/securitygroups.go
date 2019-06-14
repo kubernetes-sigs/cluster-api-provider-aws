@@ -370,13 +370,13 @@ func (s *Service) getDefaultSecurityGroup(role v1alpha1.SecurityGroupRole) *ec2.
 }
 
 func (s *Service) getSecurityGroupTagParams(name string, id string, role v1alpha1.SecurityGroupRole) tags.BuildParams {
-	additional := tags.Map{}
+	additional := v1alpha1.Map{}
 	if role == v1alpha1.SecurityGroupLB {
-		additional[tags.ClusterAWSCloudProviderKey(s.scope.Name())] = string(tags.ResourceLifecycleOwned)
+		additional[v1alpha1.ClusterAWSCloudProviderKey(s.scope.Name())] = string(v1alpha1.ResourceLifecycleOwned)
 	}
 	return tags.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
 		ResourceID:  id,
 		Role:        aws.String(string(role)),

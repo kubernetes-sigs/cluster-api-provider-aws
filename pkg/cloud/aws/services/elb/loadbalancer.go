@@ -70,7 +70,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
 func (s *Service) GetAPIServerDNSName() (string, error) {
-	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), tags.ValueAPIServerRole))
+	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), v1alpha1.ValueAPIServerRole))
 
 	if err != nil {
 		return "", err
@@ -122,7 +122,7 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 func (s *Service) RegisterInstanceWithAPIServerELB(instanceID string) error {
 	input := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
-		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), tags.ValueAPIServerRole)),
+		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), v1alpha1.ValueAPIServerRole)),
 	}
 
 	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
@@ -141,7 +141,7 @@ func GenerateELBName(clusterName string, elbName string) string {
 func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 
 	res := &v1alpha1.ClassicELB{
-		Name:   GenerateELBName(s.scope.Name(), tags.ValueAPIServerRole),
+		Name:   GenerateELBName(s.scope.Name(), v1alpha1.ValueAPIServerRole),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
 		Listeners: []*v1alpha1.ClassicELBListener{
 			{
@@ -166,8 +166,8 @@ func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 
 	res.Tags = tags.Build(tags.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   tags.ResourceLifecycleOwned,
-		Role:        aws.String(tags.ValueAPIServerRole),
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
+		Role:        aws.String(v1alpha1.ValueAPIServerRole),
 	})
 
 	for _, sn := range s.scope.Subnets().FilterPublic() {
