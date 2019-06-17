@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	anyIPv4CidrBlock = "0.0.0.0/0"
+	anyIPv4CidrBlock       = "0.0.0.0/0"
 	mainRouteTableInVPCKey = "main"
 )
 
