@@ -202,6 +202,12 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 
 		// ... or if it has an internet route
 		rt := routeTables[*ec2sn.SubnetId]
+		if rt == nil {
+			// If there is no explicit association, subnet defaults to main route table as implicit association
+			if mainRt, ok := routeTables[mainRouteTableInVPCKey]; ok {
+				rt = mainRt
+			}
+		}
 		if rt != nil {
 			spec.RouteTableID = rt.RouteTableId
 			for _, route := range rt.Routes {
