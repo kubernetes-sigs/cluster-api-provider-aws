@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	awstags "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 var (
@@ -133,7 +133,7 @@ func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name st
 		input := &awstags.TagResourcesInput{
 			ResourceARNList: arns[i*maxARNs : end],
 			Tags: map[string]*string{
-				tags.ClusterKey(name): aws.String("owned"),
+				v1alpha1.ClusterTagKey(name): aws.String("owned"),
 			},
 		}
 

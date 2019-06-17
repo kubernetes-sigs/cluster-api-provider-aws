@@ -141,20 +141,20 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, err
 	return gateways, nil
 }
 
-func (s *Service) getNatGatewayTagParams(id string) tags.BuildParams {
+func (s *Service) getNatGatewayTagParams(id string) v1alpha1.BuildParams {
 	name := fmt.Sprintf("%s-nat", s.scope.Name())
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(tags.ValueCommonRole),
+		Role:        aws.String(v1alpha1.CommonRoleTagValue),
 	}
 }
 
 func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.getOrAllocateAddress(tags.ValueAPIServerRole)
+	ip, err := s.getOrAllocateAddress(v1alpha1.APIServerRoleTagValue)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}

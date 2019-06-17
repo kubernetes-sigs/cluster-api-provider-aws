@@ -19,14 +19,14 @@ package ec2
 import (
 	"fmt"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 func (s *Service) getOrAllocateAddress(role string) (string, error) {
@@ -58,10 +58,10 @@ func (s *Service) allocateAddress(role string) (string, error) {
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client: s.scope.EC2,
-		BuildParams: tags.BuildParams{
+		BuildParams: v1alpha1.BuildParams{
 			ClusterName: s.scope.Name(),
 			ResourceID:  *out.AllocationId,
-			Lifecycle:   tags.ResourceLifecycleOwned,
+			Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 			Name:        aws.String(name),
 			Role:        aws.String(role),
 		},

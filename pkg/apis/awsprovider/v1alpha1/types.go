@@ -23,7 +23,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -265,7 +264,7 @@ type SecurityGroup struct {
 	IngressRules IngressRules `json:"ingressRule"`
 
 	// Tags is a map of tags associated with the security group.
-	Tags tags.Map `json:"tags,omitempty"`
+	Tags Tags `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the security group.

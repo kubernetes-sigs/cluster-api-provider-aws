@@ -21,17 +21,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 // ApplyParams are function parameters used to apply tags on an aws resource.
 type ApplyParams struct {
-	BuildParams
+	v1alpha1.BuildParams
 	EC2Client ec2iface.EC2API
 }
 
 // Apply tags a resource with tags including the cluster tag.
 func Apply(params *ApplyParams) error {
-	tags := Build(params.BuildParams)
+	tags := v1alpha1.Build(params.BuildParams)
 
 	awsTags := make([]*ec2.Tag, 0, len(tags))
 	for k, v := range tags {
@@ -52,53 +53,10 @@ func Apply(params *ApplyParams) error {
 }
 
 // Ensure applies the tags if the current tags differ from the params.
-func Ensure(current Map, params *ApplyParams) error {
-	want := Build(params.BuildParams)
+func Ensure(current v1alpha1.Tags, params *ApplyParams) error {
+	want := v1alpha1.Build(params.BuildParams)
 	if !current.Equals(want) {
 		return Apply(params)
 	}
 	return nil
-}
-
-// BuildParams is used to build tags around an aws resource.
-type BuildParams struct {
-	// Lifecycle determines the resource lifecycle.
-	Lifecycle ResourceLifecycle
-
-	// ClusterName is the cluster associated with the resource.
-	ClusterName string
-
-	// ResourceID is the unique identifier of the resource to be tagged.
-	ResourceID string
-
-	// Name is the name of the resource, it's applied as the tag "Name" on AWS.
-	// +optional
-	Name *string
-
-	// Role is the role associated to the resource.
-	// +optional
-	Role *string
-
-	// Any additional tags to be added to the resource.
-	// +optional
-	Additional Map
-}
-
-// Build builds tags including the cluster tag and returns them in map form.
-func Build(params BuildParams) Map {
-	tags := make(Map)
-	for k, v := range params.Additional {
-		tags[k] = v
-	}
-
-	tags[ClusterKey(params.ClusterName)] = string(params.Lifecycle)
-	if params.Role != nil {
-		tags[NameAWSClusterAPIRole] = *params.Role
-	}
-
-	if params.Name != nil {
-		tags["Name"] = *params.Name
-	}
-
-	return tags
 }

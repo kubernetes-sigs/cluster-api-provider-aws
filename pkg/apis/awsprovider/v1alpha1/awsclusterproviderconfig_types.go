@@ -21,7 +21,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
-	tags "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 // +genclient
@@ -103,7 +102,7 @@ type VPCSpec struct {
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
-	Tags tags.Map `json:"tags,omitempty"`
+	Tags Tags `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the VPC.
@@ -141,7 +140,7 @@ type SubnetSpec struct {
 	NatGatewayID *string `json:"natGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
-	Tags tags.Map `json:"tags,omitempty"`
+	Tags Tags `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the subnet.

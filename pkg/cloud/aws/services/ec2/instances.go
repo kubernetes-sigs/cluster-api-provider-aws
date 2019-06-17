@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
@@ -138,13 +137,13 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		RootDeviceSize: machine.MachineConfig.RootDeviceSize,
 	}
 
-	input.Tags = tags.Build(tags.BuildParams{
+	input.Tags = v1alpha1.Build(v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(machine.Name()),
 		Role:        aws.String(machine.Role()),
-		Additional: tags.Map{
-			tags.ClusterAWSCloudProviderKey(s.scope.Name()): string(tags.ResourceLifecycleOwned),
+		Additional: v1alpha1.Tags{
+			v1alpha1.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(v1alpha1.ResourceLifecycleOwned),
 		},
 	})
 

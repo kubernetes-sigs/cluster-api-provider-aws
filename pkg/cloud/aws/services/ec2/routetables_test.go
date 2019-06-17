@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
@@ -49,8 +48,8 @@ func TestReconcileRouteTables(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					ID:                "vpc-routetables",
 					InternetGatewayID: aws.String("igw-01"),
-					Tags: tags.Map{
-						tags.ClusterKey("test-cluster"): "owned",
+					Tags: v1alpha1.Tags{
+						v1alpha1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: v1alpha1.Subnets{
@@ -118,8 +117,8 @@ func TestReconcileRouteTables(t *testing.T) {
 				VPC: v1alpha1.VPCSpec{
 					InternetGatewayID: aws.String("igw-01"),
 					ID:                "vpc-routetables",
-					Tags: tags.Map{
-						tags.ClusterKey("test-cluster"): "owned",
+					Tags: v1alpha1.Tags{
+						v1alpha1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: v1alpha1.Subnets{
