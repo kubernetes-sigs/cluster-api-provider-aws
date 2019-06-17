@@ -102,7 +102,7 @@ type VPCSpec struct {
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
-	Tags Map `json:"tags,omitempty"`
+	Tags Tags `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the VPC.
@@ -140,7 +140,7 @@ type SubnetSpec struct {
 	NatGatewayID *string `json:"natGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
-	Tags Map `json:"tags,omitempty"`
+	Tags Tags `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the subnet.

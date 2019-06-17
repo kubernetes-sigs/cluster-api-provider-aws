@@ -50,7 +50,7 @@ func TestReconcileSubnets(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						v1alpha1.ClusterKey("test-cluster"): "owned",
 					},
 				},
@@ -165,7 +165,7 @@ func TestReconcileSubnets(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						v1alpha1.ClusterKey("test-cluster"): "owned",
 					},
 				},
@@ -274,7 +274,7 @@ func TestReconcileSubnets(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						v1alpha1.ClusterKey("test-cluster"): "owned",
 					},
 				},
@@ -381,7 +381,7 @@ func TestReconcileSubnets(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						v1alpha1.ClusterKey("test-cluster"): "owned",
 					},
 				},
@@ -635,7 +635,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 					RouteTableID:     aws.String("rtb-1"),
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						"Name": "provided-subnet-public",
 					},
 				},
@@ -645,7 +645,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         false,
 					RouteTableID:     aws.String("rtb-2"),
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						"Name": "provided-subnet-private",
 					},
 				},

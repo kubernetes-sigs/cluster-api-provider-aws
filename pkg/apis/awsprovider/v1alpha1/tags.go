@@ -21,37 +21,37 @@ import (
 	"reflect"
 )
 
-// Map defines a map of tags.
-type Map map[string]string
+// Tags defines a map of tags.
+type Tags map[string]string
 
-// Equals returns true if the maps are equal.
-func (m Map) Equals(other Map) bool {
-	return reflect.DeepEqual(m, other)
+// Equals returns true if the tags are equal.
+func (t Tags) Equals(other Tags) bool {
+	return reflect.DeepEqual(t, other)
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of this management tooling.
-func (m Map) HasOwned(cluster string) bool {
-	value, ok := m[ClusterKey(cluster)]
+func (t Tags) HasOwned(cluster string) bool {
+	value, ok := t[ClusterKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of the in-tree cloud provider.
-func (m Map) HasAWSCloudProviderOwned(cluster string) bool {
-	value, ok := m[ClusterAWSCloudProviderKey(cluster)]
+func (t Tags) HasAWSCloudProviderOwned(cluster string) bool {
+	value, ok := t[ClusterAWSCloudProviderKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
 // GetRole returns the Cluster API role for the tagged resource
-func (m Map) GetRole() string {
-	return m[NameAWSClusterAPIRole]
+func (t Tags) GetRole() string {
+	return t[NameAWSClusterAPIRole]
 }
 
-// Difference returns the difference between this map and the other map.
+// Difference returns the difference between this map of tags and the other map of tags.
 // Items are considered equals if key and value are equals.
-func (m Map) Difference(other Map) Map {
-	res := make(Map, len(m))
+func (t Tags) Difference(other Tags) Tags {
+	res := make(Tags, len(t))
 
-	for key, value := range m {
+	for key, value := range t {
 		if otherValue, ok := other[key]; ok && value == otherValue {
 			continue
 		}
@@ -144,12 +144,12 @@ type BuildParams struct {
 
 	// Any additional tags to be added to the resource.
 	// +optional
-	Additional Map
+	Additional Tags
 }
 
 // Build builds tags including the cluster tag and returns them in map form.
-func Build(params BuildParams) Map {
-	tags := make(Map)
+func Build(params BuildParams) Tags {
+	tags := make(Tags)
 	for k, v := range params.Additional {
 		tags[k] = v
 	}

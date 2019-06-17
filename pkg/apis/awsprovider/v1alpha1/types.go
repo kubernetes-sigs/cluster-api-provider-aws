@@ -264,7 +264,7 @@ type SecurityGroup struct {
 	IngressRules IngressRules `json:"ingressRule"`
 
 	// Tags is a map of tags associated with the security group.
-	Tags Map `json:"tags,omitempty"`
+	Tags Tags `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the security group.

@@ -44,7 +44,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						v1alpha1.ClusterKey("test-cluster"): "owned",
 					},
 				},
@@ -74,7 +74,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
-					Tags: v1alpha1.Map{
+					Tags: v1alpha1.Tags{
 						v1alpha1.ClusterKey("test-cluster"): "owned",
 					},
 				},

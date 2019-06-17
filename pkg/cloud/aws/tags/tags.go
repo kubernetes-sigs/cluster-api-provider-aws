@@ -53,7 +53,7 @@ func Apply(params *ApplyParams) error {
 }
 
 // Ensure applies the tags if the current tags differ from the params.
-func Ensure(current v1alpha1.Map, params *ApplyParams) error {
+func Ensure(current v1alpha1.Tags, params *ApplyParams) error {
 	want := v1alpha1.Build(params.BuildParams)
 	if !current.Equals(want) {
 		return Apply(params)

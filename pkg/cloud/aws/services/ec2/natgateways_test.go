@@ -302,7 +302,7 @@ func TestReconcileNatGateways(t *testing.T) {
 				NetworkSpec: v1alpha1.NetworkSpec{
 					VPC: v1alpha1.VPCSpec{
 						ID: subnetsVPCID,
-						Tags: v1alpha1.Map{
+						Tags: v1alpha1.Tags{
 							v1alpha1.ClusterKey("test-cluster"): "owned",
 						},
 					},
