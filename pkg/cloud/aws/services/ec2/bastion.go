@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 const (
@@ -143,7 +142,7 @@ func (s *Service) getDefaultBastion() *v1alpha1.Instance {
 		SecurityGroupIDs: []string{
 			s.scope.Network().SecurityGroups[v1alpha1.SecurityGroupBastion].ID,
 		},
-		Tags: tags.Build(tags.BuildParams{
+		Tags: v1alpha1.Build(v1alpha1.BuildParams{
 			ClusterName: s.scope.Name(),
 			Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 			Name:        aws.String(name),

@@ -58,7 +58,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client: s.scope.EC2,
-		BuildParams: tags.BuildParams{
+		BuildParams: v1alpha1.BuildParams{
 			ClusterName: s.scope.Name(),
 			ResourceID:  *out.AllocationId,
 			Lifecycle:   v1alpha1.ResourceLifecycleOwned,

@@ -122,3 +122,46 @@ func ClusterKey(name string) string {
 func ClusterAWSCloudProviderKey(name string) string {
 	return fmt.Sprintf("%s%s", NameKubernetesAWSCloudProviderPrefix, name)
 }
+
+// BuildParams is used to build tags around an aws resource.
+type BuildParams struct {
+	// Lifecycle determines the resource lifecycle.
+	Lifecycle ResourceLifecycle
+
+	// ClusterName is the cluster associated with the resource.
+	ClusterName string
+
+	// ResourceID is the unique identifier of the resource to be tagged.
+	ResourceID string
+
+	// Name is the name of the resource, it's applied as the tag "Name" on AWS.
+	// +optional
+	Name *string
+
+	// Role is the role associated to the resource.
+	// +optional
+	Role *string
+
+	// Any additional tags to be added to the resource.
+	// +optional
+	Additional Map
+}
+
+// Build builds tags including the cluster tag and returns them in map form.
+func Build(params BuildParams) Map {
+	tags := make(Map)
+	for k, v := range params.Additional {
+		tags[k] = v
+	}
+
+	tags[ClusterKey(params.ClusterName)] = string(params.Lifecycle)
+	if params.Role != nil {
+		tags[NameAWSClusterAPIRole] = *params.Role
+	}
+
+	if params.Name != nil {
+		tags["Name"] = *params.Name
+	}
+
+	return tags
+}

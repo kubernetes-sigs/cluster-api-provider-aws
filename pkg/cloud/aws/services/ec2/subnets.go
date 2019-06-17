@@ -289,7 +289,7 @@ func (s *Service) deleteSubnet(id string) error {
 	return nil
 }
 
-func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
+func (s *Service) getSubnetTagParams(id string, public bool) v1alpha1.BuildParams {
 	var role string
 	if public {
 		role = v1alpha1.ValuePublicRole
@@ -302,7 +302,7 @@ func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
 	name.WriteString("-subnet-")
 	name.WriteString(role)
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,

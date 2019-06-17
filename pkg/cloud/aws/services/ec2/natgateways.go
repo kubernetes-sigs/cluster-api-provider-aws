@@ -141,10 +141,10 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, err
 	return gateways, nil
 }
 
-func (s *Service) getNatGatewayTagParams(id string) tags.BuildParams {
+func (s *Service) getNatGatewayTagParams(id string) v1alpha1.BuildParams {
 	name := fmt.Sprintf("%s-nat", s.scope.Name())
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,

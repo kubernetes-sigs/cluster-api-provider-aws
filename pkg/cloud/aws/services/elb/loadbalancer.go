@@ -21,16 +21,14 @@ import (
 	"reflect"
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 )
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
@@ -164,7 +162,7 @@ func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 		},
 	}
 
-	res.Tags = tags.Build(tags.BuildParams{
+	res.Tags = v1alpha1.Build(v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Role:        aws.String(v1alpha1.ValueAPIServerRole),

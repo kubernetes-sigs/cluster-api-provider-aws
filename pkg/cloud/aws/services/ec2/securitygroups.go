@@ -365,16 +365,16 @@ func (s *Service) getDefaultSecurityGroup(role v1alpha1.SecurityGroupRole) *ec2.
 	return &ec2.SecurityGroup{
 		GroupName: aws.String(name),
 		VpcId:     aws.String(s.scope.VPC().ID),
-		Tags:      converters.MapToTags(tags.Build(s.getSecurityGroupTagParams(name, "", role))),
+		Tags:      converters.MapToTags(v1alpha1.Build(s.getSecurityGroupTagParams(name, "", role))),
 	}
 }
 
-func (s *Service) getSecurityGroupTagParams(name string, id string, role v1alpha1.SecurityGroupRole) tags.BuildParams {
+func (s *Service) getSecurityGroupTagParams(name string, id string, role v1alpha1.SecurityGroupRole) v1alpha1.BuildParams {
 	additional := v1alpha1.Map{}
 	if role == v1alpha1.SecurityGroupLB {
 		additional[v1alpha1.ClusterAWSCloudProviderKey(s.scope.Name())] = string(v1alpha1.ResourceLifecycleOwned)
 	}
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name),

@@ -148,10 +148,10 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	return out.InternetGateways, nil
 }
 
-func (s *Service) getGatewayTagParams(id string) tags.BuildParams {
+func (s *Service) getGatewayTagParams(id string) v1alpha1.BuildParams {
 	name := fmt.Sprintf("%s-igw", s.scope.Name())
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,

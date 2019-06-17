@@ -246,7 +246,7 @@ func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
 	}
 }
 
-func (s *Service) getRouteTableTagParams(id string, public bool) tags.BuildParams {
+func (s *Service) getRouteTableTagParams(id string, public bool) v1alpha1.BuildParams {
 	var name strings.Builder
 
 	name.WriteString(s.scope.Name())
@@ -257,7 +257,7 @@ func (s *Service) getRouteTableTagParams(id string, public bool) tags.BuildParam
 		name.WriteString("private")
 	}
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,

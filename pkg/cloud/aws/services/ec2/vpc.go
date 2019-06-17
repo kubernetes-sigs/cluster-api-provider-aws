@@ -129,7 +129,7 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 	return &v1alpha1.VPCSpec{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
-		Tags:      tags.Build(tagParams),
+		Tags:      v1alpha1.Build(tagParams),
 	}, nil
 }
 
@@ -202,10 +202,10 @@ func (s *Service) describeVPC() (*v1alpha1.VPCSpec, error) {
 	}, nil
 }
 
-func (s *Service) getVPCTagParams(id string) tags.BuildParams {
+func (s *Service) getVPCTagParams(id string) v1alpha1.BuildParams {
 	name := fmt.Sprintf("%s-vpc", s.scope.Name())
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
