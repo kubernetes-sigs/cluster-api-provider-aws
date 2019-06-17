@@ -42,7 +42,7 @@ type ec2Filters struct{}
 func (ec2Filters) Cluster(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
-		Values: aws.StringSlice([]string{v1alpha1.ClusterKey(clusterName)}),
+		Values: aws.StringSlice([]string{v1alpha1.ClusterTagKey(clusterName)}),
 	}
 }
 
@@ -58,7 +58,7 @@ func (ec2Filters) Name(name string) *ec2.Filter {
 // the resource is owned
 func (ec2Filters) ClusterOwned(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", v1alpha1.ClusterKey(clusterName))),
+		Name:   aws.String(fmt.Sprintf("tag:%s", v1alpha1.ClusterTagKey(clusterName))),
 		Values: aws.StringSlice([]string{string(v1alpha1.ResourceLifecycleOwned)}),
 	}
 }
@@ -67,7 +67,7 @@ func (ec2Filters) ClusterOwned(clusterName string) *ec2.Filter {
 // the resource is shared.
 func (ec2Filters) ClusterShared(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", v1alpha1.ClusterKey(clusterName))),
+		Name:   aws.String(fmt.Sprintf("tag:%s", v1alpha1.ClusterTagKey(clusterName))),
 		Values: aws.StringSlice([]string{string(v1alpha1.ResourceLifecycleShared)}),
 	}
 }

@@ -31,13 +31,13 @@ func (t Tags) Equals(other Tags) bool {
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of this management tooling.
 func (t Tags) HasOwned(cluster string) bool {
-	value, ok := t[ClusterKey(cluster)]
+	value, ok := t[ClusterTagKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of the in-tree cloud provider.
 func (t Tags) HasAWSCloudProviderOwned(cluster string) bool {
-	value, ok := t[ClusterAWSCloudProviderKey(cluster)]
+	value, ok := t[ClusterAWSCloudProviderTagKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
@@ -113,13 +113,13 @@ const (
 	ValuePrivateRole = "private"
 )
 
-// ClusterKey generates the key for resources associated with a cluster.
-func ClusterKey(name string) string {
+// ClusterTagKey generates the key for resources associated with a cluster.
+func ClusterTagKey(name string) string {
 	return fmt.Sprintf("%s%s", NameAWSProviderOwned, name)
 }
 
-// ClusterAWSCloudProviderKey generates the key for resources associated a cluster's AWS cloud provider.
-func ClusterAWSCloudProviderKey(name string) string {
+// ClusterAWSCloudProviderTagKey generates the key for resources associated a cluster's AWS cloud provider.
+func ClusterAWSCloudProviderTagKey(name string) string {
 	return fmt.Sprintf("%s%s", NameKubernetesAWSCloudProviderPrefix, name)
 }
 
@@ -154,7 +154,7 @@ func Build(params BuildParams) Tags {
 		tags[k] = v
 	}
 
-	tags[ClusterKey(params.ClusterName)] = string(params.Lifecycle)
+	tags[ClusterTagKey(params.ClusterName)] = string(params.Lifecycle)
 	if params.Role != nil {
 		tags[NameAWSClusterAPIRole] = *params.Role
 	}

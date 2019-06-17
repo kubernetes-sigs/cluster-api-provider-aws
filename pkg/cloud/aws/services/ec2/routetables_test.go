@@ -49,7 +49,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					ID:                "vpc-routetables",
 					InternetGatewayID: aws.String("igw-01"),
 					Tags: v1alpha1.Tags{
-						v1alpha1.ClusterKey("test-cluster"): "owned",
+						v1alpha1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: v1alpha1.Subnets{
@@ -118,7 +118,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					InternetGatewayID: aws.String("igw-01"),
 					ID:                "vpc-routetables",
 					Tags: v1alpha1.Tags{
-						v1alpha1.ClusterKey("test-cluster"): "owned",
+						v1alpha1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: v1alpha1.Subnets{

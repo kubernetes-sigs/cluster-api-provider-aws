@@ -133,7 +133,7 @@ func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name st
 		input := &awstags.TagResourcesInput{
 			ResourceARNList: arns[i*maxARNs : end],
 			Tags: map[string]*string{
-				v1alpha1.ClusterKey(name): aws.String("owned"),
+				v1alpha1.ClusterTagKey(name): aws.String("owned"),
 			},
 		}
 

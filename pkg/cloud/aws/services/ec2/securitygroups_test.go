@@ -48,7 +48,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					ID:                "vpc-securitygroups",
 					InternetGatewayID: aws.String("igw-01"),
 					Tags: v1alpha1.Tags{
-						v1alpha1.ClusterKey("test-cluster"): "owned",
+						v1alpha1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
 				Subnets: v1alpha1.Subnets{
