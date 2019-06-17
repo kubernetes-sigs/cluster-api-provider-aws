@@ -149,12 +149,12 @@ func (s *Service) getNatGatewayTagParams(id string) v1alpha1.BuildParams {
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(v1alpha1.ValueCommonRole),
+		Role:        aws.String(v1alpha1.CommonRoleTagValue),
 	}
 }
 
 func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.getOrAllocateAddress(v1alpha1.ValueAPIServerRole)
+	ip, err := s.getOrAllocateAddress(v1alpha1.APIServerRoleTagValue)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}

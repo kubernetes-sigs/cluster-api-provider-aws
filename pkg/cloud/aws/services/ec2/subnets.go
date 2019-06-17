@@ -196,7 +196,7 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 		}
 
 		// A subnet is public if it's tagged as such...
-		if spec.Tags.GetRole() == v1alpha1.ValuePublicRole {
+		if spec.Tags.GetRole() == v1alpha1.PublicRoleTagValue {
 			spec.IsPublic = true
 		}
 
@@ -292,9 +292,9 @@ func (s *Service) deleteSubnet(id string) error {
 func (s *Service) getSubnetTagParams(id string, public bool) v1alpha1.BuildParams {
 	var role string
 	if public {
-		role = v1alpha1.ValuePublicRole
+		role = v1alpha1.PublicRoleTagValue
 	} else {
-		role = v1alpha1.ValuePrivateRole
+		role = v1alpha1.PrivateRoleTagValue
 	}
 
 	var name strings.Builder

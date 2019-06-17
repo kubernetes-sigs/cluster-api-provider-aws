@@ -97,20 +97,20 @@ const (
 	// dedicated to this cluster api provider implementation.
 	NameAWSClusterAPIRole = NameAWSProviderPrefix + "role"
 
-	// ValueAPIServerRole describes the value for the apiserver role
-	ValueAPIServerRole = "apiserver"
+	// APIServerRoleTagValue describes the value for the apiserver role
+	APIServerRoleTagValue = "apiserver"
 
-	// ValueBastionRole describes the value for the bastion role
-	ValueBastionRole = "bastion"
+	// BastionRoleTagValue describes the value for the bastion role
+	BastionRoleTagValue = "bastion"
 
-	// ValueCommonRole describes the value for the common role
-	ValueCommonRole = "common"
+	// CommonRoleTagValue describes the value for the common role
+	CommonRoleTagValue = "common"
 
-	// ValuePublicRole describes the value for the public role
-	ValuePublicRole = "public"
+	// PublicRoleTagValue describes the value for the public role
+	PublicRoleTagValue = "public"
 
-	// ValuePrivateRole describes the value for the private role
-	ValuePrivateRole = "private"
+	// PrivateRoleTagValue describes the value for the private role
+	PrivateRoleTagValue = "private"
 )
 
 // ClusterTagKey generates the key for resources associated with a cluster.

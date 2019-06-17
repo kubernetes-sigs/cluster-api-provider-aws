@@ -210,6 +210,6 @@ func (s *Service) getVPCTagParams(id string) v1alpha1.BuildParams {
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(v1alpha1.ValueCommonRole),
+		Role:        aws.String(v1alpha1.CommonRoleTagValue),
 	}
 }

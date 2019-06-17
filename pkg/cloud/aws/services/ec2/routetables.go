@@ -262,6 +262,6 @@ func (s *Service) getRouteTableTagParams(id string, public bool) v1alpha1.BuildP
 		ResourceID:  id,
 		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
-		Role:        aws.String(v1alpha1.ValueCommonRole),
+		Role:        aws.String(v1alpha1.CommonRoleTagValue),
 	}
 }
