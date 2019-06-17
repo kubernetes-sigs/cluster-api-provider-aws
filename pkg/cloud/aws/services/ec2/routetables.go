@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	anyIPv4CidrBlock = "0.0.0.0/0"
+	anyIPv4CidrBlock       = "0.0.0.0/0"
+	mainRouteTableInVPCKey = "main"
 )
 
 func (s *Service) reconcileRouteTables() error {
@@ -109,6 +110,9 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 	res := make(map[string]*ec2.RouteTable)
 	for _, rt := range rts {
 		for _, as := range rt.Associations {
+			if as.Main != nil && *as.Main {
+				res[mainRouteTableInVPCKey] = rt
+			}
 			if as.SubnetId == nil {
 				continue
 			}
