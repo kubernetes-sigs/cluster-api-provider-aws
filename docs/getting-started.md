@@ -64,6 +64,7 @@ administrator user you need to set your environment variables:
 * `AWS_REGION`
 * `AWS_ACCESS_KEY_ID`
 * `AWS_SECRET_ACCESS_KEY`
+* `AWS_SESSION_TOKEN` (if you are using Multi-factor authentication)
 
 After these are set run this command to get you up and running:
 
