@@ -34,15 +34,24 @@ controller_gen(
     visibility = ["//visibility:public"],
 )
 
-# Produces a provider components manifest without image versioning
-# To be used as a base for release and developer manifests
+filegroup(
+    name = "kustomize-yaml",
+    srcs = glob([
+        "crds/*.yaml",
+        "rbac/*.yaml",
+        "manager/*.yaml",
+        "default/*.yaml",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
 genrule(
     name = "provider-non-stamped-base",
     srcs = [
-        "//config/default:kustomization.yaml",
-        "//config/default:rbac_role_binding_patch.yaml",
-        "//config/manager:manager.yaml",
+        "//config:default/rbac_role_binding_patch.yaml",
         "config",
+        "//config:default/kustomization.yaml",
+        ":kustomize-yaml",
         "//:WORKSPACE",
     ],
     outs = ["provider-non-stamped-base.yaml"],
@@ -50,6 +59,8 @@ genrule(
         "CONFIG_SRCDIR=$$(dirname $(location //:WORKSPACE))/config",
         "cp -R $$CONFIG_SRCDIR/default $(@D)/default",
         "cp -R $$CONFIG_SRCDIR/manager $(@D)/manager",
+        "cp -R $$CONFIG_SRCDIR/crds $(@D)/",
+        "cp -R $$CONFIG_SRCDIR/rbac $(@D)/",
         "$(location %s) build $(@D)/default > $@" % KUSTOMIZE,
     ]),
     tools = [KUSTOMIZE],
