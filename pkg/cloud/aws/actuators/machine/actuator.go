@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/tokens"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
@@ -282,8 +283,10 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 	default:
 		a.log.Info("Terminating machine")
 		if err := ec2svc.TerminateInstance(instance.ID); err != nil {
+			record.Warnf(machine, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
 			return errors.Errorf("failed to terminate instance: %+v", err)
 		}
+		record.Eventf(machine, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
 	}
 
 	return nil

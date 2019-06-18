@@ -388,7 +388,6 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		return nil, err
 	}
 
-	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
 	return out, nil
 }
 
@@ -432,7 +431,6 @@ func (s *Service) TerminateInstance(instanceID string) error {
 	}
 
 	s.scope.V(2).Info("Terminated instance", "instance-id", instanceID)
-	record.Eventf(s.scope.Cluster, "DeletedInstance", "Terminated instance %q", instanceID)
 	return nil
 }
 
@@ -499,7 +497,17 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 		return instance, nil
 	}
 
-	return s.createInstance(machine, bootstrapToken)
+	instance, err = s.createInstance(machine, bootstrapToken)
+	if err != nil {
+		// Only record the failure event if the error is not related to failed dependencies.
+		// This is to avoid spamming failure events since the machine will be requeued by the actuator.
+		if !awserrors.IsFailedDependency(errors.Cause(err)) {
+			record.Warnf(machine.Machine, "FailedCreate", "Failed to create instance: %v", err)
+		}
+		return nil, err
+	}
+	record.Eventf(machine.Machine, "SuccessfulCreate", "Created new %s instance with id %q", machine.Role(), instance.ID)
+	return instance, nil
 }
 
 func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
