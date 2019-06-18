@@ -42,7 +42,7 @@ exports_files([
     "cluster-network-spec.yaml.template",
     "generate-yaml.sh",
     "machines.yaml.template",
-    "machines-ha.yaml.template",
+    "controlplane-machines-ha.yaml.template",
     "machine-deployment.yaml.template",
 ])
 
@@ -53,7 +53,7 @@ pkg_tar(
         "cluster.yaml.template",
         "cluster-network-spec.yaml.template",
         "generate-yaml.sh",
-        "machines-ha.yaml.template",
+        "controlplane-machines-ha.yaml.template",
         "machines.yaml.template",
         "machine-deployment.yaml.template",
         "provider-components-base.yaml",
@@ -64,7 +64,7 @@ pkg_tar(
         "cluster.yaml.template": "0644",
         "cluster-network-spec.yaml.template": "0644",
         "generate-yaml.sh": "0755",
-        "machines-ha.yaml.template": "0644",
+        "controlplane-machines-ha.yaml.template": "0644",
         "machines.yaml.template": "0644",
         "machine-deployment.yaml.template": "0644",
         "provider-components-base.yaml": "0644",
