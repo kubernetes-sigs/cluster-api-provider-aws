@@ -21,7 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
 
 const (
@@ -42,7 +42,7 @@ type ec2Filters struct{}
 func (ec2Filters) Cluster(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterNameTagKey),
-		Values: aws.StringSlice([]string{tags.ClusterKey(clusterName)}),
+		Values: aws.StringSlice([]string{v1alpha1.ClusterTagKey(clusterName)}),
 	}
 }
 
@@ -58,8 +58,8 @@ func (ec2Filters) Name(name string) *ec2.Filter {
 // the resource is owned
 func (ec2Filters) ClusterOwned(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", tags.ClusterKey(clusterName))),
-		Values: aws.StringSlice([]string{string(tags.ResourceLifecycleOwned)}),
+		Name:   aws.String(fmt.Sprintf("tag:%s", v1alpha1.ClusterTagKey(clusterName))),
+		Values: aws.StringSlice([]string{string(v1alpha1.ResourceLifecycleOwned)}),
 	}
 }
 
@@ -67,15 +67,15 @@ func (ec2Filters) ClusterOwned(clusterName string) *ec2.Filter {
 // the resource is shared.
 func (ec2Filters) ClusterShared(clusterName string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", tags.ClusterKey(clusterName))),
-		Values: aws.StringSlice([]string{string(tags.ResourceLifecycleShared)}),
+		Name:   aws.String(fmt.Sprintf("tag:%s", v1alpha1.ClusterTagKey(clusterName))),
+		Values: aws.StringSlice([]string{string(v1alpha1.ResourceLifecycleShared)}),
 	}
 }
 
 // ProviderRole returns a filter using cluster-api-provider-aws role tag.
 func (ec2Filters) ProviderRole(role string) *ec2.Filter {
 	return &ec2.Filter{
-		Name:   aws.String(fmt.Sprintf("tag:%s", tags.NameAWSClusterAPIRole)),
+		Name:   aws.String(fmt.Sprintf("tag:%s", v1alpha1.NameAWSClusterAPIRole)),
 		Values: aws.StringSlice([]string{role}),
 	}
 }

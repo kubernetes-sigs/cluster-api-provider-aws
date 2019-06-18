@@ -39,7 +39,7 @@ func TestInitConfiguration(t *testing.T) {
 			},
 			options: []kubeadm.InitConfigurationOption{
 				kubeadm.WithNodeRegistrationOptions(
-					kubeadm.NewNodeRegistration(),
+					kubeadm.SetNodeRegistrationOptions(&kubeadmv1beta1.NodeRegistrationOptions{}),
 				),
 			},
 		},

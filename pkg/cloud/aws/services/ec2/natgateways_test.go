@@ -19,8 +19,6 @@ package ec2
 import (
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
@@ -304,8 +302,8 @@ func TestReconcileNatGateways(t *testing.T) {
 				NetworkSpec: v1alpha1.NetworkSpec{
 					VPC: v1alpha1.VPCSpec{
 						ID: subnetsVPCID,
-						Tags: tags.Map{
-							tags.ClusterKey("test-cluster"): "owned",
+						Tags: v1alpha1.Tags{
+							v1alpha1.ClusterTagKey("test-cluster"): "owned",
 						},
 					},
 					Subnets: tc.input,

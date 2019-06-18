@@ -38,8 +38,10 @@ CLUSTER_NETWORKSPEC_TEMPLATE_FILE=${DIR}/cluster-network-spec.yaml.template
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 MACHINES_TEMPLATE_FILE=${DIR}/machines.yaml.template
 MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines.yaml
-HA_MACHINES_TEMPLATE_FILE=${DIR}/machines-ha.yaml.template
-HA_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machines-ha.yaml
+CONTROLPLANE_MACHINES_HA_TEMPLATE_FILE=${DIR}/controlplane-machines-ha.yaml.template
+CONTROLPLANE_MACHINES_HA_GENERATED_FILE=${OUTPUT_DIR}/controlplane-machines-ha.yaml
+CONTROLPLANE_MACHINE_TEMPLATE_FILE=${DIR}/controlplane-machine.yaml.template
+CONTROLPLANE_MACHINE_GENERATED_FILE=${OUTPUT_DIR}/controlplane-machine.yaml
 DEPLOYMENT_MACHINES_TEMPLATE_FILE=${DIR}/machine-deployment.yaml.template
 DEPLOYMENT_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machine-deployment.yaml
 ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
@@ -77,18 +79,8 @@ while test $# -gt 0; do
         esac
 done
 
-if [ $OVERWRITE -ne 1 ] && [ -f $MACHINES_GENERATED_FILE ]; then
-  echo File $MACHINES_GENERATED_FILE already exists. Delete it manually before running this script.
-  exit 1
-fi
-
-if [ $OVERWRITE -ne 1 ] && [ -f $HA_MACHINES_GENERATED_FILE ]; then
-  echo File $HA_MACHINES_GENERATED_FILE already exists. Delete it manually before running this script.
-  exit 1
-fi
-
-if [ $OVERWRITE -ne 1 ] && [ -f $CLUSTER_GENERATED_FILE ]; then
-  echo File $CLUSTER_GENERATED_FILE already exists. Delete it manually before running this script.
+if [ $OVERWRITE -ne 1 ] && [ -d $OUTPUT_DIR ]; then
+  echo "ERR: Folder ${OUTPUT_DIR} already exists. Delete it manually before running this script."
   exit 1
 fi
 
@@ -105,8 +97,11 @@ fi
 $ENVSUBST < $MACHINES_TEMPLATE_FILE > "${MACHINES_GENERATED_FILE}"
 echo "Done generating ${MACHINES_GENERATED_FILE}"
 
-$ENVSUBST < $HA_MACHINES_TEMPLATE_FILE > "${HA_MACHINES_GENERATED_FILE}"
-echo "Done generating ${HA_MACHINES_GENERATED_FILE}"
+$ENVSUBST < $CONTROLPLANE_MACHINES_HA_TEMPLATE_FILE > "${CONTROLPLANE_MACHINES_HA_GENERATED_FILE}"
+echo "Done generating ${CONTROLPLANE_MACHINES_HA_GENERATED_FILE}"
+
+$ENVSUBST < $CONTROLPLANE_MACHINE_TEMPLATE_FILE > "${CONTROLPLANE_MACHINE_GENERATED_FILE}"
+echo "Done generating ${CONTROLPLANE_MACHINE_GENERATED_FILE}"
 
 $ENVSUBST < $DEPLOYMENT_MACHINES_TEMPLATE_FILE > "${DEPLOYMENT_MACHINES_GENERATED_FILE}"
 echo "Done generating ${DEPLOYMENT_MACHINES_GENERATED_FILE}"

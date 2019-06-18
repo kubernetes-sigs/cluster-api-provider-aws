@@ -12,5 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-containerd_version: "1.2.5"
-containerd_sha256: "40300c61ab44bd39a2440c5eedb8ac573d8b8d848acbad5efa0bc214cffb422b"
+containerd_version: "1.2.6"
+containerd_sha256: "841bdd6965d43b118a4fe3b8b757cc2453b67356af3684fc3ef25f60688a199d"

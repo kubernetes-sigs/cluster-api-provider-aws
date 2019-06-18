@@ -45,12 +45,14 @@ This provider's versions are compatible with the following versions of Cluster A
 ||Cluster API v1alpha1 (v0.1)|
 |-|-|
 |AWS Provider v1alpha1 (v0.2)|✓|
+|AWS Provider v1alpha1 (v0.3)|✓|
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
 ||Kubernetes 1.13|Kubernetes 1.14|
 |-|-|-|
 |AWS Provider v1alpha1 (v0.2)|✓|✓|
+|AWS Provider v1alpha1 (v0.3)|✓|✓|
 
 Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.2`
 may support Kubernetes 1.13 and Kubernetes 1.14.
@@ -69,8 +71,11 @@ Note: These AMIs are not updated for security fixes and it is recommended to alw
 | v1.13                    | v1.13.3                 |
 |                          | v1.13.5                 |
 |                          | v1.13.6                 |
+|                          | v1.13.7                 |
 | v1.14                    | v1.14.0                 |
 |                          | v1.14.1                 |
+|                          | v1.14.2                 |
+|                          | v1.14.3                 |
 
 ------
 
@@ -150,7 +155,7 @@ and/or other countries."
 [slack]: https://kubernetes.slack.com/messages/CD6U2V71N
 [good_first_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22
 [gcal]: https://calendar.google.com/calendar/embed?src=cgnt364vd8s86hr2phapfjc6uk%40group.calendar.google.com
-[prow]: https://github.com/kubernetes/test-infra/blob/master/commands.md
+[prow]: https://go.k8s.io/bot-commands
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
 [slack_info]: https://github.com/kubernetes/community/blob/master/communication.md#social-media
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api

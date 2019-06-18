@@ -7,7 +7,7 @@ This directory contains tooling for building base images for use as nodes in Kub
 ### Prerequisites for all images
 
 - [Packer](https://www.packer.io/intro/getting-started/install.html)
-- [Ansible](http://docs.ansible.com/ansible/latest/intro_installation.html) version >= 2.4.0.0
+- [Ansible](http://docs.ansible.com/ansible/latest/intro_installation.html) version >= 2.8.0
 - [goss](https://github.com/YaleUniversity/packer-provisioner-goss)
 
 #### Installing the goss plugin

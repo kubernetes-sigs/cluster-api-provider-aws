@@ -15,6 +15,8 @@
 - name: add epel repo
   yum:
     name: "{{ common_redhat_epel_rpm }}"
+    state: present
+    lock_timeout: 60
 
 - name: add cloud-init copr repo
   get_url:
@@ -32,14 +34,19 @@
   yum:
     name: '*'
     state: latest
+    lock_timeout: 60
 
 - name: install baseline dependencies
   yum:
     name: "{{ common_rpms }}"
+    state: present
+    lock_timeout: 60
 
 - name: install extra rpms
   yum:
     name: "{{ common_extra_rpms }}"
+    state: present
+    lock_timeout: 60
 
 - name: configure cloud-init on amazon-linux
   copy:

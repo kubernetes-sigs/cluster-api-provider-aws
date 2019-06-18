@@ -24,7 +24,8 @@
   - [Creating a cluster](#creating-a-cluster)
 - [Using the cluster](#using-the-cluster)
 - [Troubleshooting](#troubleshooting)
-- [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-arent-being-created)
+  - [Bootstrap running, but resources aren't being created](#bootstrap-running-but-resources-arent-being-created)
+  - [Target cluster's control plane machine is up but target cluster's apiserver not working as expected](#target-clusters-control-plane-machine-is-up-but-target-clusters-apiserver-not-working-as-expected)
 
 <!-- /TOC -->
 
@@ -51,10 +52,6 @@ Get the latest [release of `clusterctl` and
 `clusterawsadm`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases)
 and place them in your path.
 
-If you prefer to build the latest version from master you can use `go get
-sigs.k8s.io/cluster-api-provider-aws/...` – the trailing `...` will ask for both
-`clusterctl` and `clusterawsadm` to be built.
-
 ### Setting up AWS
 
 #### `clusterawsadm`
@@ -67,6 +64,7 @@ administrator user you need to set your environment variables:
 * `AWS_REGION`
 * `AWS_ACCESS_KEY_ID`
 * `AWS_SECRET_ACCESS_KEY`
+* `AWS_SESSION_TOKEN` (if you are using Multi-factor authentication)
 
 After these are set run this command to get you up and running:
 

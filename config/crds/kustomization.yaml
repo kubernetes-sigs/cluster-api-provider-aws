@@ -1,0 +1,10 @@
+# Each entry in this list must resolve to an existing
+# resource definition in YAML.  These are the resource
+# files that kustomize reads, modifies and emits as a
+# YAML string, with resources separated by document
+# markers ("---").
+resources:
+  - awsprovider_v1alpha1_awsclusterproviderspec.yaml
+  - awsprovider_v1alpha1_awsclusterproviderstatus.yaml
+  - awsprovider_v1alpha1_awsmachineproviderspec.yaml
+  - awsprovider_v1alpha1_awsmachineproviderstatus.yaml

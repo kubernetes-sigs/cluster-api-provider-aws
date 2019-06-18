@@ -80,11 +80,11 @@ func NewActuator(params ActuatorParams) *Actuator {
 	}
 }
 
-// GetControlPlaneMachines retrieves all control plane nodes from a MachineList
+// GetControlPlaneMachines retrieves all non-deleted control plane nodes from a MachineList
 func GetControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Machine {
 	var cpm []*clusterv1.Machine
 	for _, m := range machineList.Items {
-		if m.Spec.Versions.ControlPlane != "" {
+		if m.DeletionTimestamp.IsZero() && m.Spec.Versions.ControlPlane != "" {
 			cpm = append(cpm, m.DeepCopy())
 		}
 	}
@@ -187,12 +187,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		}
 	}
 
-	kubeConfig, err := a.GetKubeConfig(cluster, nil)
-	if err != nil {
-		return errors.Wrapf(err, "failed to retrieve kubeconfig while creating machine %q", machine.Name)
-	}
-
-	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken, kubeConfig)
+	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
 	if err != nil {
 		if awserrors.IsFailedDependency(errors.Cause(err)) {
 			a.log.Error(err, "network not ready to launch instances yet")

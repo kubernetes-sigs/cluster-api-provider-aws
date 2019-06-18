@@ -1,4 +1,5 @@
-# Copyright 2019 The Kubernetes Authors.
+#!/usr/bin/env bash
+# Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-exports_files(
-    [
-        "manager.yaml",
-    ],
-    visibility = ["//visibility:public"],
-)
+set -o errexit
+set -o nounset
+set -o pipefail
+
+export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
+
+cd $KUBE_ROOT
+
+pushd docs/book/
+npm install gitbook-cli -g
+npm install phantomjs-prebuilt
+npm ci
+gitbook install
+gitbook build
+popd

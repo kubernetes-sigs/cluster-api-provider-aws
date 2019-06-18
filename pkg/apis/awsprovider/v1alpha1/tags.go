@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,43 +14,44 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tags
+package v1alpha1
 
 import (
+	"fmt"
 	"reflect"
 )
 
-// Map defines a map of tags.
-type Map map[string]string
+// Tags defines a map of tags.
+type Tags map[string]string
 
-// Equals returns true if the maps are equal.
-func (m Map) Equals(other Map) bool {
-	return reflect.DeepEqual(m, other)
+// Equals returns true if the tags are equal.
+func (t Tags) Equals(other Tags) bool {
+	return reflect.DeepEqual(t, other)
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of this management tooling.
-func (m Map) HasOwned(cluster string) bool {
-	value, ok := m[ClusterKey(cluster)]
+func (t Tags) HasOwned(cluster string) bool {
+	value, ok := t[ClusterTagKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
 // HasOwned returns true if the tags contains a tag that marks the resource as owned by the cluster from the perspective of the in-tree cloud provider.
-func (m Map) HasAWSCloudProviderOwned(cluster string) bool {
-	value, ok := m[ClusterAWSCloudProviderKey(cluster)]
+func (t Tags) HasAWSCloudProviderOwned(cluster string) bool {
+	value, ok := t[ClusterAWSCloudProviderTagKey(cluster)]
 	return ok && ResourceLifecycle(value) == ResourceLifecycleOwned
 }
 
 // GetRole returns the Cluster API role for the tagged resource
-func (m Map) GetRole() string {
-	return m[NameAWSClusterAPIRole]
+func (t Tags) GetRole() string {
+	return t[NameAWSClusterAPIRole]
 }
 
-// Difference returns the difference between this map and the other map.
+// Difference returns the difference between this map of tags and the other map of tags.
 // Items are considered equals if key and value are equals.
-func (m Map) Difference(other Map) Map {
-	res := make(Map, len(m))
+func (t Tags) Difference(other Tags) Tags {
+	res := make(Tags, len(t))
 
-	for key, value := range m {
+	for key, value := range t {
 		if otherValue, ok := other[key]; ok && value == otherValue {
 			continue
 		}
@@ -96,18 +97,71 @@ const (
 	// dedicated to this cluster api provider implementation.
 	NameAWSClusterAPIRole = NameAWSProviderPrefix + "role"
 
-	// ValueAPIServerRole describes the value for the apiserver role
-	ValueAPIServerRole = "apiserver"
+	// APIServerRoleTagValue describes the value for the apiserver role
+	APIServerRoleTagValue = "apiserver"
 
-	// ValueBastionRole describes the value for the bastion role
-	ValueBastionRole = "bastion"
+	// BastionRoleTagValue describes the value for the bastion role
+	BastionRoleTagValue = "bastion"
 
-	// ValueCommonRole describes the value for the common role
-	ValueCommonRole = "common"
+	// CommonRoleTagValue describes the value for the common role
+	CommonRoleTagValue = "common"
 
-	// ValuePublicRole describes the value for the public role
-	ValuePublicRole = "public"
+	// PublicRoleTagValue describes the value for the public role
+	PublicRoleTagValue = "public"
 
-	// ValuePrivateRole describes the value for the private role
-	ValuePrivateRole = "private"
+	// PrivateRoleTagValue describes the value for the private role
+	PrivateRoleTagValue = "private"
 )
+
+// ClusterTagKey generates the key for resources associated with a cluster.
+func ClusterTagKey(name string) string {
+	return fmt.Sprintf("%s%s", NameAWSProviderOwned, name)
+}
+
+// ClusterAWSCloudProviderTagKey generates the key for resources associated a cluster's AWS cloud provider.
+func ClusterAWSCloudProviderTagKey(name string) string {
+	return fmt.Sprintf("%s%s", NameKubernetesAWSCloudProviderPrefix, name)
+}
+
+// BuildParams is used to build tags around an aws resource.
+type BuildParams struct {
+	// Lifecycle determines the resource lifecycle.
+	Lifecycle ResourceLifecycle
+
+	// ClusterName is the cluster associated with the resource.
+	ClusterName string
+
+	// ResourceID is the unique identifier of the resource to be tagged.
+	ResourceID string
+
+	// Name is the name of the resource, it's applied as the tag "Name" on AWS.
+	// +optional
+	Name *string
+
+	// Role is the role associated to the resource.
+	// +optional
+	Role *string
+
+	// Any additional tags to be added to the resource.
+	// +optional
+	Additional Tags
+}
+
+// Build builds tags including the cluster tag and returns them in map form.
+func Build(params BuildParams) Tags {
+	tags := make(Tags)
+	for k, v := range params.Additional {
+		tags[k] = v
+	}
+
+	tags[ClusterTagKey(params.ClusterName)] = string(params.Lifecycle)
+	if params.Role != nil {
+		tags[NameAWSClusterAPIRole] = *params.Role
+	}
+
+	if params.Name != nil {
+		tags["Name"] = *params.Name
+	}
+
+	return tags
+}

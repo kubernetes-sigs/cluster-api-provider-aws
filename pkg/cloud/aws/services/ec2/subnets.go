@@ -196,12 +196,16 @@ func (s *Service) describeVpcSubnets() (v1alpha1.Subnets, error) {
 		}
 
 		// A subnet is public if it's tagged as such...
-		if spec.Tags.GetRole() == tags.ValuePublicRole {
+		if spec.Tags.GetRole() == v1alpha1.PublicRoleTagValue {
 			spec.IsPublic = true
 		}
 
 		// ... or if it has an internet route
 		rt := routeTables[*ec2sn.SubnetId]
+		if rt == nil {
+			// If there is no explicit association, subnet defaults to main route table as implicit association
+			rt = routeTables[mainRouteTableInVPCKey]
+		}
 		if rt != nil {
 			spec.RouteTableID = rt.RouteTableId
 			for _, route := range rt.Routes {
@@ -289,12 +293,12 @@ func (s *Service) deleteSubnet(id string) error {
 	return nil
 }
 
-func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
+func (s *Service) getSubnetTagParams(id string, public bool) v1alpha1.BuildParams {
 	var role string
 	if public {
-		role = tags.ValuePublicRole
+		role = v1alpha1.PublicRoleTagValue
 	} else {
-		role = tags.ValuePrivateRole
+		role = v1alpha1.PrivateRoleTagValue
 	}
 
 	var name strings.Builder
@@ -302,10 +306,10 @@ func (s *Service) getSubnetTagParams(id string, public bool) tags.BuildParams {
 	name.WriteString("-subnet-")
 	name.WriteString(role)
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
 		Role:        aws.String(role),
 	}

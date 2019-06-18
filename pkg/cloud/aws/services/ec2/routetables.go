@@ -29,7 +29,8 @@ import (
 )
 
 const (
-	anyIPv4CidrBlock = "0.0.0.0/0"
+	anyIPv4CidrBlock       = "0.0.0.0/0"
+	mainRouteTableInVPCKey = "main"
 )
 
 func (s *Service) reconcileRouteTables() error {
@@ -109,6 +110,9 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 	res := make(map[string]*ec2.RouteTable)
 	for _, rt := range rts {
 		for _, as := range rt.Associations {
+			if as.Main != nil && *as.Main {
+				res[mainRouteTableInVPCKey] = rt
+			}
 			if as.SubnetId == nil {
 				continue
 			}
@@ -246,7 +250,7 @@ func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
 	}
 }
 
-func (s *Service) getRouteTableTagParams(id string, public bool) tags.BuildParams {
+func (s *Service) getRouteTableTagParams(id string, public bool) v1alpha1.BuildParams {
 	var name strings.Builder
 
 	name.WriteString(s.scope.Name())
@@ -257,11 +261,11 @@ func (s *Service) getRouteTableTagParams(id string, public bool) tags.BuildParam
 		name.WriteString("private")
 	}
 
-	return tags.BuildParams{
+	return v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
-		Role:        aws.String(tags.ValueCommonRole),
+		Role:        aws.String(v1alpha1.CommonRoleTagValue),
 	}
 }

@@ -23,7 +23,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -221,6 +220,16 @@ func (s Subnets) FilterPublic() (res Subnets) {
 	return
 }
 
+// FilterByZone returns a slice containing all subnets that live in the availability zone specified.
+func (s Subnets) FilterByZone(zone string) (res Subnets) {
+	for _, x := range s {
+		if x.AvailabilityZone == zone {
+			res = append(res, x)
+		}
+	}
+	return
+}
+
 // RouteTable defines an AWS routing table.
 type RouteTable struct {
 	ID string `json:"id"`
@@ -255,7 +264,7 @@ type SecurityGroup struct {
 	IngressRules IngressRules `json:"ingressRule"`
 
 	// Tags is a map of tags associated with the security group.
-	Tags tags.Map `json:"tags,omitempty"`
+	Tags Tags `json:"tags,omitempty"`
 }
 
 // String returns a string representation of the security group.

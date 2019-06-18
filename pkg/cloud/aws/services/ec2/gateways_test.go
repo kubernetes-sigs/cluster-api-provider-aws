@@ -19,8 +19,6 @@ package ec2
 import (
 	"testing"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
@@ -46,8 +44,8 @@ func TestReconcileInternetGateways(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
-					Tags: tags.Map{
-						tags.ClusterKey("test-cluster"): "owned",
+					Tags: v1alpha1.Tags{
+						v1alpha1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
 			},
@@ -76,8 +74,8 @@ func TestReconcileInternetGateways(t *testing.T) {
 			input: &v1alpha1.NetworkSpec{
 				VPC: v1alpha1.VPCSpec{
 					ID: "vpc-gateways",
-					Tags: tags.Map{
-						tags.ClusterKey("test-cluster"): "owned",
+					Tags: v1alpha1.Tags{
+						v1alpha1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
 			},

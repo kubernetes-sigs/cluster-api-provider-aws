@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
@@ -129,7 +128,7 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
 }
 
 // createInstance runs an ec2 instance.
-func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken, kubeConfig string) (*v1alpha1.Instance, error) {
+func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &v1alpha1.Instance{
@@ -138,13 +137,13 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		RootDeviceSize: machine.MachineConfig.RootDeviceSize,
 	}
 
-	input.Tags = tags.Build(tags.BuildParams{
+	input.Tags = v1alpha1.Build(v1alpha1.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   tags.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
 		Name:        aws.String(machine.Name()),
 		Role:        aws.String(machine.Role()),
-		Additional: tags.Map{
-			tags.ClusterAWSCloudProviderKey(s.scope.Name()): string(tags.ResourceLifecycleOwned),
+		Additional: v1alpha1.Tags{
+			v1alpha1.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(v1alpha1.ResourceLifecycleOwned),
 		},
 	})
 
@@ -159,10 +158,23 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 	}
 
-	// Pick subnet from the machine configuration, or default to the first private available.
+	// Pick subnet from the machine configuration, or based on the availability zone specified,
+	// or default to the first private subnet available.
+	// TODO(vincepri): Move subnet picking logic to its own function/method.
 	if machine.MachineConfig.Subnet != nil && machine.MachineConfig.Subnet.ID != nil {
 		input.SubnetID = *machine.MachineConfig.Subnet.ID
-	} else {
+	} else if machine.MachineConfig.AvailabilityZone != nil {
+		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*machine.MachineConfig.AvailabilityZone)
+		if len(sns) == 0 {
+			return nil, awserrors.NewFailedDependency(
+				errors.Errorf("failed to run machine %q, no subnets available in availaibility zone %q",
+					machine.Name(),
+					*machine.MachineConfig.AvailabilityZone,
+				),
+			)
+		}
+		input.SubnetID = sns[0].ID
+	} else if input.SubnetID == "" {
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
@@ -208,7 +220,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 					),
 				),
 				kubeadm.WithJoinNodeRegistrationOptions(
-					kubeadm.NewNodeRegistration(
+					kubeadm.SetNodeRegistrationOptions(
+						&machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
@@ -262,7 +275,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			kubeadm.SetInitConfigurationOptions(
 				&machine.MachineConfig.KubeadmConfiguration.Init,
 				kubeadm.WithNodeRegistrationOptions(
-					kubeadm.NewNodeRegistration(
+					kubeadm.SetNodeRegistrationOptions(
+						&machine.MachineConfig.KubeadmConfiguration.Init.NodeRegistration,
 						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
@@ -270,6 +284,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 					),
 				),
 			)
+
 			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
 			if err != nil {
 				return nil, err
@@ -307,7 +322,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				),
 			),
 			kubeadm.WithJoinNodeRegistrationOptions(
-				kubeadm.NewNodeRegistration(
+				kubeadm.SetNodeRegistrationOptions(
+					&machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
 					kubeadm.WithCRISocket(containerdSocket),
 					kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
@@ -444,7 +460,7 @@ func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken, kubeConfig string) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
 	s.scope.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
@@ -467,7 +483,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 		return instance, nil
 	}
 
-	return s.createInstance(machine, bootstrapToken, kubeConfig)
+	return s.createInstance(machine, bootstrapToken)
 }
 
 func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {

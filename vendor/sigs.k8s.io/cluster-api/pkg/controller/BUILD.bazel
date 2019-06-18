@@ -6,7 +6,7 @@ go_library(
         "add_machinedeployment.go",
         "add_machineset.go",
         "add_node.go",
-        "controller.go",
+        "noderef_controller.go",
     ],
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/pkg/controller",
     importpath = "sigs.k8s.io/cluster-api/pkg/controller",

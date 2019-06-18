@@ -23,7 +23,8 @@ aliases:
     - detiber
     - enxebre
     - ingvagabund
-    - randomvariable
     - vincepri
   cluster-api-aws-reviewers:
     - ashish-amarnath
+    - sethp-nr
+    - rudoi
