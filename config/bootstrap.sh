@@ -65,9 +65,8 @@ chown $(id -u):$(id -g) /root/.kube/config
 ######## Deploy machine-api plane
 ################################################
 
-git clone https://github.com/ingvagabund/cluster-api-provider-aws.git
+git clone https://github.com/openshift/cluster-api-provider-aws.git
 cd cluster-api-provider-aws
-git checkout k8s-bootstrap
 
 cat <<EOF > secret.yaml
 apiVersion: v1
