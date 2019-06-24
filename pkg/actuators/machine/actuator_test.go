@@ -493,6 +493,7 @@ func TestActuator(t *testing.T) {
 		},
 		{
 			name: "Delete machine failed (no running instances)",
+
 			describeInstancesOutput: &ec2.DescribeInstancesOutput{
 				Reservations: []*ec2.Reservation{
 					{
@@ -506,6 +507,7 @@ func TestActuator(t *testing.T) {
 		},
 		{
 			name: "Delete machine failed (error terminating instances)",
+
 			terminateInstancesErr: fmt.Errorf("error"),
 			operation: func(objectClient client.Client, actuator *Actuator, cluster *clusterv1.Cluster, machine *machinev1.Machine) {
 				actuator.Delete(context.TODO(), cluster, machine)
