@@ -1,12 +1,12 @@
 ---
-apiVersion: "cluster.k8s.io/v1alpha1"
+apiVersion: machine.openshift.io/v1beta1
 kind: Machine
 metadata:
   name: aws-actuator-testing-machine
   namespace: test
   generateName: vs-master-
   labels:
-    machine.openshift.io/cluster-api-cluster: tb-asg-35
+    machine.openshift.io/cluster-api-cluster: aws-actuator-k8s
 spec:
   metadata:
     labels:
@@ -14,7 +14,7 @@ spec:
       node-role.kubernetes.io/infra: ""
   providerSpec:
     value:
-      apiVersion: awsproviderconfig.k8s.io/v1alpha1
+      apiVersion: awsproviderconfig.openshift.io/v1beta1
       kind: AWSMachineProviderConfig
       ami:
         filters:
@@ -35,7 +35,7 @@ spec:
         filters:
           - name: "tag:Name"
             values:
-            - "{{ .ClusterID }}-worker-*"
+            - "aws-actuator-k8s-worker-*"
       iamInstanceProfile:
         id: openshift_master_launch_instances
       keyName: libra
@@ -50,7 +50,7 @@ spec:
         - filters:
             - name: "tag:Name"
               values:
-              - "{{ .ClusterID }}-*"
+              - "aws-actuator-k8s-*"
       publicIp: true
       userDataSecret:
         name: aws-actuator-user-data-secret
