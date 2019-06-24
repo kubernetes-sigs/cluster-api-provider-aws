@@ -7,17 +7,13 @@ import (
 	"io/ioutil"
 	"os/exec"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/ghodss/yaml"
 
 	apiv1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/openshift/cluster-api-actuator-pkg/pkg/e2e/framework"
-	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
@@ -52,20 +48,10 @@ func readMachineManifest(manifestParams *manifestParams, manifestLoc string) (*m
 	return machine, nil
 }
 
-func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*clusterv1.Cluster, *machinev1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
+func readClusterResources(manifestParams *manifestParams, machineLoc, awsCredentialSecretLoc, userDataLoc string) (*machinev1.Machine, *apiv1.Secret, *apiv1.Secret, error) {
 	machine, err := readMachineManifest(manifestParams, machineLoc)
 	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	cluster := &clusterv1.Cluster{}
-	bytes, err := ioutil.ReadFile(clusterLoc)
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
-	}
-
-	if err := yaml.Unmarshal(bytes, &cluster); err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("cluster manifest %q: %v", clusterLoc, err)
+		return nil, nil, nil, err
 	}
 
 	var awsCredentialsSecret *apiv1.Secret
@@ -73,11 +59,11 @@ func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc
 		awsCredentialsSecret = &apiv1.Secret{}
 		bytes, err := ioutil.ReadFile(awsCredentialSecretLoc)
 		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("aws credentials manifest %q: %v", awsCredentialSecretLoc, err)
+			return nil, nil, nil, fmt.Errorf("aws credentials manifest %q: %v", awsCredentialSecretLoc, err)
 		}
 
 		if err = yaml.Unmarshal(bytes, &awsCredentialsSecret); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("aws credentials manifest %q: %v", awsCredentialSecretLoc, err)
+			return nil, nil, nil, fmt.Errorf("aws credentials manifest %q: %v", awsCredentialSecretLoc, err)
 		}
 	}
 
@@ -86,28 +72,15 @@ func readClusterResources(manifestParams *manifestParams, clusterLoc, machineLoc
 		userDataSecret = &apiv1.Secret{}
 		bytes, err := ioutil.ReadFile(userDataLoc)
 		if err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("user data manifest %q: %v", userDataLoc, err)
+			return nil, nil, nil, fmt.Errorf("user data manifest %q: %v", userDataLoc, err)
 		}
 
 		if err = yaml.Unmarshal(bytes, &userDataSecret); err != nil {
-			return nil, nil, nil, nil, fmt.Errorf("user data manifest %q: %v", userDataLoc, err)
+			return nil, nil, nil, fmt.Errorf("user data manifest %q: %v", userDataLoc, err)
 		}
 	}
 
-	return cluster, machine, awsCredentialsSecret, userDataSecret, nil
-}
-
-func createSecretAndWait(f *framework.Framework, secret *apiv1.Secret) error {
-	_, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Create(secret)
-	if err != nil {
-		return err
-	}
-
-	err = wait.Poll(framework.PollInterval, framework.PoolTimeout, func() (bool, error) {
-		_, err := f.KubeClient.CoreV1().Secrets(secret.Namespace).Get(secret.Name, metav1.GetOptions{})
-		return err == nil, nil
-	})
-	return err
+	return machine, awsCredentialsSecret, userDataSecret, nil
 }
 
 // CreateActuator creates actuator with fake clientsets
