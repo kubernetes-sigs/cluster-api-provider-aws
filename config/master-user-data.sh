@@ -14,7 +14,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cl
 exclude=kube*
 EOF
 setenforce 0
-yum install -y kubelet-1.11.3 kubeadm-1.11.3 kubectl-1.11.3 --disableexcludes=kubernetes
+yum install -y kubelet-1.13.1 kubeadm-1.13.1 kubectl-1.13.1 --disableexcludes=kubernetes
 
 cat <<EOF > /etc/default/kubelet
 KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=systemd
@@ -26,6 +26,14 @@ kubeadm init --apiserver-bind-port 8443 --token 2iqzqm.85bs0x6miyx1nm7l --apiser
 
 # Enable networking by default.
 kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml --kubeconfig /etc/kubernetes/admin.conf
+
+# Binaries expected under /opt/cni/bin are actually under /usr/libexec/cni
+if [[ ! -e /opt/cni/bin ]]; then
+  mkdir -p /opt/cni/bin
+  cp /usr/libexec/cni/bridge /opt/cni/bin
+  cp /usr/libexec/cni/loopback /opt/cni/bin
+  cp /usr/libexec/cni/host-local /opt/cni/bin
+fi
 
 mkdir -p /root/.kube
 cp -i /etc/kubernetes/admin.conf /root/.kube/config

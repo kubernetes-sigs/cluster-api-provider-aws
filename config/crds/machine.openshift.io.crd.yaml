@@ -1,12 +1,35 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: machines.cluster.k8s.io
+  name: machines.machine.openshift.io
 spec:
-  group: cluster.k8s.io
+  additionalPrinterColumns:
+  - JSONPath: .status.providerStatus.instanceId
+    name: Instance
+    description: Instance ID of machine created in AWS
+    type: string
+  - JSONPath: .status.providerStatus.instanceState
+    name: State
+    description: State of the AWS instance
+    type: string
+  - JSONPath: .spec.providerSpec.value.instanceType
+    name: Type
+    description: Type of instance
+    type: string
+  - JSONPath: .spec.providerSpec.value.placement.region
+    name: Region
+    description: Region associated with machine
+    type: string
+  - JSONPath: .spec.providerSpec.value.placement.availabilityZone
+    name: Zone
+    description: Zone associated with machine
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+  group: machine.openshift.io
   names:
     kind: Machine
     plural: machines
@@ -23,6 +46,7 @@ spec:
         metadata:
           type: object
         spec:
+          type: object
           properties:
             configSource:
               type: object
@@ -33,6 +57,12 @@ spec:
                 value:
                   type: object
                 valueFrom:
+                  properties:
+                    machineClass:
+                      properties:
+                        provider:
+                          type: string
+                      type: object
                   type: object
               type: object
             taints:
@@ -50,7 +80,6 @@ spec:
               type: object
           required:
           - providerSpec
-          type: object
         status:
           properties:
             addresses:
@@ -82,7 +111,7 @@ spec:
               - kubelet
               type: object
           type: object
-  version: v1alpha1
+  version: v1beta1
 status:
   acceptedNames:
     kind: ""

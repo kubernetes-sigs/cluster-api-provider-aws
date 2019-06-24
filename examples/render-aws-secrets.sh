@@ -20,6 +20,6 @@ fi
 x=$(echo -n "$AWS_ACCESS_KEY_ID" | base64)
 y=$(echo -n "$AWS_SECRET_ACCESS_KEY" | base64)
 
-sed -e "s/awsAccessKeyId:.*/awsAccessKeyId: $x/" \
-    -e "s/awsSecretAccessKey:.*/awsSecretAccessKey: $y/" \
+sed -e "s/aws_access_key_id:.*/aws_access_key_id: $x/" \
+    -e "s/aws_secret_access_key:.*/aws_secret_access_key: $y/" \
     "$1"

@@ -13,7 +13,7 @@ One needs to run the `imagebuilder` command instead of the `docker build`.
 
 Note: this info is RH only, it needs to be backported every time the `README.md` is synced with the upstream one.
 
-## How to deploy and test the machine controller with minikube
+## Deploy machine API plane with minikube
 
 1. **Install kvm**
 
@@ -38,79 +38,169 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
 
 2. **Deploying the cluster**
 
-    Because of [cluster-api#475](https://github.com/kubernetes-sigs/cluster-api/issues/475) the minikube version can't be higher than `0.28.0`.
-    To install minikube `v0.28.0`, you can run:
+    To install minikube `v1.1.0`, you can run:
 
     ```sg
-    $ curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.28.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+    $ curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.1.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
     ```
 
     To deploy the cluster:
 
     ```
-    minikube start --vm-driver kvm2
-    eval $(minikube docker-env)
+    $ minikube start --vm-driver kvm2 --kubernetes-version v1.13.1 --v 5
+    $ eval $(minikube docker-env)
     ```
 
-3. **Building the machine controller**
+3. **Deploying machine API controllers**
 
+    For development purposes the aws machine controller itself will run out of the machine API stack.
+    Otherwise, docker images needs to be built, pushed into a docker registry and deployed within the stack.
+
+    To deploy the stack:
     ```
-    $ make -C cmd/machine-controller
-    ```
-
-4. **Deploying the cluster-api stack manifests**
-
-    Add your AWS credentials to the `addons.yaml` file (in base64
-    format). You can either do this manually or use the
-    `examples/render-aws-secrets.sh`.
-
-    The easy deployment is:
-
-    ```sh
-    ./examples/render-aws-secrets.sh examples/addons.yaml | kubectl apply -f -
+    kustomize build config | kubectl apply -f -
     ```
 
-    The manual deployment is:
+4. **Deploy secret with AWS credentials**
 
-    ``` sh
-    $ echo -n 'your_id' | base64
-    $ echo -n 'your_key' | base64
-    $ kubectl apply -f examples/addons.yaml
-    ```
+   AWS actuator assumes existence of a secret file (references in machine object) with base64 encoded credentials:
 
-    Deploy CRDs:
+   ```yaml
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: aws-credentials-secret
+     namespace: default
+   type: Opaque
+   data:
+     aws_access_key_id: FILLIN
+     aws_secret_access_key: FILLIN
+   ```
 
-    ```sh
-    $ kubectl apply -f config/crd/machine.crd.yaml
-    $ kubectl apply -f config/crd/machineset.crd.yaml
-    $ kubectl apply -f config/crd/machinedeployment.crd.yaml
-    $ kubectl apply -f config/crd/cluster.crd.yaml
-    ```
+   You can use `examples/render-aws-secrets.sh` script to generate the secret:
+   ```sh
+   ./examples/render-aws-secrets.sh examples/addons.yaml | kubectl apply -f -
+   ```
 
-    Deploy machine API controllers:
+5. **Provision AWS resource**
 
-    ```sh
-    $ kubectl apply -f config/rbac/rbac_role.yaml
-    $ kubectl apply -f config/rbac/rbac_role_binding.yaml
-    $ kubectl apply -f config/controllers/deployment.yaml
-    ```
+   The actuator expects existence of certain resource in AWS such as:
+   - vpc
+   - subnets
+   - security groups
+   - etc.
 
-    Deploy the cluster manifest:
-    ```sh
-    $ kubectl apply -f examples/cluster.yaml
-    ```
+   To create them, you can run:
 
-    Deploy the machines:
+   ```sh
+   $ ENVIRONMENT_ID=aws-actuator-k8s ./hack/aws-provision.sh install
+   ```
 
-    ```sh
-    $ kubectl apply -f examples/machine.yaml --validate=false
-    ```
+   To delete the resources, you can run:
 
-    or alternatively:
+   ```sh
+   $ ENVIRONMENT_ID=aws-actuator-k8s ./hack/aws-provision.sh destroy
+   ```
 
-    ```sh
-    $ kubectl apply -f examples/machine-set.yaml --validate=false
-    ```
+   All machine manifests expect `ENVIRONMENT_ID` to be set to `aws-actuator-k8s`.
+
+## Test locally built aws actuator
+
+1. **Tear down machine-controller**
+
+   Deployed machine API plane (`machine-api-controllers` deployment) is (among other
+   controllers) running `machine-controller`. In order to run locally built one,
+   simply edit `machine-api-controllers` deployment and remove `machine-controller` container from it.
+
+1. **Build and run aws actuator outside of the cluster**
+
+   ```sh
+   $ go build -o bin/manager sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+   ```
+
+   ```sh
+   $ ./bin/manager --kubeconfig ~/.kube/config --logtostderr -v 5 -alsologtostderr
+   ```
+
+1. **Deploy k8s apiserver through machine manifest**:
+
+   To deploy user data secret with kubernetes apiserver initialization (under [config/master-user-data-secret.yaml](config/master-user-data-secret.yaml)):
+
+   ```yaml
+   $ kubectl apply -f config/master-user-data-secret.yaml
+   ```
+
+   To deploy kubernetes master machine (under [config/master-machine.yaml](config/master-machine.yaml)):
+
+   ```yaml
+   $ kubectl apply -f config/master-machine.yaml
+   ```
+
+1. **Pull kubeconfig from created master machine**
+
+   The master public IP can be accessed from AWS Portal. Once done, you
+   can collect the kube config by running:
+
+   ```
+   $ ssh -i SSHPMKEY ec2-user@PUBLICIP 'sudo cat /root/.kube/config' > kubeconfig
+   $ kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://PUBLICIP:8443
+   ```
+
+   Once done, you can access the cluster via `kubectl`. E.g.
+
+   ```sh
+   $ kubectl --kubeconfig=kubeconfig get nodes
+   ```
+
+## Deploy k8s cluster in AWS with machine API plane deployed
+
+1. **Generate bootstrap user data**
+
+   To generate bootstrap script for machine api plane, simply run:
+
+   ```sh
+   $ ./config/generate-bootstrap.sh
+   ```
+
+   The script requires `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables to be set.
+   It generates `config/bootstrap.yaml` secret for master machine
+   under `config/master-machine.yaml`.
+
+   The generated bootstrap secret contains user data responsible for:
+   - deployment of kube-apiserver
+   - deployment of machine API plane with aws machine controllers
+   - generating worker machine user data script secret deploying a node
+   - deployment of worker machineset
+
+1. **Deploy machine API plane through machine manifest**:
+
+   First, deploy generated bootstrap secret:
+
+   ```yaml
+   $ kubectl apply -f config/bootstrap.yaml
+   ```
+
+   Then, deploy master machine (under [config/master-machine.yaml](config/master-machine.yaml)):
+
+   ```yaml
+   $ kubectl apply -f config/master-machine.yaml
+   ```
+
+1. **Pull kubeconfig from created master machine**
+
+   The master public IP can be accessed from AWS Portal. Once done, you
+   can collect the kube config by running:
+
+   ```
+   $ ssh -i SSHPMKEY ec2-user@PUBLICIP 'sudo cat /root/.kube/config' > kubeconfig
+   $ kubectl --kubeconfig=kubeconfig config set-cluster kubernetes --server=https://PUBLICIP:8443
+   ```
+
+   Once done, you can access the cluster via `kubectl`. E.g.
+
+   ```sh
+   $ kubectl --kubeconfig=kubeconfig get nodes
+   ```
 
 # Upstream Implementation
 Other branches of this repository may choose to track the upstream
