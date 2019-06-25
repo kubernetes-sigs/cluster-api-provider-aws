@@ -76,6 +76,7 @@ func main() {
 
 	// Initialize cluster actuator.
 	clusterActuator := cluster.NewActuator(cluster.ActuatorParams{
+		CoreClient:     coreClient,
 		Client:         cs.ClusterV1alpha1(),
 		LoggingContext: "[cluster-actuator]",
 	})
