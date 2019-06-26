@@ -863,7 +863,7 @@
   version = "v2.2.2"
 
 [[projects]]
-  digest = "1:3ca4baec1a14e727951288f091badc5d403096d1c00d3ff5299f273a0c6db85d"
+  digest = "1:684a27f12acc943bee24373b4e8f4acde803990add2fc5dde602c27b58207d3b"
   name = "k8s.io/api"
   packages = [
     "admission/v1beta1",
@@ -901,8 +901,8 @@
     "storage/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "05914d821849570fba9eacfb29466f2d8d3cd229"
-  version = "kubernetes-1.13.1"
+  revision = "5cb15d34447165a97c76ed5a60e4e99c8a01ecfe"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
   digest = "1:db0e48e58e92eddc9ae08e9efb3dfaa1d61e32de690fff0dae5bccf4b45ebcce"
@@ -915,11 +915,11 @@
     "pkg/client/clientset/clientset/typed/apiextensions/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "0fe22c71c47604641d9aa352c785b7912c200562"
-  version = "kubernetes-1.13.1"
+  revision = "d002e88f6236312f0289d9d1deab106751718ff0"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
-  digest = "1:c7c02c6f769116c386391a5b8f50058afea7489b39338973ac073f4c28217773"
+  digest = "1:f8cad19629fda40d93e321acfddb29e713577a9c313fd8ac52112c01d47017cd"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -970,11 +970,11 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
-  revision = "2b1284ed4c93a43499e781493253e2ac5959c4fd"
-  version = "kubernetes-1.13.1"
+  revision = "86fb29eff6288413d76bd8506874fddd9fccdff0"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
-  digest = "1:c8db29861de02552602eadd2b44098b312308fd94e8f3eb525d4aac73afa9a01"
+  digest = "1:5e189e53cd1a92aa81fb93261f24017914dc96eb1d36d7db6719362f7b7f4157"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -1051,8 +1051,8 @@
     "util/workqueue",
   ]
   pruneopts = "UT"
-  revision = "8d9ed539ba3134352c586810e749e58df4e94e4f"
-  version = "kubernetes-1.13.1"
+  revision = "b40b2a5939e43f7ffe0028ad67586b7ce50bb675"
+  version = "kubernetes-1.13.4"
 
 [[projects]]
   branch = "master"
@@ -1066,7 +1066,7 @@
   revision = "fab9a0a63c5548759135f6cc365e6eedacdba590"
 
 [[projects]]
-  branch = "master"
+  branch = "release-1.13"
   digest = "1:937e46834bfd618b223206d7e3d459bf0eb53ac7d05135bf809d73b8fafdf7f7"
   name = "k8s.io/code-generator"
   packages = [
@@ -1075,7 +1075,7 @@
     "pkg/util",
   ]
   pruneopts = "UT"
-  revision = "1ee79a9ecd464778e01acf39100bbb3acbaa86d4"
+  revision = "c2090bec4d9b1fb25de3812f868accc2bc9ecbae"
 
 [[projects]]
   branch = "master"
@@ -1149,7 +1149,7 @@
 
 [[projects]]
   branch = "release-0.1"
-  digest = "1:d885a5905c58b580aa8a7f58f7d0480e13e12c8abc2ff9ec87c8627253a6bf3f"
+  digest = "1:3452e35031ae03db7181c47bc2c364e067d5e2a4078c2580fd4d9985e1f32140"
   name = "sigs.k8s.io/cluster-api"
   packages = [
     "cmd/clusterctl/clientcmd",
@@ -1174,13 +1174,14 @@
     "pkg/controller/error",
     "pkg/controller/machine",
     "pkg/controller/noderefutil",
+    "pkg/controller/remote",
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "5ed76e24e0319770757c25fdb07669d89b778fd8"
+  revision = "d1b07f40847c37e8933056c3eb99be08f87b9a81"
 
 [[projects]]
-  digest = "1:57a9c2ddb4a72fcb01da494ff7edb109a052bf98f5f91af75977055717f18742"
+  digest = "1:407e7e9e1b2bfc90b6ea79840fd1e6f88f6917e0f9f24fee7e00e1e1aeae241e"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
     "pkg/cache",
@@ -1210,22 +1211,17 @@
     "pkg/runtime/signals",
     "pkg/source",
     "pkg/source/internal",
-    "pkg/webhook",
     "pkg/webhook/admission",
     "pkg/webhook/admission/types",
-    "pkg/webhook/internal/cert",
-    "pkg/webhook/internal/cert/generator",
-    "pkg/webhook/internal/cert/writer",
-    "pkg/webhook/internal/cert/writer/atomic",
     "pkg/webhook/internal/metrics",
     "pkg/webhook/types",
   ]
   pruneopts = "UT"
-  revision = "477bf4f046c31c351b46fa00262bc814ac0bbca1"
-  version = "v0.1.11"
+  revision = "f1eaba5087d69cebb154c6a48193e6667f5b512c"
+  version = "v0.1.12"
 
 [[projects]]
-  digest = "1:992675a6714d511089a0b7ffb7063d36e5423089cda610642de7a0cfbbf673ab"
+  digest = "1:767ce3278b1fe82e3c713bc701b1ada60c8b9301213472c73f65a8955dec8980"
   name = "sigs.k8s.io/controller-tools"
   packages = [
     "cmd/controller-gen",
@@ -1237,11 +1233,10 @@
     "pkg/rbac",
     "pkg/util",
     "pkg/webhook",
-    "pkg/webhook/internal",
   ]
   pruneopts = "UT"
-  revision = "fbf141159251d035089e7acdd5a343f8cec91b94"
-  version = "v0.1.9"
+  revision = "464fbed97efaced33902e262f09c5eae7315c3e3"
+  version = "v0.1.11"
 
 [[projects]]
   digest = "1:9070222ca967d09b3966552a161dd4420d62315964bf5e1efd8cc4c7c30ebca8"
@@ -1299,6 +1294,7 @@
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
+    "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
@@ -1329,6 +1325,7 @@
     "sigs.k8s.io/cluster-api/pkg/controller/cluster",
     "sigs.k8s.io/cluster-api/pkg/controller/error",
     "sigs.k8s.io/cluster-api/pkg/controller/machine",
+    "sigs.k8s.io/cluster-api/pkg/controller/remote",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",

@@ -20,14 +20,11 @@ package machine
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -460,55 +457,9 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 	}
 
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
-		// TODO: This should be unified with the logic for getting the nodeRef, and
-		// should potentially leverage the code that already exists in
-		// kubernetes/cloud-provider-aws
 		providerID := fmt.Sprintf("aws:////%s", *scope.MachineStatus.InstanceID)
 		scope.Machine.Spec.ProviderID = &providerID
 	}
 
-	// Set the Machine NodeRef.
-	if machine.Status.NodeRef == nil {
-		nodeRef, err := a.getNodeReference(scope)
-		if err == nil {
-			scope.Machine.Status.NodeRef = nodeRef
-			a.log.V(2).Info("Setting machine's nodeRef", "machine-name", scope.Name(), "machine-namespace", scope.Namespace(), "nodeRef", nodeRef.Name)
-		} else {
-			a.log.Info("Cannot set nodeRef", "error", err)
-		}
-	}
-
 	return true, nil
-}
-
-func (a *Actuator) getNodeReference(scope *actuators.MachineScope) (*apicorev1.ObjectReference, error) {
-	instanceID := *scope.MachineStatus.InstanceID
-
-	listOpt := metav1.ListOptions{}
-
-	for {
-		nodeList, err := a.coreClient.Nodes().List(listOpt)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to query cluster nodes")
-		}
-
-		for _, node := range nodeList.Items {
-			// TODO(vincepri): Improve this comparison without relying on substrings.
-			if strings.Contains(node.Spec.ProviderID, instanceID) {
-				return &apicorev1.ObjectReference{
-					Kind:       "Node",
-					APIVersion: apicorev1.SchemeGroupVersion.String(),
-					Name:       node.Name,
-					UID:        node.UID,
-				}, nil
-			}
-		}
-
-		listOpt.Continue = nodeList.Continue
-		if listOpt.Continue == "" {
-			break
-		}
-	}
-
-	return nil, errors.Errorf("no node found for machine %q", scope.Name())
 }
