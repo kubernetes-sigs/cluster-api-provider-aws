@@ -160,7 +160,7 @@ spec:
                       ttl:
                         description: TTL defines the time to live for this token.
                           Defaults to 24h. Expires and TTL are mutually exclusive.
-                        type: object
+                        type: string
                       usages:
                         description: Usages describes the ways in which this token
                           can be used. Can by default be used for establishing bidirectional
@@ -335,7 +335,7 @@ spec:
                       type: object
                     timeout:
                       description: Timeout modifies the discovery timeout
-                      type: object
+                      type: string
                     tlsBootstrapToken:
                       description: TLSBootstrapToken is a token used for TLS bootstrapping.
                         If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token,

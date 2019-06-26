@@ -83,7 +83,7 @@ spec:
                 timeoutForControlPlane:
                   description: TimeoutForControlPlane controls the timeout that we
                     use for API server to appear
-                  type: object
+                  type: string
               type: object
             apiVersion:
               description: 'APIVersion defines the versioned schema of this representation

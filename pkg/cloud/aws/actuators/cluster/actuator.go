@@ -19,6 +19,10 @@ package cluster
 import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	apiv1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
@@ -28,21 +32,25 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 )
 
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
 	*deployer.Deployer
 
-	client client.ClusterV1alpha1Interface
-	log    logr.Logger
+	coreClient corev1.CoreV1Interface
+	client     client.ClusterV1alpha1Interface
+	log        logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
+	CoreClient     corev1.CoreV1Interface
 	Client         client.ClusterV1alpha1Interface
 	LoggingContext string
 }
@@ -50,9 +58,10 @@ type ActuatorParams struct {
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
-		Deployer: deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
-		client:   params.Client,
-		log:      klogr.New().WithName(params.LoggingContext),
+		client:     params.Client,
+		coreClient: params.CoreClient,
+		log:        klogr.New().WithName(params.LoggingContext),
+		Deployer:   deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
 	}
 }
 
@@ -86,6 +95,31 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	if err := elbsvc.ReconcileLoadbalancers(); err != nil {
 		return errors.Wrapf(err, "failed to reconcile load balancers for cluster %q", cluster.Name)
+	}
+
+	// Store KubeConfig for Cluster API NodeRef controller to use.
+	kubeConfigSecretName := remote.KubeConfigSecretName(cluster.Name)
+	secretClient := a.coreClient.Secrets(cluster.Namespace)
+	if _, err := secretClient.Get(kubeConfigSecretName, metav1.GetOptions{}); err != nil && apierrors.IsNotFound(err) {
+		kubeConfig, err := a.Deployer.GetKubeConfig(cluster, nil)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get kubeconfig for cluster %q", cluster.Name)
+		}
+
+		kubeConfigSecret := &apiv1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: kubeConfigSecretName,
+			},
+			StringData: map[string]string{
+				"value": kubeConfig,
+			},
+		}
+
+		if _, err := secretClient.Create(kubeConfigSecret); err != nil {
+			return errors.Wrapf(err, "failed to create kubeconfig secret for cluster %q", cluster.Name)
+		}
+	} else if err != nil {
+		return errors.Wrapf(err, "failed to get kubeconfig secret for cluster %q", cluster.Name)
 	}
 
 	return nil

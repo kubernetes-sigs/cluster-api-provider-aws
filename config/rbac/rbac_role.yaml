@@ -31,6 +31,13 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - get
+- apiGroups:
   - awsprovider.k8s.io
   resources:
   - awsmachineproviderconfigs
