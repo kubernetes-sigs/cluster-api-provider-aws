@@ -509,6 +509,8 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 			return nil, errors.Wrap(err, "failed to gzip userdata")
 		}
 
+		s.scope.V(2).Info("userData size", "bytes", buf.Len(), "role", role)
+
 		input.UserData = aws.String(base64.StdEncoding.EncodeToString(buf.Bytes()))
 	}
 
