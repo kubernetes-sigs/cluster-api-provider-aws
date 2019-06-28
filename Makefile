@@ -37,6 +37,7 @@ BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY)\
  --define=PULL_POLICY=$(PULL_POLICY)\
  --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME)\
  --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG)\
+ --host_force_python=PY2\
 $(BAZEL_ARGS)
 
 # Bazel variables
