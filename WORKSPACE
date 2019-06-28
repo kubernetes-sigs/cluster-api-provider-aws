@@ -32,9 +32,9 @@ git_repository(
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "aed1c249d4ec8f703edddf35cbe9dfaca0b5f5ea6e4cd9e83e99f3b0d1136c3d",
-    strip_prefix = "rules_docker-0.7.0",
-    urls = ["https://github.com/bazelbuild/rules_docker/archive/v0.7.0.tar.gz"],
+    sha256 = "87fc6a2b128147a0a3039a2fd0b53cc1f2ed5adb8716f50756544a572999ae9a",
+    strip_prefix = "rules_docker-0.8.1",
+    urls = ["https://github.com/bazelbuild/rules_docker/archive/v0.8.1.tar.gz"],
 )
 
 http_archive(
@@ -135,8 +135,12 @@ go_repository(
     tag = "v1.1.0",
 )
 
+# Use a fork until https://github.com/jmhodges/bazel_gomock/pull/19
+# has merged
 go_repository(
     name = "bazel_gomock",
-    commit = "e4a4d7dce76eedebd85d1bac72a9c02615c80eff",
+    commit = "d5cc12f6eca65d5b6b99f88b5551c37a3a47a65b",
     importpath = "github.com/jmhodges/bazel_gomock",
+    remote = "https://github.com/detiber/bazel_gomock",
+    vcs = "git",
 )
