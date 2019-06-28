@@ -84,7 +84,7 @@
       "type": "shell",
       "inline": [
         "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
-        "sudo apt-get -qq update && sudo apt-get -qqy install python python-pip"
+        "sudo apt-get -qq update && sudo DEBIAN_FRONTEND=noninteractive apt-get -qqy install python python-pip"
       ],
       "only": [
         "ubuntu-1804"
