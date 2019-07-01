@@ -37,6 +37,8 @@ rules:
   verbs:
   - create
   - get
+  - watch
+  - list
 - apiGroups:
   - awsprovider.k8s.io
   resources:

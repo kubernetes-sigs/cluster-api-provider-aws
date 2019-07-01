@@ -37,7 +37,7 @@ import (
 
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get
+//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get;watch;list
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
