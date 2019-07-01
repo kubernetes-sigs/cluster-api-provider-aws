@@ -46,7 +46,7 @@ func WithToken(token string) BootstrapTokenDiscoveryOption {
 	}
 }
 
-// WitCACertificateHash sets the hash of CA for the bootstrap token to use.
+// WithCACertificateHash sets the hash of CA for the bootstrap token to use.
 func WithCACertificateHash(caCertHash string) BootstrapTokenDiscoveryOption {
 	return func(b *kubeadmv1beta1.BootstrapTokenDiscovery) {
 		b.CACertHashes = append(b.CACertHashes, caCertHash)
