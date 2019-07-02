@@ -445,5 +445,6 @@ type Instance struct {
 
 const (
 	AnnotationClusterInfrastructureReady = "aws.cluster.sigs.k8s.io/infrastructure-ready"
-	AnnotationControlPlaneReady = "aws.cluster.sigs.k8s.io/control-plane-ready"
+	ValueReady                           = "true"
+	AnnotationControlPlaneReady          = "aws.cluster.sigs.k8s.io/control-plane-ready"
 )

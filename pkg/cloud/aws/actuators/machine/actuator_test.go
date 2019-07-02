@@ -17,20 +17,25 @@ limitations under the License.
 package machine
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"k8s.io/klog/klogr"
+
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+
+	v1 "k8s.io/api/core/v1"
+
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/controller/machine"
 )
@@ -580,265 +585,115 @@ func TestImmutableStateChange(t *testing.T) {
 	}
 }
 
-func getWorkerTestMachine() *clusterv1.Machine {
-	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "worker-0",
-			Namespace: "awesome-ns",
-			Labels: map[string]string{
-				"set": "node",
-			},
-		},
-		Spec: clusterv1.MachineSpec{
-			Versions: clusterv1.MachineVersionInfo{
-				Kubelet: "v1.13.0",
-			},
-		},
-	}
-}
-
-func getControlplaneTestMachine() *clusterv1.Machine {
-	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "controlplane-0",
-			Namespace: "awesome-ns",
-			Labels: map[string]string{
-				"set": "controlplane",
-			},
-		},
-		Spec: clusterv1.MachineSpec{
-			Versions: clusterv1.MachineVersionInfo{
-				Kubelet: "v1.13.0",
-			},
-		},
-	}
-}
-
-func getRandomTestMachine() *clusterv1.Machine {
-	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "random-0",
-			Namespace: "awesome-ns",
-			Labels: map[string]string{
-				"set": "random",
-			},
-		},
-	}
-}
-
-func getNoLabelTestMachine() *clusterv1.Machine {
-	return &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "nolabel-0",
-			Namespace: "awesome-ns",
-		},
-	}
-}
-
-func getTestMachineScope(m *clusterv1.Machine, t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	testCluster := &clusterv1.Cluster{}
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-		Machine: m,
-		Cluster: testCluster,
-		Client:  nil,
-		Logger:  nil,
-		AWSClients: actuators.AWSClients{
-			EC2: mockEC2,
-		},
-	},
-	)
-	if err != nil {
-		t.Fatalf("[getTestMachineScope] failed, Got %q; Want:nil", err)
-	}
-	return scope
-}
-
-func getWorkerMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	return getTestMachineScope(getWorkerTestMachine(), t, mockEC2)
-}
-
-func getControlplaneMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	return getTestMachineScope(getControlplaneTestMachine(), t, mockEC2)
-}
-
-func getRandoMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	return getTestMachineScope(getRandomTestMachine(), t, mockEC2)
-}
-
-func getInvalidMachineScope(t *testing.T) *actuators.MachineScope {
-	is := getTestMachineScope(getControlplaneTestMachine(), t, nil)
-	is.Cluster = nil
-	return is
-}
-
-func getNoLabelMachineScope(t *testing.T, mockEC2 ec2iface.EC2API) *actuators.MachineScope {
-	return getTestMachineScope(getNoLabelTestMachine(), t, mockEC2)
-}
-
-func getTestControlplaneMachines() []*clusterv1.Machine {
-	return []*clusterv1.Machine{
+func TestControlPlaneInitLockerAcquire(t *testing.T) {
+	tests := []struct {
+		name          string
+		configMap     *v1.ConfigMap
+		getError      error
+		createError   error
+		expectAcquire bool
+	}{
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "master-0",
-				Namespace: "awesome-ns",
-				Labels: map[string]string{
-					"set": "controlplane",
-				},
-			},
-			Spec: clusterv1.MachineSpec{
-				Versions: clusterv1.MachineVersionInfo{
-					Kubelet:      "v1.13.0",
-					ControlPlane: "v1.13.0",
-				},
-			},
+			name:          "configmap already exists",
+			configMap:     &v1.ConfigMap{},
+			expectAcquire: false,
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "master-1",
-				Namespace: "awesome-ns",
-				Labels: map[string]string{
-					"set": "controlplane",
-				},
-			},
-			Spec: clusterv1.MachineSpec{
-				Versions: clusterv1.MachineVersionInfo{
-					Kubelet:      "v1.13.0",
-					ControlPlane: "v1.13.0",
-				},
-			},
+			name:          "error getting configmap",
+			getError:      errors.New("get error"),
+			expectAcquire: false,
 		},
+		{
+			name:          "create succeeds",
+			getError:      apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
+			expectAcquire: true,
+		},
+		{
+			name:          "create fails",
+			getError:      apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
+			createError:   errors.New("create error"),
+			expectAcquire: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			l := &controlPlaneInitLocker{
+				log: klogr.New(),
+				configMapClient: &configMapsGetter{
+					configMap:   tc.configMap,
+					getError:    tc.getError,
+					createError: tc.createError,
+				},
+			}
+
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      "name1",
+					UID:       types.UID("uid1"),
+				},
+			}
+
+			acquired := l.Acquire(cluster)
+			if tc.expectAcquire != acquired {
+				t.Errorf("expected %t, got %t", tc.expectAcquire, acquired)
+			}
+		})
 	}
 }
 
-func getMockEC2APIDescribeInstancesNotFound(ne []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
-	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
-	for _, n := range ne {
-		dmi := &ec2.DescribeInstancesInput{
-			Filters: []*ec2.Filter{
-				filter.EC2.VPC(""),
-				filter.EC2.ClusterOwned(""),
-				filter.EC2.Name(n),
-				filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
-			},
-		}
-		mockEC2.EXPECT().DescribeInstances(dmi).Return(
-			nil,
-			awserrors.NewNotFound(fmt.Errorf("mocked not found"))).Times(1)
-	}
-
-	return mockEC2
+type configMapsGetter struct {
+	configMap   *v1.ConfigMap
+	getError    error
+	createError error
 }
 
-func getMockEC2APIDescribeInstancesFail(machineNames []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
-	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
-	for _, mn := range machineNames {
-		dmi := &ec2.DescribeInstancesInput{
-			Filters: []*ec2.Filter{
-				filter.EC2.VPC(""),
-				filter.EC2.ClusterOwned(""),
-				filter.EC2.Name(mn),
-				filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
-			},
-		}
-
-		mockEC2.EXPECT().DescribeInstances(dmi).Return(
-			nil,
-			fmt.Errorf("mock API failure")).AnyTimes()
+func (c *configMapsGetter) ConfigMaps(namespace string) corev1client.ConfigMapInterface {
+	return &configMapClient{
+		configMap:   c.configMap,
+		getError:    c.getError,
+		createError: c.createError,
 	}
-
-	return mockEC2
 }
 
-func getMockEC2APIDescribeInstancesPass(machineNames []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
-	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
-	for _, mn := range machineNames {
-		dmi := &ec2.DescribeInstancesInput{
-			Filters: []*ec2.Filter{
-				filter.EC2.VPC(""),
-				filter.EC2.ClusterOwned(""),
-				filter.EC2.Name(mn),
-				filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
-			},
-		}
-
-		mockEC2.EXPECT().DescribeInstances(dmi).Return(
-			&ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{
-							{
-								InstanceId: aws.String(mn),
-								State: &ec2.InstanceState{
-									Code: aws.Int64(16),
-									Name: aws.String("Running"),
-								},
-								InstanceType:     aws.String("t2.foo"),
-								SubnetId:         aws.String("foo-subnet"),
-								ImageId:          aws.String("foo"),
-								KeyName:          aws.String("foo-key"),
-								PrivateIpAddress: aws.String("1.2.3.4"),
-								PublicIpAddress:  aws.String("5.6.7.8"),
-								EnaSupport:       aws.Bool(true),
-								EbsOptimized:     aws.Bool(true),
-							},
-						},
-					},
-				},
-			},
-			nil).AnyTimes()
-	}
-
-	return mockEC2
+type configMapClient struct {
+	configMap   *v1.ConfigMap
+	getError    error
+	createError error
 }
 
-func getMockEC2APIDescribeInstancesNotFoundAndPass(machineNames []string, mockCtrl *gomock.Controller) ec2iface.EC2API {
-	mockEC2 := mock_ec2iface.NewMockEC2API(mockCtrl)
+func (c *configMapClient) Create(configMap *v1.ConfigMap) (*v1.ConfigMap, error) {
+	return c.configMap, c.createError
+}
 
-	dmi := &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			filter.EC2.VPC(""),
-			filter.EC2.ClusterOwned(""),
-			filter.EC2.Name(machineNames[0]),
-			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
-		},
+func (c *configMapClient) Get(name string, getOptions metav1.GetOptions) (*v1.ConfigMap, error) {
+	if c.getError != nil {
+		return nil, c.getError
 	}
-	mockEC2.EXPECT().DescribeInstances(dmi).Return(
-		nil,
-		awserrors.NewNotFound(fmt.Errorf("mocked not found"))).Times(1)
+	return c.configMap, nil
+}
 
-	dmi = &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
-			filter.EC2.VPC(""),
-			filter.EC2.ClusterOwned(""),
-			filter.EC2.Name(machineNames[1]),
-			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
-		},
-	}
-	mockEC2.EXPECT().DescribeInstances(dmi).Return(
-		&ec2.DescribeInstancesOutput{
-			Reservations: []*ec2.Reservation{
-				{
-					Instances: []*ec2.Instance{
-						{
-							InstanceId: aws.String(machineNames[1]),
-							State: &ec2.InstanceState{
-								Code: aws.Int64(16),
-								Name: aws.String("Running"),
-							},
-							InstanceType:     aws.String("t2.foo"),
-							SubnetId:         aws.String("foo-subnet"),
-							ImageId:          aws.String("foo"),
-							KeyName:          aws.String("foo-key"),
-							PrivateIpAddress: aws.String("1.2.3.4"),
-							PublicIpAddress:  aws.String("5.6.7.8"),
-							EnaSupport:       aws.Bool(true),
-							EbsOptimized:     aws.Bool(true),
-						},
-					},
-				},
-			},
-		},
-		nil).Times(1)
+func (c *configMapClient) Update(*v1.ConfigMap) (*v1.ConfigMap, error) {
+	panic("not implemented")
+}
 
-	return mockEC2
+func (c *configMapClient) Delete(name string, options *metav1.DeleteOptions) error {
+	panic("not implemented")
+}
+
+func (c *configMapClient) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	panic("not implemented")
+}
+
+func (c *configMapClient) List(opts metav1.ListOptions) (*v1.ConfigMapList, error) {
+	panic("not implemented")
+}
+
+func (c *configMapClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	panic("not implemented")
+}
+
+func (c *configMapClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ConfigMap, err error) {
+	panic("not implemented")
 }

@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"time"
+
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
@@ -35,7 +37,6 @@ import (
 	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
-	"time"
 )
 
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
@@ -105,7 +106,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	if cluster.Annotations == nil {
 		cluster.Annotations = make(map[string]string)
 	}
-	cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] = "true"
+	cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] = v1alpha1.ValueReady
 
 	// Store KubeConfig for Cluster API NodeRef controller to use.
 	kubeConfigSecretName := remote.KubeConfigSecretName(cluster.Name)
@@ -132,9 +133,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return errors.Wrapf(err, "failed to get kubeconfig secret for cluster %q", cluster.Name)
 	}
 
-
-
-	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != "true" {
+	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != v1alpha1.ValueReady {
 		log.Info("Cluster does not have ready annotation - checking for ready control plane machines")
 
 		machines, err := a.client.Machines(cluster.Namespace).List(actuators.ListOptionsForCluster(cluster.Name))
@@ -154,7 +153,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 		if machineReady {
 			log.Info("Setting cluster ready annotation")
-			cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] = "true"
+			cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] = v1alpha1.ValueReady
 		} else {
 			log.Info("No control plane machines are ready - requeuing cluster")
 			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
@@ -164,7 +163,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		log.Info("Checking for existence of control plane configmap lock", "configmap-name", configMapName)
 
 		_, err := a.coreClient.ConfigMaps(cluster.Namespace).Get(configMapName, metav1.GetOptions{})
-		switch  {
+		switch {
 		case apierrors.IsNotFound(err):
 			// It doesn't exist - no-op
 		case err != nil:
@@ -180,8 +179,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
-const waitForControlPlaneMachineDuration = 5*time.Second
-
+const waitForControlPlaneMachineDuration = 5 * time.Second
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {

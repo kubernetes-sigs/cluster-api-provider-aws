@@ -57,25 +57,44 @@ const (
 type Actuator struct {
 	*deployer.Deployer
 
-	coreClient    corev1.CoreV1Interface
-	clusterClient client.ClusterV1alpha1Interface
-	log           logr.Logger
+	coreClient             corev1.CoreV1Interface
+	clusterClient          client.ClusterV1alpha1Interface
+	log                    logr.Logger
+	controlPlaneInitLocker ControlPlaneInitLocker
+}
+
+// ControlPlaneInitLocker provides a locking mechanism for cluster initialization.
+type ControlPlaneInitLocker interface {
+	// Acquire returns true if it acquires the lock for the cluster.
+	Acquire(cluster *clusterv1.Cluster) bool
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	CoreClient     corev1.CoreV1Interface
-	ClusterClient  client.ClusterV1alpha1Interface
-	LoggingContext string
+	CoreClient             corev1.CoreV1Interface
+	ClusterClient          client.ClusterV1alpha1Interface
+	LoggingContext         string
+	ControlPlaneInitLocker ControlPlaneInitLocker
 }
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
+	log := klogr.New().WithName(params.LoggingContext)
+
+	locker := params.ControlPlaneInitLocker
+	if locker == nil {
+		locker = &controlPlaneInitLocker{
+			log:             log,
+			configMapClient: params.CoreClient,
+		}
+	}
+
 	return &Actuator{
-		Deployer:      deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
-		coreClient:    params.CoreClient,
-		clusterClient: params.ClusterClient,
-		log:           klogr.New().WithName(params.LoggingContext),
+		Deployer:               deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
+		coreClient:             params.CoreClient,
+		clusterClient:          params.ClusterClient,
+		log:                    log,
+		controlPlaneInitLocker: locker,
 	}
 }
 
@@ -96,9 +115,9 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 }
 
 const (
-	waitForClusterInfrastructureReadyDuration = 10 * time.Second
+	waitForClusterInfrastructureReadyDuration   = 10 * time.Second
 	waitForControlPlaneMachineExistenceDuration = 5 * time.Second
-	waitForControlPlaneReadyDuration = 5 * time.Second
+	waitForControlPlaneReadyDuration            = 5 * time.Second
 )
 
 // Create creates a machine and is invoked by the machine controller.
@@ -110,7 +129,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	log := a.log.WithValues("machine-name", machine.Name, "namespace", machine.Namespace, "cluster-name", cluster.Name)
 	log.Info("Processing machine creation")
 
-	if cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] != "true" {
+	if cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] != v1alpha1.ValueReady {
 		log.Info("Cluster infrastructure is not ready yet - requeuing machine")
 		return &controllerError.RequeueAfterError{RequeueAfter: waitForClusterInfrastructureReadyDuration}
 	}
@@ -138,54 +157,17 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	// Except for the very first control plane machine, everything will be a join, so let's assume we're joining.
 	isNodeJoin := true
-	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != "true" {
+	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != v1alpha1.ValueReady {
 		if scope.Role() != "controlplane" {
 			// This isn't a control plane machine - have to wait
 			log.Info("No control plane machines exist yet - requeuing")
 			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
 		}
 
-		configMapName := actuators.ControlPlaneConfigMapName(cluster)
-		log.Info("Checking for existence of control plane configmap lock", "configmap-name", configMapName)
-
-		controlPlaneConfigMap, err := a.coreClient.ConfigMaps(cluster.Namespace).Get(configMapName, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			controlPlaneConfigMap = &apicorev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: cluster.Namespace,
-					Name:      configMapName,
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: cluster.APIVersion,
-							Kind:       cluster.Kind,
-							Name:       cluster.Name,
-							UID:        cluster.UID,
-						},
-					},
-				},
-			}
-
-			log.Info("Attempting to create control plane configmap lock")
-			_, err = a.coreClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap)
-			if err != nil {
-				if apierrors.IsAlreadyExists(err) {
-					// Someone else beat us to it
-					log.Info("Control plane configmap lock already exists - requeuing")
-				} else {
-					log.Error(err, "Error creating control plane configmap lock")
-				}
-
-				return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
-			}
-
-			// This is the first control plane machine, so it's not a join.
+		if a.controlPlaneInitLocker.Acquire(cluster) {
 			isNodeJoin = false
-		} else if err != nil {
-			return errors.Wrap(err, "error getting control plane configmap lock")
 		} else {
-			// err is nil, which means the configmap exists but the control plane isn't ready yet.
-			// Need to requeue.
-			log.Info("Control plane configmap lock already exists but control plane is not ready yet - requeuing")
+			log.Info("Unable to acquire control plane configmap lock - requeuing")
 			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
 		}
 	}
@@ -226,6 +208,69 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	log.Info("Create completed")
 
 	return nil
+}
+
+// controlPlaneInitLocker uses a ConfigMap to synchronize cluster initialization.
+type controlPlaneInitLocker struct {
+	log             logr.Logger
+	configMapClient corev1.ConfigMapsGetter
+}
+
+var _ ControlPlaneInitLocker = &controlPlaneInitLocker{}
+
+func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
+	configMapName := actuators.ControlPlaneConfigMapName(cluster)
+	log := l.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", configMapName)
+
+	exists, err := l.configMapExists(cluster.Namespace, configMapName)
+	if err != nil {
+		log.Error(err, "Error checking for control plane configmap lock existence")
+		return false
+	}
+	if exists {
+		return false
+	}
+
+	controlPlaneConfigMap := &apicorev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      configMapName,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: cluster.APIVersion,
+					Kind:       cluster.Kind,
+					Name:       cluster.Name,
+					UID:        cluster.UID,
+				},
+			},
+		},
+	}
+
+	log.Info("Attempting to create control plane configmap lock")
+	_, err = l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// Someone else beat us to it
+			log.Info("Control plane configmap lock already exists")
+		} else {
+			log.Error(err, "Error creating control plane configmap lock")
+		}
+
+		// Unable to acquire
+		return false
+	}
+
+	// Successfully acquired
+	return true
+}
+
+func (l *controlPlaneInitLocker) configMapExists(namespace, name string) (bool, error) {
+	_, err := l.configMapClient.ConfigMaps(namespace).Get(name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+
+	return err == nil, err
 }
 
 func (a *Actuator) coreV1Client(cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
