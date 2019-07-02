@@ -51,7 +51,7 @@ func TestNewNodeRegistration(t *testing.T) {
 			actual: kubeadm.SetNodeRegistrationOptions(
 				&kubeadmv1beta1.NodeRegistrationOptions{},
 				kubeadm.WithNodeRegistrationName("test name"),
-				kubeadm.WithDefaultCRISocket("/test/path/to/socket.sock"),
+				kubeadm.WithCRISocket("/test/path/to/socket.sock"),
 				kubeadm.WithTaints([]corev1.Taint{
 					{
 						Key:    "test",
@@ -91,19 +91,7 @@ func TestNewNodeRegistration(t *testing.T) {
 						"cni-conf-dir": "/etc/cni/net.d",
 					},
 				},
-				kubeadm.WithDefaultCRISocket("/test/path/to/socket.sock"),
-			),
-		},
-		{
-			name: "test allowing overrides for cri",
-			expected: kubeadmv1beta1.NodeRegistrationOptions{
-				CRISocket: "/test/path/to/alternative-socket.sock",
-			},
-			actual: kubeadm.SetNodeRegistrationOptions(
-				&kubeadmv1beta1.NodeRegistrationOptions{
-					CRISocket: "/test/path/to/alternative-socket.sock",
-				},
-				kubeadm.WithDefaultCRISocket("/test/path/to/socket.sock"),
+				kubeadm.WithCRISocket("/test/path/to/socket.sock"),
 			),
 		},
 	}

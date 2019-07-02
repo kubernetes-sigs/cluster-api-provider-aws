@@ -17,20 +17,22 @@ limitations under the License.
 package ec2
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-
+	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -550,6 +552,475 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			s := NewService(scope.Scope)
 			instance, err := s.createInstance(scope, "token")
 			tc.check(instance, err)
+		})
+	}
+}
+
+func Test_setInitConfigurationOptions(t *testing.T) {
+	type args struct {
+		initConfig kubeadmv1beta1.InitConfiguration
+		machine    *clusterv1.Machine
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected kubeadmv1beta1.InitConfiguration
+	}{
+		{
+			name: "simple",
+			args: args{
+				initConfig: kubeadmv1beta1.InitConfiguration{},
+				machine:    &clusterv1.Machine{},
+			},
+			expected: kubeadmv1beta1.InitConfiguration{
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+					},
+				},
+			},
+		},
+		{
+			name: "with node taints",
+			args: args{
+				initConfig: kubeadmv1beta1.InitConfiguration{},
+				machine: &clusterv1.Machine{
+					Spec: clusterv1.MachineSpec{
+						Taints: []corev1.Taint{{
+							Key:    "my-property",
+							Value:  "special",
+							Effect: corev1.TaintEffectNoSchedule,
+						}},
+					},
+				},
+			},
+			expected: kubeadmv1beta1.InitConfiguration{
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+					},
+					Taints: []corev1.Taint{{
+						Key:    "my-property",
+						Value:  "special",
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			},
+		},
+		{
+			name: "with cni options",
+			args: args{
+				initConfig: kubeadmv1beta1.InitConfiguration{
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						KubeletExtraArgs: map[string]string{
+							"cni-bin-dir":  "/opt/cni/bin",
+							"cni-conf-dir": "/etc/cni/net.d",
+						},
+					},
+				},
+				machine: &clusterv1.Machine{},
+			},
+			expected: kubeadmv1beta1.InitConfiguration{
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+						"cni-bin-dir":    "/opt/cni/bin",
+						"cni-conf-dir":   "/etc/cni/net.d",
+					},
+				},
+			},
+		},
+		{
+			name: "with cri socket",
+			args: args{
+				initConfig: kubeadmv1beta1.InitConfiguration{
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						CRISocket: "/var/run/my-cri.sock",
+					},
+				},
+				machine: &clusterv1.Machine{},
+			},
+			expected: kubeadmv1beta1.InitConfiguration{
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/my-cri.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setInitConfigurationOptions(&tt.args.initConfig, tt.args.machine)
+
+			actual := tt.args.initConfig
+			if !reflect.DeepEqual(tt.expected, actual) {
+				t.Fatalf("Expected: \n%+v\nbut was:\n%+v", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func Test_setNodeJoinConfigurationOptions(t *testing.T) {
+	type args struct {
+		joinConfig        kubeadmv1beta1.JoinConfiguration
+		machine           *clusterv1.Machine
+		apiServerEndpoint string
+		bootstrapToken    string
+		caCertHash        string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected kubeadmv1beta1.JoinConfiguration
+	}{
+		{
+			name: "simple",
+			args: args{
+				joinConfig:        kubeadmv1beta1.JoinConfiguration{},
+				machine:           &clusterv1.Machine{},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+						"node-labels":    "node-role.kubernetes.io/node=",
+					},
+				},
+			},
+		},
+		{
+			name: "with taints",
+			args: args{
+				joinConfig: kubeadmv1beta1.JoinConfiguration{},
+				machine: &clusterv1.Machine{
+					Spec: clusterv1.MachineSpec{
+						Taints: []corev1.Taint{{
+							Key:    "my-property",
+							Value:  "special",
+							Effect: corev1.TaintEffectNoSchedule,
+						}},
+					},
+				},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+						"node-labels":    "node-role.kubernetes.io/node=",
+					},
+					Taints: []corev1.Taint{{
+						Key:    "my-property",
+						Value:  "special",
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+			},
+		},
+		{
+			name: "with cni options",
+			args: args{
+				joinConfig: kubeadmv1beta1.JoinConfiguration{
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						KubeletExtraArgs: map[string]string{
+							"cni-bin-dir":  "/opt/cni/bin",
+							"cni-conf-dir": "/etc/cni/net.d",
+						},
+					},
+				},
+				machine:           &clusterv1.Machine{},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+						"cni-bin-dir":    "/opt/cni/bin",
+						"cni-conf-dir":   "/etc/cni/net.d",
+						"node-labels":    "node-role.kubernetes.io/node=",
+					},
+				},
+			},
+		},
+		{
+			name: "with cri socket",
+			args: args{
+				joinConfig: kubeadmv1beta1.JoinConfiguration{
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						CRISocket: "/var/run/my-cri.sock",
+					},
+				},
+				machine:           &clusterv1.Machine{},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/my-cri.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+						"node-labels":    "node-role.kubernetes.io/node=",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setNodeJoinConfigurationOptions(&tt.args.joinConfig, tt.args.machine, tt.args.apiServerEndpoint, tt.args.bootstrapToken, tt.args.caCertHash)
+
+			actual := tt.args.joinConfig
+			if !reflect.DeepEqual(tt.expected, actual) {
+				t.Fatalf("Expected: \n%+v\nbut was:\n%+v", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func Test_setControlPlaneJoinConfigurationOptions(t *testing.T) {
+	type args struct {
+		joinConfig        kubeadmv1beta1.JoinConfiguration
+		machine           *clusterv1.Machine
+		apiServerEndpoint string
+		bootstrapToken    string
+		caCertHash        string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected kubeadmv1beta1.JoinConfiguration
+	}{
+		{
+			name: "simple",
+			args: args{
+				joinConfig:        kubeadmv1beta1.JoinConfiguration{},
+				machine:           &clusterv1.Machine{},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+					},
+				},
+				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
+					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
+						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
+						BindPort:         6443,
+					},
+				},
+			},
+		},
+		{
+			name: "with taints",
+			args: args{
+				joinConfig: kubeadmv1beta1.JoinConfiguration{},
+				machine: &clusterv1.Machine{
+					Spec: clusterv1.MachineSpec{
+						Taints: []corev1.Taint{{
+							Key:    "my-property",
+							Value:  "special",
+							Effect: corev1.TaintEffectNoSchedule,
+						}},
+					},
+				},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+					},
+					Taints: []corev1.Taint{{
+						Key:    "my-property",
+						Value:  "special",
+						Effect: corev1.TaintEffectNoSchedule,
+					}},
+				},
+				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
+					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
+						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
+						BindPort:         6443,
+					},
+				},
+			},
+		},
+		{
+			name: "with cni options",
+			args: args{
+				joinConfig: kubeadmv1beta1.JoinConfiguration{
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						KubeletExtraArgs: map[string]string{
+							"cni-bin-dir":  "/opt/cni/bin",
+							"cni-conf-dir": "/etc/cni/net.d",
+						},
+					},
+				},
+				machine:           &clusterv1.Machine{},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/containerd/containerd.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+						"cni-bin-dir":    "/opt/cni/bin",
+						"cni-conf-dir":   "/etc/cni/net.d",
+					},
+				},
+				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
+					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
+						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
+						BindPort:         6443,
+					},
+				},
+			},
+		},
+		{
+			name: "with cri socket",
+			args: args{
+				joinConfig: kubeadmv1beta1.JoinConfiguration{
+					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						CRISocket: "/var/run/my-cri.sock",
+					},
+				},
+				machine:           &clusterv1.Machine{},
+				apiServerEndpoint: "https://api-server:6443",
+				bootstrapToken:    "abcdef.1234567890abcdef",
+				caCertHash:        "sha256:1234cdef",
+			},
+			expected: kubeadmv1beta1.JoinConfiguration{
+				Discovery: kubeadmv1beta1.Discovery{
+					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
+						Token: "abcdef.1234567890abcdef",
+						CACertHashes: []string{
+							"sha256:1234cdef",
+						},
+						APIServerEndpoint: "https://api-server:6443",
+					},
+				},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:      "{{ ds.meta_data.hostname }}",
+					CRISocket: "/var/run/my-cri.sock",
+					KubeletExtraArgs: map[string]string{
+						"cloud-provider": "aws",
+					},
+				},
+				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
+					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
+						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
+						BindPort:         6443,
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setControlPlaneJoinConfigurationOptions(&tt.args.joinConfig, tt.args.machine, tt.args.apiServerEndpoint, tt.args.bootstrapToken, tt.args.caCertHash)
+
+			actual := tt.args.joinConfig
+			if !reflect.DeepEqual(tt.expected, actual) {
+				t.Fatalf("Expected: \n%+v\nbut was:\n%+v", tt.expected, actual)
+			}
 		})
 	}
 }
