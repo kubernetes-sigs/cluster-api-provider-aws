@@ -352,7 +352,7 @@ func setInitConfigurationOptions(initConfig *kubeadmv1beta1.InitConfiguration, m
 				&initConfig.NodeRegistration,
 				kubeadm.WithTaints(machine.Spec.Taints),
 				kubeadm.WithNodeRegistrationName(hostnameLookup),
-				kubeadm.WithCRISocket(stringOrDefault(initConfig.NodeRegistration.CRISocket, containerdSocket)),
+				kubeadm.WithCRISocket(getCRISocketPath(initConfig.NodeRegistration.CRISocket)),
 				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 			),
 		),
@@ -373,7 +373,7 @@ func setNodeJoinConfigurationOptions(joinConfig *kubeadmv1beta1.JoinConfiguratio
 			kubeadm.SetNodeRegistrationOptions(
 				&joinConfig.NodeRegistration,
 				kubeadm.WithNodeRegistrationName(hostnameLookup),
-				kubeadm.WithCRISocket(stringOrDefault(joinConfig.NodeRegistration.CRISocket, containerdSocket)),
+				kubeadm.WithCRISocket(getCRISocketPath(joinConfig.NodeRegistration.CRISocket)),
 				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 				kubeadm.WithTaints(machine.Spec.Taints),
 				kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
@@ -397,7 +397,7 @@ func setControlPlaneJoinConfigurationOptions(joinConfig *kubeadmv1beta1.JoinConf
 				&joinConfig.NodeRegistration,
 				kubeadm.WithTaints(machine.Spec.Taints),
 				kubeadm.WithNodeRegistrationName(hostnameLookup),
-				kubeadm.WithCRISocket(stringOrDefault(joinConfig.NodeRegistration.CRISocket, containerdSocket)),
+				kubeadm.WithCRISocket(getCRISocketPath(joinConfig.NodeRegistration.CRISocket)),
 				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 			),
 		),
@@ -405,11 +405,11 @@ func setControlPlaneJoinConfigurationOptions(joinConfig *kubeadmv1beta1.JoinConf
 	)
 }
 
-func stringOrDefault(val, def string) string {
-	if val != "" {
-		return val
+func getCRISocketPath(configVal string) string {
+	if configVal != "" {
+		return configVal
 	}
-	return def
+	return containerdSocket
 }
 
 func (s *Service) GetCoreSecurityGroups(machine *actuators.MachineScope) ([]string, error) {
