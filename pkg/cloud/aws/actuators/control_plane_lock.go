@@ -22,10 +22,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// ControlPlaneConfigMapName returns the name of the ConfigMap used to coordinate the bootstrapping of control plane
+// nodes.
 func ControlPlaneConfigMapName(cluster *v1alpha1.Cluster) string {
 	return fmt.Sprintf("%s-controlplane", cluster.UID)
 }
 
+// ListOptionsForCluster returns a ListOptions with a label selector for clusterName.
 func ListOptionsForCluster(clusterName string) metav1.ListOptions {
 	return metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("%s=%s", v1alpha1.MachineClusterLabelName, clusterName),

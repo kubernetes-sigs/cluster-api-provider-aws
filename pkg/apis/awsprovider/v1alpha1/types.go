@@ -443,8 +443,7 @@ type Instance struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
-// TODO move somewhere else?
 const (
-	AnnotationClusterInfrastructureReady = "aws.cluster-api.sigs.k8s.io/infrastructure-ready"
-	AnnotationControlPlaneReady = "aws.cluster-api.sigs.k8s.io/control-plane-ready"
+	AnnotationClusterInfrastructureReady = "aws.cluster.sigs.k8s.io/infrastructure-ready"
+	AnnotationControlPlaneReady = "aws.cluster.sigs.k8s.io/control-plane-ready"
 )

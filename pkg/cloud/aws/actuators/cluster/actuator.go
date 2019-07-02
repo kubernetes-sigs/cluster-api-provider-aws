@@ -157,7 +157,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 			cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] = "true"
 		} else {
 			log.Info("No control plane machines are ready - requeuing cluster")
-			return &controllerError.RequeueAfterError{RequeueAfter: 5*time.Second}
+			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
 		}
 	} else {
 		configMapName := actuators.ControlPlaneConfigMapName(cluster)
@@ -180,6 +180,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
+const waitForControlPlaneMachineDuration = 5*time.Second
 
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
@@ -211,6 +212,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	if err := ec2svc.DeleteNetwork(); err != nil {
 		a.log.Error(err, "Error deleting cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 		return &controllerError.RequeueAfterError{
+			// TODO: use a Duration expression for this
 			RequeueAfter: 5 * 1000 * 1000 * 1000,
 		}
 	}

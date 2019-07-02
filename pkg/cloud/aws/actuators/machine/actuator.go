@@ -20,6 +20,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -94,6 +95,12 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
 
+const (
+	waitForClusterInfrastructureReadyDuration = 10 * time.Second
+	waitForControlPlaneMachineExistenceDuration = 5 * time.Second
+	waitForControlPlaneReadyDuration = 5 * time.Second
+)
+
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	if cluster == nil {
@@ -105,10 +112,10 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	if cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] != "true" {
 		log.Info("Cluster infrastructure is not ready yet - requeuing machine")
-		return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+		return &controllerError.RequeueAfterError{RequeueAfter: waitForClusterInfrastructureReadyDuration}
 	}
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.clusterClient, Logger: a.log})
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{Machine: machine, Cluster: cluster, Client: a.clusterClient, Logger: log})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -126,16 +133,16 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	controlPlaneMachines := GetControlPlaneMachines(clusterMachines)
 	if len(controlPlaneMachines) == 0 {
 		log.Info("No control plane machines exist yet - requeuing")
-		return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+		return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
 	}
 
 	// Except for the very first control plane machine, everything will be a join, so let's assume we're joining.
 	isNodeJoin := true
 	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != "true" {
-		if machine.Spec.Versions.ControlPlane == "" {
+		if scope.Role() != "controlplane" {
 			// This isn't a control plane machine - have to wait
 			log.Info("No control plane machines exist yet - requeuing")
-			return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
 		}
 
 		configMapName := actuators.ControlPlaneConfigMapName(cluster)
@@ -168,7 +175,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 					log.Error(err, "Error creating control plane configmap lock")
 				}
 
-				return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+				return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
 			}
 
 			// This is the first control plane machine, so it's not a join.
@@ -179,19 +186,18 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 			// err is nil, which means the configmap exists but the control plane isn't ready yet.
 			// Need to requeue.
 			log.Info("Control plane configmap lock already exists but control plane is not ready yet - requeuing")
-			return &controllerError.RequeueAfterError{RequeueAfter: 5 * time.Second}
+			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
 		}
 	}
 
 	var bootstrapToken string
 	if isNodeJoin {
-		// First control plane machine has already been created. Now we can't proceed until its apiserver is up.
 		coreClient, err := a.coreV1Client(cluster)
 		if err != nil {
-			return errors.Wrap(err, "unable to proceed until control plane is ready (error creating client)")
+			return errors.Wrapf(err, "unable to proceed until control plane is ready (error creating client) for cluster %q", path.Join(cluster.Namespace, cluster.Name))
 		}
 
-		a.log.V(2).Info("Machine will join the cluster", "cluster", cluster.Name, "machine-name", machine.Name, "machine-namespace", machine.Namespace)
+		log.V(2).Info("Machine will join the cluster")
 
 		bootstrapToken, err = tokens.NewBootstrap(coreClient, defaultTokenTTL)
 		if err != nil {
@@ -216,7 +222,9 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	if err := a.reconcileLBAttachment(scope, machine, i); err != nil {
 		return errors.Errorf("failed to reconcile LB attachment: %+v", err)
 	}
-	a.log.Info("Create completed", "machine-name", machine.Name)
+
+	log.Info("Create completed")
+
 	return nil
 }
 
