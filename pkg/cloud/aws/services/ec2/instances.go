@@ -376,6 +376,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	return out, nil
 }
 
+// GetCoreSecurityGroups looks up the security group IDs managed by this actuator
+// They are considered "core" to its proper functioning
 func (s *Service) GetCoreSecurityGroups(machine *actuators.MachineScope) ([]string, error) {
 	// These are common across both controlplane and node machines
 	sgRoles := []v1alpha1.SecurityGroupRole{
