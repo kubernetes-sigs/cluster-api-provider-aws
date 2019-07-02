@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
@@ -39,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const (
@@ -202,6 +204,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		return input, err
 	}
 
+	apiServerEndpoint := fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)
+
 	// apply values based on the role of the machine
 	switch machine.Role() {
 	case "controlplane":
@@ -210,26 +214,14 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		if bootstrapToken != "" {
 			s.scope.V(2).Info("Allowing a machine to join the control plane")
 
-			kubeadm.SetJoinConfigurationOptions(
+			setControlPlaneJoinConfigurationOptions(
 				&machine.MachineConfig.KubeadmConfiguration.Join,
-				kubeadm.WithBootstrapTokenDiscovery(
-					kubeadm.NewBootstrapTokenDiscovery(
-						kubeadm.WithAPIServerEndpoint(fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)),
-						kubeadm.WithToken(bootstrapToken),
-						kubeadm.WithCACertificateHash(caCertHash),
-					),
-				),
-				kubeadm.WithJoinNodeRegistrationOptions(
-					kubeadm.SetNodeRegistrationOptions(
-						&machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
-						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
-						kubeadm.WithNodeRegistrationName(hostnameLookup),
-						kubeadm.WithCRISocket(containerdSocket),
-						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-					),
-				),
-				kubeadm.WithLocalAPIEndpointAndPort(localIPV4Lookup, apiServerBindPort),
+				machine.GetMachine(),
+				apiServerEndpoint,
+				bootstrapToken,
+				caCertHash,
 			)
+
 			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 			if err != nil {
 				return nil, err
@@ -272,18 +264,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				return nil, err
 			}
 
-			kubeadm.SetInitConfigurationOptions(
-				&machine.MachineConfig.KubeadmConfiguration.Init,
-				kubeadm.WithNodeRegistrationOptions(
-					kubeadm.SetNodeRegistrationOptions(
-						&machine.MachineConfig.KubeadmConfiguration.Init.NodeRegistration,
-						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
-						kubeadm.WithNodeRegistrationName(hostnameLookup),
-						kubeadm.WithCRISocket(containerdSocket),
-						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-					),
-				),
-			)
+			setInitConfigurationOptions(&machine.MachineConfig.KubeadmConfiguration.Init, machine.GetMachine())
 
 			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
 			if err != nil {
@@ -312,25 +293,12 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	case "node":
 		s.scope.V(2).Info("Joining a worker node to the cluster")
 
-		kubeadm.SetJoinConfigurationOptions(
+		setNodeJoinConfigurationOptions(
 			&machine.MachineConfig.KubeadmConfiguration.Join,
-			kubeadm.WithBootstrapTokenDiscovery(
-				kubeadm.NewBootstrapTokenDiscovery(
-					kubeadm.WithAPIServerEndpoint(fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)),
-					kubeadm.WithToken(bootstrapToken),
-					kubeadm.WithCACertificateHash(caCertHash),
-				),
-			),
-			kubeadm.WithJoinNodeRegistrationOptions(
-				kubeadm.SetNodeRegistrationOptions(
-					&machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
-					kubeadm.WithNodeRegistrationName(hostnameLookup),
-					kubeadm.WithCRISocket(containerdSocket),
-					kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-					kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
-					kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
-				),
-			),
+			machine.GetMachine(),
+			apiServerEndpoint,
+			bootstrapToken,
+			caCertHash,
 		)
 		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 		if err != nil {
@@ -374,6 +342,74 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
 	return out, nil
+}
+
+func setInitConfigurationOptions(initConfig *kubeadmv1beta1.InitConfiguration, machine *clusterv1.Machine) {
+	kubeadm.SetInitConfigurationOptions(
+		initConfig,
+		kubeadm.WithNodeRegistrationOptions(
+			kubeadm.SetNodeRegistrationOptions(
+				&initConfig.NodeRegistration,
+				kubeadm.WithTaints(machine.Spec.Taints),
+				kubeadm.WithNodeRegistrationName(hostnameLookup),
+				kubeadm.WithCRISocket(getCRISocketPath(initConfig.NodeRegistration.CRISocket)),
+				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+			),
+		),
+	)
+}
+
+func setNodeJoinConfigurationOptions(joinConfig *kubeadmv1beta1.JoinConfiguration, machine *clusterv1.Machine, apiServerEndpoint, bootstrapToken, caCertHash string) {
+	kubeadm.SetJoinConfigurationOptions(
+		joinConfig,
+		kubeadm.WithBootstrapTokenDiscovery(
+			kubeadm.NewBootstrapTokenDiscovery(
+				kubeadm.WithAPIServerEndpoint(apiServerEndpoint),
+				kubeadm.WithToken(bootstrapToken),
+				kubeadm.WithCACertificateHash(caCertHash),
+			),
+		),
+		kubeadm.WithJoinNodeRegistrationOptions(
+			kubeadm.SetNodeRegistrationOptions(
+				&joinConfig.NodeRegistration,
+				kubeadm.WithNodeRegistrationName(hostnameLookup),
+				kubeadm.WithCRISocket(getCRISocketPath(joinConfig.NodeRegistration.CRISocket)),
+				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+				kubeadm.WithTaints(machine.Spec.Taints),
+				kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
+			),
+		),
+	)
+}
+
+func setControlPlaneJoinConfigurationOptions(joinConfig *kubeadmv1beta1.JoinConfiguration, machine *clusterv1.Machine, apiServerEndpoint, bootstrapToken, caCertHash string) {
+	kubeadm.SetJoinConfigurationOptions(
+		joinConfig,
+		kubeadm.WithBootstrapTokenDiscovery(
+			kubeadm.NewBootstrapTokenDiscovery(
+				kubeadm.WithAPIServerEndpoint(apiServerEndpoint),
+				kubeadm.WithToken(bootstrapToken),
+				kubeadm.WithCACertificateHash(caCertHash),
+			),
+		),
+		kubeadm.WithJoinNodeRegistrationOptions(
+			kubeadm.SetNodeRegistrationOptions(
+				&joinConfig.NodeRegistration,
+				kubeadm.WithTaints(machine.Spec.Taints),
+				kubeadm.WithNodeRegistrationName(hostnameLookup),
+				kubeadm.WithCRISocket(getCRISocketPath(joinConfig.NodeRegistration.CRISocket)),
+				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+			),
+		),
+		kubeadm.WithLocalAPIEndpointAndPort(localIPV4Lookup, apiServerBindPort),
+	)
+}
+
+func getCRISocketPath(configVal string) string {
+	if configVal != "" {
+		return configVal
+	}
+	return containerdSocket
 }
 
 // GetCoreSecurityGroups looks up the security group IDs managed by this actuator

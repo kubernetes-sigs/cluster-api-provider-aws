@@ -41,7 +41,7 @@ func WithTaints(taints []corev1.Taint) NodeRegistrationOption {
 	}
 }
 
-// WithCRISocket sets the location of the container runtime socket.
+// WithDefaultCRISocket sets the location of the container runtime socket
 func WithCRISocket(socket string) NodeRegistrationOption {
 	return func(n *kubeadmv1beta1.NodeRegistrationOptions) {
 		n.CRISocket = socket
