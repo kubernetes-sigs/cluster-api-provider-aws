@@ -1,7 +1,7 @@
 apiVersion: "cluster.k8s.io/v1alpha1"
 kind: MachineDeployment
 metadata:
-  name: sample-machinedeployment
+  name: ${CLUSTER_NAME}-machinedeployment
   labels:
     cluster.k8s.io/cluster-name: ${CLUSTER_NAME}
 spec:
