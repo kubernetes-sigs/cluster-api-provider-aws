@@ -158,7 +158,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	ec2svc := ec2.NewService(scope.Scope)
 
-	clusterMachines, err := scope.MachineClient.List(v1.ListOptions{})
+	clusterMachines, err := scope.MachineClient.List(v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", clusterv1.MachineClusterLabelName, cluster.Name)})
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
 	}
