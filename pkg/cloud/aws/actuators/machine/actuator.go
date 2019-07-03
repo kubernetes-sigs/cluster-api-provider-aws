@@ -140,36 +140,26 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
 	}
 
-	// Except for the very first control plane machine, everything will be a join, so let's assume we're joining.
-	isNodeJoin := true
-	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] != v1alpha1.ValueReady {
-		if scope.Role() != "controlplane" {
-			// This isn't a control plane machine - have to wait
-			log.Info("No control plane machines exist yet - requeuing")
-			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
-		}
-
-		if a.controlPlaneInitLocker.Acquire(cluster) {
-			isNodeJoin = false
-		} else {
-			log.Info("Unable to acquire control plane configmap lock - requeuing")
-			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
-		}
+	join, err := a.isNodeJoin(log, cluster, machine)
+	if err != nil {
+		return err
 	}
 
 	var bootstrapToken string
-	if isNodeJoin {
+	if join {
 		coreClient, err := a.coreV1Client(cluster)
 		if err != nil {
 			return errors.Wrapf(err, "unable to proceed until control plane is ready (error creating client) for cluster %q", path.Join(cluster.Namespace, cluster.Name))
 		}
 
-		log.V(2).Info("Machine will join the cluster")
+		log.Info("Machine will join the cluster")
 
 		bootstrapToken, err = tokens.NewBootstrap(coreClient, defaultTokenTTL)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create new bootstrap token")
 		}
+	} else {
+		log.Info("Machine will init the cluster")
 	}
 
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
@@ -193,6 +183,25 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	log.Info("Create completed")
 
 	return nil
+}
+
+func (a *Actuator) isNodeJoin(log logr.Logger, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] == v1alpha1.ValueReady {
+		return true, nil
+	}
+
+	if machine.Labels["set"] != "controlplane" {
+		// This isn't a control plane machine - have to wait
+		log.Info("No control plane machines exist yet - requeuing")
+		return true, &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
+	}
+
+	if a.controlPlaneInitLocker.Acquire(cluster) {
+		return false, nil
+	}
+
+	log.Info("Unable to acquire control plane configmap lock - requeuing")
+	return true, &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
 }
 
 func (a *Actuator) coreV1Client(cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
