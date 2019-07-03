@@ -26,9 +26,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	apicorev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -45,7 +42,10 @@ import (
 )
 
 const (
-	defaultTokenTTL = 10 * time.Minute
+	defaultTokenTTL                             = 10 * time.Minute
+	waitForClusterInfrastructureReadyDuration   = 15 * time.Second
+	waitForControlPlaneMachineExistenceDuration = 5 * time.Second
+	waitForControlPlaneReadyDuration            = 5 * time.Second
 )
 
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsmachineproviderconfigs;awsmachineproviderstatuses,verbs=get;list;watch;create;update;patch;delete
@@ -63,12 +63,6 @@ type Actuator struct {
 	controlPlaneInitLocker ControlPlaneInitLocker
 }
 
-// ControlPlaneInitLocker provides a locking mechanism for cluster initialization.
-type ControlPlaneInitLocker interface {
-	// Acquire returns true if it acquires the lock for the cluster.
-	Acquire(cluster *clusterv1.Cluster) bool
-}
-
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
 	CoreClient             corev1.CoreV1Interface
@@ -83,10 +77,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 
 	locker := params.ControlPlaneInitLocker
 	if locker == nil {
-		locker = &controlPlaneInitLocker{
-			log:             log,
-			configMapClient: params.CoreClient,
-		}
+		locker = newControlPlaneInitLocker(log, params.CoreClient)
 	}
 
 	return &Actuator{
@@ -113,12 +104,6 @@ func GetControlPlaneMachines(machineList *clusterv1.MachineList) []*clusterv1.Ma
 func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 	return m1.Name == m2.Name && m1.Namespace == m2.Namespace
 }
-
-const (
-	waitForClusterInfrastructureReadyDuration   = 15 * time.Second
-	waitForControlPlaneMachineExistenceDuration = 5 * time.Second
-	waitForControlPlaneReadyDuration            = 5 * time.Second
-)
 
 // Create creates a machine and is invoked by the machine controller.
 func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
@@ -208,69 +193,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 	log.Info("Create completed")
 
 	return nil
-}
-
-// controlPlaneInitLocker uses a ConfigMap to synchronize cluster initialization.
-type controlPlaneInitLocker struct {
-	log             logr.Logger
-	configMapClient corev1.ConfigMapsGetter
-}
-
-var _ ControlPlaneInitLocker = &controlPlaneInitLocker{}
-
-func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
-	configMapName := actuators.ControlPlaneConfigMapName(cluster)
-	log := l.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", configMapName)
-
-	exists, err := l.configMapExists(cluster.Namespace, configMapName)
-	if err != nil {
-		log.Error(err, "Error checking for control plane configmap lock existence")
-		return false
-	}
-	if exists {
-		return false
-	}
-
-	controlPlaneConfigMap := &apicorev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      configMapName,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: cluster.APIVersion,
-					Kind:       cluster.Kind,
-					Name:       cluster.Name,
-					UID:        cluster.UID,
-				},
-			},
-		},
-	}
-
-	log.Info("Attempting to create control plane configmap lock")
-	_, err = l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap)
-	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			// Someone else beat us to it
-			log.Info("Control plane configmap lock already exists")
-		} else {
-			log.Error(err, "Error creating control plane configmap lock")
-		}
-
-		// Unable to acquire
-		return false
-	}
-
-	// Successfully acquired
-	return true
-}
-
-func (l *controlPlaneInitLocker) configMapExists(namespace, name string) (bool, error) {
-	_, err := l.configMapClient.ConfigMaps(namespace).Get(name, metav1.GetOptions{})
-	if apierrors.IsNotFound(err) {
-		return false, nil
-	}
-
-	return err == nil, err
 }
 
 func (a *Actuator) coreV1Client(cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {

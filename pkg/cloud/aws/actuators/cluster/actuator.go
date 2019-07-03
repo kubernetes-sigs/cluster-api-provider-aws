@@ -39,6 +39,8 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 )
 
+const waitForControlPlaneMachineDuration = 15 * time.Second
+
 //+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get;watch;list
@@ -179,8 +181,6 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
-const waitForControlPlaneMachineDuration = 15 * time.Second
-
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	a.log.Info("Deleting cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
@@ -210,8 +210,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	if err := ec2svc.DeleteNetwork(); err != nil {
 		a.log.Error(err, "Error deleting cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 		return &controllerError.RequeueAfterError{
-			// TODO: use a Duration expression for this
-			RequeueAfter: 5 * 1000 * 1000 * 1000,
+			RequeueAfter: 5 * time.Second,
 		}
 	}
 
