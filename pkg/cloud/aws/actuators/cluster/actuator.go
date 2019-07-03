@@ -179,7 +179,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
-const waitForControlPlaneMachineDuration = 5 * time.Second
+const waitForControlPlaneMachineDuration = 15 * time.Second
 
 // Delete deletes a cluster and is invoked by the Cluster Controller
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {

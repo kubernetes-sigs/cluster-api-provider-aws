@@ -115,7 +115,7 @@ func machinesEqual(m1 *clusterv1.Machine, m2 *clusterv1.Machine) bool {
 }
 
 const (
-	waitForClusterInfrastructureReadyDuration   = 10 * time.Second
+	waitForClusterInfrastructureReadyDuration   = 15 * time.Second
 	waitForControlPlaneMachineExistenceDuration = 5 * time.Second
 	waitForControlPlaneReadyDuration            = 5 * time.Second
 )
