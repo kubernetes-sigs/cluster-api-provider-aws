@@ -12,6 +12,7 @@ aliases:
   cluster-api-maintainers:
     - detiber
     - justinsb
+    - ncdc
     - vincepri
   sig-aws-leads:
     - d-nishi
@@ -23,6 +24,7 @@ aliases:
     - detiber
     - enxebre
     - ingvagabund
+    - ncdc
     - vincepri
   cluster-api-aws-reviewers:
     - ashish-amarnath
