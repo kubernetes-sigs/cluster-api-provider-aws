@@ -81,19 +81,18 @@ func (s *Service) GetAPIServerDNSName() (string, error) {
 func (s *Service) DeleteLoadbalancers() error {
 	s.scope.V(2).Info("Deleting load balancers")
 
-	// Get default api server spec
-	spec := s.getAPIServerClassicELBSpec()
+	// Get default api server name.
+	elbName := GenerateELBName(s.scope.Name(), v1alpha1.APIServerRoleTagValue)
 
-	// Describe or create.
-	apiELB, err := s.describeClassicELB(spec.Name)
-	if IsNotFound(err) {
-		return nil
-	}
-	if err != nil {
+	// Describe and delete if exists.
+	if _, err := s.describeClassicELB(elbName); err != nil {
+		if IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 
-	if err := s.deleteClassicELBAndWait(apiELB.Name); err != nil {
+	if err := s.deleteClassicELBAndWait(elbName); err != nil {
 		return err
 	}
 
@@ -137,7 +136,6 @@ func GenerateELBName(clusterName string, elbName string) string {
 }
 
 func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
-
 	res := &v1alpha1.ClassicELB{
 		Name:   GenerateELBName(s.scope.Name(), v1alpha1.APIServerRoleTagValue),
 		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
