@@ -442,3 +442,9 @@ type Instance struct {
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
 }
+
+const (
+	AnnotationClusterInfrastructureReady = "aws.cluster.sigs.k8s.io/infrastructure-ready"
+	ValueReady                           = "true"
+	AnnotationControlPlaneReady          = "aws.cluster.sigs.k8s.io/control-plane-ready"
+)

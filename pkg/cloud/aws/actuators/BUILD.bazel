@@ -4,6 +4,7 @@ go_library(
     name = "go_default_library",
     srcs = [
         "clients.go",
+        "control_plane_lock.go",
         "getters.go",
         "machine_scope.go",
         "scope.go",
