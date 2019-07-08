@@ -40,6 +40,14 @@ rules:
   - watch
   - list
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - delete
+- apiGroups:
   - awsprovider.k8s.io
   resources:
   - awsmachineproviderconfigs
