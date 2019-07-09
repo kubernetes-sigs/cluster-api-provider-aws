@@ -21,6 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 )
 
 // +genclient
@@ -57,6 +58,10 @@ type AWSClusterProviderSpec struct {
 	// ClusterConfiguration holds the cluster-wide information used during a
 	// kubeadm init call.
 	ClusterConfiguration kubeadmv1beta1.ClusterConfiguration `json:"clusterConfiguration,omitempty"`
+
+	// AdditionalUserDataFiles specifies extra files to be passed to all Machines' user_data upon creation.
+	// +optional
+	AdditionalUserDataFiles []userdata.Files `json:"additionalUserDataFiles,omitempty"`
 }
 
 // KeyPair is how operators can supply custom keypairs for kubeadm to use.

@@ -228,6 +228,10 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			}
 
 			userData, err = userdata.NewJoinControlPlane(&userdata.ControlPlaneJoinInput{
+				AdditionalFiles: append(
+					s.scope.ClusterConfig.AdditionalUserDataFiles,
+					machine.MachineConfig.AdditionalUserDataFiles...,
+				),
 				Certificates: userdata.Certificates{
 					CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
 					CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
@@ -274,6 +278,10 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			}
 
 			userData, err = userdata.NewInitControlPlane(&userdata.ControlPlaneInput{
+				AdditionalFiles: append(
+					s.scope.ClusterConfig.AdditionalUserDataFiles,
+					machine.MachineConfig.AdditionalUserDataFiles...,
+				),
 				Certificates: userdata.Certificates{
 					CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
 					CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
@@ -310,6 +318,10 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		}
 
 		userData, err := userdata.NewNode(&userdata.NodeInput{
+			AdditionalFiles: append(
+				s.scope.ClusterConfig.AdditionalUserDataFiles,
+				machine.MachineConfig.AdditionalUserDataFiles...,
+			),
 			JoinConfiguration: joinConfigurationYAML,
 		})
 

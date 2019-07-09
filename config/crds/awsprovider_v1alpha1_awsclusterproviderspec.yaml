@@ -14,6 +14,32 @@ spec:
   validation:
     openAPIV3Schema:
       properties:
+        additionalUserDataFiles:
+          description: AdditionalUserDataFiles specifies extra files to be passed
+            to all Machines' user_data upon creation.
+          items:
+            properties:
+              content:
+                description: Content is the actual content of the file.
+                type: string
+              owner:
+                description: Owner specifies the ownership of the file, e.g. "root:root".
+                type: string
+              path:
+                description: Path specifies the full path on disk where to store the
+                  file.
+                type: string
+              permissions:
+                description: Permissions specifies the permissions to assign to the
+                  file, e.g. "0640".
+                type: string
+            required:
+            - path
+            - owner
+            - permissions
+            - content
+            type: object
+          type: array
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest

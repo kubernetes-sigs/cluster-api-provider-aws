@@ -55,6 +55,32 @@ spec:
             additive. The actuator will ensure these tags are present, but will not
             remove any other tags that may exist on the instance.
           type: object
+        additionalUserDataFiles:
+          description: AdditionalUserDataFiles specifies extra files to be passed
+            to user_data upon creation.
+          items:
+            properties:
+              content:
+                description: Content is the actual content of the file.
+                type: string
+              owner:
+                description: Owner specifies the ownership of the file, e.g. "root:root".
+                type: string
+              path:
+                description: Path specifies the full path on disk where to store the
+                  file.
+                type: string
+              permissions:
+                description: Permissions specifies the permissions to assign to the
+                  file, e.g. "0640".
+                type: string
+            required:
+            - path
+            - owner
+            - permissions
+            - content
+            type: object
+          type: array
         ami:
           description: AMI is the reference to the AMI from which to create the machine
             instance.
