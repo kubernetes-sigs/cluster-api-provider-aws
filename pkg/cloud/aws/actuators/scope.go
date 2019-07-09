@@ -204,12 +204,14 @@ func (s *Scope) Close() {
 		s.Cluster.ResourceVersion = result.ResourceVersion
 	}
 
-	// Check if API endpoints is not set or has changed.
-	if s.Cluster.Status.APIEndpoints == nil || s.Cluster.Status.APIEndpoints[0].Host != s.ClusterStatus.Network.APIServerELB.DNSName {
-		s.Cluster.Status.APIEndpoints = append(s.Cluster.Status.APIEndpoints, clusterv1.APIEndpoint{
-			Host: s.ClusterStatus.Network.APIServerELB.DNSName,
-			Port: apiEndpointPort,
-		})
+	// Set the APIEndpoint.
+	if s.ClusterStatus.Network.APIServerELB.DNSName != "" {
+		s.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
+			{
+				Host: s.ClusterStatus.Network.APIServerELB.DNSName,
+				Port: apiEndpointPort,
+			},
+		}
 	}
 	s.Cluster.Status.ProviderStatus = newStatus
 
