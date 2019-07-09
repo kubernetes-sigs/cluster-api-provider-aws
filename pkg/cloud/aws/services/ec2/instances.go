@@ -235,15 +235,17 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				return nil, err
 			}
 
-			userData, err = userdata.JoinControlPlane(&userdata.ContolPlaneJoinInput{
-				CACert:            string(s.scope.ClusterConfig.CAKeyPair.Cert),
-				CAKey:             string(s.scope.ClusterConfig.CAKeyPair.Key),
-				EtcdCACert:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
-				EtcdCAKey:         string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
-				FrontProxyCACert:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
-				FrontProxyCAKey:   string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
-				SaCert:            string(s.scope.ClusterConfig.SAKeyPair.Cert),
-				SaKey:             string(s.scope.ClusterConfig.SAKeyPair.Key),
+			userData, err = userdata.NewJoinControlPlane(&userdata.ControlPlaneJoinInput{
+				Certificates: userdata.Certificates{
+					CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
+					CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
+					EtcdCACert:       string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
+					EtcdCAKey:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
+					FrontProxyCACert: string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
+					FrontProxyCAKey:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
+					SaCert:           string(s.scope.ClusterConfig.SAKeyPair.Cert),
+					SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
+				},
 				JoinConfiguration: joinConfigurationYAML,
 			})
 			if err != nil {
@@ -290,15 +292,17 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				return nil, err
 			}
 
-			userData, err = userdata.NewControlPlane(&userdata.ControlPlaneInput{
-				CACert:               string(s.scope.ClusterConfig.CAKeyPair.Cert),
-				CAKey:                string(s.scope.ClusterConfig.CAKeyPair.Key),
-				EtcdCACert:           string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
-				EtcdCAKey:            string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
-				FrontProxyCACert:     string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
-				FrontProxyCAKey:      string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
-				SaCert:               string(s.scope.ClusterConfig.SAKeyPair.Cert),
-				SaKey:                string(s.scope.ClusterConfig.SAKeyPair.Key),
+			userData, err = userdata.NewInitControlPlane(&userdata.ControlPlaneInput{
+				Certificates: userdata.Certificates{
+					CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
+					CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
+					EtcdCACert:       string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
+					EtcdCAKey:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
+					FrontProxyCACert: string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
+					FrontProxyCAKey:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
+					SaCert:           string(s.scope.ClusterConfig.SAKeyPair.Cert),
+					SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
+				},
 				ClusterConfiguration: clusterConfigYAML,
 				InitConfiguration:    initConfigYAML,
 			})

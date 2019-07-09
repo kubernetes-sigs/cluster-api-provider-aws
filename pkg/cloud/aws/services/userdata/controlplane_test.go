@@ -16,7 +16,9 @@ limitations under the License.
 
 package userdata
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestTemplateYAMLIndent(t *testing.T) {
 	testcases := []struct {
@@ -47,5 +49,4 @@ func TestTemplateYAMLIndent(t *testing.T) {
 			}
 		})
 	}
-
 }

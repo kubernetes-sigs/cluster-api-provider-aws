@@ -81,7 +81,7 @@ func (s *Service) GetAPIServerDNSName() (string, error) {
 func (s *Service) DeleteLoadbalancers() error {
 	s.scope.V(2).Info("Deleting load balancers")
 
-	// Get default api server spec.
+	// Get default api server spec
 	spec := s.getAPIServerClassicELBSpec()
 
 	// Describe or create.
