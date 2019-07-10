@@ -39,6 +39,7 @@ type ControlPlaneJoinInput struct {
 	baseUserData
 	Certificates
 
+	AdditionalFiles   []Files
 	BootstrapToken    string
 	ELBAddress        string
 	JoinConfiguration string
@@ -52,6 +53,7 @@ func NewJoinControlPlane(input *ControlPlaneJoinInput) (string, error) {
 	}
 
 	input.WriteFiles = certificatesToFiles(input.Certificates)
+	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("JoinControlplane", controlPlaneJoinCloudInit, input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for machine joining control plane")

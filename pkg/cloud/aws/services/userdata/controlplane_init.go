@@ -42,6 +42,7 @@ type ControlPlaneInput struct {
 	baseUserData
 	Certificates
 
+	AdditionalFiles      []Files
 	ClusterConfiguration string
 	InitConfiguration    string
 }
@@ -54,6 +55,7 @@ func NewInitControlPlane(input *ControlPlaneInput) (string, error) {
 	}
 
 	input.WriteFiles = certificatesToFiles(input.Certificates)
+	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
 	userData, err := generate("InitControlplane", controlPlaneCloudInit, input)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to generate user data for new control plane machine")
