@@ -32,8 +32,15 @@ write_files:{{ range . }}
 
 // Files defines the input for generating write_files in cloud-init.
 type Files struct {
-	Path        string
-	Owner       string
-	Permissions string
-	Content     string
+	// Path specifies the full path on disk where to store the file.
+	Path string `json:"path"`
+
+	// Owner specifies the ownership of the file, e.g. "root:root".
+	Owner string `json:"owner"`
+
+	// Permissions specifies the permissions to assign to the file, e.g. "0640".
+	Permissions string `json:"permissions"`
+
+	// Content is the actual content of the file.
+	Content string `json:"content"`
 }
