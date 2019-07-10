@@ -19,7 +19,6 @@ set -o pipefail
 
 export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
 
-cd $KUBE_ROOT
-# bazel run //:gazelle -- update-repos -from_file=Gopkg.lock
-find $KUBE_ROOT/vendor -name 'BUILD' -delete
-bazel run //:gazelle
+cd "${KUBE_ROOT}"
+find "${KUBE_ROOT}/vendor" -name 'BUILD' -delete
+bazel run //:gazelle --define='gotags=integration'

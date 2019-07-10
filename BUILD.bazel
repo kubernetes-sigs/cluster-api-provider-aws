@@ -34,7 +34,6 @@ package(default_visibility = ["//visibility:public"])
 # gazelle:exclude vendor/golang.org/x/tools/go/pointer/testdata
 # gazelle:exclude vendor/golang.org/x/tools/go/ssa/interp/testdata
 # gazelle:exclude vendor/k8s.io/gengo/testdata
-# gazelle:exclude vendor/github.com/golang/dep/cmd/dep/testdata
 gazelle(
     name = "gazelle",
     command = "fix",
@@ -47,11 +46,6 @@ filegroup(
     srcs = [
         "//cmd/manager:manager-image",
     ],
-)
-
-workspace_binary(
-    name = "dep",
-    cmd = "@com_github_golang_dep//cmd/dep",
 )
 
 workspace_binary(
