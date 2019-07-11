@@ -136,7 +136,7 @@ func (s *Service) deleteSecurityGroups() error {
 	for _, sg := range s.scope.SecurityGroups() {
 		current := sg.IngressRules
 
-		if err := s.revokeSecurityGroupIngressRules(sg.ID, current); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
 			return err
 		}
 
@@ -232,6 +232,29 @@ func (s *Service) revokeSecurityGroupIngressRules(id string, rules v1alpha1.Ingr
 
 	if _, err := s.scope.EC2.RevokeSecurityGroupIngress(input); err != nil {
 		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", id, rules)
+	}
+
+	return nil
+}
+
+func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
+	describeInput := &ec2.DescribeSecurityGroupsInput{GroupIds: []*string{aws.String(id)}}
+
+	securityGroups, err := s.scope.EC2.DescribeSecurityGroups(describeInput)
+	if err != nil {
+		return errors.Wrapf(err, "failed to query security group %q", id)
+	}
+
+	for _, sg := range securityGroups.SecurityGroups {
+		if len(sg.IpPermissions) > 0 {
+			revokeInput := &ec2.RevokeSecurityGroupIngressInput{
+				GroupId:       aws.String(id),
+				IpPermissions: sg.IpPermissions,
+			}
+			if _, err := s.scope.EC2.RevokeSecurityGroupIngress(revokeInput); err != nil {
+				return errors.Wrapf(err, "failed to revoke security group %q ingress rules", id)
+			}
+		}
 	}
 
 	return nil
