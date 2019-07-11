@@ -18,6 +18,7 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+source "${REPO_ROOT}/hack/ensure-go.sh"
 cd "${REPO_ROOT}" || exit 1
 
 exec scripts/ci-bazel-integration.sh

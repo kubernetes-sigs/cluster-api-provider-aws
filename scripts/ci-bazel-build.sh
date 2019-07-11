@@ -19,6 +19,7 @@ set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
+source "${REPO_ROOT}/hack/ensure-go.sh"
 
 cd "${REPO_ROOT}" && \
     bazel build //cmd/manager:manager //cmd/clusterctl:clusterctl //cmd/clusterawsadm:clusterawsadm
