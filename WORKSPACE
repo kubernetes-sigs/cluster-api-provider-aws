@@ -26,8 +26,8 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 # )
 git_repository(
     name = "io_bazel_rules_go",
-    remote = "https://github.com/bazelbuild/rules_go.git",
     commit = "f2373c9fbd09586d8e591dda3c43d66445b2d7ca",
+    remote = "https://github.com/bazelbuild/rules_go.git",
 )
 
 http_archive(
@@ -64,7 +64,7 @@ versions.check(
     maximum_bazel_version = "1.0.0",
 )  # fails if not within range
 
-load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 go_rules_dependencies()
 
@@ -89,13 +89,6 @@ load(
 )
 
 _go_image_repos()
-
-go_repository(
-    name = "com_github_golang_dep",
-    build_file_generation = "on",
-    importpath = "github.com/golang/dep",
-    tag = "v0.5.3",
-)
 
 go_repository(
     name = "com_github_golangci_golangci-lint",

@@ -19,7 +19,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"golang.org/x/tools/go/gcexportdata"
@@ -839,7 +838,7 @@ func sameFile(x, y string) bool {
 		// overlay case implies x==y.)
 		return true
 	}
-	if strings.EqualFold(filepath.Base(x), filepath.Base(y)) { // (optimisation)
+	if filepath.Base(x) == filepath.Base(y) { // (optimisation)
 		if xi, err := os.Stat(x); err == nil {
 			if yi, err := os.Stat(y); err == nil {
 				return os.SameFile(xi, yi)

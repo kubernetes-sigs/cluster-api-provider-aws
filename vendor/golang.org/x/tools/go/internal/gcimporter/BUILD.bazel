@@ -7,7 +7,6 @@ go_library(
         "bimport.go",
         "exportdata.go",
         "gcimporter.go",
-        "iexport.go",
         "iimport.go",
         "newInterface10.go",
         "newInterface11.go",
