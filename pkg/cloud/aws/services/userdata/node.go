@@ -36,13 +36,12 @@ type NodeInput struct {
 	baseUserData
 
 	JoinConfiguration string
+	AdditionalFiles   []Files
 }
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) (string, error) {
 	input.Header = cloudConfigHeader
-	fMap := map[string]interface{}{
-		"Indent": templateYAMLIndent,
-	}
-	return generateWithFuncs("node", nodeCloudInit, fMap, input)
+	input.WriteFiles = append(input.WriteFiles, input.AdditionalFiles...)
+	return generate("Node", nodeCloudInit, input)
 }

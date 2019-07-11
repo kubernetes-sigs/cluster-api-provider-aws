@@ -60,7 +60,7 @@ http_archive(
 load("@bazel_skylib//lib:versions.bzl", "versions")
 
 versions.check(
-    minimum_bazel_version = "0.23.0",
+    minimum_bazel_version = "0.25.0",
     maximum_bazel_version = "1.0.0",
 )  # fails if not within range
 

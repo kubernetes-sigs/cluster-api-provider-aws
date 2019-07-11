@@ -51,11 +51,17 @@ set -o pipefail
 )
 
 type baseUserData struct {
-	Header string
+	Header     string
+	WriteFiles []Files
 }
 
 func generate(kind string, tpl string, data interface{}) (string, error) {
-	t, err := template.New(kind).Parse(tpl)
+	tm := template.New(kind).Funcs(defaultTemplateFuncMap)
+	if _, err := tm.Parse(filesTemplate); err != nil {
+		return "", errors.Wrap(err, "failed to parse files template")
+	}
+
+	t, err := tm.Parse(tpl)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to parse %s template", kind)
 	}
@@ -66,27 +72,4 @@ func generate(kind string, tpl string, data interface{}) (string, error) {
 	}
 
 	return out.String(), nil
-}
-
-func generateWithFuncs(kind string, tpl string, funcsMap template.FuncMap, data interface{}) (string, error) {
-	t, err := template.New(kind).Funcs(funcsMap).Parse(tpl)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse %s template", kind)
-	}
-
-	var out bytes.Buffer
-	if err := t.Execute(&out, data); err != nil {
-		return "", errors.Wrapf(err, "failed to generate %s template", kind)
-	}
-
-	return out.String(), nil
-}
-
-func funcMap(funcs map[string]interface{}) template.FuncMap {
-	funcMap := template.FuncMap{}
-	for name, function := range funcs {
-		funcMap[name] = function
-	}
-
-	return funcMap
 }

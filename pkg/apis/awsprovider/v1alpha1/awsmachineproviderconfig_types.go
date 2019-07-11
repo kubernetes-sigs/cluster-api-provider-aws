@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 )
 
 // +genclient
@@ -89,6 +90,10 @@ type AWSMachineProviderSpec struct {
 	// KubeadmConfiguration holds the kubeadm configuration options
 	// +optional
 	KubeadmConfiguration KubeadmConfiguration `json:"kubeadmConfiguration,omitempty"`
+
+	// AdditionalUserDataFiles specifies extra files to be passed to user_data upon creation.
+	// +optional
+	AdditionalUserDataFiles []userdata.Files `json:"additionalUserDataFiles,omitempty"`
 }
 
 // KubeadmConfiguration holds the various configurations that kubeadm uses
