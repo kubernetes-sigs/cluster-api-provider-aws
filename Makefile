@@ -23,15 +23,14 @@ REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
 # A release should define this with the next version after 0.0.4
 MANAGER_IMAGE_TAG ?= dev
-
-MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
-
 # A release should define this with IfNotPresent
 PULL_POLICY ?= Always
 
+# Used in docker-* targets.
+MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
+
 ## Image URL to use all building/pushing image targets
 BAZEL_ARGS ?=
-
 BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY)\
  --define=PULL_POLICY=$(PULL_POLICY)\
  --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME)\
@@ -41,11 +40,6 @@ $(BAZEL_ARGS)
 
 # Bazel variables
 BAZEL_VERSION := $(shell command -v bazel 2> /dev/null)
-
-# Determine the OS
-HOSTOS := $(shell go env GOHOSTOS)
-HOSTARCH := $(shell go env GOARCH)
-
 ifndef BAZEL_VERSION
     $(error "Bazel is not available. \
 		Installation instructions can be found at \
@@ -53,7 +47,7 @@ ifndef BAZEL_VERSION
 endif
 
 .PHONY: all
-all: check-install test binaries
+all: verify-install test binaries
 
 help:  ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -200,12 +194,9 @@ release-artifacts: ## Build release artifacts
 ## Define local development targets here
 ## --------------------------------------
 
-.PHONY: binaries-dev
-binaries-dev: generate manager clusterawsadm clusterctl
-
 .PHONY: create-cluster
-create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS using examples
-	clusterctl create cluster -v 4 \
+create-cluster: binaries ## Create a development Kubernetes cluster on AWS using examples
+	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
 	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
@@ -214,8 +205,8 @@ create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS u
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 .PHONY: create-cluster-ha
-create-cluster-ha: binaries-dev ## Create a development Kubernetes cluster on AWS using HA examples
-	clusterctl create cluster -v 4 \
+create-cluster-ha: binaries ## Create a development Kubernetes cluster on AWS using HA examples
+	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
 	-m ./cmd/clusterctl/examples/aws/out/machines-ha.yaml \
@@ -239,12 +230,12 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f cmd/clusterctl/examples/aws/out/controlplane-machine.yaml
 	# Get KubeConfig using clusterctl.
-	clusterctl alpha phases get-kubeconfig -v=3 \
+	bin/clusterctl alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		--provider=aws \
 		--cluster-name=test1
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
-	clusterctl alpha phases apply-addons -v=3 \
+	bin/clusterctl alpha phases apply-addons -v=3 \
 		--kubeconfig=./kubeconfig \
 		-a cmd/clusterctl/examples/aws/out/addons.yaml
 	# Create a worker node with MachineDeployment.
@@ -253,8 +244,8 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		create -f cmd/clusterctl/examples/aws/out/machine-deployment.yaml
 
 .PHONY: delete-cluster
-delete-cluster: binaries-dev ## Deletes the development Kubernetes Cluster "test1"
-	clusterctl delete cluster -v 4 \
+delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
+	bin/clusterctl delete cluster -v 4 \
 	--bootstrap-type kind \
 	--cluster test1 \
 	--kubeconfig ./kubeconfig \
@@ -294,6 +285,6 @@ verify: ## Runs verification scripts to ensure correct execution
 	./hack/verify-boilerplate.sh
 	./hack/verify-bazel.sh
 
-.PHONY: check-install
-check-install: ## Checks that you've installed this repository correctly
-	@./scripts/check-install.sh
+.PHONY: verify-install
+verify-install: ## Checks that you've installed this repository correctly
+	./hack/verify-install.sh
