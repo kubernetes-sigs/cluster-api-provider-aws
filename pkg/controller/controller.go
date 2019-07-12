@@ -20,13 +20,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// +kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.sigs.k8s.io,resources=awsmachines,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.sigs.k8s.io,resources=awsmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=create;get;watch;list
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=create;get;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.sigs.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.sigs.k8s.io,resources=awsmachines;awsmachines/status,verbs=get;list;watch;create;update;patch;delete
 
 // AddToManagerFuncs is a list of functions to add all Controllers to the Manager
 var AddToManagerFuncs []func(manager.Manager) error

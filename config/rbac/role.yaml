@@ -7,20 +7,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - awsprovider.k8s.io
-  resources:
-  - awsclusterproviderconfigs
-  - awsclusterproviderstatuses
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cluster.k8s.io
+  - cluster.sigs.k8s.io
   resources:
   - clusters
   - clusters/status
@@ -36,6 +23,7 @@ rules:
   - infrastructure.cluster.sigs.k8s.io
   resources:
   - awsmachines
+  - awsmachines/status
   verbs:
   - create
   - delete
@@ -44,14 +32,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - infrastructure.cluster.sigs.k8s.io
-  resources:
-  - awsmachines/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - ""
   resources:
@@ -73,6 +53,19 @@ rules:
   - ""
   resources:
   - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - awsprovider.k8s.io
+  resources:
+  - awsclusterproviderconfigs
+  - awsclusterproviderstatuses
   verbs:
   - create
   - delete
