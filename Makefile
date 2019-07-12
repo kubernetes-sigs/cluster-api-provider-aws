@@ -164,15 +164,15 @@ binaries: manager clusterawsadm clusterctl ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
-	go build -o bin/manager sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+	go build -o bin/manager ./cmd/manager
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary.
-	go build -o bin/clusterctl sigs.k8s.io/cluster-api-provider-aws/cmd/clusterctl
+	go build -o bin/clusterctl ./cmd/clusterctl
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
-	go build -o bin/clusterawsadm sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm
+	go build -o bin/clusterawsadm ./cmd/clusterawsadm
 
 ## --------------------------------------
 ## Release
