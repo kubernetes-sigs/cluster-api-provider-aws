@@ -14,15 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE}")/..
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
-cd $REPO_ROOT
-bazel run //:lint || exit 1
-bazel test --test_output all //pkg/... //cmd/...
-bazel_status=$?
-python hack/coalesce.py
-exit $bazel_status
+cd "${REPO_ROOT}" && \
+	source ./scripts/fetch_ext_bins.sh && \
+	fetch_tools && \
+	setup_envs && \
+	make test-go

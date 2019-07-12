@@ -21,13 +21,11 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/apis/infrastructure/v1alpha2:go_default_library",
         "//pkg/cloud/aws/actuators:go_default_library",
         "//pkg/cloud/aws/converters:go_default_library",
         "//pkg/cloud/aws/filter:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
-        "//pkg/cloud/aws/services/certificates:go_default_library",
-        "//pkg/cloud/aws/services/kubeadm:go_default_library",
         "//pkg/cloud/aws/services/userdata:go_default_library",
         "//pkg/cloud/aws/services/wait:go_default_library",
         "//pkg/cloud/aws/tags:go_default_library",
@@ -37,8 +35,6 @@ go_library(
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
         "//vendor/github.com/go-logr/logr:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
-        "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
     ],
 )
 
@@ -56,7 +52,7 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
-        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
+        "//pkg/apis/infrastructure/v1alpha2:go_default_library",
         "//pkg/cloud/aws/actuators:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/ec2/mock_ec2iface:go_default_library",
@@ -65,9 +61,7 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
         "//vendor/github.com/golang/mock/gomock:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
-        "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
-        "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2:go_default_library",
     ],
 )

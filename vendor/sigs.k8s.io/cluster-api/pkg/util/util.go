@@ -25,16 +25,18 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"reflect"
 	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -133,7 +135,7 @@ func GetMachineIfExists(c client.Client, namespace, name string) (*clusterv1.Mac
 
 // IsControlPlaneMachine checks machine is a control plane node.
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	return machine.Spec.Versions.ControlPlane != ""
+	return machine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabelName] != ""
 }
 
 // IsNodeReady returns true if a node is ready.
@@ -145,6 +147,24 @@ func IsNodeReady(node *v1.Node) bool {
 	}
 
 	return false
+}
+
+// HasOwnerRef returns true if the OwnerReference is already in the slice.
+func HasOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) bool {
+	for _, r := range ownerReferences {
+		if reflect.DeepEqual(ref, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// EnsureOwnerRef makes sure the slice contains the OwnerReference.
+func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) []metav1.OwnerReference {
+	if !HasOwnerRef(ownerReferences, ref) {
+		return append(ownerReferences, ref)
+	}
+	return ownerReferences
 }
 
 // Copy deep copies a Machine object.

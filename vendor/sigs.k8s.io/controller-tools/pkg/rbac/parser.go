@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,69 +15,153 @@ limitations under the License.
 */
 
 // Package rbac contain libraries for generating RBAC manifests from RBAC
-// annotations in Go source files.
+// markers in Go source files.
+//
+// The markers take the form:
+//
+//  +kubebuilder:rbac:groups=<groups>,resources=<resources>,verbs=<verbs>,urls=<non resource urls>
 package rbac
 
 import (
-	"log"
+	"sort"
 	"strings"
 
 	rbacv1 "k8s.io/api/rbac/v1"
-	"sigs.k8s.io/controller-tools/pkg/internal/general"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/controller-tools/pkg/genall"
+	"sigs.k8s.io/controller-tools/pkg/markers"
 )
 
-type parserOptions struct {
-	rules []rbacv1.PolicyRule
+var (
+	// RuleDefinition is a marker for defining RBAC rules.
+	// Call ToRule on the value to get a Kubernetes RBAC policy rule.
+	RuleDefinition = markers.Must(markers.MakeDefinition("kubebuilder:rbac", markers.DescribesPackage, Rule{}))
+)
+
+// Rule is a marker value that describes a kubernetes RBAC rule.
+type Rule struct {
+	Groups    []string `marker:",optional"`
+	Resources []string `marker:",optional"`
+	Verbs     []string
+	URLs      []string `marker:"urls,optional"`
 }
 
-// parseAnnotation parses RBAC annotations
-func (o *parserOptions) parseAnnotation(commentText string) error {
-	for _, comment := range strings.Split(commentText, "\n") {
-		comment := strings.TrimSpace(comment)
-		if strings.HasPrefix(comment, "+rbac") {
-			if ann := general.GetAnnotation(comment, "rbac"); ann != "" {
-				o.rules = append(o.rules, parseRBACTag(ann))
-			}
-		}
-		if strings.HasPrefix(comment, "+kubebuilder:rbac") {
-			if ann := general.GetAnnotation(comment, "kubebuilder:rbac"); ann != "" {
-				o.rules = append(o.rules, parseRBACTag(ann))
-			}
-		}
-	}
-	return nil
+// ruleKey represents the resources and non-resources a Rule applies.
+type ruleKey struct {
+	Groups    string
+	Resources string
+	URLs      string
 }
 
-// parseRBACTag parses the given RBAC annotation in to an RBAC PolicyRule.
-// This is copied from Kubebuilder code.
-func parseRBACTag(tag string) rbacv1.PolicyRule {
-	result := rbacv1.PolicyRule{}
-	for _, elem := range strings.Split(tag, ",") {
-		key, value, err := general.ParseKV(elem)
-		if err != nil {
-			log.Fatalf("// +kubebuilder:rbac: tags must be key value pairs.  Expected "+
-				"keys [groups=<group1;group2>,resources=<resource1;resource2>,verbs=<verb1;verb2>] "+
-				"Got string: [%s]", tag)
-		}
-		values := strings.Split(value, ";")
-		switch key {
-		case "groups":
-			normalized := []string{}
-			for _, v := range values {
-				if v == "core" {
-					normalized = append(normalized, "")
-				} else {
-					normalized = append(normalized, v)
-				}
-			}
-			result.APIGroups = normalized
-		case "resources":
-			result.Resources = values
-		case "verbs":
-			result.Verbs = values
-		case "urls":
-			result.NonResourceURLs = values
+// key normalizes the Rule and returns a ruleKey object.
+func (r *Rule) key() ruleKey {
+	r.normalize()
+	return ruleKey{
+		Groups:    strings.Join(r.Groups, "&"),
+		Resources: strings.Join(r.Resources, "&"),
+		URLs:      strings.Join(r.URLs, "&"),
+	}
+}
+
+// addVerbs adds new verbs into a Rule.
+// The duplicates in `r.Verbs` will be removed, and then `r.Verbs` will be sorted.
+func (r *Rule) addVerbs(verbs []string) {
+	r.Verbs = removeDupAndSort(append(r.Verbs, verbs...))
+}
+
+// normalize removes duplicates from each field of a Rule, and sorts each field.
+func (r *Rule) normalize() {
+	r.Groups = removeDupAndSort(r.Groups)
+	r.Resources = removeDupAndSort(r.Resources)
+	r.Verbs = removeDupAndSort(r.Verbs)
+	r.URLs = removeDupAndSort(r.URLs)
+}
+
+// removeDupAndSort removes duplicates in strs, sorts the items, and returns a
+// new slice of strings.
+func removeDupAndSort(strs []string) []string {
+	set := make(map[string]bool)
+	for _, str := range strs {
+		if _, ok := set[str]; !ok {
+			set[str] = true
 		}
 	}
+
+	var result []string
+	for str := range set {
+		result = append(result, str)
+	}
+	sort.Strings(result)
 	return result
+}
+
+// ToRule converts this rule to its Kubernetes API form.
+func (r *Rule) ToRule() rbacv1.PolicyRule {
+	// fix the group names first, since letting people type "core" is nice
+	for i, group := range r.Groups {
+		if group == "core" {
+			r.Groups[i] = ""
+		}
+	}
+	return rbacv1.PolicyRule{
+		APIGroups:       r.Groups,
+		Verbs:           r.Verbs,
+		Resources:       r.Resources,
+		NonResourceURLs: r.URLs,
+	}
+}
+
+// Generator is a genall.Generator that generated RBAC manifests..
+type Generator struct {
+	RoleName string
+}
+
+func (Generator) RegisterMarkers(into *markers.Registry) error {
+	return into.Register(RuleDefinition)
+}
+
+func (g Generator) Generate(ctx *genall.GenerationContext) error {
+	rules := make(map[ruleKey]*Rule)
+	for _, root := range ctx.Roots {
+		markerSet, err := markers.PackageMarkers(ctx.Collector, root)
+		if err != nil {
+			root.AddError(err)
+		}
+
+		for _, markerValue := range markerSet[RuleDefinition.Name] {
+			rule := markerValue.(Rule)
+			key := rule.key()
+			if _, ok := rules[key]; !ok {
+				rules[key] = &rule
+				continue
+			}
+			rules[key].addVerbs(rule.Verbs)
+		}
+	}
+
+	var policyRules []rbacv1.PolicyRule
+	for _, rule := range rules {
+		policyRules = append(policyRules, rule.ToRule())
+
+	}
+
+	if len(policyRules) == 0 {
+		return nil
+	}
+
+	if err := ctx.WriteYAML("role.yaml", rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterRole",
+			APIVersion: rbacv1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: g.RoleName,
+		},
+		Rules: policyRules,
+	}); err != nil {
+		return err
+	}
+
+	return nil
 }

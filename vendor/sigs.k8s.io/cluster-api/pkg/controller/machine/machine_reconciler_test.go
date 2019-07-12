@@ -20,57 +20,55 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var c client.Client
-
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
 
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
-	instance := &clusterv1alpha1.Machine{
+	RegisterTestingT(t)
+	ctx := context.TODO()
+	instance := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: clusterv1alpha1.MachineSpec{
-			Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.clusters.k8s.io/v1alpha1",
+				Kind:       "InfrastructureRef",
+				Name:       "machine-infrastructure",
+			},
 		},
 	}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatalf("error creating new manager: %v", err)
 	}
-	c = mgr.GetClient()
+	c := mgr.GetClient()
 
-	a := newTestActuator()
-	recFn, requests := SetupTestReconcile(newReconciler(mgr, a))
-	if err := add(mgr, recFn); err != nil {
-		t.Fatalf("error adding controller to manager: %v", err)
-	}
+	reconciler := newReconciler(mgr)
+	controller, err := addController(mgr, reconciler)
+	Expect(err).To(BeNil())
+	reconciler.controller = controller
 	defer close(StartTestManager(mgr, t))
 
 	// Create the Machine object and expect Reconcile and the actuator to be called
-	if err := c.Create(context.TODO(), instance); err != nil {
-		t.Fatalf("error creating instance: %v", err)
-	}
-	defer c.Delete(context.TODO(), instance)
-	select {
-	case recv := <-requests:
-		if recv != expectedRequest {
-			t.Error("received request does not match expected request")
-		}
-	case <-time.After(timeout):
-		t.Error("timed out waiting for request")
-	}
+	Expect(c.Create(ctx, instance)).To(BeNil())
+	defer c.Delete(ctx, instance)
 
-	// TODO: Verify that the actuator is called correctly on Create
+	// Make sure the Machine exists.
+	Eventually(func() bool {
+		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
+		if err := c.Get(ctx, key, instance); err != nil {
+			return false
+		}
+		return true
+	}, timeout).Should(BeTrue())
 }

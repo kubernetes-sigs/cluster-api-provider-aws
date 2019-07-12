@@ -19,20 +19,18 @@
 
 # A release should define this with gcr.io/cluster-api-provider-aws
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-
+# A release does not need to define this
+MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
+# A release should define this with the next version after 0.0.4
+MANAGER_IMAGE_TAG ?= dev
 # A release should define this with IfNotPresent
 PULL_POLICY ?= Always
 
-# A release does not need to define this
-MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
-
-# A release should define this with the next version after 0.0.4
-MANAGER_IMAGE_TAG ?= dev
+# Used in docker-* targets.
+MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 
 ## Image URL to use all building/pushing image targets
-DEPCACHEAGE ?= 24h # Enables caching for Dep
 BAZEL_ARGS ?=
-
 BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY)\
  --define=PULL_POLICY=$(PULL_POLICY)\
  --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME)\
@@ -42,12 +40,6 @@ $(BAZEL_ARGS)
 
 # Bazel variables
 BAZEL_VERSION := $(shell command -v bazel 2> /dev/null)
-
-# Determine the OS
-HOSTOS := $(shell go env GOHOSTOS)
-HOSTARCH := $(shell go env GOARCH)
-BINARYPATHPATTERN :=${HOSTOS}_${HOSTARCH}_*
-
 ifndef BAZEL_VERSION
     $(error "Bazel is not available. \
 		Installation instructions can be found at \
@@ -55,7 +47,7 @@ ifndef BAZEL_VERSION
 endif
 
 .PHONY: all
-all: check-install test binaries
+all: verify-install test binaries
 
 help:  ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -66,8 +58,12 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate verify ## Run tests
-	bazel test --nosandbox_debug //pkg/... //cmd/... $(BAZEL_ARGS)
+test: generate lint ## Run tests
+	$(MAKE) test-go
+
+.PHONY: test-go
+test-go: ## Run tests
+	go test -v -tags=integration ./pkg/... ./cmd/...
 
 .PHONY: integration
 integration: generate verify ## Run integraion tests
@@ -87,40 +83,19 @@ e2e-janitor:
 ## --------------------------------------
 
 .PHONY: docker-build
-docker-build: generate ## Build the production docker image
-	bazel run //cmd/manager:manager-image $(BAZEL_BUILD_ARGS)
+docker-build: generate lint-full ## Build the docker image for controller-manager
+	docker build --pull . -t $(MANAGER_IMAGE)
 
 .PHONY: docker-push
-docker-push: ## Push production docker image
-	bazel run //cmd/manager:manager-push $(BAZEL_BUILD_ARGS)
-
-## --------------------------------------
-## Cleanup / Verification
-## --------------------------------------
-
-.PHONY: clean
-clean: ## Remove all generated files
-	rm -rf cmd/clusterctl/examples/aws/out/
-	rm -f kubeconfig
-	rm -f minikube.kubeconfig
-	rm -f bazel-*
-	rm -rf out/
-	rm -f cmd/clusterctl/examples/aws/provider-components-base.yaml
-
-.PHONY: check-install
-check-install: ## Checks that you've installed this repository correctly
-	@./scripts/check-install.sh
-
-.PHONY: verify
-verify: ## Runs verification scripts to ensure correct execution
-	./hack/verify_boilerplate.py
+docker-push: docker-build ## Push the docker image
+	docker push $(MANAGER_IMAGE)
 
 ## --------------------------------------
 ## Manifests
 ## --------------------------------------
 
 .PHONY: manifests
-manifests: clusterawsadm cmd/clusterctl/examples/aws/provider-components-base.yaml ## Build example set of manifests from the current source
+manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml ## Build example set of manifests from the current source
 	./cmd/clusterctl/examples/aws/generate-yaml.sh
 
 .PHONY: cmd/clusterctl/examples/aws/provider-components-base.yaml
@@ -142,19 +117,32 @@ gazelle: ## Run Bazel Gazelle
 	(which bazel && ./hack/update-bazel.sh) || true
 
 .PHONY: generate
-generate: ## Generate mocks, CRDs and runs `go generate` through Bazel
-	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
+generate: ## Generate code
+	$(MAKE) generate-go
+	$(MAKE) generate-mocks
+	$(MAKE) generate-manifests
+	$(MAKE) gazelle
+
+.PHONY: generate-go
+generate-go: ## Runs go generate
+	go generate ./pkg/... ./cmd/...
+
+.PHONY: generate-mocks
+generate-mocks: ## Generate mocks, CRDs and runs `go generate` through Bazel
 	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:mocks \
 		//pkg/cloud/aws/services/ec2/mock_ec2iface:mocks \
 		//pkg/cloud/aws/services/elb/mock_elbiface:mocks
 	./hack/copy-bazel-mocks.sh
-	$(MAKE) generate-crds
 
-.PHONY: generate-crds
-generate-crds:
-	bazel build //config
-	cp -R bazel-genfiles/config/crds/* config/crds/
-	cp -R bazel-genfiles/config/rbac/* config/rbac/
+.PHONY: generate-manifests
+generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+		paths=./pkg/apis/infrastructure/... \
+		crd:trivialVersions=true \
+		output:crd:dir=./config/crds
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+		paths=./pkg/controller/... \
+		rbac:roleName=manager-role
 
 ## --------------------------------------
 ## Linting
@@ -172,22 +160,19 @@ lint-full: ## Run slower linters to detect possible issues
 ## --------------------------------------
 
 .PHONY: binaries
-binaries: generate manager clusterawsadm clusterctl ## Builds and installs all binaries
+binaries: manager clusterawsadm clusterctl ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
-	bazel build //cmd/manager $(BAZEL_ARGS)
-	install bazel-bin/cmd/manager/${BINARYPATHPATTERN}/manager $(shell go env GOPATH)/bin/aws-manager
+	go build -o bin/manager ./cmd/manager
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary.
-	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterctl $(BAZEL_ARGS)
-	install bazel-bin/cmd/clusterctl/${BINARYPATHPATTERN}/clusterctl $(shell go env GOPATH)/bin/clusterctl
+	go build -o bin/clusterctl ./cmd/clusterctl
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
-	bazel build --workspace_status_command=./hack/print-workspace-status.sh //cmd/clusterawsadm $(BAZEL_ARGS)
-	install bazel-bin/cmd/clusterawsadm/${BINARYPATHPATTERN}/clusterawsadm $(shell go env GOPATH)/bin/clusterawsadm
+	go build -o bin/clusterawsadm ./cmd/clusterawsadm
 
 ## --------------------------------------
 ## Release
@@ -209,12 +194,9 @@ release-artifacts: ## Build release artifacts
 ## Define local development targets here
 ## --------------------------------------
 
-.PHONY: binaries-dev
-binaries-dev: generate manager clusterawsadm clusterctl
-
 .PHONY: create-cluster
-create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS using examples
-	clusterctl create cluster -v 4 \
+create-cluster: binaries ## Create a development Kubernetes cluster on AWS using examples
+	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
 	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
@@ -223,8 +205,8 @@ create-cluster: binaries-dev ## Create a development Kubernetes cluster on AWS u
 	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
 
 .PHONY: create-cluster-ha
-create-cluster-ha: binaries-dev ## Create a development Kubernetes cluster on AWS using HA examples
-	clusterctl create cluster -v 4 \
+create-cluster-ha: binaries ## Create a development Kubernetes cluster on AWS using HA examples
+	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
 	-m ./cmd/clusterctl/examples/aws/out/machines-ha.yaml \
@@ -248,12 +230,12 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f cmd/clusterctl/examples/aws/out/controlplane-machine.yaml
 	# Get KubeConfig using clusterctl.
-	clusterctl alpha phases get-kubeconfig -v=3 \
+	bin/clusterctl alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		--provider=aws \
 		--cluster-name=test1
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
-	clusterctl alpha phases apply-addons -v=3 \
+	bin/clusterctl alpha phases apply-addons -v=3 \
 		--kubeconfig=./kubeconfig \
 		-a cmd/clusterctl/examples/aws/out/addons.yaml
 	# Create a worker node with MachineDeployment.
@@ -262,8 +244,8 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		create -f cmd/clusterctl/examples/aws/out/machine-deployment.yaml
 
 .PHONY: delete-cluster
-delete-cluster: binaries-dev ## Deletes the development Kubernetes Cluster "test1"
-	clusterctl delete cluster -v 4 \
+delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
+	bin/clusterctl delete cluster -v 4 \
 	--bootstrap-type kind \
 	--cluster test1 \
 	--kubeconfig ./kubeconfig \
@@ -272,6 +254,37 @@ delete-cluster: binaries-dev ## Deletes the development Kubernetes Cluster "test
 kind-reset: ## Destroys the "clusterapi" kind cluster.
 	kind delete cluster --name=clusterapi || true
 
-.PHONY: reset-bazel
-reset-bazel: ## Deep cleaning for bazel
-	bazel clean --expunge
+## --------------------------------------
+## Cleanup / Verification
+## --------------------------------------
+
+.PHONY: clean
+clean: ## Remove all generated files
+	$(MAKE) clean-bazel
+	$(MAKE) clean-bin
+	$(MAKE) clean-temporary
+
+.PHONY: clean-bazel
+clean-bazel: ## Remove all generated bazel symlinks
+	bazel clean
+
+.PHONY: clean-bin
+clean-bin: ## Remove all generated binaries
+	rm -rf bin
+
+.PHONY: clean-temporary
+clean-temporary: ## Remove all temporary files and folders
+	rm -f minikube.kubeconfig
+	rm -f kubeconfig
+	rm -rf out/
+	rm -rf cmd/clusterctl/examples/aws/out/
+	rm -f cmd/clusterctl/examples/aws/provider-components-base.yaml
+
+.PHONY: verify
+verify: ## Runs verification scripts to ensure correct execution
+	./hack/verify-boilerplate.sh
+	./hack/verify-bazel.sh
+
+.PHONY: verify-install
+verify-install: ## Checks that you've installed this repository correctly
+	./hack/verify-install.sh

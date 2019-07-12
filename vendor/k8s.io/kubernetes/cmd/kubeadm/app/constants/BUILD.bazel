@@ -2,7 +2,11 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["constants.go"],
+    srcs = [
+        "constants.go",
+        "constants_unix.go",
+        "constants_windows.go",
+    ],
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/k8s.io/kubernetes/cmd/kubeadm/app/constants",
     importpath = "k8s.io/kubernetes/cmd/kubeadm/app/constants",
     visibility = ["//visibility:public"],

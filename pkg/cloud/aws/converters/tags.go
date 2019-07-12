@@ -20,12 +20,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 )
 
-// TagsToMap converts a []*ec2.Tag into a v1alpha1.Tags.
-func TagsToMap(src []*ec2.Tag) v1alpha1.Tags {
-	tags := make(v1alpha1.Tags, len(src))
+// TagsToMap converts a []*ec2.Tag into a v1alpha2.Tags.
+func TagsToMap(src []*ec2.Tag) v1alpha2.Tags {
+	tags := make(v1alpha2.Tags, len(src))
 
 	for _, t := range src {
 		tags[*t.Key] = *t.Value
@@ -34,8 +34,8 @@ func TagsToMap(src []*ec2.Tag) v1alpha1.Tags {
 	return tags
 }
 
-// MapToTags converts a v1alpha1.Tags to a []*ec2.Tag
-func MapToTags(src v1alpha1.Tags) []*ec2.Tag {
+// MapToTags converts a v1alpha2.Tags to a []*ec2.Tag
+func MapToTags(src v1alpha2.Tags) []*ec2.Tag {
 	tags := make([]*ec2.Tag, 0, len(src))
 
 	for k, v := range src {
@@ -50,9 +50,9 @@ func MapToTags(src v1alpha1.Tags) []*ec2.Tag {
 	return tags
 }
 
-// ELBTagsToMap converts a []*elb.Tag into a v1alpha1.Tags.
-func ELBTagsToMap(src []*elb.Tag) v1alpha1.Tags {
-	tags := make(v1alpha1.Tags, len(src))
+// ELBTagsToMap converts a []*elb.Tag into a v1alpha2.Tags.
+func ELBTagsToMap(src []*elb.Tag) v1alpha2.Tags {
+	tags := make(v1alpha2.Tags, len(src))
 
 	for _, t := range src {
 		tags[*t.Key] = *t.Value
@@ -61,8 +61,8 @@ func ELBTagsToMap(src []*elb.Tag) v1alpha1.Tags {
 	return tags
 }
 
-// MapToELBTags converts a v1alpha1.Tags to a []*elb.Tag
-func MapToELBTags(src v1alpha1.Tags) []*elb.Tag {
+// MapToELBTags converts a v1alpha2.Tags to a []*elb.Tag
+func MapToELBTags(src v1alpha2.Tags) []*elb.Tag {
 	tags := make([]*elb.Tag, 0, len(src))
 
 	for k, v := range src {

@@ -86,7 +86,7 @@ type AWSMachineProviderCondition struct {
 // Network encapsulates AWS networking resources.
 type Network struct {
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
-	SecurityGroups map[SecurityGroupRole]*SecurityGroup `json:"securityGroups,omitempty"`
+	SecurityGroups map[string]SecurityGroup `json:"securityGroups,omitempty"`
 
 	// APIServerELB is the Kubernetes api server classic load balancer.
 	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`

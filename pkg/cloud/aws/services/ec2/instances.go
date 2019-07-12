@@ -21,7 +21,6 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/base64"
-	"fmt"
 	"strings"
 	"time"
 
@@ -30,42 +29,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/kubeadm"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-)
-
-const (
-	// localIPV4lookup resolves via cloudinit and looks up the instance's IP through the provider's metadata service.
-	// See https://cloudinit.readthedocs.io/en/latest/topics/instancedata.html
-	localIPV4Lookup = "{{ ds.meta_data.local_ipv4 }}"
-
-	// hostnameLookup resolves via cloud init and uses cloud provider's metadata service to lookup its own hostname.
-	hostnameLookup = "{{ ds.meta_data.hostname }}"
-
-	// containerdSocket is the path to containerd socket.
-	containerdSocket = "/var/run/containerd/containerd.sock"
-
-	// apiServerBindPort is the default port for the kube-apiserver to bind to.
-	apiServerBindPort = 6443
-
-	// cloudProvider is the name of the cloud provider passed to various kubernetes components.
-	cloudProvider = "aws"
-
-	// nodeRole is the label assigned to every node in the cluster.
-	nodeRole = "node-role.kubernetes.io/node="
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Instance, error) {
+func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
@@ -98,7 +71,7 @@ func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha1.Ins
 }
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
+func (s *Service) InstanceIfExists(id *string) (*v1alpha2.Instance, error) {
 	if id == nil {
 		s.scope.Info("Instance does not have an instance id")
 		return nil, nil
@@ -130,22 +103,22 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
 }
 
 // createInstance runs an ec2 instance.
-func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
+func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
-	input := &v1alpha1.Instance{
+	input := &v1alpha2.Instance{
 		Type:           machine.MachineConfig.InstanceType,
 		IAMProfile:     machine.MachineConfig.IAMInstanceProfile,
 		RootDeviceSize: machine.MachineConfig.RootDeviceSize,
 	}
 
-	input.Tags = v1alpha1.Build(v1alpha1.BuildParams{
+	input.Tags = v1alpha2.Build(v1alpha2.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
 		Name:        aws.String(machine.Name()),
 		Role:        aws.String(machine.Role()),
-		Additional: v1alpha1.Tags{
-			v1alpha1.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(v1alpha1.ResourceLifecycleOwned),
+		Additional: v1alpha2.Tags{
+			v1alpha2.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(v1alpha2.ResourceLifecycleOwned),
 		},
 	})
 
@@ -154,7 +127,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	if machine.MachineConfig.AMI.ID != nil {
 		input.ImageID = *machine.MachineConfig.AMI.ID
 	} else {
-		input.ImageID, err = s.defaultAMILookup(machine.MachineConfig.ImageLookupOrg, "ubuntu", "18.04", machine.Machine.Spec.Versions.Kubelet)
+		input.ImageID, err = s.defaultAMILookup(machine.MachineConfig.ImageLookupOrg, "ubuntu", "18.04", *machine.Machine.Spec.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -199,137 +172,19 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	}
 
 	s.scope.V(3).Info("Generating CA key pair")
-	caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CAKeyPair.Cert)
-	if err != nil {
-		return input, err
-	}
+	// caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CAKeyPair.Cert)
+	// if err != nil {
+	// 	return input, err
+	// }
 
-	apiServerEndpoint := fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)
+	// apiServerEndpoint := fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)
 
 	// apply values based on the role of the machine
 	switch machine.Role() {
 	case "controlplane":
-		var userData string
-
-		if bootstrapToken != "" {
-			s.scope.V(2).Info("Allowing a machine to join the control plane")
-
-			setControlPlaneJoinConfigurationOptions(
-				&machine.MachineConfig.KubeadmConfiguration.Join,
-				machine.GetMachine(),
-				apiServerEndpoint,
-				bootstrapToken,
-				caCertHash,
-			)
-
-			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
-			if err != nil {
-				return nil, err
-			}
-
-			userData, err = userdata.NewJoinControlPlane(&userdata.ControlPlaneJoinInput{
-				AdditionalFiles: append(
-					s.scope.ClusterConfig.AdditionalUserDataFiles,
-					machine.MachineConfig.AdditionalUserDataFiles...,
-				),
-				Certificates: userdata.Certificates{
-					CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
-					CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
-					EtcdCACert:       string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
-					EtcdCAKey:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
-					FrontProxyCACert: string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
-					FrontProxyCAKey:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
-					SaCert:           string(s.scope.ClusterConfig.SAKeyPair.Cert),
-					SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
-				},
-				JoinConfiguration: joinConfigurationYAML,
-			})
-			if err != nil {
-				return input, err
-			}
-		} else {
-			s.scope.V(2).Info("Machine is the first control plane machine for the cluster")
-			if !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
-				return nil, awserrors.NewFailedDependency(
-					errors.New("failed to run controlplane, missing CAPrivateKey"),
-				)
-			}
-
-			kubeadm.SetClusterConfigurationOptions(
-				&s.scope.ClusterConfig.ClusterConfiguration,
-				kubeadm.WithControlPlaneEndpoint(fmt.Sprintf("%s:%d", s.scope.Network().APIServerELB.DNSName, apiServerBindPort)),
-				kubeadm.WithAPIServerCertificateSANs(localIPV4Lookup, s.scope.Network().APIServerELB.DNSName),
-				kubeadm.WithAPIServerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-				kubeadm.WithControllerManagerExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-				kubeadm.WithClusterName(s.scope.Name()),
-				kubeadm.WithClusterNetworkFromClusterNetworkingConfig(s.scope.Cluster.Spec.ClusterNetwork),
-				kubeadm.WithKubernetesVersion(machine.GetMachine().Spec.Versions.ControlPlane),
-			)
-			clusterConfigYAML, err := kubeadm.ConfigurationToYAML(&s.scope.ClusterConfig.ClusterConfiguration)
-			if err != nil {
-				return nil, err
-			}
-
-			setInitConfigurationOptions(&machine.MachineConfig.KubeadmConfiguration.Init, machine.GetMachine())
-
-			initConfigYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Init)
-			if err != nil {
-				return nil, err
-			}
-
-			userData, err = userdata.NewInitControlPlane(&userdata.ControlPlaneInput{
-				AdditionalFiles: append(
-					s.scope.ClusterConfig.AdditionalUserDataFiles,
-					machine.MachineConfig.AdditionalUserDataFiles...,
-				),
-				Certificates: userdata.Certificates{
-					CACert:           string(s.scope.ClusterConfig.CAKeyPair.Cert),
-					CAKey:            string(s.scope.ClusterConfig.CAKeyPair.Key),
-					EtcdCACert:       string(s.scope.ClusterConfig.EtcdCAKeyPair.Cert),
-					EtcdCAKey:        string(s.scope.ClusterConfig.EtcdCAKeyPair.Key),
-					FrontProxyCACert: string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Cert),
-					FrontProxyCAKey:  string(s.scope.ClusterConfig.FrontProxyCAKeyPair.Key),
-					SaCert:           string(s.scope.ClusterConfig.SAKeyPair.Cert),
-					SaKey:            string(s.scope.ClusterConfig.SAKeyPair.Key),
-				},
-				ClusterConfiguration: clusterConfigYAML,
-				InitConfiguration:    initConfigYAML,
-			})
-
-			if err != nil {
-				return input, err
-			}
-		}
-
-		input.UserData = aws.String(userData)
+		// TODO
 	case "node":
-		s.scope.V(2).Info("Joining a worker node to the cluster")
-
-		setNodeJoinConfigurationOptions(
-			&machine.MachineConfig.KubeadmConfiguration.Join,
-			machine.GetMachine(),
-			apiServerEndpoint,
-			bootstrapToken,
-			caCertHash,
-		)
-		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
-		if err != nil {
-			return nil, err
-		}
-
-		userData, err := userdata.NewNode(&userdata.NodeInput{
-			AdditionalFiles: append(
-				s.scope.ClusterConfig.AdditionalUserDataFiles,
-				machine.MachineConfig.AdditionalUserDataFiles...,
-			),
-			JoinConfiguration: joinConfigurationYAML,
-		})
-
-		if err != nil {
-			return input, err
-		}
-
-		input.UserData = aws.String(userData)
+		// TODO
 
 	default:
 		return nil, errors.Errorf("Unknown node role %q", machine.Role())
@@ -360,93 +215,25 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	return out, nil
 }
 
-func setInitConfigurationOptions(initConfig *kubeadmv1beta1.InitConfiguration, machine *clusterv1.Machine) {
-	kubeadm.SetInitConfigurationOptions(
-		initConfig,
-		kubeadm.WithNodeRegistrationOptions(
-			kubeadm.SetNodeRegistrationOptions(
-				&initConfig.NodeRegistration,
-				kubeadm.WithTaints(machine.Spec.Taints),
-				kubeadm.WithNodeRegistrationName(hostnameLookup),
-				kubeadm.WithCRISocket(getCRISocketPath(initConfig.NodeRegistration.CRISocket)),
-				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-			),
-		),
-	)
-}
-
-func setNodeJoinConfigurationOptions(joinConfig *kubeadmv1beta1.JoinConfiguration, machine *clusterv1.Machine, apiServerEndpoint, bootstrapToken, caCertHash string) {
-	kubeadm.SetJoinConfigurationOptions(
-		joinConfig,
-		kubeadm.WithBootstrapTokenDiscovery(
-			kubeadm.NewBootstrapTokenDiscovery(
-				kubeadm.WithAPIServerEndpoint(apiServerEndpoint),
-				kubeadm.WithToken(bootstrapToken),
-				kubeadm.WithCACertificateHash(caCertHash),
-			),
-		),
-		kubeadm.WithJoinNodeRegistrationOptions(
-			kubeadm.SetNodeRegistrationOptions(
-				&joinConfig.NodeRegistration,
-				kubeadm.WithNodeRegistrationName(hostnameLookup),
-				kubeadm.WithCRISocket(getCRISocketPath(joinConfig.NodeRegistration.CRISocket)),
-				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-				kubeadm.WithTaints(machine.Spec.Taints),
-				kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
-			),
-		),
-	)
-}
-
-func setControlPlaneJoinConfigurationOptions(joinConfig *kubeadmv1beta1.JoinConfiguration, machine *clusterv1.Machine, apiServerEndpoint, bootstrapToken, caCertHash string) {
-	kubeadm.SetJoinConfigurationOptions(
-		joinConfig,
-		kubeadm.WithBootstrapTokenDiscovery(
-			kubeadm.NewBootstrapTokenDiscovery(
-				kubeadm.WithAPIServerEndpoint(apiServerEndpoint),
-				kubeadm.WithToken(bootstrapToken),
-				kubeadm.WithCACertificateHash(caCertHash),
-			),
-		),
-		kubeadm.WithJoinNodeRegistrationOptions(
-			kubeadm.SetNodeRegistrationOptions(
-				&joinConfig.NodeRegistration,
-				kubeadm.WithTaints(machine.Spec.Taints),
-				kubeadm.WithNodeRegistrationName(hostnameLookup),
-				kubeadm.WithCRISocket(getCRISocketPath(joinConfig.NodeRegistration.CRISocket)),
-				kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
-			),
-		),
-		kubeadm.WithLocalAPIEndpointAndPort(localIPV4Lookup, apiServerBindPort),
-	)
-}
-
-func getCRISocketPath(configVal string) string {
-	if configVal != "" {
-		return configVal
-	}
-	return containerdSocket
-}
-
 // GetCoreSecurityGroups looks up the security group IDs managed by this actuator
 // They are considered "core" to its proper functioning
 func (s *Service) GetCoreSecurityGroups(machine *actuators.MachineScope) ([]string, error) {
 	// These are common across both controlplane and node machines
-	sgRoles := []v1alpha1.SecurityGroupRole{
-		v1alpha1.SecurityGroupNode,
-		v1alpha1.SecurityGroupLB,
+	sgRoles := []v1alpha2.SecurityGroupRole{
+		v1alpha2.SecurityGroupNode,
+		v1alpha2.SecurityGroupLB,
 	}
 	switch machine.Role() {
 	case "node":
 		// Just the common security groups above
 	case "controlplane":
-		sgRoles = append(sgRoles, v1alpha1.SecurityGroupControlPlane)
+		sgRoles = append(sgRoles, v1alpha2.SecurityGroupControlPlane)
 	default:
 		return nil, errors.Errorf("Unknown node role %q", machine.Role())
 	}
 	ids := make([]string, 0, len(sgRoles))
 	for _, sg := range sgRoles {
-		if s.scope.SecurityGroups()[sg] == nil {
+		if _, ok := s.scope.SecurityGroups()[sg]; !ok {
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("%s security group not available", sg),
 			)
@@ -497,7 +284,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 // MachineExists will return whether or not a machine exists.
 func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
 	var err error
-	var instance *v1alpha1.Instance
+	var instance *v1alpha2.Instance
 	if machine.MachineStatus.InstanceID != nil {
 		instance, err = s.InstanceIfExists(machine.MachineStatus.InstanceID)
 	} else {
@@ -514,7 +301,7 @@ func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
@@ -540,7 +327,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 	return s.createInstance(machine, bootstrapToken)
 }
 
-func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+func (s *Service) runInstance(role string, i *v1alpha2.Instance) (*v1alpha2.Instance, error) {
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
@@ -796,10 +583,10 @@ func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, err
 // converters.SDKToInstance populates all instance fields except for rootVolumeSize,
 // because EC2.DescribeInstances does not return the size of storage devices. An
 // additional call to EC2 is required to get this value.
-func (s *Service) SDKToInstance(v *ec2.Instance) (*v1alpha1.Instance, error) {
-	i := &v1alpha1.Instance{
+func (s *Service) SDKToInstance(v *ec2.Instance) (*v1alpha2.Instance, error) {
+	i := &v1alpha2.Instance{
 		ID:           aws.StringValue(v.InstanceId),
-		State:        v1alpha1.InstanceState(*v.State.Name),
+		State:        v1alpha2.InstanceState(*v.State.Name),
 		Type:         aws.StringValue(v.InstanceType),
 		SubnetID:     aws.StringValue(v.SubnetId),
 		ImageID:      aws.StringValue(v.ImageId),

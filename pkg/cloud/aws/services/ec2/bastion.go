@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
@@ -97,10 +97,10 @@ func (s *Service) DeleteBastion() error {
 	return nil
 }
 
-func (s *Service) describeBastionInstance() (*v1alpha1.Instance, error) {
+func (s *Service) describeBastionInstance() (*v1alpha2.Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			filter.EC2.ProviderRole(v1alpha1.BastionRoleTagValue),
+			filter.EC2.ProviderRole(v1alpha2.BastionRoleTagValue),
 			filter.EC2.Cluster(s.scope.Name()),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
@@ -124,7 +124,7 @@ func (s *Service) describeBastionInstance() (*v1alpha1.Instance, error) {
 	return nil, awserrors.NewNotFound(errors.New("bastion host not found"))
 }
 
-func (s *Service) getDefaultBastion() *v1alpha1.Instance {
+func (s *Service) getDefaultBastion() *v1alpha2.Instance {
 	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
@@ -133,20 +133,20 @@ func (s *Service) getDefaultBastion() *v1alpha1.Instance {
 		keyName = s.scope.ClusterConfig.SSHKeyName
 	}
 
-	i := &v1alpha1.Instance{
+	i := &v1alpha2.Instance{
 		Type:     "t2.micro",
 		SubnetID: s.scope.Subnets().FilterPublic()[0].ID,
 		ImageID:  s.defaultBastionAMILookup(s.scope.ClusterConfig.Region),
 		KeyName:  aws.String(keyName),
 		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
 		SecurityGroupIDs: []string{
-			s.scope.Network().SecurityGroups[v1alpha1.SecurityGroupBastion].ID,
+			s.scope.Network().SecurityGroups[v1alpha2.SecurityGroupBastion].ID,
 		},
-		Tags: v1alpha1.Build(v1alpha1.BuildParams{
+		Tags: v1alpha2.Build(v1alpha2.BuildParams{
 			ClusterName: s.scope.Name(),
-			Lifecycle:   v1alpha1.ResourceLifecycleOwned,
+			Lifecycle:   v1alpha2.ResourceLifecycleOwned,
 			Name:        aws.String(name),
-			Role:        aws.String(v1alpha1.BastionRoleTagValue),
+			Role:        aws.String(v1alpha2.BastionRoleTagValue),
 		}),
 	}
 

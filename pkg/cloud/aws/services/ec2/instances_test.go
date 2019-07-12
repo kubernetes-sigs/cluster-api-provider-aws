@@ -17,22 +17,19 @@ limitations under the License.
 package ec2
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -43,7 +40,7 @@ func TestInstanceIfExists(t *testing.T) {
 		name       string
 		instanceID string
 		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		check      func(instance *v1alpha1.Instance, err error)
+		check      func(instance *v1alpha2.Instance, err error)
 	}{
 		{
 			name:       "does not exist",
@@ -64,7 +61,7 @@ func TestInstanceIfExists(t *testing.T) {
 				})).
 					Return(nil, awserrors.NewNotFound(errors.New("not found")))
 			},
-			check: func(instance *v1alpha1.Instance, err error) {
+			check: func(instance *v1alpha2.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -113,7 +110,7 @@ func TestInstanceIfExists(t *testing.T) {
 						},
 					}, nil)
 			},
-			check: func(instance *v1alpha1.Instance, err error) {
+			check: func(instance *v1alpha2.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -146,7 +143,7 @@ func TestInstanceIfExists(t *testing.T) {
 				}).
 					Return(nil, errors.New("some unknown error"))
 			},
-			check: func(i *v1alpha1.Instance, err error) {
+			check: func(i *v1alpha2.Instance, err error) {
 				if err == nil {
 					t.Fatalf("expected an error but got none.")
 				}
@@ -167,9 +164,9 @@ func TestInstanceIfExists(t *testing.T) {
 				},
 			})
 
-			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha1.NetworkSpec{
-					VPC: v1alpha1.VPCSpec{
+			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha2.NetworkSpec{
+					VPC: v1alpha2.VPCSpec{
 						ID: "test-vpc",
 					},
 				},
@@ -287,12 +284,12 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
-		machineConfig *v1alpha1.AWSMachineProviderSpec
-		clusterStatus *v1alpha1.AWSClusterProviderStatus
-		clusterConfig *v1alpha1.AWSClusterProviderSpec
+		machineConfig *v1alpha2.AWSMachineSpec
+		clusterStatus *v1alpha2.AWSClusterProviderStatus
+		clusterConfig *v1alpha2.AWSClusterProviderSpec
 		cluster       clusterv1.Cluster
 		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		check         func(instance *v1alpha1.Instance, err error)
+		check         func(instance *v1alpha2.Instance, err error)
 	}{
 		{
 			name: "simple",
@@ -301,43 +298,43 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 					Labels: map[string]string{"set": "node"},
 				},
 			},
-			machineConfig: &v1alpha1.AWSMachineProviderSpec{
-				AMI: v1alpha1.AWSResourceReference{
+			machineConfig: &v1alpha2.AWSMachineSpec{
+				AMI: v1alpha2.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
 			},
-			clusterStatus: &v1alpha1.AWSClusterProviderStatus{
-				Network: v1alpha1.Network{
-					SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
-						v1alpha1.SecurityGroupControlPlane: {
+			clusterStatus: &v1alpha2.AWSClusterProviderStatus{
+				Network: v1alpha2.Network{
+					SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
+						v1alpha2.SecurityGroupControlPlane: {
 							ID: "1",
 						},
-						v1alpha1.SecurityGroupNode: {
+						v1alpha2.SecurityGroupNode: {
 							ID: "2",
 						},
-						v1alpha1.SecurityGroupLB: {
+						v1alpha2.SecurityGroupLB: {
 							ID: "3",
 						},
 					},
-					APIServerELB: v1alpha1.ClassicELB{
+					APIServerELB: v1alpha2.ClassicELB{
 						DNSName: "test-apiserver.us-east-1.aws",
 					},
 				},
 			},
-			clusterConfig: &v1alpha1.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha1.NetworkSpec{
-					Subnets: v1alpha1.Subnets{
-						&v1alpha1.SubnetSpec{
+			clusterConfig: &v1alpha2.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha2.NetworkSpec{
+					Subnets: v1alpha2.Subnets{
+						&v1alpha2.SubnetSpec{
 							ID:       "subnet-1",
 							IsPublic: false,
 						},
-						&v1alpha1.SubnetSpec{
+						&v1alpha2.SubnetSpec{
 							IsPublic: false,
 						},
 					},
 				},
-				CAKeyPair: v1alpha1.KeyPair{
+				CAKeyPair: &v1alpha2.KeyPair{
 					Cert: testCaCert,
 					Key:  []byte("y"),
 				},
@@ -347,7 +344,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 					Name: "test1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
 						ServiceDomain: "cluster.local",
 						Services: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
@@ -389,7 +386,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
-			check: func(instance *v1alpha1.Instance, err error) {
+			check: func(instance *v1alpha2.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -402,57 +399,57 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 					Labels: map[string]string{"set": "node"},
 				},
 			},
-			machineConfig: &v1alpha1.AWSMachineProviderSpec{
-				AMI: v1alpha1.AWSResourceReference{
+			machineConfig: &v1alpha2.AWSMachineSpec{
+				AMI: v1alpha2.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType:     "m5.2xlarge",
 				AvailabilityZone: aws.String("us-east-1c"),
 			},
-			clusterStatus: &v1alpha1.AWSClusterProviderStatus{
-				Network: v1alpha1.Network{
-					SecurityGroups: map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup{
-						v1alpha1.SecurityGroupControlPlane: {
+			clusterStatus: &v1alpha2.AWSClusterProviderStatus{
+				Network: v1alpha2.Network{
+					SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
+						v1alpha2.SecurityGroupControlPlane: {
 							ID: "1",
 						},
-						v1alpha1.SecurityGroupNode: {
+						v1alpha2.SecurityGroupNode: {
 							ID: "2",
 						},
-						v1alpha1.SecurityGroupLB: {
+						v1alpha2.SecurityGroupLB: {
 							ID: "3",
 						},
 					},
-					APIServerELB: v1alpha1.ClassicELB{
+					APIServerELB: v1alpha2.ClassicELB{
 						DNSName: "test-apiserver.us-east-1.aws",
 					},
 				},
 			},
-			clusterConfig: &v1alpha1.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha1.NetworkSpec{
-					Subnets: v1alpha1.Subnets{
-						&v1alpha1.SubnetSpec{
+			clusterConfig: &v1alpha2.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha2.NetworkSpec{
+					Subnets: v1alpha2.Subnets{
+						&v1alpha2.SubnetSpec{
 							ID:               "subnet-1",
 							AvailabilityZone: "us-east-1a",
 							IsPublic:         false,
 						},
-						&v1alpha1.SubnetSpec{
+						&v1alpha2.SubnetSpec{
 							ID:               "subnet-2",
 							AvailabilityZone: "us-east-1b",
 							IsPublic:         false,
 						},
-						&v1alpha1.SubnetSpec{
+						&v1alpha2.SubnetSpec{
 							ID:               "subnet-3",
 							AvailabilityZone: "us-east-1c",
 							IsPublic:         false,
 						},
-						&v1alpha1.SubnetSpec{
+						&v1alpha2.SubnetSpec{
 							ID:               "subnet-3-public",
 							AvailabilityZone: "us-east-1c",
 							IsPublic:         true,
 						},
 					},
 				},
-				CAKeyPair: v1alpha1.KeyPair{
+				CAKeyPair: &v1alpha2.KeyPair{
 					Cert: testCaCert,
 					Key:  []byte("y"),
 				},
@@ -462,7 +459,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 					Name: "test1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: clusterv1.ClusterNetworkingConfig{
+					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
 						ServiceDomain: "cluster.local",
 						Services: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
@@ -506,7 +503,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
-			check: func(instance *v1alpha1.Instance, err error) {
+			check: func(instance *v1alpha2.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -534,6 +531,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 						},
 					},
 				},
+				AWSMachine: &v1alpha2.AWSMachine{},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
@@ -552,475 +550,6 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			s := NewService(scope.Scope)
 			instance, err := s.createInstance(scope, "token")
 			tc.check(instance, err)
-		})
-	}
-}
-
-func Test_setInitConfigurationOptions(t *testing.T) {
-	type args struct {
-		initConfig kubeadmv1beta1.InitConfiguration
-		machine    *clusterv1.Machine
-	}
-	tests := []struct {
-		name     string
-		args     args
-		expected kubeadmv1beta1.InitConfiguration
-	}{
-		{
-			name: "simple",
-			args: args{
-				initConfig: kubeadmv1beta1.InitConfiguration{},
-				machine:    &clusterv1.Machine{},
-			},
-			expected: kubeadmv1beta1.InitConfiguration{
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-					},
-				},
-			},
-		},
-		{
-			name: "with node taints",
-			args: args{
-				initConfig: kubeadmv1beta1.InitConfiguration{},
-				machine: &clusterv1.Machine{
-					Spec: clusterv1.MachineSpec{
-						Taints: []corev1.Taint{{
-							Key:    "my-property",
-							Value:  "special",
-							Effect: corev1.TaintEffectNoSchedule,
-						}},
-					},
-				},
-			},
-			expected: kubeadmv1beta1.InitConfiguration{
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-					},
-					Taints: []corev1.Taint{{
-						Key:    "my-property",
-						Value:  "special",
-						Effect: corev1.TaintEffectNoSchedule,
-					}},
-				},
-			},
-		},
-		{
-			name: "with cni options",
-			args: args{
-				initConfig: kubeadmv1beta1.InitConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						KubeletExtraArgs: map[string]string{
-							"cni-bin-dir":  "/opt/cni/bin",
-							"cni-conf-dir": "/etc/cni/net.d",
-						},
-					},
-				},
-				machine: &clusterv1.Machine{},
-			},
-			expected: kubeadmv1beta1.InitConfiguration{
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-						"cni-bin-dir":    "/opt/cni/bin",
-						"cni-conf-dir":   "/etc/cni/net.d",
-					},
-				},
-			},
-		},
-		{
-			name: "with cri socket",
-			args: args{
-				initConfig: kubeadmv1beta1.InitConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						CRISocket: "/var/run/my-cri.sock",
-					},
-				},
-				machine: &clusterv1.Machine{},
-			},
-			expected: kubeadmv1beta1.InitConfiguration{
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/my-cri.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			setInitConfigurationOptions(&tt.args.initConfig, tt.args.machine)
-
-			actual := tt.args.initConfig
-			if !reflect.DeepEqual(tt.expected, actual) {
-				t.Fatalf("Expected: \n%+v\nbut was:\n%+v", tt.expected, actual)
-			}
-		})
-	}
-}
-
-func Test_setNodeJoinConfigurationOptions(t *testing.T) {
-	type args struct {
-		joinConfig        kubeadmv1beta1.JoinConfiguration
-		machine           *clusterv1.Machine
-		apiServerEndpoint string
-		bootstrapToken    string
-		caCertHash        string
-	}
-	tests := []struct {
-		name     string
-		args     args
-		expected kubeadmv1beta1.JoinConfiguration
-	}{
-		{
-			name: "simple",
-			args: args{
-				joinConfig:        kubeadmv1beta1.JoinConfiguration{},
-				machine:           &clusterv1.Machine{},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-						"node-labels":    "node-role.kubernetes.io/node=",
-					},
-				},
-			},
-		},
-		{
-			name: "with taints",
-			args: args{
-				joinConfig: kubeadmv1beta1.JoinConfiguration{},
-				machine: &clusterv1.Machine{
-					Spec: clusterv1.MachineSpec{
-						Taints: []corev1.Taint{{
-							Key:    "my-property",
-							Value:  "special",
-							Effect: corev1.TaintEffectNoSchedule,
-						}},
-					},
-				},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-						"node-labels":    "node-role.kubernetes.io/node=",
-					},
-					Taints: []corev1.Taint{{
-						Key:    "my-property",
-						Value:  "special",
-						Effect: corev1.TaintEffectNoSchedule,
-					}},
-				},
-			},
-		},
-		{
-			name: "with cni options",
-			args: args{
-				joinConfig: kubeadmv1beta1.JoinConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						KubeletExtraArgs: map[string]string{
-							"cni-bin-dir":  "/opt/cni/bin",
-							"cni-conf-dir": "/etc/cni/net.d",
-						},
-					},
-				},
-				machine:           &clusterv1.Machine{},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-						"cni-bin-dir":    "/opt/cni/bin",
-						"cni-conf-dir":   "/etc/cni/net.d",
-						"node-labels":    "node-role.kubernetes.io/node=",
-					},
-				},
-			},
-		},
-		{
-			name: "with cri socket",
-			args: args{
-				joinConfig: kubeadmv1beta1.JoinConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						CRISocket: "/var/run/my-cri.sock",
-					},
-				},
-				machine:           &clusterv1.Machine{},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/my-cri.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-						"node-labels":    "node-role.kubernetes.io/node=",
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			setNodeJoinConfigurationOptions(&tt.args.joinConfig, tt.args.machine, tt.args.apiServerEndpoint, tt.args.bootstrapToken, tt.args.caCertHash)
-
-			actual := tt.args.joinConfig
-			if !reflect.DeepEqual(tt.expected, actual) {
-				t.Fatalf("Expected: \n%+v\nbut was:\n%+v", tt.expected, actual)
-			}
-		})
-	}
-}
-
-func Test_setControlPlaneJoinConfigurationOptions(t *testing.T) {
-	type args struct {
-		joinConfig        kubeadmv1beta1.JoinConfiguration
-		machine           *clusterv1.Machine
-		apiServerEndpoint string
-		bootstrapToken    string
-		caCertHash        string
-	}
-	tests := []struct {
-		name     string
-		args     args
-		expected kubeadmv1beta1.JoinConfiguration
-	}{
-		{
-			name: "simple",
-			args: args{
-				joinConfig:        kubeadmv1beta1.JoinConfiguration{},
-				machine:           &clusterv1.Machine{},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-					},
-				},
-				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
-					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
-						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
-						BindPort:         6443,
-					},
-				},
-			},
-		},
-		{
-			name: "with taints",
-			args: args{
-				joinConfig: kubeadmv1beta1.JoinConfiguration{},
-				machine: &clusterv1.Machine{
-					Spec: clusterv1.MachineSpec{
-						Taints: []corev1.Taint{{
-							Key:    "my-property",
-							Value:  "special",
-							Effect: corev1.TaintEffectNoSchedule,
-						}},
-					},
-				},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-					},
-					Taints: []corev1.Taint{{
-						Key:    "my-property",
-						Value:  "special",
-						Effect: corev1.TaintEffectNoSchedule,
-					}},
-				},
-				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
-					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
-						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
-						BindPort:         6443,
-					},
-				},
-			},
-		},
-		{
-			name: "with cni options",
-			args: args{
-				joinConfig: kubeadmv1beta1.JoinConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						KubeletExtraArgs: map[string]string{
-							"cni-bin-dir":  "/opt/cni/bin",
-							"cni-conf-dir": "/etc/cni/net.d",
-						},
-					},
-				},
-				machine:           &clusterv1.Machine{},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/containerd/containerd.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-						"cni-bin-dir":    "/opt/cni/bin",
-						"cni-conf-dir":   "/etc/cni/net.d",
-					},
-				},
-				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
-					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
-						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
-						BindPort:         6443,
-					},
-				},
-			},
-		},
-		{
-			name: "with cri socket",
-			args: args{
-				joinConfig: kubeadmv1beta1.JoinConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						CRISocket: "/var/run/my-cri.sock",
-					},
-				},
-				machine:           &clusterv1.Machine{},
-				apiServerEndpoint: "https://api-server:6443",
-				bootstrapToken:    "abcdef.1234567890abcdef",
-				caCertHash:        "sha256:1234cdef",
-			},
-			expected: kubeadmv1beta1.JoinConfiguration{
-				Discovery: kubeadmv1beta1.Discovery{
-					BootstrapToken: &kubeadmv1beta1.BootstrapTokenDiscovery{
-						Token: "abcdef.1234567890abcdef",
-						CACertHashes: []string{
-							"sha256:1234cdef",
-						},
-						APIServerEndpoint: "https://api-server:6443",
-					},
-				},
-				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:      "{{ ds.meta_data.hostname }}",
-					CRISocket: "/var/run/my-cri.sock",
-					KubeletExtraArgs: map[string]string{
-						"cloud-provider": "aws",
-					},
-				},
-				ControlPlane: &kubeadmv1beta1.JoinControlPlane{
-					LocalAPIEndpoint: kubeadmv1beta1.APIEndpoint{
-						AdvertiseAddress: "{{ ds.meta_data.local_ipv4 }}",
-						BindPort:         6443,
-					},
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			setControlPlaneJoinConfigurationOptions(&tt.args.joinConfig, tt.args.machine, tt.args.apiServerEndpoint, tt.args.bootstrapToken, tt.args.caCertHash)
-
-			actual := tt.args.joinConfig
-			if !reflect.DeepEqual(tt.expected, actual) {
-				t.Fatalf("Expected: \n%+v\nbut was:\n%+v", tt.expected, actual)
-			}
 		})
 	}
 }

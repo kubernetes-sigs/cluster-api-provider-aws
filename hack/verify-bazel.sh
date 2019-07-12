@@ -16,6 +16,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -o verbose
 
 if ! which bazel &>/dev/null; then echo "Bazel not available, skipping validation"; exit; fi
 

@@ -20,7 +20,7 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
 
-BOILERPLATE=$(sed "s/YEAR/$(date +%Y)/g" < hack/boilerplate/boilerplate.go.txt)
+BOILERPLATE=$(sed "s/YEAR/$(date +%Y)/g" < hack/boilerplate/boilerplate.generatego.txt)
 
 while IFS= read -r -d '' file
 do

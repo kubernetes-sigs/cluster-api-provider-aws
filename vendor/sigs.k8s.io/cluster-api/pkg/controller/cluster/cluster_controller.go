@@ -24,9 +24,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -50,13 +49,13 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("cluster-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New("cluster_controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to Cluster
-	err = c.Watch(&source.Kind{Type: &clusterv1alpha1.Cluster{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &clusterv1.Cluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -73,9 +72,8 @@ type ReconcileCluster struct {
 	actuator Actuator
 }
 
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	cluster := &clusterv1alpha1.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	err := r.Get(context.Background(), request.NamespacedName, cluster)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -139,7 +137,7 @@ func (r *ReconcileCluster) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	klog.Infof("reconciling cluster object %v triggers idempotent reconcile.", name)
 	if err := r.actuator.Reconcile(cluster); err != nil {
-		if requeueErr, ok := errors.Cause(err).(controllerError.HasRequeueAfterError); ok {
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
 			klog.Infof("Actuator returned requeue-after error: %v", requeueErr)
 			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ package mocks
 import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	v1alpha2 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	actuators "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 
@@ -51,10 +51,10 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateOrGetMachine mocks base method
-func (m *MockEC2Interface) CreateOrGetMachine(arg0 *actuators.MachineScope, arg1 string) (*v1alpha1.Instance, error) {
+func (m *MockEC2Interface) CreateOrGetMachine(arg0 *actuators.MachineScope, arg1 string) (*v1alpha2.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateOrGetMachine", arg0, arg1)
-	ret0, _ := ret[0].(*v1alpha1.Instance)
+	ret0, _ := ret[0].(*v1alpha2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -124,10 +124,10 @@ func (mr *MockEC2InterfaceMockRecorder) GetInstanceSecurityGroups(arg0 interface
 }
 
 // InstanceIfExists mocks base method
-func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1alpha1.Instance, error) {
+func (m *MockEC2Interface) InstanceIfExists(arg0 *string) (*v1alpha2.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
-	ret0, _ := ret[0].(*v1alpha1.Instance)
+	ret0, _ := ret[0].(*v1alpha2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

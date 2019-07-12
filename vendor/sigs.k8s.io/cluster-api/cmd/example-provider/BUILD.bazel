@@ -14,7 +14,6 @@ go_library(
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/cluster:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machine:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/provider/example/actuators/cluster:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/provider/example/actuators/machine:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client/config:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/signals:go_default_library",

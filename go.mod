@@ -3,38 +3,31 @@ module sigs.k8s.io/cluster-api-provider-aws
 go 1.12
 
 require (
-	cloud.google.com/go v0.36.0 // indirect
-	github.com/aws/aws-sdk-go v1.19.18
-	github.com/awslabs/goformation v0.0.0-20180916202949-d42502ef32a8
+	github.com/aws/aws-sdk-go v1.20.19
+	github.com/awslabs/goformation v0.0.0-20190310235947-776555df5a6d
 	github.com/go-logr/logr v0.1.0
-	github.com/gogo/protobuf v1.2.1 // indirect
-	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/golang/mock v1.2.0
-	github.com/gophercloud/gophercloud v0.0.0-20190225152240-2c53651e4c14 // indirect
-	github.com/gregjones/httpcache v0.0.0-20190212212710-3befbb6ad0cc // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
-	github.com/prometheus/common v0.2.0 // indirect
-	github.com/prometheus/procfs v0.0.0-20190225181712-6ed1f7e10411 // indirect
-	github.com/sanathkr/yaml v1.0.0 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
-	golang.org/x/oauth2 v0.0.0-20190220154721-9b3c75971fc9 // indirect
-	k8s.io/api v0.0.0-20190222213804-5cb15d344471
-	k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76
-	k8s.io/client-go v10.0.0+incompatible
-	k8s.io/cluster-bootstrap v0.0.0-20190223141759-fab9a0a63c55
-	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
+	k8s.io/api v0.0.0-20190711103429-37c3b8b1ca65
+	k8s.io/apimachinery v0.0.0-20190711103026-7bf792636534
+	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	k8s.io/cluster-bootstrap v0.0.0-20190711112844-b7409fb13d1b
+	k8s.io/code-generator v0.0.0-20190311093542-50b561225d70
 	k8s.io/klog v0.3.2
-	k8s.io/kubernetes v1.13.3
-	sigs.k8s.io/cluster-api v0.1.5-0.20190710202826-20aa03e376ef
-	sigs.k8s.io/controller-runtime v0.1.12
-	sigs.k8s.io/controller-tools v0.1.11
-	sigs.k8s.io/testing_frameworks v0.1.1
+	k8s.io/kubernetes v1.14.2
+	sigs.k8s.io/cluster-api v0.0.0-20190711203908-5ffab93802d7
+	sigs.k8s.io/controller-runtime v0.2.0-beta.4
+	sigs.k8s.io/controller-tools v0.2.0-beta.3
+	sigs.k8s.io/testing_frameworks v0.1.2-0.20190130140139-57f07443c2d4
 	sigs.k8s.io/yaml v1.1.0
 )
 
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
+replace (
+	k8s.io/api => k8s.io/api v0.0.0-20190704095032-f4ca3d3bdf1d
+	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190704094733-8f6ac2502e51
+)
