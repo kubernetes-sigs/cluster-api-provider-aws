@@ -24,15 +24,18 @@ import (
 
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
+	"k8s.io/klog/klogr"
+	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
+	capi "sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/signals"
 )
 
@@ -46,8 +49,9 @@ func main() {
 	profilerAddress := flag.String("profiler-address", "", "Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
 	flag.Parse()
-
-	cfg := config.GetConfigOrDie()
+	if *watchNamespace != "" {
+		klog.Infof("Watching cluster-api objects only in namespace %q for reconciliation", *watchNamespace)
+	}
 
 	if *profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", *profilerAddress)
@@ -58,16 +62,16 @@ func main() {
 
 	// Setup a Manager
 	syncPeriod := 10 * time.Minute
-	opts := manager.Options{
+
+	// Setup controller-runtime logger.
+	log.SetLogger(klogr.New())
+
+	// Get a config to talk to the api-server.
+	cfg := config.GetConfigOrDie()
+	mgr, err := manager.New(cfg, manager.Options{
 		SyncPeriod: &syncPeriod,
-	}
-
-	if *watchNamespace != "" {
-		opts.Namespace = *watchNamespace
-		klog.Infof("Watching cluster-api objects only in namespace %q for reconciliation.", opts.Namespace)
-	}
-
-	mgr, err := manager.New(cfg, opts)
+		Namespace:  *watchNamespace,
+	})
 	if err != nil {
 		klog.Fatalf("Failed to set up overall controller manager: %v", err)
 	}
@@ -95,15 +99,20 @@ func main() {
 	// Register our cluster deployer (the interface is in clusterctl and we define the Deployer interface on the actuator)
 	common.RegisterClusterProvisioner("aws", clusterActuator)
 
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+	if err := capi.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
 	}
 
-	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
+	if err := capa.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
 	}
 
 	capicluster.AddWithActuator(mgr, clusterActuator)
+
+	// Setup all Controllers.
+	if err := controller.AddToManager(mgr); err != nil {
+		klog.Fatal(err)
+	}
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)

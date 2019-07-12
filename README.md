@@ -42,10 +42,11 @@ cluster on AWS.
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-||Cluster API v1alpha1 (v0.1)|
-|-|-|
-|AWS Provider v1alpha1 (v0.2)|✓|
-|AWS Provider v1alpha1 (v0.3)|✓|
+||Cluster API v1alpha1 (v0.1)|Cluster API v1alpha2 (unreleased)|
+|-|-|-|
+|AWS Provider v1alpha1 (v0.2)|✓||
+|AWS Provider v1alpha1 (v0.3)|✓||
+|AWS Provider v1alpha2 (unreleased)||✓|
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 

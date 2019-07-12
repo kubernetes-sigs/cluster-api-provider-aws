@@ -17,12 +17,15 @@ limitations under the License.
 package v1alpha2
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
 )
 
 // AWSMachineSpec defines the desired state of AWSMachine
 type AWSMachineSpec struct {
+	// ProviderID is the unique identifier as specified by the cloud provider.
+	ProviderID *string `json:"providerID,omitempty"`
+
 	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AWSResourceReference `json:"ami,omitempty"`
 
@@ -74,26 +77,23 @@ type AWSMachineSpec struct {
 	// RootDeviceSize is the size of the root volume.
 	// +optional
 	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
-
-	// AdditionalUserDataFiles specifies extra files to be passed to user_data upon creation.
-	// +optional
-	AdditionalUserDataFiles []userdata.Files `json:"additionalUserDataFiles,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine
 type AWSMachineStatus struct {
-	// InstanceID is the instance ID of the machine created in AWS
+	// Ready is true when the provider resource is ready.
+	Ready *bool `json:"ready,omitempty"`
+
+	// Addresses contains the AWS instance associated addresses.
+	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
+
+	// InstanceID is the instance ID of the machine created in AWS.
 	// +optional
 	InstanceID *string `json:"instanceID,omitempty"`
 
-	// InstanceState is the state of the AWS instance for this machine
+	// InstanceState is the state of the AWS instance for this machine.
 	// +optional
 	InstanceState *InstanceState `json:"instanceState,omitempty"`
-
-	// Conditions is a set of conditions associated with the Machine to indicate
-	// errors or other status
-	// +optional
-	Conditions []AWSMachineProviderCondition `json:"conditions,omitempty"`
 }
 
 // +genclient

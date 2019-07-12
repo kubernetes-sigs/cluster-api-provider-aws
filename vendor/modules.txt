@@ -76,6 +76,8 @@ github.com/dgrijalva/jwt-go
 github.com/evanphx/json-patch
 # github.com/go-logr/logr v0.1.0
 github.com/go-logr/logr
+# github.com/go-logr/zapr v0.1.0
+github.com/go-logr/zapr
 # github.com/gobuffalo/flect v0.1.5
 github.com/gobuffalo/flect
 # github.com/gogo/protobuf v1.2.1
@@ -223,6 +225,17 @@ go.opencensus.io/metric/metricproducer
 go.opencensus.io/stats/internal
 go.opencensus.io/internal
 go.opencensus.io/trace/internal
+# go.uber.org/atomic v1.3.2
+go.uber.org/atomic
+# go.uber.org/multierr v1.1.0
+go.uber.org/multierr
+# go.uber.org/zap v1.9.1
+go.uber.org/zap
+go.uber.org/zap/buffer
+go.uber.org/zap/zapcore
+go.uber.org/zap/internal/bufferpool
+go.uber.org/zap/internal/color
+go.uber.org/zap/internal/exit
 # golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
@@ -343,10 +356,10 @@ gopkg.in/tomb.v1
 gopkg.in/yaml.v2
 # k8s.io/api v0.0.0-20190711103429-37c3b8b1ca65 => k8s.io/api v0.0.0-20190704095032-f4ca3d3bdf1d
 k8s.io/api/core/v1
-k8s.io/api/apps/v1
 k8s.io/api/authentication/v1
 k8s.io/api/autoscaling/v1
 k8s.io/api/policy/v1beta1
+k8s.io/api/apps/v1
 k8s.io/api/admissionregistration/v1beta1
 k8s.io/api/apps/v1beta1
 k8s.io/api/apps/v1beta2
@@ -573,7 +586,7 @@ k8s.io/utils/exec
 k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
-# sigs.k8s.io/cluster-api v0.0.0-20190711203908-5ffab93802d7 => sigs.k8s.io/cluster-api v0.0.0-20190711203908-5ffab93802d7
+# sigs.k8s.io/cluster-api v0.0.0-20190711203908-5ffab93802d7
 sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset
 sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
 sigs.k8s.io/cluster-api/pkg/apis/cluster/common
@@ -602,6 +615,7 @@ sigs.k8s.io/cluster-api/pkg/controller/noderefutil
 # sigs.k8s.io/controller-runtime v0.2.0-beta.4
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/manager
+sigs.k8s.io/controller-runtime/pkg/runtime/log
 sigs.k8s.io/controller-runtime/pkg/runtime/signals
 sigs.k8s.io/controller-runtime/pkg/runtime/scheme
 sigs.k8s.io/controller-runtime/pkg/client
@@ -618,6 +632,8 @@ sigs.k8s.io/controller-runtime/pkg/metrics
 sigs.k8s.io/controller-runtime/pkg/recorder
 sigs.k8s.io/controller-runtime/pkg/runtime/inject
 sigs.k8s.io/controller-runtime/pkg/webhook
+sigs.k8s.io/controller-runtime/pkg/log
+sigs.k8s.io/controller-runtime/pkg/log/zap
 sigs.k8s.io/controller-runtime/pkg/manager/signals
 sigs.k8s.io/controller-runtime/pkg/scheme
 sigs.k8s.io/controller-runtime/pkg/envtest
@@ -625,7 +641,6 @@ sigs.k8s.io/controller-runtime/pkg/internal/controller
 sigs.k8s.io/controller-runtime/pkg/predicate
 sigs.k8s.io/controller-runtime/pkg/event
 sigs.k8s.io/controller-runtime/pkg/source/internal
-sigs.k8s.io/controller-runtime/pkg/log
 sigs.k8s.io/controller-runtime/pkg/cache/internal
 sigs.k8s.io/controller-runtime/pkg/webhook/admission
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/certwatcher

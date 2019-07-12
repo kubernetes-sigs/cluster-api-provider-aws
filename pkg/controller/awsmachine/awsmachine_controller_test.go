@@ -20,53 +20,52 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var c client.Client
-
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
 
 const timeout = time.Second * 5
 
 func TestReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-	instance := &infrastructurev1alpha2.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	RegisterTestingT(t)
+	ctx := context.Background()
+	instance := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
 	mgr, err := manager.New(cfg, manager.Options{})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-	c = mgr.GetClient()
+	Expect(err).NotTo(HaveOccurred())
+	c := mgr.GetClient()
+	r := newReconciler(mgr)
+	Expect(add(mgr, r, r.MachineToProviderMachines)).To(Succeed())
 
-	recFn, requests := SetupTestReconcile(newReconciler(mgr))
-	g.Expect(add(mgr, recFn)).To(gomega.Succeed())
-
-	stopMgr, mgrStopped := StartTestManager(mgr, g)
-
+	stopMgr, mgrStopped := StartTestManager(mgr)
 	defer func() {
 		close(stopMgr)
 		mgrStopped.Wait()
 	}()
 
 	// Create the AWSMachine object and expect the Reconcile
-	err = c.Create(context.TODO(), instance)
+	err = c.Create(ctx, instance)
 	// The instance object may not be a valid object because it might be missing some required fields.
 	// Please modify the instance object by adding required fields and then remove the following if statement.
 	if apierrors.IsInvalid(err) {
 		t.Logf("failed to create object, got an invalid object error: %v", err)
 		return
 	}
-	g.Expect(err).NotTo(gomega.HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
+	Eventually(func() bool {
+		key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
+		if err := c.Get(ctx, key, instance); err != nil {
+			return false
+		}
+		return true
+	}, timeout).Should(BeTrue())
 	defer c.Delete(context.TODO(), instance)
-	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
 
 }
