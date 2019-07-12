@@ -17,33 +17,50 @@ limitations under the License.
 package machineset
 
 import (
+	"context"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var c client.Client
-
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-
-const timeout = time.Second * 5
+const timeout = time.Second * 10
 
 func TestReconcile(t *testing.T) {
+	RegisterTestingT(t)
+	ctx := context.TODO()
+
 	replicas := int32(2)
-	instance := &clusterv1alpha1.MachineSet{
+	version := "1.14.2"
+	instance := &clusterv1alpha2.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: clusterv1alpha1.MachineSetSpec{
+		Spec: clusterv1alpha2.MachineSetSpec{
 			Replicas: &replicas,
-			Template: clusterv1alpha1.MachineTemplateSpec{
-				Spec: clusterv1alpha1.MachineSpec{
-					Versions: clusterv1alpha1.MachineVersionInfo{Kubelet: "1.10.3"},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"label-1": "true",
+				},
+			},
+			Template: clusterv1alpha2.MachineTemplateSpec{
+				ObjectMeta: clusterv1alpha2.ObjectMeta{
+					Labels: map[string]string{
+						"label-1": "true",
+					},
+				},
+				Spec: clusterv1alpha2.MachineSpec{
+					Version: &version,
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+						Kind:       "InfrastructureMachineTemplate",
+						Name:       "foo-template",
+					},
 				},
 			},
 		},
@@ -51,92 +68,128 @@ func TestReconcile(t *testing.T) {
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{})
-	if err != nil {
-		t.Errorf("error creating new manager: %v", err)
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
+	Expect(err).To(BeNil())
+	c := mgr.GetClient()
+
+	// Create infrastructure template resource.
+	infraResource := map[string]interface{}{
+		"kind":       "InfrastructureMachine",
+		"apiVersion": "infrastructure.cluster.sigs.k8s.io/v1alpha1",
+		"metadata":   map[string]interface{}{},
+		"spec": map[string]interface{}{
+			"size": "3xlarge",
+		},
 	}
-	c = mgr.GetClient()
+	infraTmpl := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"template": infraResource,
+			},
+		},
+	}
+	infraTmpl.SetKind("InfrastructureMachineTemplate")
+	infraTmpl.SetAPIVersion("infrastructure.cluster.sigs.k8s.io/v1alpha1")
+	infraTmpl.SetName("foo-template")
+	infraTmpl.SetNamespace("default")
+	Expect(c.Create(ctx, infraTmpl)).To(BeNil())
 
 	r := newReconciler(mgr)
-	recFn, requests := SetupTestReconcile(r)
-	if err := add(mgr, recFn, r.MachineToMachineSets); err != nil {
+	if err := add(mgr, r, r.MachineToMachineSets); err != nil {
 		t.Errorf("error adding controller to manager: %v", err)
 	}
 	defer close(StartTestManager(mgr, t))
 
 	// Create the MachineSet object and expect Reconcile to be called and the Machines to be created.
-	if err := c.Create(context.TODO(), instance); err != nil {
-		t.Errorf("error creating instance: %v", err)
-	}
-	defer c.Delete(context.TODO(), instance)
-	select {
-	case recv := <-requests:
-		if recv != expectedRequest {
-			t.Error("received request does not match expected request")
-		}
-	case <-time.After(timeout):
-		t.Error("timed out waiting for request")
-	}
+	Expect(c.Create(ctx, instance)).To(BeNil())
+	defer c.Delete(ctx, instance)
 
-	machines := &clusterv1alpha1.MachineList{}
+	machines := &clusterv1alpha2.MachineList{}
 
-	// TODO(joshuarubin) there seems to be a race here. If expectInt sleeps
-	// briefly, even 10ms, the number of replicas is 4 and not 2 as expected
-	expectInt(t, int(replicas), func(ctx context.Context) int {
-		if err := c.List(ctx, &client.ListOptions{}, machines); err != nil {
+	// Verify that we have 2 replicas.
+	Eventually(func() int {
+		if err := c.List(ctx, machines); err != nil {
 			return -1
 		}
 		return len(machines.Items)
-	})
+	}, timeout).Should(BeEquivalentTo(replicas))
 
-	// Verify that each machine has the desired kubelet version.
+	// Try to delete 1 machine and check the MachineSet scales back up.
+	machineToBeDeleted := machines.Items[0]
+	Expect(c.Delete(ctx, &machineToBeDeleted)).To(BeNil())
+
+	// Verify that the Machine has been deleted.
+	Eventually(func() bool {
+		key := client.ObjectKey{Name: machineToBeDeleted.Name, Namespace: machineToBeDeleted.Namespace}
+		if err := c.Get(ctx, key, &machineToBeDeleted); apierrors.IsNotFound(err) {
+			// The Machine Controller usually deletes external references upon Machine deletion.
+			// Replicate the logic here to make sure there are no leftovers.
+			iref := &unstructured.Unstructured{Object: infraResource}
+			iref.SetName(machineToBeDeleted.Spec.InfrastructureRef.Name)
+			iref.SetNamespace("default")
+			Expect(r.Delete(ctx, iref)).To(BeNil())
+			return true
+		}
+		return false
+	}, timeout).Should(BeTrue())
+
+	// Verify that we have 2 replicas.
+	Eventually(func() (ready int) {
+		if err := c.List(ctx, machines); err != nil {
+			return -1
+		}
+		return len(machines.Items)
+	}, timeout).Should(BeEquivalentTo(replicas))
+
+	// Verify that each machine has the desired kubelet version,
+	// create a fake node in Ready state, update NodeRef, and wait for a reconciliation request.
 	for _, m := range machines.Items {
-		if k := m.Spec.Versions.Kubelet; k != "1.10.3" {
-			t.Errorf("kubelet was %q not '1.10.3'", k)
+		Expect(m.Spec.Version).ToNot(BeNil())
+		Expect(*m.Spec.Version).To(BeEquivalentTo("1.14.2"))
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "test-",
+			},
 		}
-	}
+		Expect(c.Create(ctx, node))
 
-	// Delete a Machine and expect Reconcile to be called to replace it.
-	m := machines.Items[0]
-	if err := c.Delete(context.TODO(), &m); err != nil {
-		t.Errorf("error deleting machine: %v", err)
-	}
-	select {
-	case recv := <-requests:
-		if recv != expectedRequest {
-			t.Error("received request does not match expected request")
+		node.Status.Conditions = append(node.Status.Conditions, corev1.NodeCondition{Type: corev1.NodeReady, Status: corev1.ConditionTrue})
+		Expect(c.Status().Update(ctx, node)).To(BeNil())
+
+		m.Status.NodeRef = &corev1.ObjectReference{
+			APIVersion: node.APIVersion,
+			Kind:       node.Kind,
+			Name:       node.Name,
+			UID:        node.UID,
 		}
-	case <-time.After(timeout):
-		t.Error("timed out waiting for request")
+		Expect(c.Status().Update(ctx, &m)).To(BeNil())
 	}
 
-	// TODO (robertbailey): Figure out why the control loop isn't working as expected.
-	/*
-		g.Eventually(func() int {
-			if err := c.List(context.TODO(), &client.ListOptions{}, machines); err != nil {
-				return -1
-			}
-			return len(machines.Items)
-		}, timeout).Should(gomega.BeEquivalentTo(replicas))
-	*/
-}
-
-func expectInt(t *testing.T, expect int, fn func(context.Context) int) {
-	t.Helper()
-
-	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
-	defer cancel()
-
-	intCh := make(chan int)
-
-	go func() { intCh <- fn(ctx) }()
-
-	select {
-	case n := <-intCh:
-		if n != expect {
-			t.Errorf("go unexpectef value %d, expected %d", n, expect)
+	// Verify that we have N=replicas infrastructure references.
+	infraConfigs := &unstructured.UnstructuredList{}
+	infraConfigs.SetKind(infraResource["kind"].(string))
+	infraConfigs.SetAPIVersion(infraResource["apiVersion"].(string))
+	Eventually(func() int {
+		if err := c.List(ctx, infraConfigs, client.InNamespace("default")); err != nil {
+			return -1
 		}
-	case <-ctx.Done():
-		t.Errorf("timed out waiting for value: %d", expect)
-	}
+		return len(infraConfigs.Items)
+	}, timeout).Should(BeEquivalentTo(replicas))
+
+	// Verify that all Machines are Ready.
+	Eventually(func() int32 {
+		key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
+		if err := c.Get(ctx, key, instance); err != nil {
+			return -1
+		}
+		return instance.Status.AvailableReplicas
+	}, timeout).Should(BeEquivalentTo(replicas))
+
+	Eventually(func() int {
+		if err := c.List(ctx, infraConfigs, client.InNamespace("default")); err != nil {
+			return -1
+		}
+		return len(infraConfigs.Items)
+	}, timeout).Should(BeEquivalentTo(replicas))
 }

@@ -20,11 +20,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.sigs.k8s.io,resources=clusters;clusters/status;machines;machines/status;machinedeployments;machinedeployments/status;machinesets;machinesets/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.sigs.k8s.io;bootstrap.cluster.sigs.k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
+
 // AddToManagerFuncs is a list of functions to add all Controllers to the Manager
 var AddToManagerFuncs []func(manager.Manager) error
 
 // AddToManager adds all Controllers to the Manager
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 func AddToManager(m manager.Manager) error {
 	for _, f := range AddToManagerFuncs {
 		if err := f(m); err != nil {

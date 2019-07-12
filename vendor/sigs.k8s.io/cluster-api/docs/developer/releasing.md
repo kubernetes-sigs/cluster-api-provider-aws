@@ -32,7 +32,7 @@ For version v0.x.y:
    1. Change the `CONTROLLER_IMG` variable in the [Makefile][makefile] to the
       version being released
    (Note that we do not release the example-provider image, so we don't tag that)
-3. Commit it using `git commit -m "Release v0.x.y"`
+3. Commit it using `git commit -m "Release 0.x.y"`
 4. Submit a PR to the `release-0.x` branch, e.g. `git push $USER; hub pull-request -b release-0.x`
 5. Get the pull request merged
 6. Switch to the release branch and update to pick up the commit.  (e.g. `git

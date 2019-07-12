@@ -22,4 +22,6 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
 cd "${REPO_ROOT}"
+go mod tidy -v
+go mod vendor -v
 go mod verify

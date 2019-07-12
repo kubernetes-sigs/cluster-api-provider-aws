@@ -4,7 +4,6 @@ go_library(
     name = "go_default_library",
     srcs = [
         "buddyinfo.go",
-        "diskstats.go",
         "doc.go",
         "fs.go",
         "ipvs.go",
@@ -15,7 +14,6 @@ go_library(
         "proc_io.go",
         "proc_limits.go",
         "proc_ns.go",
-        "proc_psi.go",
         "proc_stat.go",
         "stat.go",
         "xfrm.go",
@@ -24,7 +22,6 @@ go_library(
     importpath = "github.com/prometheus/procfs",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/prometheus/procfs/iostats:go_default_library",
         "//vendor/github.com/prometheus/procfs/nfs:go_default_library",
         "//vendor/github.com/prometheus/procfs/xfs:go_default_library",
     ],

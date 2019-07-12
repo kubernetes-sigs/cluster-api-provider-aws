@@ -15,6 +15,8 @@
 # Build the manager binary
 FROM golang:1.12.6 as builder
 
+ARG ARCH
+
 # Copy in the go src
 WORKDIR ${GOPATH}/src/sigs.k8s.io/cluster-api
 COPY pkg/    pkg/

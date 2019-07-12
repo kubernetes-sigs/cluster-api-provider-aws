@@ -7,7 +7,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha1:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/cluster/v1alpha2:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/client/informers_generated/externalversions/internalinterfaces:go_default_library",
     ],
 )

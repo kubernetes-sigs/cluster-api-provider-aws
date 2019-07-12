@@ -22,6 +22,12 @@ If you're new to the project and want to help, but don't know where to start, we
 
 All changes must be code reviewed. Coding conventions and standards are explained in the official [developer docs](https://github.com/kubernetes/community/tree/master/contributors/devel). Expect reviewers to request that you avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
 
+## Backporting a Patch
+
+Cluster API ships older versions through `release-X.X` branches, usually backports are reserved to critical bug-fixes.
+Some release branches might ship with both Go modules and dep (e.g. `release-0.1`), users backporting patches should always make sure
+that the vendored Go modules dependencies match the Gopkg.lock and Gopkg.toml ones by running `dep ensure`
+
 ### Merge Approval
 
 Cluster API maintainers may add "LGTM" (Looks Good To Me) or an equivalent comment to indicate that a PR is acceptable. Any change requires at least one LGTM.  No pull requests can be merged until at least one Cluster API maintainer signs off with an LGTM.
@@ -29,6 +35,25 @@ Cluster API maintainers may add "LGTM" (Looks Good To Me) or an equivalent comme
 ### Google Doc Viewing Permissions
 
 To gain viewing permissions to google docs in this project, please join either the [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or [kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google group.
+
+### Issue and Pull Request Management
+
+Anyone may comment on issues and submit reviews for pull requests. However, in
+order to be assigned an issue or pull request, you must be a member of the
+[Kubernetes SIGs](https://github.com/kubernetes-sigs) GitHub organization.
+
+If you are a Kubernetes GitHub organization member, you are eligible for
+membership in the Kubernetes SIGs GitHub organization and can request
+membership by [opening an issue](https://github.com/kubernetes/org/issues/new?template=membership.md&title=REQUEST%3A%20New%20membership%20for%20%3Cyour-GH-handle%3E)
+against the kubernetes/org repo.
+
+However, if you are a member of any of the related Kubernetes GitHub
+organizations but not of the Kubernetes org, you will need explicit sponsorship
+for your membership request. You can read more about Kubernetes membership and
+sponsorship [here](https://github.com/kubernetes/community/blob/master/community-membership.md).
+
+Cluster API maintainers can assign you an issue or pull request by leaving a
+`/assign <your Github ID>` comment on the issue or pull request.
 
 ## Cloud Provider Developer Guide
 
@@ -46,8 +71,8 @@ The machine controller should be able to act on a subset of machines that form a
 ### Resources
 
 *   [Cluster Management API KEP](https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md)
-*   [Cluster type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/cluster_types.go#L40)
-*   [Machine type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/cluster/v1alpha1/machine_types.go#L42)
+*   [Cluster type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/deprecated/v1alpha1/cluster_types.go#L40)
+*   [Machine type](https://github.com/kubernetes-sigs/cluster-api/blob/master/pkg/apis/deprecated/v1alpha1/machine_types.go#L42)
 
 ### Boostrapping
 

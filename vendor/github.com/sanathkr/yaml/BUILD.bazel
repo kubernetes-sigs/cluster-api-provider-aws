@@ -9,5 +9,5 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/sanathkr/yaml",
     importpath = "github.com/sanathkr/yaml",
     visibility = ["//visibility:public"],
-    deps = ["//vendor/gopkg.in/yaml.v2:go_default_library"],
+    deps = ["//vendor/github.com/sanathkr/go-yaml:go_default_library"],
 )
