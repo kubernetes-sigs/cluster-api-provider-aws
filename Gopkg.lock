@@ -459,7 +459,7 @@
 
 [[projects]]
   branch = "openshift-4.2-cluster-api-0.1.0"
-  digest = "1:999af47df39e39968e86ca98fb38fc6806dec328edcbd06ad177fe5ea94eba3d"
+  digest = "1:54dfec845e2fb5631fa1fc556a677a473a7efe663df4a4808621dca5e0358b23"
   name = "github.com/openshift/cluster-api"
   packages = [
     "pkg/apis",
@@ -479,7 +479,7 @@
     "pkg/util",
   ]
   pruneopts = "T"
-  revision = "67da5afc08532afbd069937e443830197fafe5e3"
+  revision = "72ebbaa0456c052d886259dc26420644178a0c5f"
 
 [[projects]]
   branch = "master"
@@ -507,11 +507,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f7646c654e93258958dba300641f8f674d5a9ed015c11119793ba1156e2acbe9"
+  digest = "1:b79de44700bc7fc32b4f898e283754fa027616f87074be1cf65a7be5a961cc85"
   name = "github.com/openshift/kubernetes-drain"
   packages = ["."]
   pruneopts = "T"
-  revision = "c2e51be1758efa30d71a4d30dc4e2db86b70a4df"
+  revision = "4b061affbd00bfc62036a5cd3a57493db6c94151"
 
 [[projects]]
   digest = "1:b8fec16794e7d426d17af8c201367278369aee7ea1de19d6c1b701787e03df79"
@@ -1103,7 +1103,6 @@
     "pkg/reconcile",
     "pkg/recorder",
     "pkg/runtime/inject",
-    "pkg/runtime/scheme",
     "pkg/runtime/signals",
     "pkg/scheme",
     "pkg/source",
@@ -1179,7 +1178,6 @@
     "github.com/openshift/cluster-api-actuator-pkg/pkg/types",
     "github.com/openshift/cluster-api/pkg/apis",
     "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1",
-    "github.com/openshift/cluster-api/pkg/apis/machine/common",
     "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1",
     "github.com/openshift/cluster-api/pkg/controller/error",
     "github.com/openshift/cluster-api/pkg/controller/machine",
@@ -1194,16 +1192,13 @@
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/api/equality",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
-    "k8s.io/apimachinery/pkg/apis/meta/v1/validation",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/runtime/serializer",
     "k8s.io/apimachinery/pkg/types",
     "k8s.io/apimachinery/pkg/util/errors",
-    "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/apimachinery/pkg/util/uuid",
-    "k8s.io/apimachinery/pkg/util/validation/field",
     "k8s.io/apimachinery/pkg/util/wait",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",
@@ -1218,7 +1213,6 @@
     "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/handler",
     "sigs.k8s.io/controller-runtime/pkg/manager",
-    "sigs.k8s.io/controller-runtime/pkg/runtime/scheme",
     "sigs.k8s.io/controller-runtime/pkg/runtime/signals",
     "sigs.k8s.io/controller-runtime/pkg/scheme",
     "sigs.k8s.io/controller-runtime/pkg/source",
