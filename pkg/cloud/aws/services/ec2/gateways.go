@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
@@ -148,14 +148,14 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	return out.InternetGateways, nil
 }
 
-func (s *Service) getGatewayTagParams(id string) v1alpha1.BuildParams {
+func (s *Service) getGatewayTagParams(id string) v1alpha2.BuildParams {
 	name := fmt.Sprintf("%s-igw", s.scope.Name())
 
-	return v1alpha1.BuildParams{
+	return v1alpha2.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(v1alpha1.CommonRoleTagValue),
+		Role:        aws.String(v1alpha2.CommonRoleTagValue),
 	}
 }

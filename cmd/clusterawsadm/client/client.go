@@ -64,7 +64,7 @@ func homeDir() string {
 func MachineInstanceID(name string) (string, error) {
 	c := NewClient()
 
-	m, err := c.ClusterV1alpha1().Machines("default").Get(name, v1.GetOptions{})
+	m, err := c.ClusterDeprecatedV1alpha1().Machines("default").Get(name, v1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

@@ -18,7 +18,7 @@ package services
 
 import (
 	"github.com/aws/aws-sdk-go/aws/session"
-	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 )
 

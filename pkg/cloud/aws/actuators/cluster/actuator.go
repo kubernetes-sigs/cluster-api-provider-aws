@@ -19,8 +19,6 @@ package cluster
 import (
 	"time"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/machine"
-
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/api/core/v1"
@@ -28,38 +26,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	controllerError "sigs.k8s.io/cluster-api/pkg/controller/error"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
+	controllerError "sigs.k8s.io/cluster-api/pkg/errors"
 )
 
-const waitForControlPlaneMachineDuration = 15 * time.Second
-
-//+kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=,resources=secrets,verbs=create;get;watch;list
-//+kubebuilder:rbac:groups=,resources=configmaps,verbs=create;get;delete
+const waitForControlPlaneMachineDuration = 15 * time.Second //nolint
 
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
 	*deployer.Deployer
 
 	coreClient corev1.CoreV1Interface
-	client     client.ClusterV1alpha1Interface
+	client     client.ClusterV1alpha2Interface
 	log        logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
 	CoreClient     corev1.CoreV1Interface
-	Client         client.ClusterV1alpha1Interface
+	Client         client.ClusterV1alpha2Interface
 	LoggingContext string
 }
 
@@ -109,7 +102,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	if cluster.Annotations == nil {
 		cluster.Annotations = make(map[string]string)
 	}
-	cluster.Annotations[v1alpha1.AnnotationClusterInfrastructureReady] = v1alpha1.ValueReady
+	cluster.Annotations[v1alpha2.AnnotationClusterInfrastructureReady] = v1alpha2.ValueReady
 
 	// Store KubeConfig for Cluster API NodeRef controller to use.
 	kubeConfigSecretName := remote.KubeConfigSecretName(cluster.Name)
@@ -137,7 +130,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	}
 
 	// If the control plane is ready, try to delete the control plane configmap lock, if it exists, and return.
-	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] == v1alpha1.ValueReady {
+	if cluster.Annotations[v1alpha2.AnnotationControlPlaneReady] == v1alpha2.ValueReady {
 		configMapName := actuators.ControlPlaneConfigMapName(cluster)
 		log.Info("Checking for existence of control plane configmap lock", "configmap-name", configMapName)
 
@@ -159,28 +152,29 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	log.Info("Cluster does not have ready annotation - checking for ready control plane machines")
 
-	machines, err := a.client.Machines(cluster.Namespace).List(actuators.ListOptionsForCluster(cluster.Name))
-	if err != nil {
-		return errors.Wrapf(err, "failed to list machines for cluster %q", cluster.Name)
-	}
+	// machines, err := a.client.Machines(cluster.Namespace).List(actuators.ListOptionsForCluster(cluster.Name))
+	// if err != nil {
+	// 	return errors.Wrapf(err, "failed to list machines for cluster %q", cluster.Name)
+	// }
 
-	controlPlaneMachines := machine.GetControlPlaneMachines(machines)
+	// controlPlaneMachines := machine.GetControlPlaneMachines(machines)
 
-	machineReady := false
-	for _, machine := range controlPlaneMachines {
-		if machine.Status.NodeRef != nil {
-			machineReady = true
-			break
-		}
-	}
+	// machineReady := false
+	// for _, machine := range controlPlaneMachines {
+	// 	if machine.Status.NodeRef != nil {
+	// 		machineReady = true
+	// 		break
+	// 	}
+	// }
 
-	if !machineReady {
-		log.Info("No control plane machines are ready - requeuing cluster")
-		return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
-	}
+	// if !machineReady {
+	// 	log.Info("No control plane machines are ready - requeuing cluster")
+	// 	return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
+	// }
+	// TODO
 
 	log.Info("Setting cluster ready annotation")
-	cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] = v1alpha1.ValueReady
+	cluster.Annotations[v1alpha2.AnnotationControlPlaneReady] = v1alpha2.ValueReady
 
 	return nil
 }

@@ -17,29 +17,20 @@ limitations under the License.
 package actuators
 
 import (
-	"encoding/json"
-	"fmt"
-	"reflect"
-
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/patch"
-	"sigs.k8s.io/yaml"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 )
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
 	AWSClients
-	Cluster *clusterv1.Cluster
-	Machine *clusterv1.Machine
-	Client  client.ClusterV1alpha1Interface
-	Logger  logr.Logger
+	Cluster    *clusterv1.Cluster
+	Machine    *clusterv1.Machine
+	AWSMachine *v1alpha2.AWSMachine
+	Client     client.ClusterV1alpha2Interface
+	Logger     logr.Logger
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
@@ -47,21 +38,12 @@ type MachineScopeParams struct {
 func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	scope, err := NewScope(ScopeParams{
 		AWSClients: params.AWSClients,
-		Client:     params.Client, Cluster: params.Cluster,
-		Logger: params.Logger,
+		Client:     params.Client,
+		Cluster:    params.Cluster,
+		Logger:     params.Logger,
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	machineConfig, err := MachineConfigFromProviderSpec(params.Client, params.Machine.Spec.ProviderSpec, scope.Logger)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get machine config")
-	}
-
-	machineStatus, err := v1alpha1.MachineStatusFromProviderStatus(params.Machine.Status.ProviderStatus)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get machine provider status")
 	}
 
 	var machineClient client.MachineInterface
@@ -74,8 +56,8 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		Machine:       params.Machine,
 		MachineCopy:   params.Machine.DeepCopy(),
 		MachineClient: machineClient,
-		MachineConfig: machineConfig,
-		MachineStatus: machineStatus,
+		MachineConfig: &params.AWSMachine.Spec,
+		MachineStatus: &params.AWSMachine.Status,
 	}, nil
 }
 
@@ -87,8 +69,8 @@ type MachineScope struct {
 	// MachineCopy is used to generate a patch diff at the end of the scope's lifecycle.
 	MachineCopy   *clusterv1.Machine
 	MachineClient client.MachineInterface
-	MachineConfig *v1alpha1.AWSMachineProviderSpec
-	MachineStatus *v1alpha1.AWSMachineProviderStatus
+	MachineConfig *v1alpha2.AWSMachineSpec
+	MachineStatus *v1alpha2.AWSMachineStatus
 }
 
 // Name returns the machine name.
@@ -126,99 +108,5 @@ func (m *MachineScope) Close() {
 	if m.MachineClient == nil {
 		return
 	}
-
-	ext, err := v1alpha1.EncodeMachineSpec(m.MachineConfig)
-	if err != nil {
-		m.Error(err, "failed to encode machine spec")
-		return
-	}
-	newStatus, err := v1alpha1.EncodeMachineStatus(m.MachineStatus)
-	if err != nil {
-		m.Error(err, "failed to encode machine status")
-		return
-	}
-	oldStatus, err := v1alpha1.MachineStatusFromProviderStatus(m.MachineCopy.Status.ProviderStatus)
-	if err != nil {
-		m.Error(err, "failed to get machine status from provider status")
-		return
-	}
-
-	m.Machine.Spec.ProviderSpec.Value = ext
-
-	p, err := patch.NewJSONPatch(m.MachineCopy, m.Machine)
-	if err != nil {
-		m.Error(err, "failed to create new JSONPatch for machine")
-		return
-	}
-
-	if len(p) != 0 {
-		pb, err := json.MarshalIndent(p, "", "  ")
-		if err != nil {
-			m.Error(err, "failed to json marshal patch for machine")
-			return
-		}
-
-		m.Logger.V(1).Info("Patching machine")
-		result, err := m.MachineClient.Patch(m.Machine.Name, types.JSONPatchType, pb)
-		if err != nil {
-			m.Error(err, "failed to patch machine")
-			return
-		}
-		// Keep the resource version updated so the status update can succeed
-		m.Machine.ResourceVersion = result.ResourceVersion
-	}
-
-	// Do not update status if the statuses are the same
-	if reflect.DeepEqual(m.MachineStatus, oldStatus) {
-		return
-	}
-
-	m.Logger.V(1).Info("Updating machine status")
-	m.Machine.Status.ProviderStatus = newStatus
-	if _, err := m.MachineClient.UpdateStatus(m.Machine); err != nil {
-		m.Error(err, "failed to update machine status")
-		return
-	}
-}
-
-// MachineConfigFromProviderSpec tries to decode the JSON-encoded spec, falling back on getting a MachineClass if the value is absent.
-func MachineConfigFromProviderSpec(clusterClient client.MachineClassesGetter, providerConfig clusterv1.ProviderSpec, log logr.Logger) (*v1alpha1.AWSMachineProviderSpec, error) {
-	var config v1alpha1.AWSMachineProviderSpec
-	if providerConfig.Value != nil {
-		log.V(4).Info("Decoding ProviderConfig from Value")
-		return unmarshalProviderSpec(providerConfig.Value, log)
-	}
-
-	if providerConfig.ValueFrom != nil && providerConfig.ValueFrom.MachineClass != nil {
-		ref := providerConfig.ValueFrom.MachineClass
-		log.V(4).Info("Decoding ProviderConfig from MachineClass")
-		log.V(6).Info("Machine class reference", "ref", fmt.Sprintf("%+v", ref))
-		if ref.Provider != "" && ref.Provider != "aws" {
-			return nil, errors.Errorf("Unsupported provider: %q", ref.Provider)
-		}
-
-		if len(ref.Namespace) > 0 && len(ref.Name) > 0 {
-			log.V(4).Info("Getting MachineClass", "reference-namespace", ref.Namespace, "reference-name", ref.Name)
-			mc, err := clusterClient.MachineClasses(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
-			log.V(6).Info("Retrieved MachineClass", "machine-class", fmt.Sprintf("%+v", mc))
-			if err != nil {
-				return nil, err
-			}
-			providerConfig.Value = &mc.ProviderSpec
-			return unmarshalProviderSpec(&mc.ProviderSpec, log)
-		}
-	}
-
-	return &config, nil
-}
-
-func unmarshalProviderSpec(spec *runtime.RawExtension, log logr.Logger) (*v1alpha1.AWSMachineProviderSpec, error) {
-	var config v1alpha1.AWSMachineProviderSpec
-	if spec != nil {
-		if err := yaml.Unmarshal(spec.Raw, &config); err != nil {
-			return nil, err
-		}
-	}
-	log.V(6).Info("Found ProviderSpec", "provider-spec", fmt.Sprintf("%+v", config))
-	return &config, nil
+	// TODO
 }

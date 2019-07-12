@@ -29,10 +29,9 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/patch"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 )
 
 var (
@@ -60,7 +59,7 @@ func sessionForRegion(region string) (*session.Session, error) {
 type ScopeParams struct {
 	AWSClients
 	Cluster *clusterv1.Cluster
-	Client  client.ClusterV1alpha1Interface
+	Client  client.ClusterV1alpha2Interface
 	Logger  logr.Logger
 }
 
@@ -71,12 +70,12 @@ func NewScope(params ScopeParams) (*Scope, error) {
 		return nil, errors.New("failed to generate new scope from nil cluster")
 	}
 
-	clusterConfig, err := v1alpha1.ClusterConfigFromProviderSpec(params.Cluster.Spec.ProviderSpec)
+	clusterConfig, err := v1alpha2.ClusterConfigFromProviderSpec(params.Cluster.Spec.ProviderSpec)
 	if err != nil {
 		return nil, errors.Errorf("failed to load cluster provider config: %v", err)
 	}
 
-	clusterStatus, err := v1alpha1.ClusterStatusFromProviderStatus(params.Cluster.Status.ProviderStatus)
+	clusterStatus, err := v1alpha2.ClusterStatusFromProviderStatus(params.Cluster.Status.ProviderStatus)
 	if err != nil {
 		return nil, errors.Errorf("failed to load cluster provider status: %v", err)
 	}
@@ -121,28 +120,28 @@ type Scope struct {
 	// ClusterCopy is used for patch generation at the end of the scope's lifecycle.
 	ClusterCopy   *clusterv1.Cluster
 	ClusterClient client.ClusterInterface
-	ClusterConfig *v1alpha1.AWSClusterProviderSpec
-	ClusterStatus *v1alpha1.AWSClusterProviderStatus
+	ClusterConfig *v1alpha2.AWSClusterProviderSpec
+	ClusterStatus *v1alpha2.AWSClusterProviderStatus
 	logr.Logger
 }
 
 // Network returns the cluster network object.
-func (s *Scope) Network() *v1alpha1.Network {
+func (s *Scope) Network() *v1alpha2.Network {
 	return &s.ClusterStatus.Network
 }
 
 // VPC returns the cluster VPC.
-func (s *Scope) VPC() *v1alpha1.VPCSpec {
+func (s *Scope) VPC() *v1alpha2.VPCSpec {
 	return &s.ClusterConfig.NetworkSpec.VPC
 }
 
 // Subnets returns the cluster subnets.
-func (s *Scope) Subnets() v1alpha1.Subnets {
+func (s *Scope) Subnets() v1alpha2.Subnets {
 	return s.ClusterConfig.NetworkSpec.Subnets
 }
 
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
-func (s *Scope) SecurityGroups() map[v1alpha1.SecurityGroupRole]*v1alpha1.SecurityGroup {
+func (s *Scope) SecurityGroups() map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup {
 	return s.ClusterStatus.Network.SecurityGroups
 }
 
@@ -167,12 +166,12 @@ func (s *Scope) Close() {
 		return
 	}
 
-	ext, err := v1alpha1.EncodeClusterSpec(s.ClusterConfig)
+	ext, err := v1alpha2.EncodeClusterSpec(s.ClusterConfig)
 	if err != nil {
 		s.Error(err, "failed encoding cluster spec")
 		return
 	}
-	newStatus, err := v1alpha1.EncodeClusterStatus(s.ClusterStatus)
+	newStatus, err := v1alpha2.EncodeClusterStatus(s.ClusterStatus)
 	if err != nil {
 		s.Error(err, "failed encoding cluster status")
 		return
@@ -180,14 +179,8 @@ func (s *Scope) Close() {
 
 	s.Cluster.Spec.ProviderSpec.Value = ext
 
-	// Build a patch and marshal that patch to something the client will understand.
-	p, err := patch.NewJSONPatch(s.ClusterCopy, s.Cluster)
-	if err != nil {
-		s.Error(err, "failed to create new JSONPatch")
-		return
-	}
-
 	// Do not update Machine if nothing has changed
+	var p []byte // TEMPORARY
 	if len(p) != 0 {
 		pb, err := json.MarshalIndent(p, "", "  ")
 		if err != nil {

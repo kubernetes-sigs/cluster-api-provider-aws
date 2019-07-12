@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
@@ -68,7 +68,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
 func (s *Service) GetAPIServerDNSName() (string, error) {
-	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), v1alpha1.APIServerRoleTagValue))
+	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue))
 
 	if err != nil {
 		return "", err
@@ -82,7 +82,7 @@ func (s *Service) DeleteLoadbalancers() error {
 	s.scope.V(2).Info("Deleting load balancers")
 
 	// Get default api server name.
-	elbName := GenerateELBName(s.scope.Name(), v1alpha1.APIServerRoleTagValue)
+	elbName := GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue)
 
 	// Describe and delete if exists.
 	if _, err := s.describeClassicELB(elbName); err != nil {
@@ -119,7 +119,7 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 func (s *Service) RegisterInstanceWithAPIServerELB(instanceID string) error {
 	input := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
-		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), v1alpha1.APIServerRoleTagValue)),
+		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue)),
 	}
 
 	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
@@ -135,35 +135,35 @@ func GenerateELBName(clusterName string, elbName string) string {
 	return fmt.Sprintf("%s-%s", clusterName, elbName)
 }
 
-func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
-	res := &v1alpha1.ClassicELB{
-		Name:   GenerateELBName(s.scope.Name(), v1alpha1.APIServerRoleTagValue),
-		Scheme: v1alpha1.ClassicELBSchemeInternetFacing,
-		Listeners: []*v1alpha1.ClassicELBListener{
+func (s *Service) getAPIServerClassicELBSpec() *v1alpha2.ClassicELB {
+	res := &v1alpha2.ClassicELB{
+		Name:   GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue),
+		Scheme: v1alpha2.ClassicELBSchemeInternetFacing,
+		Listeners: []*v1alpha2.ClassicELBListener{
 			{
-				Protocol:         v1alpha1.ClassicELBProtocolTCP,
+				Protocol:         v1alpha2.ClassicELBProtocolTCP,
 				Port:             6443,
-				InstanceProtocol: v1alpha1.ClassicELBProtocolTCP,
+				InstanceProtocol: v1alpha2.ClassicELBProtocolTCP,
 				InstancePort:     6443,
 			},
 		},
-		HealthCheck: &v1alpha1.ClassicELBHealthCheck{
-			Target:             fmt.Sprintf("%v:%d", v1alpha1.ClassicELBProtocolTCP, 6443),
+		HealthCheck: &v1alpha2.ClassicELBHealthCheck{
+			Target:             fmt.Sprintf("%v:%d", v1alpha2.ClassicELBProtocolTCP, 6443),
 			Interval:           10 * time.Second,
 			Timeout:            5 * time.Second,
 			HealthyThreshold:   5,
 			UnhealthyThreshold: 3,
 		},
-		SecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha1.SecurityGroupControlPlane].ID},
-		Attributes: v1alpha1.ClassicELBAttributes{
+		SecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha2.SecurityGroupControlPlane].ID},
+		Attributes: v1alpha2.ClassicELBAttributes{
 			IdleTimeout: 10 * time.Minute,
 		},
 	}
 
-	res.Tags = v1alpha1.Build(v1alpha1.BuildParams{
+	res.Tags = v1alpha2.Build(v1alpha2.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
-		Role:        aws.String(v1alpha1.APIServerRoleTagValue),
+		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+		Role:        aws.String(v1alpha2.APIServerRoleTagValue),
 	})
 
 	for _, sn := range s.scope.Subnets().FilterPublic() {
@@ -173,7 +173,7 @@ func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 	return res
 }
 
-func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.ClassicELB, error) {
+func (s *Service) createClassicELB(spec *v1alpha2.ClassicELB) (*v1alpha2.ClassicELB, error) {
 	input := &elb.CreateLoadBalancerInput{
 		LoadBalancerName: aws.String(spec.Name),
 		Subnets:          aws.StringSlice(spec.SubnetIDs),
@@ -220,7 +220,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 	return res, nil
 }
 
-func (s *Service) configureAttributes(name string, attributes v1alpha1.ClassicELBAttributes) error {
+func (s *Service) configureAttributes(name string, attributes v1alpha2.ClassicELBAttributes) error {
 	attrs := &elb.ModifyLoadBalancerAttributesInput{
 		LoadBalancerName:       aws.String(name),
 		LoadBalancerAttributes: &elb.LoadBalancerAttributes{},
@@ -286,7 +286,7 @@ func (s *Service) deleteClassicELBAndWait(name string) error {
 	return nil
 }
 
-func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) {
+func (s *Service) describeClassicELB(name string) (*v1alpha2.ClassicELB, error) {
 	input := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
@@ -328,10 +328,10 @@ func (s *Service) describeClassicELB(name string) (*v1alpha1.ClassicELB, error) 
 	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0], outAtt.LoadBalancerAttributes), nil
 }
 
-func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *v1alpha1.ClassicELB {
-	res := &v1alpha1.ClassicELB{
+func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *v1alpha2.ClassicELB {
+	res := &v1alpha2.ClassicELB{
 		Name:             aws.StringValue(v.LoadBalancerName),
-		Scheme:           v1alpha1.ClassicELBScheme(*v.Scheme),
+		Scheme:           v1alpha2.ClassicELBScheme(*v.Scheme),
 		SubnetIDs:        aws.StringValueSlice(v.Subnets),
 		SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
 		DNSName:          aws.StringValue(v.DNSName),

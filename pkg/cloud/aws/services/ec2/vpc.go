@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
@@ -71,7 +71,7 @@ func (s *Service) reconcileVPC() error {
 	return nil
 }
 
-func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
+func (s *Service) createVPC() (*v1alpha2.VPCSpec, error) {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		return nil, errors.Errorf("cannot create a managed vpc in unmanaged mode")
 	}
@@ -126,10 +126,10 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 		return nil, err
 	}
 
-	return &v1alpha1.VPCSpec{
+	return &v1alpha2.VPCSpec{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
-		Tags:      v1alpha1.Build(tagParams),
+		Tags:      v1alpha2.Build(tagParams),
 	}, nil
 }
 
@@ -160,7 +160,7 @@ func (s *Service) deleteVPC() error {
 	return nil
 }
 
-func (s *Service) describeVPC() (*v1alpha1.VPCSpec, error) {
+func (s *Service) describeVPC() (*v1alpha2.VPCSpec, error) {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
@@ -195,21 +195,21 @@ func (s *Service) describeVPC() (*v1alpha1.VPCSpec, error) {
 		return nil, awserrors.NewNotFound(errors.Errorf("could not find available or pending vpc"))
 	}
 
-	return &v1alpha1.VPCSpec{
+	return &v1alpha2.VPCSpec{
 		ID:        *out.Vpcs[0].VpcId,
 		CidrBlock: *out.Vpcs[0].CidrBlock,
 		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),
 	}, nil
 }
 
-func (s *Service) getVPCTagParams(id string) v1alpha1.BuildParams {
+func (s *Service) getVPCTagParams(id string) v1alpha2.BuildParams {
 	name := fmt.Sprintf("%s-vpc", s.scope.Name())
 
-	return v1alpha1.BuildParams{
+	return v1alpha2.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   v1alpha1.ResourceLifecycleOwned,
+		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(v1alpha1.CommonRoleTagValue),
+		Role:        aws.String(v1alpha2.CommonRoleTagValue),
 	}
 }

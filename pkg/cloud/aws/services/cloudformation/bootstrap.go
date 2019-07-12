@@ -22,6 +22,7 @@ import (
 	"path"
 
 	"github.com/awslabs/goformation/cloudformation"
+	"github.com/awslabs/goformation/cloudformation/resources"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
@@ -43,7 +44,7 @@ var ManagedIAMPolicyNames = [...]string{ControllersPolicy, ControlPlanePolicy, N
 func BootstrapTemplate(accountID string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
-	template.Resources[ControllersPolicy] = cloudformation.AWSIAMManagedPolicy{
+	template.Resources[ControllersPolicy] = &resources.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("controllers"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
 		PolicyDocument:    controllersPolicy(accountID),
@@ -56,7 +57,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources[ControlPlanePolicy] = cloudformation.AWSIAMManagedPolicy{
+	template.Resources[ControlPlanePolicy] = &resources.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("control-plane"),
 		Description:       `For the Kubernetes Cloud Provider AWS Control Plane`,
 		PolicyDocument:    cloudProviderControlPlaneAwsPolicy(),
@@ -65,7 +66,7 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources[NodePolicy] = cloudformation.AWSIAMManagedPolicy{
+	template.Resources[NodePolicy] = &resources.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("nodes"),
 		Description:       `For the Kubernetes Cloud Provider AWS nodes`,
 		PolicyDocument:    cloudProviderNodeAwsPolicy(),
@@ -75,47 +76,47 @@ func BootstrapTemplate(accountID string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources["AWSIAMUserBootstrapper"] = cloudformation.AWSIAMUser{
+	template.Resources["AWSIAMUserBootstrapper"] = &resources.AWSIAMUser{
 		UserName: iam.NewManagedName("bootstrapper"),
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
 	}
 
-	template.Resources["AWSIAMGroupBootstrapper"] = cloudformation.AWSIAMGroup{
+	template.Resources["AWSIAMGroupBootstrapper"] = &resources.AWSIAMGroup{
 		GroupName: iam.NewManagedName("bootstrapper"),
 	}
 
-	template.Resources["AWSIAMRoleControlPlane"] = cloudformation.AWSIAMRole{
+	template.Resources["AWSIAMRoleControlPlane"] = &resources.AWSIAMRole{
 		RoleName:                 iam.NewManagedName("control-plane"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
-	template.Resources["AWSIAMRoleControllers"] = cloudformation.AWSIAMRole{
+	template.Resources["AWSIAMRoleControllers"] = &resources.AWSIAMRole{
 		RoleName:                 iam.NewManagedName("controllers"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
-	template.Resources["AWSIAMRoleNodes"] = cloudformation.AWSIAMRole{
+	template.Resources["AWSIAMRoleNodes"] = &resources.AWSIAMRole{
 		RoleName:                 iam.NewManagedName("nodes"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
-	template.Resources["AWSIAMInstanceProfileControlPlane"] = cloudformation.AWSIAMInstanceProfile{
+	template.Resources["AWSIAMInstanceProfileControlPlane"] = &resources.AWSIAMInstanceProfile{
 		InstanceProfileName: iam.NewManagedName("control-plane"),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
 		},
 	}
 
-	template.Resources["AWSIAMInstanceProfileControllers"] = cloudformation.AWSIAMInstanceProfile{
+	template.Resources["AWSIAMInstanceProfileControllers"] = &resources.AWSIAMInstanceProfile{
 		InstanceProfileName: iam.NewManagedName("controllers"),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControllers"),
 		},
 	}
 
-	template.Resources["AWSIAMInstanceProfileNodes"] = cloudformation.AWSIAMInstanceProfile{
+	template.Resources["AWSIAMInstanceProfileNodes"] = &resources.AWSIAMInstanceProfile{
 		InstanceProfileName: iam.NewManagedName("nodes"),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleNodes"),

@@ -23,11 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 func TestDeleteLoadBalancers(t *testing.T) {
@@ -46,7 +46,7 @@ func TestDeleteLoadBalancers(t *testing.T) {
 						{
 							LoadBalancerName: aws.String("test-cluster-apiserver"),
 							VPCId:            aws.String("test-vpc"),
-							Scheme:           aws.String(string(v1alpha1.ClassicELBSchemeInternetFacing)),
+							Scheme:           aws.String(string(v1alpha2.ClassicELBSchemeInternetFacing)),
 						},
 					},
 				}, nil)
@@ -79,9 +79,9 @@ func TestDeleteLoadBalancers(t *testing.T) {
 				},
 			})
 
-			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha1.NetworkSpec{
-					VPC: v1alpha1.VPCSpec{
+			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha2.NetworkSpec{
+					VPC: v1alpha2.VPCSpec{
 						ID: "test-vpc",
 					},
 				},

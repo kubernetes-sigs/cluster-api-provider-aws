@@ -25,11 +25,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 const (
@@ -42,19 +42,19 @@ func TestReconcileSubnets(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha1.NetworkSpec
+		input  *v1alpha2.NetworkSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create public with defaults",
-			input: &v1alpha1.NetworkSpec{
-				VPC: v1alpha1.VPCSpec{
+			input: &v1alpha2.NetworkSpec{
+				VPC: v1alpha2.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Tags{
-						v1alpha1.ClusterTagKey("test-cluster"): "owned",
+					Tags: v1alpha2.Tags{
+						v1alpha2.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: []*v1alpha1.SubnetSpec{
+				Subnets: []*v1alpha2.SubnetSpec{
 					{
 						ID:               "subnet-1",
 						AvailabilityZone: "us-east-1a",
@@ -162,14 +162,14 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "no subnet exist, create private and public from spec",
-			input: &v1alpha1.NetworkSpec{
-				VPC: v1alpha1.VPCSpec{
+			input: &v1alpha2.NetworkSpec{
+				VPC: v1alpha2.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Tags{
-						v1alpha1.ClusterTagKey("test-cluster"): "owned",
+					Tags: v1alpha2.Tags{
+						v1alpha2.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: []*v1alpha1.SubnetSpec{
+				Subnets: []*v1alpha2.SubnetSpec{
 					{
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.1.0.0/16",
@@ -271,14 +271,14 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "no subnet exist, expect one private and one public from defaults",
-			input: &v1alpha1.NetworkSpec{
-				VPC: v1alpha1.VPCSpec{
+			input: &v1alpha2.NetworkSpec{
+				VPC: v1alpha2.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Tags{
-						v1alpha1.ClusterTagKey("test-cluster"): "owned",
+					Tags: v1alpha2.Tags{
+						v1alpha2.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: []*v1alpha1.SubnetSpec{},
+				Subnets: []*v1alpha2.SubnetSpec{},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeAvailabilityZones(gomock.Any()).
@@ -378,14 +378,14 @@ func TestReconcileSubnets(t *testing.T) {
 		},
 		{
 			name: "managed VPC respects public tag",
-			input: &v1alpha1.NetworkSpec{
-				VPC: v1alpha1.VPCSpec{
+			input: &v1alpha2.NetworkSpec{
+				VPC: v1alpha2.VPCSpec{
 					ID: subnetsVPCID,
-					Tags: v1alpha1.Tags{
-						v1alpha1.ClusterTagKey("test-cluster"): "owned",
+					Tags: v1alpha2.Tags{
+						v1alpha2.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: []*v1alpha1.SubnetSpec{
+				Subnets: []*v1alpha2.SubnetSpec{
 					{
 						ID:               "subnet-1",
 						AvailabilityZone: "us-east-1a",
@@ -497,7 +497,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 			})
 
-			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
 				NetworkSpec: *tc.input,
 			}
 
@@ -521,14 +521,14 @@ func TestDiscoverSubnets(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha1.NetworkSpec
+		input  *v1alpha2.NetworkSpec
 		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		expect []*v1alpha1.SubnetSpec
+		expect []*v1alpha2.SubnetSpec
 	}{
 		{
 			name: "provided VPC finds internet routes",
-			input: &v1alpha1.NetworkSpec{
-				VPC: v1alpha1.VPCSpec{
+			input: &v1alpha2.NetworkSpec{
+				VPC: v1alpha2.VPCSpec{
 					ID: subnetsVPCID,
 				},
 			},
@@ -628,14 +628,14 @@ func TestDiscoverSubnets(t *testing.T) {
 					gomock.Any()).Return(nil)
 
 			},
-			expect: []*v1alpha1.SubnetSpec{
+			expect: []*v1alpha2.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 					RouteTableID:     aws.String("rtb-1"),
-					Tags: v1alpha1.Tags{
+					Tags: v1alpha2.Tags{
 						"Name": "provided-subnet-public",
 					},
 				},
@@ -645,7 +645,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         false,
 					RouteTableID:     aws.String("rtb-2"),
-					Tags: v1alpha1.Tags{
+					Tags: v1alpha2.Tags{
 						"Name": "provided-subnet-private",
 					},
 				},
@@ -667,7 +667,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				},
 			})
 
-			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
+			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
 				NetworkSpec: *tc.input,
 			}
 
@@ -683,7 +683,7 @@ func TestDiscoverSubnets(t *testing.T) {
 			}
 
 			subnets := s.scope.ClusterConfig.NetworkSpec.Subnets
-			out := make(map[string]*v1alpha1.SubnetSpec)
+			out := make(map[string]*v1alpha2.SubnetSpec)
 			for _, sn := range subnets {
 				out[sn.ID] = sn
 			}

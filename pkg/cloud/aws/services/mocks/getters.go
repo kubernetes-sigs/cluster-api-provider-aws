@@ -19,7 +19,7 @@ package mocks
 import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	v1alpha2 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
 )
 
@@ -30,7 +30,7 @@ type SDKGetter struct {
 }
 
 // Session returns a nil session.
-func (*SDKGetter) Session(clusterConfig *v1alpha1.AWSClusterProviderSpec) *session.Session {
+func (*SDKGetter) Session(clusterConfig *v1alpha2.AWSClusterProviderSpec) *session.Session {
 	return nil
 }
 

@@ -21,13 +21,13 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 )
 
 func TestGenerateCACert(t *testing.T) {
 	testCases := []struct {
 		name             string
-		inputKeyPair     *v1alpha1.KeyPair
+		inputKeyPair     *v1alpha2.KeyPair
 		inputUser        string
 		expectKeyPairGen bool
 		expectedError    error
@@ -41,28 +41,28 @@ func TestGenerateCACert(t *testing.T) {
 		},
 		{
 			name:             "should generate keypair when inputKeyPair has no cert",
-			inputKeyPair:     &v1alpha1.KeyPair{Key: []byte("foo-key")},
+			inputKeyPair:     &v1alpha2.KeyPair{Key: []byte("foo-key")},
 			inputUser:        "foo-ca",
 			expectKeyPairGen: true,
 			expectedError:    nil,
 		},
 		{
 			name:             "should generate keypair when inputKeyPair has no key",
-			inputKeyPair:     &v1alpha1.KeyPair{Cert: []byte("foo-cert")},
+			inputKeyPair:     &v1alpha2.KeyPair{Cert: []byte("foo-cert")},
 			inputUser:        "foo-ca",
 			expectKeyPairGen: true,
 			expectedError:    nil,
 		},
 		{
 			name:             "should generate keypair when inputKeyPair has no cert and nokey",
-			inputKeyPair:     &v1alpha1.KeyPair{},
+			inputKeyPair:     &v1alpha2.KeyPair{},
 			inputUser:        "foo-ca",
 			expectKeyPairGen: true,
 			expectedError:    nil,
 		},
 		{
 			name:             "should not generate keypair when inputKeyPair has cert and key",
-			inputKeyPair:     &v1alpha1.KeyPair{Cert: []byte("foo-cert"), Key: []byte("foo-key")},
+			inputKeyPair:     &v1alpha2.KeyPair{Cert: []byte("foo-cert"), Key: []byte("foo-key")},
 			inputUser:        "foo-ca",
 			expectKeyPairGen: false,
 			expectedError:    nil,
@@ -99,7 +99,7 @@ func TestGenerateCACert(t *testing.T) {
 func TestGenerateServiceAccountKeys(t *testing.T) {
 	testCases := []struct {
 		name             string
-		inputKeyPair     *v1alpha1.KeyPair
+		inputKeyPair     *v1alpha2.KeyPair
 		inputUser        string
 		expectKeyPairGen bool
 		expectedError    error
@@ -113,28 +113,28 @@ func TestGenerateServiceAccountKeys(t *testing.T) {
 		},
 		{
 			name:             "should generate keypair when inputKeyPair has no cert",
-			inputKeyPair:     &v1alpha1.KeyPair{Key: []byte("foo-key")},
+			inputKeyPair:     &v1alpha2.KeyPair{Key: []byte("foo-key")},
 			inputUser:        "foo-sa",
 			expectKeyPairGen: true,
 			expectedError:    nil,
 		},
 		{
 			name:             "should generate keypair when inputKeyPair has no key",
-			inputKeyPair:     &v1alpha1.KeyPair{Cert: []byte("foo-cert")},
+			inputKeyPair:     &v1alpha2.KeyPair{Cert: []byte("foo-cert")},
 			inputUser:        "foo-sa",
 			expectKeyPairGen: true,
 			expectedError:    nil,
 		},
 		{
 			name:             "should generate keypair when inputKeyPair has no cert and nokey",
-			inputKeyPair:     &v1alpha1.KeyPair{},
+			inputKeyPair:     &v1alpha2.KeyPair{},
 			inputUser:        "foo-ca",
 			expectKeyPairGen: true,
 			expectedError:    nil,
 		},
 		{
 			name:             "should not generate keypair when inputKeyPair has cert and key",
-			inputKeyPair:     &v1alpha1.KeyPair{Cert: []byte("foo-cert"), Key: []byte("foo-key")},
+			inputKeyPair:     &v1alpha2.KeyPair{Cert: []byte("foo-cert"), Key: []byte("foo-key")},
 			inputUser:        "foo-sa",
 			expectKeyPairGen: false,
 			expectedError:    nil,

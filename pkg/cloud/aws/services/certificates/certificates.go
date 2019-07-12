@@ -33,7 +33,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd/api"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 )
 
 const (
@@ -70,35 +70,35 @@ type Config struct {
 func (s *Service) ReconcileCertificates() error {
 	s.scope.V(2).Info("Reconciling certificates", "cluster-name", s.scope.Cluster.Name, "cluster-namespace", s.scope.Cluster.Namespace)
 
-	if !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
+	if s.scope.ClusterConfig.CAKeyPair == nil || !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
 		s.scope.V(2).Info("Generating keypair for", "user", clusterCA)
-		clusterCAKeyPair, err := generateCACert(&s.scope.ClusterConfig.CAKeyPair, clusterCA)
+		clusterCAKeyPair, err := generateCACert(s.scope.ClusterConfig.CAKeyPair, clusterCA)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to generate certs for %q", clusterCA)
 		}
 		s.scope.ClusterConfig.CAKeyPair = clusterCAKeyPair
 	}
 
-	if !s.scope.ClusterConfig.EtcdCAKeyPair.HasCertAndKey() {
+	if s.scope.ClusterConfig.EtcdCAKeyPair == nil || !s.scope.ClusterConfig.EtcdCAKeyPair.HasCertAndKey() {
 		s.scope.V(2).Info("Generating keypair", "user", etcdCA)
-		etcdCAKeyPair, err := generateCACert(&s.scope.ClusterConfig.EtcdCAKeyPair, etcdCA)
+		etcdCAKeyPair, err := generateCACert(s.scope.ClusterConfig.EtcdCAKeyPair, etcdCA)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to generate certs for %q", etcdCA)
 		}
 		s.scope.ClusterConfig.EtcdCAKeyPair = etcdCAKeyPair
 	}
-	if !s.scope.ClusterConfig.FrontProxyCAKeyPair.HasCertAndKey() {
+	if s.scope.ClusterConfig.FrontProxyCAKeyPair == nil || !s.scope.ClusterConfig.FrontProxyCAKeyPair.HasCertAndKey() {
 		s.scope.V(2).Info("Generating keypair", "user", frontProxyCA)
-		fpCAKeyPair, err := generateCACert(&s.scope.ClusterConfig.FrontProxyCAKeyPair, frontProxyCA)
+		fpCAKeyPair, err := generateCACert(s.scope.ClusterConfig.FrontProxyCAKeyPair, frontProxyCA)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to generate certs for %q", frontProxyCA)
 		}
 		s.scope.ClusterConfig.FrontProxyCAKeyPair = fpCAKeyPair
 	}
 
-	if !s.scope.ClusterConfig.SAKeyPair.HasCertAndKey() {
+	if s.scope.ClusterConfig.SAKeyPair == nil || !s.scope.ClusterConfig.SAKeyPair.HasCertAndKey() {
 		s.scope.V(2).Info("Generating service account keys", "user", serviceAccount)
-		saKeyPair, err := generateServiceAccountKeys(&s.scope.ClusterConfig.SAKeyPair, serviceAccount)
+		saKeyPair, err := generateServiceAccountKeys(s.scope.ClusterConfig.SAKeyPair, serviceAccount)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to generate keyPair for %q", serviceAccount)
 		}
@@ -107,40 +107,40 @@ func (s *Service) ReconcileCertificates() error {
 	return nil
 }
 
-func generateCACert(kp *v1alpha1.KeyPair, user string) (v1alpha1.KeyPair, error) {
+func generateCACert(kp *v1alpha2.KeyPair, user string) (*v1alpha2.KeyPair, error) {
 	x509Cert, privKey, err := NewCertificateAuthority()
 	if err != nil {
-		return v1alpha1.KeyPair{}, errors.Wrapf(err, "failed to generate CA cert for %q", user)
+		return nil, errors.Wrapf(err, "failed to generate CA cert for %q", user)
 	}
 	if kp == nil {
-		return v1alpha1.KeyPair{
+		return &v1alpha2.KeyPair{
 			Cert: EncodeCertPEM(x509Cert),
 			Key:  EncodePrivateKeyPEM(privKey),
 		}, nil
 	}
 	kp.Cert = EncodeCertPEM(x509Cert)
 	kp.Key = EncodePrivateKeyPEM(privKey)
-	return *kp, nil
+	return kp, nil
 }
 
-func generateServiceAccountKeys(kp *v1alpha1.KeyPair, user string) (v1alpha1.KeyPair, error) {
+func generateServiceAccountKeys(kp *v1alpha2.KeyPair, user string) (*v1alpha2.KeyPair, error) {
 	saCreds, err := NewPrivateKey()
 	if err != nil {
-		return v1alpha1.KeyPair{}, errors.Wrapf(err, "failed to create service account public and private keys")
+		return nil, errors.Wrapf(err, "failed to create service account public and private keys")
 	}
 	saPub, err := EncodePublicKeyPEM(&saCreds.PublicKey)
 	if err != nil {
-		return v1alpha1.KeyPair{}, errors.Wrapf(err, "failed to encode service account public key to PEM")
+		return nil, errors.Wrapf(err, "failed to encode service account public key to PEM")
 	}
 	if kp == nil {
-		return v1alpha1.KeyPair{
+		return &v1alpha2.KeyPair{
 			Cert: saPub,
 			Key:  EncodePrivateKeyPEM(saCreds),
 		}, nil
 	}
 	kp.Cert = saPub
 	kp.Key = EncodePrivateKeyPEM(saCreds)
-	return *kp, nil
+	return kp, nil
 }
 
 // NewSignedCert creates a signed certificate using the given CA certificate and key

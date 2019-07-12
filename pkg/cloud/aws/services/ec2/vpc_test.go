@@ -24,11 +24,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 func TestReconcileVPC(t *testing.T) {
@@ -37,14 +37,14 @@ func TestReconcileVPC(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha1.VPCSpec
-		output *v1alpha1.VPCSpec
+		input  *v1alpha2.VPCSpec
+		output *v1alpha2.VPCSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name:   "managed vpc exists",
-			input:  &v1alpha1.VPCSpec{ID: "vpc-exists"},
-			output: &v1alpha1.VPCSpec{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
+			input:  &v1alpha2.VPCSpec{ID: "vpc-exists"},
+			output: &v1alpha2.VPCSpec{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -84,10 +84,10 @@ func TestReconcileVPC(t *testing.T) {
 		},
 		{
 			name: "managed vpc does not exist",
-			input: &v1alpha1.VPCSpec{
+			input: &v1alpha2.VPCSpec{
 				CidrBlock: "10.1.0.0/16",
 			},
-			output: &v1alpha1.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
+			output: &v1alpha2.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					Filters: []*ec2.Filter{
@@ -144,8 +144,8 @@ func TestReconcileVPC(t *testing.T) {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
-			scope.ClusterConfig = &v1alpha1.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha1.NetworkSpec{
+			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
+				NetworkSpec: v1alpha2.NetworkSpec{
 					VPC: *tc.input,
 				},
 			}
