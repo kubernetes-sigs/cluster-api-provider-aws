@@ -30,5 +30,4 @@ require (
 replace (
 	k8s.io/api => k8s.io/api v0.0.0-20190704095032-f4ca3d3bdf1d
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190704094733-8f6ac2502e51
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.0.0-20190711203908-5ffab93802d7
 )
