@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Copyright 2019 The Kubernetes Authors.
+
+# Copyright 2014 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,14 +18,21 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
-cd "${REPO_ROOT}" || exit 1
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-BOILERPLATE=$(sed "s/YEAR/$(date +%Y)/g" < hack/boilerplate/boilerplate.generatego.txt)
+boilerDir="${KUBE_ROOT}/hack/boilerplate"
+boiler="${boilerDir}/boilerplate.py"
 
-while IFS= read -r -d '' file
-do
-    out=$(echo "${file}" | sed "s#bazel-bin/##g")
-    echo -e "${BOILERPLATE}\n" > "${out}"
-    cat "${file}" >> "${out}"
-done < <(find bazel-bin/pkg -name '*_mock.go' -type f -print0)
+files_need_boilerplate=()
+while IFS=$'\n' read -r line; do
+  files_need_boilerplate+=( "$line" )
+done < <("${boiler}" "$@")
+
+# Run boilerplate check
+if [[ ${#files_need_boilerplate[@]} -gt 0 ]]; then
+  for file in "${files_need_boilerplate[@]}"; do
+    echo "Boilerplate header is wrong for: ${file}" >&2
+  done
+
+  exit 1
+fi
