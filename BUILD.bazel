@@ -34,6 +34,7 @@ package(default_visibility = ["//visibility:public"])
 # gazelle:exclude vendor/golang.org/x/tools/go/pointer/testdata
 # gazelle:exclude vendor/golang.org/x/tools/go/ssa/interp/testdata
 # gazelle:exclude vendor/k8s.io/gengo/testdata
+# gazelle:resolve go github.com/grpc-ecosystem/grpc-gateway/internal //vendor/github.com/grpc-ecosystem/grpc-gateway/internal:go_default_library
 gazelle(
     name = "gazelle",
     command = "fix",
@@ -46,16 +47,6 @@ filegroup(
     srcs = [
         "//cmd/manager:manager-image",
     ],
-)
-
-workspace_binary(
-    name = "generate",
-    args = [
-        "generate",
-        "./pkg/...",
-        "./cmd/...",
-    ],
-    cmd = "@go_sdk//:bin/go",
 )
 
 workspace_binary(
