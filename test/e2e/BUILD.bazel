@@ -55,12 +55,9 @@ go_test(
     tags = ["external"],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
-        "//pkg/cloud/aws/actuators:go_default_library",
-        "//pkg/cloud/aws/actuators/machine:go_default_library",
         "//pkg/cloud/aws/services/awserrors:go_default_library",
         "//pkg/cloud/aws/services/cloudformation:go_default_library",
         "//pkg/cloud/aws/services/sts:go_default_library",
-        "//pkg/cloudtest:go_default_library",
         "//test/e2e/util/kind:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/client:go_default_library",
@@ -78,7 +75,7 @@ go_test(
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
     ],
 )
