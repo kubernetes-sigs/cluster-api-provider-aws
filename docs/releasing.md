@@ -18,7 +18,7 @@
 3. Tag the repository and push the tag `git tag -s $VERSION`
 4. Create a draft release in github and associate it with the tag that was just created
 5. Checkout the tag you've just created and make sure git is in a clean state
-6. Run `make release-artifacts`
+6. Run `make release-artifacts REGISTRY=gcr.io/cluster-api-provider-aws MANAGER_IMAGE_TAG=${VERSION}`
 7. Attach the tarball to the drafted release
 8. Attach `clusterawsadm` and `clusterctl` to the drafted release (for darwin
    and linux architectures)
