@@ -19,7 +19,6 @@ package awsmachine
 import (
 	"context"
 
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
@@ -30,11 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
 
 // Add creates a new AWSMachine Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -61,16 +55,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create
-	// Uncomment watch a Deployment created by AWSMachine - change this for objects you create
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &infrastructurev1alpha2.AWSMachine{},
-	})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -84,8 +68,6 @@ type ReconcileAWSMachine struct {
 
 // Reconcile reads that state of the cluster for a AWSMachine object and makes changes based on the state read
 // and what is in the AWSMachine.Spec
-// TODO(user): Modify this Reconcile function to implement your Controller logic.  The scaffolding writes
-// a Deployment as an example
 func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the AWSMachine instance
 	instance := &infrastructurev1alpha2.AWSMachine{}
