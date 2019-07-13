@@ -98,7 +98,13 @@ func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	} else if m == nil {
 		klog.Infof("Waiting for Machine Controller to set OwnerRef on AWSMachine %q/%q", awsm.Namespace, awsm.Name)
-		return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
+	// Make sure bootstrap data is available and populated.
+	if m.Spec.Bootstrap.Data == nil || *m.Spec.Bootstrap.Data == "" {
+		klog.Infof("Waiting for bootstrap data to be available on AWSMachine %q/%q", awsm.Namespace, awsm.Name)
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	return reconcile.Result{}, nil
