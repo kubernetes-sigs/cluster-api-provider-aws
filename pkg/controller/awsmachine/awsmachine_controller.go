@@ -20,12 +20,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -90,6 +92,21 @@ func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Re
 			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
+	}
+
+	// Store Machine early state to allow patching.
+	patchFrom := client.MergeFrom(awsm.DeepCopy())
+
+	// If the Machine hasn't been deleted and doesn't have a finalizer, add one.
+	if awsm.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !util.Contains(awsm.Finalizers, clusterv1.MachineFinalizer) {
+			awsm.Finalizers = append(awsm.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
+			if err := r.Client.Patch(ctx, awsm, patchFrom); err != nil {
+				return reconcile.Result{}, errors.Wrapf(err, "failed to add finalizer to AWSMachine %q/%q", awsm.Namespace, awsm.Name)
+			}
+			// Since adding the finalizer updates the object return to avoid later update issues
+			return reconcile.Result{Requeue: true}, nil
+		}
 	}
 
 	// Fetch the Machine.
