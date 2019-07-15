@@ -211,11 +211,11 @@ func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", scope.Cluster.Name())
 	}
 
-	// controlPlaneMachines := util.GetControlPlaneMachinesFromList(machineList)
-	// if len(controlPlaneMachines) == 0 {
-	// 	scope.Info("No control plane machines exist yet - requeuing")
-	// 	return &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
-	// }
+	controlPlaneMachines := util.GetControlPlaneMachinesFromList(machineList)
+	if len(controlPlaneMachines) == 0 {
+		scope.Info("No control plane machines exist yet - requeuing")
+		return &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
+	}
 
 	join, err := r.isNodeJoin(scope)
 	if err != nil {

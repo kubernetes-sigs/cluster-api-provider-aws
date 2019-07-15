@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -53,6 +54,7 @@ type Actuator struct {
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
+	Client         client.Client
 	CoreClient     corev1.CoreV1Interface
 	ClusterClient  clientv1.ClusterV1alpha2Interface
 	LoggingContext string
@@ -157,26 +159,25 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	log.Info("Cluster does not have ready annotation - checking for ready control plane machines")
 
-	// machines, err := a.client.Machines(cluster.Namespace).List(actuators.ListOptionsForCluster(cluster.Name))
-	// if err != nil {
-	// 	return errors.Wrapf(err, "failed to list machines for cluster %q", cluster.Name)
-	// }
+	machineList := &clusterv1.MachineList{}
+	if err := a.List(context.Background(), machineList, actuators.ListOptionsForCluster(cluster.Name)); err != nil {
+		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
+	}
 
-	// controlPlaneMachines := machine.GetControlPlaneMachines(machines)
+	controlPlaneMachines := util.GetControlPlaneMachinesFromList(machineList)
 
-	// machineReady := false
-	// for _, machine := range controlPlaneMachines {
-	// 	if machine.Status.NodeRef != nil {
-	// 		machineReady = true
-	// 		break
-	// 	}
-	// }
+	machineReady := false
+	for _, machine := range controlPlaneMachines {
+		if machine.Status.NodeRef != nil {
+			machineReady = true
+			break
+		}
+	}
 
-	// if !machineReady {
-	// 	log.Info("No control plane machines are ready - requeuing cluster")
-	// 	return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
-	// }
-	// TODO
+	if !machineReady {
+		log.Info("No control plane machines are ready - requeuing cluster")
+		return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
+	}
 
 	log.Info("Setting cluster ready annotation")
 	cluster.Annotations[v1alpha2.AnnotationControlPlaneReady] = v1alpha2.ValueReady
