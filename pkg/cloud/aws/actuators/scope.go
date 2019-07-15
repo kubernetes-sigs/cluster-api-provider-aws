@@ -17,8 +17,7 @@ limitations under the License.
 package actuators
 
 import (
-	"encoding/json"
-	"reflect"
+	"fmt"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,11 +26,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -58,9 +56,9 @@ func sessionForRegion(region string) (*session.Session, error) {
 // ScopeParams defines the input parameters used to create a new Scope.
 type ScopeParams struct {
 	AWSClients
-	Cluster *clusterv1.Cluster
-	Client  client.ClusterV1alpha2Interface
+	Client  client.Client
 	Logger  logr.Logger
+	Cluster *clusterv1.Cluster
 }
 
 // NewScope creates a new Scope from the supplied parameters.
@@ -93,36 +91,33 @@ func NewScope(params ScopeParams) (*Scope, error) {
 		params.AWSClients.ELB = elb.New(session)
 	}
 
-	var clusterClient client.ClusterInterface
-	if params.Client != nil {
-		clusterClient = params.Client.Clusters(params.Cluster.Namespace)
-	}
-
 	if params.Logger == nil {
 		params.Logger = klogr.New().WithName("default-logger")
 	}
 
 	return &Scope{
+		client:        params.Client,
 		AWSClients:    params.AWSClients,
 		Cluster:       params.Cluster,
-		ClusterCopy:   params.Cluster.DeepCopy(),
-		ClusterClient: clusterClient,
 		ClusterConfig: clusterConfig,
 		ClusterStatus: clusterStatus,
-		Logger:        params.Logger.WithName(params.Cluster.APIVersion).WithName(params.Cluster.Namespace).WithName(params.Cluster.Name),
+		Logger: params.Logger.
+			WithName(params.Cluster.APIVersion).
+			WithName(params.Cluster.Namespace).
+			WithName(fmt.Sprintf("cluster=%s", params.Cluster.Name)),
 	}, nil
 }
 
 // Scope defines the basic context for an actuator to operate upon.
 type Scope struct {
+	logr.Logger
+	client       client.Client
+	clusterPatch client.Patch
+
 	AWSClients
-	Cluster *clusterv1.Cluster
-	// ClusterCopy is used for patch generation at the end of the scope's lifecycle.
-	ClusterCopy   *clusterv1.Cluster
-	ClusterClient client.ClusterInterface
+	Cluster       *clusterv1.Cluster
 	ClusterConfig *v1alpha2.AWSClusterProviderSpec
 	ClusterStatus *v1alpha2.AWSClusterProviderStatus
-	logr.Logger
 }
 
 // Network returns the cluster network object.
@@ -162,57 +157,54 @@ func (s *Scope) Region() string {
 
 // Close closes the current scope persisting the cluster configuration and status.
 func (s *Scope) Close() {
-	if s.ClusterClient == nil {
-		return
-	}
 
-	ext, err := v1alpha2.EncodeClusterSpec(s.ClusterConfig)
-	if err != nil {
-		s.Error(err, "failed encoding cluster spec")
-		return
-	}
-	newStatus, err := v1alpha2.EncodeClusterStatus(s.ClusterStatus)
-	if err != nil {
-		s.Error(err, "failed encoding cluster status")
-		return
-	}
+	// ext, err := v1alpha2.EncodeClusterSpec(s.ClusterConfig)
+	// if err != nil {
+	// 	s.Error(err, "failed encoding cluster spec")
+	// 	return
+	// }
+	// newStatus, err := v1alpha2.EncodeClusterStatus(s.ClusterStatus)
+	// if err != nil {
+	// 	s.Error(err, "failed encoding cluster status")
+	// 	return
+	// }
 
-	s.Cluster.Spec.ProviderSpec.Value = ext
+	// s.Cluster.Spec.ProviderSpec.Value = ext
 
-	// Do not update Machine if nothing has changed
-	var p []byte // TEMPORARY
-	if len(p) != 0 {
-		pb, err := json.MarshalIndent(p, "", "  ")
-		if err != nil {
-			s.Error(err, "failed to json marshal patch")
-			return
-		}
-		s.Logger.V(1).Info("Patching cluster")
-		result, err := s.ClusterClient.Patch(s.Cluster.Name, types.JSONPatchType, pb)
-		if err != nil {
-			s.Error(err, "failed to patch cluster")
-			return
-		}
-		// Keep the resource version updated so the status update can succeed
-		s.Cluster.ResourceVersion = result.ResourceVersion
-	}
+	// // Do not update Machine if nothing has changed
+	// var p []byte // TEMPORARY
+	// if len(p) != 0 {
+	// 	pb, err := json.MarshalIndent(p, "", "  ")
+	// 	if err != nil {
+	// 		s.Error(err, "failed to json marshal patch")
+	// 		return
+	// 	}
+	// 	s.Logger.V(1).Info("Patching cluster")
+	// 	result, err := s.ClusterClient.Patch(s.Cluster.Name, types.JSONPatchType, pb)
+	// 	if err != nil {
+	// 		s.Error(err, "failed to patch cluster")
+	// 		return
+	// 	}
+	// 	// Keep the resource version updated so the status update can succeed
+	// 	s.Cluster.ResourceVersion = result.ResourceVersion
+	// }
 
-	// Set the APIEndpoint.
-	if s.ClusterStatus.Network.APIServerELB.DNSName != "" {
-		s.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
-			{
-				Host: s.ClusterStatus.Network.APIServerELB.DNSName,
-				Port: apiEndpointPort,
-			},
-		}
-	}
-	s.Cluster.Status.ProviderStatus = newStatus
+	// // Set the APIEndpoint.
+	// if s.ClusterStatus.Network.APIServerELB.DNSName != "" {
+	// 	s.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
+	// 		{
+	// 			Host: s.ClusterStatus.Network.APIServerELB.DNSName,
+	// 			Port: apiEndpointPort,
+	// 		},
+	// 	}
+	// }
+	// s.Cluster.Status.ProviderStatus = newStatus
 
-	if !reflect.DeepEqual(s.Cluster.Status, s.ClusterCopy.Status) {
-		s.Logger.V(1).Info("updating cluster status")
-		if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
-			s.Error(err, "failed to update cluster status")
-			return
-		}
-	}
+	// if !reflect.DeepEqual(s.Cluster.Status, s.ClusterCopy.Status) {
+	// 	s.Logger.V(1).Info("updating cluster status")
+	// 	if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
+	// 		s.Error(err, "failed to update cluster status")
+	// 		return
+	// 	}
+	// }
 }

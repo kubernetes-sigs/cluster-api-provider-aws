@@ -531,7 +531,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 						},
 					},
 				},
-				AWSMachine: &v1alpha2.AWSMachine{},
+				ProviderMachine: &v1alpha2.AWSMachine{},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
@@ -542,12 +542,12 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
-			scope.Scope.ClusterConfig = tc.clusterConfig
-			scope.Scope.ClusterStatus = tc.clusterStatus
-			scope.MachineConfig = tc.machineConfig
+			scope.Cluster.ClusterConfig = tc.clusterConfig
+			scope.Cluster.ClusterStatus = tc.clusterStatus
+			scope.ProviderMachine.Spec = *tc.machineConfig
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope.Scope)
+			s := NewService(scope.Cluster)
 			instance, err := s.createInstance(scope, "token")
 			tc.check(instance, err)
 		})
