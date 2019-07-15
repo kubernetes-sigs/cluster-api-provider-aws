@@ -109,7 +109,7 @@ aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
 }
 ```
 
-#### Using an existing key
+#### Adding an existing public key to AWS
 
 ```bash
 # Replace with your own public key
@@ -119,6 +119,14 @@ aws ec2 import-key-pair \
 ```
 
 > Only RSA keys are supported by AWS.
+
+#### Using a public key already in AWS
+
+By default, the SSH key name is set to `default` when generating manifests and the `SSH_KEY_NAME` environment variable is used to override the cluster name. To use the name of an SSH key already in AWS:
+
+```bash
+export SSH_KEY_NAME=<my-ssh-key>
+```
 
 ## Deploying a cluster
 
@@ -279,7 +287,7 @@ For reaching controller host from your local machine:
  ssh -i <private-key> -o "ProxyCommand ssh -W %h:%p -i <private-key> ubuntu@<bastion-IP>" ubuntu@<controller-host-IP>
  ```
 
-`private-key` is the private key from the key-pair discussed in the `ssh key pair` section above. 
+`private-key` is the private key from the key-pair discussed in the `ssh key pair` section above.
 
 ### kubelet on the control plane host failing with error: NoCredentialProviders
 ```bash
