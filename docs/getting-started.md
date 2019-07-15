@@ -298,34 +298,34 @@ This error can occur if `CloudFormation` stack is not created properly and IAM i
 $ aws iam get-instance-profile --instance-profile-name control-plane.cluster-api-provider-aws.sigs.k8s.io --output json
 {
     "InstanceProfile": {
-        "InstanceProfileId": "AIPAJQABLZS4A3QDU576Q", 
+        "InstanceProfileId": "AIPAJQABLZS4A3QDU576Q",
         "Roles": [
             {
                 "AssumeRolePolicyDocument": {
-                    "Version": "2012-10-17", 
+                    "Version": "2012-10-17",
                     "Statement": [
                         {
-                            "Action": "sts:AssumeRole", 
-                            "Effect": "Allow", 
+                            "Action": "sts:AssumeRole",
+                            "Effect": "Allow",
                             "Principal": {
                                 "Service": "ec2.amazonaws.com"
                             }
                         }
                     ]
-                }, 
-                "RoleId": "AROAJQABLZS4A3QDU576Q", 
-                "CreateDate": "2019-05-13T16:45:12Z", 
-                "RoleName": "control-plane.cluster-api-provider-aws.sigs.k8s.io", 
-                "Path": "/", 
+                },
+                "RoleId": "AROAJQABLZS4A3QDU576Q",
+                "CreateDate": "2019-05-13T16:45:12Z",
+                "RoleName": "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+                "Path": "/",
                 "Arn": "arn:aws:iam::123456789012:role/control-plane.cluster-api-provider-aws.sigs.k8s.io"
             }
-        ], 
-        "CreateDate": "2019-05-13T16:45:28Z", 
-        "InstanceProfileName": "control-plane.cluster-api-provider-aws.sigs.k8s.io", 
-        "Path": "/", 
+        ],
+        "CreateDate": "2019-05-13T16:45:28Z",
+        "InstanceProfileName": "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+        "Path": "/",
         "Arn": "arn:aws:iam::123456789012:instance-profile/control-plane.cluster-api-provider-aws.sigs.k8s.io"
     }
 }
 
 ```
-If instance profile does not look as expected, you may try recreating the CloudFormation stack using `clusterawsadm` as explained in the above sections. 
+If instance profile does not look as expected, you may try recreating the CloudFormation stack using `clusterawsadm` as explained in the above sections.
