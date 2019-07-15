@@ -18,6 +18,8 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	_ "net/http/pprof"
 	"time"
 
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -39,11 +41,22 @@ import (
 func main() {
 	klog.InitFlags(nil)
 	flag.Set("logtostderr", "true")
+
 	watchNamespace := flag.String("namespace", "",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+
+	profilerAddress := flag.String("profiler-address", "", "Bind address to expose the pprof profiler (e.g. localhost:6060)")
+
 	flag.Parse()
 
 	cfg := config.GetConfigOrDie()
+
+	if *profilerAddress != "" {
+		klog.Infof("Profiler listening for requests at %s", *profilerAddress)
+		go func() {
+			klog.Info(http.ListenAndServe(*profilerAddress, nil))
+		}()
+	}
 
 	// Setup a Manager
 	syncPeriod := 10 * time.Minute
