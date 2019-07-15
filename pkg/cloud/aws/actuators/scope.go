@@ -17,6 +17,7 @@ limitations under the License.
 package actuators
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -112,7 +113,7 @@ func NewScope(params ScopeParams) (*Scope, error) {
 type Scope struct {
 	logr.Logger
 	client       client.Client
-	clusterPatch client.Patch
+	clusterPatch client.Patch //nolint
 
 	AWSClients
 	Cluster       *clusterv1.Cluster
@@ -157,54 +158,37 @@ func (s *Scope) Region() string {
 
 // Close closes the current scope persisting the cluster configuration and status.
 func (s *Scope) Close() {
+	ctx := context.Background()
 
-	// ext, err := v1alpha2.EncodeClusterSpec(s.ClusterConfig)
-	// if err != nil {
-	// 	s.Error(err, "failed encoding cluster spec")
-	// 	return
-	// }
-	// newStatus, err := v1alpha2.EncodeClusterStatus(s.ClusterStatus)
-	// if err != nil {
-	// 	s.Error(err, "failed encoding cluster status")
-	// 	return
-	// }
+	// Patch Cluster object.
+	ext, err := v1alpha2.EncodeClusterSpec(s.ClusterConfig)
+	if err != nil {
+		s.Error(err, "failed encoding cluster spec")
+		return
+	}
+	s.Cluster.Spec.ProviderSpec.Value = ext
+	if err := s.client.Patch(ctx, s.Cluster, s.clusterPatch); err != nil {
+		s.Error(err, "failed to patch cluster")
+		return
+	}
 
-	// s.Cluster.Spec.ProviderSpec.Value = ext
-
-	// // Do not update Machine if nothing has changed
-	// var p []byte // TEMPORARY
-	// if len(p) != 0 {
-	// 	pb, err := json.MarshalIndent(p, "", "  ")
-	// 	if err != nil {
-	// 		s.Error(err, "failed to json marshal patch")
-	// 		return
-	// 	}
-	// 	s.Logger.V(1).Info("Patching cluster")
-	// 	result, err := s.ClusterClient.Patch(s.Cluster.Name, types.JSONPatchType, pb)
-	// 	if err != nil {
-	// 		s.Error(err, "failed to patch cluster")
-	// 		return
-	// 	}
-	// 	// Keep the resource version updated so the status update can succeed
-	// 	s.Cluster.ResourceVersion = result.ResourceVersion
-	// }
-
-	// // Set the APIEndpoint.
-	// if s.ClusterStatus.Network.APIServerELB.DNSName != "" {
-	// 	s.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
-	// 		{
-	// 			Host: s.ClusterStatus.Network.APIServerELB.DNSName,
-	// 			Port: apiEndpointPort,
-	// 		},
-	// 	}
-	// }
-	// s.Cluster.Status.ProviderStatus = newStatus
-
-	// if !reflect.DeepEqual(s.Cluster.Status, s.ClusterCopy.Status) {
-	// 	s.Logger.V(1).Info("updating cluster status")
-	// 	if _, err := s.ClusterClient.UpdateStatus(s.Cluster); err != nil {
-	// 		s.Error(err, "failed to update cluster status")
-	// 		return
-	// 	}
-	// }
+	// Patch Cluster status.
+	newStatus, err := v1alpha2.EncodeClusterStatus(s.ClusterStatus)
+	if err != nil {
+		s.Error(err, "failed encoding cluster status")
+		return
+	}
+	if s.ClusterStatus.Network.APIServerELB.DNSName != "" {
+		s.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
+			{
+				Host: s.ClusterStatus.Network.APIServerELB.DNSName,
+				Port: apiEndpointPort,
+			},
+		}
+	}
+	s.Cluster.Status.ProviderStatus = newStatus
+	if err := s.client.Status().Patch(ctx, s.Cluster, s.clusterPatch); err != nil {
+		s.Error(err, "failed to update cluster status")
+		return
+	}
 }

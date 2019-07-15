@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/klogr"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
@@ -65,7 +65,6 @@ func TestControlPlaneInitLockerAcquire(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			l := &controlPlaneInitLocker{
-				log: klogr.New(),
 				configMapClient: &configMapsGetter{
 					configMap:   tc.configMap,
 					getError:    tc.getError,
@@ -81,7 +80,12 @@ func TestControlPlaneInitLockerAcquire(t *testing.T) {
 				},
 			}
 
-			acquired := l.Acquire(cluster)
+			scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster})
+			if err != nil {
+				t.Errorf("expected nil, got error: %v", err)
+			}
+
+			acquired := l.Acquire(scope)
 			if tc.expectAcquire != acquired {
 				t.Errorf("expected %t, got %t", tc.expectAcquire, acquired)
 			}

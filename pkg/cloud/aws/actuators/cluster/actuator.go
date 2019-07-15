@@ -33,9 +33,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
+	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	controllerError "sigs.k8s.io/cluster-api/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const waitForControlPlaneMachineDuration = 15 * time.Second //nolint
@@ -43,26 +44,27 @@ const waitForControlPlaneMachineDuration = 15 * time.Second //nolint
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
 	*deployer.Deployer
+	client.Client
 
-	coreClient corev1.CoreV1Interface
-	client     client.ClusterV1alpha2Interface
-	log        logr.Logger
+	coreClient    corev1.CoreV1Interface
+	clusterClient clientv1.ClusterV1alpha2Interface
+	log           logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
 	CoreClient     corev1.CoreV1Interface
-	Client         client.ClusterV1alpha2Interface
+	ClusterClient  clientv1.ClusterV1alpha2Interface
 	LoggingContext string
 }
 
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
-		client:     params.Client,
-		coreClient: params.CoreClient,
-		log:        klogr.New().WithName(params.LoggingContext),
-		Deployer:   deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
+		clusterClient: params.ClusterClient,
+		coreClient:    params.CoreClient,
+		log:           klogr.New().WithName(params.LoggingContext),
+		Deployer:      deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
 	}
 }
 
@@ -71,7 +73,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	log := a.log.WithValues("cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 	log.Info("Reconciling Cluster")
 
-	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client, Logger: a.log})
+	scope, err := actuators.NewScope(actuators.ScopeParams{
+		Cluster: cluster,
+		Logger:  a.log,
+	})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -185,7 +190,7 @@ func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 
 	scope, err := actuators.NewScope(actuators.ScopeParams{
 		Cluster: cluster,
-		Client:  a.client,
+		Client:  a.Client,
 		Logger:  a.log,
 	})
 	if err != nil {

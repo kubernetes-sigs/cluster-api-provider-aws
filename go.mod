@@ -5,11 +5,8 @@ go 1.12
 require (
 	github.com/aws/aws-sdk-go v1.20.19
 	github.com/awslabs/goformation v0.0.0-20190310235947-776555df5a6d
-	github.com/coreos/etcd v3.3.13+incompatible
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.2.0
-	github.com/google/martian v2.1.0+incompatible
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pkg/errors v0.8.1

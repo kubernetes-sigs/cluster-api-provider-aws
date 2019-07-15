@@ -17,41 +17,37 @@ limitations under the License.
 package awsmachine
 
 import (
-	"github.com/go-logr/logr"
 	apicorev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 // ControlPlaneInitLocker provides a locking mechanism for cluster initialization.
 type ControlPlaneInitLocker interface {
 	// Acquire returns true if it acquires the lock for the cluster.
-	Acquire(cluster *clusterv1.Cluster) bool
+	Acquire(scope *actuators.Scope) bool
 }
 
 // controlPlaneInitLocker uses a ConfigMap to synchronize cluster initialization.
 type controlPlaneInitLocker struct {
-	log             logr.Logger
 	configMapClient corev1.ConfigMapsGetter
 }
 
 var _ ControlPlaneInitLocker = &controlPlaneInitLocker{}
 
-func newControlPlaneInitLocker(log logr.Logger, configMapClient corev1.ConfigMapsGetter) *controlPlaneInitLocker {
+func newControlPlaneInitLocker(configMapClient corev1.ConfigMapsGetter) *controlPlaneInitLocker {
 	return &controlPlaneInitLocker{
-		log:             log,
 		configMapClient: configMapClient,
 	}
 }
 
-func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
-	configMapName := actuators.ControlPlaneConfigMapName(cluster)
-	log := l.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", configMapName)
+func (l *controlPlaneInitLocker) Acquire(scope *actuators.Scope) bool {
+	configMapName := actuators.ControlPlaneConfigMapName(scope.Cluster)
+	log := scope.Logger.WithValues("configmap-name", configMapName)
 
-	exists, err := l.configMapExists(cluster.Namespace, configMapName)
+	exists, err := l.configMapExists(scope.Cluster.Namespace, configMapName)
 	if err != nil {
 		log.Error(err, "Error checking for control plane configmap lock existence")
 		return false
@@ -62,21 +58,21 @@ func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
 
 	controlPlaneConfigMap := &apicorev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
+			Namespace: scope.Cluster.Namespace,
 			Name:      configMapName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: cluster.APIVersion,
-					Kind:       cluster.Kind,
-					Name:       cluster.Name,
-					UID:        cluster.UID,
+					APIVersion: scope.Cluster.APIVersion,
+					Kind:       scope.Cluster.Kind,
+					Name:       scope.Cluster.Name,
+					UID:        scope.Cluster.UID,
 				},
 			},
 		},
 	}
 
 	log.Info("Attempting to create control plane configmap lock")
-	_, err = l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap)
+	_, err = l.configMapClient.ConfigMaps(scope.Cluster.Namespace).Create(controlPlaneConfigMap)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// Someone else beat us to it

@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
@@ -62,7 +63,17 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) *ReconcileAWSMachine {
-	return &ReconcileAWSMachine{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	coreClient, err := corev1.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		klog.Fatalf("Failed to create corev1 client from configuration: %v", err)
+	}
+
+	return &ReconcileAWSMachine{
+		Client:                 mgr.GetClient(),
+		scheme:                 mgr.GetScheme(),
+		coreClient:             coreClient,
+		controlPlaneInitLocker: newControlPlaneInitLocker(coreClient),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -99,7 +110,9 @@ var _ reconcile.Reconciler = &ReconcileAWSMachine{}
 // ReconcileAWSMachine reconciles a AWSMachine object
 type ReconcileAWSMachine struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme                 *runtime.Scheme
+	coreClient             corev1.CoreV1Interface
+	controlPlaneInitLocker ControlPlaneInitLocker
 }
 
 // Reconcile reads that state of the cluster for a AWSMachine object and makes changes based on the state read
@@ -198,11 +211,11 @@ func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", scope.Cluster.Name())
 	}
 
-	controlPlaneMachines := util.GetControlPlaneMachinesFromList(machineList)
-	if len(controlPlaneMachines) == 0 {
-		scope.Info("No control plane machines exist yet - requeuing")
-		return &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
-	}
+	// controlPlaneMachines := util.GetControlPlaneMachinesFromList(machineList)
+	// if len(controlPlaneMachines) == 0 {
+	// 	scope.Info("No control plane machines exist yet - requeuing")
+	// 	return &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
+	// }
 
 	join, err := r.isNodeJoin(scope)
 	if err != nil {
@@ -454,7 +467,7 @@ func (r *ReconcileAWSMachine) isNodeJoin(scope *actuators.MachineScope) (bool, e
 		return true, &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
 	}
 
-	if r.controlPlaneInitLocker.Acquire(cluster) {
+	if r.controlPlaneInitLocker.Acquire(scope.Cluster) {
 		return false, nil
 	}
 
