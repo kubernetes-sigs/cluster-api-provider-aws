@@ -103,7 +103,7 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha2.Instance, error) {
 }
 
 // createInstance runs an ec2 instance.
-func (s *Service) createInstance(scope *actuators.MachineScope, bootstrapToken string) (*v1alpha2.Instance, error) {
+func (s *Service) createInstance(scope *actuators.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &v1alpha2.Instance{
@@ -171,32 +171,15 @@ func (s *Service) createInstance(scope *actuators.MachineScope, bootstrapToken s
 		)
 	}
 
-	s.scope.V(3).Info("Generating CA key pair")
-	// caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CAKeyPair.Cert)
-	// if err != nil {
-	// 	return input, err
-	// }
+	// Set userdata.
+	input.UserData = aws.String(*scope.Machine.Spec.Bootstrap.Data)
 
-	// apiServerEndpoint := fmt.Sprintf("%s:%d", scope.Network().APIServerELB.DNSName, apiServerBindPort)
-
-	// apply values based on the role of the machine
-	switch scope.Role() {
-	case "controlplane":
-		// TODO
-	case "node":
-		// TODO
-
-	default:
-		return nil, errors.Errorf("Unknown node role %q", scope.Role())
-	}
-
+	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)
 	if err != nil {
 		return nil, err
 	}
-	input.SecurityGroupIDs = append(input.SecurityGroupIDs,
-		ids...,
-	)
+	input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 
 	// Pick SSH key, if any.
 	if scope.ProviderMachine.Spec.KeyName != "" {
@@ -301,7 +284,7 @@ func (s *Service) MachineExists(scope *actuators.MachineScope) (bool, error) {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(scope *actuators.MachineScope, bootstrapToken string) (*v1alpha2.Instance, error) {
+func (s *Service) CreateOrGetMachine(scope *actuators.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
@@ -324,7 +307,7 @@ func (s *Service) CreateOrGetMachine(scope *actuators.MachineScope, bootstrapTok
 		return instance, nil
 	}
 
-	return s.createInstance(scope, bootstrapToken)
+	return s.createInstance(scope)
 }
 
 func (s *Service) runInstance(role string, i *v1alpha2.Instance) (*v1alpha2.Instance, error) {

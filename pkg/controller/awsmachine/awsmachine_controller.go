@@ -19,7 +19,6 @@ package awsmachine
 import (
 	"context"
 	"fmt"
-	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -29,14 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/tokens"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,16 +59,9 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) *ReconcileAWSMachine {
-	coreClient, err := corev1.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		klog.Fatalf("Failed to create corev1 client from configuration: %v", err)
-	}
-
 	return &ReconcileAWSMachine{
-		Client:                 mgr.GetClient(),
-		scheme:                 mgr.GetScheme(),
-		coreClient:             coreClient,
-		controlPlaneInitLocker: newControlPlaneInitLocker(coreClient),
+		Client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
 	}
 }
 
@@ -110,9 +99,8 @@ var _ reconcile.Reconciler = &ReconcileAWSMachine{}
 // ReconcileAWSMachine reconciles a AWSMachine object
 type ReconcileAWSMachine struct {
 	client.Client
-	scheme                 *runtime.Scheme
-	coreClient             corev1.CoreV1Interface
-	controlPlaneInitLocker ControlPlaneInitLocker
+	scheme     *runtime.Scheme
+	coreClient corev1.CoreV1Interface
 }
 
 // Reconcile reads that state of the cluster for a AWSMachine object and makes changes based on the state read
@@ -217,35 +205,8 @@ func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
 		return &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
 	}
 
-	join, err := r.isNodeJoin(scope)
-	if err != nil {
-		return err
-	}
-
-	var bootstrapToken string
-	if join {
-		remoteClient, err := remote.NewClusterClient(r.Client, scope.Cluster.Cluster)
-		if err != nil {
-			return errors.Wrapf(err, "unable to proceed until control plane is ready (error creating client) for cluster %q",
-				path.Join(scope.Cluster.Namespace(), scope.Cluster.Name()))
-		}
-
-		coreClient, err := remoteClient.CoreV1()
-		if err != nil {
-			return errors.Wrapf(err, "unable to proceed until control plane is ready (error creating client) for cluster %q",
-				path.Join(scope.Cluster.Namespace(), scope.Cluster.Name()))
-		}
-
-		scope.Info("Machine will join the cluster")
-		bootstrapToken, err = tokens.NewBootstrap(coreClient, defaultTokenTTL)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create new bootstrap token")
-		}
-	} else {
-		scope.Info("Machine will init the cluster")
-	}
-
-	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken)
+	// Create the Machine.
+	i, err := ec2svc.CreateOrGetMachine(scope)
 	if err != nil {
 		return errors.Errorf("failed to create or get machine: %+v", err)
 	}
@@ -454,23 +415,4 @@ func (r *ReconcileAWSMachine) isMachineOutdated(spec *infrav1.AWSMachineSpec, i 
 	}
 
 	return errs
-}
-
-func (r *ReconcileAWSMachine) isNodeJoin(scope *actuators.MachineScope) (bool, error) {
-	if scope.Cluster.Cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] == v1alpha1.ValueReady {
-		return true, nil
-	}
-
-	if !util.IsControlPlaneMachine(scope.Machine) {
-		// This isn't a control plane machine - have to wait
-		scope.Info("No control plane machines exist yet - requeuing")
-		return true, &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
-	}
-
-	if r.controlPlaneInitLocker.Acquire(scope.Cluster) {
-		return false, nil
-	}
-
-	scope.Info("Unable to acquire control plane configmap lock - requeuing")
-	return true, &capierrors.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
 }
