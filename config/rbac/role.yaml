@@ -53,6 +53,8 @@ rules:
   resources:
   - clusters
   - clusters/status
+  - machines
+  - machines/status
   verbs:
   - create
   - delete
