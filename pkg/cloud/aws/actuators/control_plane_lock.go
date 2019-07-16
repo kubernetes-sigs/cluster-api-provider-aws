@@ -19,8 +19,8 @@ package actuators
 import (
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to coordinate the bootstrapping of control plane
@@ -30,8 +30,8 @@ func ControlPlaneConfigMapName(cluster *v1alpha2.Cluster) string {
 }
 
 // ListOptionsForCluster returns a ListOptions with a label selector for clusterName.
-func ListOptionsForCluster(clusterName string) metav1.ListOptions {
-	return metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("%s=%s", v1alpha2.MachineClusterLabelName, clusterName),
-	}
+func ListOptionsForCluster(clusterName string) client.ListOptionFunc {
+	return client.MatchingLabels(map[string]string{
+		v1alpha2.MachineClusterLabelName: clusterName,
+	})
 }

@@ -36,9 +36,9 @@ type scopeGetter struct {
 	actuators.AWSClients
 }
 
-func (s *scopeGetter) GetScope(params actuators.ScopeParams) (*actuators.Scope, error) {
+func (s *scopeGetter) ClusterScope(params actuators.ClusterScopeParams) (*actuators.ClusterScope, error) {
 	params.AWSClients = s.AWSClients
-	return actuators.NewScope(params)
+	return actuators.NewClusterScope(params)
 }
 
 func TestGetIP(t *testing.T) {
@@ -142,7 +142,7 @@ func TestGetIP(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			deployer := deployer.New(deployer.Params{ScopeGetter: &scopeGetter{
+			deployer := deployer.New(deployer.Params{ClusterScopeGetter: &scopeGetter{
 				actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,

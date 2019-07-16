@@ -24,12 +24,14 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -156,7 +158,7 @@ func TestInstanceIfExists(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := actuators.NewScope(actuators.ScopeParams{
+			scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
@@ -234,7 +236,7 @@ func TestTerminateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := actuators.NewScope(actuators.ScopeParams{
+			scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
@@ -281,13 +283,13 @@ dTga1FiyISsMchVaVKD5aX7hkxMP1/C98KdVzWQ4k12TBOhZDYUS67M4ibBtw/og
 vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 -----END CERTIFICATE-----
 	`)
+
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
 		machineConfig *v1alpha2.AWSMachineSpec
 		clusterStatus *v1alpha2.AWSClusterProviderStatus
 		clusterConfig *v1alpha2.AWSClusterProviderSpec
-		cluster       clusterv1.Cluster
 		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		check         func(instance *v1alpha2.Instance, err error)
 	}{
@@ -296,6 +298,11 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						Data: pointer.StringPtr("user-data"),
+					},
 				},
 			},
 			machineConfig: &v1alpha2.AWSMachineSpec{
@@ -337,22 +344,6 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				CAKeyPair: &v1alpha2.KeyPair{
 					Cert: testCaCert,
 					Key:  []byte("y"),
-				},
-			},
-			cluster: clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test1",
-				},
-				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
-						ServiceDomain: "cluster.local",
-						Services: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-						Pods: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
@@ -397,6 +388,11 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						Data: pointer.StringPtr("user-data"),
+					},
 				},
 			},
 			machineConfig: &v1alpha2.AWSMachineSpec{
@@ -454,22 +450,6 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 					Key:  []byte("y"),
 				},
 			},
-			cluster: clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test1",
-				},
-				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
-						ServiceDomain: "cluster.local",
-						Services: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-						Pods: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-					},
-				},
-			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
@@ -522,33 +502,70 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-				Cluster: &tc.cluster,
-				Machine: &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"set": "node",
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test1",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
+						ServiceDomain: "cluster.local",
+						Services: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
 						},
 					},
 				},
-				AWSMachine: &v1alpha2.AWSMachine{},
+			}
+
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test1",
+					Labels: map[string]string{
+						"set":                             "node",
+						clusterv1.MachineClusterLabelName: "test1",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						Data: pointer.StringPtr("user-data"),
+					},
+				},
+			}
+
+			awsmachine := &v1alpha2.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.SchemeGroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "test1",
+						},
+					},
+				},
+			}
+
+			scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+				ProviderMachine: awsmachine,
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
+				Client: fake.NewFakeClient(cluster, machine),
 			})
 
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
-			scope.Scope.ClusterConfig = tc.clusterConfig
-			scope.Scope.ClusterStatus = tc.clusterStatus
-			scope.MachineConfig = tc.machineConfig
+			scope.Parent.ClusterConfig = tc.clusterConfig
+			scope.Parent.ClusterStatus = tc.clusterStatus
+			scope.ProviderMachine.Spec = *tc.machineConfig
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope.Scope)
-			instance, err := s.createInstance(scope, "token")
+			s := NewService(scope.Parent)
+			instance, err := s.createInstance(scope)
 			tc.check(instance, err)
 		})
 	}

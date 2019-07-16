@@ -24,7 +24,7 @@ import (
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=create;get;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=awsprovider.k8s.io,resources=awsclusterproviderconfigs;awsclusterproviderstatuses,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.sigs.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.sigs.k8s.io,resources=machines;machines/status;clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.sigs.k8s.io,resources=awsmachines;awsmachines/status,verbs=get;list;watch;create;update;patch;delete
 
 // AddToManagerFuncs is a list of functions to add all Controllers to the Manager

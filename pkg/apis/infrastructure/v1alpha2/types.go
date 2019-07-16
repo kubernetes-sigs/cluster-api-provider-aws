@@ -20,9 +20,12 @@ import (
 	"fmt"
 	"sort"
 	"time"
+)
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+const (
+	AnnotationClusterInfrastructureReady = "aws.infrastructure.cluster.sigs.k8s.io/infrastructure-ready"
+	AnnotationControlPlaneReady          = "aws.infrastructure.cluster.sigs.k8s.io/control-plane-ready"
+	ValueReady                           = "true"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -62,26 +65,6 @@ const (
 	// it should include a reason and message for the failure.
 	MachineCreated AWSMachineProviderConditionType = "MachineCreated"
 )
-
-// AWSMachineProviderCondition is a condition in a AWSMachineProviderStatus
-type AWSMachineProviderCondition struct {
-	// Type is the type of the condition.
-	Type AWSMachineProviderConditionType `json:"type"`
-	// Status is the status of the condition.
-	Status corev1.ConditionStatus `json:"status"`
-	// LastProbeTime is the last time we probed the condition.
-	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime"`
-	// LastTransitionTime is the last time the condition transitioned from one status to another.
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
-	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
-	// +optional
-	Reason string `json:"reason"`
-	// Message is a human-readable message indicating details about last transition.
-	// +optional
-	Message string `json:"message"`
-}
 
 // Network encapsulates AWS networking resources.
 type Network struct {
@@ -442,9 +425,3 @@ type Instance struct {
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
 }
-
-const (
-	AnnotationClusterInfrastructureReady = "aws.cluster.sigs.k8s.io/infrastructure-ready"
-	ValueReady                           = "true"
-	AnnotationControlPlaneReady          = "aws.cluster.sigs.k8s.io/control-plane-ready"
-)

@@ -38,14 +38,14 @@ import (
 )
 
 // InstanceByTags returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceByTags(machine *actuators.MachineScope) (*v1alpha2.Instance, error) {
+func (s *Service) InstanceByTags(scope *actuators.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPC(s.scope.VPC().ID),
 			filter.EC2.ClusterOwned(s.scope.Name()),
-			filter.EC2.Name(machine.Name()),
+			filter.EC2.Name(scope.Name()),
 			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
 		},
 	}
@@ -103,20 +103,20 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha2.Instance, error) {
 }
 
 // createInstance runs an ec2 instance.
-func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha2.Instance, error) {
+func (s *Service) createInstance(scope *actuators.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &v1alpha2.Instance{
-		Type:           machine.MachineConfig.InstanceType,
-		IAMProfile:     machine.MachineConfig.IAMInstanceProfile,
-		RootDeviceSize: machine.MachineConfig.RootDeviceSize,
+		Type:           scope.ProviderMachine.Spec.InstanceType,
+		IAMProfile:     scope.ProviderMachine.Spec.IAMInstanceProfile,
+		RootDeviceSize: scope.ProviderMachine.Spec.RootDeviceSize,
 	}
 
 	input.Tags = v1alpha2.Build(v1alpha2.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
-		Name:        aws.String(machine.Name()),
-		Role:        aws.String(machine.Role()),
+		Name:        aws.String(scope.Name()),
+		Role:        aws.String(scope.Role()),
 		Additional: v1alpha2.Tags{
 			v1alpha2.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(v1alpha2.ResourceLifecycleOwned),
 		},
@@ -124,10 +124,10 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
-	if machine.MachineConfig.AMI.ID != nil {
-		input.ImageID = *machine.MachineConfig.AMI.ID
+	if scope.ProviderMachine.Spec.AMI.ID != nil {
+		input.ImageID = *scope.ProviderMachine.Spec.AMI.ID
 	} else {
-		input.ImageID, err = s.defaultAMILookup(machine.MachineConfig.ImageLookupOrg, "ubuntu", "18.04", *machine.Machine.Spec.Version)
+		input.ImageID, err = s.defaultAMILookup(scope.ProviderMachine.Spec.ImageLookupOrg, "ubuntu", "18.04", *scope.Machine.Spec.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -136,15 +136,15 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	// Pick subnet from the machine configuration, or based on the availability zone specified,
 	// or default to the first private subnet available.
 	// TODO(vincepri): Move subnet picking logic to its own function/method.
-	if machine.MachineConfig.Subnet != nil && machine.MachineConfig.Subnet.ID != nil {
-		input.SubnetID = *machine.MachineConfig.Subnet.ID
-	} else if machine.MachineConfig.AvailabilityZone != nil {
-		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*machine.MachineConfig.AvailabilityZone)
+	if scope.ProviderMachine.Spec.Subnet != nil && scope.ProviderMachine.Spec.Subnet.ID != nil {
+		input.SubnetID = *scope.ProviderMachine.Spec.Subnet.ID
+	} else if scope.ProviderMachine.Spec.AvailabilityZone != nil {
+		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*scope.ProviderMachine.Spec.AvailabilityZone)
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available in availaibility zone %q",
-					machine.Name(),
-					*machine.MachineConfig.AvailabilityZone,
+					scope.Name(),
+					*scope.ProviderMachine.Spec.AvailabilityZone,
 				),
 			)
 		}
@@ -153,7 +153,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available", machine.Name()),
+				errors.Errorf("failed to run machine %q, no subnets available", scope.Name()),
 			)
 		}
 		input.SubnetID = sns[0].ID
@@ -171,65 +171,48 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		)
 	}
 
-	s.scope.V(3).Info("Generating CA key pair")
-	// caCertHash, err := certificates.GenerateCertificateHash(s.scope.ClusterConfig.CAKeyPair.Cert)
-	// if err != nil {
-	// 	return input, err
-	// }
+	// Set userdata.
+	input.UserData = aws.String(*scope.Machine.Spec.Bootstrap.Data)
 
-	// apiServerEndpoint := fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)
-
-	// apply values based on the role of the machine
-	switch machine.Role() {
-	case "controlplane":
-		// TODO
-	case "node":
-		// TODO
-
-	default:
-		return nil, errors.Errorf("Unknown node role %q", machine.Role())
-	}
-
-	ids, err := s.GetCoreSecurityGroups(machine)
+	// Set security groups.
+	ids, err := s.GetCoreSecurityGroups(scope)
 	if err != nil {
 		return nil, err
 	}
-	input.SecurityGroupIDs = append(input.SecurityGroupIDs,
-		ids...,
-	)
+	input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 
 	// Pick SSH key, if any.
-	if machine.MachineConfig.KeyName != "" {
-		input.KeyName = aws.String(machine.MachineConfig.KeyName)
+	if scope.ProviderMachine.Spec.KeyName != "" {
+		input.KeyName = aws.String(scope.ProviderMachine.Spec.KeyName)
 	} else {
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
-	s.scope.V(2).Info("Running instance", "machine-role", machine.Role())
-	out, err := s.runInstance(machine.Role(), input)
+	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
+	out, err := s.runInstance(scope.Role(), input)
 	if err != nil {
 		return nil, err
 	}
 
-	record.Eventf(machine.Machine, "CreatedInstance", "Created new %s instance with id %q", machine.Role(), out.ID)
+	record.Eventf(scope.Machine, "CreatedInstance", "Created new %s instance with id %q", scope.Role(), out.ID)
 	return out, nil
 }
 
 // GetCoreSecurityGroups looks up the security group IDs managed by this actuator
 // They are considered "core" to its proper functioning
-func (s *Service) GetCoreSecurityGroups(machine *actuators.MachineScope) ([]string, error) {
+func (s *Service) GetCoreSecurityGroups(scope *actuators.MachineScope) ([]string, error) {
 	// These are common across both controlplane and node machines
 	sgRoles := []v1alpha2.SecurityGroupRole{
 		v1alpha2.SecurityGroupNode,
 		v1alpha2.SecurityGroupLB,
 	}
-	switch machine.Role() {
+	switch scope.Role() {
 	case "node":
 		// Just the common security groups above
 	case "controlplane":
 		sgRoles = append(sgRoles, v1alpha2.SecurityGroupControlPlane)
 	default:
-		return nil, errors.Errorf("Unknown node role %q", machine.Role())
+		return nil, errors.Errorf("Unknown node role %q", scope.Role())
 	}
 	ids := make([]string, 0, len(sgRoles))
 	for _, sg := range sgRoles {
@@ -282,49 +265,52 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 }
 
 // MachineExists will return whether or not a machine exists.
-func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
-	var err error
-	var instance *v1alpha2.Instance
-	if machine.MachineStatus.InstanceID != nil {
-		instance, err = s.InstanceIfExists(machine.MachineStatus.InstanceID)
+func (s *Service) MachineExists(scope *actuators.MachineScope) (bool, error) {
+	var (
+		err      error
+		instance *v1alpha2.Instance
+	)
+
+	if id := scope.GetInstanceID(); id != nil {
+		instance, err = s.InstanceIfExists(id)
 	} else {
-		instance, err = s.InstanceByTags(machine)
+		instance, err = s.InstanceByTags(scope)
 	}
 
 	if err != nil {
 		if awserrors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "failed to lookup machine %q", machine.Name())
+		return false, errors.Wrapf(err, "failed to lookup machine %q", scope.Name())
 	}
 	return instance != nil, nil
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha2.Instance, error) {
+func (s *Service) CreateOrGetMachine(scope *actuators.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
-	if machine.MachineStatus.InstanceID != nil {
-		s.scope.V(2).Info("Looking up machine by id", "instance-id", *machine.MachineStatus.InstanceID)
+	if id := scope.GetInstanceID(); id != nil {
+		s.scope.V(2).Info("Looking up machine by id", "instance-id", *id)
 
-		instance, err := s.InstanceIfExists(machine.MachineStatus.InstanceID)
+		instance, err := s.InstanceIfExists(id)
 		if err != nil && !awserrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", machine.Name(), *machine.MachineStatus.InstanceID)
+			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", scope.Name(), *id)
 		} else if err == nil && instance != nil {
 			return instance, nil
 		}
 	}
 
 	s.scope.V(2).Info("Looking up machine by tags")
-	instance, err := s.InstanceByTags(machine)
+	instance, err := s.InstanceByTags(scope)
 	if err != nil && !awserrors.IsNotFound(err) {
-		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", machine.Name())
+		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", scope.Name())
 	} else if err == nil && instance != nil {
 		return instance, nil
 	}
 
-	return s.createInstance(machine, bootstrapToken)
+	return s.createInstance(scope)
 }
 
 func (s *Service) runInstance(role string, i *v1alpha2.Instance) (*v1alpha2.Instance, error) {

@@ -46,7 +46,7 @@ import (
 )
 
 // controllerName is the name of this controller
-const controllerName = "machineset_controller"
+const controllerName = "machineset-controller"
 
 var (
 	// controllerKind contains the schema.GroupVersionKind for this controller type.
@@ -180,8 +180,10 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.
-	cluster, err := r.getCluster(machineSet)
-	if err != nil {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machineSet.ObjectMeta)
+	if errors.Cause(err) == util.ErrNoCluster {
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", machineSet.Name, machineSet.Namespace, clusterv1.MachineClusterLabelName)
+	} else if err != nil {
 		return reconcile.Result{}, err
 	}
 

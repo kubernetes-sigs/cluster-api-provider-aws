@@ -69,7 +69,7 @@ func TestDeleteLoadBalancers(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := actuators.NewScope(actuators.ScopeParams{
+			scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},

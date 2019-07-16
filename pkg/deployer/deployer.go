@@ -30,24 +30,24 @@ import (
 
 // Deployer satisfies the ProviderDeployer(https://github.com/kubernetes-sigs/cluster-api/blob/master/cmd/clusterctl/clusterdeployer/clusterdeployer.go) interface.
 type Deployer struct {
-	scopeGetter actuators.ScopeGetter
+	scopeGetter actuators.ClusterScopeGetter
 }
 
 // Params is used to create a new deployer.
 type Params struct {
-	ScopeGetter actuators.ScopeGetter
+	ClusterScopeGetter actuators.ClusterScopeGetter
 }
 
 // New returns a new Deployer.
 func New(params Params) *Deployer {
 	return &Deployer{
-		scopeGetter: params.ScopeGetter,
+		scopeGetter: params.ClusterScopeGetter,
 	}
 }
 
 // GetIP returns the IP of a machine, but this is going away.
 func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
-	scope, err := d.scopeGetter.GetScope(actuators.ScopeParams{Cluster: cluster})
+	scope, err := d.scopeGetter.ClusterScope(actuators.ClusterScopeParams{Cluster: cluster})
 	if err != nil {
 		return "", err
 	}

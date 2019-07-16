@@ -23,11 +23,11 @@ import (
 // Service groups certificate related operations together and allows
 // certificate updates to be applied to the actuator scope.
 type Service struct {
-	scope *actuators.Scope
+	scope *actuators.ClusterScope
 }
 
 // NewService returns a new certificates service for the given actuators scope.
-func NewService(scope *actuators.Scope) *Service {
+func NewService(scope *actuators.ClusterScope) *Service {
 	return &Service{
 		scope: scope,
 	}

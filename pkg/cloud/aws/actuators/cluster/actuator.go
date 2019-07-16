@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -33,9 +34,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
+	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	controllerError "sigs.k8s.io/cluster-api/pkg/errors"
+	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const waitForControlPlaneMachineDuration = 15 * time.Second //nolint
@@ -43,26 +46,28 @@ const waitForControlPlaneMachineDuration = 15 * time.Second //nolint
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
 	*deployer.Deployer
+	client.Client
 
-	coreClient corev1.CoreV1Interface
-	client     client.ClusterV1alpha2Interface
-	log        logr.Logger
+	coreClient    corev1.CoreV1Interface
+	clusterClient clientv1.ClusterV1alpha2Interface
+	log           logr.Logger
 }
 
 // ActuatorParams holds parameter information for Actuator
 type ActuatorParams struct {
+	Client         client.Client
 	CoreClient     corev1.CoreV1Interface
-	Client         client.ClusterV1alpha2Interface
+	ClusterClient  clientv1.ClusterV1alpha2Interface
 	LoggingContext string
 }
 
 // NewActuator creates a new Actuator
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
-		client:     params.Client,
-		coreClient: params.CoreClient,
-		log:        klogr.New().WithName(params.LoggingContext),
-		Deployer:   deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
+		clusterClient: params.ClusterClient,
+		coreClient:    params.CoreClient,
+		log:           klogr.New().WithName(params.LoggingContext),
+		Deployer:      deployer.New(deployer.Params{ClusterScopeGetter: actuators.DefaultClusterScopeGetter}),
 	}
 }
 
@@ -71,7 +76,10 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	log := a.log.WithValues("cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 	log.Info("Reconciling Cluster")
 
-	scope, err := actuators.NewScope(actuators.ScopeParams{Cluster: cluster, Client: a.client, Logger: a.log})
+	scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
+		Cluster: cluster,
+		Logger:  a.log,
+	})
 	if err != nil {
 		return errors.Errorf("failed to create scope: %+v", err)
 	}
@@ -152,26 +160,25 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 
 	log.Info("Cluster does not have ready annotation - checking for ready control plane machines")
 
-	// machines, err := a.client.Machines(cluster.Namespace).List(actuators.ListOptionsForCluster(cluster.Name))
-	// if err != nil {
-	// 	return errors.Wrapf(err, "failed to list machines for cluster %q", cluster.Name)
-	// }
+	machineList := &clusterv1.MachineList{}
+	if err := a.List(context.Background(), machineList, actuators.ListOptionsForCluster(cluster.Name)); err != nil {
+		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", cluster.Name)
+	}
 
-	// controlPlaneMachines := machine.GetControlPlaneMachines(machines)
+	controlPlaneMachines := util.GetControlPlaneMachinesFromList(machineList)
 
-	// machineReady := false
-	// for _, machine := range controlPlaneMachines {
-	// 	if machine.Status.NodeRef != nil {
-	// 		machineReady = true
-	// 		break
-	// 	}
-	// }
+	machineReady := false
+	for _, machine := range controlPlaneMachines {
+		if machine.Status.NodeRef != nil {
+			machineReady = true
+			break
+		}
+	}
 
-	// if !machineReady {
-	// 	log.Info("No control plane machines are ready - requeuing cluster")
-	// 	return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
-	// }
-	// TODO
+	if !machineReady {
+		log.Info("No control plane machines are ready - requeuing cluster")
+		return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
+	}
 
 	log.Info("Setting cluster ready annotation")
 	cluster.Annotations[v1alpha2.AnnotationControlPlaneReady] = v1alpha2.ValueReady
@@ -183,9 +190,9 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	a.log.Info("Deleting cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 
-	scope, err := actuators.NewScope(actuators.ScopeParams{
+	scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 		Cluster: cluster,
-		Client:  a.client,
+		Client:  a.Client,
 		Logger:  a.log,
 	})
 	if err != nil {

@@ -25,6 +25,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	AnnotationClusterInfrastructureReady = "aws.cluster.sigs.k8s.io/infrastructure-ready"
+	AnnotationControlPlaneReady          = "aws.cluster.sigs.k8s.io/control-plane-ready"
+	ValueReady                           = "true"
+)
+
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
 // Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 // a validation error.
@@ -442,9 +448,3 @@ type Instance struct {
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
 }
-
-const (
-	AnnotationClusterInfrastructureReady = "aws.cluster.sigs.k8s.io/infrastructure-ready"
-	ValueReady                           = "true"
-	AnnotationControlPlaneReady          = "aws.cluster.sigs.k8s.io/control-plane-ready"
-)

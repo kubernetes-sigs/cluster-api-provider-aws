@@ -17,12 +17,16 @@ limitations under the License.
 package v1alpha2
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
 // AWSMachineSpec defines the desired state of AWSMachine
 type AWSMachineSpec struct {
+	// ProviderID is the unique identifier as specified by the cloud provider.
+	ProviderID *string `json:"providerID,omitempty"`
+
 	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AWSResourceReference `json:"ami,omitempty"`
 
@@ -74,26 +78,61 @@ type AWSMachineSpec struct {
 	// RootDeviceSize is the size of the root volume.
 	// +optional
 	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
-
-	// AdditionalUserDataFiles specifies extra files to be passed to user_data upon creation.
-	// +optional
-	AdditionalUserDataFiles []userdata.Files `json:"additionalUserDataFiles,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine
 type AWSMachineStatus struct {
-	// InstanceID is the instance ID of the machine created in AWS
+	// Ready is true when the provider resource is ready.
+	Ready *bool `json:"ready,omitempty"`
+
+	// Addresses contains the AWS instance associated addresses.
+	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
+
+	// InstanceID is the instance ID of the machine created in AWS.
 	// +optional
 	InstanceID *string `json:"instanceID,omitempty"`
 
-	// InstanceState is the state of the AWS instance for this machine
+	// InstanceState is the state of the AWS instance for this machine.
 	// +optional
 	InstanceState *InstanceState `json:"instanceState,omitempty"`
 
-	// Conditions is a set of conditions associated with the Machine to indicate
-	// errors or other status
+	// ErrorReason will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a succinct value suitable
+	// for machine interpretation.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the Machine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the controller, or the
+	// responsible controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconciliation of Machines
+	// can be added as events to the Machine object and/or logged in the
+	// controller's output.
 	// +optional
-	Conditions []AWSMachineProviderCondition `json:"conditions,omitempty"`
+	ErrorReason *common.MachineStatusError `json:"errorReason,omitempty"`
+
+	// ErrorMessage will be set in the event that there is a terminal problem
+	// reconciling the Machine and will contain a more verbose string suitable
+	// for logging and human consumption.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the Machine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the controller, or the
+	// responsible controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconciliation of Machines
+	// can be added as events to the Machine object and/or logged in the
+	// controller's output.
+	// +optional
+	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
 // +genclient
