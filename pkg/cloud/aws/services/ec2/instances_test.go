@@ -519,26 +519,40 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				},
 			}
 
-			scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-				Machine: &clusterv1.Machine{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"set":                             "node",
-							clusterv1.MachineClusterLabelName: "test1",
-						},
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test1",
+					Labels: map[string]string{
+						"set":                             "node",
+						clusterv1.MachineClusterLabelName: "test1",
 					},
-					Spec: clusterv1.MachineSpec{
-						Bootstrap: clusterv1.Bootstrap{
-							Data: pointer.StringPtr("user-data"),
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						Data: pointer.StringPtr("user-data"),
+					},
+				},
+			}
+
+			awsmachine := &v1alpha2.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.SchemeGroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "test1",
 						},
 					},
 				},
-				ProviderMachine: &v1alpha2.AWSMachine{},
+			}
+
+			scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+				ProviderMachine: awsmachine,
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				Client: fake.NewFakeClient(cluster),
+				Client: fake.NewFakeClient(cluster, machine),
 			})
 
 			if err != nil {
