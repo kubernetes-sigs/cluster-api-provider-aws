@@ -26,7 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
@@ -44,17 +44,15 @@ import (
 )
 
 const (
-	defaultTokenTTL                             = 10 * time.Minute
-	waitForClusterInfrastructureReadyDuration   = 15 * time.Second
-	waitForControlPlaneMachineExistenceDuration = 5 * time.Second
-	waitForControlPlaneReadyDuration            = 5 * time.Second
+	waitForClusterInfrastructureReadyDuration   = 15 * time.Second //nolint
+	waitForControlPlaneMachineExistenceDuration = 5 * time.Second  //nolint
+	waitForControlPlaneReadyDuration            = 5 * time.Second  //nolint
 )
 
 // Add creates a new AWSMachine Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	r := newReconciler(mgr)
-	return add(mgr, r, r.MachineToProviderMachines)
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -66,7 +64,7 @@ func newReconciler(mgr manager.Manager) *ReconcileAWSMachine {
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFunc) error {
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("awsmachine-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
@@ -82,15 +80,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler, mapFn handler.ToRequestsFu
 		return err
 	}
 
-	// schema.GroupVersionKind{
-	// 	Group:   infrav1.SchemeGroupVersion.Group,
-	// 	Version: infrav1.SchemeGroupVersion.Version,
-	// 	Kind:    "AWSMachine",
-	// }
-
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Machine{}},
-		&handler.EnqueueRequestsFromMapFunc{ToRequests: mapFn},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: util.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
+				Group:   infrav1.SchemeGroupVersion.Group,
+				Version: infrav1.SchemeGroupVersion.Version,
+				Kind:    "AWSMachine",
+			}),
+		},
 	)
 }
 
@@ -99,8 +97,7 @@ var _ reconcile.Reconciler = &ReconcileAWSMachine{}
 // ReconcileAWSMachine reconciles a AWSMachine object
 type ReconcileAWSMachine struct {
 	client.Client
-	scheme     *runtime.Scheme
-	coreClient corev1.CoreV1Interface
+	scheme *runtime.Scheme
 }
 
 // Reconcile reads that state of the cluster for a AWSMachine object and makes changes based on the state read
@@ -318,30 +315,6 @@ func (r *ReconcileAWSMachine) getMachineOwner(ctx context.Context, meta metav1.O
 		}
 	}
 	return nil, nil
-}
-
-// MachineToProviderMachines is a handler.ToRequestsFunc to be used to enqeue reconciliation
-// requests for the references infrastructure provider.
-func (r *ReconcileAWSMachine) MachineToProviderMachines(o handler.MapObject) []reconcile.Request {
-	m, ok := o.Object.(*clusterv1.Machine)
-	if !ok {
-		return nil
-	}
-
-	// Return early if the api group or kind don't match what we expect.
-	gvk := m.Spec.InfrastructureRef.GroupVersionKind()
-	if gvk.Group != infrav1.SchemeGroupVersion.Group || gvk.Kind != "AWSMachine" {
-		return nil
-	}
-
-	return []reconcile.Request{
-		{
-			NamespacedName: client.ObjectKey{
-				Namespace: m.Namespace,
-				Name:      m.Spec.InfrastructureRef.Name,
-			},
-		},
-	}
 }
 
 func (r *ReconcileAWSMachine) reconcileLBAttachment(scope *actuators.MachineScope, i *infrav1.Instance) error {

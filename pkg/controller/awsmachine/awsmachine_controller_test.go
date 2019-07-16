@@ -41,8 +41,7 @@ func TestReconcile(t *testing.T) {
 	mgr, err := manager.New(cfg, manager.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	c := mgr.GetClient()
-	r := newReconciler(mgr)
-	Expect(add(mgr, r, r.MachineToProviderMachines)).To(Succeed())
+	Expect(add(mgr, newReconciler(mgr))).To(Succeed())
 
 	stopMgr, mgrStopped := StartTestManager(mgr)
 	defer func() {
