@@ -587,7 +587,7 @@ k8s.io/utils/exec
 k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
-# sigs.k8s.io/cluster-api v0.0.0-20190711203908-5ffab93802d7 => sigs.k8s.io/cluster-api v0.0.0-20190711203908-5ffab93802d7
+# sigs.k8s.io/cluster-api v0.0.0-20190716012324-61aab24dde2e => sigs.k8s.io/cluster-api v0.0.0-20190716012324-61aab24dde2e
 sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset
 sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
 sigs.k8s.io/cluster-api/pkg/apis/cluster/common
