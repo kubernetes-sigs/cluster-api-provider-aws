@@ -57,7 +57,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 	return &MachineScope{
 		client:          params.Client,
-		matchinePatch:   client.MergeFrom(params.Machine),
+		patch:           client.MergeFrom(params.ProviderMachine),
 		Parent:          clusterScope,
 		Machine:         params.Machine,
 		ProviderMachine: params.ProviderMachine,
@@ -70,8 +70,8 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 // MachineScope defines a scope defined around a machine and its cluster.
 type MachineScope struct {
 	logr.Logger
-	matchinePatch client.Patch
-	client        client.Client
+	patch  client.Patch
+	client client.Client
 
 	Parent          *ClusterScope
 	Machine         *clusterv1.Machine
@@ -153,12 +153,11 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 func (m *MachineScope) Close() {
 	ctx := context.Background()
 
-	if err := m.client.Patch(ctx, m.ProviderMachine, m.matchinePatch); err != nil {
+	if err := m.client.Patch(ctx, m.ProviderMachine, m.patch); err != nil {
 		m.Logger.Error(err, "error patching object")
-		return
 	}
 
-	if err := m.client.Status().Patch(ctx, m.ProviderMachine, m.matchinePatch); err != nil {
+	if err := m.client.Status().Patch(ctx, m.ProviderMachine, m.patch); err != nil {
 		m.Logger.Error(err, "error patching object status")
 	}
 }
