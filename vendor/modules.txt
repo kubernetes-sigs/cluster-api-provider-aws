@@ -508,6 +508,7 @@ k8s.io/client-go/tools/clientcmd/api/v1
 k8s.io/client-go/plugin/pkg/client/auth
 k8s.io/client-go/tools/cache
 k8s.io/client-go/restmapper
+k8s.io/client-go/testing
 k8s.io/client-go/pkg/apis/clientauthentication
 k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
@@ -587,7 +588,7 @@ k8s.io/utils/exec
 k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
-# sigs.k8s.io/cluster-api v0.0.0-20190716012324-61aab24dde2e => sigs.k8s.io/cluster-api v0.0.0-20190716012324-61aab24dde2e
+# sigs.k8s.io/cluster-api v0.0.0-20190716164525-f1af714c4c2e => sigs.k8s.io/cluster-api v0.0.0-20190716164525-f1af714c4c2e
 sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset
 sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
 sigs.k8s.io/cluster-api/pkg/apis/cluster/common
@@ -638,6 +639,7 @@ sigs.k8s.io/controller-runtime/pkg/log/zap
 sigs.k8s.io/controller-runtime/pkg/manager/signals
 sigs.k8s.io/controller-runtime/pkg/scheme
 sigs.k8s.io/controller-runtime/pkg/envtest
+sigs.k8s.io/controller-runtime/pkg/client/fake
 sigs.k8s.io/controller-runtime/pkg/internal/controller
 sigs.k8s.io/controller-runtime/pkg/predicate
 sigs.k8s.io/controller-runtime/pkg/event
@@ -647,8 +649,8 @@ sigs.k8s.io/controller-runtime/pkg/webhook/admission
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/certwatcher
 sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
 sigs.k8s.io/controller-runtime/pkg/envtest/printer
-sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics
 sigs.k8s.io/controller-runtime/pkg/internal/objectutil
+sigs.k8s.io/controller-runtime/pkg/internal/controller/metrics
 # sigs.k8s.io/controller-tools v0.2.0-beta.3
 sigs.k8s.io/controller-tools/cmd/controller-gen
 sigs.k8s.io/controller-tools/pkg/crd

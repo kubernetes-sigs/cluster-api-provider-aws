@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -282,13 +283,13 @@ dTga1FiyISsMchVaVKD5aX7hkxMP1/C98KdVzWQ4k12TBOhZDYUS67M4ibBtw/og
 vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 -----END CERTIFICATE-----
 	`)
+
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
 		machineConfig *v1alpha2.AWSMachineSpec
 		clusterStatus *v1alpha2.AWSClusterProviderStatus
 		clusterConfig *v1alpha2.AWSClusterProviderSpec
-		cluster       clusterv1.Cluster
 		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		check         func(instance *v1alpha2.Instance, err error)
 	}{
@@ -343,22 +344,6 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				CAKeyPair: &v1alpha2.KeyPair{
 					Cert: testCaCert,
 					Key:  []byte("y"),
-				},
-			},
-			cluster: clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test1",
-				},
-				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
-						ServiceDomain: "cluster.local",
-						Services: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-						Pods: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
@@ -465,22 +450,6 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 					Key:  []byte("y"),
 				},
 			},
-			cluster: clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test1",
-				},
-				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
-						ServiceDomain: "cluster.local",
-						Services: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-						Pods: clusterv1.NetworkRanges{
-							CIDRBlocks: []string{"192.168.0.0/16"},
-						},
-					},
-				},
-			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.
 					DescribeImages(gomock.Any()).
@@ -533,12 +502,29 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test1",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
+						ServiceDomain: "cluster.local",
+						Services: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+						Pods: clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"192.168.0.0/16"},
+						},
+					},
+				},
+			}
+
 			scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-				Cluster: &tc.cluster,
 				Machine: &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"set": "node",
+							"set":                             "node",
+							clusterv1.MachineClusterLabelName: "test1",
 						},
 					},
 					Spec: clusterv1.MachineSpec{
@@ -552,6 +538,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
+				Client: fake.NewFakeClient(cluster),
 			})
 
 			if err != nil {

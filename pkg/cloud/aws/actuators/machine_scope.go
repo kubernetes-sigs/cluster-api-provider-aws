@@ -33,7 +33,6 @@ type MachineScopeParams struct {
 	AWSClients
 	Client          client.Client
 	Logger          logr.Logger
-	Cluster         *clusterv1.Cluster
 	Machine         *clusterv1.Machine
 	ProviderMachine *infrav1.AWSMachine
 }
@@ -41,11 +40,15 @@ type MachineScopeParams struct {
 // NewMachineScope creates a new MachineScope from the supplied parameters.
 // This is meant to be called for each machine actuator operation.
 func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
-	// TODO get cluster
+	cluster, err := util.GetClusterFromMetadata(context.Background(), params.Client, params.Machine.ObjectMeta)
+	if err != nil {
+		return nil, err
+	}
+
 	clusterScope, err := NewClusterScope(ClusterScopeParams{
 		AWSClients: params.AWSClients,
 		Client:     params.Client,
-		Cluster:    params.Cluster,
+		Cluster:    cluster,
 		Logger:     params.Logger,
 	})
 	if err != nil {
