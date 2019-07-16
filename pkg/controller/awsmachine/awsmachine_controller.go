@@ -186,17 +186,17 @@ func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *actuators.Ma
 
 // create creates a machine and is invoked by the machine controller.
 func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
-	if scope.Cluster.Cluster.Annotations[infrav1.AnnotationClusterInfrastructureReady] != infrav1.ValueReady {
+	if scope.Parent.Cluster.Annotations[infrav1.AnnotationClusterInfrastructureReady] != infrav1.ValueReady {
 		scope.Info("Cluster infrastructure is not ready yet - requeuing machine")
 		return &capierrors.RequeueAfterError{RequeueAfter: waitForClusterInfrastructureReadyDuration}
 	}
 
-	ec2svc := ec2.NewService(scope.Cluster)
+	ec2svc := ec2.NewService(scope.Parent)
 
 	scope.Info("Retrieving machines for cluster")
 	machineList := &clusterv1.MachineList{}
-	if err := scope.Client.List(context.Background(), machineList, actuators.ListOptionsForCluster(scope.Cluster.Name())); err != nil {
-		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", scope.Cluster.Name())
+	if err := r.List(context.Background(), machineList, actuators.ListOptionsForCluster(scope.Parent.Name())); err != nil {
+		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", scope.Parent.Name())
 	}
 
 	controlPlaneMachines := util.GetControlPlaneMachinesFromList(machineList)
@@ -228,7 +228,7 @@ func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
 }
 
 func (r *ReconcileAWSMachine) exists(scope *actuators.MachineScope) (bool, error) {
-	ec2svc := ec2.NewService(scope.Cluster)
+	ec2svc := ec2.NewService(scope.Parent)
 
 	// TODO worry about pointers. instance if exists returns *any* instance
 	if scope.ProviderMachine.Status.InstanceID == nil {
@@ -265,7 +265,7 @@ func (r *ReconcileAWSMachine) exists(scope *actuators.MachineScope) (bool, error
 }
 
 func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
-	ec2svc := ec2.NewService(scope.Cluster)
+	ec2svc := ec2.NewService(scope.Parent)
 
 	// Get the current instance description from AWS.
 	instanceDescription, err := ec2svc.InstanceIfExists(scope.ProviderMachine.Status.InstanceID)
@@ -355,7 +355,7 @@ func (r *ReconcileAWSMachine) reconcileLBAttachment(scope *actuators.MachineScop
 		return nil
 	}
 
-	elbsvc := elb.NewService(scope.Cluster)
+	elbsvc := elb.NewService(scope.Parent)
 	if err := elbsvc.RegisterInstanceWithAPIServerELB(i.ID); err != nil {
 		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 	}

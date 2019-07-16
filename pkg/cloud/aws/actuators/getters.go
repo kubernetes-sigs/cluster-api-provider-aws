@@ -17,26 +17,26 @@ limitations under the License.
 package actuators
 
 var (
-	DefaultScopeGetter        ScopeGetter        = ScopeGetterFunc(NewScope)
+	DefaultClusterScopeGetter ClusterScopeGetter = ClusterScopeGetterFunc(NewClusterScope)
 	DefaultMachineScopeGetter MachineScopeGetter = MachineScopeGetterFunc(NewMachineScope)
 )
 
-type ScopeGetter interface {
-	GetScope(params ScopeParams) (*Scope, error)
+type ClusterScopeGetter interface {
+	ClusterScope(params ClusterScopeParams) (*ClusterScope, error)
 }
 
-type ScopeGetterFunc func(params ScopeParams) (*Scope, error)
+type ClusterScopeGetterFunc func(params ClusterScopeParams) (*ClusterScope, error)
 
-func (f ScopeGetterFunc) GetScope(params ScopeParams) (*Scope, error) {
+func (f ClusterScopeGetterFunc) ClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	return f(params)
 }
 
 type MachineScopeGetter interface {
-	GetMachineScope(params MachineScopeParams) (*MachineScope, error)
+	MachineScope(params MachineScopeParams) (*MachineScope, error)
 }
 
 type MachineScopeGetterFunc func(params MachineScopeParams) (*MachineScope, error)
 
-func (f MachineScopeGetterFunc) GetMachineScope(params MachineScopeParams) (*MachineScope, error) {
+func (f MachineScopeGetterFunc) MachineScope(params MachineScopeParams) (*MachineScope, error) {
 	return f(params)
 }

@@ -4,10 +4,11 @@ go_library(
     name = "go_default_library",
     srcs = [
         "clients.go",
+        "cluster_scope.go",
         "control_plane_lock.go",
         "getters.go",
         "machine_scope.go",
-        "scope.go",
+        "session.go",
     ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators",
     visibility = ["//visibility:public"],

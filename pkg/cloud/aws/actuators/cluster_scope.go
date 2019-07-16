@@ -19,10 +19,7 @@ package actuators
 import (
 	"context"
 	"fmt"
-	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/go-logr/logr"
@@ -33,38 +30,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	sessionCache sync.Map
-)
-
 const apiEndpointPort = 6443
 
-func sessionForRegion(region string) (*session.Session, error) {
-	s, ok := sessionCache.Load(region)
-	if ok {
-		return s.(*session.Session), nil
-	}
-
-	ns, err := session.NewSession(aws.NewConfig().WithRegion(region))
-	if err != nil {
-		return nil, err
-	}
-
-	sessionCache.Store(region, ns)
-	return ns, nil
-}
-
 // ScopeParams defines the input parameters used to create a new Scope.
-type ScopeParams struct {
+type ClusterScopeParams struct {
 	AWSClients
 	Client  client.Client
 	Logger  logr.Logger
 	Cluster *clusterv1.Cluster
 }
 
-// NewScope creates a new Scope from the supplied parameters.
+// NewClusterScope creates a new Scope from the supplied parameters.
 // This is meant to be called for each different actuator iteration.
-func NewScope(params ScopeParams) (*Scope, error) {
+func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if params.Cluster == nil {
 		return nil, errors.New("failed to generate new scope from nil cluster")
 	}
@@ -96,8 +74,10 @@ func NewScope(params ScopeParams) (*Scope, error) {
 		params.Logger = klogr.New().WithName("default-logger")
 	}
 
-	return &Scope{
-		client:        params.Client,
+	return &ClusterScope{
+		client:       params.Client,
+		clusterPatch: client.MergeFrom(params.Cluster),
+
 		AWSClients:    params.AWSClients,
 		Cluster:       params.Cluster,
 		ClusterConfig: clusterConfig,
@@ -109,11 +89,11 @@ func NewScope(params ScopeParams) (*Scope, error) {
 	}, nil
 }
 
-// Scope defines the basic context for an actuator to operate upon.
-type Scope struct {
+// ClusterScope defines the basic context for an actuator to operate upon.
+type ClusterScope struct {
 	logr.Logger
 	client       client.Client
-	clusterPatch client.Patch //nolint
+	clusterPatch client.Patch
 
 	AWSClients
 	Cluster       *clusterv1.Cluster
@@ -122,42 +102,42 @@ type Scope struct {
 }
 
 // Network returns the cluster network object.
-func (s *Scope) Network() *v1alpha2.Network {
+func (s *ClusterScope) Network() *v1alpha2.Network {
 	return &s.ClusterStatus.Network
 }
 
 // VPC returns the cluster VPC.
-func (s *Scope) VPC() *v1alpha2.VPCSpec {
+func (s *ClusterScope) VPC() *v1alpha2.VPCSpec {
 	return &s.ClusterConfig.NetworkSpec.VPC
 }
 
 // Subnets returns the cluster subnets.
-func (s *Scope) Subnets() v1alpha2.Subnets {
+func (s *ClusterScope) Subnets() v1alpha2.Subnets {
 	return s.ClusterConfig.NetworkSpec.Subnets
 }
 
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
-func (s *Scope) SecurityGroups() map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup {
+func (s *ClusterScope) SecurityGroups() map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup {
 	return s.ClusterStatus.Network.SecurityGroups
 }
 
 // Name returns the cluster name.
-func (s *Scope) Name() string {
+func (s *ClusterScope) Name() string {
 	return s.Cluster.Name
 }
 
 // Namespace returns the cluster namespace.
-func (s *Scope) Namespace() string {
+func (s *ClusterScope) Namespace() string {
 	return s.Cluster.Namespace
 }
 
 // Region returns the cluster region.
-func (s *Scope) Region() string {
+func (s *ClusterScope) Region() string {
 	return s.ClusterConfig.Region
 }
 
 // Close closes the current scope persisting the cluster configuration and status.
-func (s *Scope) Close() {
+func (s *ClusterScope) Close() {
 	ctx := context.Background()
 
 	// Patch Cluster object.
@@ -168,7 +148,7 @@ func (s *Scope) Close() {
 	}
 	s.Cluster.Spec.ProviderSpec.Value = ext
 	if err := s.client.Patch(ctx, s.Cluster, s.clusterPatch); err != nil {
-		s.Error(err, "failed to patch cluster")
+		s.Error(err, "failed to patch object")
 		return
 	}
 
@@ -188,7 +168,7 @@ func (s *Scope) Close() {
 	}
 	s.Cluster.Status.ProviderStatus = newStatus
 	if err := s.client.Status().Patch(ctx, s.Cluster, s.clusterPatch); err != nil {
-		s.Error(err, "failed to update cluster status")
+		s.Error(err, "failed to patch object status")
 		return
 	}
 }

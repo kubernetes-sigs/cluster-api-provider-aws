@@ -37,6 +37,7 @@ import (
 	clientv1 "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	controllerError "sigs.k8s.io/cluster-api/pkg/errors"
+	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -66,7 +67,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 		clusterClient: params.ClusterClient,
 		coreClient:    params.CoreClient,
 		log:           klogr.New().WithName(params.LoggingContext),
-		Deployer:      deployer.New(deployer.Params{ScopeGetter: actuators.DefaultScopeGetter}),
+		Deployer:      deployer.New(deployer.Params{ScopeGetter: actuators.DefaultClusterScopeGetter}),
 	}
 }
 
@@ -75,7 +76,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 	log := a.log.WithValues("cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 	log.Info("Reconciling Cluster")
 
-	scope, err := actuators.NewScope(actuators.ScopeParams{
+	scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 		Cluster: cluster,
 		Logger:  a.log,
 	})
@@ -189,7 +190,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 func (a *Actuator) Delete(cluster *clusterv1.Cluster) error {
 	a.log.Info("Deleting cluster", "cluster-name", cluster.Name, "cluster-namespace", cluster.Namespace)
 
-	scope, err := actuators.NewScope(actuators.ScopeParams{
+	scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 		Cluster: cluster,
 		Client:  a.Client,
 		Logger:  a.log,

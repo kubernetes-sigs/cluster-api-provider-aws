@@ -548,7 +548,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope.Cluster)
-			instance, err := s.createInstance(scope, "token")
+			instance, err := s.createInstance(scope)
 			tc.check(instance, err)
 		})
 	}

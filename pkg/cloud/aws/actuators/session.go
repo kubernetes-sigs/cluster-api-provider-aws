@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,22 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package elb
+package actuators
 
 import (
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
+	"sync"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
-// Service holds a collection of interfaces.
-// The interfaces are broken down like this to group functions together.
-// One alternative is to have a large list of functions from the ec2 client.
-type Service struct {
-	scope *actuators.ClusterScope
-}
+var (
+	sessionCache sync.Map
+)
 
-// NewService returns a new service given the api clients.
-func NewService(scope *actuators.ClusterScope) *Service {
-	return &Service{
-		scope: scope,
+func sessionForRegion(region string) (*session.Session, error) {
+	s, ok := sessionCache.Load(region)
+	if ok {
+		return s.(*session.Session), nil
 	}
+
+	ns, err := session.NewSession(aws.NewConfig().WithRegion(region))
+	if err != nil {
+		return nil, err
+	}
+
+	sessionCache.Store(region, ns)
+	return ns, nil
 }

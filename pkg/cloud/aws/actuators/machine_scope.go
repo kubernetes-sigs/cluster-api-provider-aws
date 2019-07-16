@@ -17,6 +17,7 @@ limitations under the License.
 package actuators
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -40,7 +41,7 @@ type MachineScopeParams struct {
 // This is meant to be called for each machine actuator operation.
 func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	// TODO get cluster
-	clusterScope, err := NewScope(ScopeParams{
+	clusterScope, err := NewClusterScope(ClusterScopeParams{
 		AWSClients: params.AWSClients,
 		Client:     params.Client,
 		Cluster:    params.Cluster,
@@ -51,11 +52,11 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	}
 
 	return &MachineScope{
-		Cluster:         clusterScope,
-		Client:          params.Client,
+		client:          params.Client,
+		matchinePatch:   client.MergeFrom(params.Machine),
+		Parent:          clusterScope,
 		Machine:         params.Machine,
 		ProviderMachine: params.ProviderMachine,
-		matchinePatch:   client.MergeFrom(params.Machine),
 		Logger: clusterScope.Logger.
 			WithName(fmt.Sprintf("machine=%s", params.Machine.Name)).
 			WithName(fmt.Sprintf("providerMachine=%s", params.ProviderMachine.Name)),
@@ -66,9 +67,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 type MachineScope struct {
 	logr.Logger
 	matchinePatch client.Patch
+	client        client.Client
 
-	Client          client.Client
-	Cluster         *Scope
+	Parent          *ClusterScope
 	Machine         *clusterv1.Machine
 	ProviderMachine *v1alpha2.AWSMachine
 }
@@ -98,10 +99,19 @@ func (m *MachineScope) Role() string {
 
 // Region returns the machine region.
 func (m *MachineScope) Region() string {
-	return m.Cluster.Region()
+	return m.Parent.Region()
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
 func (m *MachineScope) Close() {
-	// TODO
+	ctx := context.Background()
+
+	if err := m.client.Patch(ctx, m.ProviderMachine, m.matchinePatch); err != nil {
+		m.Logger.Error(err, "error patching object")
+		return
+	}
+
+	if err := m.client.Status().Patch(ctx, m.ProviderMachine, m.matchinePatch); err != nil {
+		m.Logger.Error(err, "error patching object status")
+	}
 }
