@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
@@ -115,45 +114,40 @@ func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
-	// Store Machine early state to allow patching.
-	patchFrom := client.MergeFrom(awsm.DeepCopy())
-
 	// If the Machine hasn't been deleted and doesn't have a finalizer, add one.
 	if awsm.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !util.Contains(awsm.Finalizers, clusterv1.MachineFinalizer) {
 			awsm.Finalizers = append(awsm.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-			if err := r.Client.Patch(ctx, awsm, patchFrom); err != nil {
-				return reconcile.Result{}, errors.Wrapf(err, "failed to add finalizer to AWSMachine %q/%q", awsm.Namespace, awsm.Name)
-			}
-			// Since adding the finalizer updates the object return to avoid later update issues
-			return reconcile.Result{Requeue: true}, nil
 		}
 	}
 
-	// Fetch the Machine.
-	m, err := r.getMachineOwner(ctx, awsm.ObjectMeta)
+	// Create the scope
+	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+		ProviderMachine: awsm,
+		Client:          r.Client,
+	})
 	if err != nil {
-		return reconcile.Result{}, err
-	} else if m == nil {
-		klog.Infof("Waiting for Machine Controller to set OwnerRef on AWSMachine %q/%q", awsm.Namespace, awsm.Name)
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+			return reconcile.Result{RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+		}
+		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
 	}
+	defer scope.Close()
 
 	// Make sure bootstrap data is available and populated.
-	if m.Spec.Bootstrap.Data == nil || *m.Spec.Bootstrap.Data == "" {
+	if scope.Machine.Spec.Bootstrap.Data == nil || *scope.Machine.Spec.Bootstrap.Data == "" {
 		klog.Infof("Waiting for bootstrap data to be available on AWSMachine %q/%q", awsm.Namespace, awsm.Name)
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
-		ProviderMachine: awsm,
-		Machine:         m,
-		Client:          r.Client,
-	})
-	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
+	// Call the internal reconciler.
+	if err := r.reconcile(ctx, scope); err != nil {
+		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
+			klog.Infof("Reconciliation for AWSMachine %q in namespace %q asked to requeue: %v", awsm.Name, awsm.Namespace, err)
+			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+		}
+		return reconcile.Result{}, err
 	}
-	defer scope.Close()
 
 	return reconcile.Result{}, nil
 }
@@ -300,21 +294,6 @@ func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
 	}
 
 	return nil
-}
-
-// getMachineOwner returns the Machine object owning the current resource.
-func (r *ReconcileAWSMachine) getMachineOwner(ctx context.Context, meta metav1.ObjectMeta) (*clusterv1.Machine, error) {
-	for _, ref := range meta.OwnerReferences {
-		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
-			m := &clusterv1.Machine{}
-			key := client.ObjectKey{Name: ref.Name, Namespace: meta.Namespace}
-			if err := r.Get(ctx, key, m); err != nil {
-				return nil, err
-			}
-			return m, nil
-		}
-	}
-	return nil, nil
 }
 
 func (r *ReconcileAWSMachine) reconcileLBAttachment(scope *actuators.MachineScope, i *infrav1.Instance) error {

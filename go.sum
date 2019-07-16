@@ -306,6 +306,8 @@ k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5 h1:VBM/0P5TWxwk+Nw6Z+lAw3DKgO76g
 k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5/go.mod h1:sZAwmy6armz5eXlNoLmJcl4F1QuKu7sr+mFQ0byX7Ew=
 sigs.k8s.io/cluster-api v0.0.0-20190716164525-f1af714c4c2e h1:mLSmNvByFSFEWsyqoqK32CYG+HWC42h33NvtIhm/3u0=
 sigs.k8s.io/cluster-api v0.0.0-20190716164525-f1af714c4c2e/go.mod h1:Ahokj7Sz+yCFXObi1j1UwZ0vU0AsWFAxln74L4BWxv8=
+sigs.k8s.io/cluster-api v0.0.0-20190716185847-a507c44fc106 h1:ojKZEQek8zRkMJlqi+v0v5I2mKrm+fxiny+VYnaAqsg=
+sigs.k8s.io/cluster-api v0.0.0-20190716185847-a507c44fc106/go.mod h1:Ahokj7Sz+yCFXObi1j1UwZ0vU0AsWFAxln74L4BWxv8=
 sigs.k8s.io/controller-runtime v0.2.0-beta.4 h1:S1XVfRWR1MuIXZdkYx3jN8JDw+bbQxmWZroy0i87z/A=
 sigs.k8s.io/controller-runtime v0.2.0-beta.4/go.mod h1:HweyYKQ8fBuzdu2bdaeBJvsFgAi/OqBBnrVGXcqKhME=
 sigs.k8s.io/controller-tools v0.2.0-beta.3 h1:7h1Hx+vpg79dktBILuQq/aDed4GZcdxeUwuEb59G1bw=

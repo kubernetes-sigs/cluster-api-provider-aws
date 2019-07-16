@@ -19,11 +19,14 @@ package actuators
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
+	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -33,14 +36,26 @@ type MachineScopeParams struct {
 	AWSClients
 	Client          client.Client
 	Logger          logr.Logger
-	Machine         *clusterv1.Machine
 	ProviderMachine *infrav1.AWSMachine
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
 // This is meant to be called for each machine actuator operation.
 func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
-	cluster, err := util.GetClusterFromMetadata(context.Background(), params.Client, params.Machine.ObjectMeta)
+	ctx := context.Background()
+
+	// Fetch the Machine.
+	machine, err := util.GetOwnerMachine(ctx, params.Client, params.ProviderMachine.ObjectMeta)
+	if err != nil {
+		return nil, err
+	} else if machine == nil {
+		klog.Infof("Waiting for Machine Controller to set OwnerRef on AWSMachine %q/%q",
+			params.ProviderMachine.Namespace, params.ProviderMachine.Name)
+		return nil, &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+	}
+
+	// Fetch the cluster.
+	cluster, err := util.GetClusterFromMetadata(ctx, params.Client, machine.ObjectMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +74,10 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		client:          params.Client,
 		patch:           client.MergeFrom(params.ProviderMachine),
 		Parent:          clusterScope,
-		Machine:         params.Machine,
+		Machine:         machine,
 		ProviderMachine: params.ProviderMachine,
 		Logger: clusterScope.Logger.
-			WithName(fmt.Sprintf("machine=%s", params.Machine.Name)).
+			WithName(fmt.Sprintf("machine=%s", machine.Name)).
 			WithName(fmt.Sprintf("providerMachine=%s", params.ProviderMachine.Name)),
 	}, nil
 }
