@@ -35,13 +35,13 @@ type Deployer struct {
 
 // Params is used to create a new deployer.
 type Params struct {
-	ScopeGetter actuators.ClusterScopeGetter
+	ClusterScopeGetter actuators.ClusterScopeGetter
 }
 
 // New returns a new Deployer.
 func New(params Params) *Deployer {
 	return &Deployer{
-		scopeGetter: params.ScopeGetter,
+		scopeGetter: params.ClusterScopeGetter,
 	}
 }
 

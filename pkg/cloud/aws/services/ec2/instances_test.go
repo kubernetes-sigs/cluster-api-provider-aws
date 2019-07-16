@@ -24,6 +24,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
@@ -156,7 +157,7 @@ func TestInstanceIfExists(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := actuators.NewScope(actuators.ScopeParams{
+			scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
@@ -234,7 +235,7 @@ func TestTerminateInstance(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := actuators.NewScope(actuators.ScopeParams{
+			scope, err := actuators.NewClusterScope(actuators.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{},
 				AWSClients: actuators.AWSClients{
 					EC2: ec2Mock,
@@ -296,6 +297,11 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						Data: pointer.StringPtr("user-data"),
+					},
 				},
 			},
 			machineConfig: &v1alpha2.AWSMachineSpec{
@@ -397,6 +403,11 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						Data: pointer.StringPtr("user-data"),
+					},
 				},
 			},
 			machineConfig: &v1alpha2.AWSMachineSpec{
@@ -530,6 +541,11 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 							"set": "node",
 						},
 					},
+					Spec: clusterv1.MachineSpec{
+						Bootstrap: clusterv1.Bootstrap{
+							Data: pointer.StringPtr("user-data"),
+						},
+					},
 				},
 				ProviderMachine: &v1alpha2.AWSMachine{},
 				AWSClients: actuators.AWSClients{
@@ -542,12 +558,12 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
-			scope.Cluster.ClusterConfig = tc.clusterConfig
-			scope.Cluster.ClusterStatus = tc.clusterStatus
+			scope.Parent.ClusterConfig = tc.clusterConfig
+			scope.Parent.ClusterStatus = tc.clusterStatus
 			scope.ProviderMachine.Spec = *tc.machineConfig
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope.Cluster)
+			s := NewService(scope.Parent)
 			instance, err := s.createInstance(scope)
 			tc.check(instance, err)
 		})

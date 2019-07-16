@@ -266,10 +266,13 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 
 // MachineExists will return whether or not a machine exists.
 func (s *Service) MachineExists(scope *actuators.MachineScope) (bool, error) {
-	var err error
-	var instance *v1alpha2.Instance
-	if scope.ProviderMachine.Status.InstanceID != nil {
-		instance, err = s.InstanceIfExists(scope.ProviderMachine.Status.InstanceID)
+	var (
+		err      error
+		instance *v1alpha2.Instance
+	)
+
+	if id := scope.GetInstanceID(); id != nil {
+		instance, err = s.InstanceIfExists(id)
 	} else {
 		instance, err = s.InstanceByTags(scope)
 	}
@@ -288,12 +291,12 @@ func (s *Service) CreateOrGetMachine(scope *actuators.MachineScope) (*v1alpha2.I
 	s.scope.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
-	if scope.ProviderMachine.Status.InstanceID != nil {
-		s.scope.V(2).Info("Looking up machine by id", "instance-id", *scope.ProviderMachine.Status.InstanceID)
+	if id := scope.GetInstanceID(); id != nil {
+		s.scope.V(2).Info("Looking up machine by id", "instance-id", *id)
 
-		instance, err := s.InstanceIfExists(scope.ProviderMachine.Status.InstanceID)
+		instance, err := s.InstanceIfExists(id)
 		if err != nil && !awserrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", scope.Name(), *scope.ProviderMachine.Status.InstanceID)
+			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", scope.Name(), *id)
 		} else if err == nil && instance != nil {
 			return instance, nil
 		}

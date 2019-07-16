@@ -21,7 +21,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	"k8s.io/utils/pointer"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +35,7 @@ type MachineScopeParams struct {
 	Logger          logr.Logger
 	Cluster         *clusterv1.Cluster
 	Machine         *clusterv1.Machine
-	ProviderMachine *v1alpha2.AWSMachine
+	ProviderMachine *infrav1.AWSMachine
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
@@ -71,17 +72,22 @@ type MachineScope struct {
 
 	Parent          *ClusterScope
 	Machine         *clusterv1.Machine
-	ProviderMachine *v1alpha2.AWSMachine
+	ProviderMachine *infrav1.AWSMachine
 }
 
-// Name returns the machine name.
+// Name returns the AWSMachine name.
 func (m *MachineScope) Name() string {
-	return m.Machine.Name
+	return m.ProviderMachine.Name
 }
 
-// Namespace returns the machine namespace.
+// Namespace returns the namespace name.
 func (m *MachineScope) Namespace() string {
-	return m.Machine.Namespace
+	return m.ProviderMachine.Namespace
+}
+
+// ClusterName returns the parent Cluster name.
+func (m *MachineScope) ClusterName() string {
+	return m.Parent.Name()
 }
 
 // IsControlPlane returns true if the machine is a control plane.
@@ -100,6 +106,44 @@ func (m *MachineScope) Role() string {
 // Region returns the machine region.
 func (m *MachineScope) Region() string {
 	return m.Parent.Region()
+}
+
+// GetInstanceID returns the AWSMachine instance id from the status.
+func (m *MachineScope) GetInstanceID() *string {
+	return m.ProviderMachine.Status.InstanceID
+}
+
+// SetInstanceID sets the AWSMachine instance id.
+func (m *MachineScope) SetInstanceID(v string) {
+	m.ProviderMachine.Status.InstanceID = pointer.StringPtr(v)
+}
+
+// GetProviderID returns the AWSMachine providerID from the spec.
+func (m *MachineScope) GetProviderID() *string {
+	return m.ProviderMachine.Spec.ProviderID
+}
+
+// SetProviderID sets the AWSMachine providerID in spec.
+func (m *MachineScope) SetProviderID(v string) {
+	m.ProviderMachine.Spec.ProviderID = pointer.StringPtr(v)
+}
+
+// GetInstanceID returns the AWSMachine instance state from the status.
+func (m *MachineScope) GetInstanceState() *infrav1.InstanceState {
+	return m.ProviderMachine.Status.InstanceState
+}
+
+// SetInstanceID sets the AWSMachine instance id.
+func (m *MachineScope) SetInstanceState(v infrav1.InstanceState) {
+	m.ProviderMachine.Status.InstanceState = &v
+}
+
+// SetAnnotation sets a key value annotation on the AWSMachine.
+func (m *MachineScope) SetAnnotation(key, value string) {
+	if m.ProviderMachine.Annotations == nil {
+		m.ProviderMachine.Annotations = map[string]string{}
+	}
+	m.ProviderMachine.Annotations[key] = value
 }
 
 // Close the MachineScope by updating the machine spec, machine status.

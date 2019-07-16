@@ -67,7 +67,7 @@ func NewActuator(params ActuatorParams) *Actuator {
 		clusterClient: params.ClusterClient,
 		coreClient:    params.CoreClient,
 		log:           klogr.New().WithName(params.LoggingContext),
-		Deployer:      deployer.New(deployer.Params{ScopeGetter: actuators.DefaultClusterScopeGetter}),
+		Deployer:      deployer.New(deployer.Params{ClusterScopeGetter: actuators.DefaultClusterScopeGetter}),
 	}
 }
 

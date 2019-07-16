@@ -169,9 +169,8 @@ func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *actuators.Ma
 	}
 
 	// Reconcile ProviderID.
-	if scope.ProviderMachine.Spec.ProviderID == nil || *scope.ProviderMachine.Spec.ProviderID == "" {
-		providerID := fmt.Sprintf("aws:////%s", *scope.ProviderMachine.Status.InstanceID)
-		scope.ProviderMachine.Spec.ProviderID = &providerID
+	if pid := scope.GetProviderID(); pid == nil || *pid == "" {
+		scope.SetProviderID(fmt.Sprintf("aws:////%s", *scope.GetInstanceID()))
 	}
 
 	if exist {
@@ -211,13 +210,9 @@ func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
 		return errors.Errorf("failed to create or get machine: %+v", err)
 	}
 
-	scope.ProviderMachine.Status.InstanceID = &i.ID
-	scope.ProviderMachine.Status.InstanceState = &i.State
-
-	if scope.ProviderMachine.Annotations == nil {
-		scope.ProviderMachine.Annotations = map[string]string{}
-	}
-	scope.ProviderMachine.Annotations["cluster-api-provider-aws"] = "true"
+	scope.SetInstanceID(i.ID)
+	scope.SetInstanceState(i.State)
+	scope.SetAnnotation("cluster-api-provider-aws", "true")
 
 	if err := r.reconcileLBAttachment(scope, i); err != nil {
 		return errors.Errorf("failed to reconcile LB attachment: %+v", err)
@@ -231,11 +226,11 @@ func (r *ReconcileAWSMachine) exists(scope *actuators.MachineScope) (bool, error
 	ec2svc := ec2.NewService(scope.Parent)
 
 	// TODO worry about pointers. instance if exists returns *any* instance
-	if scope.ProviderMachine.Status.InstanceID == nil {
+	if scope.GetInstanceID() == nil {
 		return false, nil
 	}
 
-	instance, err := ec2svc.InstanceIfExists(scope.ProviderMachine.Status.InstanceID)
+	instance, err := ec2svc.InstanceIfExists(scope.GetInstanceID())
 	if err != nil {
 		return false, errors.Errorf("failed to retrieve instance: %+v", err)
 	}
@@ -248,14 +243,14 @@ func (r *ReconcileAWSMachine) exists(scope *actuators.MachineScope) (bool, error
 
 	switch instance.State {
 	case infrav1.InstanceStateRunning:
-		scope.Info("Machine instance is running", "instance-id", *scope.ProviderMachine.Status.InstanceID)
+		scope.Info("Machine instance is running", "instance-id", *scope.GetInstanceID())
 	case infrav1.InstanceStatePending:
-		scope.Info("Machine instance is pending", "instance-id", *scope.ProviderMachine.Status.InstanceID)
+		scope.Info("Machine instance is pending", "instance-id", *scope.GetInstanceID())
 	default:
 		return false, nil
 	}
 
-	scope.ProviderMachine.Status.InstanceState = &instance.State
+	scope.SetInstanceState(instance.State)
 
 	if err := r.reconcileLBAttachment(scope, instance); err != nil {
 		return true, err
@@ -268,7 +263,7 @@ func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
 	ec2svc := ec2.NewService(scope.Parent)
 
 	// Get the current instance description from AWS.
-	instanceDescription, err := ec2svc.InstanceIfExists(scope.ProviderMachine.Status.InstanceID)
+	instanceDescription, err := ec2svc.InstanceIfExists(scope.GetInstanceID())
 	if err != nil {
 		return errors.Errorf("failed to get instance: %+v", err)
 	}
@@ -280,7 +275,7 @@ func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
 		return errors.Errorf("found attempt to change immutable state for machine %q: %+q", scope.Name(), errs)
 	}
 
-	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*scope.ProviderMachine.Status.InstanceID)
+	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*scope.GetInstanceID())
 	if err != nil {
 		return err
 	}
@@ -289,7 +284,6 @@ func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
 	_, err = r.ensureSecurityGroups(
 		ec2svc,
 		scope,
-		*scope.ProviderMachine.Status.InstanceID,
 		scope.ProviderMachine.Spec.AdditionalSecurityGroups,
 		existingSecurityGroups,
 	)
@@ -301,7 +295,7 @@ func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
 	_, err = r.ensureTags(
 		ec2svc,
 		scope.ProviderMachine,
-		scope.ProviderMachine.Status.InstanceID,
+		scope.GetInstanceID(),
 		scope.ProviderMachine.Spec.AdditionalTags,
 	)
 	if err != nil {
