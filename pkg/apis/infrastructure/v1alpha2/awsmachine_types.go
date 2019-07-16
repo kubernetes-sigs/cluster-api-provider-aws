@@ -83,7 +83,8 @@ type AWSMachineSpec struct {
 // AWSMachineStatus defines the observed state of AWSMachine
 type AWSMachineStatus struct {
 	// Ready is true when the provider resource is ready.
-	Ready *bool `json:"ready,omitempty"`
+	// +optional
+	Ready bool `json:"ready"`
 
 	// Addresses contains the AWS instance associated addresses.
 	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
