@@ -16,4 +16,4 @@ See an [existing definition for invocation][mock_example]
 
 Runs a command in the workspace, with access to the Golang toolchain
 
-[mock_example]: ../pkg/cloud/aws/actuators/cluster/mock_clusteriface/BUILD
+[mock_example]: ../pkg/cloud/actuators/cluster/mock_clusteriface/BUILD

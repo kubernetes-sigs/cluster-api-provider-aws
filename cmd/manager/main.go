@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	capi "sigs.k8s.io/cluster-api/pkg/apis"

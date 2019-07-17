@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
+	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
 
 // +genclient

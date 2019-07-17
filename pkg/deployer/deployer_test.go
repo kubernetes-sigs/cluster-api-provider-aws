@@ -24,21 +24,21 @@ import (
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2" // nolint
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2/mock_ec2iface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb/mock_elbiface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/deployer"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 type scopeGetter struct {
-	actuators.AWSClients
+	scope.AWSClients
 }
 
-func (s *scopeGetter) ClusterScope(params actuators.ClusterScopeParams) (*actuators.ClusterScope, error) {
+func (s *scopeGetter) ClusterScope(params scope.ClusterScopeParams) (*scope.ClusterScope, error) {
 	params.AWSClients = s.AWSClients
-	return actuators.NewClusterScope(params)
+	return scope.NewClusterScope(params)
 }
 
 func TestGetIP(t *testing.T) {
@@ -143,7 +143,7 @@ func TestGetIP(t *testing.T) {
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			deployer := deployer.New(deployer.Params{ClusterScopeGetter: &scopeGetter{
-				actuators.AWSClients{
+				scope.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},

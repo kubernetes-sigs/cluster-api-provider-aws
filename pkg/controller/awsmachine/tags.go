@@ -18,7 +18,7 @@ package awsmachine
 
 import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
+	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 )
 
 const (

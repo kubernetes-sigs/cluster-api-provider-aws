@@ -18,7 +18,7 @@ package main
 
 import (
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators/cluster"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/actuators/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
