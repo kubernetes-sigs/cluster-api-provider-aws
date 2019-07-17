@@ -18,6 +18,7 @@ go_library(
         "//pkg/cloud/aws/services/ec2:go_default_library",
         "//pkg/cloud/aws/services/elb:go_default_library",
         "//pkg/deployer:go_default_library",
+        "//pkg/record:go_default_library",
         "//pkg/tokens:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/go-logr/logr:go_default_library",
