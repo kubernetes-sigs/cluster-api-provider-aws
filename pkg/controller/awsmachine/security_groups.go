@@ -20,8 +20,8 @@ import (
 	"sort"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 )
 
 const (
@@ -38,7 +38,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *ReconcileAWSMachine) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scope *actuators.MachineScope, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, error) {
+func (r *ReconcileAWSMachine) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scope *scope.MachineScope, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, error) {
 	annotation, err := r.machineAnnotationJSON(scope.ProviderMachine, SecurityGroupsLastAppliedAnnotation)
 	if err != nil {
 		return false, err

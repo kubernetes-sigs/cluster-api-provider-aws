@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,14 +49,7 @@ func TestReconcile(t *testing.T) {
 	}()
 
 	// Create the AWSMachine object and expect the Reconcile
-	err = c.Create(ctx, instance)
-	// The instance object may not be a valid object because it might be missing some required fields.
-	// Please modify the instance object by adding required fields and then remove the following if statement.
-	if apierrors.IsInvalid(err) {
-		t.Logf("failed to create object, got an invalid object error: %v", err)
-		return
-	}
-	Expect(err).NotTo(HaveOccurred())
+	Expect(c.Create(ctx, instance)).NotTo(HaveOccurred())
 	Eventually(func() bool {
 		key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
 		if err := c.Get(ctx, key, instance); err != nil {
@@ -66,5 +58,4 @@ func TestReconcile(t *testing.T) {
 		return true
 	}, timeout).Should(BeTrue())
 	defer c.Delete(context.TODO(), instance)
-
 }

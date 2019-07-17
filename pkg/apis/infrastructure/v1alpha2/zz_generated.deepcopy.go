@@ -23,7 +23,7 @@ package v1alpha2
 import (
 	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/userdata"
+	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	common "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 

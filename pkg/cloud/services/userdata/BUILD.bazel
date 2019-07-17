@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "bastion.go",
+        "controlplane_certs.go",
+        "controlplane_init.go",
+        "controlplane_join.go",
+        "files.go",
+        "node.go",
+        "userdata.go",
+        "utils.go",
+    ],
+    importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata",
+    visibility = ["//visibility:public"],
+    deps = ["//vendor/github.com/pkg/errors:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["controlplane_test.go"],
+    embed = [":go_default_library"],
+)

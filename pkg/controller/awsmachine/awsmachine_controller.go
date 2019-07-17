@@ -28,9 +28,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -122,7 +122,7 @@ func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Re
 	}
 
 	// Create the scope
-	scope, err := actuators.NewMachineScope(actuators.MachineScopeParams{
+	scope, err := scope.NewMachineScope(scope.MachineScopeParams{
 		ProviderMachine: awsm,
 		Client:          r.Client,
 	})
@@ -152,7 +152,7 @@ func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Re
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *actuators.MachineScope) error {
+func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *scope.MachineScope) error {
 	exist, err := r.exists(scope)
 	if err != nil {
 		klog.Errorf("Failed to check if Machine %q infrastructure exists: %v", scope.Name(), err)
@@ -175,7 +175,7 @@ func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *actuators.Ma
 }
 
 // create creates a machine and is invoked by the machine controller.
-func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
+func (r *ReconcileAWSMachine) create(scope *scope.MachineScope) error {
 	if scope.Parent.Cluster.Annotations[infrav1.AnnotationClusterInfrastructureReady] != infrav1.ValueReady {
 		scope.Info("Cluster infrastructure is not ready yet - requeuing machine")
 		return &capierrors.RequeueAfterError{RequeueAfter: waitForClusterInfrastructureReadyDuration}
@@ -185,7 +185,7 @@ func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
 
 	scope.Info("Retrieving machines for cluster")
 	machineList := &clusterv1.MachineList{}
-	if err := r.List(context.Background(), machineList, actuators.ListOptionsForCluster(scope.Parent.Name())); err != nil {
+	if err := r.List(context.Background(), machineList, scope.Parent.ListOptionsLabelSelector()); err != nil {
 		return errors.Wrapf(err, "failed to retrieve machines in cluster %q", scope.Parent.Name())
 	}
 
@@ -213,7 +213,7 @@ func (r *ReconcileAWSMachine) create(scope *actuators.MachineScope) error {
 	return nil
 }
 
-func (r *ReconcileAWSMachine) exists(scope *actuators.MachineScope) (bool, error) {
+func (r *ReconcileAWSMachine) exists(scope *scope.MachineScope) (bool, error) {
 	ec2svc := ec2.NewService(scope.Parent)
 
 	// TODO worry about pointers. instance if exists returns *any* instance
@@ -250,7 +250,7 @@ func (r *ReconcileAWSMachine) exists(scope *actuators.MachineScope) (bool, error
 	return true, nil
 }
 
-func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
+func (r *ReconcileAWSMachine) update(scope *scope.MachineScope) error {
 	ec2svc := ec2.NewService(scope.Parent)
 
 	// Get the current instance description from AWS.
@@ -296,7 +296,7 @@ func (r *ReconcileAWSMachine) update(scope *actuators.MachineScope) error {
 	return nil
 }
 
-func (r *ReconcileAWSMachine) reconcileLBAttachment(scope *actuators.MachineScope, i *infrav1.Instance) error {
+func (r *ReconcileAWSMachine) reconcileLBAttachment(scope *scope.MachineScope, i *infrav1.Instance) error {
 	if !scope.IsControlPlane() {
 		return nil
 	}

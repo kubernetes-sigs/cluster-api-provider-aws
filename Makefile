@@ -129,9 +129,9 @@ generate-go: ## Runs go generate
 
 .PHONY: generate-mocks
 generate-mocks: ## Generate mocks, CRDs and runs `go generate` through Bazel
-	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:mocks \
-		//pkg/cloud/aws/services/ec2/mock_ec2iface:mocks \
-		//pkg/cloud/aws/services/elb/mock_elbiface:mocks
+	bazel build $(BAZEL_ARGS) //pkg/cloud/services/mocks:mocks \
+		//pkg/cloud/services/ec2/mock_ec2iface:mocks \
+		//pkg/cloud/services/elb/mock_elbiface:mocks
 	./hack/copy-bazel-mocks.sh
 
 .PHONY: generate-manifests

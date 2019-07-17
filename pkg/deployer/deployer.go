@@ -22,20 +22,20 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/actuators"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/certificates"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/certificates"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 )
 
 // Deployer satisfies the ProviderDeployer(https://github.com/kubernetes-sigs/cluster-api/blob/master/cmd/clusterctl/clusterdeployer/clusterdeployer.go) interface.
 type Deployer struct {
-	scopeGetter actuators.ClusterScopeGetter
+	scopeGetter scope.ClusterScopeGetter
 }
 
 // Params is used to create a new deployer.
 type Params struct {
-	ClusterScopeGetter actuators.ClusterScopeGetter
+	ClusterScopeGetter scope.ClusterScopeGetter
 }
 
 // New returns a new Deployer.
@@ -47,7 +47,7 @@ func New(params Params) *Deployer {
 
 // GetIP returns the IP of a machine, but this is going away.
 func (d *Deployer) GetIP(cluster *clusterv1.Cluster, _ *clusterv1.Machine) (string, error) {
-	scope, err := d.scopeGetter.ClusterScope(actuators.ClusterScopeParams{Cluster: cluster})
+	scope, err := d.scopeGetter.ClusterScope(scope.ClusterScopeParams{Cluster: cluster})
 	if err != nil {
 		return "", err
 	}
