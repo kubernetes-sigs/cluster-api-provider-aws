@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -71,6 +72,7 @@ func (s *Service) reconcileSecurityGroups() error {
 
 		if !ok {
 			if err := s.createSecurityGroup(role, sg); err != nil {
+				record.Warnf(s.scope.Cluster, "FailedCreateSecurityGroup", "Failed to create managed SecurityGroup for Role %q: %v", role, err)
 				return err
 			}
 
@@ -78,6 +80,7 @@ func (s *Service) reconcileSecurityGroups() error {
 				ID:   *sg.GroupId,
 				Name: *sg.GroupName,
 			}
+			record.Eventf(s.scope.Cluster, "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %v for Role %q", s.scope.SecurityGroups()[role], role)
 			s.scope.V(2).Info("Created security group for role", "role", role, "security-group", s.scope.SecurityGroups()[role])
 			continue
 		}
@@ -92,6 +95,7 @@ func (s *Service) reconcileSecurityGroups() error {
 		})
 
 		if err != nil {
+			record.Warnf(s.scope.Cluster, "FailedTagSecurityGroup", "Failed to tag managed SecurityGroup %q: %v", existing.ID, err)
 			return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
 		}
 	}
@@ -113,18 +117,22 @@ func (s *Service) reconcileSecurityGroups() error {
 		toRevoke := current.Difference(want)
 		if len(toRevoke) > 0 {
 			if err := s.revokeSecurityGroupIngressRules(sg.ID, toRevoke); err != nil {
+				record.Warnf(s.scope.Cluster, "FailedRevokeSecurityGroupIngressRules", "Failed to revoke security group ingress rules %v for SecurityGroup %q: %v", toRevoke, sg.ID, err)
 				return errors.Wrapf(err, "failed to revoke security group ingress rules for %q", sg.ID)
 			}
 
+			record.Eventf(s.scope.Cluster, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked security group ingress rules %v for SecurityGroup %q", toRevoke, sg.ID)
 			s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", toRevoke, "security-group-id", sg.ID)
 		}
 
 		toAuthorize := want.Difference(current)
 		if len(toAuthorize) > 0 {
 			if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
-				return err
+				record.Warnf(s.scope.Cluster, "FailedAuthorizeSecurityGroupIngressRules", "Failed to authorize security group ingress rules %v for SecurityGroup %q: %v", toAuthorize, sg.ID, err)
+				return errors.Wrapf(err, "failed to authorize security group ingress rules for %q", sg.ID)
 			}
 
+			record.Eventf(s.scope.Cluster, "SuccessfulAuthorizeSecurityGroupIngressRules", "Authorized security group ingress rules %v for SecurityGroup %q", toAuthorize, sg.ID)
 			s.scope.V(2).Info("Authorized ingress rules in security group", "authorized-ingress-rules", toAuthorize, "security-group-id", sg.ID)
 		}
 	}
@@ -149,9 +157,11 @@ func (s *Service) deleteSecurityGroups() error {
 		}
 
 		if _, err := s.scope.EC2.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+			record.Warnf(s.scope.Cluster, "FailedDeleteSecurityGroup", "Failed to delete managed SecurityGroup %q: %v", sg.ID, err)
 			return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
 		}
 
+		record.Eventf(s.scope.Cluster, "SuccessfulDeleteSecurityGroup", "Deleted managed SecurityGroup %q", sg.ID)
 		s.scope.V(2).Info("Deleted security group security group", "security-group-id", sg.ID)
 	}
 
@@ -252,8 +262,10 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 				IpPermissions: sg.IpPermissions,
 			}
 			if _, err := s.scope.EC2.RevokeSecurityGroupIngress(revokeInput); err != nil {
+				record.Warnf(s.scope.Cluster, "FailedRevokeSecurityGroupIngressRules", "Failed to revoke all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
 				return errors.Wrapf(err, "failed to revoke security group %q ingress rules", id)
 			}
+			record.Eventf(s.scope.Cluster, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
 		}
 	}
 

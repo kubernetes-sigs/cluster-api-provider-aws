@@ -64,6 +64,7 @@ func (s *Service) reconcileNatGateways() error {
 			})
 
 			if err != nil {
+				record.Warnf(s.scope.Cluster, "FailedTagNATGateway", "Failed to tag managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
 				return errors.Wrapf(err, "failed to tag nat gateway %q", *ngw.NatGatewayId)
 			}
 
@@ -72,8 +73,10 @@ func (s *Service) reconcileNatGateways() error {
 
 		ng, err := s.createNatGateway(sn.ID)
 		if err != nil {
+			record.Warnf(s.scope.Cluster, "FailedCreateNATGateway", "Failed to created new NAT Gateway: %v", err)
 			return err
 		}
+		record.Eventf(s.scope.Cluster, "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *ng.NatGatewayId)
 
 		sn.NatGatewayID = ng.NatGatewayId
 	}
@@ -108,8 +111,11 @@ func (s *Service) deleteNatGateways() error {
 		if ngID, ok := existing[sn.ID]; ok {
 			err := s.deleteNatGateway(*ngID.NatGatewayId)
 			if err != nil {
+				record.Warnf(s.scope.Cluster, "FailedDeleteNATGateway", "Failed to delete NAT Gateway %q previously attached to VPC %q: %v", *ngID.NatGatewayId, s.scope.VPC().ID, err)
 				return err
 			}
+			record.Eventf(s.scope.Cluster, "SuccessfulDeleteNATGateway", "Deleted NAT Gateway %q previously attached to VPC %q", *ngID.NatGatewayId, s.scope.VPC().ID)
+			s.scope.Info("Deleted NAT gateway in VPC", "nat-gateway-id", *ngID.NatGatewayId, "vpc-id", s.scope.VPC().ID)
 		}
 	}
 
@@ -185,7 +191,6 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	}
 
 	s.scope.Info("NAT gateway for subnet is now available", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
-	record.Eventf(s.scope.Cluster, "CreatedNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 	return out.NatGateway, nil
 }
 

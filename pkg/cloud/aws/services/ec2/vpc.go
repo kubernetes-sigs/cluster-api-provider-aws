@@ -43,8 +43,10 @@ func (s *Service) reconcileVPC() error {
 		// Create a new managed vpc.
 		vpc, err = s.createVPC()
 		if err != nil {
+			record.Warnf(s.scope.Cluster, "FailedCreateVPC", "Failed to create new managed VPC: %v", err)
 			return errors.Wrap(err, "failed to create new vpc")
 		}
+		record.Eventf(s.scope.Cluster, "SuccessfulCreateVPC", "Created new managed VPC %q", vpc.ID)
 
 	} else if err != nil {
 		return errors.Wrap(err, "failed to describe VPCs")
@@ -63,6 +65,7 @@ func (s *Service) reconcileVPC() error {
 	})
 
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to tag vpc %q", vpc.ID)
 	}
 
@@ -114,7 +117,6 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 	}
 
 	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
-	record.Eventf(s.scope.Cluster, "CreatedVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 
 	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
 	tagApply := &tags.ApplyParams{
@@ -152,11 +154,12 @@ func (s *Service) deleteVPC() error {
 			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
 			return nil
 		}
+		record.Warnf(s.scope.Cluster, "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
 
 	s.scope.V(2).Info("Deleted VPC", "vpc-id", vpc.ID)
-	record.Eventf(s.scope.Cluster, "DeletedVPC", "Deleted managed VPC %q", vpc.ID)
+	record.Eventf(s.scope.Cluster, "SuccessfulDeleteVPC", "Deleted managed VPC %q", vpc.ID)
 	return nil
 }
 
