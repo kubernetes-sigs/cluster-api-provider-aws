@@ -48,6 +48,8 @@ func main() {
 
 	profilerAddress := flag.String("profiler-address", "", "Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
+	metricsAddress := flag.String("metrics-address", "", "Bind address to expose the metrics (e.g. localhost:8080)")
+
 	flag.Parse()
 	if *watchNamespace != "" {
 		klog.Infof("Watching cluster-api objects only in namespace %q for reconciliation", *watchNamespace)
@@ -71,6 +73,7 @@ func main() {
 	mgr, err := manager.New(cfg, manager.Options{
 		SyncPeriod: &syncPeriod,
 		Namespace:  *watchNamespace,
+		MetricsBindAddress: *metricsAddress,
 	})
 	if err != nil {
 		klog.Fatalf("Failed to set up overall controller manager: %v", err)
