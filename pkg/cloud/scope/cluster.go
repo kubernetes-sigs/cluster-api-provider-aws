@@ -76,7 +76,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 	return &ClusterScope{
 		client:       params.Client,
-		clusterPatch: client.MergeFrom(params.Cluster),
+		clusterPatch: client.MergeFrom(params.Cluster.DeepCopy()),
 
 		AWSClients:    params.AWSClients,
 		Cluster:       params.Cluster,

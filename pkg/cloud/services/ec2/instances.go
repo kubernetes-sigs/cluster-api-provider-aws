@@ -30,15 +30,15 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
-// InstanceByTags returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceByTags(scope *scope.MachineScope) (*v1alpha2.Instance, error) {
+// GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
+func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
@@ -81,10 +81,6 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha2.Instance, error) {
 
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{id},
-		Filters: []*ec2.Filter{
-			filter.EC2.VPC(s.scope.VPC().ID),
-			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
-		},
 	}
 
 	out, err := s.scope.EC2.DescribeInstances(input)
@@ -102,8 +98,8 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha2.Instance, error) {
 	return nil, nil
 }
 
-// createInstance runs an ec2 instance.
-func (s *Service) createInstance(scope *scope.MachineScope) (*v1alpha2.Instance, error) {
+// CreateInstance runs an ec2 instance.
+func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &v1alpha2.Instance{
@@ -262,55 +258,6 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 	}
 
 	return nil
-}
-
-// MachineExists will return whether or not a machine exists.
-func (s *Service) MachineExists(scope *scope.MachineScope) (bool, error) {
-	var (
-		err      error
-		instance *v1alpha2.Instance
-	)
-
-	if id := scope.GetInstanceID(); id != nil {
-		instance, err = s.InstanceIfExists(id)
-	} else {
-		instance, err = s.InstanceByTags(scope)
-	}
-
-	if err != nil {
-		if awserrors.IsNotFound(err) {
-			return false, nil
-		}
-		return false, errors.Wrapf(err, "failed to lookup machine %q", scope.Name())
-	}
-	return instance != nil, nil
-}
-
-// CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(scope *scope.MachineScope) (*v1alpha2.Instance, error) {
-	s.scope.V(2).Info("Attempting to create or get machine")
-
-	// instance id exists, try to get it
-	if id := scope.GetInstanceID(); id != nil {
-		s.scope.V(2).Info("Looking up machine by id", "instance-id", *id)
-
-		instance, err := s.InstanceIfExists(id)
-		if err != nil && !awserrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to look up machine %q by id %q", scope.Name(), *id)
-		} else if err == nil && instance != nil {
-			return instance, nil
-		}
-	}
-
-	s.scope.V(2).Info("Looking up machine by tags")
-	instance, err := s.InstanceByTags(scope)
-	if err != nil && !awserrors.IsNotFound(err) {
-		return nil, errors.Wrapf(err, "failed to query machine %q instance by tags", scope.Name())
-	} else if err == nil && instance != nil {
-		return instance, nil
-	}
-
-	return s.createInstance(scope)
 }
 
 func (s *Service) runInstance(role string, i *v1alpha2.Instance) (*v1alpha2.Instance, error) {

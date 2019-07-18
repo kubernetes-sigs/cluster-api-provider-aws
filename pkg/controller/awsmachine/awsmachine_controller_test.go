@@ -35,8 +35,8 @@ func TestReconcile(t *testing.T) {
 	ctx := context.Background()
 	instance := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
 
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-	// channel when it is finished.
+	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes
+	// each request to a channel when it is finished.
 	mgr, err := manager.New(cfg, manager.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	c := mgr.GetClient()

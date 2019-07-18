@@ -227,11 +227,6 @@ func (in *AWSMachineStatus) DeepCopyInto(out *AWSMachineStatus) {
 		*out = make([]v1.NodeAddress, len(*in))
 		copy(*out, *in)
 	}
-	if in.InstanceID != nil {
-		in, out := &in.InstanceID, &out.InstanceID
-		*out = new(string)
-		**out = **in
-	}
 	if in.InstanceState != nil {
 		in, out := &in.InstanceState, &out.InstanceState
 		*out = new(InstanceState)
