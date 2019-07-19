@@ -58,6 +58,12 @@ func (s *Service) reconcileVPC() error {
 		return nil
 	}
 
+	// Make sure attributes are configured
+	if err := s.ensureManagedVPCAttributes(vpc); err != nil {
+		record.Warnf(s.scope.Cluster, "FailedSetVPCAttributes", "Failed to set managed VPC attributes for %q: %v", vpc.ID, err)
+		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+	}
+
 	// Make sure tags are up to date.
 	err = tags.Ensure(vpc.Tags, &tags.ApplyParams{
 		EC2Client:   s.scope.EC2,
@@ -71,6 +77,47 @@ func (s *Service) reconcileVPC() error {
 
 	vpc.DeepCopyInto(s.scope.VPC())
 	s.scope.V(2).Info("Working on managed VPC", "vpc-id", vpc.ID)
+	return nil
+}
+
+func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha1.VPCSpec) error {
+	// Cannot get or set both attributes at the same time.
+	descAttrInput := &ec2.DescribeVpcAttributeInput{
+		VpcId:     aws.String(vpc.ID),
+		Attribute: aws.String("enableDnsHostnames"),
+	}
+	vpcAttr, err := s.scope.EC2.DescribeVpcAttribute(descAttrInput)
+	if err != nil {
+		return errors.Wrap(err, "failed to describe vpc attribute")
+	}
+	if !aws.BoolValue(vpcAttr.EnableDnsHostnames.Value) {
+		attrInput := &ec2.ModifyVpcAttributeInput{
+			VpcId:              aws.String(vpc.ID),
+			EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
+		}
+		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
+			return errors.Wrap(err, "failed to set vpc attributes")
+		}
+	}
+
+	descAttrInput = &ec2.DescribeVpcAttributeInput{
+		VpcId:     aws.String(vpc.ID),
+		Attribute: aws.String("enableDnsSupport"),
+	}
+	vpcAttr, err = s.scope.EC2.DescribeVpcAttribute(descAttrInput)
+	if err != nil {
+		return errors.Wrap(err, "failed to describe vpc attribute")
+	}
+	if !aws.BoolValue(vpcAttr.EnableDnsSupport.Value) {
+		attrInput := &ec2.ModifyVpcAttributeInput{
+			VpcId:            aws.String(vpc.ID),
+			EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
+		}
+		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
+			return errors.Wrap(err, "failed to set vpc attributes")
+		}
+	}
+
 	return nil
 }
 
@@ -91,32 +138,12 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create vpc")
 	}
-
-	// Cannot set both attributes at the same time.
-	attrInput := &ec2.ModifyVpcAttributeInput{
-		VpcId:              out.Vpc.VpcId,
-		EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
-	}
-
-	if _, err = s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
-		return nil, errors.Wrap(err, "failed to set vpc attributes")
-	}
-
-	attrInput = &ec2.ModifyVpcAttributeInput{
-		VpcId:            out.Vpc.VpcId,
-		EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
-	}
-
-	if _, err = s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
-		return nil, errors.Wrap(err, "failed to set vpc attributes")
-	}
+	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
 	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
 	if err := s.scope.EC2.WaitUntilVpcAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
-
-	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
 	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
 	tagApply := &tags.ApplyParams{
