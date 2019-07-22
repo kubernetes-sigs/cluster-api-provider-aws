@@ -45,6 +45,7 @@ func (r *ReconcileMachine) reconcile(ctx context.Context, cluster *v1alpha2.Clus
 	errors = append(errors, r.reconcileInfrastructure(ctx, m))
 	errors = append(errors, r.reconcileNodeRef(ctx, cluster, m))
 	errors = append(errors, r.reconcilePhase(ctx, m))
+	errors = append(errors, r.reconcileClusterAnnotations(ctx, cluster, m))
 
 	// Determine the return error, giving precedence to the first non-nil and non-requeueAfter errors.
 	for _, e := range errors {
@@ -65,19 +66,17 @@ func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machi
 	}
 
 	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
-	if (m.Status.BootstrapReady != nil && *m.Status.BootstrapReady) &&
-		(m.Status.InfrastructureReady == nil || !*m.Status.InfrastructureReady) {
+	if m.Status.BootstrapReady && !m.Status.InfrastructureReady {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseProvisioning)
 	}
 
 	// Set the phase to "provisioned" if the infrastructure is ready.
-	if m.Status.InfrastructureReady != nil && *m.Status.InfrastructureReady {
+	if m.Status.InfrastructureReady {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseProvisioned)
 	}
 
 	// Set the phase to "running" if there is a NodeRef field.
-	if m.Status.NodeRef != nil &&
-		(m.Status.InfrastructureReady != nil && *m.Status.InfrastructureReady) {
+	if m.Status.NodeRef != nil && m.Status.InfrastructureReady {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhaseRunning)
 	}
 
@@ -178,14 +177,14 @@ func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.M
 	}
 
 	if m.Spec.Bootstrap.Data != nil {
-		m.Status.BootstrapReady = pointer.BoolPtr(true)
+		m.Status.BootstrapReady = true
 		return nil
 	}
 
 	// Call generic external reconciler.
 	bootstrapConfig, err := r.reconcileExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
 	if bootstrapConfig == nil && err == nil {
-		m.Status.BootstrapReady = pointer.BoolPtr(false)
+		m.Status.BootstrapReady = false
 		return nil
 	} else if err != nil {
 		return err
@@ -214,7 +213,7 @@ func (r *ReconcileMachine) reconcileBootstrap(ctx context.Context, m *v1alpha2.M
 	}
 
 	m.Spec.Bootstrap.Data = pointer.StringPtr(data)
-	m.Status.BootstrapReady = pointer.BoolPtr(true)
+	m.Status.BootstrapReady = true
 	return nil
 }
 
@@ -228,8 +227,7 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 		return err
 	}
 
-	if (m.Status.InfrastructureReady != nil && *m.Status.InfrastructureReady) ||
-		!infraConfig.GetDeletionTimestamp().IsZero() {
+	if m.Status.InfrastructureReady || !infraConfig.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
@@ -251,6 +249,32 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 	}
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
-	m.Status.InfrastructureReady = pointer.BoolPtr(true)
+	m.Status.InfrastructureReady = true
+	return nil
+}
+
+// reconcileClusterAnnotations reconciles the annotations on the Cluster associated with Machines.
+// TODO(vincepri): Move to cluster controller once the proposal merges.
+func (r *ReconcileMachine) reconcileClusterAnnotations(ctx context.Context, cluster *v1alpha2.Cluster, m *v1alpha2.Machine) error {
+	if !m.DeletionTimestamp.IsZero() || cluster == nil {
+		return nil
+	}
+
+	// If the Machine is a control plane, it has a NodeRef and it's ready, set an annotation on the Cluster.
+	if util.IsControlPlaneMachine(m) && m.Status.NodeRef != nil && m.Status.InfrastructureReady {
+		if cluster.Annotations == nil {
+			cluster.SetAnnotations(map[string]string{})
+		}
+
+		if _, ok := cluster.Annotations[v1alpha2.ClusterAnnotationControlPlaneReady]; !ok {
+			clusterPatch := client.MergeFrom(cluster)
+			cluster.Annotations[v1alpha2.ClusterAnnotationControlPlaneReady] = "true"
+			if err := r.Client.Patch(ctx, cluster, clusterPatch); err != nil {
+				return errors.Wrapf(err, "failed to set control-plane-ready annotation on Cluster %q in namespace %q",
+					cluster.Name, cluster.Namespace)
+			}
+		}
+	}
+
 	return nil
 }

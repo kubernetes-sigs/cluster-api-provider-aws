@@ -24,7 +24,7 @@
 * [Naming](provider_implementations/naming.md)
 * [Generate CRDs](provider_implementations/generate_crds.md)
 * [Register Schemes](provider_implementations/register_schemes.md)
-* [Create Actuators](provider_implementations/create_scope.md)
+* [Create Actuators](provider_implementations/create_actuators.md)
 * [Register Controllers](provider_implementations/register_controllers.md)
 * [Building, Running, and Testing](provider_implementations/building_running_and_testing.md)
 
