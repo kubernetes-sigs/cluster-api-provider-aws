@@ -34,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 const (
@@ -74,8 +75,10 @@ func (s *Service) ReconcileCertificates() error {
 		s.scope.V(2).Info("Generating keypair for", "user", clusterCA)
 		clusterCAKeyPair, err := generateCACert(&s.scope.ClusterConfig.CAKeyPair, clusterCA)
 		if err != nil {
+			record.Warnf(s.scope.Cluster, "FailedCreateClusterCAKeyPair", "Failed to create Cluster CA Keypair: %v", err)
 			return errors.Wrapf(err, "Failed to generate certs for %q", clusterCA)
 		}
+		record.Event(s.scope.Cluster, "SuccessfulCreateClusterCAKeyPair", "Created Cluster CA Keypair")
 		s.scope.ClusterConfig.CAKeyPair = clusterCAKeyPair
 	}
 
@@ -83,16 +86,20 @@ func (s *Service) ReconcileCertificates() error {
 		s.scope.V(2).Info("Generating keypair", "user", etcdCA)
 		etcdCAKeyPair, err := generateCACert(&s.scope.ClusterConfig.EtcdCAKeyPair, etcdCA)
 		if err != nil {
+			record.Warnf(s.scope.Cluster, "FailedCreateETCDCAKeyPair", "Failed to create etcd CA Keypair: %v", err)
 			return errors.Wrapf(err, "Failed to generate certs for %q", etcdCA)
 		}
+		record.Event(s.scope.Cluster, "SuccessfulCreateETCDCAKeyPair", "Created Cluster etcd Keypair")
 		s.scope.ClusterConfig.EtcdCAKeyPair = etcdCAKeyPair
 	}
 	if !s.scope.ClusterConfig.FrontProxyCAKeyPair.HasCertAndKey() {
 		s.scope.V(2).Info("Generating keypair", "user", frontProxyCA)
 		fpCAKeyPair, err := generateCACert(&s.scope.ClusterConfig.FrontProxyCAKeyPair, frontProxyCA)
 		if err != nil {
+			record.Warnf(s.scope.Cluster, "FailedCreateFrontProxyCAKeyPair", "Failed to create front proxy CA Keypair: %v", err)
 			return errors.Wrapf(err, "Failed to generate certs for %q", frontProxyCA)
 		}
+		record.Event(s.scope.Cluster, "SuccessfulCreateFrontProxyCAKeyPair", "Created front proxy CA Keypair")
 		s.scope.ClusterConfig.FrontProxyCAKeyPair = fpCAKeyPair
 	}
 
@@ -100,8 +107,10 @@ func (s *Service) ReconcileCertificates() error {
 		s.scope.V(2).Info("Generating service account keys", "user", serviceAccount)
 		saKeyPair, err := generateServiceAccountKeys(&s.scope.ClusterConfig.SAKeyPair, serviceAccount)
 		if err != nil {
+			record.Warnf(s.scope.Cluster, "FailedCreateServiceAccountKeyPair", "Failed to create ServiceAccount Keypair: %v", err)
 			return errors.Wrapf(err, "Failed to generate keyPair for %q", serviceAccount)
 		}
+		record.Event(s.scope.Cluster, "SuccessfulCreateServiceAccountKeyPair", "Created ServiceAccount Keypair")
 		s.scope.ClusterConfig.SAKeyPair = saKeyPair
 	}
 	return nil

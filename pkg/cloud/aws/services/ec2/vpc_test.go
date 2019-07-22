@@ -31,6 +31,32 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
+func describeVpcAttributeTrue(input *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error) {
+	result := &ec2.DescribeVpcAttributeOutput{
+		VpcId: input.VpcId,
+	}
+	switch aws.StringValue(input.Attribute) {
+	case "enableDnsHostnames":
+		result.EnableDnsHostnames = &ec2.AttributeBooleanValue{Value: aws.Bool(true)}
+	case "enableDnsSupport":
+		result.EnableDnsSupport = &ec2.AttributeBooleanValue{Value: aws.Bool(true)}
+	}
+	return result, nil
+}
+
+func describeVpcAttributeFalse(input *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error) {
+	result := &ec2.DescribeVpcAttributeOutput{
+		VpcId: input.VpcId,
+	}
+	switch aws.StringValue(input.Attribute) {
+	case "enableDnsHostnames":
+		result.EnableDnsHostnames = &ec2.AttributeBooleanValue{Value: aws.Bool(false)}
+	case "enableDnsSupport":
+		result.EnableDnsSupport = &ec2.AttributeBooleanValue{Value: aws.Bool(false)}
+	}
+	return result, nil
+}
+
 func TestReconcileVPC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -80,6 +106,9 @@ func TestReconcileVPC(t *testing.T) {
 							},
 						},
 					}, nil)
+
+				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
 			},
 		},
 		{
@@ -111,6 +140,9 @@ func TestReconcileVPC(t *testing.T) {
 							CidrBlock: aws.String("10.1.0.0/16"),
 						},
 					}, nil)
+
+				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+					DoAndReturn(describeVpcAttributeFalse).AnyTimes()
 
 				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
 

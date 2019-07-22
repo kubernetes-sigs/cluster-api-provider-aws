@@ -102,6 +102,7 @@ LoopExisting:
 				})
 
 				if err != nil {
+					record.Warnf(s.scope.Cluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", exsn.ID, err)
 					return errors.Wrapf(err, "failed to ensure tags on subnet %q", exsn.ID)
 				}
 
@@ -124,8 +125,10 @@ LoopExisting:
 
 			nsn, err := s.createSubnet(subnet)
 			if err != nil {
+				record.Warnf(s.scope.Cluster, "FailedCreateSubnet", "Failed creating new managed Subnet %v", err)
 				return err
 			}
+			record.Eventf(s.scope.Cluster, "SuccessfulCreateSubnet", "Created new managed Subnet %q", nsn.ID)
 
 			nsn.DeepCopyInto(subnet)
 		}
@@ -247,6 +250,7 @@ func (s *Service) createSubnet(sn *v1alpha1.SubnetSpec) (*v1alpha1.SubnetSpec, e
 	}
 
 	if err := tags.Apply(applyTagsParams); err != nil {
+		record.Warnf(s.scope.Cluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", *out.Subnet.SubnetId, err)
 		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
 	}
 
@@ -259,6 +263,7 @@ func (s *Service) createSubnet(sn *v1alpha1.SubnetSpec) (*v1alpha1.SubnetSpec, e
 		}
 
 		if _, err := s.scope.EC2.ModifySubnetAttribute(attReq); err != nil {
+			record.Warnf(s.scope.Cluster, "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
 			return nil, errors.Wrapf(err, "failed to set subnet %q attributes", *out.Subnet.SubnetId)
 		}
 	}
@@ -268,8 +273,6 @@ func (s *Service) createSubnet(sn *v1alpha1.SubnetSpec) (*v1alpha1.SubnetSpec, e
 		"vpc-id", *out.Subnet.VpcId,
 		"cidr-block", *out.Subnet.CidrBlock,
 		"availability-zone", *out.Subnet.AvailabilityZone)
-
-	record.Eventf(s.scope.Cluster, "CreatedSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
 
 	return &v1alpha1.SubnetSpec{
 		ID:               *out.Subnet.SubnetId,
@@ -285,11 +288,12 @@ func (s *Service) deleteSubnet(id string) error {
 	})
 
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedDeleteSubnet", "Failed to delete managed Subnet %q: %v", id, err)
 		return errors.Wrapf(err, "failed to delete subnet %q", id)
 	}
 
 	s.scope.V(2).Info("Deleted subnet in vpc", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
-	record.Eventf(s.scope.Cluster, "DeletedSubnet", "Deleted managed Subnet %q", id)
+	record.Eventf(s.scope.Cluster, "SuccessfulDeleteSubnet", "Deleted managed Subnet %q", id)
 	return nil
 }
 
