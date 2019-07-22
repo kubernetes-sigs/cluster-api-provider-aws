@@ -26,8 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
@@ -50,16 +50,6 @@ func TestInstanceIfExists(t *testing.T) {
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello")},
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String("test-vpc")},
-						},
-						{
-							Name:   aws.String("instance-state-name"),
-							Values: []*string{aws.String("pending"), aws.String("running")},
-						},
-					},
 				})).
 					Return(nil, awserrors.NewNotFound(errors.New("not found")))
 			},
@@ -79,16 +69,6 @@ func TestInstanceIfExists(t *testing.T) {
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("id-1")},
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String("test-vpc")},
-						},
-						{
-							Name:   aws.String("instance-state-name"),
-							Values: []*string{aws.String("pending"), aws.String("running")},
-						},
-					},
 				})).
 					Return(&ec2.DescribeInstancesOutput{
 						Reservations: []*ec2.Reservation{
@@ -132,16 +112,6 @@ func TestInstanceIfExists(t *testing.T) {
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeInstances(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("one")},
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String("test-vpc")},
-						},
-						{
-							Name:   aws.String("instance-state-name"),
-							Values: []*string{aws.String("pending"), aws.String("running")},
-						},
-					},
 				}).
 					Return(nil, errors.New("some unknown error"))
 			},
@@ -565,7 +535,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope.Parent)
-			instance, err := s.createInstance(scope)
+			instance, err := s.CreateInstance(scope)
 			tc.check(instance, err)
 		})
 	}

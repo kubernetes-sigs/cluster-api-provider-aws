@@ -25,7 +25,9 @@ import (
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,7 +74,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 	return &MachineScope{
 		client:          params.Client,
-		patch:           client.MergeFrom(params.ProviderMachine),
+		patch:           client.MergeFrom(params.ProviderMachine.DeepCopy()),
 		Parent:          clusterScope,
 		Machine:         machine,
 		ProviderMachine: params.ProviderMachine,
@@ -126,19 +128,21 @@ func (m *MachineScope) Region() string {
 	return m.Parent.Region()
 }
 
-// GetInstanceID returns the AWSMachine instance id from the status.
+// GetInstanceID returns the AWSMachine instance id by parsing Spec.ProviderID.
 func (m *MachineScope) GetInstanceID() *string {
-	return m.ProviderMachine.Status.InstanceID
-}
-
-// SetInstanceID sets the AWSMachine instance id.
-func (m *MachineScope) SetInstanceID(v string) {
-	m.ProviderMachine.Status.InstanceID = pointer.StringPtr(v)
+	parsed, err := noderefutil.NewProviderID(m.GetProviderID())
+	if err != nil {
+		return nil
+	}
+	return pointer.StringPtr(parsed.ID())
 }
 
 // GetProviderID returns the AWSMachine providerID from the spec.
-func (m *MachineScope) GetProviderID() *string {
-	return m.ProviderMachine.Spec.ProviderID
+func (m *MachineScope) GetProviderID() string {
+	if m.ProviderMachine.Spec.ProviderID != nil {
+		return *m.ProviderMachine.Spec.ProviderID
+	}
+	return ""
 }
 
 // SetProviderID sets the AWSMachine providerID in spec.
@@ -154,6 +158,16 @@ func (m *MachineScope) GetInstanceState() *infrav1.InstanceState {
 // SetInstanceID sets the AWSMachine instance id.
 func (m *MachineScope) SetInstanceState(v infrav1.InstanceState) {
 	m.ProviderMachine.Status.InstanceState = &v
+}
+
+// SetErrorMessage sets the AWSMachine status error message.
+func (m *MachineScope) SetErrorMessage(v error) {
+	m.ProviderMachine.Status.ErrorMessage = pointer.StringPtr(v.Error())
+}
+
+// SetErrorReason sets the AWSMachine status error reason.
+func (m *MachineScope) SetErrorReason(v common.MachineStatusError) {
+	m.ProviderMachine.Status.ErrorReason = &v
 }
 
 // SetAnnotation sets a key value annotation on the AWSMachine.

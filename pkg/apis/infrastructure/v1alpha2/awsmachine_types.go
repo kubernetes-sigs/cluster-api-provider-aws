@@ -89,10 +89,6 @@ type AWSMachineStatus struct {
 	// Addresses contains the AWS instance associated addresses.
 	Addresses []v1.NodeAddress `json:"addresses,omitempty"`
 
-	// InstanceID is the instance ID of the machine created in AWS.
-	// +optional
-	InstanceID *string `json:"instanceID,omitempty"`
-
 	// InstanceState is the state of the AWS instance for this machine.
 	// +optional
 	InstanceState *InstanceState `json:"instanceState,omitempty"`

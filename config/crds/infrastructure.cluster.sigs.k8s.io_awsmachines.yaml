@@ -595,10 +595,6 @@ spec:
                 can be added as events to the Machine object and/or logged in the
                 controller's output."
               type: string
-            instanceID:
-              description: InstanceID is the instance ID of the machine created in
-                AWS.
-              type: string
             instanceState:
               description: InstanceState is the state of the AWS instance for this
                 machine.
