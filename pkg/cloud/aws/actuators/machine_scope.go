@@ -127,6 +127,11 @@ func (m *MachineScope) Close() {
 		return
 	}
 
+	if m.Machine.Spec.ProviderID == nil || *m.Machine.Spec.ProviderID == "" {
+		providerID := fmt.Sprintf("aws:////%s", *m.MachineStatus.InstanceID)
+		m.Machine.Spec.ProviderID = &providerID
+	}
+
 	ext, err := v1alpha1.EncodeMachineSpec(m.MachineConfig)
 	if err != nil {
 		m.Error(err, "failed to encode machine spec")

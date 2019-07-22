@@ -400,6 +400,12 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("failed to ensure tags: %+v", err)
 	}
 
+	scope.MachineStatus.InstanceState = &instanceDescription.State
+
+	if err := a.reconcileLBAttachment(scope, machine, instanceDescription); err != nil {
+		return errors.Errorf("failed to reconcile load balancer attachment: %+v", err)
+	}
+
 	return nil
 }
 
@@ -443,17 +449,6 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 		a.log.Info("Machine instance is pending", "instance-id", *scope.MachineStatus.InstanceID)
 	default:
 		return false, nil
-	}
-
-	scope.MachineStatus.InstanceState = &instance.State
-
-	if err := a.reconcileLBAttachment(scope, machine, instance); err != nil {
-		return true, err
-	}
-
-	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
-		providerID := fmt.Sprintf("aws:////%s", *scope.MachineStatus.InstanceID)
-		scope.Machine.Spec.ProviderID = &providerID
 	}
 
 	return true, nil
