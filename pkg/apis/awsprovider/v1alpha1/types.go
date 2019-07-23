@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	AnnotationClusterInfrastructureReady = "aws.cluster.sigs.k8s.io/infrastructure-ready"
-	AnnotationControlPlaneReady          = "aws.cluster.sigs.k8s.io/control-plane-ready"
+	AnnotationClusterInfrastructureReady = "aws.cluster.x-k8s.io/infrastructure-ready"
+	AnnotationControlPlaneReady          = "aws.cluster.x-k8s.io/control-plane-ready"
 	ValueReady                           = "true"
 )
 

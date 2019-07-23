@@ -71,8 +71,8 @@ func main() {
 	// Get a config to talk to the api-server.
 	cfg := config.GetConfigOrDie()
 	mgr, err := manager.New(cfg, manager.Options{
-		SyncPeriod: &syncPeriod,
-		Namespace:  *watchNamespace,
+		SyncPeriod:         &syncPeriod,
+		Namespace:          *watchNamespace,
 		MetricsBindAddress: *metricsAddress,
 	})
 	if err != nil {

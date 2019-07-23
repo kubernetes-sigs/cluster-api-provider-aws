@@ -4,80 +4,22 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   creationTimestamp: null
-  name: awsclusterproviderspecs.infrastructure.cluster.sigs.k8s.io
+  name: awsmachines.infrastructure.cluster.x-k8s.io
 spec:
-  group: infrastructure.cluster.sigs.k8s.io
+  group: infrastructure.cluster.x-k8s.io
   names:
-    kind: AWSClusterProviderSpec
-    plural: awsclusterproviderspecs
+    kind: AWSMachine
+    plural: awsmachines
   scope: ""
   validation:
     openAPIV3Schema:
-      description: AWSClusterProviderSpec is the providerConfig for AWS in the cluster
-        object
+      description: AWSMachine is the Schema for the awsmachines API
       properties:
-        additionalUserDataFiles:
-          description: AdditionalUserDataFiles specifies extra files to be passed
-            to all Machines' user_data upon creation.
-          items:
-            description: Files defines the input for generating write_files in cloud-init.
-            properties:
-              content:
-                description: Content is the actual content of the file.
-                type: string
-              owner:
-                description: Owner specifies the ownership of the file, e.g. "root:root".
-                type: string
-              path:
-                description: Path specifies the full path on disk where to store the
-                  file.
-                type: string
-              permissions:
-                description: Permissions specifies the permissions to assign to the
-                  file, e.g. "0640".
-                type: string
-            required:
-            - content
-            - owner
-            - path
-            - permissions
-            type: object
-          type: array
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
-        caKeyPair:
-          description: CAKeyPair is the key pair for ca certs.
-          properties:
-            cert:
-              format: byte
-              type: string
-            key:
-              format: byte
-              type: string
-          type: object
-        etcdCAKeyPair:
-          description: EtcdCAKeyPair is the key pair for etcd.
-          properties:
-            cert:
-              format: byte
-              type: string
-            key:
-              format: byte
-              type: string
-          type: object
-        frontProxyCAKeyPair:
-          description: FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
-          properties:
-            cert:
-              format: byte
-              type: string
-            key:
-              format: byte
-              type: string
-          type: object
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
@@ -454,88 +396,213 @@ spec:
                 by the system. Read-only. More info: http://kubernetes.io/docs/user-guide/identifiers#uids"
               type: string
           type: object
-        networkSpec:
-          description: NetworkSpec encapsulates all things related to AWS network.
+        spec:
+          description: AWSMachineSpec defines the desired state of AWSMachine
           properties:
-            subnets:
-              description: Subnets configuration.
+            additionalSecurityGroups:
+              description: AdditionalSecurityGroups is an array of references to security
+                groups that should be applied to the instance. These security groups
+                would be set in addition to any security groups defined at the cluster
+                level or in the actuator.
               items:
-                description: SubnetSpec configures an AWS Subnet.
+                description: AWSResourceReference is a reference to a specific AWS
+                  resource by ID, ARN, or filters. Only one of ID, ARN or Filters
+                  may be specified. Specifying more than one will result in a validation
+                  error.
                 properties:
-                  availabilityZone:
-                    description: AvailabilityZone defines the availability zone to
-                      use for this subnet in the cluster's region.
+                  arn:
+                    description: ARN of resource
                     type: string
-                  cidrBlock:
-                    description: CidrBlock is the CIDR block to be used when the provider
-                      creates a managed VPC.
-                    type: string
+                  filters:
+                    description: 'Filters is a set of key/value pairs used to identify
+                      a resource They are applied according to the rules defined by
+                      the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+                    items:
+                      description: Filter is a filter used to identify an AWS resource
+                      properties:
+                        name:
+                          description: Name of the filter. Filter names are case-sensitive.
+                          type: string
+                        values:
+                          description: Values includes one or more filter values.
+                            Filter values are case-sensitive.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - name
+                      - values
+                      type: object
+                    type: array
                   id:
-                    description: ID defines a unique identifier to reference this
-                      resource.
+                    description: ID of resource
                     type: string
-                  isPublic:
-                    description: IsPublic defines the subnet as a public subnet. A
-                      subnet is public when it is associated with a route table that
-                      has a route to an internet gateway.
-                    type: boolean
-                  natGatewayId:
-                    description: NatGatewayID is the NAT gateway id associated with
-                      the subnet. Ignored unless the subnet is managed by the provider,
-                      in which case this is set on the public subnet where the NAT
-                      gateway resides. It is then used to determine routes for private
-                      subnets in the same AZ as the public subnet.
-                    type: string
-                  routeTableId:
-                    description: RouteTableID is the routing table id associated with
-                      the subnet.
-                    type: string
-                  tags:
-                    additionalProperties:
-                      type: string
-                    description: Tags is a collection of tags describing the resource.
-                    type: object
                 type: object
               type: array
-            vpc:
-              description: VPC configuration.
+            additionalTags:
+              additionalProperties:
+                type: string
+              description: AdditionalTags is the set of tags to add to an instance,
+                in addition to the ones added by default by the actuator. These tags
+                are additive. The actuator will ensure these tags are present, but
+                will not remove any other tags that may exist on the instance.
+              type: object
+            ami:
+              description: AMI is the reference to the AMI from which to create the
+                machine instance.
               properties:
-                cidrBlock:
-                  description: CidrBlock is the CIDR block to be used when the provider
-                    creates a managed VPC. Defaults to 10.0.0.0/16.
+                arn:
+                  description: ARN of resource
                   type: string
+                filters:
+                  description: 'Filters is a set of key/value pairs used to identify
+                    a resource They are applied according to the rules defined by
+                    the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+                  items:
+                    description: Filter is a filter used to identify an AWS resource
+                    properties:
+                      name:
+                        description: Name of the filter. Filter names are case-sensitive.
+                        type: string
+                      values:
+                        description: Values includes one or more filter values. Filter
+                          values are case-sensitive.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - name
+                    - values
+                    type: object
+                  type: array
                 id:
-                  description: ID is the vpc-id of the VPC this provider should use
-                    to create resources.
+                  description: ID of resource
                   type: string
-                internetGatewayId:
-                  description: InternetGatewayID is the id of the internet gateway
-                    associated with the VPC.
+              type: object
+            availabilityZone:
+              description: AvailabilityZone is references the AWS availability zone
+                to use for this instance. If multiple subnets are matched for the
+                availability zone, the first one return is picked.
+              type: string
+            iamInstanceProfile:
+              description: IAMInstanceProfile is a name of an IAM instance profile
+                to assign to the instance
+              type: string
+            imageLookupOrg:
+              description: ImageLookupOrg is the AWS Organization ID to use for image
+                lookup if AMI is not set.
+              type: string
+            instanceType:
+              description: 'InstanceType is the type of instance to create. Example:
+                m4.xlarge'
+              type: string
+            keyName:
+              description: KeyName is the name of the SSH key to install on the instance.
+              type: string
+            providerID:
+              description: ProviderID is the unique identifier as specified by the
+                cloud provider.
+              type: string
+            publicIP:
+              description: 'PublicIP specifies whether the instance should get a public
+                IP. Precedence for this setting is as follows: 1. This field if set
+                2. Cluster/flavor setting 3. Subnet default'
+              type: boolean
+            rootDeviceSize:
+              description: RootDeviceSize is the size of the root volume.
+              format: int64
+              type: integer
+            subnet:
+              description: Subnet is a reference to the subnet to use for this instance.
+                If not specified, the cluster subnet will be used.
+              properties:
+                arn:
+                  description: ARN of resource
                   type: string
-                tags:
-                  additionalProperties:
-                    type: string
-                  description: Tags is a collection of tags describing the resource.
-                  type: object
+                filters:
+                  description: 'Filters is a set of key/value pairs used to identify
+                    a resource They are applied according to the rules defined by
+                    the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+                  items:
+                    description: Filter is a filter used to identify an AWS resource
+                    properties:
+                      name:
+                        description: Name of the filter. Filter names are case-sensitive.
+                        type: string
+                      values:
+                        description: Values includes one or more filter values. Filter
+                          values are case-sensitive.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - name
+                    - values
+                    type: object
+                  type: array
+                id:
+                  description: ID of resource
+                  type: string
               type: object
           type: object
-        region:
-          description: The AWS Region the cluster lives in.
-          type: string
-        saKeyPair:
-          description: SAKeyPair is the service account key pair.
+        status:
+          description: AWSMachineStatus defines the observed state of AWSMachine
           properties:
-            cert:
-              format: byte
+            addresses:
+              description: Addresses contains the AWS instance associated addresses.
+              items:
+                description: NodeAddress contains information for the node's address.
+                properties:
+                  address:
+                    description: The node address.
+                    type: string
+                  type:
+                    description: Node address type, one of Hostname, ExternalIP or
+                      InternalIP.
+                    type: string
+                required:
+                - address
+                - type
+                type: object
+              type: array
+            errorMessage:
+              description: "ErrorMessage will be set in the event that there is a
+                terminal problem reconciling the Machine and will contain a more verbose
+                string suitable for logging and human consumption. \n This field should
+                not be set for transitive errors that a controller faces that are
+                expected to be fixed automatically over time (like service outages),
+                but instead indicate that something is fundamentally wrong with the
+                Machine's spec or the configuration of the controller, and that manual
+                intervention is required. Examples of terminal errors would be invalid
+                combinations of settings in the spec, values that are unsupported
+                by the controller, or the responsible controller itself being critically
+                misconfigured. \n Any transient errors that occur during the reconciliation
+                of Machines can be added as events to the Machine object and/or logged
+                in the controller's output."
               type: string
-            key:
-              format: byte
+            errorReason:
+              description: "ErrorReason will be set in the event that there is a terminal
+                problem reconciling the Machine and will contain a succinct value
+                suitable for machine interpretation. \n This field should not be set
+                for transitive errors that a controller faces that are expected to
+                be fixed automatically over time (like service outages), but instead
+                indicate that something is fundamentally wrong with the Machine's
+                spec or the configuration of the controller, and that manual intervention
+                is required. Examples of terminal errors would be invalid combinations
+                of settings in the spec, values that are unsupported by the controller,
+                or the responsible controller itself being critically misconfigured.
+                \n Any transient errors that occur during the reconciliation of Machines
+                can be added as events to the Machine object and/or logged in the
+                controller's output."
               type: string
+            instanceState:
+              description: InstanceState is the state of the AWS instance for this
+                machine.
+              type: string
+            ready:
+              description: Ready is true when the provider resource is ready.
+              type: boolean
           type: object
-        sshKeyName:
-          description: SSHKeyName is the name of the ssh key to attach to the bastion
-            host.
-          type: string
       type: object
   versions:
   - name: v1alpha2
