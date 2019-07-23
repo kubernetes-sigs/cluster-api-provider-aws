@@ -8,8 +8,9 @@
 4. run `go run cmd/release/main.go -version v0.1.2` but replace the version with the version you'd like.
 5. push the docker images that were generated with this release tool
 6. Edit the release notes and make sure the binaries uploaded return the correct version
-7. Publish draft
-8. If it's a major release, notify `kubernetes-dev@googlegroups.com`
+7. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter)
+8. Publish draft
+9. If it's a major release, notify `kubernetes-dev@googlegroups.com`
 
 ## Manual
 
@@ -18,16 +19,14 @@
 3. Tag the repository and push the tag `git tag -s $VERSION`
 4. Create a draft release in github and associate it with the tag that was just created
 5. Checkout the tag you've just created and make sure git is in a clean state
-6. Run `make release-artifacts`
+6. Run `make release-artifacts REGISTRY=us.gcr.io/k8s-artifacts-prod/cluster-api-aws MANAGER_IMAGE_TAG=${VERSION}`
 7. Attach the tarball to the drafted release
-8. Attach `clusterawsadm` and `clusterctl` to the drafted release (for darwin
-   and linux architectures)
-9. Write the release notes (see note below on release notes)
-10. Get someone with permission (any ex heptio) to copy the container image from your own
-   personal gcr registry to the production one, or have them build and push the
-   container image themselves.
-11. Publish release
-12. Email `kubernetes-dev@googlegroups.com` to announce the release
+8. Attach `clusterawsadm` and `clusterctl` to the drafted release (for darwin and linux architectures)
+9. Run `make docker-build docker-push REGISTRY=gcr.io/k8s-staging-cluster-api-aws MANAGER_IMAGE_TAG=${VERSION}`
+10. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter)
+11. Write the release notes (see note below on release notes)
+12. Publish release
+13. Email `kubernetes-dev@googlegroups.com` to announce the release
 
 ## Expected artifacts
 
@@ -43,7 +42,7 @@
 
 ### Container image
 
-The container image will live in the registry `gcr.io/cluster-api-provider-aws`
+The container image will live in the registry `gcr.io/k8s-staging-cluster-api-aws`
 under the image name `cluster-api-aws-controller:<tag>` where `<tag>` is
 replaced by the version being released.
 

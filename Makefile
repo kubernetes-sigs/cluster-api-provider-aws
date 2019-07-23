@@ -17,7 +17,7 @@
 
 .DEFAULT_GOAL:=help
 
-# A release should define this with gcr.io/cluster-api-provider-aws
+# A release should define this with gcr.io/k8s-staging-cluster-api-aws
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 
 # A release should define this with IfNotPresent
