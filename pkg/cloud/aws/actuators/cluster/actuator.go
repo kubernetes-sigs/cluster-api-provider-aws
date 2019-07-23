@@ -123,6 +123,14 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		kubeConfigSecret := &apiv1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: kubeConfigSecretName,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: cluster.APIVersion,
+						Kind:       cluster.Kind,
+						Name:       cluster.Name,
+						UID:        cluster.UID,
+					},
+				},
 			},
 			StringData: map[string]string{
 				"value": kubeConfig,
