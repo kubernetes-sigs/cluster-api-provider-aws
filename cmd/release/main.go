@@ -74,8 +74,6 @@ func main() {
 			"cluster-api-provider-aws-examples.tar",
 			"clusterawsadm-darwin-amd64",
 			"clusterawsadm-linux-amd64",
-			"clusterctl-darwin-amd64",
-			"clusterctl-linux-amd64",
 		},
 		registry:         fmt.Sprintf("%s/%s", registry, repository),
 		imageName:        managerImageName,

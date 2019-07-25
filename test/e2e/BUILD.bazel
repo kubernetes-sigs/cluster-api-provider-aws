@@ -83,14 +83,14 @@ go_test(
 genrule(
     name = "manifests",
     srcs = [
-        "//cmd/clusterctl/examples/aws:addons.yaml",
-        "//cmd/clusterctl/examples/aws:cluster.yaml.template",
-        "//cmd/clusterctl/examples/aws:cluster-network-spec.yaml.template",
-        "//cmd/clusterctl/examples/aws:machine-deployment.yaml.template",
-        "//cmd/clusterctl/examples/aws:machines.yaml.template",
-        "//cmd/clusterctl/examples/aws:machines-ha.yaml.template",
-        "//cmd/clusterctl/examples/aws:provider-components-base.yaml",
-        "//cmd/clusterctl/examples/aws:generate-yaml.sh",
+        "//examples:addons.yaml",
+        "//examples:cluster.yaml.template",
+        "//examples:cluster-network-spec.yaml.template",
+        "//examples:machine-deployment.yaml.template",
+        "//examples:machines.yaml.template",
+        "//examples:machines-ha.yaml.template",
+        "//examples:provider-components-base.yaml",
+        "//examples:generate-yaml.sh",
         "manifests/provider-credentials.sh",
     ],
     outs = [
@@ -109,7 +109,7 @@ genrule(
             "CLUSTERAWSADM=$(location //cmd/clusterawsadm)",
             "OUTPUT_DIR=$(@D)/manifests",
             "DIR=$(@D)",
-            "$(location //cmd/clusterctl/examples/aws:generate-yaml.sh) -f",
+            "$(location //examples:generate-yaml.sh) -f",
         ]),
     ]),
     tools = [

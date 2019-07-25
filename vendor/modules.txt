@@ -1,18 +1,3 @@
-# cloud.google.com/go v0.34.0
-cloud.google.com/go/compute/metadata
-# contrib.go.opencensus.io/exporter/ocagent v0.4.12
-contrib.go.opencensus.io/exporter/ocagent
-# github.com/Azure/go-autorest/autorest v0.2.0
-github.com/Azure/go-autorest/autorest
-github.com/Azure/go-autorest/autorest/azure
-# github.com/Azure/go-autorest/autorest/adal v0.1.0
-github.com/Azure/go-autorest/autorest/adal
-# github.com/Azure/go-autorest/autorest/date v0.1.0
-github.com/Azure/go-autorest/autorest/date
-# github.com/Azure/go-autorest/logger v0.1.0
-github.com/Azure/go-autorest/logger
-# github.com/Azure/go-autorest/tracing v0.1.0
-github.com/Azure/go-autorest/tracing
 # github.com/aws/aws-sdk-go v1.20.19
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/defaults
@@ -61,17 +46,8 @@ github.com/awslabs/goformation/intrinsics
 github.com/awslabs/goformation/cloudformation/policies
 # github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
 github.com/beorn7/perks/quantile
-# github.com/census-instrumentation/opencensus-proto v0.2.0
-github.com/census-instrumentation/opencensus-proto/gen-go/agent/common/v1
-github.com/census-instrumentation/opencensus-proto/gen-go/agent/metrics/v1
-github.com/census-instrumentation/opencensus-proto/gen-go/agent/trace/v1
-github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1
-github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
-github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/dgrijalva/jwt-go v3.2.0+incompatible
-github.com/dgrijalva/jwt-go
 # github.com/evanphx/json-patch v4.5.0+incompatible
 github.com/evanphx/json-patch
 # github.com/fatih/color v1.7.0
@@ -95,31 +71,12 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-github.com/golang/protobuf/ptypes/wrappers
-github.com/golang/protobuf/jsonpb
-github.com/golang/protobuf/protoc-gen-go/generator
-github.com/golang/protobuf/ptypes/struct
-github.com/golang/protobuf/protoc-gen-go/descriptor
-github.com/golang/protobuf/protoc-gen-go/generator/internal/remap
-github.com/golang/protobuf/protoc-gen-go/plugin
 # github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
 github.com/google/gofuzz
 # github.com/googleapis/gnostic v0.2.0
 github.com/googleapis/gnostic/OpenAPIv2
 github.com/googleapis/gnostic/compiler
 github.com/googleapis/gnostic/extensions
-# github.com/gophercloud/gophercloud v0.2.0
-github.com/gophercloud/gophercloud
-github.com/gophercloud/gophercloud/openstack
-github.com/gophercloud/gophercloud/openstack/identity/v2/tokens
-github.com/gophercloud/gophercloud/openstack/identity/v3/tokens
-github.com/gophercloud/gophercloud/openstack/utils
-github.com/gophercloud/gophercloud/openstack/identity/v2/tenants
-github.com/gophercloud/gophercloud/pagination
-# github.com/grpc-ecosystem/grpc-gateway v1.8.5
-github.com/grpc-ecosystem/grpc-gateway/runtime
-github.com/grpc-ecosystem/grpc-gateway/utilities
-github.com/grpc-ecosystem/grpc-gateway/internal
 # github.com/hashicorp/golang-lru v0.5.0
 github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
@@ -212,25 +169,6 @@ github.com/sanathkr/yaml
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
-# go.opencensus.io v0.20.2
-go.opencensus.io/plugin/ochttp
-go.opencensus.io/plugin/ochttp/propagation/tracecontext
-go.opencensus.io/stats/view
-go.opencensus.io/trace
-go.opencensus.io
-go.opencensus.io/plugin/ocgrpc
-go.opencensus.io/resource
-go.opencensus.io/stats
-go.opencensus.io/tag
-go.opencensus.io/trace/tracestate
-go.opencensus.io/plugin/ochttp/propagation/b3
-go.opencensus.io/trace/propagation
-go.opencensus.io/internal/tagencoding
-go.opencensus.io/metric/metricdata
-go.opencensus.io/metric/metricproducer
-go.opencensus.io/stats/internal
-go.opencensus.io/internal
-go.opencensus.io/trace/internal
 # go.uber.org/atomic v1.3.2
 go.uber.org/atomic
 # go.uber.org/multierr v1.1.0
@@ -254,16 +192,9 @@ golang.org/x/net/idna
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/context/ctxhttp
-golang.org/x/net/trace
-golang.org/x/net/internal/timeseries
 # golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-golang.org/x/oauth2/google
-golang.org/x/oauth2/jws
-golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20190423024810-112230192c58
-golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20190429190828-d89cdac9e872
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -303,55 +234,14 @@ golang.org/x/tools/go/internal/gcimporter
 golang.org/x/tools/internal/fastwalk
 # gomodules.xyz/jsonpatch/v2 v2.0.0
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/api v0.3.1
-google.golang.org/api/support/bundler
 # google.golang.org/appengine v1.4.0
 google.golang.org/appengine/urlfetch
-google.golang.org/appengine
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/urlfetch
-google.golang.org/appengine/internal/app_identity
-google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
-# google.golang.org/genproto v0.0.0-20190307195333-5fe7a883aa19
-google.golang.org/genproto/googleapis/api/httpbody
-google.golang.org/genproto/protobuf/field_mask
-google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.19.1
-google.golang.org/grpc
-google.golang.org/grpc/credentials
-google.golang.org/grpc/metadata
-google.golang.org/grpc/codes
-google.golang.org/grpc/grpclog
-google.golang.org/grpc/status
-google.golang.org/grpc/stats
-google.golang.org/grpc/balancer
-google.golang.org/grpc/balancer/roundrobin
-google.golang.org/grpc/connectivity
-google.golang.org/grpc/encoding
-google.golang.org/grpc/encoding/proto
-google.golang.org/grpc/internal
-google.golang.org/grpc/internal/backoff
-google.golang.org/grpc/internal/binarylog
-google.golang.org/grpc/internal/channelz
-google.golang.org/grpc/internal/envconfig
-google.golang.org/grpc/internal/grpcrand
-google.golang.org/grpc/internal/grpcsync
-google.golang.org/grpc/internal/transport
-google.golang.org/grpc/keepalive
-google.golang.org/grpc/naming
-google.golang.org/grpc/peer
-google.golang.org/grpc/resolver
-google.golang.org/grpc/resolver/dns
-google.golang.org/grpc/resolver/passthrough
-google.golang.org/grpc/tap
-google.golang.org/grpc/credentials/internal
-google.golang.org/grpc/balancer/base
-google.golang.org/grpc/binarylog/grpc_binarylog_v1
-google.golang.org/grpc/internal/syscall
 # gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
@@ -430,9 +320,9 @@ k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/apis/meta/v1/validation
 k8s.io/apimachinery/pkg/util/validation/field
+k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/util/yaml
-k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/runtime/serializer/json
 k8s.io/apimachinery/pkg/runtime/serializer/protobuf
 k8s.io/apimachinery/pkg/runtime/serializer/recognizer
@@ -511,7 +401,6 @@ k8s.io/client-go/tools/metrics
 k8s.io/client-go/transport
 k8s.io/client-go/util/cert
 k8s.io/client-go/tools/clientcmd/api/v1
-k8s.io/client-go/plugin/pkg/client/auth
 k8s.io/client-go/tools/cache
 k8s.io/client-go/restmapper
 k8s.io/client-go/testing
@@ -520,14 +409,8 @@ k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
 k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
 k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/keyutil
-k8s.io/client-go/plugin/pkg/client/auth/azure
-k8s.io/client-go/plugin/pkg/client/auth/gcp
-k8s.io/client-go/plugin/pkg/client/auth/oidc
-k8s.io/client-go/plugin/pkg/client/auth/openstack
 k8s.io/client-go/tools/pager
 k8s.io/client-go/util/retry
-k8s.io/client-go/util/jsonpath
-k8s.io/client-go/third_party/forked/golang/template
 # k8s.io/cluster-bootstrap v0.0.0-20190711112844-b7409fb13d1b
 k8s.io/cluster-bootstrap/token/api
 k8s.io/cluster-bootstrap/token/util
@@ -560,7 +443,6 @@ k8s.io/code-generator/cmd/client-gen/generators/util
 k8s.io/code-generator/cmd/client-gen/path
 k8s.io/code-generator/pkg/namer
 # k8s.io/component-base v0.0.0-20190409021516-bd2732e5c3f7
-k8s.io/component-base/cli/flag
 k8s.io/component-base/config
 # k8s.io/gengo v0.0.0-20190327210449-e17681d19d3a
 k8s.io/gengo/args
@@ -594,32 +476,20 @@ k8s.io/utils/exec
 k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
-# sigs.k8s.io/cluster-api v0.0.0-20190722140253-cbb820d5e396 => sigs.k8s.io/cluster-api v0.0.0-20190722140253-cbb820d5e396
+# sigs.k8s.io/cluster-api v0.0.0-20190723164546-bf8541c6acdf => sigs.k8s.io/cluster-api v0.0.0-20190723164546-bf8541c6acdf
 sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset
-sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
-sigs.k8s.io/cluster-api/pkg/apis/cluster/common
 sigs.k8s.io/cluster-api/pkg/apis
 sigs.k8s.io/cluster-api/pkg/controller/cluster
 sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1
+sigs.k8s.io/cluster-api/pkg/apis/cluster/common
 sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2
 sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha2
 sigs.k8s.io/cluster-api/pkg/controller/remote
 sigs.k8s.io/cluster-api/pkg/errors
 sigs.k8s.io/cluster-api/pkg/util
-sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/deprecated/v1alpha1
-sigs.k8s.io/cluster-api/cmd/clusterctl/clientcmd
-sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer
-sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap
-sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient
-sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider
-sigs.k8s.io/cluster-api/cmd/clusterctl/phases
-sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents
-sigs.k8s.io/cluster-api/cmd/clusterctl/validation
-sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme
-sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing
-sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/kind
-sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube
 sigs.k8s.io/cluster-api/pkg/controller/noderefutil
+sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/deprecated/v1alpha1
+sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme
 # sigs.k8s.io/controller-runtime v0.2.0-beta.4
 sigs.k8s.io/controller-runtime/pkg/client/config
 sigs.k8s.io/controller-runtime/pkg/manager
