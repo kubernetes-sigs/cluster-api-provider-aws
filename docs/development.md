@@ -149,8 +149,8 @@ It's expected that some set of AWS credentials are available at the time, either
 as environment variable, a CLI profile or other SDK-supported method.
 
 You will then have a sample cluster and machine manifest in:
-`/cmd/clusterctl/examples/aws/out` and a provider components file to use with clusterctl in
-`cmd/clusterctl/examples/aws/out/provider-components.yaml`
+`examples/out` and a provider components file to use with clusterctl in
+`examples/out/provider-components.yaml`
 
 #### Running clusterctl
 

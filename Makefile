@@ -95,13 +95,13 @@ docker-push: docker-build ## Push the docker image
 ## --------------------------------------
 
 .PHONY: manifests
-manifests: cmd/clusterctl/examples/aws/provider-components-base.yaml ## Build example set of manifests from the current source
-	./cmd/clusterctl/examples/aws/generate-yaml.sh
+manifests: examples/provider-components-base.yaml ## Build example set of manifests from the current source
+	./examples/generate-yaml.sh
 
-.PHONY: cmd/clusterctl/examples/aws/provider-components-base.yaml
-cmd/clusterctl/examples/aws/provider-components-base.yaml:
-	bazel build //cmd/clusterctl/examples/aws:provider-components-base $(BAZEL_BUILD_ARGS)
-	install bazel-genfiles/cmd/clusterctl/examples/aws/provider-components-base.yaml cmd/clusterctl/examples/aws
+.PHONY: examples/provider-components-base.yaml
+examples/provider-components-base.yaml:
+	bazel build //examples:provider-components-base $(BAZEL_BUILD_ARGS)
+	install bazel-genfiles/examples/provider-components-base.yaml examples
 
 ## --------------------------------------
 ## Generate
@@ -168,7 +168,7 @@ manager: ## Build manager binary.
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary.
-	go build -o bin/clusterctl ./cmd/clusterctl
+	GOFLAGS="" go build -o bin/clusterctl ./vendor/sigs.k8s.io/cluster-api/cmd/clusterctl
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
@@ -180,15 +180,13 @@ clusterawsadm: ## Build clusterawsadm binary.
 
 .PHONY: release-artifacts
 release-artifacts: ## Build release artifacts
-	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterctl //cmd/clusterawsadm
-	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterctl //cmd/clusterawsadm
-	bazel build //cmd/clusterctl/examples/aws $(BAZEL_BUILD_ARGS)
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterawsadm
+	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterawsadm
+	bazel build //examples $(BAZEL_BUILD_ARGS)
 	mkdir -p out
 	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm out/clusterawsadm-darwin-amd64
 	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm out/clusterawsadm-linux-amd64
-	install bazel-bin/cmd/clusterctl/darwin_amd64_pure_stripped/clusterctl out/clusterctl-darwin-amd64
-	install bazel-bin/cmd/clusterctl/linux_amd64_pure_stripped/clusterctl out/clusterctl-linux-amd64
-	install bazel-bin/cmd/clusterctl/examples/aws/aws.tar out/cluster-api-provider-aws-examples.tar
+	install bazel-bin/examples/aws.tar out/cluster-api-provider-aws-examples.tar
 
 ## --------------------------------------
 ## Define local development targets here
@@ -199,20 +197,20 @@ create-cluster: binaries ## Create a development Kubernetes cluster on AWS using
 	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
-	-m ./cmd/clusterctl/examples/aws/out/machines.yaml \
-	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
-	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
-	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
+	-m ./examples/out/machines.yaml \
+	-c ./examples/out/cluster.yaml \
+	-p ./examples/out/provider-components.yaml \
+	-a ./examples/out/addons.yaml
 
 .PHONY: create-cluster-ha
 create-cluster-ha: binaries ## Create a development Kubernetes cluster on AWS using HA examples
 	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
-	-m ./cmd/clusterctl/examples/aws/out/machines-ha.yaml \
-	-c ./cmd/clusterctl/examples/aws/out/cluster.yaml \
-	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
-	-a ./cmd/clusterctl/examples/aws/out/addons.yaml
+	-m ./examples/machines-ha.yaml \
+	-c ./examples/cluster.yaml \
+	-p ./examples/provider-components.yaml \
+	-a ./examples/addons.yaml
 
 .PHONY: create-cluster-management
 create-cluster-management: ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
@@ -220,15 +218,15 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 	# Apply provider-components.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f cmd/clusterctl/examples/aws/out/provider-components.yaml
+		create -f examples/out/provider-components.yaml
 	# Create Cluster.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f cmd/clusterctl/examples/aws/out/cluster.yaml
+		create -f examples/out/cluster.yaml
 	# Create control plane machine.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f cmd/clusterctl/examples/aws/out/controlplane-machine.yaml
+		create -f examples/out/controlplane-machine.yaml
 	# Get KubeConfig using clusterctl.
 	bin/clusterctl alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
@@ -237,11 +235,11 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
 	bin/clusterctl alpha phases apply-addons -v=3 \
 		--kubeconfig=./kubeconfig \
-		-a cmd/clusterctl/examples/aws/out/addons.yaml
+		-a examples/out/addons.yaml
 	# Create a worker node with MachineDeployment.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f cmd/clusterctl/examples/aws/out/machine-deployment.yaml
+		create -f examples/out/machine-deployment.yaml
 
 .PHONY: delete-cluster
 delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
@@ -249,7 +247,7 @@ delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
 	--bootstrap-type kind \
 	--cluster test1 \
 	--kubeconfig ./kubeconfig \
-	-p ./cmd/clusterctl/examples/aws/out/provider-components.yaml \
+	-p ./examples/out/provider-components.yaml \
 
 kind-reset: ## Destroys the "clusterapi" kind cluster.
 	kind delete cluster --name=clusterapi || true
@@ -277,8 +275,8 @@ clean-temporary: ## Remove all temporary files and folders
 	rm -f minikube.kubeconfig
 	rm -f kubeconfig
 	rm -rf out/
-	rm -rf cmd/clusterctl/examples/aws/out/
-	rm -f cmd/clusterctl/examples/aws/provider-components-base.yaml
+	rm -rf examples/out/
+	rm -f examples/provider-components-base.yaml
 
 .PHONY: verify
 verify: ## Runs verification scripts to ensure correct execution
