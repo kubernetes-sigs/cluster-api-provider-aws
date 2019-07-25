@@ -24,13 +24,13 @@ import (
 
 const (
 	// MachineFinalizer is set on PrepareForCreate callback.
-	MachineFinalizer = "machine.cluster.sigs.k8s.io"
+	MachineFinalizer = "machine.cluster.x-k8s.io"
 
 	// MachineClusterLabelName is the label set on machines linked to a cluster.
-	MachineClusterLabelName = "cluster.sigs.k8s.io/cluster-name"
+	MachineClusterLabelName = "cluster.x-k8s.io/cluster-name"
 
 	// MachineControlPlaneLabelName is the label set on machines part of a control plane.
-	MachineControlPlaneLabelName = "cluster.sigs.k8s.io/control-plane"
+	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
 )
 
 // +genclient
@@ -146,9 +146,10 @@ type MachineStatus struct {
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 
-	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
+	// Addresses is a list of addresses assigned to the machine.
+	// This field is copied from the infrastructure provider reference.
 	// +optional
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+	Addresses MachineAddresses `json:"addresses,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
