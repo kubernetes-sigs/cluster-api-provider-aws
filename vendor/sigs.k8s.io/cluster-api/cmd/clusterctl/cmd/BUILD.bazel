@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
@@ -50,4 +50,10 @@ go_library(
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client/config:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
     ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = ["create_cluster_test.go"],
+    embed = [":go_default_library"],
 )

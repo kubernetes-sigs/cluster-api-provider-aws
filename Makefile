@@ -42,7 +42,6 @@ $(BAZEL_ARGS)
 
 # Bazel variables
 BAZEL_VERSION := $(shell command -v bazel 2> /dev/null)
-DEP ?= bazel run dep
 
 # Determine the OS
 HOSTOS := $(shell go env GOHOSTOS)
@@ -133,24 +132,18 @@ cmd/clusterctl/examples/aws/provider-components-base.yaml:
 ## Generate
 ## --------------------------------------
 
-.PHONY: dep-ensure
-dep-ensure: check-install ## Ensure dependencies are up to date
-	@${DEP} ensure
-	$(MAKE) remove-vendor-symlinks
+.PHONY: vendor
+vendor: ## Runs go mod to ensure proper vendoring.
+	./hack/update-vendor.sh
 	$(MAKE) gazelle
-
-.PHONY: remove-vendor-symlinks
-remove-vendor-symlinks: ## Remove broken symlinks created by dep
-	find vendor -type l ! -exec test -e {} \; -print0 | xargs -0 rm -v
 
 .PHONY: gazelle
 gazelle: ## Run Bazel Gazelle
-	bazel run //:gazelle $(BAZEL_ARGS)
+	(which bazel && ./hack/update-bazel.sh) || true
 
 .PHONY: generate
 generate: ## Generate mocks, CRDs and runs `go generate` through Bazel
 	GOPATH=$(shell go env GOPATH) bazel run //:generate $(BAZEL_ARGS)
-	$(MAKE) dep-ensure
 	bazel build $(BAZEL_ARGS) //pkg/cloud/aws/services/mocks:mocks \
 		//pkg/cloud/aws/services/ec2/mock_ec2iface:mocks \
 		//pkg/cloud/aws/services/elb/mock_elbiface:mocks
@@ -168,10 +161,10 @@ generate-crds:
 ## --------------------------------------
 
 .PHONY: lint
-lint: dep-ensure ## Lint codebase
+lint: ## Lint codebase
 	bazel run //:lint $(BAZEL_ARGS)
 
-lint-full: dep-ensure ## Run slower linters to detect possible issues
+lint-full: ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
 
 ## --------------------------------------
