@@ -42,7 +42,8 @@ const (
 	repository = "cluster-api-provider-aws"
 
 	// TODO move these into config
-	registry         = "gcr.io"
+	stagingRegistry  = "gcr.io/k8s-staging-cluster-api-aws"
+	prodRegistry     = "us.gcr.io/k8s-artifacts-prod/cluster-api-aws"
 	managerImageName = "cluster-api-aws-controller"
 	pullPolicy       = "IfNotPresent"
 )
@@ -74,8 +75,11 @@ func main() {
 			"cluster-api-provider-aws-examples.tar",
 			"clusterawsadm-darwin-amd64",
 			"clusterawsadm-linux-amd64",
+			"clusterctl-darwin-amd64",
+			"clusterctl-linux-amd64",
 		},
-		registry:         fmt.Sprintf("%s/%s", registry, repository),
+		stagingRegistry:  stagingRegistry,
+		prodRegistry:     prodRegistry,
 		imageName:        managerImageName,
 		pullPolicy:       pullPolicy,
 		githubRepository: repository,
@@ -86,10 +90,11 @@ func main() {
 	logger := &stdoutlogger{}
 	run := &runner{
 		builder: makebuilder{
-			registry:   cfg.registry,
-			imageTag:   cfg.version,
-			pullPolicy: cfg.pullPolicy,
-			logger:     logger,
+			stagingRegistry: cfg.stagingRegistry,
+			prodRegistry:    cfg.prodRegistry,
+			imageTag:        cfg.version,
+			pullPolicy:      cfg.pullPolicy,
+			logger:          logger,
 		},
 		releaser: gothubReleaser{
 			artifactsDir: cfg.artifactDir,
@@ -116,7 +121,7 @@ func main() {
 	// TODO(chuckha): automate writing the release notes
 	fmt.Println("- Write the release notes. It is a manual process")
 	// TODO(chuckha): something something docker container
-	fmt.Println("- push the container images")
+	fmt.Println("- promote the container images")
 	// TODO(chuckha): send an email or at least print out the contents of an
 	// email to
 	fmt.Println("- Email kubernetes-dev@googlegroups.com to announce that a release happened")
@@ -201,8 +206,10 @@ type config struct {
 	artifacts []string
 	// artifactsDir is the directory where all artifacts will be found
 	artifactDir string
-	// registry is the image registry where the container image will live
-	registry string
+	// staging registry is the image registry where the container image will be staged
+	stagingRegistry string
+	// prod registry is the image registry where the container image will be promoted
+	prodRegistry string
 	// imageName is the name of the container image
 	imageName string
 	// pullPolicy defines the pull policy of the manager in the provider-components
@@ -237,7 +244,7 @@ func (r runner) run() error {
 	if err := r.builder.build(); err != nil {
 		return err
 	}
-	r.logger.Infof("building container image: %s/%s:%s\n", r.config.registry, r.config.imageName, r.config.version)
+	r.logger.Infof("building container image: %s/%s:%s\n", r.config.stagingRegistry, r.config.imageName, r.config.version)
 	if err := r.builder.images(); err != nil {
 		return err
 	}
@@ -417,17 +424,32 @@ type builder interface {
 }
 
 type makebuilder struct {
-	registry   string
-	imageTag   string
-	pullPolicy string
-	logger     logger
+	stagingRegistry string
+	prodRegistry    string
+	imageTag        string
+	pullPolicy      string
+	logger          logger
 }
 
-func (m makebuilder) cmdWithEnv(command string, args ...string) error {
+func (m makebuilder) cmdWithStagingEnv(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("MANAGER_IMAGE_TAG=%v", m.imageTag),
-		fmt.Sprintf("REGISTRY=%v", m.registry),
+		fmt.Sprintf("REGISTRY=%v", m.stagingRegistry),
+		fmt.Sprintf("PULL_POLICY=%v", m.pullPolicy))
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		m.logger.Info(string(out))
+	}
+	return err
+}
+
+func (m makebuilder) cmdWithProdEnv(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("MANAGER_IMAGE_TAG=%v", m.imageTag),
+		fmt.Sprintf("REGISTRY=%v", m.prodRegistry),
 		fmt.Sprintf("PULL_POLICY=%v", m.pullPolicy))
 
 	out, err := cmd.CombinedOutput()
@@ -438,11 +460,11 @@ func (m makebuilder) cmdWithEnv(command string, args ...string) error {
 }
 
 func (m makebuilder) build() error {
-	return m.cmdWithEnv("make", "release-artifacts")
+	return m.cmdWithProdEnv("make", "release-artifacts")
 }
 
 func (m makebuilder) images() error {
-	return m.cmdWithEnv("make", "docker-build")
+	return m.cmdWithStagingEnv("make", "docker-build")
 }
 
 type logger interface {
