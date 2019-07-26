@@ -52,7 +52,6 @@ all: verify-install test binaries
 help:  ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
@@ -128,7 +127,7 @@ generate-go: ## Runs go generate
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: generate-mocks
-generate-mocks: ## Generate mocks, CRDs and runs `go generate` through Bazel
+generate-mocks: clean-bazel-mocks ## Generate mocks, CRDs and runs `go generate` through Bazel
 	bazel build $(BAZEL_ARGS) //pkg/cloud/services/mocks:mocks \
 		//pkg/cloud/services/ec2/mock_ec2iface:mocks \
 		//pkg/cloud/services/elb/mock_elbiface:mocks
@@ -265,6 +264,10 @@ clean: ## Remove all generated files
 .PHONY: clean-bazel
 clean-bazel: ## Remove all generated bazel symlinks
 	bazel clean
+
+.PHONY: clean-bazel-mocks
+clean-bazel-mocks: ## Remove all generated bazel mocks files
+	find bazel-bin/pkg -name '*_mock.go' -type f -delete
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
