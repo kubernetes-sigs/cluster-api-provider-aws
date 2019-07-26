@@ -21,7 +21,6 @@ go_library(
         "//vendor/github.com/aws/aws-sdk-go/service/elb/elbiface:go_default_library",
         "//vendor/github.com/go-logr/logr:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
-        "//vendor/k8s.io/klog:go_default_library",
         "//vendor/k8s.io/klog/klogr:go_default_library",
         "//vendor/k8s.io/utils/pointer:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/common:go_default_library",

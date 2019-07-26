@@ -71,7 +71,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	if params.Logger == nil {
-		params.Logger = klogr.New().WithName("default-logger")
+		params.Logger = klogr.New()
 	}
 
 	return &ClusterScope{
@@ -84,7 +84,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		ClusterStatus: clusterStatus,
 		Logger: params.Logger.
 			WithName(params.Cluster.APIVersion).
-			WithName(params.Cluster.Namespace).
+			WithName(fmt.Sprintf("namespace=%s", params.Cluster.Namespace)).
 			WithName(fmt.Sprintf("cluster=%s", params.Cluster.Name)),
 	}, nil
 }

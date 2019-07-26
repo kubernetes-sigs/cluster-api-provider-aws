@@ -58,6 +58,7 @@ genrule(
         "kustomization.yaml",
         "//test:manager-version-patch.yaml",
         "//config:provider-non-stamped-base.yaml",
+        "//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml",
     ],
     outs = ["manifests/provider-components-integration.yaml"],
     cmd = " && ".join([
