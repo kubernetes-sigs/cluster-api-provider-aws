@@ -165,7 +165,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return nil
 	}
 
-	log.Info("Cluster does not have ready annotation - checking for ready control plane machines")
+	log.Info("Cluster does not have the control plane ready annotation - checking for ready control plane machines")
 
 	machines, err := a.client.Machines(cluster.Namespace).List(actuators.ListOptionsForCluster(cluster.Name))
 	if err != nil {
@@ -187,7 +187,7 @@ func (a *Actuator) Reconcile(cluster *clusterv1.Cluster) error {
 		return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineDuration}
 	}
 
-	log.Info("Setting cluster ready annotation")
+	log.Info("Setting control plane ready annotation")
 	cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] = v1alpha1.ValueReady
 
 	return nil
