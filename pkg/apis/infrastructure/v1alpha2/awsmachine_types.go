@@ -22,6 +22,12 @@ import (
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 )
 
+const (
+	// MachineFinalizer allows ReconcileAWSMachine to clean up AWS resources associated with AWSMachine before
+	// removing it from the apiserver.
+	MachineFinalizer = "awsmachine.infrastructure.cluster.x-k8s.io"
+)
+
 // AWSMachineSpec defines the desired state of AWSMachine
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.

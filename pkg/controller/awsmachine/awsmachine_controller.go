@@ -21,11 +21,16 @@ import (
 	"fmt"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -45,9 +50,8 @@ import (
 )
 
 const (
-	waitForClusterInfrastructureReadyDuration   = 15 * time.Second //nolint
-	waitForControlPlaneMachineExistenceDuration = 5 * time.Second  //nolint
-	waitForControlPlaneReadyDuration            = 5 * time.Second  //nolint
+	waitForClusterInfrastructureReadyDuration = 15 * time.Second //nolint
+	controllerName                            = "awsmachine-controller"
 )
 
 // Add creates a new AWSMachine Controller and adds it to the Manager with default RBAC.
@@ -59,15 +63,16 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) *ReconcileAWSMachine {
 	return &ReconcileAWSMachine{
-		Client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		scheme:   mgr.GetScheme(),
+		recorder: mgr.GetEventRecorderFor(controllerName),
 	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("awsmachine-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -98,17 +103,19 @@ var _ reconcile.Reconciler = &ReconcileAWSMachine{}
 // ReconcileAWSMachine reconciles a AWSMachine object
 type ReconcileAWSMachine struct {
 	client.Client
-	scheme *runtime.Scheme
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // Reconcile reads that state of the cluster for a AWSMachine object and makes changes based on the state read
 // and what is in the AWSMachine.Spec
-func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (_ reconcile.Result, reterr error) {
 	ctx := context.Background()
+	log := log.Log.WithName(controllerName)
 
 	// Fetch the AWSMachine instance.
-	awsm := &infrav1.AWSMachine{}
-	err := r.Get(ctx, request.NamespacedName, awsm)
+	awsMachine := &infrav1.AWSMachine{}
+	err := r.Get(ctx, request.NamespacedName, awsMachine)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
@@ -116,16 +123,10 @@ func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
-	// If the AWSMachine hasn't been deleted and doesn't have a finalizer, add one.
-	if awsm.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(awsm.Finalizers, clusterv1.MachineFinalizer) {
-			awsm.Finalizers = append(awsm.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-		}
-	}
-
 	// Create the scope.
 	scope, err := scope.NewMachineScope(scope.MachineScopeParams{
-		ProviderMachine: awsm,
+		Logger:          log,
+		ProviderMachine: awsMachine,
 		Client:          r.Client,
 	})
 	if err != nil {
@@ -134,39 +135,44 @@ func (r *ReconcileAWSMachine) Reconcile(request reconcile.Request) (reconcile.Re
 		}
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
 	}
-	defer scope.Close()
 
-	// Make sure bootstrap data is available and populated.
-	if scope.Machine.Spec.Bootstrap.Data == nil || *scope.Machine.Spec.Bootstrap.Data == "" {
-		scope.Info("Waiting for bootstrap data to be available")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
-	}
-
-	// Call the internal reconciler.
-	if err := r.reconcile(ctx, scope); err != nil {
-		if requeueErr, ok := errors.Cause(err).(capierrors.HasRequeueAfterError); ok {
-			scope.Info("Reconciliation asked to requeue", "after", requeueErr.GetRequeueAfter())
-			return reconcile.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	// Always close the scope when exiting this function so we can persist any AWSMachine changes.
+	defer func() {
+		if err := scope.Close(); err != nil && reterr == nil {
+			reterr = err
 		}
-		scope.Error(err, "Failed to reconcile AWSMachine")
-		return reconcile.Result{}, err
+	}()
+
+	// Handle deleted machines
+	if !awsMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(scope, awsMachine)
 	}
 
-	// TODO(vincepri): Handle deletion and finalizers here.
-
-	return reconcile.Result{}, nil
+	// Handle non-deleted machines
+	return r.reconcileNormal(ctx, scope, awsMachine)
 }
 
-func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *scope.MachineScope) error {
+func (r *ReconcileAWSMachine) reconcileNormal(ctx context.Context, scope *scope.MachineScope, awsMachine *infrav1.AWSMachine) (reconcile.Result, error) {
 	// If the AWSMachine is in an error state, return early.
 	if scope.ProviderMachine.Status.ErrorReason != nil || scope.ProviderMachine.Status.ErrorMessage != nil {
 		scope.Info("Error state detected, skipping reconciliation")
-		return nil
+		return reconcile.Result{}, nil
+	}
+
+	// If the AWSMachine doesn't have our finalizer, add it.
+	if !util.Contains(awsMachine.Finalizers, infrav1.MachineFinalizer) {
+		awsMachine.Finalizers = append(awsMachine.ObjectMeta.Finalizers, infrav1.MachineFinalizer)
 	}
 
 	if scope.Parent.Cluster.Annotations[infrav1.AnnotationClusterInfrastructureReady] != infrav1.ValueReady {
 		scope.Info("Cluster infrastructure is not ready yet, requeuing machine")
-		return &capierrors.RequeueAfterError{RequeueAfter: waitForClusterInfrastructureReadyDuration}
+		return reconcile.Result{RequeueAfter: waitForClusterInfrastructureReadyDuration}, nil
+	}
+
+	// Make sure bootstrap data is available and populated.
+	if scope.Machine.Spec.Bootstrap.Data == nil {
+		scope.Info("Waiting for bootstrap data to be available")
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	ec2svc := ec2.NewService(scope.Parent)
@@ -174,14 +180,21 @@ func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *scope.Machin
 	// Get or create the instance.
 	instance, err := r.getOrCreate(scope, ec2svc)
 	if err != nil {
-		return err
+		return reconcile.Result{}, err
 	}
 
-	// Set an error message if we couldn't find the Machine.
+	// Set an error message if we couldn't find the instance.
 	if instance == nil {
 		scope.SetErrorReason(common.UpdateMachineError)
 		scope.SetErrorMessage(errors.New("EC2 instance cannot be found"))
-		return nil
+		return reconcile.Result{}, nil
+	}
+
+	// TODO(ncdc): move this validation logic into a validating webhook
+	if errs := r.validateUpdate(&awsMachine.Spec, instance); len(errs) > 0 {
+		agg := kerrors.NewAggregate(errs)
+		r.recorder.Eventf(awsMachine, corev1.EventTypeWarning, "InvalidUpdate", "Invalid update: %s", agg.Error())
+		return reconcile.Result{}, nil
 	}
 
 	// Make sure Spec.ProviderID is always set.
@@ -204,11 +217,66 @@ func (r *ReconcileAWSMachine) reconcile(ctx context.Context, scope *scope.Machin
 	}
 
 	if err := r.reconcileLBAttachment(scope, instance); err != nil {
-		return errors.Errorf("failed to reconcile LB attachment: %+v", err)
+		return reconcile.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
 	}
 
-	// Check if we can perform any in-place updates.
-	return r.update(scope, instance)
+	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*scope.GetInstanceID())
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// Ensure that the security groups are correct.
+	_, err = r.ensureSecurityGroups(ec2svc, scope, scope.ProviderMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
+	if err != nil {
+		return reconcile.Result{}, errors.Errorf("failed to apply security groups: %+v", err)
+	}
+
+	// Ensure that the tags are correct.
+	_, err = r.ensureTags(ec2svc, scope.ProviderMachine, scope.GetInstanceID(), scope.ProviderMachine.Spec.AdditionalTags)
+	if err != nil {
+		return reconcile.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
+	}
+
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileAWSMachine) reconcileDelete(scope *scope.MachineScope, awsMachine *infrav1.AWSMachine) (reconcile.Result, error) {
+	scope.Info("Handling deleted AWSMachine")
+
+	ec2Service := ec2.NewService(scope.Parent)
+
+	instance, err := r.findInstance(scope, ec2Service)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if instance == nil {
+		// The machine was never created or was deleted by some other entity
+		scope.V(3).Info("Unable to locate instance by ID or tags")
+		return reconcile.Result{}, nil
+	}
+
+	// Check the instance state. If it's already shutting down or terminated,
+	// do nothing. Otherwise attempt to delete it.
+	// This decision is based on the ec2-instance-lifecycle graph at
+	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
+	switch instance.State {
+	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
+		scope.Info("Instance is shutting down or already terminated")
+		return reconcile.Result{}, nil
+	default:
+		scope.Info("Terminating instance")
+		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
+			r.recorder.Eventf(awsMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
+			return reconcile.Result{}, errors.Errorf("failed to terminate instance: %+v", err)
+		}
+		r.recorder.Eventf(awsMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
+	}
+
+	// Instance is deleted so remove the finalizer.
+	awsMachine.Finalizers = util.Filter(awsMachine.Finalizers, infrav1.MachineFinalizer)
+
+	return reconcile.Result{}, nil
 }
 
 // findInstance queries the EC2 apis and retrieves the instance if it exists, returns nil otherwise.
@@ -228,12 +296,12 @@ func (r *ReconcileAWSMachine) findInstance(scope *scope.MachineScope, ec2svc *ec
 		return instance, nil
 	}
 
-	// If the ProviderID is empty, first try to query the instance using tags,
-	// otherwise create a new one.
+	// If the ProviderID is empty, try to query the instance using tags.
 	instance, err := ec2svc.GetRunningInstanceByTags(scope)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to query AWSMachine instance by tags")
 	}
+
 	return instance, nil
 }
 
@@ -254,46 +322,6 @@ func (r *ReconcileAWSMachine) getOrCreate(scope *scope.MachineScope, ec2svc *ec2
 	return instance, nil
 }
 
-func (r *ReconcileAWSMachine) update(scope *scope.MachineScope, instance *infrav1.Instance) error {
-	ec2svc := ec2.NewService(scope.Parent)
-
-	// We can now compare the various AWS state to the state we were passed.
-	// We will check immutable state first, in order to fail quickly before
-	// moving on to state that we can mutate.
-	if errs := r.isMachineOutdated(&scope.ProviderMachine.Spec, instance); len(errs) > 0 {
-		return errors.Errorf("found attempt to change immutable state for machine %q: %+q", scope.Name(), errs)
-	}
-
-	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*scope.GetInstanceID())
-	if err != nil {
-		return err
-	}
-
-	// Ensure that the security groups are correct.
-	_, err = r.ensureSecurityGroups(
-		ec2svc,
-		scope,
-		scope.ProviderMachine.Spec.AdditionalSecurityGroups,
-		existingSecurityGroups,
-	)
-	if err != nil {
-		return errors.Errorf("failed to apply security groups: %+v", err)
-	}
-
-	// Ensure that the tags are correct.
-	_, err = r.ensureTags(
-		ec2svc,
-		scope.ProviderMachine,
-		scope.GetInstanceID(),
-		scope.ProviderMachine.Spec.AdditionalTags,
-	)
-	if err != nil {
-		return errors.Errorf("failed to ensure tags: %+v", err)
-	}
-
-	return nil
-}
-
 func (r *ReconcileAWSMachine) reconcileLBAttachment(scope *scope.MachineScope, i *infrav1.Instance) error {
 	if !scope.IsControlPlane() {
 		return nil
@@ -306,10 +334,9 @@ func (r *ReconcileAWSMachine) reconcileLBAttachment(scope *scope.MachineScope, i
 	return nil
 }
 
-// isMachineOudated checks that no immutable fields have been updated in an
-// Update request.
-// Returns a slice of errors representing attempts to change immutable state
-func (r *ReconcileAWSMachine) isMachineOutdated(spec *infrav1.AWSMachineSpec, i *infrav1.Instance) (errs []error) {
+// validateUpdate checks that no immutable fields have been updated and
+// returns a slice of errors representing attempts to change immutable state.
+func (r *ReconcileAWSMachine) validateUpdate(spec *infrav1.AWSMachineSpec, i *infrav1.Instance) (errs []error) {
 	// Instance Type
 	if spec.InstanceType != i.Type {
 		errs = append(errs, errors.Errorf("instance type cannot be mutated from %q to %q", i.Type, spec.InstanceType))

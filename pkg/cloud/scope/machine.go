@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+	"k8s.io/klog/klogr"
+
 	"github.com/go-logr/logr"
-	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
@@ -44,15 +46,29 @@ type MachineScopeParams struct {
 // NewMachineScope creates a new MachineScope from the supplied parameters.
 // This is meant to be called for each machine actuator operation.
 func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
+	if params.Client == nil {
+		return nil, errors.New("client is required when creating a MachineScope")
+	}
+	if params.ProviderMachine == nil {
+		return nil, errors.New("provider machine is required when creating a MachineScope")
+	}
+
+	if params.Logger == nil {
+		params.Logger = klogr.New()
+	}
+
 	ctx := context.Background()
 
 	// Fetch the Machine.
 	machine, err := util.GetOwnerMachine(ctx, params.Client, params.ProviderMachine.ObjectMeta)
 	if err != nil {
 		return nil, err
-	} else if machine == nil {
-		klog.Infof("Waiting for Machine Controller to set OwnerRef on AWSMachine %q/%q",
-			params.ProviderMachine.Namespace, params.ProviderMachine.Name)
+	}
+	if machine == nil {
+		params.Logger.Info("Waiting for Machine Controller to set OwnerRef on AWSMachine",
+			"namespace", params.ProviderMachine.Namespace,
+			"name", params.ProviderMachine.Name)
+
 		return nil, &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
 	}
 
@@ -179,14 +195,22 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
-func (m *MachineScope) Close() {
+func (m *MachineScope) Close() error {
 	ctx := context.Background()
 
+	gvk := m.ProviderMachine.GroupVersionKind()
+
 	if err := m.client.Patch(ctx, m.ProviderMachine, m.patch); err != nil {
-		m.Logger.Error(err, "error patching object")
+		return errors.WithStack(err)
 	}
 
+	// TODO(ncdc): This is a hack because after a Patch, the object loses TypeMeta information.
+	// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
+	m.ProviderMachine.SetGroupVersionKind(gvk)
+
 	if err := m.client.Status().Patch(ctx, m.ProviderMachine, m.patch); err != nil {
-		m.Logger.Error(err, "error patching object status")
+		return errors.WithStack(err)
 	}
+
+	return nil
 }
