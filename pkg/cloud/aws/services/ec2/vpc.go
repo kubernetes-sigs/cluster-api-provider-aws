@@ -19,8 +19,6 @@ package ec2
 import (
 	"fmt"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -28,7 +26,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 const (
@@ -58,21 +58,29 @@ func (s *Service) reconcileVPC() error {
 		return nil
 	}
 
-	// Make sure attributes are configured
-	if err := s.ensureManagedVPCAttributes(vpc); err != nil {
-		record.Warnf(s.scope.Cluster, "FailedSetVPCAttributes", "Failed to set managed VPC attributes for %q: %v", vpc.ID, err)
-		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
-	}
-
 	// Make sure tags are up to date.
-	err = tags.Ensure(vpc.Tags, &tags.ApplyParams{
-		EC2Client:   s.scope.EC2,
-		BuildParams: s.getVPCTagParams(vpc.ID),
-	})
-
-	if err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := tags.Ensure(vpc.Tags, &tags.ApplyParams{
+			EC2Client:   s.scope.EC2,
+			BuildParams: s.getVPCTagParams(vpc.ID),
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.VPCNotFound); err != nil {
 		record.Warnf(s.scope.Cluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to tag vpc %q", vpc.ID)
+	}
+
+	// Make sure attributes are configured
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := s.ensureManagedVPCAttributes(vpc); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.VPCNotFound); err != nil {
+		record.Warnf(s.scope.Cluster, "FailedSetVPCAttributes", "Failed to set managed VPC attributes for %q: %v", vpc.ID, err)
+		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
 	}
 
 	vpc.DeepCopyInto(s.scope.VPC())
@@ -140,18 +148,27 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 	}
 	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
+	// TODO: we should attempt to record the VPC ID as soon as possible by setting s.scope.VPC().ID
+	// however, the logic used for determining managed vs unmanaged VPCs relies on the tags and will
+	// need to be updated to accommodate for the recording of the VPC ID prior to the tagging.
+
 	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
 	if err := s.scope.EC2.WaitUntilVpcAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
+	// Apply tags so that we know this is a managed VPC.
 	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
-	tagApply := &tags.ApplyParams{
-		EC2Client:   s.scope.EC2,
-		BuildParams: tagParams,
-	}
-
-	if err := tags.Apply(tagApply); err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := tags.Apply(&tags.ApplyParams{
+			EC2Client:   s.scope.EC2,
+			BuildParams: tagParams,
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.VPCNotFound); err != nil {
+		record.Warnf(s.scope.Cluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", *out.Vpc.VpcId, err)
 		return nil, err
 	}
 
@@ -177,7 +194,7 @@ func (s *Service) deleteVPC() error {
 	_, err := s.scope.EC2.DeleteVpc(input)
 	if err != nil {
 		// Ignore if it's already deleted
-		if code, ok := awserrors.Code(err); code == "InvalidVpcID.NotFound" && ok {
+		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
 			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
 			return nil
 		}

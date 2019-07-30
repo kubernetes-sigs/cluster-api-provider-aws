@@ -112,10 +112,8 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name: "managed vpc does not exist",
-			input: &v1alpha1.VPCSpec{
-				CidrBlock: "10.1.0.0/16",
-			},
+			name:   "managed vpc does not exist",
+			input:  &v1alpha1.VPCSpec{},
 			output: &v1alpha1.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
@@ -142,9 +140,10 @@ func TestReconcileVPC(t *testing.T) {
 					}, nil)
 
 				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
-					DoAndReturn(describeVpcAttributeFalse).AnyTimes()
+					DoAndReturn(describeVpcAttributeFalse).MinTimes(1)
 
-				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
+				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).
+					Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
 
 				m.WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{aws.String("vpc-new")},
