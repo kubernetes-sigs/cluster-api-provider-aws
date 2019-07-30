@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = [
+        "add_cluster.go",
         "add_machine.go",
         "add_machinedeployment.go",
         "add_machineset.go",
@@ -12,6 +13,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api/pkg/controller",
     visibility = ["//visibility:public"],
     deps = [
+        "//vendor/sigs.k8s.io/cluster-api/pkg/controller/cluster:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machine:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machinedeployment:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/machineset:go_default_library",
