@@ -17,32 +17,33 @@ limitations under the License.
 package services
 
 import (
-	"github.com/aws/aws-sdk-go/aws/session"
 	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// Getter is a unified interfaces that includes all the getters.
-type Getter interface {
-	SDKSessionGetter
-	EC2Getter
-	ELBGetter
-}
-
-// SDKSessionGetter has a single method that returns an AWS session.
-type SDKSessionGetter interface {
-	Session(*providerv1.AWSClusterProviderSpec) *session.Session
-}
+//// Getter is a unified interfaces that includes all the getters.
+//type Getter interface {
+//	SDKSessionGetter
+//	EC2Getter
+//	ELBGetter
+//}
+//
+//// SDKSessionGetter has a single method that returns an AWS session.
+//type SDKSessionGetter interface {
+//	//FIXME
+//	//Session(*providerv1.AWSClusterProviderSpec) *session.Session
+//	Session() *session.Session
+//}
 
 // EC2Getter has a single method that returns an EC2 service interface.
-type EC2Getter interface {
-	EC2(*session.Session) EC2Interface
-}
+//type EC2Getter interface {
+//	EC2(*session.Session) EC2Interface
+//}
 
 // ELBGetter has a single method that returns an ELB service interface.
-type ELBGetter interface {
-	ELB(*session.Session) ELBInterface
-}
+//type ELBGetter interface {
+//	ELB(*session.Session) ELBInterface
+//}
 
 // EC2Interface encapsulates the methods exposed by the ec2 service.
 type EC2Interface interface {

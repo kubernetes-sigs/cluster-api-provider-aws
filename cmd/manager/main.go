@@ -22,16 +22,12 @@ import (
 	_ "net/http/pprof"
 	"time"
 
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/actuators/cluster"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	capi "sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	capicluster "sigs.k8s.io/cluster-api/pkg/controller/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -78,26 +74,8 @@ func main() {
 		klog.Fatalf("Failed to set up overall controller manager: %v", err)
 	}
 
-	cs, err := clientset.NewForConfig(cfg)
-	if err != nil {
-		klog.Fatalf("Failed to create client from configuration: %v", err)
-	}
-
-	coreClient, err := corev1.NewForConfig(cfg)
-	if err != nil {
-		klog.Fatalf("Failed to create corev1 client from configuration: %v", err)
-	}
-
 	// Initialize event recorder.
 	record.InitFromRecorder(mgr.GetEventRecorderFor("aws-controller"))
-
-	// Initialize cluster actuator.
-	clusterActuator := cluster.NewActuator(cluster.ActuatorParams{
-		Client:         mgr.GetClient(),
-		CoreClient:     coreClient,
-		ClusterClient:  cs.ClusterV1alpha2(),
-		LoggingContext: "[cluster-actuator]",
-	})
 
 	if err := capi.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
@@ -106,8 +84,6 @@ func main() {
 	if err := capa.AddToScheme(mgr.GetScheme()); err != nil {
 		klog.Fatal(err)
 	}
-
-	capicluster.AddWithActuator(mgr, clusterActuator)
 
 	// Setup all Controllers.
 	if err := controller.AddToManager(mgr); err != nil {

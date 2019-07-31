@@ -23,12 +23,8 @@ limitations under the License.
 package v1alpha2
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/json"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -45,69 +41,4 @@ var (
 // Resource is required by pkg/client/listers/...
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}
-
-// ClusterConfigFromProviderSpec unmarshals a provider config into an AWS Cluster type
-func ClusterConfigFromProviderSpec(providerConfig clusterv1.ProviderSpec) (*AWSClusterProviderSpec, error) {
-	var config AWSClusterProviderSpec
-	if providerConfig.Value == nil {
-		return &config, nil
-	}
-
-	if err := yaml.Unmarshal(providerConfig.Value.Raw, &config); err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
-
-// ClusterStatusFromProviderStatus unmarshals a raw extension into an AWS Cluster type
-func ClusterStatusFromProviderStatus(extension *runtime.RawExtension) (*AWSClusterProviderStatus, error) {
-	if extension == nil {
-		return &AWSClusterProviderStatus{}, nil
-	}
-
-	status := new(AWSClusterProviderStatus)
-	if err := yaml.Unmarshal(extension.Raw, status); err != nil {
-		return nil, err
-	}
-
-	return status, nil
-}
-
-// EncodeClusterStatus marshals the cluster status.
-func EncodeClusterStatus(status *AWSClusterProviderStatus) (*runtime.RawExtension, error) {
-	if status == nil {
-		return &runtime.RawExtension{}, nil
-	}
-
-	var rawBytes []byte
-	var err error
-
-	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
-	if rawBytes, err = json.Marshal(status); err != nil {
-		return nil, err
-	}
-
-	return &runtime.RawExtension{
-		Raw: rawBytes,
-	}, nil
-}
-
-// EncodeClusterSpec marshals the cluster provider spec.
-func EncodeClusterSpec(spec *AWSClusterProviderSpec) (*runtime.RawExtension, error) {
-	if spec == nil {
-		return &runtime.RawExtension{}, nil
-	}
-
-	var rawBytes []byte
-	var err error
-
-	//  TODO: use apimachinery conversion https://godoc.org/k8s.io/apimachinery/pkg/runtime#Convert_runtime_Object_To_runtime_RawExtension
-	if rawBytes, err = json.Marshal(spec); err != nil {
-		return nil, err
-	}
-
-	return &runtime.RawExtension{
-		Raw: rawBytes,
-	}, nil
 }

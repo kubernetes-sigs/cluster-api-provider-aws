@@ -138,16 +138,16 @@ func TestReconcileVPC(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
+				AWSCluster: &v1alpha2.AWSCluster{
+					Spec: v1alpha2.AWSClusterSpec{
+						NetworkSpec: v1alpha2.NetworkSpec{
+							VPC: *tc.input,
+						},
+					},
+				},
 			})
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
-			}
-
-			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha2.NetworkSpec{
-					VPC: *tc.input,
-				},
 			}
 
 			tc.expect(ec2Mock.EXPECT())

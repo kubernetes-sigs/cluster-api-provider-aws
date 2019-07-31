@@ -8,6 +8,5 @@ go_library(
     deps = [
         "//pkg/apis/infrastructure/v1alpha2:go_default_library",
         "//pkg/cloud/scope:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
     ],
 )

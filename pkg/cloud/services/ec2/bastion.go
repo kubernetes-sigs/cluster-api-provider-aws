@@ -69,7 +69,7 @@ func (s *Service) ReconcileBastion() error {
 
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
-	instance.DeepCopyInto(&s.scope.ClusterStatus.Bastion)
+	instance.DeepCopyInto(&s.scope.AWSCluster.Status.Bastion)
 	s.scope.V(2).Info("Reconcile bastion completed successfully")
 	return nil
 }
@@ -129,14 +129,14 @@ func (s *Service) getDefaultBastion() *v1alpha2.Instance {
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
 	keyName := defaultSSHKeyName
-	if s.scope.ClusterConfig.SSHKeyName != "" {
-		keyName = s.scope.ClusterConfig.SSHKeyName
+	if s.scope.AWSCluster.Spec.SSHKeyName != "" {
+		keyName = s.scope.AWSCluster.Spec.SSHKeyName
 	}
 
 	i := &v1alpha2.Instance{
 		Type:     "t2.micro",
 		SubnetID: s.scope.Subnets().FilterPublic()[0].ID,
-		ImageID:  s.defaultBastionAMILookup(s.scope.ClusterConfig.Region),
+		ImageID:  s.defaultBastionAMILookup(s.scope.AWSCluster.Spec.Region),
 		KeyName:  aws.String(keyName),
 		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
 		SecurityGroupIDs: []string{
