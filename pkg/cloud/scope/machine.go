@@ -60,21 +60,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		params.Logger = klogr.New()
 	}
 
-	//clusterScope, err := NewClusterScope(ClusterScopeParams{
-	//	AWSClients: params.AWSClients,
-	//	Client:     params.Client,
-	//	Logger:     params.Logger,
-	//	Cluster:    params.Cluster,
-	//	AWSCluster: params.AWSCluster,
-	//})
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	return &MachineScope{
-		client: params.Client,
-		patch:  client.MergeFrom(params.AWSMachine.DeepCopy()),
-		//Parent:     clusterScope,
+		client:     params.Client,
+		patch:      client.MergeFrom(params.AWSMachine.DeepCopy()),
 		Machine:    params.Machine,
 		AWSMachine: params.AWSMachine,
 		Logger:     params.Logger,
@@ -87,7 +75,6 @@ type MachineScope struct {
 	patch  client.Patch
 	client client.Client
 
-	//Parent     *ClusterScope
 	Cluster    *clusterv1.Cluster
 	Machine    *clusterv1.Machine
 	AWSMachine *infrav1.AWSMachine
@@ -103,11 +90,6 @@ func (m *MachineScope) Namespace() string {
 	return m.AWSMachine.Namespace
 }
 
-// ClusterName returns the parent Cluster name.
-//func (m *MachineScope) ClusterName() string {
-//	return m.Parent.Name()
-//}
-
 // IsControlPlane returns true if the machine is a control plane.
 func (m *MachineScope) IsControlPlane() bool {
 	return util.IsControlPlaneMachine(m.Machine)
@@ -120,11 +102,6 @@ func (m *MachineScope) Role() string {
 	}
 	return "node"
 }
-
-// Region returns the machine region.
-//func (m *MachineScope) Region() string {
-//	return m.Parent.Region()
-//}
 
 // GetInstanceID returns the AWSMachine instance id by parsing Spec.ProviderID.
 func (m *MachineScope) GetInstanceID() *string {
