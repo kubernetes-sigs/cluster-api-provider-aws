@@ -106,7 +106,9 @@ type ReconcileAWSCluster struct {
 // and what is in the AWSCluster.Spec
 func (r *ReconcileAWSCluster) Reconcile(request reconcile.Request) (_ reconcile.Result, reterr error) {
 	ctx := context.TODO()
-	logger := log.Log.WithName(controllerName)
+	logger := log.Log.WithName(controllerName).
+		WithName(fmt.Sprintf("namespace=%s", request.Namespace)).
+		WithName(fmt.Sprintf("awsCluster=%s", request.Name))
 
 	// Fetch the AWSCluster instance
 	awsCluster := &infrastructurev1alpha2.AWSCluster{}
@@ -118,7 +120,7 @@ func (r *ReconcileAWSCluster) Reconcile(request reconcile.Request) (_ reconcile.
 		return reconcile.Result{}, err
 	}
 
-	logger = logger.WithName(fmt.Sprintf("awsCluster=%s", awsCluster.Name))
+	logger = logger.WithName(awsCluster.APIVersion)
 
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, awsCluster.ObjectMeta)
