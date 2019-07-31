@@ -252,10 +252,10 @@ gopkg.in/tomb.v1
 gopkg.in/yaml.v2
 # k8s.io/api v0.0.0-20190711103429-37c3b8b1ca65 => k8s.io/api v0.0.0-20190704095032-f4ca3d3bdf1d
 k8s.io/api/core/v1
-k8s.io/api/apps/v1
 k8s.io/api/authentication/v1
 k8s.io/api/autoscaling/v1
 k8s.io/api/policy/v1beta1
+k8s.io/api/apps/v1
 k8s.io/api/admissionregistration/v1beta1
 k8s.io/api/apps/v1beta1
 k8s.io/api/apps/v1beta2
@@ -302,13 +302,13 @@ k8s.io/apimachinery/pkg/util/json
 k8s.io/apimachinery/pkg/runtime/serializer
 k8s.io/apimachinery/pkg/util/wait
 k8s.io/apimachinery/pkg/api/errors
+k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/selection
-k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/watch
@@ -342,12 +342,12 @@ k8s.io/apimachinery/pkg/util/diff
 k8s.io/apimachinery/pkg/apis/meta/internalversion
 # k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 k8s.io/client-go/tools/clientcmd
-k8s.io/client-go/tools/clientcmd/api
 k8s.io/client-go/tools/record
 k8s.io/client-go/kubernetes/typed/core/v1
 k8s.io/client-go/kubernetes
 k8s.io/client-go/rest
 k8s.io/client-go/tools/auth
+k8s.io/client-go/tools/clientcmd/api
 k8s.io/client-go/tools/clientcmd/api/latest
 k8s.io/client-go/util/homedir
 k8s.io/client-go/discovery
