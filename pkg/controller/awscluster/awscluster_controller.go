@@ -128,7 +128,7 @@ func (r *ReconcileAWSCluster) Reconcile(request reconcile.Request) (_ reconcile.
 		return reconcile.Result{}, err
 	}
 	if cluster == nil {
-		logger.Info("Waiting for Cluster Controller to set OwnerRef on AWSCluuster")
+		logger.Info("Waiting for Cluster Controller to set OwnerRef on AWSCluster")
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
@@ -163,24 +163,22 @@ func (r *ReconcileAWSCluster) Reconcile(request reconcile.Request) (_ reconcile.
 
 // TODO(ncdc): should this be a function on ClusterScope?
 func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
-	clusterScope.Info("Reconciling Cluster delete")
+	clusterScope.Info("Reconciling AWSCluster delete")
 
 	ec2svc := ec2.NewService(clusterScope)
 	elbsvc := elb.NewService(clusterScope)
+	awsCluster := clusterScope.AWSCluster
 
 	if err := elbsvc.DeleteLoadbalancers(); err != nil {
-		clusterScope.Error(err, "Error deleting cluster load balancer")
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		return reconcile.Result{}, errors.Wrapf(err, "error deleting load balancer for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if err := ec2svc.DeleteBastion(); err != nil {
-		clusterScope.Error(err, "Error deleting cluster bastion")
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		return reconcile.Result{}, errors.Wrapf(err, "error deleting bastion for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if err := ec2svc.DeleteNetwork(); err != nil {
-		clusterScope.Error(err, "Error deleting cluster network")
-		return reconcile.Result{RequeueAfter: 5 * time.Second}, nil
+		return reconcile.Result{}, errors.Wrapf(err, "error deleting network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	// Cluster is deleted so remove the finalizer.
@@ -190,33 +188,33 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 }
 
 // TODO(ncdc): should this be a function on ClusterScope?
-func reconcileNormal(scope *scope.ClusterScope) (reconcile.Result, error) {
-	scope.Info("Reconciling Cluster")
+func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+	clusterScope.Info("Reconciling AWSCluster")
 
-	awsCluster := scope.AWSCluster
+	awsCluster := clusterScope.AWSCluster
 
 	// If the AWSCluster doesn't have our finalizer, add it.
 	if !util.Contains(awsCluster.Finalizers, infrastructurev1alpha2.ClusterFinalizer) {
 		awsCluster.Finalizers = append(awsCluster.Finalizers, infrastructurev1alpha2.ClusterFinalizer)
 	}
 
-	ec2Service := ec2.NewService(scope)
-	elbService := elb.NewService(scope)
+	ec2Service := ec2.NewService(clusterScope)
+	elbService := elb.NewService(clusterScope)
 
 	if err := ec2Service.ReconcileNetwork(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile network for cluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile bastion host for cluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile bastion host for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if err := elbService.ReconcileLoadbalancers(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancers for cluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancers for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
-		scope.Info("Waiting on API server ELB DNS name")
+		clusterScope.Info("Waiting on API server ELB DNS name")
 		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
