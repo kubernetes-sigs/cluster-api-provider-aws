@@ -21,7 +21,7 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${REPO_ROOT}/hack/ensure-go.sh"
 cd "${REPO_ROOT}" || exit 1
 
-bazel test --define='gotags=integration' --test_output all //test/integration/...
+bazel test --define='gotags=integration' --test_output all --host_force_python=PY2 //test/integration/...
 bazel_status="${?}"
 python hack/coalesce.py
 exit "${bazel_status}"
