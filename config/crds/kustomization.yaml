@@ -4,10 +4,9 @@
 # YAML string, with resources separated by document
 # markers ("---").
 resources:
+  - infrastructure.cluster.x-k8s.io_awsclusters.yaml
   - infrastructure.cluster.x-k8s.io_awsmachines.yaml
   - infrastructure.cluster.x-k8s.io_awsmachinetemplates.yaml
-  - infrastructure.cluster.x-k8s.io_awsclusterproviderspecs.yaml
-  - infrastructure.cluster.x-k8s.io_awsclusterproviderstatuses.yaml
   - awsprovider_v1alpha1_awsclusterproviderspec.yaml
   - awsprovider_v1alpha1_awsclusterproviderstatus.yaml
   - awsprovider_v1alpha1_awsmachineproviderspec.yaml

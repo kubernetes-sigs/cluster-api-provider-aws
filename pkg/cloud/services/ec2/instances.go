@@ -155,12 +155,6 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance,
 		input.SubnetID = sns[0].ID
 	}
 
-	if !s.scope.AWSCluster.Spec.CAKeyPair.HasCertAndKey() {
-		return nil, awserrors.NewFailedDependency(
-			errors.New("failed to run controlplane, missing CACertificate"),
-		)
-	}
-
 	if s.scope.Network().APIServerELB.DNSName == "" {
 		return nil, awserrors.NewFailedDependency(
 			errors.New("failed to run controlplane, APIServer ELB not available"),

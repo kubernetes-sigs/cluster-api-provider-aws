@@ -30,64 +30,6 @@ spec:
         spec:
           description: AWSClusterSpec defines the desired state of AWSCluster
           properties:
-            additionalUserDataFiles:
-              description: AdditionalUserDataFiles specifies extra files to be passed
-                to all Machines' user_data upon creation.
-              items:
-                description: Files defines the input for generating write_files in
-                  cloud-init.
-                properties:
-                  content:
-                    description: Content is the actual content of the file.
-                    type: string
-                  owner:
-                    description: Owner specifies the ownership of the file, e.g. "root:root".
-                    type: string
-                  path:
-                    description: Path specifies the full path on disk where to store
-                      the file.
-                    type: string
-                  permissions:
-                    description: Permissions specifies the permissions to assign to
-                      the file, e.g. "0640".
-                    type: string
-                required:
-                - content
-                - owner
-                - path
-                - permissions
-                type: object
-              type: array
-            caKeyPair:
-              description: CAKeyPair is the key pair for ca certs.
-              properties:
-                cert:
-                  format: byte
-                  type: string
-                key:
-                  format: byte
-                  type: string
-              type: object
-            etcdCAKeyPair:
-              description: EtcdCAKeyPair is the key pair for etcd.
-              properties:
-                cert:
-                  format: byte
-                  type: string
-                key:
-                  format: byte
-                  type: string
-              type: object
-            frontProxyCAKeyPair:
-              description: FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
-              properties:
-                cert:
-                  format: byte
-                  type: string
-                key:
-                  format: byte
-                  type: string
-              type: object
             networkSpec:
               description: NetworkSpec encapsulates all things related to AWS network.
               properties:
@@ -157,16 +99,6 @@ spec:
             region:
               description: The AWS Region the cluster lives in.
               type: string
-            saKeyPair:
-              description: SAKeyPair is the service account key pair.
-              properties:
-                cert:
-                  format: byte
-                  type: string
-                key:
-                  format: byte
-                  type: string
-              type: object
             sshKeyName:
               description: SSHKeyName is the name of the ssh key to attach to the
                 bastion host.
@@ -175,6 +107,23 @@ spec:
         status:
           description: AWSClusterStatus defines the observed state of AWSCluster
           properties:
+            apiEndpoints:
+              description: APIEndpoints represents the endpoints to communicate with
+                the control plane.
+              items:
+                description: APIEndpoint represents a reachable Kubernetes API endpoint.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+              type: array
             bastion:
               description: Instance describes an AWS instance.
               properties:
@@ -412,6 +361,10 @@ spec:
                     group to its unique name, if any.
                   type: object
               type: object
+            ready:
+              type: boolean
+          required:
+          - ready
           type: object
       type: object
   versions:

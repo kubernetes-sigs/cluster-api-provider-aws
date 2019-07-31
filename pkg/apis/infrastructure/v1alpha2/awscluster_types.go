@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -41,39 +40,6 @@ type AWSClusterSpec struct {
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
 	SSHKeyName string `json:"sshKeyName,omitempty"`
-
-	// CAKeyPair is the key pair for ca certs.
-	// +optional
-	CAKeyPair *KeyPair `json:"caKeyPair,omitempty"`
-
-	// EtcdCAKeyPair is the key pair for etcd.
-	// +optional
-	EtcdCAKeyPair *KeyPair `json:"etcdCAKeyPair,omitempty"`
-
-	// FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
-	// +optional
-	FrontProxyCAKeyPair *KeyPair `json:"frontProxyCAKeyPair,omitempty"`
-
-	// SAKeyPair is the service account key pair.
-	// +optional
-	SAKeyPair *KeyPair `json:"saKeyPair,omitempty"`
-
-	// AdditionalUserDataFiles specifies extra files to be passed to all Machines' user_data upon creation.
-	// +optional
-	AdditionalUserDataFiles []userdata.Files `json:"additionalUserDataFiles,omitempty"`
-}
-
-// KeyPair is how operators can supply custom keypairs for kubeadm to use.
-type KeyPair struct {
-	// +required
-	Cert []byte `json:"cert,omitempty"`
-	// +required
-	Key []byte `json:"key,omitempty"`
-}
-
-// HasCertAndKey returns whether a keypair contains cert and key of non-zero length.
-func (kp *KeyPair) HasCertAndKey() bool {
-	return len(kp.Cert) != 0 && len(kp.Key) != 0
 }
 
 // NetworkSpec encapsulates all things related to AWS network.
