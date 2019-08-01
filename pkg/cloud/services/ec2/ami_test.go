@@ -19,6 +19,8 @@ package ec2
 import (
 	"testing"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
@@ -64,7 +66,8 @@ func TestAMIs(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Cluster: &clusterv1.Cluster{},
+				Cluster:    &clusterv1.Cluster{},
+				AWSCluster: &v1alpha2.AWSCluster{},
 				AWSClients: scope.AWSClients{
 					EC2: ec2Mock,
 				},

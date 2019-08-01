@@ -26,38 +26,34 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-const apiEndpointPort = 6443
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	AWSClients
-	Client  client.Client
-	Logger  logr.Logger
-	Cluster *clusterv1.Cluster
+	Client     client.Client
+	Logger     logr.Logger
+	Cluster    *clusterv1alpha2.Cluster
+	AWSCluster *v1alpha2.AWSCluster
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
-// This is meant to be called for each different actuator iteration.
+// This is meant to be called for each reconcile iteration.
 func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if params.Cluster == nil {
-		return nil, errors.New("failed to generate new scope from nil cluster")
+		return nil, errors.New("failed to generate new scope from nil Cluster")
+	}
+	if params.AWSCluster == nil {
+		return nil, errors.New("failed to generate new scope from nil AWSCluster")
 	}
 
-	clusterConfig, err := v1alpha2.ClusterConfigFromProviderSpec(params.Cluster.Spec.ProviderSpec)
-	if err != nil {
-		return nil, errors.Errorf("failed to load cluster provider config: %v", err)
+	if params.Logger == nil {
+		params.Logger = klogr.New()
 	}
 
-	clusterStatus, err := v1alpha2.ClusterStatusFromProviderStatus(params.Cluster.Status.ProviderStatus)
-	if err != nil {
-		return nil, errors.Errorf("failed to load cluster provider status: %v", err)
-	}
-
-	session, err := sessionForRegion(clusterConfig.Region)
+	session, err := sessionForRegion(params.AWSCluster.Spec.Region)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -70,55 +66,44 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		params.AWSClients.ELB = elb.New(session)
 	}
 
-	if params.Logger == nil {
-		params.Logger = klogr.New()
-	}
-
 	return &ClusterScope{
-		client:       params.Client,
-		clusterPatch: client.MergeFrom(params.Cluster.DeepCopy()),
-
-		AWSClients:    params.AWSClients,
-		Cluster:       params.Cluster,
-		ClusterConfig: clusterConfig,
-		ClusterStatus: clusterStatus,
-		Logger: params.Logger.
-			WithName(params.Cluster.APIVersion).
-			WithName(fmt.Sprintf("namespace=%s", params.Cluster.Namespace)).
-			WithName(fmt.Sprintf("cluster=%s", params.Cluster.Name)),
+		Logger:          params.Logger,
+		client:          params.Client,
+		AWSClients:      params.AWSClients,
+		Cluster:         params.Cluster,
+		AWSCluster:      params.AWSCluster,
+		awsClusterPatch: client.MergeFrom(params.AWSCluster.DeepCopy()),
 	}, nil
 }
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
 	logr.Logger
-	client       client.Client
-	clusterPatch client.Patch
-
+	client client.Client
 	AWSClients
-	Cluster       *clusterv1.Cluster
-	ClusterConfig *v1alpha2.AWSClusterProviderSpec
-	ClusterStatus *v1alpha2.AWSClusterProviderStatus
+	Cluster         *clusterv1alpha2.Cluster
+	AWSCluster      *v1alpha2.AWSCluster
+	awsClusterPatch client.Patch
 }
 
 // Network returns the cluster network object.
 func (s *ClusterScope) Network() *v1alpha2.Network {
-	return &s.ClusterStatus.Network
+	return &s.AWSCluster.Status.Network
 }
 
 // VPC returns the cluster VPC.
 func (s *ClusterScope) VPC() *v1alpha2.VPCSpec {
-	return &s.ClusterConfig.NetworkSpec.VPC
+	return &s.AWSCluster.Spec.NetworkSpec.VPC
 }
 
 // Subnets returns the cluster subnets.
 func (s *ClusterScope) Subnets() v1alpha2.Subnets {
-	return s.ClusterConfig.NetworkSpec.Subnets
+	return s.AWSCluster.Spec.NetworkSpec.Subnets
 }
 
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 func (s *ClusterScope) SecurityGroups() map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup {
-	return s.ClusterStatus.Network.SecurityGroups
+	return s.AWSCluster.Status.Network.SecurityGroups
 }
 
 // Name returns the cluster name.
@@ -133,7 +118,7 @@ func (s *ClusterScope) Namespace() string {
 
 // Region returns the cluster region.
 func (s *ClusterScope) Region() string {
-	return s.ClusterConfig.Region
+	return s.AWSCluster.Spec.Region
 }
 
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to
@@ -145,43 +130,23 @@ func (s *ClusterScope) ControlPlaneConfigMapName() string {
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
 func (s *ClusterScope) ListOptionsLabelSelector() client.ListOptionFunc {
 	return client.MatchingLabels(map[string]string{
-		clusterv1.MachineClusterLabelName: s.Cluster.Name,
+		clusterv1alpha2.MachineClusterLabelName: s.Cluster.Name,
 	})
 }
 
 // Close closes the current scope persisting the cluster configuration and status.
-func (s *ClusterScope) Close() {
-	ctx := context.Background()
+func (s *ClusterScope) Close() error {
+	ctx := context.TODO()
 
 	// Patch Cluster object.
-	ext, err := v1alpha2.EncodeClusterSpec(s.ClusterConfig)
-	if err != nil {
-		s.Error(err, "failed encoding cluster spec")
-		return
-	}
-	s.Cluster.Spec.ProviderSpec.Value = ext
-	if err := s.client.Patch(ctx, s.Cluster, s.clusterPatch); err != nil {
-		s.Error(err, "failed to patch object")
-		return
+	if err := s.client.Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {
+		return errors.Wrapf(err, "error patching AWSCluster %s/%s", s.Cluster.Namespace, s.Cluster.Name)
 	}
 
 	// Patch Cluster status.
-	newStatus, err := v1alpha2.EncodeClusterStatus(s.ClusterStatus)
-	if err != nil {
-		s.Error(err, "failed encoding cluster status")
-		return
+	if err := s.client.Status().Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {
+		return errors.Wrapf(err, "error patching AWSCluster %s/%s status", s.Cluster.Namespace, s.Cluster.Name)
 	}
-	if s.ClusterStatus.Network.APIServerELB.DNSName != "" {
-		s.Cluster.Status.APIEndpoints = []clusterv1.APIEndpoint{
-			{
-				Host: s.ClusterStatus.Network.APIServerELB.DNSName,
-				Port: apiEndpointPort,
-			},
-		}
-	}
-	s.Cluster.Status.ProviderStatus = newStatus
-	if err := s.client.Status().Patch(ctx, s.Cluster, s.clusterPatch); err != nil {
-		s.Error(err, "failed to patch object status")
-		return
-	}
+
+	return nil
 }

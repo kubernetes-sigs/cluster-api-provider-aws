@@ -77,15 +77,16 @@ func TestDeleteLoadBalancers(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-			})
-
-			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha2.NetworkSpec{
-					VPC: v1alpha2.VPCSpec{
-						ID: "test-vpc",
+				AWSCluster: &v1alpha2.AWSCluster{
+					Spec: v1alpha2.AWSClusterSpec{
+						NetworkSpec: v1alpha2.NetworkSpec{
+							VPC: v1alpha2.VPCSpec{
+								ID: "test-vpc",
+							},
+						},
 					},
 				},
-			}
+			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}

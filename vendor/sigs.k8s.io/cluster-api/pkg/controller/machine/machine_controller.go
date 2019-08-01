@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
@@ -95,7 +94,7 @@ type ReconcileMachine struct {
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
-func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Result, reterr error) {
 	ctx := context.TODO()
 
 	// Fetch the Machine instance
@@ -117,11 +116,22 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// Always issue a Patch for the Machine object and its status after each reconciliation.
 	// TODO(vincepri): Figure out if we should bubble up the errors from Patch to the controller.
 	defer func() {
+		gvk := m.GroupVersionKind()
 		if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
 			klog.Errorf("Error Patching Machine %q in namespace %q: %v", m.Name, m.Namespace, err)
+			if reterr == nil {
+				reterr = err
+			}
+			return
 		}
+		// TODO(vincepri): This is a hack because after a Patch, the object loses TypeMeta information.
+		// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
+		m.SetGroupVersionKind(gvk)
 		if err := r.Client.Status().Patch(ctx, m, patchMachine); err != nil {
 			klog.Errorf("Error Patching Machine status %q in namespace %q: %v", m.Name, m.Namespace, err)
+			if reterr == nil {
+				reterr = err
+			}
 		}
 	}()
 
@@ -129,19 +139,19 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	// for machine management.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, m.ObjectMeta)
 	if errors.Cause(err) == util.ErrNoCluster {
-		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster", m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
+		klog.Infof("Machine %q in namespace %q doesn't specify %q label, assuming nil cluster",
+			m.Name, m.Namespace, clusterv1.MachineClusterLabelName)
 	} else if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q", m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
+			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
-	// Set the ownerRef with foreground deletion if there is a linked cluster.
 	if cluster != nil {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
-			APIVersion:         cluster.APIVersion,
-			Kind:               cluster.Kind,
-			Name:               cluster.Name,
-			UID:                cluster.UID,
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
 		})
 	}
 

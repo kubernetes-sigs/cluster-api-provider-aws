@@ -40,7 +40,7 @@ func (s *Service) reconcileSubnets() error {
 
 	subnets := s.scope.Subnets()
 	defer func() {
-		s.scope.ClusterConfig.NetworkSpec.Subnets = subnets
+		s.scope.AWSCluster.Spec.NetworkSpec.Subnets = subnets
 	}()
 
 	// Describe subnets in the vpc.

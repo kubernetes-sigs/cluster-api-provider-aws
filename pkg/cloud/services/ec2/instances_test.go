@@ -134,16 +134,16 @@ func TestInstanceIfExists(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-			})
-
-			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha2.NetworkSpec{
-					VPC: v1alpha2.VPCSpec{
-						ID: "test-vpc",
+				AWSCluster: &v1alpha2.AWSCluster{
+					Spec: v1alpha2.AWSClusterSpec{
+						NetworkSpec: v1alpha2.NetworkSpec{
+							VPC: v1alpha2.VPCSpec{
+								ID: "test-vpc",
+							},
+						},
 					},
 				},
-			}
-
+			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
@@ -207,11 +207,12 @@ func TestTerminateInstance(t *testing.T) {
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Cluster: &clusterv1.Cluster{},
 				AWSClients: scope.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
+				Cluster:    &clusterv1.Cluster{},
+				AWSCluster: &v1alpha2.AWSCluster{},
 			})
 
 			if err != nil {
@@ -228,38 +229,11 @@ func TestTerminateInstance(t *testing.T) {
 }
 
 func TestCreateInstance(t *testing.T) {
-	testCaCert := []byte(`
------BEGIN CERTIFICATE-----
-MIID6jCCAtICCQCa6H6nD76FxzANBgkqhkiG9w0BAQsFADCBtjELMAkGA1UEBhMC
-VVMxCzAJBgNVBAgMAldBMRMwEQYDVQQHDAprdWJlcm5ldGVzMRQwEgYDVQQKDAtj
-bHVzdGVyLWFwaTEhMB8GA1UECwwYY2x1c3Rlci1hcGktcHJvdmlkZXItYXdzMTAw
-LgYDVQQDDCdzaWdzLms4cy5pby5jbHVzdGVyLWFwaS1wcm92aWRlci1hd3MuYWYx
-GjAYBgkqhkiG9w0BCQEWC2Zvb0BiYXIuY29tMB4XDTE5MDExMTA5MTgxNVoXDTIx
-MTAwNzA5MTgxNVowgbYxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJXQTETMBEGA1UE
-BwwKa3ViZXJuZXRlczEUMBIGA1UECgwLY2x1c3Rlci1hcGkxITAfBgNVBAsMGGNs
-dXN0ZXItYXBpLXByb3ZpZGVyLWF3czEwMC4GA1UEAwwnc2lncy5rOHMuaW8uY2x1
-c3Rlci1hcGktcHJvdmlkZXItYXdzLmFmMRowGAYJKoZIhvcNAQkBFgtmb29AYmFy
-LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKHVoYcq6NiS2lch
-ai62dDU+wStXJzFkF3URQ7auYDmL3Xz+01yxdARdafO3fweXSsfuxcGZ/DDBzRBB
-ROXeJI1zxV6xk+OlI0puOabo6m5ji4RdTTFqt94afnK43qcDMDOnh0u6F5UZXZlr
-T7XNnO++6e7elZ+9jJJ/NKPXDGKo9+M7kmypTLcI5b5pH4qn1coe8a5Li+FQONEM
-j+Ttomqr0s84DyFBSNZYKvRVL1AdH/6r213pco5Qm9RDkw9HZr83Y1PjyQ77C7FQ
-IPquny5XkjZjq65Bz8I8s+MoPQgBOr8JvVfc3Jt8u10qD4JOeRFnhZOygaApgswg
-9XZhdMsCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAVfucXOzEy88NQ+fz5FV1D1PO
-No6uqi2Q9fqGU9Lfnj3PhXr0sb0tAXGnZEg8i1317xMXqzA9J9umqg3ADsOsR3sL
-NR41dkjP2ROfTW1wkEGBaRzp/TOagMy1IeeS9MPd4gRH3cZqgUvrQJCrX8878gxk
-jor3R8gPhjvV74KrZD4lIF7IHHv4cCBaejm+3GwOIbTNoHXa4PadVwbcjWp6P8UB
-dTga1FiyISsMchVaVKD5aX7hkxMP1/C98KdVzWQ4k12TBOhZDYUS67M4ibBtw/og
-vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
------END CERTIFICATE-----
-	`)
-
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
 		machineConfig *v1alpha2.AWSMachineSpec
-		clusterStatus *v1alpha2.AWSClusterProviderStatus
-		clusterConfig *v1alpha2.AWSClusterProviderSpec
+		awsCluster    *v1alpha2.AWSCluster
 		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		check         func(instance *v1alpha2.Instance, err error)
 	}{
@@ -281,39 +255,37 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				},
 				InstanceType: "m5.large",
 			},
-			clusterStatus: &v1alpha2.AWSClusterProviderStatus{
-				Network: v1alpha2.Network{
-					SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
-						v1alpha2.SecurityGroupControlPlane: {
-							ID: "1",
-						},
-						v1alpha2.SecurityGroupNode: {
-							ID: "2",
-						},
-						v1alpha2.SecurityGroupLB: {
-							ID: "3",
-						},
-					},
-					APIServerELB: v1alpha2.ClassicELB{
-						DNSName: "test-apiserver.us-east-1.aws",
-					},
-				},
-			},
-			clusterConfig: &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha2.NetworkSpec{
-					Subnets: v1alpha2.Subnets{
-						&v1alpha2.SubnetSpec{
-							ID:       "subnet-1",
-							IsPublic: false,
-						},
-						&v1alpha2.SubnetSpec{
-							IsPublic: false,
+			awsCluster: &v1alpha2.AWSCluster{
+				Spec: v1alpha2.AWSClusterSpec{
+					NetworkSpec: v1alpha2.NetworkSpec{
+						Subnets: v1alpha2.Subnets{
+							&v1alpha2.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&v1alpha2.SubnetSpec{
+								IsPublic: false,
+							},
 						},
 					},
 				},
-				CAKeyPair: &v1alpha2.KeyPair{
-					Cert: testCaCert,
-					Key:  []byte("y"),
+				Status: v1alpha2.AWSClusterStatus{
+					Network: v1alpha2.Network{
+						SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
+							v1alpha2.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							v1alpha2.SecurityGroupNode: {
+								ID: "2",
+							},
+							v1alpha2.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: v1alpha2.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
@@ -372,52 +344,50 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				InstanceType:     "m5.2xlarge",
 				AvailabilityZone: aws.String("us-east-1c"),
 			},
-			clusterStatus: &v1alpha2.AWSClusterProviderStatus{
-				Network: v1alpha2.Network{
-					SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
-						v1alpha2.SecurityGroupControlPlane: {
-							ID: "1",
-						},
-						v1alpha2.SecurityGroupNode: {
-							ID: "2",
-						},
-						v1alpha2.SecurityGroupLB: {
-							ID: "3",
-						},
-					},
-					APIServerELB: v1alpha2.ClassicELB{
-						DNSName: "test-apiserver.us-east-1.aws",
-					},
-				},
-			},
-			clusterConfig: &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha2.NetworkSpec{
-					Subnets: v1alpha2.Subnets{
-						&v1alpha2.SubnetSpec{
-							ID:               "subnet-1",
-							AvailabilityZone: "us-east-1a",
-							IsPublic:         false,
-						},
-						&v1alpha2.SubnetSpec{
-							ID:               "subnet-2",
-							AvailabilityZone: "us-east-1b",
-							IsPublic:         false,
-						},
-						&v1alpha2.SubnetSpec{
-							ID:               "subnet-3",
-							AvailabilityZone: "us-east-1c",
-							IsPublic:         false,
-						},
-						&v1alpha2.SubnetSpec{
-							ID:               "subnet-3-public",
-							AvailabilityZone: "us-east-1c",
-							IsPublic:         true,
+			awsCluster: &v1alpha2.AWSCluster{
+				Spec: v1alpha2.AWSClusterSpec{
+					NetworkSpec: v1alpha2.NetworkSpec{
+						Subnets: v1alpha2.Subnets{
+							&v1alpha2.SubnetSpec{
+								ID:               "subnet-1",
+								AvailabilityZone: "us-east-1a",
+								IsPublic:         false,
+							},
+							&v1alpha2.SubnetSpec{
+								ID:               "subnet-2",
+								AvailabilityZone: "us-east-1b",
+								IsPublic:         false,
+							},
+							&v1alpha2.SubnetSpec{
+								ID:               "subnet-3",
+								AvailabilityZone: "us-east-1c",
+								IsPublic:         false,
+							},
+							&v1alpha2.SubnetSpec{
+								ID:               "subnet-3-public",
+								AvailabilityZone: "us-east-1c",
+								IsPublic:         true,
+							},
 						},
 					},
 				},
-				CAKeyPair: &v1alpha2.KeyPair{
-					Cert: testCaCert,
-					Key:  []byte("y"),
+				Status: v1alpha2.AWSClusterStatus{
+					Network: v1alpha2.Network{
+						SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
+							v1alpha2.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							v1alpha2.SecurityGroupNode: {
+								ID: "2",
+							},
+							v1alpha2.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: v1alpha2.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
@@ -504,7 +474,7 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				},
 			}
 
-			awsmachine := &v1alpha2.AWSMachine{
+			awsMachine := &v1alpha2.AWSMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -516,26 +486,34 @@ vuO9LYxDXLVY9F7W4ccyCqe27Cj1xyAvdZxwhITrib8Wg5CMqoRpqTw5V3+TpA==
 				},
 			}
 
-			scope, err := scope.NewMachineScope(scope.MachineScopeParams{
-				ProviderMachine: awsmachine,
+			machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
+				Client: fake.NewFakeClient(cluster, machine),
 				AWSClients: scope.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				Client: fake.NewFakeClient(cluster, machine),
+				Cluster:    cluster,
+				Machine:    machine,
+				AWSMachine: awsMachine,
 			})
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
-
-			scope.Parent.ClusterConfig = tc.clusterConfig
-			scope.Parent.ClusterStatus = tc.clusterStatus
-			scope.ProviderMachine.Spec = *tc.machineConfig
+			machineScope.AWSMachine.Spec = *tc.machineConfig
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope.Parent)
-			instance, err := s.CreateInstance(scope)
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: fake.NewFakeClient(cluster, machine),
+				AWSClients: scope.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+				Cluster:    cluster,
+				AWSCluster: tc.awsCluster,
+			})
+
+			s := NewService(clusterScope)
+			instance, err := s.CreateInstance(machineScope)
 			tc.check(instance, err)
 		})
 	}

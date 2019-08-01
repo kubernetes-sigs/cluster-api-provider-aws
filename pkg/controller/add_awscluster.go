@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,20 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package controller
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller/awscluster"
 )
 
-/// [Actuator]
-// Actuator controls clusters on a specific infrastructure. All
-// methods should be idempotent unless otherwise specified.
-type Actuator interface {
-	// Reconcile creates or applies updates to the cluster.
-	Reconcile(*clusterv1.Cluster) error
-	// Delete the cluster.
-	Delete(*clusterv1.Cluster) error
+func init() {
+	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
+	AddToManagerFuncs = append(AddToManagerFuncs, awscluster.Add)
 }
-
-/// [Actuator]

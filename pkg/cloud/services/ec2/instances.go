@@ -103,9 +103,9 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance,
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &v1alpha2.Instance{
-		Type:           scope.ProviderMachine.Spec.InstanceType,
-		IAMProfile:     scope.ProviderMachine.Spec.IAMInstanceProfile,
-		RootDeviceSize: scope.ProviderMachine.Spec.RootDeviceSize,
+		Type:           scope.AWSMachine.Spec.InstanceType,
+		IAMProfile:     scope.AWSMachine.Spec.IAMInstanceProfile,
+		RootDeviceSize: scope.AWSMachine.Spec.RootDeviceSize,
 	}
 
 	input.Tags = v1alpha2.Build(v1alpha2.BuildParams{
@@ -120,10 +120,10 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance,
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
-	if scope.ProviderMachine.Spec.AMI.ID != nil {
-		input.ImageID = *scope.ProviderMachine.Spec.AMI.ID
+	if scope.AWSMachine.Spec.AMI.ID != nil {
+		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
 	} else {
-		input.ImageID, err = s.defaultAMILookup(scope.ProviderMachine.Spec.ImageLookupOrg, "ubuntu", "18.04", *scope.Machine.Spec.Version)
+		input.ImageID, err = s.defaultAMILookup(scope.AWSMachine.Spec.ImageLookupOrg, "ubuntu", "18.04", *scope.Machine.Spec.Version)
 		if err != nil {
 			return nil, err
 		}
@@ -132,15 +132,15 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance,
 	// Pick subnet from the machine configuration, or based on the availability zone specified,
 	// or default to the first private subnet available.
 	// TODO(vincepri): Move subnet picking logic to its own function/method.
-	if scope.ProviderMachine.Spec.Subnet != nil && scope.ProviderMachine.Spec.Subnet.ID != nil {
-		input.SubnetID = *scope.ProviderMachine.Spec.Subnet.ID
-	} else if scope.ProviderMachine.Spec.AvailabilityZone != nil {
-		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*scope.ProviderMachine.Spec.AvailabilityZone)
+	if scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil {
+		input.SubnetID = *scope.AWSMachine.Spec.Subnet.ID
+	} else if scope.AWSMachine.Spec.AvailabilityZone != nil {
+		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*scope.AWSMachine.Spec.AvailabilityZone)
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available in availaibility zone %q",
 					scope.Name(),
-					*scope.ProviderMachine.Spec.AvailabilityZone,
+					*scope.AWSMachine.Spec.AvailabilityZone,
 				),
 			)
 		}
@@ -153,12 +153,6 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance,
 			)
 		}
 		input.SubnetID = sns[0].ID
-	}
-
-	if !s.scope.ClusterConfig.CAKeyPair.HasCertAndKey() {
-		return nil, awserrors.NewFailedDependency(
-			errors.New("failed to run controlplane, missing CACertificate"),
-		)
 	}
 
 	if s.scope.Network().APIServerELB.DNSName == "" {
@@ -178,8 +172,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance,
 	input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 
 	// Pick SSH key, if any.
-	if scope.ProviderMachine.Spec.KeyName != "" {
-		input.KeyName = aws.String(scope.ProviderMachine.Spec.KeyName)
+	if scope.AWSMachine.Spec.KeyName != "" {
+		input.KeyName = aws.String(scope.AWSMachine.Spec.KeyName)
 	} else {
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}

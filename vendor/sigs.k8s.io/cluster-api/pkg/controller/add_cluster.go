@@ -14,21 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package certificates
+package controller
 
 import (
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api/pkg/controller/cluster"
 )
 
-// Service groups certificate related operations together and allows
-// certificate updates to be applied to the actuator scope.
-type Service struct {
-	scope *scope.ClusterScope
-}
-
-// NewService returns a new certificates service for the given actuators scope.
-func NewService(scope *scope.ClusterScope) *Service {
-	return &Service{
-		scope: scope,
-	}
+func init() {
+	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
+	AddToManagerFuncs = append(AddToManagerFuncs, cluster.Add)
 }

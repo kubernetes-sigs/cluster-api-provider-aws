@@ -18,8 +18,6 @@ package scope
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
@@ -27,7 +25,6 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
@@ -38,65 +35,37 @@ import (
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
 	AWSClients
-	Client          client.Client
-	Logger          logr.Logger
-	ProviderMachine *infrav1.AWSMachine
+	Client  client.Client
+	Logger  logr.Logger
+	Cluster *clusterv1.Cluster
+	//AWSCluster *infrav1.AWSCluster
+	Machine    *clusterv1.Machine
+	AWSMachine *infrav1.AWSMachine
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
-// This is meant to be called for each machine actuator operation.
+// This is meant to be called for each reconcile iteration.
 func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.Client == nil {
 		return nil, errors.New("client is required when creating a MachineScope")
 	}
-	if params.ProviderMachine == nil {
-		return nil, errors.New("provider machine is required when creating a MachineScope")
+	if params.Machine == nil {
+		return nil, errors.New("machine is required when creating a MachineScope")
+	}
+	if params.AWSMachine == nil {
+		return nil, errors.New("aws machine is required when creating a MachineScope")
 	}
 
 	if params.Logger == nil {
 		params.Logger = klogr.New()
 	}
 
-	ctx := context.Background()
-
-	// Fetch the Machine.
-	machine, err := util.GetOwnerMachine(ctx, params.Client, params.ProviderMachine.ObjectMeta)
-	if err != nil {
-		return nil, err
-	}
-	if machine == nil {
-		params.Logger.Info("Waiting for Machine Controller to set OwnerRef on AWSMachine",
-			"namespace", params.ProviderMachine.Namespace,
-			"name", params.ProviderMachine.Name)
-
-		return nil, &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
-	}
-
-	// Fetch the cluster.
-	cluster, err := util.GetClusterFromMetadata(ctx, params.Client, machine.ObjectMeta)
-	if err != nil {
-		return nil, err
-	}
-
-	clusterScope, err := NewClusterScope(ClusterScopeParams{
-		AWSClients: params.AWSClients,
-		Client:     params.Client,
-		Cluster:    cluster,
-		Logger:     params.Logger,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	return &MachineScope{
-		client:          params.Client,
-		patch:           client.MergeFrom(params.ProviderMachine.DeepCopy()),
-		Parent:          clusterScope,
-		Machine:         machine,
-		ProviderMachine: params.ProviderMachine,
-		Logger: clusterScope.Logger.
-			WithName(fmt.Sprintf("machine=%s", machine.Name)).
-			WithName(fmt.Sprintf("providerMachine=%s", params.ProviderMachine.Name)),
+		client:     params.Client,
+		patch:      client.MergeFrom(params.AWSMachine.DeepCopy()),
+		Machine:    params.Machine,
+		AWSMachine: params.AWSMachine,
+		Logger:     params.Logger,
 	}, nil
 }
 
@@ -106,24 +75,19 @@ type MachineScope struct {
 	patch  client.Patch
 	client client.Client
 
-	Parent          *ClusterScope
-	Machine         *clusterv1.Machine
-	ProviderMachine *infrav1.AWSMachine
+	Cluster    *clusterv1.Cluster
+	Machine    *clusterv1.Machine
+	AWSMachine *infrav1.AWSMachine
 }
 
 // Name returns the AWSMachine name.
 func (m *MachineScope) Name() string {
-	return m.ProviderMachine.Name
+	return m.AWSMachine.Name
 }
 
 // Namespace returns the namespace name.
 func (m *MachineScope) Namespace() string {
-	return m.ProviderMachine.Namespace
-}
-
-// ClusterName returns the parent Cluster name.
-func (m *MachineScope) ClusterName() string {
-	return m.Parent.Name()
+	return m.AWSMachine.Namespace
 }
 
 // IsControlPlane returns true if the machine is a control plane.
@@ -139,11 +103,6 @@ func (m *MachineScope) Role() string {
 	return "node"
 }
 
-// Region returns the machine region.
-func (m *MachineScope) Region() string {
-	return m.Parent.Region()
-}
-
 // GetInstanceID returns the AWSMachine instance id by parsing Spec.ProviderID.
 func (m *MachineScope) GetInstanceID() *string {
 	parsed, err := noderefutil.NewProviderID(m.GetProviderID())
@@ -155,60 +114,60 @@ func (m *MachineScope) GetInstanceID() *string {
 
 // GetProviderID returns the AWSMachine providerID from the spec.
 func (m *MachineScope) GetProviderID() string {
-	if m.ProviderMachine.Spec.ProviderID != nil {
-		return *m.ProviderMachine.Spec.ProviderID
+	if m.AWSMachine.Spec.ProviderID != nil {
+		return *m.AWSMachine.Spec.ProviderID
 	}
 	return ""
 }
 
 // SetProviderID sets the AWSMachine providerID in spec.
 func (m *MachineScope) SetProviderID(v string) {
-	m.ProviderMachine.Spec.ProviderID = pointer.StringPtr(v)
+	m.AWSMachine.Spec.ProviderID = pointer.StringPtr(v)
 }
 
 // GetInstanceID returns the AWSMachine instance state from the status.
 func (m *MachineScope) GetInstanceState() *infrav1.InstanceState {
-	return m.ProviderMachine.Status.InstanceState
+	return m.AWSMachine.Status.InstanceState
 }
 
 // SetInstanceID sets the AWSMachine instance id.
 func (m *MachineScope) SetInstanceState(v infrav1.InstanceState) {
-	m.ProviderMachine.Status.InstanceState = &v
+	m.AWSMachine.Status.InstanceState = &v
 }
 
 // SetErrorMessage sets the AWSMachine status error message.
 func (m *MachineScope) SetErrorMessage(v error) {
-	m.ProviderMachine.Status.ErrorMessage = pointer.StringPtr(v.Error())
+	m.AWSMachine.Status.ErrorMessage = pointer.StringPtr(v.Error())
 }
 
 // SetErrorReason sets the AWSMachine status error reason.
-func (m *MachineScope) SetErrorReason(v common.MachineStatusError) {
-	m.ProviderMachine.Status.ErrorReason = &v
+func (m *MachineScope) SetErrorReason(v capierrors.MachineStatusError) {
+	m.AWSMachine.Status.ErrorReason = &v
 }
 
 // SetAnnotation sets a key value annotation on the AWSMachine.
 func (m *MachineScope) SetAnnotation(key, value string) {
-	if m.ProviderMachine.Annotations == nil {
-		m.ProviderMachine.Annotations = map[string]string{}
+	if m.AWSMachine.Annotations == nil {
+		m.AWSMachine.Annotations = map[string]string{}
 	}
-	m.ProviderMachine.Annotations[key] = value
+	m.AWSMachine.Annotations[key] = value
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
 func (m *MachineScope) Close() error {
 	ctx := context.Background()
 
-	gvk := m.ProviderMachine.GroupVersionKind()
+	gvk := m.AWSMachine.GroupVersionKind()
 
-	if err := m.client.Patch(ctx, m.ProviderMachine, m.patch); err != nil {
+	if err := m.client.Patch(ctx, m.AWSMachine, m.patch); err != nil {
 		return errors.WithStack(err)
 	}
 
 	// TODO(ncdc): This is a hack because after a Patch, the object loses TypeMeta information.
 	// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
-	m.ProviderMachine.SetGroupVersionKind(gvk)
+	m.AWSMachine.SetGroupVersionKind(gvk)
 
-	if err := m.client.Status().Patch(ctx, m.ProviderMachine, m.patch); err != nil {
+	if err := m.client.Status().Patch(ctx, m.AWSMachine, m.patch); err != nil {
 		return errors.WithStack(err)
 	}
 

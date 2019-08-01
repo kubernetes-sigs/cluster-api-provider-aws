@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,19 +20,18 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	userdata "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// AWSClusterProviderSpec is the providerConfig for AWS in the cluster
-// object
-// +k8s:openapi-gen=true
-type AWSClusterProviderSpec struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+const (
+	// ClusterFinalizer allows ReconcileAWSCluster to clean up AWS resources associated with AWSCluster before
+	// removing it from the apiserver.
+	ClusterFinalizer = "awscluster.infrastructure.cluster.x-k8s.io"
+)
 
+// AWSClusterSpec defines the desired state of AWSCluster
+type AWSClusterSpec struct {
 	// NetworkSpec encapsulates all things related to AWS network.
 	NetworkSpec NetworkSpec `json:"networkSpec,omitempty"`
 
@@ -41,45 +40,6 @@ type AWSClusterProviderSpec struct {
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
 	SSHKeyName string `json:"sshKeyName,omitempty"`
-
-	// CAKeyPair is the key pair for ca certs.
-	// +optional
-	CAKeyPair *KeyPair `json:"caKeyPair,omitempty"`
-
-	// EtcdCAKeyPair is the key pair for etcd.
-	// +optional
-	EtcdCAKeyPair *KeyPair `json:"etcdCAKeyPair,omitempty"`
-
-	// FrontProxyCAKeyPair is the key pair for FrontProxyKeyPair.
-	// +optional
-	FrontProxyCAKeyPair *KeyPair `json:"frontProxyCAKeyPair,omitempty"`
-
-	// SAKeyPair is the service account key pair.
-	// +optional
-	SAKeyPair *KeyPair `json:"saKeyPair,omitempty"`
-
-	// AdditionalUserDataFiles specifies extra files to be passed to all Machines' user_data upon creation.
-	// +optional
-	AdditionalUserDataFiles []userdata.Files `json:"additionalUserDataFiles,omitempty"`
-}
-
-// KeyPair is how operators can supply custom keypairs for kubeadm to use.
-type KeyPair struct {
-	// +required
-	Cert []byte `json:"cert,omitempty"`
-	// +required
-	Key []byte `json:"key,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-func init() {
-	SchemeBuilder.Register(&AWSClusterProviderSpec{})
-}
-
-// HasCertAndKey returns whether a keypair contains cert and key of non-zero length.
-func (kp *KeyPair) HasCertAndKey() bool {
-	return len(kp.Cert) != 0 && len(kp.Key) != 0
 }
 
 // NetworkSpec encapsulates all things related to AWS network.
@@ -151,4 +111,49 @@ type SubnetSpec struct {
 // String returns a string representation of the subnet.
 func (s *SubnetSpec) String() string {
 	return fmt.Sprintf("id=%s/az=%s/public=%v", s.ID, s.AvailabilityZone, s.IsPublic)
+}
+
+// AWSClusterStatus defines the observed state of AWSCluster
+type AWSClusterStatus struct {
+	Network Network  `json:"network,omitempty"`
+	Bastion Instance `json:"bastion,omitempty"`
+	Ready   bool     `json:"ready"`
+	// APIEndpoints represents the endpoints to communicate with the control plane.
+	// +optional
+	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+type APIEndpoint struct {
+	// The hostname on which the API server is serving.
+	Host string `json:"host"`
+
+	// The port on which the API server is serving.
+	Port int `json:"port"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AWSCluster is the Schema for the awsclusters API
+// +k8s:openapi-gen=true
+type AWSCluster struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   AWSClusterSpec   `json:"spec,omitempty"`
+	Status AWSClusterStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AWSClusterList contains a list of AWSCluster
+type AWSClusterList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []AWSCluster `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&AWSCluster{}, &AWSClusterList{})
 }

@@ -1,0 +1,50 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["awscluster_controller.go"],
+    importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/controller/awscluster",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//pkg/apis/infrastructure/v1alpha2:go_default_library",
+        "//pkg/cloud/scope:go_default_library",
+        "//pkg/cloud/services/ec2:go_default_library",
+        "//pkg/cloud/services/elb:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
+        "//vendor/k8s.io/client-go/tools/record:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/controller:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/handler:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/log:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/reconcile:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/source:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    srcs = [
+        "awscluster_controller_suite_test.go",
+        "awscluster_controller_test.go",
+    ],
+    embed = [":go_default_library"],
+    deps = [
+        "//pkg/apis:go_default_library",
+        "//pkg/apis/infrastructure/v1alpha2:go_default_library",
+        "//vendor/github.com/onsi/gomega:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
+        "//vendor/k8s.io/client-go/rest:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/apis:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/envtest:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
+    ],
+)

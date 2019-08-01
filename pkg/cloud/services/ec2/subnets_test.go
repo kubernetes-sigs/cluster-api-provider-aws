@@ -503,12 +503,12 @@ func TestReconcileSubnets(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
+				AWSCluster: &v1alpha2.AWSCluster{
+					Spec: v1alpha2.AWSClusterSpec{
+						NetworkSpec: *tc.input,
+					},
+				},
 			})
-
-			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: *tc.input,
-			}
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
@@ -673,12 +673,12 @@ func TestDiscoverSubnets(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
+				AWSCluster: &v1alpha2.AWSCluster{
+					Spec: v1alpha2.AWSClusterSpec{
+						NetworkSpec: *tc.input,
+					},
+				},
 			})
-
-			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: *tc.input,
-			}
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
@@ -690,7 +690,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 
-			subnets := s.scope.ClusterConfig.NetworkSpec.Subnets
+			subnets := s.scope.AWSCluster.Spec.NetworkSpec.Subnets
 			out := make(map[string]*v1alpha2.SubnetSpec)
 			for _, sn := range subnets {
 				out[sn.ID] = sn

@@ -288,7 +288,7 @@ func TestReconcileNatGateways(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
@@ -296,27 +296,27 @@ func TestReconcileNatGateways(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-			})
-
-			scope.ClusterConfig = &v1alpha2.AWSClusterProviderSpec{
-				NetworkSpec: v1alpha2.NetworkSpec{
-					VPC: v1alpha2.VPCSpec{
-						ID: subnetsVPCID,
-						Tags: v1alpha2.Tags{
-							v1alpha2.ClusterTagKey("test-cluster"): "owned",
+				AWSCluster: &v1alpha2.AWSCluster{
+					Spec: v1alpha2.AWSClusterSpec{
+						NetworkSpec: v1alpha2.NetworkSpec{
+							VPC: v1alpha2.VPCSpec{
+								ID: subnetsVPCID,
+								Tags: v1alpha2.Tags{
+									v1alpha2.ClusterTagKey("test-cluster"): "owned",
+								},
+							},
+							Subnets: tc.input,
 						},
 					},
-					Subnets: tc.input,
 				},
-			}
-
+			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(clusterScope)
 			if err := s.reconcileNatGateways(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}

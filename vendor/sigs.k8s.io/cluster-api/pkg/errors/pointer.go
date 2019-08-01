@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package errors
 
-import (
-	"sigs.k8s.io/cluster-api/pkg/controller/cluster"
-)
+// MachineStatusErrorPtr converts a MachineStatusError to a pointer.
+func MachineStatusErrorPtr(v MachineStatusError) *MachineStatusError {
+	return &v
+}
 
-var (
-	_ cluster.Actuator = (*Actuator)(nil)
-)
+// ClusterStatusErrorPtr converts a MachineStatusError to a pointer.
+func ClusterStatusErrorPtr(v ClusterStatusError) *ClusterStatusError {
+	return &v
+}
