@@ -266,7 +266,7 @@ clean-bazel: ## Remove all generated bazel symlinks
 
 .PHONY: clean-bazel-mocks
 clean-bazel-mocks: ## Remove all generated bazel mocks files
-	find bazel-bin/pkg -name '*_mock.go' -type f -delete
+	if [[ -d "bazel-bin/pkg" ]]; then find bazel-bin/pkg -name '*_mock.go' -type f -delete; fi
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
