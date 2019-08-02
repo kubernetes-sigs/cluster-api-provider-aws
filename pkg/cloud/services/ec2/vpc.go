@@ -19,6 +19,8 @@ package ec2
 import (
 	"fmt"
 
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -56,6 +58,11 @@ func (s *Service) reconcileVPC() error {
 		return nil
 	}
 
+	// Make sure attributes are configured
+	if err := s.ensureManagedVPCAttributes(vpc); err != nil {
+		return errors.Wrapf(err, "failed to to set vpc attributes for %q", vpc.ID)
+	}
+
 	// Make sure tags are up to date.
 	err = tags.Ensure(vpc.Tags, &tags.ApplyParams{
 		EC2Client:   s.scope.EC2,
@@ -68,6 +75,53 @@ func (s *Service) reconcileVPC() error {
 
 	vpc.DeepCopyInto(s.scope.VPC())
 	s.scope.V(2).Info("Working on managed VPC", "vpc-id", vpc.ID)
+	return nil
+}
+
+func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha2.VPCSpec) error {
+	var errs []error
+
+	// Cannot get or set both attributes at the same time.
+	descAttrInput := &ec2.DescribeVpcAttributeInput{
+		VpcId:     aws.String(vpc.ID),
+		Attribute: aws.String("enableDnsHostnames"),
+	}
+	vpcAttr, err := s.scope.EC2.DescribeVpcAttribute(descAttrInput)
+	if err != nil {
+		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsHostnames vpc attribute"))
+	} else if !aws.BoolValue(vpcAttr.EnableDnsHostnames.Value) {
+		attrInput := &ec2.ModifyVpcAttributeInput{
+			VpcId:              aws.String(vpc.ID),
+			EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
+		}
+		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
+			errs = append(errs, errors.Wrap(err, "failed to set enableDnsHostnames vpc attribute"))
+		}
+	}
+
+	descAttrInput = &ec2.DescribeVpcAttributeInput{
+		VpcId:     aws.String(vpc.ID),
+		Attribute: aws.String("enableDnsSupport"),
+	}
+	vpcAttr, err = s.scope.EC2.DescribeVpcAttribute(descAttrInput)
+	if err != nil {
+		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsSupport vpc attribute"))
+	} else if !aws.BoolValue(vpcAttr.EnableDnsSupport.Value) {
+		attrInput := &ec2.ModifyVpcAttributeInput{
+			VpcId:            aws.String(vpc.ID),
+			EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
+		}
+		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
+			errs = append(errs, errors.Wrap(err, "failed to set enableDnsSupport vpc attribute"))
+		}
+	}
+
+	if len(errs) > 0 {
+		record.Warnf(s.scope.Cluster, "FailedSetVPCAttributes", "Failed to set managed VPC attributes for %q: %v", vpc.ID, err)
+		return kerrors.NewAggregate(errs)
+	}
+
+	record.Eventf(s.scope.Cluster, "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID, err)
 	return nil
 }
 
@@ -86,27 +140,12 @@ func (s *Service) createVPC() (*v1alpha2.VPCSpec, error) {
 
 	out, err := s.scope.EC2.CreateVpc(input)
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedCreateVPC", "Failed to create new managed VPC: %v", err)
 		return nil, errors.Wrap(err, "failed to create vpc")
 	}
 
-	// Cannot set both attributes at the same time.
-	attrInput := &ec2.ModifyVpcAttributeInput{
-		VpcId:              out.Vpc.VpcId,
-		EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
-	}
-
-	if _, err = s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
-		return nil, errors.Wrap(err, "failed to set vpc attributes")
-	}
-
-	attrInput = &ec2.ModifyVpcAttributeInput{
-		VpcId:            out.Vpc.VpcId,
-		EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
-	}
-
-	if _, err = s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
-		return nil, errors.Wrap(err, "failed to set vpc attributes")
-	}
+	record.Eventf(s.scope.Cluster, "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
+	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
 	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
 	if err := s.scope.EC2.WaitUntilVpcAvailable(wReq); err != nil {
@@ -152,11 +191,12 @@ func (s *Service) deleteVPC() error {
 			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
 			return nil
 		}
+		record.Warnf(s.scope.Cluster, "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
 
 	s.scope.V(2).Info("Deleted VPC", "vpc-id", vpc.ID)
-	record.Eventf(s.scope.Cluster, "DeletedVPC", "Deleted managed VPC %q", vpc.ID)
+	record.Eventf(s.scope.Cluster, "SuccessfulDeleteVPC", "Deleted managed VPC %q", vpc.ID)
 	return nil
 }
 
