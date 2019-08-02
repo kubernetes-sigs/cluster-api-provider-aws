@@ -27,16 +27,12 @@ go_test(
         "metacluster_test.go",
     ],
     args = [
-        "-kindBinary=$(location @io_k8s_sigs_kind//:kind)",
-        "-kubectlBinary=$(location @io_k8s_kubernetes//cmd/kubectl:kubectl)",
         "-providerComponentsYAML=$(location manifests/provider-components-integration.yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
     ],
     data = [
         "manifests/provider-components-integration.yaml",
         "//cmd/manager:manager-amd64.tar",
-        "@io_k8s_kubernetes//cmd/kubectl:kubectl",
-        "@io_k8s_sigs_kind//:kind",
     ],
     rundir = ".",
     tags = ["external"],
@@ -49,6 +45,7 @@ go_test(
         "//vendor/k8s.io/api/apps/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
     ],
 )
 

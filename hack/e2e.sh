@@ -29,6 +29,10 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
 
+source "${REPO_ROOT}/hack/ensure-go.sh"
+source "${REPO_ROOT}/hack/ensure-kind.sh"
+source "${REPO_ROOT}/hack/ensure-kubectl.sh"
+
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then
   # Check out the account from Boskos and store the produced environment

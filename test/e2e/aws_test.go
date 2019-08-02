@@ -36,6 +36,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -50,14 +51,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
 	capi "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 const (
-	kindTimeout      = 5 * 60
-	namespace        = "capa-test"
-	clusterName      = "capa-test-cluster"
-	controlPlaneName = "capa-test-control-plane"
-
+	kindTimeout = 5 * 60
 	stackName   = "cluster-api-provider-aws-sigs-k8s-io"
 	keyPairName = "cluster-api-provider-aws-sigs-k8s-io"
 )
@@ -81,53 +79,118 @@ func initRegion() error {
 
 var _ = Describe("AWS", func() {
 	var (
-		cluster kind.Cluster
-		client  *clientset.Clientset
+		kindCluster kind.Cluster
+		client      *clientset.Clientset
 	)
 	BeforeEach(func() {
 		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", region)
-		cluster.Setup()
-		cfg := cluster.RestConfig()
+		kindCluster = kind.Cluster{
+			Name: "capa-test-" + util.RandomString(6),
+		}
+		kindCluster.Setup()
+		cfg := kindCluster.RestConfig()
 		var err error
 		client, err = clientset.NewForConfig(cfg)
 		Expect(err).To(BeNil())
 	}, kindTimeout)
 
 	AfterEach(func() {
-		cluster.Teardown()
+		kindCluster.Teardown()
 	})
 
 	Describe("control plane node", func() {
 		It("should be running", func() {
-
 			sess := getSession()
 			accountID := getAccountID(sess)
 
 			createKeyPair(sess)
 			createIAMRoles(sess, accountID)
 
-			createNamespace(cluster.KubeClient())
+			namespace := "test-" + util.RandomString(6)
+			createNamespace(kindCluster.KubeClient(), namespace)
 
 			By("Creating a cluster")
+			clusterName := "test-" + util.RandomString(6)
+			fmt.Fprintf(GinkgoWriter, "Creating Cluster named %q\n", clusterName)
 			clusterapi := client.ClusterV1alpha1().Clusters(namespace)
-			_, err := clusterapi.Create(makeCluster())
+			_, err := clusterapi.Create(makeCluster(clusterName))
 			Expect(err).To(BeNil())
 
 			By("Creating a machine")
+			machineName := "cp-1"
+			fmt.Fprintf(GinkgoWriter, "Creating Machine named %q for Cluster %q\n", machineName, clusterName)
 			machineapi := client.ClusterV1alpha1().Machines(namespace)
-			_, err = machineapi.Create(makeMachine())
+			_, err = machineapi.Create(makeMachine(machineName, clusterName))
 			Expect(err).To(BeNil())
 
+			// Make sure that the Machine eventually reports that the instance state is running
 			Eventually(
 				func() (*capa.AWSMachineProviderStatus, error) {
-					machine, err := machineapi.Get(controlPlaneName, metav1.GetOptions{})
+					machine, err := machineapi.Get(machineName, metav1.GetOptions{})
 					if err != nil {
 						return nil, err
+					}
+					if machine.Status.ProviderStatus == nil {
+						return &capa.AWSMachineProviderStatus{
+							InstanceState: &capa.InstanceStatePending,
+						}, nil
 					}
 					return capa.MachineStatusFromProviderStatus(machine.Status.ProviderStatus)
 				},
 				10*time.Minute, 15*time.Second,
 			).Should(beHealthy())
+
+			// Make sure that the Machine eventually reports that the Machine NodeRef is set
+			Eventually(
+				func() (*corev1.ObjectReference, error) {
+					machine, err := machineapi.Get(machineName, metav1.GetOptions{})
+					if err != nil {
+						return nil, err
+					}
+					return machine.Status.NodeRef, nil
+
+				},
+				10*time.Minute, 15*time.Second,
+			).Should(Not(BeNil()))
+
+			// Make sure that the Cluster reports the Control Plane is ready
+			Eventually(
+				func() (map[string]string, error) {
+					cluster, err := clusterapi.Get(clusterName, metav1.GetOptions{})
+					if err != nil {
+						return nil, err
+					}
+					return cluster.Annotations, nil
+				},
+				10*time.Minute, 15*time.Second,
+			).Should(HaveKeyWithValue(capa.AnnotationControlPlaneReady, capa.ValueReady))
+
+			// TODO: Retrieve Cluster kubeconfig
+			// TODO: Deploy Addons
+			// TODO: Validate Node Ready
+			// TODO: Deploy additional Control Plane Nodes
+			// TODO: Deploy a MachineDeployment
+			// TODO: Scale MachineDeployment up
+			// TODO: Scale MachineDeployment down
+
+			By("Deleting cluster")
+			fmt.Fprintf(GinkgoWriter, "Deleting Cluster named %q\n", clusterName)
+			err = clusterapi.Delete(clusterName, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil())
+
+			Eventually(
+				func() *capi.Cluster {
+					cluster, err := clusterapi.Get(clusterName, metav1.GetOptions{})
+					if err != nil {
+						if apierrors.IsNotFound(err) {
+							return nil
+						}
+						return &capi.Cluster{}
+					}
+					return cluster
+				},
+				20*time.Minute, 15*time.Second,
+			).Should(BeNil())
 		})
 	})
 })
@@ -140,7 +203,7 @@ func beHealthy() types.GomegaMatcher {
 	)
 }
 
-func makeCluster() *capi.Cluster {
+func makeCluster(name string) *capi.Cluster {
 	yaml, err := ioutil.ReadFile(*clusterYAML)
 	Expect(err).To(BeNil())
 
@@ -151,7 +214,7 @@ func makeCluster() *capi.Cluster {
 	cluster, ok := obj.(*capi.Cluster)
 	Expect(ok).To(BeTrue(), "Wanted cluster, got %T", obj)
 
-	cluster.ObjectMeta.Name = clusterName
+	cluster.ObjectMeta.Name = name
 
 	awsSpec, err := capa.ClusterConfigFromProviderSpec(cluster.Spec.ProviderSpec)
 	Expect(err).To(BeNil())
@@ -163,7 +226,7 @@ func makeCluster() *capi.Cluster {
 	return cluster
 }
 
-func makeMachine() *capi.Machine {
+func makeMachine(name, clusterName string) *capi.Machine {
 	yaml, err := ioutil.ReadFile(*machineYAML)
 	Expect(err).To(BeNil())
 
@@ -177,7 +240,7 @@ func makeMachine() *capi.Machine {
 	Expect(machines).NotTo(BeEmpty())
 
 	machine := machines[0]
-	machine.ObjectMeta.Name = controlPlaneName
+	machine.ObjectMeta.Name = name
 	machine.ObjectMeta.Labels[capi.MachineClusterLabelName] = clusterName
 
 	awsSpec, err := actuators.MachineConfigFromProviderSpec(nil, machine.Spec.ProviderSpec, &cloudtest.Log{})
@@ -196,7 +259,7 @@ func getScheme() *runtime.Scheme {
 	return s
 }
 
-func createNamespace(client kubernetes.Interface) {
+func createNamespace(client kubernetes.Interface, namespace string) {
 	_, err := client.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,

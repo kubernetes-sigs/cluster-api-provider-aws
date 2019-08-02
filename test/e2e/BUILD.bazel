@@ -31,8 +31,6 @@ go_test(
         "e2e_suite_test.go",
     ],
     args = [
-        "-kindBinary=$(location @io_k8s_sigs_kind//:kind)",
-        "-kubectlBinary=$(location @io_k8s_kubernetes//cmd/kubectl:kubectl)",
         "-providerComponentsYAML=$(location provider-components-e2e.yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
         "-credFile=$(location manifests/provider-credentials.profile)",
@@ -48,8 +46,6 @@ go_test(
         "provider-components-e2e.yaml",
         "region.txt",
         "//cmd/manager:manager-amd64.tar",
-        "@io_k8s_kubernetes//cmd/kubectl:kubectl",
-        "@io_k8s_sigs_kind//:kind",
     ],
     rundir = ".",
     tags = ["external"],
@@ -74,12 +70,14 @@ go_test(
         "//vendor/github.com/onsi/gomega/gstruct:go_default_library",
         "//vendor/github.com/onsi/gomega/types:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
     ],
 )
 

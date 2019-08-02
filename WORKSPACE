@@ -15,19 +15,13 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
-# Use the git repository for bazel rules until a released version contains https://github.com/bazelbuild/rules_go/pull/2090
-# http_archive(
-#     name = "io_bazel_rules_go",
-#     urls = [
-#         "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.18.6/rules_go-0.18.6.tar.gz",
-#         "https://github.com/bazelbuild/rules_go/releases/download/0.18.6/rules_go-0.18.6.tar.gz",
-#     ],
-#     sha256 = "f04d2373bcaf8aa09bccb08a98a57e721306c8f6043a2a0ee610fd6853dcde3d",
-# )
-git_repository(
+http_archive(
     name = "io_bazel_rules_go",
-    commit = "f2373c9fbd09586d8e591dda3c43d66445b2d7ca",
-    remote = "https://github.com/bazelbuild/rules_go.git",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
+    ],
+    sha256 = "8df59f11fb697743cbb3f26cfb8750395f30471e9eabde0d174c3aebc7a1cd39",
 )
 
 http_archive(
@@ -39,8 +33,8 @@ http_archive(
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "3c681998538231a2d24d0c07ed5a7658cb72bfb5fd4bf9911157c0e9ac6a2687",
-    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.17.0/bazel-gazelle-0.17.0.tar.gz"],
+    sha256 = "be9296bfd64882e3c08e3283c58fcb461fa6dd3c171764fcc4cf322f60615a9b",
+    urls = ["https://github.com/bazelbuild/bazel-gazelle/releases/download/0.18.1/bazel-gazelle-0.18.1.tar.gz"],
 )
 
 http_archive(
@@ -69,7 +63,7 @@ load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_depe
 go_rules_dependencies()
 
 go_register_toolchains(
-    go_version = "1.12.6",
+    go_version = "1.12.7",
 )
 
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
@@ -90,6 +84,17 @@ load(
 
 _go_image_repos()
 
+git_repository(
+    name = "com_google_protobuf",
+    commit = "09745575a923640154bcf307fba8aedff47f240a",
+    remote = "https://github.com/protocolbuffers/protobuf",
+    shallow_since = "1558721209 -0700",
+)
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+protobuf_deps()
+
 go_repository(
     name = "com_github_golangci_golangci-lint",
     build_file_generation = "on",
@@ -105,21 +110,9 @@ go_repository(
 )
 
 go_repository(
-    name = "io_k8s_sigs_kind",
-    importpath = "sigs.k8s.io/kind",
-    tag = "0.2.1",
-)
-
-go_repository(
     name = "io_k8s_sigs_kustomize",
     importpath = "sigs.k8s.io/kustomize",
     tag = "v1.0.11",
-)
-
-go_repository(
-    name = "io_k8s_kubernetes",
-    importpath = "k8s.io/kubernetes",
-    tag = "v1.13.5",
 )
 
 go_repository(

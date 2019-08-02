@@ -26,6 +26,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api/pkg/util"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
 )
@@ -38,16 +39,19 @@ const (
 
 var _ = Describe("Metacluster", func() {
 	var (
-		cluster kind.Cluster
-		client  kubernetes.Interface
+		kindCluster kind.Cluster
+		client      kubernetes.Interface
 	)
 	BeforeEach(func() {
-		cluster.Setup()
-		client = cluster.KubeClient()
+		kindCluster = kind.Cluster{
+			Name: "capa-test-" + util.RandomString(6),
+		}
+		kindCluster.Setup()
+		client = kindCluster.KubeClient()
 	}, kindTimeout)
 
 	AfterEach(func() {
-		cluster.Teardown()
+		kindCluster.Teardown()
 	})
 
 	Describe("manager container", func() {
