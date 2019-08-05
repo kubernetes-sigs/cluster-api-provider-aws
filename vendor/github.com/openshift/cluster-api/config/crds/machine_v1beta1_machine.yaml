@@ -6,6 +6,37 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: machines.machine.openshift.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .metadata.annotations['machine\.openshift\.io/instance-state']
+    description: State of instance
+    name: State
+    type: string
+  - JSONPath: .metadata.labels['machine\.openshift\.io/instance-type']
+    description: Type of instance
+    name: Type
+    type: string
+  - JSONPath: .metadata.labels['machine\.openshift\.io/region']
+    description: Region associated with machine
+    name: Region
+    type: string
+  - JSONPath: .metadata.labels['machine\.openshift\.io/zone']
+    description: Zone associated with machine
+    name: Zone
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    description: Machine age
+    name: Age
+    type: date
+  - JSONPath: .status.nodeRef.name
+    description: Node associated with machine
+    name: Node
+    priority: 1
+    type: string
+  - JSONPath: .spec.providerID
+    description: Provider ID of machine created in cloud provider
+    name: ProviderID
+    priority: 1
+    type: string
   group: machine.openshift.io
   names:
     kind: Machine

@@ -6,6 +6,27 @@ metadata:
     controller-tools.k8s.io: "1.0"
   name: machinesets.machine.openshift.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.replicas
+    description: Desired Replicas
+    name: Desired
+    type: integer
+  - JSONPath: .status.replicas
+    description: Current Replicas
+    name: Current
+    type: integer
+  - JSONPath: .status.readyReplicas
+    description: Ready Replicas
+    name: Ready
+    type: integer
+  - JSONPath: .status.availableReplicas
+    description: Observed number of available replicas
+    name: Available
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    description: Machineset age
+    name: Age
+    type: date
   group: machine.openshift.io
   names:
     kind: MachineSet
