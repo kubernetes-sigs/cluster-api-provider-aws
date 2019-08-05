@@ -178,7 +178,7 @@ func getAMI(AMI providerconfigv1.AWSResourceReference, client awsclient.Client) 
 }
 
 func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
-	if len(blockDeviceMappings) == 0 {
+	if len(blockDeviceMappings) == 0 || blockDeviceMappings[0].EBS == nil {
 		return []*ec2.BlockDeviceMapping{}, nil
 	}
 
@@ -205,6 +205,7 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 		Ebs: &ec2.EbsBlockDevice{
 			VolumeSize: volumeSize,
 			VolumeType: volumeType,
+			Encrypted:  blockDeviceMappings[0].EBS.Encrypted,
 		},
 	}
 	if *volumeType == "io1" {
