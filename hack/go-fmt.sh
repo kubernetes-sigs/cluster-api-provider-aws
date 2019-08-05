@@ -8,6 +8,9 @@ if [ "$IS_CONTAINER" != "" ]; then
   git diff --exit-code
 else
   docker run -it --rm \
+    --env GO111MODULE="$GO111MODULE" \
+    --env GOFLAGS="$GOFLAGS" \
+    --env GOPROXY="$GOPROXY" \
     --env IS_CONTAINER=TRUE \
     --volume "${PWD}:/go/src/sigs.k8s.io/${REPO_NAME}:z" \
     --workdir "/go/src/sigs.k8s.io/${REPO_NAME}" \

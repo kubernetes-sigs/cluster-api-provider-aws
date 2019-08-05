@@ -3,7 +3,7 @@ WORKDIR /go/src/sigs.k8s.io/cluster-api-provider-aws
 COPY . .
 # VERSION env gets set in the openshift/release image and refers to the golang version, which interfers with our own
 RUN unset VERSION \
- && NO_DOCKER=1 make build
+ && GOPROXY=off NO_DOCKER=1 make build
 
 FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
 RUN INSTALL_PKGS=" \

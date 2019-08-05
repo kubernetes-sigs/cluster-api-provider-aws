@@ -36,7 +36,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
 )
 
-//go:generate mockgen -source=./client.go -destination=./mock/client_generated.go -package=mock
+//go:generate gobin -m -run github.com/golang/mock/mockgen -source=./client.go -destination=./mock/client_generated.go -package=mock
 
 const (
 	// AwsCredsSecretIDKey is secret key containing AWS KeyId
