@@ -187,12 +187,20 @@ func (s *Service) deleteVPC() error {
 		return nil
 	}
 
+	vpc, err := s.describeVPC()
+	if err != nil {
+		if awserrors.IsNotFound(err) {
+			// If the VPC does not exist, nothing to do
+			return nil
+		}
+		return err
+	}
+
 	input := &ec2.DeleteVpcInput{
 		VpcId: aws.String(vpc.ID),
 	}
 
-	_, err := s.scope.EC2.DeleteVpc(input)
-	if err != nil {
+	if _, err := s.scope.EC2.DeleteVpc(input); err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
 			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
