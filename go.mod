@@ -4,8 +4,10 @@ go 1.12
 
 require (
 	cloud.google.com/go v0.36.0 // indirect
+	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30
 	github.com/aws/aws-sdk-go v1.19.18
 	github.com/awslabs/goformation v0.0.0-20180916202949-d42502ef32a8
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.1.0
 	github.com/gogo/protobuf v1.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
@@ -30,7 +32,7 @@ require (
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	k8s.io/klog v0.3.2
 	k8s.io/kubernetes v1.13.3
-	sigs.k8s.io/cluster-api v0.1.8
+	sigs.k8s.io/cluster-api v0.1.9
 	sigs.k8s.io/controller-runtime v0.1.12
 	sigs.k8s.io/controller-tools v0.1.11
 	sigs.k8s.io/testing_frameworks v0.1.1
