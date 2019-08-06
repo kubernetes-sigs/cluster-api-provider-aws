@@ -30,6 +30,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -312,4 +313,32 @@ func decodeClusterV1Kinds(decoder *yaml.YAMLOrJSONDecoder, kind string) ([][]byt
 	}
 
 	return outs, nil
+
+}
+
+// Returns true if any of the owner references point to the given target
+func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
+	for _, ref := range refs {
+		if ref.UID == target.UID {
+			return true
+		}
+	}
+
+	return false
+}
+
+// HasOwner checks if any of the references in the past list match the given apiVersion and one of the given kinds
+func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string) bool {
+	kMap := make(map[string]bool)
+	for _, kind := range kinds {
+		kMap[kind] = true
+	}
+
+	for _, mr := range refList {
+		if mr.APIVersion == apiVersion && kMap[mr.Kind] {
+			return true
+		}
+	}
+
+	return false
 }

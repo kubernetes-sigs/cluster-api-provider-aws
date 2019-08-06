@@ -20,6 +20,10 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
 const validCluster = `
@@ -333,4 +337,136 @@ func createTempFile(contents string) (string, error) {
 	defer f.Close()
 	f.WriteString(contents)
 	return f.Name(), nil
+}
+
+func TestPointsTo(t *testing.T) {
+	targetID := "fri3ndsh1p"
+
+	meta := metav1.ObjectMeta{
+		UID: types.UID(targetID),
+	}
+
+	tests := []struct {
+		name     string
+		refIDs   []string
+		expected bool
+	}{
+		{
+			name: "empty owner list",
+		},
+		{
+			name:   "single wrong owner ref",
+			refIDs: []string{"m4g1c"},
+		},
+		{
+			name:     "single right owner ref",
+			refIDs:   []string{targetID},
+			expected: true,
+		},
+		{
+			name:   "multiple wrong refs",
+			refIDs: []string{"m4g1c", "h4rm0ny"},
+		},
+		{
+			name:     "multiple refs one right",
+			refIDs:   []string{"m4g1c", targetID},
+			expected: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pointer := &metav1.ObjectMeta{}
+
+			for _, ref := range test.refIDs {
+				pointer.OwnerReferences = append(pointer.OwnerReferences, metav1.OwnerReference{
+					UID: types.UID(ref),
+				})
+			}
+
+			result := PointsTo(pointer.OwnerReferences, &meta)
+			if result != test.expected {
+				t.Errorf("expected %v, got %v", test.expected, result)
+			}
+		})
+	}
+}
+
+func TestHasOwner(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		refList  []metav1.OwnerReference
+		expected bool
+	}{
+		{
+			name: "no ownership",
+		},
+		{
+			name: "owned by cluster",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Cluster",
+					APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+
+		{
+			name: "owned by something else",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Pod",
+					APIVersion: "v1",
+				},
+				{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+			},
+		},
+		{
+			name: "owner by a deployment",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "right kind, wrong apiversion",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: "wrong/v2",
+				},
+			},
+		},
+		{
+
+			name: "right apiversion, wrong kind",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Machine",
+					APIVersion: v1alpha1.SchemeGroupVersion.String(),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := HasOwner(
+				test.refList,
+				v1alpha1.SchemeGroupVersion.String(),
+				[]string{"MachineDeployment", "Cluster"},
+			)
+			if test.expected != result {
+				t.Errorf("expected hasOwner to be %v, got %v", test.expected, result)
+			}
+		})
+	}
 }
