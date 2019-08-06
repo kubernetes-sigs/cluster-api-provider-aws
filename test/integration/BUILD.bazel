@@ -27,16 +27,10 @@ go_test(
         "metacluster_test.go",
     ],
     args = [
-        "-kindBinary=$(location @io_k8s_sigs_kind//:kind)",
-        "-kubectlBinary=$(location @io_k8s_kubernetes//cmd/kubectl:kubectl)",
-        "-providerComponentsYAML=$(location manifests/provider-components-integration.yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
     ],
     data = [
-        "manifests/provider-components-integration.yaml",
         "//cmd/manager:manager-amd64.tar",
-        "@io_k8s_kubernetes//cmd/kubectl:kubectl",
-        "@io_k8s_sigs_kind//:kind",
     ],
     rundir = ".",
     tags = ["external"],
@@ -44,27 +38,6 @@ go_test(
         "//test/e2e/util/kind:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
-        "//vendor/github.com/onsi/gomega/gstruct:go_default_library",
-        "//vendor/github.com/onsi/gomega/types:go_default_library",
-        "//vendor/k8s.io/api/apps/v1:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
-        "//vendor/k8s.io/client-go/kubernetes:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
     ],
-)
-
-genrule(
-    name = "integration-provider-components",
-    srcs = [
-        "kustomization.yaml",
-        "//test:manager-version-patch.yaml",
-        "//config:provider-non-stamped-base.yaml",
-        "//vendor/sigs.k8s.io/cluster-api/config:cluster-api-yaml",
-    ],
-    outs = ["manifests/provider-components-integration.yaml"],
-    cmd = " && ".join([
-        "cp -f $(SRCS) $(@D)",
-        "$(location @io_k8s_sigs_kustomize//:kustomize) build $(@D) > $@",
-    ]),
-    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
-    visibility = ["//visibility:public"],
 )

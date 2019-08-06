@@ -31,30 +31,18 @@ go_test(
         "e2e_suite_test.go",
     ],
     args = [
-        "-kindBinary=$(location @io_k8s_sigs_kind//:kind)",
-        "-kubectlBinary=$(location @io_k8s_kubernetes//cmd/kubectl:kubectl)",
-        "-providerComponentsYAML=$(location provider-components-e2e.yaml)",
         "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
         "-credFile=$(location manifests/provider-credentials.profile)",
-        "-clusterYAML=$(location manifests/cluster.yaml)",
-        "-machineYAML=$(location manifests/machines.yaml)",
         "-regionFile=$(location region.txt)",
     ],
     data = [
-        "manifests/addons.yaml",
-        "manifests/cluster.yaml",
-        "manifests/machines.yaml",
         "manifests/provider-credentials.profile",
-        "provider-components-e2e.yaml",
         "region.txt",
         "//cmd/manager:manager-amd64.tar",
-        "@io_k8s_kubernetes//cmd/kubectl:kubectl",
-        "@io_k8s_sigs_kind//:kind",
     ],
     rundir = ".",
     tags = ["external"],
     deps = [
-        "//pkg/apis/awsprovider/v1alpha1:go_default_library",
         "//pkg/cloud/awserrors:go_default_library",
         "//pkg/cloud/services/cloudformation:go_default_library",
         "//pkg/cloud/services/sts:go_default_library",
@@ -68,55 +56,11 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/service/sts:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
-        "//vendor/github.com/onsi/gomega/gstruct:go_default_library",
-        "//vendor/github.com/onsi/gomega/types:go_default_library",
         "//vendor/k8s.io/api/core/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
     ],
-)
-
-genrule(
-    name = "manifests",
-    srcs = [
-        "//examples:addons.yaml",
-        "//examples:cluster.yaml.template",
-        "//examples:cluster-network-spec.yaml.template",
-        "//examples:machine-deployment.yaml.template",
-        "//examples:machines.yaml.template",
-        "//examples:machines-ha.yaml.template",
-        "//examples:provider-components-base.yaml",
-        "//examples:generate-yaml.sh",
-        "manifests/provider-credentials.sh",
-    ],
-    outs = [
-        "manifests/addons.yaml",
-        "manifests/cluster.yaml",
-        "manifests/machine-deployment.yaml",
-        "manifests/machines.yaml",
-        "manifests/machines-ha.yaml",
-        "manifests/provider-components.yaml",
-    ],
-    cmd = " && ".join([
-        "source $(location manifests/provider-credentials.sh)",
-        "cp -f $(SRCS) $(@D)",
-        " ".join([
-            "ENVSUBST=$(location @com_github_a8m_envsubst//cmd/envsubst:envsubst)",
-            "CLUSTERAWSADM=$(location //cmd/clusterawsadm)",
-            "OUTPUT_DIR=$(@D)/manifests",
-            "DIR=$(@D)",
-            "$(location //examples:generate-yaml.sh) -f",
-        ]),
-    ]),
-    tools = [
-        "//cmd/clusterawsadm",
-        "@com_github_a8m_envsubst//cmd/envsubst:envsubst",
-    ],
-    visibility = ["//visibility:public"],
 )
 
 genrule(
@@ -134,42 +78,6 @@ genrule(
     ]),
     stamp = 1,
     visibility = ["//visibility:private"],
-)
-
-genrule(
-    name = "provider_credentials_env",
-    outs = ["manifests/provider-credentials.sh"],
-    cmd = " && ".join([
-        "touch $@",
-        "export AWS_ACCESS_KEY_ID=$$(grep ^STABLE_AWS_ACCESS_KEY_ID bazel-out/stable-status.txt | cut -f2 -d\" \")",
-        "export AWS_SECRET_ACCESS_KEY=$$(grep ^STABLE_AWS_SECRET_ACCESS_KEY bazel-out/stable-status.txt | cut -f2 -d\" \")",
-        "export AWS_SESSION_TOKEN=$$(grep ^STABLE_AWS_SESSION_TOKEN bazel-out/stable-status.txt | cut -f2 -d\" \")",
-        "export AWS_DEFAULT_REGION=$$(grep ^STABLE_AWS_DEFAULT_REGION bazel-out/stable-status.txt | cut -f2 -d\" \")",
-        "export AWS_REGION=$$(grep ^STABLE_AWS_REGION bazel-out/stable-status.txt | cut -f2 -d\" \")",
-        "echo export AWS_ACCESS_KEY_ID=$$AWS_ACCESS_KEY_ID >> $@",
-        "echo export AWS_SECRET_ACCESS_KEY=$$AWS_SECRET_ACCESS_KEY >> $@",
-        "echo export AWS_SESSION_TOKEN=$$AWS_SESSION_TOKEN >> $@",
-        "echo export AWS_DEFAULT_REGION=$$AWS_DEFAULT_REGION >> $@",
-        "echo export AWS_REGION=$$AWS_REGION >> $@",
-    ]),
-    stamp = 1,
-    visibility = ["//visibility:private"],
-)
-
-genrule(
-    name = "e2e-provider-components",
-    srcs = [
-        "kustomization.yaml",
-        "//test:manager-version-patch.yaml",
-        "manifests/provider-components.yaml",
-    ],
-    outs = ["provider-components-e2e.yaml"],
-    cmd = " && ".join([
-        "cp -f $(SRCS) $(@D)",
-        "$(location @io_k8s_sigs_kustomize//:kustomize) build $(@D) > $@",
-    ]),
-    tools = ["@io_k8s_sigs_kustomize//:kustomize"],
-    visibility = ["//visibility:public"],
 )
 
 genrule(

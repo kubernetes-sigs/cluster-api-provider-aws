@@ -31,7 +31,8 @@ go mod vendor
 while IFS= read -r dep; do
     src="$(go mod download -json "${dep}" | jq -r .Dir)"
     dst="${KUBE_ROOT}/vendor/${dep}"
-    cp -af "${src}/" "${dst}"
+    rm -rf "${dst}"
+    cp -af "${src}" "${dst}"
     chmod -R +w "${dst}"
 done < "${KUBE_ROOT}/go.vendor"
 
