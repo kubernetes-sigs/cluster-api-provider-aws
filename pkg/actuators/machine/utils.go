@@ -144,7 +144,7 @@ func getVolume(client awsclient.Client, volumeID string) (*ec2.Volume, error) {
 }
 
 // terminateInstances terminates all provided instances with a single EC2 request.
-func terminateInstances(client awsclient.Client, instances []*ec2.Instance) error {
+func terminateInstances(client awsclient.Client, instances []*ec2.Instance) ([]*ec2.InstanceStateChange, error) {
 	instanceIDs := []*string{}
 	// Cleanup all older instances:
 	for _, instance := range instances {
@@ -158,12 +158,17 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) erro
 	terminateInstancesRequest := &ec2.TerminateInstancesInput{
 		InstanceIds: instanceIDs,
 	}
-	_, err := client.TerminateInstances(terminateInstancesRequest)
+	output, err := client.TerminateInstances(terminateInstancesRequest)
 	if err != nil {
 		glog.Errorf("Error terminating instances: %v", err)
-		return fmt.Errorf("error terminating instances: %v", err)
+		return nil, fmt.Errorf("error terminating instances: %v", err)
 	}
-	return nil
+
+	if output == nil {
+		return nil, nil
+	}
+
+	return output.TerminatingInstances, nil
 }
 
 // providerConfigFromMachine gets the machine provider config MachineSetSpec from the

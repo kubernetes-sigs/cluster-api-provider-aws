@@ -45,7 +45,8 @@ func removeStoppedMachine(machine *machinev1.Machine, client awsclient.Client) e
 		return nil
 	}
 
-	return terminateInstances(client, instances)
+	_, err = terminateInstances(client, instances)
+	return err
 }
 
 func buildEC2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {

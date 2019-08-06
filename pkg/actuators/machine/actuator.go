@@ -42,6 +42,8 @@ import (
 
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
 )
 
 const (
@@ -122,7 +124,56 @@ func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, m
 	if err != nil {
 		return fmt.Errorf("%s: failed to update machine object with providerID: %v", machine.Name, err)
 	}
+
+	updatedMachine, err = a.setMachineCloudProviderSpecifics(updatedMachine, instance)
+	if err != nil {
+		return fmt.Errorf("%s: failed to set machine cloud provider specifics: %v", machine.Name, err)
+	}
+
 	return a.updateStatus(updatedMachine, instance)
+}
+
+// updateProviderID adds providerID in the machine spec
+func (a *Actuator) setMachineCloudProviderSpecifics(machine *machinev1.Machine, instance *ec2.Instance) (*machinev1.Machine, error) {
+	if instance == nil {
+		return machine, nil
+	}
+	machineCopy := machine.DeepCopy()
+
+	if machineCopy.Labels == nil {
+		machineCopy.Labels = make(map[string]string)
+	}
+
+	if machineCopy.Annotations == nil {
+		machineCopy.Annotations = make(map[string]string)
+	}
+
+	// Reaching to machine provider config since the region is not directly
+	// providing by *ec2.Instance object
+	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding MachineProviderConfig: %v", err)
+	}
+
+	machineCopy.Labels[machinecontroller.MachineRegionLabelName] = machineProviderConfig.Placement.Region
+
+	if instance.Placement != nil {
+		machineCopy.Labels[machinecontroller.MachineAZLabelName] = aws.StringValue(instance.Placement.AvailabilityZone)
+	}
+
+	if instance.InstanceType != nil {
+		machineCopy.Labels[machinecontroller.MachineInstanceTypeLabelName] = aws.StringValue(instance.InstanceType)
+	}
+
+	if instance.State != nil && instance.State.Name != nil {
+		machineCopy.Annotations[machinecontroller.MachineInstanceStateAnnotationName] = aws.StringValue(instance.State.Name)
+	}
+
+	if err := a.client.Update(context.Background(), machineCopy); err != nil {
+		return nil, fmt.Errorf("%s: error updating machine spec: %v", machine.Name, err)
+	}
+
+	return machineCopy, nil
 }
 
 // updateProviderID adds providerID in the machine spec
@@ -325,10 +376,19 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *machinev1.
 		return nil
 	}
 
-	err = terminateInstances(client, instances)
+	terminatingInstances, err := terminateInstances(client, instances)
 	if err != nil {
 		return a.handleMachineError(machine, apierrors.DeleteMachine(err.Error()), noEventAction)
 	}
+
+	if len(terminatingInstances) == 1 {
+		if terminatingInstances[0] != nil && terminatingInstances[0].CurrentState != nil && terminatingInstances[0].CurrentState.Name != nil {
+			machineCopy := machine.DeepCopy()
+			machineCopy.Annotations[machinecontroller.MachineInstanceStateAnnotationName] = aws.StringValue(terminatingInstances[0].CurrentState.Name)
+			a.client.Update(context.Background(), machineCopy)
+		}
+	}
+
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Deleted", "Deleted machine %v", machine.Name)
 
 	return nil
@@ -403,6 +463,11 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	}
 
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Updated", "Updated machine %v", machine.Name)
+
+	machine, err = a.setMachineCloudProviderSpecifics(machine, newestInstance)
+	if err != nil {
+		return fmt.Errorf("%s: failed to set machine cloud provider specifics: %v", machine.Name, err)
+	}
 
 	// We do not support making changes to pre-existing instances, just update status.
 	return a.updateStatus(machine, newestInstance)
