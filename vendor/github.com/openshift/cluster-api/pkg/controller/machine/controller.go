@@ -49,6 +49,18 @@ const (
 
 	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
 	ExcludeNodeDrainingAnnotation = "machine.openshift.io/exclude-node-draining"
+
+	// MachineRegionLabelName as annotation name for a machine region
+	MachineRegionLabelName = "machine.openshift.io/region"
+
+	// MachineAZLabelName as annotation name for a machine AZ
+	MachineAZLabelName = "machine.openshift.io/zone"
+
+	// MachineInstanceStateAnnotationName as annotation name for a machine instance state
+	MachineInstanceStateAnnotationName = "machine.openshift.io/instance-state"
+
+	// MachineInstanceTypeLabelName as annotation name for a machine instance type
+	MachineInstanceTypeLabelName = "machine.openshift.io/instance-type"
 )
 
 var DefaultActuator Actuator

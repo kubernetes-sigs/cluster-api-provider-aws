@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -152,6 +153,11 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *machinev1beta1.MachineD
 			Selector:        *newMSSelector,
 			Template:        newMSTemplate,
 		},
+	}
+
+	// Add foregroundDeletion finalizer to MachineSet if the MachineDeployment has it
+	if sets.NewString(d.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
+		newMS.Finalizers = []string{metav1.FinalizerDeleteDependents}
 	}
 
 	allMSs := append(oldMSs, &newMS)
