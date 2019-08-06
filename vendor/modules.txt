@@ -157,7 +157,7 @@ github.com/onsi/gomega/matchers/support/goraph/bipartitegraph
 github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
-# github.com/openshift/cluster-api v0.0.0-20190712140719-72ebbaa0456c
+# github.com/openshift/cluster-api v0.0.0-20190805113604-f8de78af80fc
 github.com/openshift/cluster-api/cmd/manager
 github.com/openshift/cluster-api/pkg/apis/machine/v1beta1
 github.com/openshift/cluster-api/pkg/apis

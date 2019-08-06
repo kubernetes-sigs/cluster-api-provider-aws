@@ -18,7 +18,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.6.0
 	github.com/onsi/gomega v1.4.2
-	github.com/openshift/cluster-api v0.0.0-20190712140719-72ebbaa0456c
+	github.com/openshift/cluster-api v0.0.0-20190805113604-f8de78af80fc
 	github.com/openshift/cluster-api-actuator-pkg v0.0.0-20190527090340-7628df78fb4c
 	github.com/openshift/cluster-autoscaler-operator v0.0.0-20190521201101-62768a6ba480 // indirect
 	github.com/openshift/kubernetes-drain v0.0.0-20190712013109-4b061affbd00 // indirect
