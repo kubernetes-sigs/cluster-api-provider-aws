@@ -31,7 +31,7 @@ make plugins
 The following variables can be overriden when building images using the `-var` option when calling `packer build`:
 
 | Variable               | Default   | Description                   |
-|------------------------|-----------|-------------------------------|
+| ---------------------- | --------- | ----------------------------- |
 | kubernetes_version     | 1.13.6-00 | Kubernetes Version to install |
 | kubernetes_cni_version | 0.7.5-00  | CNI Version to install        |
 
@@ -43,6 +43,29 @@ packer build -var kubernetes_version=1.14.0-00
 
 There are additional variables that may be set that affect the behavior of specific builds or packer post-processors. `packer inspect packer.json` will list all available variables and their default values.
 
+### Building private AMIs
+
+Pass in the `-var ami_groups=""` and `-var snapshot_groups=""` parameters to
+ensure you end up with a private AMI.
+
+#### Encrypted AMIs
+
+Set `-var encrypted=true` for encrypted AMIs to allow for use with EC2 instances
+backed by encrypted root volumes. You must also set `-var ami_groups=""` and
+`-var snapshot_groups=""` for this to work.
+
+#### Sharing private AMIs with other AWS accounts
+
+Set `-var ami_users="012345789012,0123456789013"` to make your AMI visible to a
+select number of other AWS accounts, and `-var
+snapshot_users="012345789012,0123456789013"` to allow the EBS snapshot backing
+the AMI to be copied.
+
+If you are using encrypted root volumes in multiple accounts, you will want to
+build one unencrypted AMI in a root account, setting `snapshot_users`, and then
+use your own methods to copy the snapshot with encryption turned on into other
+accounts.
+
 ### Limiting Images to Build
 
 If packer build is run without specifying which images to build, then it will attempt to build all configured images. `packer inspect packer.json` will list the configured builders. The `--only` option can be specified when running `packer build` to limit the images built.
@@ -50,7 +73,7 @@ If packer build is run without specifying which images to build, then it will at
 For example, to build only the Ubuntu Bionic image:
 
 ```sh
-packer build --only=ubuntu-1804 packer.json
+packer build -only=ubuntu-1804 packer.json
 ```
 
 ### Required Permissions to Build the AWS AMIs
