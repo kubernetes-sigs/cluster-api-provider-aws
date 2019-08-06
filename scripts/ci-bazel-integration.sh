@@ -19,6 +19,8 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 source "${REPO_ROOT}/hack/ensure-go.sh"
+source "${REPO_ROOT}/hack/ensure-kind.sh"
+source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 cd "${REPO_ROOT}" || exit 1
 
 bazel test --define='gotags=integration' --test_output all --host_force_python=PY2 //test/integration/...

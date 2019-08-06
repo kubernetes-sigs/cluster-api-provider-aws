@@ -45,15 +45,14 @@ func init() {
 }
 
 var (
-	kindBinary             = flag.String("kindBinary", "kind", "path to the kind binary")
-	kubectlBinary          = flag.String("kubectlBinary", "kubectl", "path to the kubectl binary")
-	providerComponentsYAML = flag.String("providerComponentsYAML", "", "path to the provider components YAML for the cluster API")
-	managerImageTar        = flag.String("managerImageTar", "", "a script to load the manager Docker image into Docker")
+	kindBinary      = flag.String("kindBinary", "kind", "path to the kind binary")
+	managerImageTar = flag.String("managerImageTar", "", "a script to load the manager Docker image into Docker")
 )
 
 // Cluster represents the running state of a KIND cluster.
 // An empty struct is enough to call Setup() on.
 type Cluster struct {
+	Name     string
 	tmpDir   string
 	kubepath string
 }
@@ -63,9 +62,9 @@ func (c *Cluster) Setup() {
 	var err error
 	c.tmpDir, err = ioutil.TempDir("", "kind-home")
 	gomega.Expect(err).To(gomega.BeNil())
-	fmt.Fprintln(ginkgo.GinkgoWriter, "creating Kind cluster")
-	c.run(exec.Command(*kindBinary, "create", "cluster"))
-	path := c.runWithOutput(exec.Command(*kindBinary, "get", "kubeconfig-path"))
+	fmt.Fprintf(ginkgo.GinkgoWriter, "creating Kind cluster named %q\n", c.Name)
+	c.run(exec.Command(*kindBinary, "create", "cluster", "--name", c.Name))
+	path := c.runWithOutput(exec.Command(*kindBinary, "get", "kubeconfig-path", "--name", c.Name))
 	c.kubepath = strings.TrimSpace(string(path))
 	fmt.Fprintf(ginkgo.GinkgoWriter, "kubeconfig path: %q. Can use the following to access the cluster:\n", c.kubepath)
 	fmt.Fprintf(ginkgo.GinkgoWriter, "export KUBECONFIG=%s\n", c.kubepath)
@@ -75,7 +74,7 @@ func (c *Cluster) Setup() {
 			ginkgo.GinkgoWriter,
 			"loading image %q into Kind node\n",
 			*managerImageTar)
-		c.run(exec.Command(*kindBinary, "load", "image-archive", *managerImageTar))
+		c.run(exec.Command(*kindBinary, "load", "image-archive", "--name", c.Name, *managerImageTar))
 	}
 
 	c.applyYAML()
@@ -83,18 +82,13 @@ func (c *Cluster) Setup() {
 
 // Teardown attempts to delete the KIND cluster
 func (c *Cluster) Teardown() {
-	c.run(exec.Command(*kindBinary, "delete", "cluster"))
+	c.run(exec.Command(*kindBinary, "delete", "cluster", "--name", c.Name))
 	os.RemoveAll(c.tmpDir)
 }
 
 // applyYAML takes the provided providerComponentsYAML applies them to a cluster given by the kubeconfig path kubeConfig.
 func (c *Cluster) applyYAML() {
-	c.run(exec.Command(
-		*kubectlBinary,
-		"create",
-		"--kubeconfig="+c.kubepath,
-		"-f", *providerComponentsYAML,
-	))
+	// TODO: Update this step to account for separate capi, capa, and cabpk provider yaml
 }
 
 // RestConfig returns a rest configuration pointed at the provisioned cluster

@@ -21,12 +21,9 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
-	"github.com/onsi/gomega/types"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -37,34 +34,24 @@ import (
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes"
-	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
-	capi "sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1"
-	clientset "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
+	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 const (
-	kindTimeout      = 5 * 60
-	namespace        = "capa-test"
-	clusterName      = "capa-test-cluster"
-	controlPlaneName = "capa-test-control-plane"
-
+	kindTimeout = 5 * 60
 	stackName   = "cluster-api-provider-aws-sigs-k8s-io"
 	keyPairName = "cluster-api-provider-aws-sigs-k8s-io"
 )
 
 var (
-	credFile    = flag.String("credFile", "", "path to an AWS credentials file")
-	clusterYAML = flag.String("clusterYAML", "", "path to the YAML for the cluster we're creating")
-	machineYAML = flag.String("machineYAML", "", "path to the YAML describing the control plane we're creating") //nolint
-	regionFile  = flag.String("regionFile", "", "The path to a text file containing the AWS region")
-	region      string
+	credFile   = flag.String("credFile", "", "path to an AWS credentials file")
+	regionFile = flag.String("regionFile", "", "The path to a text file containing the AWS region")
+	region     string
 )
 
 func initRegion() error {
@@ -78,123 +65,35 @@ func initRegion() error {
 
 var _ = Describe("AWS", func() {
 	var (
-		cluster kind.Cluster
-		client  *clientset.Clientset
+		kindCluster kind.Cluster
 	)
 	BeforeEach(func() {
 		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", region)
-		cluster.Setup()
-		cfg := cluster.RestConfig()
-		var err error
-		client, err = clientset.NewForConfig(cfg)
-		Expect(err).To(BeNil())
+		kindCluster = kind.Cluster{
+			Name: "capa-test-" + util.RandomString(6),
+		}
+		kindCluster.Setup()
 	}, kindTimeout)
 
 	AfterEach(func() {
-		cluster.Teardown()
+		kindCluster.Teardown()
 	})
 
 	Describe("control plane node", func() {
 		It("should be running", func() {
-
 			sess := getSession()
 			accountID := getAccountID(sess)
 
 			createKeyPair(sess)
 			createIAMRoles(sess, accountID)
 
-			createNamespace(cluster.KubeClient())
-
-			By("Creating a cluster")
-			clusterapi := client.ClusterDeprecatedV1alpha1().Clusters(namespace)
-			_, err := clusterapi.Create(makeCluster())
-			Expect(err).To(BeNil())
-
-			By("Creating a machine")
-			machineapi := client.ClusterDeprecatedV1alpha1().Machines(namespace)
-			_, err = machineapi.Create(makeMachine())
-			Expect(err).To(BeNil())
-
-			Eventually(
-				func() (*capa.AWSMachineProviderStatus, error) {
-					machine, err := machineapi.Get(controlPlaneName, metav1.GetOptions{})
-					if err != nil {
-						return nil, err
-					}
-					return capa.MachineStatusFromProviderStatus(machine.Status.ProviderStatus)
-				},
-				10*time.Minute, 15*time.Second,
-			).Should(beHealthy())
+			namespace := "test-" + util.RandomString(6)
+			createNamespace(kindCluster.KubeClient(), namespace)
 		})
 	})
 })
 
-func beHealthy() types.GomegaMatcher {
-	return PointTo(
-		MatchFields(IgnoreExtras, Fields{
-			"InstanceState": PointTo(Equal(capa.InstanceStateRunning)),
-		}),
-	)
-}
-
-func makeCluster() *capi.Cluster {
-	yaml, err := ioutil.ReadFile(*clusterYAML)
-	Expect(err).To(BeNil())
-
-	deserializer := serializer.NewCodecFactory(getScheme()).UniversalDeserializer()
-	cluster := &capi.Cluster{}
-	obj, _, err := deserializer.Decode(yaml, nil, cluster)
-	Expect(err).To(BeNil())
-	cluster, ok := obj.(*capi.Cluster)
-	Expect(ok).To(BeTrue(), "Wanted cluster, got %T", obj)
-
-	cluster.ObjectMeta.Name = clusterName
-
-	awsSpec, err := capa.ClusterConfigFromProviderSpec(cluster.Spec.ProviderSpec)
-	Expect(err).To(BeNil())
-	awsSpec.SSHKeyName = keyPairName
-	awsSpec.Region = region
-	cluster.Spec.ProviderSpec.Value, err = capa.EncodeClusterSpec(awsSpec)
-	Expect(err).To(BeNil())
-
-	return cluster
-}
-
-func makeMachine() *capi.Machine {
-	// yaml, err := ioutil.ReadFile(*machineYAML)
-	// Expect(err).To(BeNil())
-
-	// deserializer := serializer.NewCodecFactory(getScheme()).UniversalDeserializer()
-	// obj, _, err := deserializer.Decode(yaml, nil, &capi.MachineList{})
-	// Expect(err).To(BeNil())
-	// machineList, ok := obj.(*capi.MachineList)
-	// Expect(ok).To(BeTrue(), "Wanted machine, got %T", obj)
-
-	// machines := machine.GetControlPlaneMachines(machineList)
-	// Expect(machines).NotTo(BeEmpty())
-
-	// machine := machines[0]
-	// machine.ObjectMeta.Name = controlPlaneName
-	// machine.ObjectMeta.Labels[capi.MachineClusterLabelName] = clusterName
-
-	// awsSpec, err := scope.MachineConfigFromProviderSpec(nil, machine.Spec.ProviderSpec, &cloudtest.Log{})
-	// Expect(err).To(BeNil())
-	// awsSpec.KeyName = keyPairName
-	// machine.Spec.ProviderSpec.Value, err = capa.EncodeMachineSpec(awsSpec)
-	// Expect(err).To(BeNil())
-
-	// TODO
-	return nil
-}
-
-func getScheme() *runtime.Scheme {
-	s := runtime.NewScheme()
-	capi.SchemeBuilder.AddToScheme(s)
-	capa.SchemeBuilder.AddToScheme(s)
-	return s
-}
-
-func createNamespace(client kubernetes.Interface) {
+func createNamespace(client kubernetes.Interface, namespace string) {
 	_, err := client.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
