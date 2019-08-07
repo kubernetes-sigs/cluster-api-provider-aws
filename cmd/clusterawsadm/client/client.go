@@ -23,9 +23,7 @@ import (
 	"os"
 	"path/filepath"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
 )
 
@@ -58,21 +56,4 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE") // windows
-}
-
-// MachineInstanceID gets an instance ID for a Cluster API machine
-func MachineInstanceID(name string) (string, error) {
-	c := NewClient()
-
-	m, err := c.ClusterDeprecatedV1alpha1().Machines("default").Get(name, v1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	status, err := providerv1.MachineStatusFromProviderStatus(m.Status.ProviderStatus)
-	if err != nil {
-		return "", err
-	}
-
-	return *status.InstanceID, nil
 }
