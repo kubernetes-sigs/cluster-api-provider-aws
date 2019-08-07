@@ -19,5 +19,5 @@ limitations under the License.
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=awsprovider.k8s.io
+// If regeneration is necessary use this tag: // +groupName=awsprovider.k8s.io
 package v1alpha1
