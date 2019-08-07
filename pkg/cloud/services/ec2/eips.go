@@ -54,20 +54,21 @@ func (s *Service) allocateAddress(role string) (string, error) {
 		return "", errors.Wrap(err, "failed to create Elastic IP address")
 	}
 
-	name := fmt.Sprintf("%s-eip-%s", s.scope.Name(), role)
-
-	applyTagsParams := &tags.ApplyParams{
-		EC2Client: s.scope.EC2,
-		BuildParams: v1alpha2.BuildParams{
-			ClusterName: s.scope.Name(),
-			ResourceID:  *out.AllocationId,
-			Lifecycle:   v1alpha2.ResourceLifecycleOwned,
-			Name:        aws.String(name),
-			Role:        aws.String(role),
-		},
-	}
-
-	if err := tags.Apply(applyTagsParams); err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := tags.Apply(&tags.ApplyParams{
+			EC2Client: s.scope.EC2,
+			BuildParams: v1alpha2.BuildParams{
+				ClusterName: s.scope.Name(),
+				ResourceID:  *out.AllocationId,
+				Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+				Name:        aws.String(fmt.Sprintf("%s-eip-%s", s.scope.Name(), role)),
+				Role:        aws.String(role),
+			},
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.EIPNotFound); err != nil {
 		return "", errors.Wrapf(err, "failed to tag elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 
@@ -99,25 +100,14 @@ func (s *Service) releaseAddresses() error {
 			return errors.Errorf("failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
 		}
 
-		releaseAddressInput := &ec2.ReleaseAddressInput{
-			AllocationId: ip.AllocationId,
-		}
-
-		delete := func() (bool, error) {
-			_, err := s.scope.EC2.ReleaseAddress(releaseAddressInput)
+		err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			_, err := s.scope.EC2.ReleaseAddress(&ec2.ReleaseAddressInput{AllocationId: ip.AllocationId})
 			if err != nil {
 				return false, err
 			}
 
 			return true, nil
-		}
-
-		retryableErrors := []string{
-			awserrors.AuthFailure,
-			awserrors.InUseIPAddress,
-		}
-
-		err := wait.WaitForWithRetryable(wait.NewBackoff(), delete, retryableErrors)
+		}, awserrors.AuthFailure, awserrors.InUseIPAddress)
 		if err != nil {
 			return errors.Wrapf(err, "failed to release ElasticIP %q", *ip.AllocationId)
 		}

@@ -19,6 +19,7 @@ package ec2
 import (
 	"fmt"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -88,12 +89,15 @@ func (s *Service) reconcileSecurityGroups() error {
 		s.scope.SecurityGroups()[role] = existing
 
 		// Make sure tags are up to date.
-		err := tags.Ensure(existing.Tags, &tags.ApplyParams{
-			EC2Client:   s.scope.EC2,
-			BuildParams: s.getSecurityGroupTagParams(existing.Name, existing.ID, role),
-		})
-
-		if err != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if err := tags.Ensure(existing.Tags, &tags.ApplyParams{
+				EC2Client:   s.scope.EC2,
+				BuildParams: s.getSecurityGroupTagParams(existing.Name, existing.ID, role),
+			}); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.GroupNotFound); err != nil {
 			return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
 		}
 	}
@@ -114,7 +118,12 @@ func (s *Service) reconcileSecurityGroups() error {
 
 		toRevoke := current.Difference(want)
 		if len(toRevoke) > 0 {
-			if err := s.revokeSecurityGroupIngressRules(sg.ID, toRevoke); err != nil {
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if err := s.revokeSecurityGroupIngressRules(sg.ID, toRevoke); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.GroupNotFound); err != nil {
 				return errors.Wrapf(err, "failed to revoke security group ingress rules for %q", sg.ID)
 			}
 
@@ -123,7 +132,12 @@ func (s *Service) reconcileSecurityGroups() error {
 
 		toAuthorize := want.Difference(current)
 		if len(toAuthorize) > 0 {
-			if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.GroupNotFound); err != nil {
 				return err
 			}
 
@@ -211,7 +225,15 @@ func (s *Service) createSecurityGroup(role v1alpha2.SecurityGroupRole, input *ec
 	input.GroupId = out.GroupId
 
 	// Tag the security group.
-	if _, err := s.scope.EC2.CreateTags(&ec2.CreateTagsInput{Resources: []*string{out.GroupId}, Tags: input.Tags}); err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if _, err := s.scope.EC2.CreateTags(&ec2.CreateTagsInput{
+			Resources: []*string{out.GroupId},
+			Tags:      input.Tags,
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.GroupNotFound); err != nil {
 		record.Warnf(s.scope.Cluster, "FailedTagSecurityGroup", "Failed to tag managed SecurityGroup %q: %v", *out.GroupId, err)
 		return errors.Wrapf(err, "failed to tag security group %q in vpc %q", *input.GroupName, *input.VpcId)
 	}
