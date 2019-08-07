@@ -347,10 +347,22 @@ func (i *IngressRule) Equals(o *IngressRule) bool {
 		}
 	}
 
-	return i.Description == o.Description &&
-		i.FromPort == o.FromPort &&
-		i.ToPort == o.ToPort &&
-		i.Protocol == o.Protocol
+	if i.Description != o.Description || i.Protocol != o.Protocol {
+		return false
+	}
+
+	// AWS seems to ignore the From/To port when set on protocols where it doesn't apply, but
+	// we avoid serializing it out for clarity's sake.
+	// See: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_IpPermission.html
+	switch i.Protocol {
+	case SecurityGroupProtocolTCP,
+		SecurityGroupProtocolUDP,
+		SecurityGroupProtocolICMP,
+		SecurityGroupProtocolICMPv6:
+		return i.FromPort == o.FromPort && i.ToPort == o.ToPort
+	}
+
+	return true
 }
 
 // InstanceState describes the state of an AWS instance.

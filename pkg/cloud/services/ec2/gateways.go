@@ -61,8 +61,8 @@ func (s *Service) reconcileInternetGateways() error {
 		EC2Client:   s.scope.EC2,
 		BuildParams: s.getGatewayTagParams(*gateway.InternetGatewayId),
 	})
-
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", gateway.InternetGatewayId, err)
 		return errors.Wrapf(err, "failed to tag internet gateway %q", *gateway.InternetGatewayId)
 	}
 
@@ -89,9 +89,11 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		if _, err := s.scope.EC2.DetachInternetGateway(detachReq); err != nil {
+			record.Warnf(s.scope.Cluster, "FailedDetachInternetGateway", "Failed to detach Internet Gateway %q from VPC %q: %v", *ig.InternetGatewayId, s.scope.VPC().ID, err)
 			return errors.Wrapf(err, "failed to detach internet gateway %q", *ig.InternetGatewayId)
 		}
 
+		record.Eventf(s.scope.Cluster, "SuccessfulDetachInternetGateway", "Detached Internet Gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 		s.scope.Info("Detached internet gateway from VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 		deleteReq := &ec2.DeleteInternetGatewayInput{
@@ -99,11 +101,12 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		if _, err = s.scope.EC2.DeleteInternetGateway(deleteReq); err != nil {
+			record.Warnf(s.scope.Cluster, "FailedDeleteInternetGateway", "Failed to delete Internet Gateway %q previously attached to VPC %q: %v", *ig.InternetGatewayId, s.scope.VPC().ID, err)
 			return errors.Wrapf(err, "failed to delete internet gateway %q", *ig.InternetGatewayId)
 		}
 
+		record.Eventf(s.scope.Cluster, "SuccessfulDeleteInternetGateway", "Deleted Internet Gateway %q previously attached to VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 		s.scope.Info("Deleted internet gateway in VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
-		record.Eventf(s.scope.Cluster, "DeletedInternetGateway", "Deleted Internet Gateway %q previously attached to VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 	}
 
 	return nil
@@ -112,21 +115,23 @@ func (s *Service) deleteInternetGateways() error {
 func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 	ig, err := s.scope.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedCreateInternetGateway", "Failed to create new managed Internet Gateway: %v", err)
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
-
+	record.Eventf(s.scope.Cluster, "SuccessfulCreateInternetGateway", "Created new managed Internet Gateway %q", *ig.InternetGateway.InternetGatewayId)
 	s.scope.Info("Created internet gateway for VPC", "vpc-id", s.scope.VPC().ID)
+
 	_, err = s.scope.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayId: ig.InternetGateway.InternetGatewayId,
 		VpcId:             aws.String(s.scope.VPC().ID),
 	})
-
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedAttachInternetGateway", "Failed to attach Internet Gateway %q to VPC %q: %v", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	}
-
+	record.Eventf(s.scope.Cluster, "SuccessfulAttachInternetGateway", "Internet Gateway %q attached to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	s.scope.Info("attached internet gateway to VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
-	record.Eventf(s.scope.Cluster, "CreatedInternetGateway", "Created new Internet Gateway %q attached to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
+
 	return ig.InternetGateway, nil
 }
 
@@ -138,11 +143,11 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	})
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe nat gateways in vpc %q", s.scope.VPC().ID)
+		return nil, errors.Wrapf(err, "failed to describe internet gateways in vpc %q", s.scope.VPC().ID)
 	}
 
 	if len(out.InternetGateways) == 0 {
-		return nil, awserrors.NewNotFound(errors.Errorf("no nat gateways found in vpc %q", s.scope.VPC().ID))
+		return nil, awserrors.NewNotFound(errors.Errorf("no internet gateways found in vpc %q", s.scope.VPC().ID))
 	}
 
 	return out.InternetGateways, nil

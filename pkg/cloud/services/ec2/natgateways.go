@@ -64,6 +64,7 @@ func (s *Service) reconcileNatGateways() error {
 			})
 
 			if err != nil {
+				record.Warnf(s.scope.Cluster, "FailedTagNATGateway", "Failed to tag managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
 				return errors.Wrapf(err, "failed to tag nat gateway %q", *ngw.NatGatewayId)
 			}
 
@@ -165,8 +166,10 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	})
 
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedCreateNATGateway", "Failed to create new NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
+	record.Eventf(s.scope.Cluster, "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 
 	applyTagsParams := &tags.ApplyParams{
 		EC2Client:   s.scope.EC2,
@@ -174,9 +177,11 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	}
 
 	if err := tags.Apply(applyTagsParams); err != nil {
+		record.Warnf(s.scope.Cluster, "FailedTagNATGateway", "Failed to tag NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 
+	record.Eventf(s.scope.Cluster, "SuccessfulTagNATGateway", "Tagged NAT Gateway %q", *out.NatGateway.NatGatewayId)
 	s.scope.Info("Created NAT gateway for subnet, waiting for it to become available...", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
@@ -185,7 +190,6 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	}
 
 	s.scope.Info("NAT gateway for subnet is now available", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
-	record.Eventf(s.scope.Cluster, "CreatedNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 	return out.NatGateway, nil
 }
 
@@ -193,10 +197,12 @@ func (s *Service) deleteNatGateway(id string) error {
 	_, err := s.scope.EC2.DeleteNatGateway(&ec2.DeleteNatGatewayInput{
 		NatGatewayId: aws.String(id),
 	})
-
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedDeleteNATGateway", "Failed to delete NAT Gateway %q previously attached to VPC %q: %v", id, s.scope.VPC().ID, err)
 		return errors.Wrapf(err, "failed to delete nat gateway %q", id)
 	}
+	record.Eventf(s.scope.Cluster, "SuccessfulDeleteNATGateway", "Deleted NAT Gateway %q previously attached to VPC %q", id, s.scope.VPC().ID)
+	s.scope.Info("Deleted NAT gateway in VPC", "nat-gateway-id", id, "vpc-id", s.scope.VPC().ID)
 
 	describeInput := &ec2.DescribeNatGatewaysInput{
 		NatGatewayIds: []*string{aws.String(id)},
@@ -231,8 +237,6 @@ func (s *Service) deleteNatGateway(id string) error {
 		return errors.Wrapf(err, "failed to wait for NAT gateway deletion %q", id)
 	}
 
-	s.scope.Info("Deleted NAT gateway", "nat-gateway-id", id)
-	record.Eventf(s.scope.Cluster, "DeletedNATGateway", "Deleted NAT Gateway %q", id)
 	return nil
 }
 
