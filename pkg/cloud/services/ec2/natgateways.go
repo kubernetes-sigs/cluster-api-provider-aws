@@ -67,7 +67,6 @@ func (s *Service) reconcileNatGateways() error {
 				record.Warnf(s.scope.Cluster, "FailedTagNATGateway", "Failed to tag managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
 				return errors.Wrapf(err, "failed to tag nat gateway %q", *ngw.NatGatewayId)
 			}
-			record.Eventf(s.scope.Cluster, "SuccessfulTagNATGateway", "Tagged managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
 
 			continue
 		}

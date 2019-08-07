@@ -224,6 +224,7 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 			record.Warnf(s.scope.Cluster, "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route.GoString(), *out.RouteTable.RouteTableId, err)
 			return nil, errors.Wrapf(err, "failed to create route in route table %q: %s", *out.RouteTable.RouteTableId, route.GoString())
 		}
+		record.Eventf(s.scope.Cluster, "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route.GoString(), *out.RouteTable.RouteTableId)
 	}
 
 	return &v1alpha2.RouteTable{

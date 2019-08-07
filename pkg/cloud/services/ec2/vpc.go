@@ -70,6 +70,7 @@ func (s *Service) reconcileVPC() error {
 	})
 
 	if err != nil {
+		record.Warnf(s.scope.Cluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to tag vpc %q", vpc.ID)
 	}
 
@@ -152,9 +153,6 @@ func (s *Service) createVPC() (*v1alpha2.VPCSpec, error) {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
-	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
-	record.Eventf(s.scope.Cluster, "CreatedVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
-
 	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
 	tagApply := &tags.ApplyParams{
 		EC2Client:   s.scope.EC2,
@@ -162,8 +160,10 @@ func (s *Service) createVPC() (*v1alpha2.VPCSpec, error) {
 	}
 
 	if err := tags.Apply(tagApply); err != nil {
+		record.Warnf(s.scope.Cluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", *out.Vpc.VpcId, err)
 		return nil, err
 	}
+	record.Eventf(s.scope.Cluster, "SuccesfulTagVPC", "Tagged managed VPC %q", *out.Vpc.VpcId)
 
 	return &v1alpha2.VPCSpec{
 		ID:        *out.Vpc.VpcId,

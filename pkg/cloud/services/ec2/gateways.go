@@ -65,7 +65,6 @@ func (s *Service) reconcileInternetGateways() error {
 		record.Warnf(s.scope.Cluster, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", gateway.InternetGatewayId, err)
 		return errors.Wrapf(err, "failed to tag internet gateway %q", *gateway.InternetGatewayId)
 	}
-	record.Eventf(s.scope.Cluster, "SuccessfulTagInternetGateway", "Tagged managed Internet Gateway %q", gateway.InternetGatewayId)
 
 	return nil
 }
