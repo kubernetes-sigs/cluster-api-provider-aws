@@ -110,12 +110,6 @@ go_repository(
 )
 
 go_repository(
-    name = "io_k8s_sigs_kustomize",
-    importpath = "sigs.k8s.io/kustomize",
-    tag = "v1.0.11",
-)
-
-go_repository(
     name = "com_github_a8m_envsubst",
     importpath = "github.com/a8m/envsubst",
     tag = "v1.1.0",

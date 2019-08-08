@@ -29,6 +29,23 @@ PULL_POLICY ?= Always
 # Used in docker-* targets.
 MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
 
+# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
+CRD_OPTIONS ?= "crd:trivialVersions=true"
+
+# controller-gen / generate helpers
+TOOLS_DIR := hack/tools
+CONTROLLER_GEN_BIN := bin/controller-gen
+CONTROLLER_GEN := $(TOOLS_DIR)/$(CONTROLLER_GEN_BIN)
+DEEPCOPY_GEN_BIN := bin/deepcopy-gen
+CLUSTERCTL_BIN := bin/clusterctl
+CLUSTERCTL := $(TOOLS_DIR)/$(CLUSTERCTL_BIN)
+
+# Allow overriding manifest generation destination directory
+MANIFEST_ROOT ?= "config"
+CRD_ROOT ?= "$(MANIFEST_ROOT)/crd/bases"
+WEBHOOK_ROOT ?= "$(MANIFEST_ROOT)/webhook"
+RBAC_ROOT ?= "$(MANIFEST_ROOT)/rbac"
+
 ## Image URL to use all building/pushing image targets
 BAZEL_ARGS ?=
 BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY)\
@@ -90,19 +107,6 @@ docker-push: docker-build ## Push the docker image
 	docker push $(MANAGER_IMAGE)
 
 ## --------------------------------------
-## Manifests
-## --------------------------------------
-
-.PHONY: manifests
-manifests: examples/provider-components-base.yaml ## Build example set of manifests from the current source
-	./examples/generate-yaml.sh
-
-.PHONY: examples/provider-components-base.yaml
-examples/provider-components-base.yaml:
-	bazel build //examples:provider-components-base $(BAZEL_BUILD_ARGS)
-	install bazel-genfiles/examples/provider-components-base.yaml examples
-
-## --------------------------------------
 ## Generate
 ## --------------------------------------
 
@@ -121,10 +125,12 @@ generate: ## Generate code
 	$(MAKE) generate-mocks
 	$(MAKE) generate-manifests
 	$(MAKE) gazelle
+	$(MAKE) controller-gen
 
 .PHONY: generate-go
-generate-go: ## Runs go generate
-	go generate ./pkg/... ./cmd/...
+# Runs go generate
+generate-go: $(DEEPCOPY_GEN_BIN)
+	go generate ./pkg/apis/infrastructure/... ./cmd/...
 
 .PHONY: generate-mocks
 generate-mocks: clean-bazel-mocks ## Generate mocks, CRDs and runs `go generate` through Bazel
@@ -132,15 +138,27 @@ generate-mocks: clean-bazel-mocks ## Generate mocks, CRDs and runs `go generate`
 		//pkg/cloud/services/elb/mock_elbiface:mocks
 	./hack/copy-bazel-mocks.sh
 
+# Generate code
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN)
+	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate/boilerplate.generatego.txt paths=./pkg/apis/infrastructure/...
+
+# Generate kustomize manifests e.g. CRD, RBAC etc.
 .PHONY: generate-manifests
-generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./pkg/apis/infrastructure/... \
-		crd:trivialVersions=true \
-		output:crd:dir=./config/crds
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./pkg/controller/... \
-		rbac:roleName=manager-role
+generate-manifests: $(CONTROLLER_GEN)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/infrastructure/..." output:crd:dir=$(CRD_ROOT) output:webhook:dir=$(WEBHOOK_ROOT) output:rbac:dir=$(RBAC_ROOT)
+
+# Build controller-gen
+$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(CONTROLLER_GEN_BIN) sigs.k8s.io/controller-tools/cmd/controller-gen
+
+# Build deepcopy-gen
+$(DEEPCOPY_GEN_BIN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(DEEPCOPY_GEN_BIN) k8s.io/code-generator/cmd/deepcopy-gen
+
+# Build clusterctl
+$(CLUSTERCTL_BIN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -o $(CLUSTERCTL_BIN) sigs.k8s.io/cluster-api/cmd/clusterctl
 
 ## --------------------------------------
 ## Linting
@@ -158,15 +176,11 @@ lint-full: ## Run slower linters to detect possible issues
 ## --------------------------------------
 
 .PHONY: binaries
-binaries: manager clusterawsadm clusterctl ## Builds and installs all binaries
+binaries: manager clusterawsadm $(CLUSTERCTL_BIN) ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
 	go build -o bin/manager ./cmd/manager
-
-.PHONY: clusterctl
-clusterctl: ## Build clusterctl binary.
-	GOFLAGS="" go build -o bin/clusterctl ./vendor/sigs.k8s.io/cluster-api/cmd/clusterctl
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
@@ -192,7 +206,7 @@ release-artifacts: ## Build release artifacts
 
 .PHONY: create-cluster
 create-cluster: binaries ## Create a development Kubernetes cluster on AWS using examples
-	bin/clusterctl create cluster -v 4 \
+	$(CLUSTERCTL) create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
 	-m ./examples/out/machines.yaml \
@@ -202,7 +216,7 @@ create-cluster: binaries ## Create a development Kubernetes cluster on AWS using
 
 .PHONY: create-cluster-ha
 create-cluster-ha: binaries ## Create a development Kubernetes cluster on AWS using HA examples
-	bin/clusterctl create cluster -v 4 \
+	$(CLUSTERCTL) create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
 	-m ./examples/machines-ha.yaml \
@@ -226,12 +240,12 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/out/controlplane-machine.yaml
 	# Get KubeConfig using clusterctl.
-	bin/clusterctl alpha phases get-kubeconfig -v=3 \
+	$(CLUSTERCTL) alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		--provider=aws \
 		--cluster-name=test1
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
-	bin/clusterctl alpha phases apply-addons -v=3 \
+	$(CLUSTERCTL) alpha phases apply-addons -v=3 \
 		--kubeconfig=./kubeconfig \
 		-a examples/out/addons.yaml
 	# Create a worker node with MachineDeployment.
@@ -241,7 +255,7 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 
 .PHONY: delete-cluster
 delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
-	bin/clusterctl delete cluster -v 4 \
+	$(CLUSTERCTL) delete cluster -v 4 \
 	--bootstrap-type kind \
 	--cluster test1 \
 	--kubeconfig ./kubeconfig \
