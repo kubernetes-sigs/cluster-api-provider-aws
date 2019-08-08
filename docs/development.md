@@ -58,7 +58,7 @@ Ensure you have updated the vendor directory with:
 
 ``` shell
 cd "$(go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-aws"
-make dep-ensure
+make vendor
 ```
 
 ### Get familiar with basic concepts
