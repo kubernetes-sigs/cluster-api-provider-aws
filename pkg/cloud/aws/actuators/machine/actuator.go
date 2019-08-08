@@ -261,7 +261,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machi
 		return errors.Errorf("failed to get instance: %+v", err)
 	}
 
-	if instance == nil {
+	if instance == nil || instance.ID == "" {
 		instance, err = ec2svc.InstanceByTags(scope)
 		if err != nil {
 			return errors.Errorf("failed to query instance by tags: %+v", err)
