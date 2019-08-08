@@ -19,7 +19,8 @@ package wait
 import (
 	"time"
 
-	aMW "k8s.io/apimachinery/pkg/util/wait"
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 )
 
@@ -33,11 +34,9 @@ import (
 // NewBackoff creates a new API Machinery backoff parameter set suitable
 // for use with AWS services, with values based loosely on
 // https://github.com/Netflix/edda/blob/master/src/main/scala/com/netflix/edda/Crawler.scala#L159
-func NewBackoff() aMW.Backoff {
-
-	duration, _ := time.ParseDuration("2s")
-	return aMW.Backoff{
-		Duration: duration,
+func NewBackoff() wait.Backoff {
+	return wait.Backoff{
+		Duration: 2 * time.Second,
 		Factor:   1.5,
 		Jitter:   1.0,
 		Steps:    100,
@@ -58,13 +57,13 @@ func NewBackoff() aMW.Backoff {
 //
 // If the condition never returns true, ErrWaitTimeout is returned. All other
 // errors terminate immediately.
-func WaitForWithRetryable(backoff aMW.Backoff, condition aMW.ConditionFunc, retryableErrors []string) error { //nolint
+func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, retryableErrors ...string) error { //nolint
 	duration := backoff.Duration
 	for i := 0; i < backoff.Steps; i++ {
 		if i != 0 {
 			adjusted := duration
 			if backoff.Jitter > 0.0 {
-				adjusted = aMW.Jitter(duration, backoff.Jitter)
+				adjusted = wait.Jitter(duration, backoff.Jitter)
 			}
 			time.Sleep(adjusted)
 			duration = time.Duration(float64(duration) * backoff.Factor)
@@ -74,7 +73,7 @@ func WaitForWithRetryable(backoff aMW.Backoff, condition aMW.ConditionFunc, retr
 			return nil
 		}
 		if err != nil {
-			code, ok := awserrors.Code(err)
+			code, ok := awserrors.Code(errors.Cause(err))
 			if !ok {
 				return err
 			}
@@ -89,5 +88,5 @@ func WaitForWithRetryable(backoff aMW.Backoff, condition aMW.ConditionFunc, retr
 			}
 		}
 	}
-	return aMW.ErrWaitTimeout
+	return wait.ErrWaitTimeout
 }

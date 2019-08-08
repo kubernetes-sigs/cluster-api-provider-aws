@@ -19,6 +19,8 @@ package ec2
 import (
 	"strings"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -55,11 +57,15 @@ func (s *Service) reconcileRouteTables() error {
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 
 			// Make sure tags are up to date.
-			err := tags.Ensure(converters.TagsToMap(rt.Tags), &tags.ApplyParams{
-				EC2Client:   s.scope.EC2,
-				BuildParams: s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic),
-			})
-			if err != nil {
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if err := tags.Ensure(converters.TagsToMap(rt.Tags), &tags.ApplyParams{
+					EC2Client:   s.scope.EC2,
+					BuildParams: s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic),
+				}); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.RouteTableNotFound); err != nil {
 				record.Warnf(s.scope.Cluster, "FailedTagRouteTable", "Failed to tag managed RouteTable %q: %v", *rt.RouteTableId, err)
 				return errors.Wrapf(err, "failed to ensure tags on route table %q", *rt.RouteTableId)
 			}
@@ -92,7 +98,12 @@ func (s *Service) reconcileRouteTables() error {
 			return err
 		}
 
-		if err := s.associateRouteTable(rt, sn.ID); err != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if err := s.associateRouteTable(rt, sn.ID); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.RouteTableNotFound, awserrors.SubnetNotFound); err != nil {
 			return err
 		}
 
@@ -195,31 +206,37 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 	}
 	record.Eventf(s.scope.Cluster, "SuccessfulCreateRouteTable", "Created managed RouteTable %q", *out.RouteTable.RouteTableId)
 
-	applyTagsParams := &tags.ApplyParams{
-		EC2Client:   s.scope.EC2,
-		BuildParams: s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic),
-	}
-
-	if err := tags.Apply(applyTagsParams); err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := tags.Apply(&tags.ApplyParams{
+			EC2Client:   s.scope.EC2,
+			BuildParams: s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic),
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.RouteTableNotFound); err != nil {
 		record.Warnf(s.scope.Cluster, "FailedTagRouteTable", "Failed to tag managed RouteTable %q: %v", *out.RouteTable.RouteTableId, err)
 		return nil, errors.Wrapf(err, "failed to tag route table %q", *out.RouteTable.RouteTableId)
 	}
 	record.Eventf(s.scope.Cluster, "SuccessfulTagRouteTable", "Tagged managed RouteTable %q", *out.RouteTable.RouteTableId)
 
 	for _, route := range routes {
-		_, err := s.scope.EC2.CreateRoute(&ec2.CreateRouteInput{
-			RouteTableId:                out.RouteTable.RouteTableId,
-			DestinationCidrBlock:        route.DestinationCidrBlock,
-			DestinationIpv6CidrBlock:    route.DestinationIpv6CidrBlock,
-			EgressOnlyInternetGatewayId: route.EgressOnlyInternetGatewayId,
-			GatewayId:                   route.GatewayId,
-			InstanceId:                  route.InstanceId,
-			NatGatewayId:                route.NatGatewayId,
-			NetworkInterfaceId:          route.NetworkInterfaceId,
-			VpcPeeringConnectionId:      route.VpcPeeringConnectionId,
-		})
-
-		if err != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.scope.EC2.CreateRoute(&ec2.CreateRouteInput{
+				RouteTableId:                out.RouteTable.RouteTableId,
+				DestinationCidrBlock:        route.DestinationCidrBlock,
+				DestinationIpv6CidrBlock:    route.DestinationIpv6CidrBlock,
+				EgressOnlyInternetGatewayId: route.EgressOnlyInternetGatewayId,
+				GatewayId:                   route.GatewayId,
+				InstanceId:                  route.InstanceId,
+				NatGatewayId:                route.NatGatewayId,
+				NetworkInterfaceId:          route.NetworkInterfaceId,
+				VpcPeeringConnectionId:      route.VpcPeeringConnectionId,
+			}); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.RouteTableNotFound, awserrors.NATGatewayNotFound, awserrors.GatewayNotFound); err != nil {
 			// TODO(vincepri): cleanup the route table if this fails.
 			record.Warnf(s.scope.Cluster, "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route.GoString(), *out.RouteTable.RouteTableId, err)
 			return nil, errors.Wrapf(err, "failed to create route in route table %q: %s", *out.RouteTable.RouteTableId, route.GoString())

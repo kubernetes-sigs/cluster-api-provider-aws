@@ -19,7 +19,9 @@ package ec2
 import (
 	"strings"
 
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -96,12 +98,15 @@ LoopExisting:
 				}
 
 				// Make sure tags are up to date.
-				err = tags.Ensure(exsn.Tags, &tags.ApplyParams{
-					EC2Client:   s.scope.EC2,
-					BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic),
-				})
-
-				if err != nil {
+				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+					if err := tags.Ensure(exsn.Tags, &tags.ApplyParams{
+						EC2Client:   s.scope.EC2,
+						BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic),
+					}); err != nil {
+						return false, err
+					}
+					return true, nil
+				}, awserrors.SubnetNotFound); err != nil {
 					record.Warnf(s.scope.Cluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", exsn.ID, err)
 					return errors.Wrapf(err, "failed to ensure tags on subnet %q", exsn.ID)
 				}
@@ -245,12 +250,15 @@ func (s *Service) createSubnet(sn *v1alpha2.SubnetSpec) (*v1alpha2.SubnetSpec, e
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
-	applyTagsParams := &tags.ApplyParams{
-		EC2Client:   s.scope.EC2,
-		BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic),
-	}
-
-	if err := tags.Apply(applyTagsParams); err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := tags.Apply(&tags.ApplyParams{
+			EC2Client:   s.scope.EC2,
+			BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic),
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.SubnetNotFound); err != nil {
 		record.Warnf(s.scope.Cluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", *out.Subnet.SubnetId, err)
 		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
 	}
@@ -265,7 +273,12 @@ func (s *Service) createSubnet(sn *v1alpha2.SubnetSpec) (*v1alpha2.SubnetSpec, e
 			SubnetId: out.Subnet.SubnetId,
 		}
 
-		if _, err := s.scope.EC2.ModifySubnetAttribute(attReq); err != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.scope.EC2.ModifySubnetAttribute(attReq); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.SubnetNotFound); err != nil {
 			record.Warnf(s.scope.Cluster, "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
 			return nil, errors.Wrapf(err, "failed to set subnet %q attributes", *out.Subnet.SubnetId)
 		}

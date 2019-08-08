@@ -23,10 +23,20 @@ import (
 )
 
 const (
-	AuthFailure        = "AuthFailure"
-	InUseIPAddress     = "InvalidIPAddress.InUse"
-	GroupNotFound      = "InvalidGroup.NotFound"
-	PermissionNotFound = "InvalidPermission.NotFound"
+	AuthFailure             = "AuthFailure"
+	InUseIPAddress          = "InvalidIPAddress.InUse"
+	GroupNotFound           = "InvalidGroup.NotFound"
+	PermissionNotFound      = "InvalidPermission.NotFound"
+	VPCNotFound             = "InvalidVpcID.NotFound"
+	SubnetNotFound          = "InvalidSubnetID.NotFound"
+	InternetGatewayNotFound = "InvalidInternetGatewayID.NotFound"
+	NATGatewayNotFound      = "InvalidNatGatewayID.NotFound"
+	GatewayNotFound         = "InvalidGatewayID.NotFound"
+	EIPNotFound             = "InvalidElasticIpID.NotFound"
+	RouteTableNotFound      = "InvalidRouteTableID.NotFound"
+	LoadBalancerNotFound    = "LoadBalancerNotFound"
+	ResourceNotFound        = "InvalidResourceID.NotFound"
+	InvalidSubnet           = "InvalidSubnet"
 )
 
 var _ error = &EC2Error{}

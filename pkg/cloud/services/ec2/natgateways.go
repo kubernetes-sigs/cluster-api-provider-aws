@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
@@ -58,12 +59,15 @@ func (s *Service) reconcileNatGateways() error {
 
 		if ngw, ok := existing[sn.ID]; ok {
 			// Make sure tags are up to date.
-			err := tags.Ensure(converters.TagsToMap(ngw.Tags), &tags.ApplyParams{
-				EC2Client:   s.scope.EC2,
-				BuildParams: s.getNatGatewayTagParams(*ngw.NatGatewayId),
-			})
-
-			if err != nil {
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if err := tags.Ensure(converters.TagsToMap(ngw.Tags), &tags.ApplyParams{
+					EC2Client:   s.scope.EC2,
+					BuildParams: s.getNatGatewayTagParams(*ngw.NatGatewayId),
+				}); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.ResourceNotFound); err != nil {
 				record.Warnf(s.scope.Cluster, "FailedTagNATGateway", "Failed to tag managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
 				return errors.Wrapf(err, "failed to tag nat gateway %q", *ngw.NatGatewayId)
 			}
@@ -160,23 +164,30 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}
 
-	out, err := s.scope.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
-		SubnetId:     aws.String(subnetID),
-		AllocationId: aws.String(ip),
-	})
-
-	if err != nil {
+	var out *ec2.CreateNatGatewayOutput
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if out, err = s.scope.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
+			SubnetId:     aws.String(subnetID),
+			AllocationId: aws.String(ip),
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.InvalidSubnet); err != nil {
 		record.Warnf(s.scope.Cluster, "FailedCreateNATGateway", "Failed to create new NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 	record.Eventf(s.scope.Cluster, "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 
-	applyTagsParams := &tags.ApplyParams{
-		EC2Client:   s.scope.EC2,
-		BuildParams: s.getNatGatewayTagParams(*out.NatGateway.NatGatewayId),
-	}
-
-	if err := tags.Apply(applyTagsParams); err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := tags.Apply(&tags.ApplyParams{
+			EC2Client:   s.scope.EC2,
+			BuildParams: s.getNatGatewayTagParams(*out.NatGateway.NatGatewayId),
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.ResourceNotFound); err != nil {
 		record.Warnf(s.scope.Cluster, "FailedTagNATGateway", "Failed to tag NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
@@ -208,7 +219,7 @@ func (s *Service) deleteNatGateway(id string) error {
 		NatGatewayIds: []*string{aws.String(id)},
 	}
 
-	check := func() (done bool, err error) {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
 		out, err := s.scope.EC2.DescribeNatGateways(describeInput)
 		if err != nil {
 			return false, err
@@ -231,9 +242,7 @@ func (s *Service) deleteNatGateway(id string) error {
 		}
 
 		return false, errors.Errorf("in unknown state")
-	}
-
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), check, []string{}); err != nil {
+	}); err != nil {
 		return errors.Wrapf(err, "failed to wait for NAT gateway deletion %q", id)
 	}
 

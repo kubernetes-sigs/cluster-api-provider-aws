@@ -197,18 +197,21 @@ func (s *Service) createClassicELB(spec *v1alpha2.ClassicELB) (*v1alpha2.Classic
 	}
 
 	if spec.HealthCheck != nil {
-		hc := &elb.ConfigureHealthCheckInput{
-			LoadBalancerName: aws.String(spec.Name),
-			HealthCheck: &elb.HealthCheck{
-				Target:             aws.String(spec.HealthCheck.Target),
-				Interval:           aws.Int64(int64(spec.HealthCheck.Interval.Seconds())),
-				Timeout:            aws.Int64(int64(spec.HealthCheck.Timeout.Seconds())),
-				HealthyThreshold:   aws.Int64(spec.HealthCheck.HealthyThreshold),
-				UnhealthyThreshold: aws.Int64(spec.HealthCheck.UnhealthyThreshold),
-			},
-		}
-
-		if _, err := s.scope.ELB.ConfigureHealthCheck(hc); err != nil {
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.scope.ELB.ConfigureHealthCheck(&elb.ConfigureHealthCheckInput{
+				LoadBalancerName: aws.String(spec.Name),
+				HealthCheck: &elb.HealthCheck{
+					Target:             aws.String(spec.HealthCheck.Target),
+					Interval:           aws.Int64(int64(spec.HealthCheck.Interval.Seconds())),
+					Timeout:            aws.Int64(int64(spec.HealthCheck.Timeout.Seconds())),
+					HealthyThreshold:   aws.Int64(spec.HealthCheck.HealthyThreshold),
+					UnhealthyThreshold: aws.Int64(spec.HealthCheck.UnhealthyThreshold),
+				},
+			}); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.LoadBalancerNotFound); err != nil {
 			return nil, errors.Wrapf(err, "failed to configure health check for classic load balancer: %v", spec)
 		}
 	}
@@ -232,7 +235,12 @@ func (s *Service) configureAttributes(name string, attributes v1alpha2.ClassicEL
 		}
 	}
 
-	if _, err := s.scope.ELB.ModifyLoadBalancerAttributes(attrs); err != nil {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if _, err := s.scope.ELB.ModifyLoadBalancerAttributes(attrs); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.LoadBalancerNotFound); err != nil {
 		return errors.Wrapf(err, "failed to configure attributes for classic load balancer: %v", name)
 	}
 
@@ -259,27 +267,21 @@ func (s *Service) deleteClassicELBAndWait(name string) error {
 		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
 
-	checkForELBDeletion := func() (done bool, err error) {
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
 		out, err := s.scope.ELB.DescribeLoadBalancers(input)
+		if err != nil {
+			if code, ok := awserrors.Code(err); ok && code == awserrors.LoadBalancerNotFound {
+				return true, nil
+			}
+			return false, err
+		}
 
 		// ELB already deleted.
 		if len(out.LoadBalancerDescriptions) == 0 {
 			return true, nil
 		}
-
-		if code, _ := awserrors.Code(err); code == "LoadBalancerNotFound" {
-			return true, nil
-		}
-
-		if err != nil {
-			return false, err
-		}
-
 		return false, nil
-
-	}
-
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), checkForELBDeletion, []string{}); err != nil {
+	}); err != nil {
 		return errors.Wrapf(err, "failed to wait for ELB deletion %q", name)
 	}
 
