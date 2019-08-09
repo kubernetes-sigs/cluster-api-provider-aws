@@ -5,7 +5,7 @@ gomock(
     name = "mocks",
     out = "elbapi_mock.go",
     interfaces = ["ELBAPI"],
-    library = "//vendor/github.com/aws/aws-sdk-go/service/elb/elbiface:go_default_library",
+    library = "@com_github_aws_aws_sdk_go//service/elb/elbiface:go_default_library",
     package = "mock_elbiface",
     visibility = ["//visibility:public"],
 )

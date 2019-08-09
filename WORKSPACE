@@ -15,14 +15,13 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
-http_archive(
+git_repository(
     name = "io_bazel_rules_go",
-    urls = [
-        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/0.19.1/rules_go-0.19.1.tar.gz",
-    ],
-    sha256 = "8df59f11fb697743cbb3f26cfb8750395f30471e9eabde0d174c3aebc7a1cd39",
+    remote = "https://github.com/bazelbuild/rules_go.git",
+    commit = "9b614efc502964e60de3f8e5d0f0eb740a2a6930",
 )
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
 
 http_archive(
     name = "io_bazel_rules_docker",
@@ -834,6 +833,7 @@ go_repository(
 
 go_repository(
     name = "io_k8s_api",
+    build_file_proto_mode = "disable_global",
     importpath = "k8s.io/api",
     replace = "k8s.io/api",
     sum = "h1:X3GqeHwOBOJa0O7jrPobw6MGLMwthSnA/sM86ENzbCo=",
@@ -842,6 +842,7 @@ go_repository(
 
 go_repository(
     name = "io_k8s_apiextensions_apiserver",
+    build_file_proto_mode = "disable_global",
     importpath = "k8s.io/apiextensions-apiserver",
     sum = "h1:q1Qvjzs/iEdXF6A1a8H3AKVFDzJNcJn3nXMs6R6qFtA=",
     version = "v0.0.0-20190409022649-727a075fdec8",
@@ -849,6 +850,7 @@ go_repository(
 
 go_repository(
     name = "io_k8s_apimachinery",
+    build_file_proto_mode = "disable_global",
     importpath = "k8s.io/apimachinery",
     replace = "k8s.io/apimachinery",
     sum = "h1:Nuz3yWD9v9dVvDiVSBIah+B+pxkxQxtuBAx2712t7tQ=",

@@ -20,7 +20,7 @@ set -o verbose
 
 if ! which bazel &>/dev/null; then echo "Bazel not available, skipping validation"; exit; fi
 
-diff=$(bazel run //:gazelle -- update -mode diff -external vendored -build_tags=integration)
+diff=$(bazel run //:gazelle -- update -mode diff -build_tags=integration)
 
 if [[ -n "${diff}" ]]; then
   echo "${diff}" >&2

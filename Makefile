@@ -83,7 +83,7 @@ test-go: ## Run tests
 
 .PHONY: integration
 integration: generate verify ## Run integraion tests
-	bazel test --define='gotags=integration' --test_output all //test/integration/...
+	bazel test --define='gotags=integration' --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 --host_force_python=PY2 --test_output all //test/integration/...
 
 JANITOR_ENABLED ?= 0
 .PHONY: e2e
