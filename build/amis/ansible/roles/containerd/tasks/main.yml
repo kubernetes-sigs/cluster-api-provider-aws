@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-- import_tasks: debian.yml
+- include_tasks: debian.yml
   when: ansible_os_family == "Debian"
 
-- import_tasks: redhat.yml
+- include_tasks: redhat.yml
   when: ansible_os_family == "RedHat"
 
 # TODO(vincepri): Use deb/rpm packages once available.

@@ -12,9 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+- name: download EPEL rpm
+  get_url:
+    url: "{{ common_redhat_epel_rpm }}"
+    dest: "/tmp/epel-release.rpm"
+    checksum: "{{ common_redhat_epel_rpm_checksum }}"
+    owner: root
+    group: root
+    mode: 0644
+
 - name: add epel repo
   yum:
-    name: "{{ common_redhat_epel_rpm }}"
+    name: "/tmp/epel-release.rpm"
     state: present
     lock_timeout: 60
 
