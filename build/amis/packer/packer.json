@@ -23,7 +23,8 @@
         "filters": {
           "virtualization-type": "hvm",
           "name": "ubuntu/images/*ubuntu-bionic-18.04-amd64-server-*",
-          "root-device-type": "ebs"
+          "root-device-type": "ebs",
+          "architecture": "x86_64"
         },
         "owners": ["099720109477"],
         "most_recent": true
@@ -59,7 +60,8 @@
         "filters": {
           "virtualization-type": "hvm",
           "name": "CentOS Linux 7 x86_64 HVM EBS ENA*",
-          "root-device-type": "ebs"
+          "root-device-type": "ebs",
+          "architecture": "x86_64"
         },
         "owners": ["410186602215"],
         "most_recent": true
@@ -96,9 +98,10 @@
         "filters": {
           "virtualization-type": "hvm",
           "name": "amzn2-ami-hvm-2*",
-          "root-device-type": "ebs"
+          "root-device-type": "ebs",
+          "architecture": "x86_64"
         },
-        "owners": ["137112412989"],
+        "owners": ["amazon"],
         "most_recent": true
       },
       "ami_name": "capa-ami-amazon-2-{{user `kubernetes_version`}}-{{user `build_timestamp`}}",
