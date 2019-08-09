@@ -1,8 +1,6 @@
 package:
   cloud-init:
     installed: true
-    versions:
-      - "{{ .Vars.cloud_init_version }}"
 service:
   containerd:
     enabled: true
