@@ -63,10 +63,9 @@
     reload: yes
 
 - name: install kubeadm module for cloud-init
-  get_url:
-    url: "{{ common_cloud_init_kubeadm_module }}"
+  copy:
+    src: "{{ role_path }}/files/cc_kubeadm.py"
     dest: "{{ common_cloudinit_python_lib_dir }}/cloudinit/config/cc_kubeadm.py"
-    checksum: "{{ common_cloud_init_kubeadm_module_checksum }}"
     owner: root
     group: root
     mode: 0644
