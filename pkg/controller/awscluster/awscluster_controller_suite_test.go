@@ -37,7 +37,7 @@ var cfg *rest.Config
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "..", "vendor", "sigs.k8s.io", "cluster-api", "config", "crds"),
+			filepath.Join("..", "..", "..", "config-capi", "crds"),
 			filepath.Join("..", "..", "..", "config", "crds"),
 		},
 	}
