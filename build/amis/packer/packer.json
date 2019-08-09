@@ -2,7 +2,7 @@
   "variables": {
     "aws_access_key": "",
     "aws_secret_key": "",
-    "aws_region": "{{ env `AWS_REGION`}}",
+    "aws_region": "",
     "build_timestamp": "{{timestamp}}",
     "encrypted": "false",
     "kubernetes_version": "1.14.4-00",
