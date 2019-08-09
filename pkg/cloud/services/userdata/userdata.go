@@ -24,10 +24,8 @@ import (
 )
 
 const (
-	cloudConfigHeader = `## template: jinja
-#cloud-config
-`
-	defaultHeader = `#!/usr/bin/env bash
+	cloudConfigHeader = "#cloud-config"
+	defaultHeader     = `#!/usr/bin/env bash
 
 # Copyright 2018 by the contributors
 #
