@@ -22,7 +22,6 @@ common_rpms:
 - jq
 - nfs-utils
 common_extra_rpms: []
-cloud_init_version: 18.3-52-gc5f78957-1~bddeb~18.04.1
 common_debs:
 - openssh-client
 - openssh-server
@@ -35,9 +34,9 @@ common_debs:
 - jq
 - nfs-client
 
-common_pinned_debs:
-- "cloud-init={{ cloud_init_version }}"
 common_extra_debs: []
 common_redhat_epel_rpm: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
-common_redhat_cloud_init_copr_rpm: "https://copr.fedorainfracloud.org/coprs/jdetiber/cloud-init/repo/epel-7/jdetiber-cloud-init-epel-7.repo"
-common_deb_cloud_init_ppr_repo: "ppa:detiber/cloud-init"
+common_redhat_epel_rpm_checksum: "sha256:33b8b8250960874014d7c66d04ef12df3a71277b9eb6f2146bba7553daeaf910"
+common_cloud_init_kubeadm_module: "https://raw.githubusercontent.com/detiber/cloud-init/44f9570f3005ace405c4899aded97d51873c7664/cloudinit/config/cc_kubeadm.py"
+common_cloud_init_kubeadm_module_checksum: "sha256:e3ad231e59c6b4c52285d04f634543298ebfe3effb80d58750abd71028ff8f38"
+common_cloudinit_python_lib_dir: '/usr/lib/python{{ansible_python.version.major}}.{{ansible_python.version.minor}}/site-packages'

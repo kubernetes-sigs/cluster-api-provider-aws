@@ -18,18 +18,6 @@
     state: present
     lock_timeout: 60
 
-- name: add cloud-init copr repo
-  get_url:
-    url: "{{ common_redhat_cloud_init_copr_rpm }}"
-    dest: /etc/yum.repos.d/cloud-init-copr.repo
-
-- name: add yum priority
-  lineinfile:
-    path: /etc/yum.repos.d/cloud-init-copr.repo
-    regexp: '^priority='
-    line: 'priority=1'
-  when: ansible_distribution == "Amazon"
-
 - name: perform a yum update
   yum:
     name: '*'
@@ -47,12 +35,3 @@
     name: "{{ common_extra_rpms }}"
     state: present
     lock_timeout: 60
-
-- name: configure cloud-init on amazon-linux
-  copy:
-    src: files/cloud.cfg
-    dest: /etc/cloud/cloud.cfg
-    owner: root
-    group: root
-    mode: 0644
-  when: ansible_distribution == "Amazon"

@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-- import_tasks: debian.yml
+- name: Set OS family dependant variables
+  include_vars: "os_family-{{ ansible_os_family }}.yml"
+
+- include_tasks: debian.yml
   when: ansible_os_family == "Debian"
 
-- import_tasks: redhat.yml
+- include_tasks: redhat.yml
   when: ansible_os_family == "RedHat"
 
 - name: Ensure overlay module is present
@@ -58,3 +61,18 @@
     state: present
     sysctl_set: yes
     reload: yes
+
+- name: install kubeadm module for cloud-init
+  get_url:
+    url: "{{ common_cloud_init_kubeadm_module }}"
+    dest: "{{ common_cloudinit_python_lib_dir }}/cloudinit/config/cc_kubeadm.py"
+    checksum: "{{ common_cloud_init_kubeadm_module_checksum }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: configure cloud-init
+  lineinfile:
+    path: /etc/cloud/cloud.cfg
+    line: ' - kubeadm'
+    insertafter: '^ - scripts-user'
