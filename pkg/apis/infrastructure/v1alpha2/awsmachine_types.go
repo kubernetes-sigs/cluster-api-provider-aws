@@ -83,8 +83,7 @@ type AWSMachineSpec struct {
 
 	// RootDeviceSize is the size of the root volume.
 	// +optional
-	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
-}
+	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`}
 
 // AWSMachineStatus defines the observed state of AWSMachine
 type AWSMachineStatus struct {
@@ -138,11 +137,9 @@ type AWSMachineStatus struct {
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // AWSMachine is the Schema for the awsmachines API
-// +k8s:openapi-gen=true
 type AWSMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -151,7 +148,7 @@ type AWSMachine struct {
 	Status AWSMachineStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // AWSMachineList contains a list of AWSMachine
 type AWSMachineList struct {

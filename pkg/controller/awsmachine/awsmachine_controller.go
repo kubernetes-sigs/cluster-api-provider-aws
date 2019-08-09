@@ -91,8 +91,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&source.Kind{Type: &clusterv1.Machine{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: util.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
-				Group:   infrav1.SchemeGroupVersion.Group,
-				Version: infrav1.SchemeGroupVersion.Version,
+				Group:   infrav1.SchemeBuilder.GroupVersion.Group,
+				Version: infrav1.SchemeBuilder.GroupVersion.Version,
 				Kind:    "AWSMachine",
 			}),
 		},
