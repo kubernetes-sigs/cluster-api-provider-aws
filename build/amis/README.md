@@ -76,6 +76,22 @@ For example, to build only the Ubuntu Bionic image:
 packer build -only=ubuntu-1804 packer.json
 ```
 
+### Variables reference
+
+- **aws_access_key**: Explicit AWS access key ID (instead of letting AWS SDK resolve from environment)
+- **aws_secret_key**: Explicit AWS secret access key (instead of letting AWS SDK resolve from environment)
+- **aws_region**: Explicitly set AWS region to build into
+- **build_timestamp**: Set build timestamp. Defaults to "{{timestamp}}"
+- **encrypted**: Build KMS encrypted AMI (default: false)
+- **kubernetes_version**: Kubernetes version to build AMI for (default: 1.14.4-00)
+- **kubernetes_cni_version**: Version of CNI package to install (default: 0.7.5-00)
+- **existing_ansible_ssh_args**: Additional Ansible SSH args (default: `{{env \`ANSIBLE_SSH_ARGS\`}}`)
+- **ami_groups**: Groups allowed to use image (default: all)
+- **ami_users**: AWS accounts allowed to use image (default: [])
+- **snapshot_groups**: Groups allowed to use volume snapshot (default: all)
+- **snapshot_users**: AWS accounts allowed to use volume snapshot (default: [])
+- **ami_regions**: AMI regions to make image available in (default: [ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2])
+
 ### Required Permissions to Build the AWS AMIs
 
 The [Packer documentation for the Amazon AMI builder](https://www.packer.io/docs/builders/amazon.html) supplies a suggested set of minimum permissions.
