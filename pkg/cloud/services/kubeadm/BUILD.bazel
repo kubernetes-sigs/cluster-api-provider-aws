@@ -11,14 +11,14 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/kubeadm",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/pkg/errors:go_default_library",
-        "//vendor/k8s.io/api/core/v1:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/runtime/serializer:go_default_library",
-        "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
-        "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/util:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2:go_default_library",
-        "//vendor/sigs.k8s.io/controller-runtime/pkg/runtime/scheme:go_default_library",
+        "@com_github_pkg_errors//:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime/serializer:go_default_library",
+        "@io_k8s_kubernetes//cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
+        "@io_k8s_kubernetes//cmd/kubeadm/app/util:go_default_library",
+        "@io_k8s_sigs_cluster_api//pkg/apis/cluster/v1alpha2:go_default_library",
+        "@io_k8s_sigs_controller_runtime//pkg/runtime/scheme:go_default_library",
     ],
 )
 
@@ -31,8 +31,8 @@ go_test(
     ],
     embed = [":go_default_library"],
     deps = [
-        "//vendor/k8s.io/api/core/v1:go_default_library",
-        "//vendor/k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
+        "@io_k8s_kubernetes//cmd/kubeadm/app/apis/kubeadm/v1beta1:go_default_library",
+        "@io_k8s_sigs_cluster_api//pkg/apis/cluster/v1alpha2:go_default_library",
     ],
 )

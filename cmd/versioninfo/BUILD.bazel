@@ -6,7 +6,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/spf13/cobra:go_default_library",
+        "@com_github_spf13_cobra//:go_default_library",
     ],
 )
 

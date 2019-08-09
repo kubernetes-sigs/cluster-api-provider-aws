@@ -7,9 +7,9 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/infrastructure/v1alpha2:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi:go_default_library",
-        "//vendor/github.com/spf13/cobra:go_default_library",
+        "@com_github_aws_aws_sdk_go//aws:go_default_library",
+        "@com_github_aws_aws_sdk_go//aws/session:go_default_library",
+        "@com_github_aws_aws_sdk_go//service/resourcegroupstaggingapi:go_default_library",
+        "@com_github_spf13_cobra//:go_default_library",
     ],
 )

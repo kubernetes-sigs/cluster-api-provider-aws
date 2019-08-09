@@ -6,7 +6,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/client",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/k8s.io/client-go/tools/clientcmd:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset:go_default_library",
+        "@io_k8s_client_go//tools/clientcmd:go_default_library",
+        "@io_k8s_sigs_cluster_api//pkg/client/clientset_generated/clientset:go_default_library",
     ],
 )

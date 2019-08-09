@@ -12,6 +12,6 @@ go_library(
     deps = [
         "//pkg/controller/awscluster:go_default_library",
         "//pkg/controller/awsmachine:go_default_library",
-        "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
+        "@io_k8s_sigs_controller_runtime//pkg/manager:go_default_library",
     ],
 )

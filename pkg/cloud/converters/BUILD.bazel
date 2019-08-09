@@ -10,8 +10,8 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/infrastructure/v1alpha2:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
-        "//vendor/github.com/aws/aws-sdk-go/service/elb:go_default_library",
+        "@com_github_aws_aws_sdk_go//aws:go_default_library",
+        "@com_github_aws_aws_sdk_go//service/ec2:go_default_library",
+        "@com_github_aws_aws_sdk_go//service/elb:go_default_library",
     ],
 )

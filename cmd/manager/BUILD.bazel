@@ -25,10 +25,10 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//pkg/apis/infrastructure/v1alpha2:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
-        "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
-        "//vendor/sigs.k8s.io/controller-runtime:go_default_library",
-        "//vendor/sigs.k8s.io/controller-runtime/pkg/log/zap:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+        "@io_k8s_client_go//kubernetes/scheme:go_default_library",
+        "@io_k8s_sigs_controller_runtime//:go_default_library",
+        "@io_k8s_sigs_controller_runtime//pkg/log/zap:go_default_library",
     ],
 )
 

@@ -6,7 +6,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloudtest",
     visibility = ["//visibility:public"],
     deps = [
-        "//vendor/github.com/go-logr/logr:go_default_library",
-        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "@com_github_go_logr_logr//:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
     ],
 )
