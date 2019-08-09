@@ -44,10 +44,6 @@ else
   IMAGE_BUILD_CMD = docker build
 endif
 
-.PHONY: bootstrap
-bootstrap:
-	GO111MODULE=off go get -u github.com/myitcv/gobin
-
 .PHONY: vendor
 vendor:
 	go mod tidy
@@ -56,7 +52,7 @@ vendor:
 
 .PHONY: generate
 generate:
-	GOFLAGS=-mod=readonly go generate ./pkg/... ./cmd/...
+	go generate ./pkg/... ./cmd/...
 
 .PHONY: test
 test: unit

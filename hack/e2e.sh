@@ -2,16 +2,8 @@
 
 set -euo pipefail
 
-GO111MODULE = off
-export GO111MODULE
-GOFLAGS =
-export GOFLAGS
+unset GOFLAGS
 
-GOPATH="$(mktemp -d)"
-export GOPATH
+git clone "https://github.com/openshift/cluster-api-actuator-pkg.git" cluster-api-actuator-pkg
 
-ACTUATOR_PKG="github.com/openshift/cluster-api-actuator-pkg"
-
-go get -u -d "${ACTUATOR_PKG}/..."
-
-exec make -C "${GOPATH}/src/${ACTUATOR_PKG}" test-e2e
+exec make -C cluster-api-actuator-pkg test-e2e

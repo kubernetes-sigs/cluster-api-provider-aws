@@ -6,7 +6,7 @@
 package tools
 
 import (
-	_ "github.com/golang/mock"
+	_ "github.com/golang/mock/mockgen"
 	_ "github.com/openshift/cluster-api/cmd/manager"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 )
