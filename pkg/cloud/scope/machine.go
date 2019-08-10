@@ -52,6 +52,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.Machine == nil {
 		return nil, errors.New("machine is required when creating a MachineScope")
 	}
+	if params.Cluster == nil {
+		return nil, errors.New("cluster is required when creating a MachineScope")
+	}
 	if params.AWSMachine == nil {
 		return nil, errors.New("aws machine is required when creating a MachineScope")
 	}
