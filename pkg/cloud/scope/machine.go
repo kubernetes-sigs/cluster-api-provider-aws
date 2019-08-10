@@ -63,6 +63,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	return &MachineScope{
 		client:     params.Client,
 		patch:      client.MergeFrom(params.AWSMachine.DeepCopy()),
+		Cluster:    params.Cluster,
 		Machine:    params.Machine,
 		AWSMachine: params.AWSMachine,
 		Logger:     params.Logger,
