@@ -140,6 +140,7 @@ type AWSMachineStatus struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:subresource:status
 
 // AWSMachine is the Schema for the awsmachines API
 // +k8s:openapi-gen=true

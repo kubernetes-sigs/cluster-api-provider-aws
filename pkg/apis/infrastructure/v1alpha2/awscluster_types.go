@@ -134,6 +134,7 @@ type APIEndpoint struct {
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:subresource:status
 
 // AWSCluster is the Schema for the awsclusters API
 // +k8s:openapi-gen=true

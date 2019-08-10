@@ -244,6 +244,7 @@ type SecurityGroup struct {
 	Name string `json:"name"`
 
 	// IngressRules is the inbound rules associated with the security group.
+	// +optional
 	IngressRules IngressRules `json:"ingressRule"`
 
 	// Tags is a map of tags associated with the security group.
@@ -286,9 +287,11 @@ type IngressRule struct {
 	ToPort      int64                 `json:"toPort"`
 
 	// List of CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.
+	// +optional
 	CidrBlocks []string `json:"cidrBlocks"`
 
 	// The security group id to allow access from. Cannot be specified with CidrBlocks.
+	// +optional
 	SourceSecurityGroupIDs []string `json:"sourceSecurityGroupIds"`
 }
 
