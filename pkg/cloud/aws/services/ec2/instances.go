@@ -382,8 +382,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
-	s.scope.V(2).Info("Running instance", "machine-role", machine.Role())
-	out, err := s.runInstance(machine.Role(), input)
+	s.scope.V(2).Info("Running instance", "machine-role", machine.Role(), "idempotency-token", idempotencyToken)
+	out, err := s.runInstance(machine.Role(), input, idempotencyToken)
 	if err != nil {
 		return nil, err
 	}
@@ -510,7 +510,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 	return instance, nil
 }
 
-func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+func (s *Service) runInstance(role string, i *v1alpha1.Instance, idempotencyToken string) (*v1alpha1.Instance, error) {
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
@@ -575,6 +575,10 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 		}
 
 		input.TagSpecifications = append(input.TagSpecifications, spec)
+	}
+
+	if idempotencyToken != "" {
+		input.ClientToken = aws.String(idempotencyToken)
 	}
 
 	out, err := s.scope.EC2.RunInstances(input)
