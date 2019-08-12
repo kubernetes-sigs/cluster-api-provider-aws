@@ -204,7 +204,7 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	switch scope.Role() {
 	case "node":
 		// Just the common security groups above
-	case "controlplane":
+	case "control-plane":
 		sgRoles = append(sgRoles, v1alpha2.SecurityGroupControlPlane)
 	default:
 		return nil, errors.Errorf("Unknown node role %q", scope.Role())
@@ -272,8 +272,13 @@ func (s *Service) runInstance(role string, i *v1alpha2.Instance) (*v1alpha2.Inst
 	if i.UserData != nil {
 		var buf bytes.Buffer
 
+		decoded, err := base64.StdEncoding.DecodeString(*i.UserData)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to decode bootstrapData")
+		}
+
 		gz := gzip.NewWriter(&buf)
-		if _, err := gz.Write([]byte(*i.UserData)); err != nil {
+		if _, err := gz.Write(decoded); err != nil {
 			return nil, errors.Wrap(err, "failed to gzip userdata")
 		}
 

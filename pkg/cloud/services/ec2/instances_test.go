@@ -245,7 +245,8 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						Data: pointer.StringPtr("user-data"),
+						// echo "user-data" | base64
+						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
 					},
 				},
 			},
@@ -333,7 +334,8 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						Data: pointer.StringPtr("user-data"),
+						// echo "user-data" | base64
+						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
 					},
 				},
 			},
@@ -469,7 +471,8 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						Data: pointer.StringPtr("user-data"),
+						// echo "user-data" | base64
+						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
 					},
 				},
 			}
