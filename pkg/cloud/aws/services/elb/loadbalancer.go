@@ -148,7 +148,7 @@ func (s *Service) getAPIServerClassicELBSpec() *v1alpha1.ClassicELB {
 			},
 		},
 		HealthCheck: &v1alpha1.ClassicELBHealthCheck{
-			Target:             fmt.Sprintf("%v:%d", v1alpha1.ClassicELBProtocolTCP, 6443),
+			Target:             fmt.Sprintf("%v:%d", v1alpha1.ClassicELBProtocolSSL, 6443),
 			Interval:           10 * time.Second,
 			Timeout:            5 * time.Second,
 			HealthyThreshold:   5,
