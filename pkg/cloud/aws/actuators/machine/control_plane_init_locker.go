@@ -103,7 +103,7 @@ func (l *controlPlaneInitLocker) AcquireWithToken(cluster *clusterv1.Cluster, ma
 
 	log.Info("Attempting to create control plane configmap lock")
 
-	if l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap); err != nil {
+	if _, err := l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// Someone else beat us to it
 			log.Info("Control plane configmap lock already exists")

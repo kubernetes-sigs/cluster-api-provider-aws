@@ -33,7 +33,7 @@ const LockInformationConfigMapKey = "lock-information"
 
 func ReadLockInfo(cm *corev1.ConfigMap) (*LockInformation, error) {
 	if cm == nil || cm.Data == nil {
-		return nil, errors.New("recieved nil config map")
+		return nil, errors.New("received nil config map")
 	}
 
 	liString := cm.Data[LockInformationConfigMapKey]

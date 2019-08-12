@@ -145,6 +145,9 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 
 	if clusterReady(cluster) {
 		bootstrapToken, err = a.getBootstrapToken(log, cluster)
+		if err != nil {
+			return err
+		}
 	} else {
 		var lockAcquired bool
 		lockAcquired, idempotencyToken = a.controlPlaneInitLocker.AcquireWithToken(cluster, machine)

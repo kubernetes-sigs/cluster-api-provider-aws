@@ -116,7 +116,7 @@ func TestControlPlaneInitLockerAcquireWithToken(t *testing.T) {
 
 			_, tok := l.AcquireWithToken(cluster, machine)
 			if tc.expectToken != tok {
-				t.Errorf("Expected token %q, but recieved %q", tc.expectToken, tok)
+				t.Errorf("Expected token %q, but received %q", tc.expectToken, tok)
 			}
 		})
 	}
