@@ -656,3 +656,10 @@ type fakeControlPlaneInitLocker struct {
 func (f *fakeControlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
 	return f.succeed
 }
+
+func (f *fakeControlPlaneInitLocker) AcquireWithToken(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, string) {
+	if f.succeed {
+		return true, "some-token"
+	}
+	return false, ""
+}
