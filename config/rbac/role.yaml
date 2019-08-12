@@ -66,6 +66,8 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - awsclusters
+  - awsclusters/status
   - awsmachines
   - awsmachines/status
   verbs:

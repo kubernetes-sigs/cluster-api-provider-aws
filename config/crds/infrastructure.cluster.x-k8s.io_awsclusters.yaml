@@ -11,6 +11,8 @@ spec:
     kind: AWSCluster
     plural: awsclusters
   scope: ""
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: AWSCluster is the Schema for the awsclusters API
@@ -335,11 +337,9 @@ spec:
                               format: int64
                               type: integer
                           required:
-                          - cidrBlocks
                           - description
                           - fromPort
                           - protocol
-                          - sourceSecurityGroupIds
                           - toPort
                           type: object
                         type: array
@@ -354,7 +354,6 @@ spec:
                         type: object
                     required:
                     - id
-                    - ingressRule
                     - name
                     type: object
                   description: SecurityGroups is a map from the role/kind of the security
