@@ -30,9 +30,6 @@ import (
 
 // ControlPlaneInitLocker provides a locking mechanism for cluster initialization.
 type ControlPlaneInitLocker interface {
-	// Acquire returns true if it acquires the lock for the cluster.
-	Acquire(cluster *clusterv1.Cluster) bool
-
 	// GetOrCreateInitLock will attempt to create a lock specifying the given machine is the one
 	// that will init the cluster. If no such lock exists, or the existing lock matches the
 	// specified machine, return "true" and the idempotency token.
@@ -57,10 +54,6 @@ func newControlPlaneInitLocker(log logr.Logger, configMapClient corev1.ConfigMap
 			return uuid.New().String()
 		},
 	}
-}
-
-func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
-	return false
 }
 
 func (l *controlPlaneInitLocker) AcquireWithToken(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, string) {

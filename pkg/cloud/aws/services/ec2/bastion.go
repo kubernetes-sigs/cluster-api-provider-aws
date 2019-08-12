@@ -57,7 +57,7 @@ func (s *Service) ReconcileBastion() error {
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance()
 	if awserrors.IsNotFound(err) {
-		instance, err = s.runInstance("bastion", spec)
+		instance, err = s.runInstance("bastion", spec, "")
 		if err != nil {
 			record.Warnf(s.scope.Cluster, "FailedCreateBastion", "Failed to create bastion instance: %v", err)
 			return err

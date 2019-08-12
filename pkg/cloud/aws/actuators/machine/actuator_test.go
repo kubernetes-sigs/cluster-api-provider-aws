@@ -20,8 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/klog/klogr"
-
 	"github.com/aws/aws-sdk-go/aws"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
@@ -571,81 +569,6 @@ func TestImmutableStateChange(t *testing.T) {
 			t.Fatalf("[%s] Expected MachineSpec [%+v], NOT Equal Instance [%+v]",
 				tc.name, tc.machineSpec, tc.instance)
 		}
-	}
-}
-
-func TestIsNodeJoin(t *testing.T) {
-	tests := []struct {
-		name          string
-		cluster       *clusterv1.Cluster
-		machine       *clusterv1.Machine
-		actualAcquire bool
-		expectJoin    bool
-		expectError   bool
-	}{
-		{
-			name: "control plane already ready",
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{v1alpha1.AnnotationControlPlaneReady: v1alpha1.ValueReady},
-				},
-			},
-			machine:     &clusterv1.Machine{},
-			expectJoin:  true,
-			expectError: false,
-		},
-		{
-			name:        "not a control plane machine",
-			cluster:     &clusterv1.Cluster{},
-			machine:     &clusterv1.Machine{},
-			expectJoin:  true,
-			expectError: true,
-		},
-		{
-			name:    "able to acquire lock",
-			cluster: &clusterv1.Cluster{},
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"set": "controlplane"},
-				},
-			},
-			actualAcquire: true,
-			expectJoin:    false,
-			expectError:   false,
-		},
-		{
-			name:    "unable to acquire lock",
-			cluster: &clusterv1.Cluster{},
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"set": "controlplane"},
-				},
-			},
-			actualAcquire: false,
-			expectError:   true,
-			expectJoin:    true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			log := klogr.New()
-
-			a := &Actuator{
-				controlPlaneInitLocker: &fakeControlPlaneInitLocker{succeed: tc.actualAcquire},
-			}
-
-			actual, err := a.isNodeJoin(log, tc.cluster, tc.machine)
-			if tc.expectError && err == nil {
-				t.Fatal("expected error but got nil")
-			} else if !tc.expectError && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			if tc.expectJoin != actual {
-				t.Errorf("join: expected %t, got %t", tc.expectJoin, actual)
-			}
-		})
 	}
 }
 

@@ -198,24 +198,6 @@ func clusterReady(cluster *clusterv1.Cluster) bool {
 	return cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] == v1alpha1.ValueReady
 }
 
-func (a *Actuator) isNodeJoin(log logr.Logger, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
-	if cluster.Annotations[v1alpha1.AnnotationControlPlaneReady] == v1alpha1.ValueReady {
-		return true, nil
-	}
-
-	if machine.Labels["set"] != "controlplane" {
-		// This isn't a control plane machine - have to wait
-		return true, &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneMachineExistenceDuration}
-	}
-
-	if a.controlPlaneInitLocker.Acquire(cluster) {
-		return false, nil
-	}
-
-	log.Info("Unable to acquire control plane configmap lock - requeuing")
-	return true, &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
-}
-
 func (a *Actuator) coreV1Client(cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
 	controlPlaneDNSName, err := a.GetIP(cluster, nil)
 	if err != nil {
