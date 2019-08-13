@@ -35,6 +35,6 @@ go_test(
         "//vendor/github.com/aws/aws-sdk-go/service/elb:go_default_library",
         "//vendor/github.com/golang/mock/gomock:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/api/v1alpha2:go_default_library",
     ],
 )

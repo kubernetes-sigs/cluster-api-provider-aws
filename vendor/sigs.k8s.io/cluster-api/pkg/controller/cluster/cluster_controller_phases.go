@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -57,7 +57,7 @@ func (r *ReconcileCluster) reconcile(ctx context.Context, cluster *v1alpha2.Clus
 
 func (r *ReconcileCluster) reconcilePhase(ctx context.Context, cluster *v1alpha2.Cluster) error {
 	// Set the phase to "pending" if nil.
-	if cluster.Status.Phase == nil {
+	if cluster.Status.Phase == "" {
 		cluster.Status.SetTypedPhase(v1alpha2.ClusterPhasePending)
 	}
 

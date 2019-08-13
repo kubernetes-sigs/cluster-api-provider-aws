@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
 func describeVpcAttributeTrue(input *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error) {
@@ -112,8 +112,8 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name: "managed vpc does not exist",
-			input: &v1alpha2.VPCSpec{},
+			name:   "managed vpc does not exist",
+			input:  &v1alpha2.VPCSpec{},
 			output: &v1alpha2.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{

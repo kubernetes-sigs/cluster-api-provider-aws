@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -481,7 +481,7 @@ func TestCreateInstance(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1.SchemeGroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "Machine",
 							Name:       "test1",
 						},
@@ -514,6 +514,9 @@ func TestCreateInstance(t *testing.T) {
 				Cluster:    cluster,
 				AWSCluster: tc.awsCluster,
 			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
 
 			s := NewService(clusterScope)
 			instance, err := s.CreateInstance(machineScope)

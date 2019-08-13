@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -133,7 +133,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 
 	v1alpha2.AddToScheme(scheme.Scheme)
 	r := &ReconcileMachineDeployment{
-		Client:   fake.NewFakeClient(&ms1, &ms2, &ms3, machineDeplopymentList),
+		Client:   fake.NewFakeClient(machineDeplopymentList),
 		scheme:   scheme.Scheme,
 		recorder: record.NewFakeRecorder(32),
 	}

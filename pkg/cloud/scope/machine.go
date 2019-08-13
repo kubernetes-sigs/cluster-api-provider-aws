@@ -25,7 +25,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -161,15 +161,9 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 func (m *MachineScope) Close() error {
 	ctx := context.Background()
 
-	gvk := m.AWSMachine.GroupVersionKind()
-
 	if err := m.client.Patch(ctx, m.AWSMachine, m.patch); err != nil {
 		return errors.WithStack(err)
 	}
-
-	// TODO(ncdc): This is a hack because after a Patch, the object loses TypeMeta information.
-	// Remove when https://github.com/kubernetes-sigs/controller-runtime/issues/526 is fixed.
-	m.AWSMachine.SetGroupVersionKind(gvk)
 
 	if err := m.client.Status().Patch(ctx, m.AWSMachine, m.patch); err != nil {
 		return errors.WithStack(err)

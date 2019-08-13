@@ -26,7 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -128,7 +128,7 @@ func (s *ClusterScope) ControlPlaneConfigMapName() string {
 }
 
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
-func (s *ClusterScope) ListOptionsLabelSelector() client.ListOptionFunc {
+func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 	return client.MatchingLabels(map[string]string{
 		clusterv1alpha2.MachineClusterLabelName: s.Cluster.Name,
 	})
@@ -138,17 +138,10 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOptionFunc {
 func (s *ClusterScope) Close() error {
 	ctx := context.TODO()
 
-	// TODO: remove when patch bug is fixed. Currently patches
-	// result in GVK info being removed from the object
-	gvk := s.AWSCluster.GroupVersionKind()
-
 	// Patch Cluster object.
 	if err := s.client.Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {
 		return errors.Wrapf(err, "error patching AWSCluster %s/%s", s.Cluster.Namespace, s.Cluster.Name)
 	}
-
-	// TODO: remove when patch bug is fixed
-	s.AWSCluster.SetGroupVersionKind(gvk)
 
 	// Patch Cluster status.
 	if err := s.client.Status().Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {

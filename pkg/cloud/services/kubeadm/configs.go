@@ -18,7 +18,7 @@ package kubeadm
 
 import (
 	kubeadmv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
 // InitConfigurationOption will set various options on kubeadm's InitConfiguration type.

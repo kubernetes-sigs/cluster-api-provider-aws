@@ -23,7 +23,7 @@ go_library(
         "//vendor/github.com/pkg/errors:go_default_library",
         "//vendor/k8s.io/klog/klogr:go_default_library",
         "//vendor/k8s.io/utils/pointer:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/api/v1alpha2:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/controller/noderefutil:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/errors:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
