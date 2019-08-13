@@ -6,7 +6,11 @@ go_library(
     importmap = "sigs.k8s.io/cluster-api-provider-aws/vendor/sigs.k8s.io/cluster-api/cmd/clusterctl",
     importpath = "sigs.k8s.io/cluster-api/cmd/clusterctl",
     visibility = ["//visibility:private"],
-    deps = ["//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/cmd:go_default_library"],
+    deps = [
+        "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/api/v1alpha2:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/cmd:go_default_library",
+    ],
 )
 
 go_binary(
