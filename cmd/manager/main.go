@@ -27,7 +27,7 @@ import (
 	capa "sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/controller"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	capi "sigs.k8s.io/cluster-api/pkg/apis"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"

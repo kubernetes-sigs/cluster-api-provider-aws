@@ -26,7 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -128,7 +128,7 @@ func (s *ClusterScope) ControlPlaneConfigMapName() string {
 }
 
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
-func (s *ClusterScope) ListOptionsLabelSelector() client.ListOptionFunc {
+func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 	return client.MatchingLabels(map[string]string{
 		clusterv1alpha2.MachineClusterLabelName: s.Cluster.Name,
 	})
