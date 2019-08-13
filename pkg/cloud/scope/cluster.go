@@ -138,17 +138,10 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOptionFunc {
 func (s *ClusterScope) Close() error {
 	ctx := context.TODO()
 
-	// TODO: remove when patch bug is fixed. Currently patches
-	// result in GVK info being removed from the object
-	gvk := s.AWSCluster.GroupVersionKind()
-
 	// Patch Cluster object.
 	if err := s.client.Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {
 		return errors.Wrapf(err, "error patching AWSCluster %s/%s", s.Cluster.Namespace, s.Cluster.Name)
 	}
-
-	// TODO: remove when patch bug is fixed
-	s.AWSCluster.SetGroupVersionKind(gvk)
 
 	// Patch Cluster status.
 	if err := s.client.Status().Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {
