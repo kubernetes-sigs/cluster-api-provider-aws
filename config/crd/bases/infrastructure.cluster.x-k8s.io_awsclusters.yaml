@@ -10,7 +10,7 @@ spec:
   names:
     kind: AWSCluster
     plural: awsclusters
-  scope: ""
+  scope: Namespaced
   subresources:
     status: {}
   validation:

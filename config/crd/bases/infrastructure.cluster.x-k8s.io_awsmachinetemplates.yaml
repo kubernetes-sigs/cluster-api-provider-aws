@@ -10,7 +10,7 @@ spec:
   names:
     kind: AWSMachineTemplate
     plural: awsmachinetemplates
-  scope: ""
+  scope: Namespaced
   validation:
     openAPIV3Schema:
       description: AWSMachineTemplate is the Schema for the awsmachinetemplates API

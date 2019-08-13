@@ -10,7 +10,7 @@ spec:
   names:
     kind: AWSMachine
     plural: awsmachines
-  scope: ""
+  scope: Namespaced
   subresources:
     status: {}
   validation:
