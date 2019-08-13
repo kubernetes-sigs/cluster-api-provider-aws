@@ -17,50 +17,33 @@ limitations under the License.
 package integration_test
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api/pkg/util"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
+	appsv1 "k8s.io/api/apps/v1"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 )
 
 const (
-	kindTimeout         = 5 * 60
 	controllerNamespace = "aws-provider-system"
 	controllerName      = "aws-provider-controller-manager"
 )
 
 var _ = Describe("Metacluster", func() {
-	var (
-		kindCluster kind.Cluster
-		client      kubernetes.Interface
-	)
-	BeforeEach(func() {
-		kindCluster = kind.Cluster{
-			Name: "capa-test-" + util.RandomString(6),
-		}
-		kindCluster.Setup()
-		client = kindCluster.KubeClient()
-	}, kindTimeout)
-
-	AfterEach(func() {
-		kindCluster.Teardown()
-	})
-
 	Describe("manager container", func() {
 		It("Should be healthy", func() {
-			sets := client.AppsV1().StatefulSets(controllerNamespace)
-
 			Eventually(
 				func() (*appsv1.StatefulSet, error) {
-					return sets.Get(controllerName, metav1.GetOptions{})
+					statefulSet := &appsv1.StatefulSet{}
+					if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: controllerNamespace, Name: controllerName}, statefulSet); err != nil {
+						return nil, err
+					}
+					return statefulSet, nil
 				},
 				2*time.Minute, 5*time.Second,
 			).Should(haveReplicas(1))
