@@ -17,7 +17,7 @@ limitations under the License.
 package services
 
 import (
-	providerv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	providerv1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 

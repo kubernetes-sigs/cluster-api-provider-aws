@@ -26,8 +26,8 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -38,11 +38,11 @@ func TestMain(m *testing.M) {
 	t := &envtest.Environment{
 		CRDDirectoryPaths: []string{
 			filepath.Join("..", "..", "..", "vendor", "sigs.k8s.io", "cluster-api", "config", "crd", "bases"),
-			filepath.Join("..", "..", "..", "config", "crds"),
+			filepath.Join("..", "..", "..", "config", "crd", "bases"),
 		},
 	}
 	capi.AddToScheme(scheme.Scheme)
-	apis.AddToScheme(scheme.Scheme)
+	infrav1.AddToScheme(scheme.Scheme)
 
 	var err error
 	if cfg, err = t.Start(); err != nil {

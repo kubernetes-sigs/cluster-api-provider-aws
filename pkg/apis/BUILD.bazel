@@ -4,14 +4,12 @@ go_library(
     name = "go_default_library",
     srcs = [
         "addtoscheme_awsprovider_v1alpha1.go",
-        "addtoscheme_infrastructure_v1alpha2.go",
         "apis.go",
     ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/apis",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/apis/awsprovider/v1alpha1:go_default_library",
-        "//pkg/apis/infrastructure/v1alpha2:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
     ],
 )

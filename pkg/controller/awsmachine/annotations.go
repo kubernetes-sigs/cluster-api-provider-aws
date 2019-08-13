@@ -19,7 +19,7 @@ package awsmachine
 import (
 	"encoding/json"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 )
 
 // updateMachineAnnotationJSON updates the `annotation` on `machine` with

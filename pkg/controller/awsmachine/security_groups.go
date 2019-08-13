@@ -19,7 +19,7 @@ package awsmachine
 import (
 	"sort"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 )
