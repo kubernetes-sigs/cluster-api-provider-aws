@@ -47,3 +47,4 @@ kubeconfig
 # Ignore output manifests
 examples/out
 examples/provider-components-base.yaml
+config/samples
