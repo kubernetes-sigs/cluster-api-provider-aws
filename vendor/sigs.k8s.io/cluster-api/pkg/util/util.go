@@ -40,9 +40,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/scheme"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -61,6 +61,10 @@ var (
 	ErrNoCluster                 = fmt.Errorf("no %q label present", clusterv1.MachineClusterLabelName)
 	ErrUnstructuredFieldNotFound = fmt.Errorf("field not found")
 )
+
+func init() {
+	clusterv1.AddToScheme(scheme.Scheme)
+}
 
 // RandomToken returns a random token.
 func RandomToken() string {
@@ -169,8 +173,8 @@ func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.Obj
 // GetOwnerCluster returns the Cluster object owning the current resource.
 func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
 	for _, ref := range obj.OwnerReferences {
-		if ref.Kind == "Cluster" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
-			return GetClusterByName(ctx, c, obj.Namespace, obj.Name)
+		if ref.Kind == "Cluster" && ref.APIVersion == clusterv1.GroupVersion.String() {
+			return GetClusterByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
 	return nil, nil
@@ -200,6 +204,11 @@ func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 			return nil
 		}
 
+		// Return early if the InfrastructureRef is nil.
+		if c.Spec.InfrastructureRef == nil {
+			return nil
+		}
+
 		// Return early if the GroupVersionKind doesn't match what we expect.
 		infraGVK := c.Spec.InfrastructureRef.GroupVersionKind()
 		if gvk != infraGVK {
@@ -220,8 +229,8 @@ func ClusterToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ToReque
 // GetOwnerMachine returns the Machine object owning the current resource.
 func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Machine, error) {
 	for _, ref := range obj.OwnerReferences {
-		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.SchemeGroupVersion.String() {
-			return GetMachineByName(ctx, c, obj.Namespace, obj.Name)
+		if ref.Kind == "Machine" && ref.APIVersion == clusterv1.GroupVersion.String() {
+			return GetMachineByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
 	return nil, nil
@@ -279,6 +288,17 @@ func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRef
 		return append(ownerReferences, ref)
 	}
 	return ownerReferences
+}
+
+// PointsTo returns true if any of the owner references point to the given target
+func PointsTo(refs []metav1.OwnerReference, target *metav1.ObjectMeta) bool {
+	for _, ref := range refs {
+		if ref.UID == target.UID {
+			return true
+		}
+	}
+
+	return false
 }
 
 // UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
@@ -485,4 +505,20 @@ func NewYAMLDecoder(r io.ReadCloser) streaming.Decoder {
 		decoder: scheme.Codecs.UniversalDeserializer(),
 		close:   r.Close,
 	}
+}
+
+// HasOwner checks if any of the references in the passed list match the given apiVersion and one of the given kinds
+func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string) bool {
+	kMap := make(map[string]bool)
+	for _, kind := range kinds {
+		kMap[kind] = true
+	}
+
+	for _, mr := range refList {
+		if mr.APIVersion == apiVersion && kMap[mr.Kind] {
+			return true
+		}
+	}
+
+	return false
 }

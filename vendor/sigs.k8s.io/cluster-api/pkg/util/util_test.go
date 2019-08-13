@@ -17,15 +17,20 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -481,5 +486,202 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 				t.Fatalf("Unexpected output. Got: %v, Want: %v", out, tc.output)
 			}
 		})
+	}
+}
+
+func TestHasOwner(t *testing.T) {
+	tests := []struct {
+		name     string
+		refList  []metav1.OwnerReference
+		expected bool
+	}{
+		{
+			name: "no ownership",
+		},
+		{
+			name: "owned by cluster",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Cluster",
+					APIVersion: clusterv1.GroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "owned by something else",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Pod",
+					APIVersion: "v1",
+				},
+				{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+			},
+		},
+		{
+			name: "owner by a deployment",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: clusterv1.GroupVersion.String(),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "right kind, wrong apiversion",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "MachineDeployment",
+					APIVersion: "wrong/v2",
+				},
+			},
+		},
+		{
+			name: "right apiversion, wrong kind",
+			refList: []metav1.OwnerReference{
+				{
+					Kind:       "Machine",
+					APIVersion: clusterv1.GroupVersion.String(),
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := HasOwner(
+				test.refList,
+				clusterv1.GroupVersion.String(),
+				[]string{"MachineDeployment", "Cluster"},
+			)
+			if test.expected != result {
+				t.Errorf("expected hasOwner to be %v, got %v", test.expected, result)
+			}
+		})
+	}
+}
+
+func TestPointsTo(t *testing.T) {
+	targetID := "fri3ndsh1p"
+
+	meta := metav1.ObjectMeta{
+		UID: types.UID(targetID),
+	}
+
+	tests := []struct {
+		name     string
+		refIDs   []string
+		expected bool
+	}{
+		{
+			name: "empty owner list",
+		},
+		{
+			name:   "single wrong owner ref",
+			refIDs: []string{"m4g1c"},
+		},
+		{
+			name:     "single right owner ref",
+			refIDs:   []string{targetID},
+			expected: true,
+		},
+		{
+			name:   "multiple wrong refs",
+			refIDs: []string{"m4g1c", "h4rm0ny"},
+		},
+		{
+			name:     "multiple refs one right",
+			refIDs:   []string{"m4g1c", targetID},
+			expected: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pointer := &metav1.ObjectMeta{}
+
+			for _, ref := range test.refIDs {
+				pointer.OwnerReferences = append(pointer.OwnerReferences, metav1.OwnerReference{
+					UID: types.UID(ref),
+				})
+			}
+
+			result := PointsTo(pointer.OwnerReferences, &meta)
+			if result != test.expected {
+				t.Errorf("expected %v, got %v", test.expected, result)
+			}
+		})
+	}
+}
+
+func TestGetOwnerClusterSuccessByName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		t.Fatal("failed to register cluster api objects to scheme")
+	}
+
+	myCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-cluster",
+			Namespace: "my-ns",
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(scheme, myCluster)
+	objm := metav1.ObjectMeta{
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "my-cluster",
+			},
+		},
+		Namespace: "my-ns",
+		Name:      "my-resource-owned-by-cluster",
+	}
+	cluster, err := GetOwnerCluster(context.TODO(), c, objm)
+	if err != nil {
+		t.Fatalf("did not expect an error but found one: %v", err)
+	}
+	if cluster == nil {
+		t.Fatal("expected a cluster but got nil")
+	}
+}
+
+func TestGetOwnerMachineSuccessByName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		t.Fatal("failed to register cluster api objects to scheme")
+	}
+
+	myMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-machine",
+			Namespace: "my-ns",
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(scheme, myMachine)
+	objm := metav1.ObjectMeta{
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "my-machine",
+			},
+		},
+		Namespace: "my-ns",
+		Name:      "my-resource-owned-by-machine",
+	}
+	machine, err := GetOwnerMachine(context.TODO(), c, objm)
+	if err != nil {
+		t.Fatalf("did not expect an error but found one: %v", err)
+	}
+	if machine == nil {
+		t.Fatal("expected a machine but got nil")
 	}
 }

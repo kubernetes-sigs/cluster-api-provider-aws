@@ -73,9 +73,6 @@ docker-build-manager: lint-full ## Build manager binary in docker
 clusterctl: lint-full ## Build clusterctl binary
 	go build -o bin/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-bin/%-gen: ./vendor/k8s.io/code-generator/cmd/%-gen ## Build code-generator binaries
-	go build -o $@ ./$<
-
 .PHONY: run
 run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run ./cmd/manager/main.go
@@ -98,44 +95,23 @@ lint-full: ## Run slower linters to detect possible issues
 .PHONY: generate
 generate: ## Generate code
 	$(MAKE) generate-manifests
-	$(MAKE) generate-go
+	$(MAKE) generate-deepcopy
 	$(MAKE) gazelle
 
-.PHONY: generate-full
-generate-full: vendor ## Generate code
-	$(MAKE) generate-clientset
-	$(MAKE) generate
-
-.PHONY: generate-go
-generate-go: ## Runs go generate
-	go generate ./pkg/... ./cmd/...
-
-.PHONY: generate-clientset
-generate-clientset: clean-clientset bin/client-gen bin/lister-gen bin/informer-gen ## Generate a typed clientset
-	bin/client-gen \
-		--clientset-name clientset \
-		--input-base sigs.k8s.io/cluster-api/pkg/apis \
-		--input deprecated/v1alpha1,cluster/v1alpha2 \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	bin/lister-gen \
-		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2 \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	bin/informer-gen \
-		--input-dirs sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1,sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2 \
-		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
-		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+.PHONY: generate-deepcopy
+generate-deepcopy: ## Runs controller-gen to generate deepcopy files
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
+		paths=./api/...
 
 .PHONY: generate-manifests
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./pkg/... \
+		paths=./api/... \
+		paths=./pkg/controller/... \
 		crd:trivialVersions=true \
 		rbac:roleName=manager-role \
-		output:crd:dir=./config/crds
+		output:crd:dir=./config/crd/bases
 	## Copy files in CI folders.
 	cp -f ./config/rbac/role*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
@@ -205,6 +181,7 @@ docker-push-manifest: ## Push the fat manifest docker image. TODO: Update bazel 
 clean: ## Remove all generated files
 	$(MAKE) clean-bazel
 	$(MAKE) clean-bin
+	$(MAKE) clean-book
 
 .PHONY: clean-bazel
 clean-bazel: ## Remove all generated bazel symlinks
@@ -223,10 +200,24 @@ verify:
 	./hack/verify-boilerplate.sh
 	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh
+	./hack/verify-doctoc.sh
+
+.PHONY: clean-book
+clean-book: ## Remove all generated GitBook files
+	rm -rf ./docs/book/_book
 
 ## --------------------------------------
 ## Others / Utilities
 ## --------------------------------------
 
-diagrams:
+.PHONY: diagrams
+diagrams: ## Build proposal diagrams
 	$(MAKE) -C docs/proposals/images
+
+.PHONY: book
+book: ## Build the GitBook
+	./hack/build-gitbook.sh
+
+.PHONY: serve-book
+serve-book: ## Build and serve the GitBook with live-reloading enabled
+	(cd ./docs/book && gitbook serve --live --open)

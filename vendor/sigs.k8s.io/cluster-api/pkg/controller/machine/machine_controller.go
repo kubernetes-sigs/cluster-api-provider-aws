@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
@@ -146,7 +146,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (_ reconcile.Res
 			m.Labels[clusterv1.MachineClusterLabelName], m.Name, m.Namespace)
 	}
 
-	if cluster != nil {
+	if cluster != nil && shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 			APIVersion: cluster.APIVersion,
 			Kind:       cluster.Kind,
@@ -299,7 +299,11 @@ func (r *ReconcileMachine) getMachinesInCluster(ctx context.Context, namespace, 
 // isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exists.
 func (r *ReconcileMachine) isDeleteReady(ctx context.Context, m *v1alpha2.Machine) error {
 	if m.Spec.Bootstrap.ConfigRef != nil {
-		if _, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
+		_, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
 			return errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
 				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
@@ -316,4 +320,8 @@ func (r *ReconcileMachine) isDeleteReady(ctx context.Context, m *v1alpha2.Machin
 	}
 
 	return nil
+}
+
+func shouldAdopt(m *v1alpha2.Machine) bool {
+	return !util.HasOwner(m.OwnerReferences, v1alpha2.GroupVersion.String(), []string{"MachineSet", "Cluster"})
 }

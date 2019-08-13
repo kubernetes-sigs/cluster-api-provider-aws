@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha2"
+	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/pkg/controller/external"
 	capierrors "sigs.k8s.io/cluster-api/pkg/errors"
 	"sigs.k8s.io/cluster-api/pkg/util"
@@ -60,7 +60,7 @@ func (r *ReconcileMachine) reconcile(ctx context.Context, cluster *v1alpha2.Clus
 
 func (r *ReconcileMachine) reconcilePhase(ctx context.Context, m *v1alpha2.Machine) error {
 	// Set the phase to "pending" if nil.
-	if m.Status.Phase == nil {
+	if m.Status.Phase == "" {
 		m.Status.SetTypedPhase(v1alpha2.MachinePhasePending)
 	}
 
@@ -248,8 +248,12 @@ func (r *ReconcileMachine) reconcileInfrastructure(ctx context.Context, m *v1alp
 	}
 
 	// Get and set Status.Addresses from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses"); err != nil {
-		return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+	err = util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses")
+
+	if err != nil {
+		if err != util.ErrUnstructuredFieldNotFound {
+			return errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		}
 	}
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
