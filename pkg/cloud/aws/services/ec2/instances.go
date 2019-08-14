@@ -324,8 +324,10 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 	case "node":
 		s.scope.V(2).Info("Joining a worker node to the cluster")
 
+		kubeadmConfig := machine.MachineConfig.KubeadmConfiguration.Join.DeepCopy()
+
 		kubeadm.SetJoinConfigurationOptions(
-			&machine.MachineConfig.KubeadmConfiguration.Join,
+			kubeadmConfig,
 			kubeadm.WithBootstrapTokenDiscovery(
 				kubeadm.NewBootstrapTokenDiscovery(
 					kubeadm.WithAPIServerEndpoint(fmt.Sprintf("%s:%d", machine.Network().APIServerELB.DNSName, apiServerBindPort)),
@@ -335,7 +337,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 			),
 			kubeadm.WithJoinNodeRegistrationOptions(
 				kubeadm.SetNodeRegistrationOptions(
-					&machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration,
+					&kubeadmConfig.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
 					kubeadm.WithCRISocket(containerdSocket),
 					kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
@@ -344,7 +346,7 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 				),
 			),
 		)
-		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
+		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(kubeadmConfig)
 		if err != nil {
 			return nil, err
 		}
