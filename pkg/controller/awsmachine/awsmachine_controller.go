@@ -34,7 +34,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
@@ -91,8 +91,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&source.Kind{Type: &clusterv1.Machine{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: util.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
-				Group:   infrav1.SchemeGroupVersion.Group,
-				Version: infrav1.SchemeGroupVersion.Version,
+				Group:   infrav1.SchemeBuilder.GroupVersion.Group,
+				Version: infrav1.SchemeBuilder.GroupVersion.Version,
 				Kind:    "AWSMachine",
 			}),
 		},

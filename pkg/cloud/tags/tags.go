@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 )
 
 // ApplyParams are function parameters used to apply tags on an aws resource.

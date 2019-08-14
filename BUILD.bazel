@@ -1,3 +1,4 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("//build:run_in_workspace_with_goroot.bzl", "workspace_binary")
 
@@ -80,3 +81,74 @@ filegroup(
 exports_files(glob([
     "WORKSPACE",
 ]))
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "sigs.k8s.io/cluster-api-provider-aws",
+    deps = [
+        "//api/v1alpha2:go_default_library",
+        "//controllers:go_default_library",
+        "//pkg/record:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
+        "//vendor/k8s.io/klog:go_default_library",
+        "//vendor/k8s.io/klog/klogr:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "cluster-api-provider-aws",
+    embed = [":go_default_library"],
+)
+
+# Build the manager
+load("@io_bazel_rules_docker//go:image.bzl", "go_image")
+load("@io_bazel_rules_docker//contrib:push-all.bzl", "docker_push")
+load("@io_bazel_rules_docker//container:container.bzl", "container_bundle")
+load("//build:stateful_set_patch.bzl", "stateful_set_patch")
+
+go_image(
+    name = "manager-amd64",
+    embed = [":go_default_library"],
+    goarch = "amd64",
+    goos = "linux",
+    pure = "on",
+    visibility = ["//visibility:public"],
+)
+
+tags = [
+    "{GIT_VERSION}",
+    "$(MANAGER_IMAGE_TAG)",
+]
+
+images = {
+    "{registry}/{name}:{tag}".format(
+        registry = "$(REGISTRY)",
+        name = "$(MANAGER_IMAGE_NAME)",
+        tag = tag,
+    ): ":manager-amd64"
+    for tag in tags
+}
+
+container_bundle(
+    name = "manager-image",
+    images = images,
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+docker_push(
+    name = "manager-push",
+    bundle = "manager-image",
+    tags = ["manual"],
+)
+
+stateful_set_patch(
+    name = "manager-version-patch",
+    pull_policy = "$(PULL_POLICY)",
+    registry = "$(REGISTRY)",
+    tags = ["generated"],
+    visibility = ["//visibility:public"],
+)

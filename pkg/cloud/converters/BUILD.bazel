@@ -9,7 +9,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/infrastructure/v1alpha2:go_default_library",
+        "//api/v1alpha2:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/ec2:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/elb:go_default_library",

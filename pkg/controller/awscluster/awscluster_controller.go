@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
-	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/infrastructure/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,7 +73,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// Watch for changes to AWSCluster
 	err = c.Watch(
-		&source.Kind{Type: &infrastructurev1alpha2.AWSCluster{}},
+		&source.Kind{Type: &infrav1.AWSCluster{}},
 		&handler.EnqueueRequestForObject{},
 	)
 	if err != nil {
@@ -85,8 +85,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		&source.Kind{Type: &v1alpha2.Cluster{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: util.ClusterToInfrastructureMapFunc(schema.GroupVersionKind{
-				Group:   infrastructurev1alpha2.SchemeGroupVersion.Group,
-				Version: infrastructurev1alpha2.SchemeGroupVersion.Version,
+				Group:   infrav1.SchemeBuilder.GroupVersion.Group,
+				Version: infrav1.SchemeBuilder.GroupVersion.Version,
 				Kind:    "AWSCluster",
 			}),
 		},
@@ -111,7 +111,7 @@ func (r *ReconcileAWSCluster) Reconcile(request reconcile.Request) (_ reconcile.
 		WithName(fmt.Sprintf("awsCluster=%s", request.Name))
 
 	// Fetch the AWSCluster instance
-	awsCluster := &infrastructurev1alpha2.AWSCluster{}
+	awsCluster := &infrav1.AWSCluster{}
 	err := r.Get(ctx, request.NamespacedName, awsCluster)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -182,7 +182,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	clusterScope.AWSCluster.Finalizers = util.Filter(clusterScope.AWSCluster.Finalizers, infrastructurev1alpha2.ClusterFinalizer)
+	clusterScope.AWSCluster.Finalizers = util.Filter(clusterScope.AWSCluster.Finalizers, infrav1.ClusterFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -194,8 +194,8 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	awsCluster := clusterScope.AWSCluster
 
 	// If the AWSCluster doesn't have our finalizer, add it.
-	if !util.Contains(awsCluster.Finalizers, infrastructurev1alpha2.ClusterFinalizer) {
-		awsCluster.Finalizers = append(awsCluster.Finalizers, infrastructurev1alpha2.ClusterFinalizer)
+	if !util.Contains(awsCluster.Finalizers, infrav1.ClusterFinalizer) {
+		awsCluster.Finalizers = append(awsCluster.Finalizers, infrav1.ClusterFinalizer)
 	}
 
 	ec2Service := ec2.NewService(clusterScope)
@@ -219,7 +219,7 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	}
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull them
-	awsCluster.Status.APIEndpoints = []infrastructurev1alpha2.APIEndpoint{
+	awsCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
 		{
 			Host: awsCluster.Status.Network.APIServerELB.DNSName,
 			// TODO(ncdc): should this come from awsCluster.Status.Network.APIServerELB.Listeners[0].Port?

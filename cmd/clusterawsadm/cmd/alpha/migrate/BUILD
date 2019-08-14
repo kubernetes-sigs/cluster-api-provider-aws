@@ -6,7 +6,7 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/migrate",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/apis/infrastructure/v1alpha2:go_default_library",
+        "//api/v1alpha2:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/aws/session:go_default_library",
         "//vendor/github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi:go_default_library",

@@ -49,6 +49,15 @@ ifndef BAZEL_VERSION
 		https://docs.bazel.build/versions/master/install.html")
 endif
 
+# Set B64_CREDENTIALS to set an actual value in a secret
+B64_CREDENTIALS ?= CREDENTIALS
+
+# Allow overriding manifest generation destination directory
+MANIFEST_ROOT ?= config
+CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
+WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
+RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
+
 .PHONY: all
 all: verify-install test binaries
 
@@ -65,7 +74,7 @@ test: generate lint ## Run tests
 
 .PHONY: test-go
 test-go: ## Run tests
-	go test -v -tags=integration ./pkg/... ./cmd/...
+	go test -v -tags=integration ./pkg/... ./cmd/... ./api/... ./controllers/...
 
 .PHONY: integration
 integration: generate verify ## Run integraion tests
@@ -87,23 +96,13 @@ e2e-janitor:
 .PHONY: docker-build
 docker-build: generate lint-full ## Build the docker image for controller-manager
 	docker build --pull . -t $(MANAGER_IMAGE)
+	# TODO: sed probably needs to be gnu sed not bsd sed
+	sed -i '' -e 's@image: .*@image: '"${MANAGER_IMAGE}"'@' ./config/default/manager_image_patch.yaml
+	sed -i '' -e 's@credentials: .*@credentials: '"${B64_CREDENTIALS}"'@' ./config/default/aws_credentials_patch.yaml
 
 .PHONY: docker-push
 docker-push: docker-build ## Push the docker image
 	docker push $(MANAGER_IMAGE)
-
-## --------------------------------------
-## Manifests
-## --------------------------------------
-
-.PHONY: manifests
-manifests: examples/provider-components-base.yaml ## Build example set of manifests from the current source
-	./examples/generate-yaml.sh
-
-.PHONY: examples/provider-components-base.yaml
-examples/provider-components-base.yaml:
-	bazel build //examples:provider-components-base $(BAZEL_BUILD_ARGS)
-	install bazel-genfiles/examples/provider-components-base.yaml examples
 
 ## --------------------------------------
 ## Generate
@@ -123,6 +122,7 @@ generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-mocks
 	$(MAKE) generate-manifests
+	$(MAKE) generate-kubebuilder-code
 	$(MAKE) gazelle
 
 .PHONY: generate-go
@@ -138,12 +138,21 @@ generate-mocks: clean-bazel-mocks ## Generate mocks, CRDs and runs `go generate`
 .PHONY: generate-manifests
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./pkg/apis/infrastructure/... \
+		paths=./api/... \
 		crd:trivialVersions=true \
-		output:crd:dir=./config/crds
+		output:crd:dir=$(CRD_ROOT) \
+		output:webhook:dir=$(WEBHOOK_ROOT) \
+		webhook
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./pkg/controller/... \
+		paths=./controllers/... \
+		output:rbac:dir=$(RBAC_ROOT) \
 		rbac:roleName=manager-role
+
+.PHONY: generate-kubebuilder-code
+generate-kubebuilder-code: ## Runs controller-gen
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
+		paths=./api/... \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
 
 ## --------------------------------------
 ## Linting
@@ -165,7 +174,7 @@ binaries: manager clusterawsadm clusterctl ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
-	go build -o bin/manager ./cmd/manager
+	go build -o bin/manager .
 
 .PHONY: clusterctl
 clusterctl: ## Build clusterctl binary.
