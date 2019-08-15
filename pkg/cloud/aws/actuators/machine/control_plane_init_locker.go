@@ -18,6 +18,8 @@ package machine
 
 import (
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	apicorev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,14 +30,18 @@ import (
 
 // ControlPlaneInitLocker provides a locking mechanism for cluster initialization.
 type ControlPlaneInitLocker interface {
-	// Acquire returns true if it acquires the lock for the cluster.
-	Acquire(cluster *clusterv1.Cluster) bool
+	// GetOrCreateInitLock will attempt to create a lock specifying the given machine is the one
+	// that will init the cluster. If no such lock exists, or the existing lock matches the
+	// specified machine, return "true" and the idempotency token.
+	// otherwise, return false
+	AcquireWithToken(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, string)
 }
 
 // controlPlaneInitLocker uses a ConfigMap to synchronize cluster initialization.
 type controlPlaneInitLocker struct {
 	log             logr.Logger
 	configMapClient corev1.ConfigMapsGetter
+	random          func() string
 }
 
 var _ ControlPlaneInitLocker = &controlPlaneInitLocker{}
@@ -44,22 +50,32 @@ func newControlPlaneInitLocker(log logr.Logger, configMapClient corev1.ConfigMap
 	return &controlPlaneInitLocker{
 		log:             log,
 		configMapClient: configMapClient,
+		random: func() string {
+			return uuid.New().String()
+		},
 	}
 }
 
-func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
+func (l *controlPlaneInitLocker) AcquireWithToken(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, string) {
 	configMapName := actuators.ControlPlaneConfigMapName(cluster)
-	log := l.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", configMapName)
+	log := l.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", configMapName, "machine-name", machine.Name)
 
-	exists, err := l.configMapExists(cluster.Namespace, configMapName)
+	lockInfo, err := l.getLock(cluster.Namespace, configMapName)
 	if err != nil {
 		log.Error(err, "Error checking for control plane configmap lock existence")
-		return false
-	}
-	if exists {
-		return false
+		return false, ""
 	}
 
+	if lockInfo != nil {
+		if lockInfo.MachineName == machine.Name {
+			return true, lockInfo.IdempotencyToken
+		}
+
+		log.Info("waiting on on another machine to initialize", "init-machine", lockInfo.MachineName)
+		return false, ""
+	}
+
+	token := l.random()
 	controlPlaneConfigMap := &apicorev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: cluster.Namespace,
@@ -75,9 +91,19 @@ func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
 		},
 	}
 
+	lockInfo = &LockInformation{
+		MachineName:      machine.Name,
+		IdempotencyToken: token,
+	}
+
+	if err := WriteLockInfo(controlPlaneConfigMap, lockInfo); err != nil {
+		log.Error(err, "Failed to add lock information to control plane config map")
+		return false, ""
+	}
+
 	log.Info("Attempting to create control plane configmap lock")
-	_, err = l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap)
-	if err != nil {
+
+	if _, err := l.configMapClient.ConfigMaps(cluster.Namespace).Create(controlPlaneConfigMap); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// Someone else beat us to it
 			log.Info("Control plane configmap lock already exists")
@@ -86,11 +112,24 @@ func (l *controlPlaneInitLocker) Acquire(cluster *clusterv1.Cluster) bool {
 		}
 
 		// Unable to acquire
-		return false
+		return false, ""
 	}
 
 	// Successfully acquired
-	return true
+	return true, token
+}
+
+func (l *controlPlaneInitLocker) getLock(namespace, name string) (*LockInformation, error) {
+	cm, err := l.configMapClient.ConfigMaps(namespace).Get(name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return ReadLockInfo(cm)
 }
 
 func (l *controlPlaneInitLocker) configMapExists(namespace, name string) (bool, error) {

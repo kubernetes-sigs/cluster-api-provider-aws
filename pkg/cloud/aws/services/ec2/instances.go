@@ -128,7 +128,7 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha1.Instance, error) {
 }
 
 // createInstance runs an ec2 instance.
-func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
+func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken, idempotencyToken string) (*v1alpha1.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &v1alpha1.Instance{
@@ -384,8 +384,8 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		input.KeyName = aws.String(defaultSSHKeyName)
 	}
 
-	s.scope.V(2).Info("Running instance", "machine-role", machine.Role())
-	out, err := s.runInstance(machine.Role(), input)
+	s.scope.V(2).Info("Running instance", "machine-role", machine.Role(), "idempotency-token", idempotencyToken)
+	out, err := s.runInstance(machine.Role(), input, idempotencyToken)
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +476,7 @@ func (s *Service) MachineExists(machine *actuators.MachineScope) (bool, error) {
 }
 
 // CreateOrGetMachine will either return an existing instance or create and return an instance.
-func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken string) (*v1alpha1.Instance, error) {
+func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapToken, idempotencyToken string) (*v1alpha1.Instance, error) {
 	s.scope.V(2).Info("Attempting to create or get machine")
 
 	// instance id exists, try to get it
@@ -499,7 +499,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 		return instance, nil
 	}
 
-	instance, err = s.createInstance(machine, bootstrapToken)
+	instance, err = s.createInstance(machine, bootstrapToken, idempotencyToken)
 	if err != nil {
 		// Only record the failure event if the error is not related to failed dependencies.
 		// This is to avoid spamming failure events since the machine will be requeued by the actuator.
@@ -512,7 +512,7 @@ func (s *Service) CreateOrGetMachine(machine *actuators.MachineScope, bootstrapT
 	return instance, nil
 }
 
-func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Instance, error) {
+func (s *Service) runInstance(role string, i *v1alpha1.Instance, idempotencyToken string) (*v1alpha1.Instance, error) {
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
@@ -577,6 +577,10 @@ func (s *Service) runInstance(role string, i *v1alpha1.Instance) (*v1alpha1.Inst
 		}
 
 		input.TagSpecifications = append(input.TagSpecifications, spec)
+	}
+
+	if idempotencyToken != "" {
+		input.ClientToken = aws.String(idempotencyToken)
 	}
 
 	out, err := s.scope.EC2.RunInstances(input)

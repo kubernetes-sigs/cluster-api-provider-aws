@@ -31,34 +31,55 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 )
 
-func TestControlPlaneInitLockerAcquire(t *testing.T) {
+func makeCM(t *testing.T, name, token string) *v1.ConfigMap {
+	var cm v1.ConfigMap
+	li := &LockInformation{
+		MachineName:      name,
+		IdempotencyToken: token,
+	}
+
+	if err := WriteLockInfo(&cm, li); err != nil {
+		t.Fatalf("Unexpected error encoding configmap: %v", err)
+	}
+
+	return &cm
+}
+
+func TestControlPlaneInitLockerAcquireWithToken(t *testing.T) {
+	const (
+		machineName              = "my-machine-name"
+		createdIdempotencyToken  = "my-created-token"
+		existingIdempotencyToken = "my-existing-token"
+	)
+
 	tests := []struct {
-		name          string
-		configMap     *v1.ConfigMap
-		getError      error
-		createError   error
-		expectAcquire bool
+		name        string
+		configMap   *v1.ConfigMap
+		getError    error
+		createError error
+		expectToken string
 	}{
 		{
-			name:          "configmap already exists",
-			configMap:     &v1.ConfigMap{},
-			expectAcquire: false,
+			name:        "no config map exists",
+			getError:    apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
+			expectToken: createdIdempotencyToken,
 		},
 		{
-			name:          "error getting configmap",
-			getError:      errors.New("get error"),
-			expectAcquire: false,
+			name:     "failed to retrieve",
+			getError: errors.New("couldn't get error"),
 		},
 		{
-			name:          "create succeeds",
-			getError:      apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
-			expectAcquire: true,
+			name:        "failed to create token",
+			createError: errors.New("couldn't get error"),
 		},
 		{
-			name:          "create fails",
-			getError:      apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "configmaps"}, "uid1-configmap"),
-			createError:   errors.New("create error"),
-			expectAcquire: false,
+			name:      "lock exists for other machine",
+			configMap: makeCM(t, "some-other-machine", existingIdempotencyToken),
+		},
+		{
+			name:        "locks exists for this machine",
+			configMap:   makeCM(t, machineName, existingIdempotencyToken),
+			expectToken: existingIdempotencyToken,
 		},
 	}
 
@@ -73,6 +94,10 @@ func TestControlPlaneInitLockerAcquire(t *testing.T) {
 				},
 			}
 
+			l.random = func() string {
+				return createdIdempotencyToken
+			}
+
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1",
@@ -81,9 +106,17 @@ func TestControlPlaneInitLockerAcquire(t *testing.T) {
 				},
 			}
 
-			acquired := l.Acquire(cluster)
-			if tc.expectAcquire != acquired {
-				t.Errorf("expected %t, got %t", tc.expectAcquire, acquired)
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "ns1",
+					Name:      machineName,
+					UID:       types.UID("uid2"),
+				},
+			}
+
+			_, tok := l.AcquireWithToken(cluster, machine)
+			if tc.expectToken != tok {
+				t.Errorf("Expected token %q, but received %q", tc.expectToken, tok)
 			}
 		})
 	}
