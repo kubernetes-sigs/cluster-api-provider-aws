@@ -124,8 +124,9 @@ func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, m
 	if err != nil {
 		return fmt.Errorf("%s: failed to update machine object with providerID: %v", machine.Name, err)
 	}
+	machine = updatedMachine
 
-	updatedMachine, err = a.setMachineCloudProviderSpecifics(updatedMachine, instance)
+	updatedMachine, err = a.setMachineCloudProviderSpecifics(machine, instance)
 	if err != nil {
 		return fmt.Errorf("%s: failed to set machine cloud provider specifics: %v", machine.Name, err)
 	}
@@ -464,10 +465,11 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Updated", "Updated machine %v", machine.Name)
 
-	machine, err = a.setMachineCloudProviderSpecifics(machine, newestInstance)
+	modMachine, err := a.setMachineCloudProviderSpecifics(machine, newestInstance)
 	if err != nil {
 		return fmt.Errorf("%s: failed to set machine cloud provider specifics: %v", machine.Name, err)
 	}
+	machine = modMachine
 
 	// We do not support making changes to pre-existing instances, just update status.
 	return a.updateStatus(machine, newestInstance)
