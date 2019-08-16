@@ -6,10 +6,8 @@
 
 <!-- TOC depthFrom:2 -->
 
-- [Requirements](#requirements)
-  - [Optional](#optional)
 - [Prerequisites](#prerequisites)
-  - [Install release binaries](#install-release-binaries)
+  - [Installing software](#installing-software)
   - [Setting up AWS](#setting-up-aws)
     - [`clusterawsadm`](#clusterawsadm)
     - [non-`clusterawsadm`](#non-clusterawsadm)
@@ -29,28 +27,27 @@
 
 <!-- /TOC -->
 
-## Requirements
-
-- Linux or MacOS (Windows isn't supported at the moment)
-- A set of AWS credentials sufficient to bootstrap the cluster (see [bootstrapping-aws-identity-and-access-management-with-cloudformation](#bootstrapping-aws-identity-and-access-management-with-cloudformation)).
-- An AWS IAM role to give to the Cluster API control plane.
-- [KIND >= v0.1](https://sigs.k8s.io/kind)
-- gettext (with `envsubst` in your PATH)
-
-### Optional
-
-- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
-- [Homebrew][brew] (MacOS)
-- [jq][jq]
-- [Go >= v1.11](https://golang.org/dl/)
-
 ## Prerequisites
 
-### Install release binaries
+As part of bootstrapping a cluster, you will have to do the following:
 
-Get the latest [release of `clusterctl` and
-`clusterawsadm`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases)
-and place them in your path.
+1. Install software in a Linux or MacOS environment. Windows is not supported today. The [Installing Software](#installing-software) section explains how to do this.
+1. Create a set of AWS credentials sufficient to bootstrap the cluster. The [Setting up AWS](#setting-up-aws) section explains how to do this.
+1. You will need to create an AWS IAM role to give to the Cluster API control plane. The [Setting up the environment](#setting-up-the-environment) section explains how to do this.
+
+### Installing software
+
+1. Install the latest release of [`clusterctl` and `clusterawsadm`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) and place them in your path.
+1. Install the latest release of [KIND][kind] and place it in your path.
+1. Install the `envsubst` tool and place it in your path.
+    - Linux: Most distros will have it installed by default. Otherwise, use your system package manager to install it; often, it's part of the `gettext` package.
+    - MacOS: Install [Homebrew][brew]. Run `brew install gettext && brew link --force gettext`
+
+#### (Optional) Installing additional tools
+
+- Install the [AWS CLI][aws-cli]
+- Install [jq][jq]
+- Install [Go >= v1.11][golang]
 
 ### Setting up AWS
 
@@ -260,10 +257,13 @@ kubectl logs -f -n aws-provider-system aws-provider-controller-manager-0
 
 <!-- References -->
 
-[brew]: https://brew.sh/
-[jq]: https://stedolan.github.io/jq/download/
-[kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
+[aws-cli]: https://github.com/kubernetes-sigs/kind/releases
 [aws-vault]: https://github.com/99designs/aws-vault
+[brew]: https://brew.sh/
+[golang]: https://golang.org/dl/
+[jq]: https://stedolan.github.io/jq/download/
+[kind]: https://github.com/kubernetes-sigs/kind/releases
+[kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [kustomize]: https://github.com/kubernetes-sigs/kustomize
 
 ### Target cluster's control plane machine is up but target cluster's apiserver not working as expected
@@ -279,7 +279,7 @@ For reaching controller host from your local machine:
  ssh -i <private-key> -o "ProxyCommand ssh -W %h:%p -i <private-key> ubuntu@<bastion-IP>" ubuntu@<controller-host-IP>
  ```
 
-`private-key` is the private key from the key-pair discussed in the `ssh key pair` section above. 
+`private-key` is the private key from the key-pair discussed in the `ssh key pair` section above.
 
 ### kubelet on the control plane host failing with error: NoCredentialProviders
 ```bash
@@ -290,34 +290,34 @@ This error can occur if `CloudFormation` stack is not created properly and IAM i
 $ aws iam get-instance-profile --instance-profile-name control-plane.cluster-api-provider-aws.sigs.k8s.io --output json
 {
     "InstanceProfile": {
-        "InstanceProfileId": "AIPAJQABLZS4A3QDU576Q", 
+        "InstanceProfileId": "AIPAJQABLZS4A3QDU576Q",
         "Roles": [
             {
                 "AssumeRolePolicyDocument": {
-                    "Version": "2012-10-17", 
+                    "Version": "2012-10-17",
                     "Statement": [
                         {
-                            "Action": "sts:AssumeRole", 
-                            "Effect": "Allow", 
+                            "Action": "sts:AssumeRole",
+                            "Effect": "Allow",
                             "Principal": {
                                 "Service": "ec2.amazonaws.com"
                             }
                         }
                     ]
-                }, 
-                "RoleId": "AROAJQABLZS4A3QDU576Q", 
-                "CreateDate": "2019-05-13T16:45:12Z", 
-                "RoleName": "control-plane.cluster-api-provider-aws.sigs.k8s.io", 
-                "Path": "/", 
+                },
+                "RoleId": "AROAJQABLZS4A3QDU576Q",
+                "CreateDate": "2019-05-13T16:45:12Z",
+                "RoleName": "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+                "Path": "/",
                 "Arn": "arn:aws:iam::123456789012:role/control-plane.cluster-api-provider-aws.sigs.k8s.io"
             }
-        ], 
-        "CreateDate": "2019-05-13T16:45:28Z", 
-        "InstanceProfileName": "control-plane.cluster-api-provider-aws.sigs.k8s.io", 
-        "Path": "/", 
+        ],
+        "CreateDate": "2019-05-13T16:45:28Z",
+        "InstanceProfileName": "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+        "Path": "/",
         "Arn": "arn:aws:iam::123456789012:instance-profile/control-plane.cluster-api-provider-aws.sigs.k8s.io"
     }
 }
 
 ```
-If instance profile does not look as expected, you may try recreating the CloudFormation stack using `clusterawsadm` as explained in the above sections. 
+If instance profile does not look as expected, you may try recreating the CloudFormation stack using `clusterawsadm` as explained in the above sections.
