@@ -332,7 +332,7 @@ func (s *Service) runInstance(role string, i *v1alpha2.Instance) (*v1alpha2.Inst
 
 	out, err := s.scope.EC2.RunInstances(input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to run instance: %v", i)
+		return nil, errors.Wrap(err, "failed to run instance")
 	}
 
 	if len(out.Instances) == 0 {
