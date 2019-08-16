@@ -441,6 +441,10 @@ func TestReconcileSubnets(t *testing.T) {
 										Key:   aws.String("Name"),
 										Value: aws.String("test-cluster-subnet-public"),
 									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("shared"),
+									},
 								},
 							},
 						},

@@ -313,14 +313,15 @@ func (s *Service) getSubnetTagParams(id string, public bool) v1alpha1.BuildParam
 	var role string
 	var additionalTags v1alpha1.Tags
 
+	// Add tag needed for Service type=LoadBalancer
+	additionalTags = v1alpha1.Tags{
+		v1alpha1.NameKubernetesAWSCloudProviderPrefix + s.scope.Name(): string(v1alpha1.ResourceLifecycleShared),
+	}
+
 	if public {
 		role = v1alpha1.PublicRoleTagValue
 	} else {
 		role = v1alpha1.PrivateRoleTagValue
-		// Add tag needed for Service type=LoadBalancer
-		additionalTags = v1alpha1.Tags{
-			v1alpha1.NameKubernetesAWSCloudProviderPrefix + s.scope.Name(): string(v1alpha1.ResourceLifecycleShared),
-		}
 	}
 
 	var name strings.Builder
