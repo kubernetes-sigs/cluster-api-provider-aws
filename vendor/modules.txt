@@ -313,10 +313,10 @@ k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/labels
 k8s.io/apimachinery/pkg/selection
 k8s.io/apimachinery/pkg/watch
-k8s.io/apimachinery/pkg/api/meta
-k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/apis/meta/v1/validation
 k8s.io/apimachinery/pkg/util/validation/field
+k8s.io/apimachinery/pkg/api/meta
+k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 k8s.io/apimachinery/pkg/runtime/serializer/streaming
 k8s.io/apimachinery/pkg/util/yaml
 k8s.io/apimachinery/pkg/runtime/serializer/json
@@ -475,9 +475,9 @@ k8s.io/utils/integer
 k8s.io/utils/buffer
 k8s.io/utils/trace
 # sigs.k8s.io/cluster-api v0.0.0-20190813192342-65800b3b20e8 => sigs.k8s.io/cluster-api v0.0.0-20190813192342-65800b3b20e8
+sigs.k8s.io/cluster-api/api/v1alpha2
 sigs.k8s.io/cluster-api/pkg/errors
 sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1
-sigs.k8s.io/cluster-api/api/v1alpha2
 sigs.k8s.io/cluster-api/pkg/controller/noderefutil
 sigs.k8s.io/cluster-api/pkg/util
 # sigs.k8s.io/controller-runtime v0.2.0-beta.5
