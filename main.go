@@ -98,8 +98,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.AWSClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("AWSCluster"),
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("AWSCluster"),
+		Recorder: mgr.GetEventRecorderFor("awscluster-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 		os.Exit(1)

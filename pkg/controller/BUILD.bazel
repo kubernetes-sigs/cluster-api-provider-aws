@@ -10,8 +10,8 @@ go_library(
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/controller",
     visibility = ["//visibility:public"],
     deps = [
-        "//pkg/controller/awscluster:go_default_library",
         "//pkg/controller/awsmachine:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api-provider-aws/pkg/controller/awscluster:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
     ],
 )

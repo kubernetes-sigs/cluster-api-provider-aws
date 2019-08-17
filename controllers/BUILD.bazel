@@ -10,25 +10,41 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//api/v1alpha2:go_default_library",
+        "//pkg/cloud/scope:go_default_library",
+        "//pkg/cloud/services/ec2:go_default_library",
+        "//pkg/cloud/services/elb:go_default_library",
         "//vendor/github.com/go-logr/logr:go_default_library",
+        "//vendor/github.com/pkg/errors:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/errors:go_default_library",
+        "//vendor/k8s.io/client-go/tools/record:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/reconcile:go_default_library",
     ],
 )
 
 go_test(
     name = "go_default_test",
-    srcs = ["suite_test.go"],
+    srcs = [
+        "awscluster_controller_test.go",
+        "suite_test.go",
+    ],
     embed = [":go_default_library"],
     deps = [
         "//api/v1alpha2:go_default_library",
         "//vendor/github.com/onsi/ginkgo:go_default_library",
         "//vendor/github.com/onsi/gomega:go_default_library",
+        "//vendor/golang.org/x/net/context:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/client-go/kubernetes/scheme:go_default_library",
         "//vendor/k8s.io/client-go/rest:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/api/v1alpha2:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/envtest:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/log:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/log/zap:go_default_library",
+        "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",
     ],
 )

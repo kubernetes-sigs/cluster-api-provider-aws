@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscluster
+package controllers
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -40,8 +42,15 @@ func TestReconcile(t *testing.T) {
 	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 	Expect(err).NotTo(HaveOccurred())
 	c := mgr.GetClient()
-	Expect(add(mgr, newReconciler(mgr))).To(Succeed())
+	log := ctrl.Log.WithName("test-reconciler")
 
+	reconciler := &AWSClusterReconciler{
+		Client:   mgr.GetClient(),
+		Log:      log,
+		Recorder: mgr.GetEventRecorderFor("awscluster-controller"),
+	}
+
+	Expect(reconciler.SetupWithManager(mgr)).To(Succeed())
 	stopMgr, mgrStopped := StartTestManager(mgr)
 
 	defer func() {
@@ -62,4 +71,16 @@ func TestReconcile(t *testing.T) {
 		return true
 	}, timeout).Should(BeTrue())
 
+}
+
+// StartTestManager adds recFn
+func StartTestManager(mgr manager.Manager) (chan struct{}, *sync.WaitGroup) {
+	stop := make(chan struct{})
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		Expect(mgr.Start(stop)).NotTo(HaveOccurred())
+	}()
+	return stop, wg
 }
