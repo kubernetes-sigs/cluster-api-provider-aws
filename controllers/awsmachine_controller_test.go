@@ -19,33 +19,25 @@ package controllers
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var _ = Describe("AWSClusterReconciler", func() {
+var _ = Describe("AWSMachineReconciler", func() {
 	BeforeEach(func() {})
 	AfterEach(func() {})
 
-	Context("Reconcile an AWSCluster", func() {
-		It("should not error and requeue the request with insufficient set up", func() {
-
-			ctx := context.Background()
-
-			reconciler := &AWSClusterReconciler{
+	Context("Reconcile an AWSMachine", func() {
+		It("should not error with minimal set up", func() {
+			reconciler := &AWSMachineReconciler{
 				Client: k8sClient,
 				Log:    log.Log,
 			}
-
-			instance := &infrastructurev1alpha2.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-
-			// Create the AWSCluster object and expect the Reconcile and Deployment to be created
-			Expect(k8sClient.Create(ctx, instance)).To(Succeed())
-
+			By("Calling reconcile")
+			instance := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
 			result, err := reconciler.Reconcile(ctrl.Request{
 				NamespacedName: client.ObjectKey{
 					Namespace: instance.Namespace,
@@ -53,7 +45,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 				},
 			})
 			Expect(err).To(BeNil())
-			Expect(result.RequeueAfter).ToNot(BeZero())
+			Expect(result.RequeueAfter).To(BeZero())
 		})
 	})
 })

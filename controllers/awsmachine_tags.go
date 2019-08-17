@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awsmachine
+package controllers
 
 import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
@@ -35,7 +35,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *ReconcileAWSMachine) ensureTags(svc service.EC2MachineInterface, machine *infrav1.AWSMachine, instanceID *string, additionalTags map[string]string) (bool, error) {
+func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machine *infrav1.AWSMachine, instanceID *string, additionalTags map[string]string) (bool, error) {
 	annotation, err := r.machineAnnotationJSON(machine, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -63,7 +63,7 @@ func (r *ReconcileAWSMachine) ensureTags(svc service.EC2MachineInterface, machin
 }
 
 // tagsChanged determines which tags to delete and which to add.
-func (r *ReconcileAWSMachine) tagsChanged(annotation map[string]interface{}, src map[string]string) (bool, map[string]string, map[string]string, map[string]interface{}) {
+func (r *AWSMachineReconciler) tagsChanged(annotation map[string]interface{}, src map[string]string) (bool, map[string]string, map[string]string, map[string]interface{}) {
 	// Bool tracking if we found any changed state.
 	changed := false
 

@@ -91,8 +91,9 @@ func main() {
 	record.InitFromRecorder(mgr.GetEventRecorderFor("aws-controller"))
 
 	if err = (&controllers.AWSMachineReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+		Client:   mgr.GetClient(),
+		Log:      ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+		Recorder: mgr.GetEventRecorderFor("awsmachine-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 		os.Exit(1)

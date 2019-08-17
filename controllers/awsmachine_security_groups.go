@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awsmachine
+package controllers
 
 import (
 	"sort"
@@ -38,7 +38,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *ReconcileAWSMachine) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scope *scope.MachineScope, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, error) {
+func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2MachineInterface, scope *scope.MachineScope, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, error) {
 	annotation, err := r.machineAnnotationJSON(scope.AWSMachine, SecurityGroupsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -71,7 +71,7 @@ func (r *ReconcileAWSMachine) ensureSecurityGroups(ec2svc service.EC2MachineInte
 }
 
 // securityGroupsChanged determines which security groups to delete and which to add.
-func (r *ReconcileAWSMachine) securityGroupsChanged(annotation map[string]interface{}, core []string, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, []string) {
+func (r *AWSMachineReconciler) securityGroupsChanged(annotation map[string]interface{}, core []string, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, []string) {
 	state := map[string]bool{}
 	for _, s := range additional {
 		state[*s.ID] = true
