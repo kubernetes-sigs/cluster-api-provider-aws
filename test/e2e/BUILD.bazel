@@ -31,14 +31,14 @@ go_test(
         "e2e_suite_test.go",
     ],
     args = [
-        "-managerImageTar=$(location //cmd/manager:manager-amd64.tar)",
+        "-managerImageTar=$(location //:manager-amd64.tar)",
         "-credFile=$(location manifests/provider-credentials.profile)",
         "-regionFile=$(location region.txt)",
     ],
     data = [
         "manifests/provider-credentials.profile",
         "region.txt",
-        "//cmd/manager:manager-amd64.tar",
+        "//:manager-amd64.tar",
     ],
     rundir = ".",
     tags = ["external"],

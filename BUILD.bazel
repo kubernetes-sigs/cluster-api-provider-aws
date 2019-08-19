@@ -46,7 +46,7 @@ gazelle(
 filegroup(
     name = "all-images",
     srcs = [
-        "//cmd/manager:manager-image",
+        "//:manager-image",
     ],
 )
 
