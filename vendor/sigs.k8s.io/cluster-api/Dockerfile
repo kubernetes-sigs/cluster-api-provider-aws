@@ -13,20 +13,13 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.12.7 as builder
+FROM golang:1.12.9 as builder
 
 ARG ARCH
 
 # Copy in the go src
 WORKDIR ${GOPATH}/src/sigs.k8s.io/cluster-api
-COPY pkg/ pkg/
-COPY cmd/ cmd/
-COPY api/ api/
-COPY controllers/ controllers/
-COPY vendor/ vendor/
-COPY go.mod go.mod
-COPY go.sum go.sum
-COPY main.go main.go
+COPY ./ ./
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} GO111MODULE=on GOFLAGS="-mod=vendor" \
