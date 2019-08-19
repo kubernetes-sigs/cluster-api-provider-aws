@@ -45,6 +45,7 @@ import (
 const (
 	kindTimeout = 5 * 60
 	stackName   = "cluster-api-provider-aws-sigs-k8s-io"
+	partition   = "aws"
 	keyPairName = "cluster-api-provider-aws-sigs-k8s-io"
 )
 
@@ -112,7 +113,7 @@ func getAccountID(prov client.ConfigProvider) string {
 func createIAMRoles(prov client.ConfigProvider, accountID string) {
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	Expect(
-		cfnSvc.ReconcileBootstrapStack(stackName, accountID),
+		cfnSvc.ReconcileBootstrapStack(stackName, accountID, partition),
 	).To(Succeed())
 }
 
