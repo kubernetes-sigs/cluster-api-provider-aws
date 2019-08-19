@@ -139,6 +139,11 @@ func (m *MachineScope) SetInstanceState(v infrav1.InstanceState) {
 	m.AWSMachine.Status.InstanceState = &v
 }
 
+// SetReady sets the AWSMachine Ready Status
+func (m *MachineScope) SetReady() {
+	m.AWSMachine.Status.Ready = true
+}
+
 // SetErrorMessage sets the AWSMachine status error message.
 func (m *MachineScope) SetErrorMessage(v error) {
 	m.AWSMachine.Status.ErrorMessage = pointer.StringPtr(v.Error())
