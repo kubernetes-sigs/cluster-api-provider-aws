@@ -78,7 +78,13 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(encodeAWSSecret())
 	newCmd.AddCommand(generateAWSDefaultProfileWithChain())
 
+	newCmd.PersistentFlags().String("partition", "aws", "AWS partition, for AWS GovCloud (US) it is aws-us-gov")
+
 	return newCmd
+}
+
+func getPartitionFlag(cmd *cobra.Command) string {
+	return cmd.Flags().Lookup("partition").Value.String()
 }
 
 func generateCmd() *cobra.Command {
@@ -106,7 +112,8 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			template := cloudformation.BootstrapTemplate(args[0])
+			partition := getPartitionFlag(cmd)
+			template := cloudformation.BootstrapTemplate(args[0], partition)
 			j, err := template.YAML()
 			if err != nil {
 				return err
@@ -144,7 +151,8 @@ func createStackCmd() *cobra.Command {
 			}
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
-			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID)
+			partition := getPartitionFlag(cmd)
+			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID, partition)
 			if err != nil {
 				fmt.Printf("Error: %v", err)
 				return nil
@@ -206,7 +214,8 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 			}
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
-			err = cfnSvc.GenerateManagedIAMPolicyDocuments(policyDocDir, accountID)
+			partition := getPartitionFlag(cmd)
+			err = cfnSvc.GenerateManagedIAMPolicyDocuments(policyDocDir, accountID, partition)
 
 			if err != nil {
 				return fmt.Errorf("Error: failed to generate PolicyDocument for all ManagedIAMPolicies: %v", err)
