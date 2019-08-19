@@ -258,6 +258,7 @@ func (r *ReconcileAWSMachine) reconcileNormal(ctx context.Context, machineScope 
 	switch instance.State {
 	case infrav1.InstanceStateRunning:
 		machineScope.Info("Machine instance is running", "instance-id", *machineScope.GetInstanceID())
+		machineScope.SetReady()
 	case infrav1.InstanceStatePending:
 		machineScope.Info("Machine instance is pending", "instance-id", *machineScope.GetInstanceID())
 	default:
