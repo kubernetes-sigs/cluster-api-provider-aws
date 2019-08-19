@@ -49,7 +49,7 @@ test: generate lint ## Run tests
 
 .PHONY: test-go
 test-go: ## Run tests
-	go test -v -tags=integration ./pkg/... ./cmd/...
+	go test -v ./...
 
 ## --------------------------------------
 ## Binaries
@@ -57,7 +57,7 @@ test-go: ## Run tests
 
 .PHONY: manager
 manager: lint-full ## Build manager binary
-	go build -o bin/manager sigs.k8s.io/cluster-api/cmd/manager
+	go build -o bin/manager sigs.k8s.io/cluster-api
 
 .PHONY: docker-build-manager
 docker-build-manager: lint-full ## Build manager binary in docker
@@ -67,7 +67,7 @@ docker-build-manager: lint-full ## Build manager binary in docker
 	-w "/go/src/sigs.k8s.io/cluster-api" \
 	-e CGO_ENABLED=0 -e GOOS=${GOOS} -e GOARCH=${ARCH} -e GO111MODULE=on -e GOFLAGS="-mod=vendor" \
 	golang:1.12.6 \
-	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api/cmd/manager
+	go build -a -ldflags '-extldflags "-static"' -o /go/bin/manager sigs.k8s.io/cluster-api
 
 .PHONY: clusterctl
 clusterctl: lint-full ## Build clusterctl binary
@@ -75,7 +75,7 @@ clusterctl: lint-full ## Build clusterctl binary
 
 .PHONY: run
 run: lint ## Run against the configured Kubernetes cluster in ~/.kube/config
-	go run ./cmd/manager/main.go
+	go run ./main.go
 
 ## --------------------------------------
 ## Linting
@@ -108,12 +108,12 @@ generate-deepcopy: ## Runs controller-gen to generate deepcopy files
 generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
 		paths=./api/... \
-		paths=./pkg/controller/... \
+		paths=./controllers/... \
 		crd:trivialVersions=true \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases
 	## Copy files in CI folders.
-	cp -f ./config/rbac/role*.yaml ./config/ci/rbac/
+	cp -f ./config/rbac/*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
 .PHONY: gazelle
@@ -158,7 +158,7 @@ sub-docker-push-%:
 
 .PHONY: docker-build-ci
 docker-build-ci: generate lint-full ## Build the docker image for example provider
-	docker build --pull --build-arg ARCH=$(ARCH) . -f ./pkg/provider/example/container/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg ARCH=$(ARCH) . -f ./cmd/example-provider/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
 	@echo "updating kustomize image patch file for ci"
 	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
 
@@ -198,9 +198,9 @@ clean-clientset: ## Remove all generated clientset files
 .PHONY: verify
 verify:
 	./hack/verify-boilerplate.sh
-	./hack/verify-clientset.sh
 	./hack/verify-bazel.sh
 	./hack/verify-doctoc.sh
+	./hack/verify-generated-files.sh
 
 .PHONY: clean-book
 clean-book: ## Remove all generated GitBook files

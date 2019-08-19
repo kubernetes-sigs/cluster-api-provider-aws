@@ -43,7 +43,7 @@ go_library(
         "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/phases:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/providercomponents:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/cmd/clusterctl/validation:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/util:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/util:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client/config:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/manager:go_default_library",

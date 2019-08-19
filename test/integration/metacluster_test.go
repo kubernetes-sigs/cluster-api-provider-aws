@@ -18,7 +18,7 @@ package integration_test
 
 import (
 	. "github.com/onsi/ginkgo"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/cluster-api/util"
 
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
 )

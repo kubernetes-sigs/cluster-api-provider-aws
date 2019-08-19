@@ -19,7 +19,7 @@ go_library(
         "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/api/v1alpha2:go_default_library",
-        "//vendor/sigs.k8s.io/cluster-api/pkg/errors:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/errors:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/scheme:go_default_library",
     ],
 )

@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
