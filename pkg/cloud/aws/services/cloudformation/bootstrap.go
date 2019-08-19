@@ -40,13 +40,13 @@ var ManagedIAMPolicyNames = [...]string{ControllersPolicy, ControlPlanePolicy, N
 
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS
-func BootstrapTemplate(accountID string) *cloudformation.Template {
+func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
 	template.Resources[ControllersPolicy] = cloudformation.AWSIAMManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("controllers"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
-		PolicyDocument:    controllersPolicy(accountID),
+		PolicyDocument:    controllersPolicy(accountID, partition),
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
@@ -138,7 +138,7 @@ func ec2AssumeRolePolicy() *iam.PolicyDocument {
 	}
 }
 
-func controllersPolicy(accountID string) *iam.PolicyDocument {
+func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 	return &iam.PolicyDocument{
 		Version: iam.CurrentVersion,
 		Statement: []iam.StatementEntry{
@@ -201,9 +201,10 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 			{
 				Effect: iam.EffectAllow,
 				Resource: iam.Resources{fmt.Sprintf(
-					"arn:aws:iam::%s:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing",
-					accountID),
-				},
+					"arn:%s:iam::%s:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing",
+					partition,
+					accountID,
+				)},
 				Action: iam.Actions{
 					"iam:CreateServiceLinkedRole",
 				},
@@ -214,7 +215,8 @@ func controllersPolicy(accountID string) *iam.PolicyDocument {
 			{
 				Effect: iam.EffectAllow,
 				Resource: iam.Resources{fmt.Sprintf(
-					"arn:aws:iam::%s:role/%s",
+					"arn:%s:iam::%s:role/%s",
+					partition,
 					accountID,
 					iam.NewManagedName("*"),
 				)},
@@ -320,10 +322,10 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 	}
 }
 
-func getPolicyDocFromPolicyName(policyName, accountID string) (*iam.PolicyDocument, error) {
+func getPolicyDocFromPolicyName(policyName, accountID, partition string) (*iam.PolicyDocument, error) {
 	switch policyName {
 	case ControllersPolicy:
-		return controllersPolicy(accountID), nil
+		return controllersPolicy(accountID, partition), nil
 	case ControlPlanePolicy:
 		return cloudProviderControlPlaneAwsPolicy(), nil
 	case NodePolicy:
@@ -333,9 +335,9 @@ func getPolicyDocFromPolicyName(policyName, accountID string) (*iam.PolicyDocume
 }
 
 // GenerateManagedIAMPolicyDocuments generates JSON representation of policy documents for all ManagedIAMPolicy
-func (s *Service) GenerateManagedIAMPolicyDocuments(policyDocDir, accountID string) error {
+func (s *Service) GenerateManagedIAMPolicyDocuments(policyDocDir, accountID, partition string) error {
 	for _, pn := range ManagedIAMPolicyNames {
-		pd, err := getPolicyDocFromPolicyName(pn, accountID)
+		pd, err := getPolicyDocFromPolicyName(pn, accountID, partition)
 		if err != nil {
 			return fmt.Errorf("Error: failed to get PolicyDocument for ManagedIAMPolicy %q, %v", pn, err)
 		}
@@ -355,9 +357,9 @@ func (s *Service) GenerateManagedIAMPolicyDocuments(policyDocDir, accountID stri
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation
-func (s *Service) ReconcileBootstrapStack(stackName string, accountID string) error {
+func (s *Service) ReconcileBootstrapStack(stackName, accountID, partition string) error {
 
-	template := BootstrapTemplate(accountID)
+	template := BootstrapTemplate(accountID, partition)
 	yaml, err := template.YAML()
 	processedYaml := iam.ProcessPolicyDocument(string(yaml))
 	if err != nil {
