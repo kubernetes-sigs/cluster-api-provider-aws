@@ -30,7 +30,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
-	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
@@ -152,7 +151,7 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrastructurev1alpha2.AWSMachine{}).Watches(
+		For(&infrav1.AWSMachine{}).Watches(
 		&source.Kind{Type: &clusterv1.Machine{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: util.MachineToInfrastructureMapFunc(schema.GroupVersionKind{

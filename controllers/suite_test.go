@@ -28,7 +28,7 @@ import (
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -71,7 +71,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(cfg).ToNot(BeNil())
 
 	Expect(v1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
-	Expect(infrastructurev1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(infrav1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	// +kubebuilder:scaffold:scheme
 

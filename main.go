@@ -28,7 +28,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,7 +42,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = infrastructurev1alpha2.AddToScheme(scheme)
+	_ = infrav1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
