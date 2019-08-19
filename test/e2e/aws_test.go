@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
-	"sigs.k8s.io/cluster-api/pkg/util"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 const (
