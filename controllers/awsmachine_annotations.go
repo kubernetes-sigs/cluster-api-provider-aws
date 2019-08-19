@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awsmachine
+package controllers
 
 import (
 	"encoding/json"
@@ -26,7 +26,7 @@ import (
 // `content`. `content` in this case should be a `map[string]interface{}`
 // suitable for turning into JSON. This `content` map will be marshalled into a
 // JSON string before being set as the given `annotation`.
-func (r *ReconcileAWSMachine) updateMachineAnnotationJSON(machine *infrav1.AWSMachine, annotation string, content map[string]interface{}) error {
+func (r *AWSMachineReconciler) updateMachineAnnotationJSON(machine *infrav1.AWSMachine, annotation string, content map[string]interface{}) error {
 	b, err := json.Marshal(content)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (r *ReconcileAWSMachine) updateMachineAnnotationJSON(machine *infrav1.AWSMa
 
 // updateMachineAnnotation updates the `annotation` on the given `machine` with
 // `content`.
-func (r *ReconcileAWSMachine) updateMachineAnnotation(machine *infrav1.AWSMachine, annotation string, content string) {
+func (r *AWSMachineReconciler) updateMachineAnnotation(machine *infrav1.AWSMachine, annotation string, content string) {
 	// Get the annotations
 	annotations := machine.GetAnnotations()
 
@@ -52,7 +52,7 @@ func (r *ReconcileAWSMachine) updateMachineAnnotation(machine *infrav1.AWSMachin
 // Returns a map[string]interface from a JSON annotation.
 // This method gets the given `annotation` from the `machine` and unmarshalls it
 // from a JSON string into a `map[string]interface{}`.
-func (r *ReconcileAWSMachine) machineAnnotationJSON(machine *infrav1.AWSMachine, annotation string) (map[string]interface{}, error) {
+func (r *AWSMachineReconciler) machineAnnotationJSON(machine *infrav1.AWSMachine, annotation string) (map[string]interface{}, error) {
 	out := map[string]interface{}{}
 
 	jsonAnnotation := r.machineAnnotation(machine, annotation)
@@ -69,6 +69,6 @@ func (r *ReconcileAWSMachine) machineAnnotationJSON(machine *infrav1.AWSMachine,
 }
 
 // Fetches the specific machine annotation.
-func (r *ReconcileAWSMachine) machineAnnotation(machine *infrav1.AWSMachine, annotation string) string {
+func (r *AWSMachineReconciler) machineAnnotation(machine *infrav1.AWSMachine, annotation string) string {
 	return machine.GetAnnotations()[annotation]
 }

@@ -17,14 +17,14 @@ limitations under the License.
 package services
 
 import (
-	providerv1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
 type EC2MachineInterface interface {
-	InstanceIfExists(id *string) (*providerv1.Instance, error)
+	InstanceIfExists(id *string) (*infrav1.Instance, error)
 	TerminateInstance(id string) error
 	GetCoreSecurityGroups(machine *scope.MachineScope) ([]string, error)
 	GetInstanceSecurityGroups(id string) (map[string][]string, error)
