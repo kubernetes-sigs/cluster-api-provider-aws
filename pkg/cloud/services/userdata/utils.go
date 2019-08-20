@@ -22,10 +22,6 @@ import (
 	"text/template"
 )
 
-const (
-	rootOwnerValue = "root:root"
-)
-
 var (
 	defaultTemplateFuncMap = template.FuncMap{
 		"Base64Encode": templateBase64Encode,
@@ -41,8 +37,4 @@ func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")
 	ident := "\n" + strings.Repeat(" ", i)
 	return strings.Repeat(" ", i) + strings.Join(split, ident)
-}
-
-func isKeyPairValid(cert, key string) bool {
-	return cert != "" && key != ""
 }

@@ -16,7 +16,7 @@ require (
 	k8s.io/api v0.0.0-20190711103429-37c3b8b1ca65
 	k8s.io/apimachinery v0.0.0-20190711103026-7bf792636534
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
-	k8s.io/cluster-bootstrap v0.0.0-20190711112844-b7409fb13d1b
+	k8s.io/cluster-bootstrap v0.0.0-20190711112844-b7409fb13d1b // indirect
 	k8s.io/code-generator v0.0.0-20190311093542-50b561225d70
 	k8s.io/gengo v0.0.0-20190813173942-955ffa8fcfc9 // indirect
 	k8s.io/klog v0.3.3
