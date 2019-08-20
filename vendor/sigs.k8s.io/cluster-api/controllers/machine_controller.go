@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -44,6 +45,12 @@ var (
 	errLastControlPlaneNode = errors.New("last control plane member")
 	errNoControlPlaneNodes  = errors.New("no control plane members")
 )
+
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 
 // MachineReconciler reconciles a Machine object
 type MachineReconciler struct {
@@ -82,13 +89,17 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 		return ctrl.Result{}, err
 	}
 
-	// Store Machine early state to allow patching.
-	patchMachine := client.MergeFrom(m.DeepCopy())
-
-	// Always issue a Patch for the Machine object and its status after each reconciliation.
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(m, r)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Always attempt to Patch the Machine object and status after each reconciliation.
 	defer func() {
-		if err := r.patchMachine(ctx, m, patchMachine); err != nil {
-			reterr = err
+		if err := patchHelper.Patch(ctx, m); err != nil {
+			if reterr == nil {
+				reterr = err
+			}
 		}
 	}()
 
@@ -116,11 +127,6 @@ func (r *MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr e
 	if m.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !util.Contains(m.Finalizers, clusterv1.MachineFinalizer) {
 			m.Finalizers = append(m.ObjectMeta.Finalizers, clusterv1.MachineFinalizer)
-			if err := r.Client.Patch(ctx, m, patchMachine); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer to Machine %q in namespace %q", m.Name, m.Namespace)
-			}
-			// Since adding the finalizer updates the object return to avoid later update issues
-			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 
@@ -247,7 +253,7 @@ func (r *MachineReconciler) getMachinesInCluster(ctx context.Context, namespace,
 	return machines, nil
 }
 
-// isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exists.
+// isDeleteReady returns an error if any of Boostrap.ConfigRef or InfrastructureRef referenced objects still exist.
 func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Machine) error {
 	if m.Spec.Bootstrap.ConfigRef != nil {
 		_, err := external.Get(r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
@@ -259,7 +265,8 @@ func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Mach
 				path.Join(m.Spec.Bootstrap.ConfigRef.APIVersion, m.Spec.Bootstrap.ConfigRef.Kind),
 				m.Spec.Bootstrap.ConfigRef.Name, m.Name, m.Namespace)
 		}
-		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
+			"delete is not ready, Bootstrap configuration still exists")
 	}
 
 	if _, err := external.Get(r.Client, &m.Spec.InfrastructureRef, m.Namespace); err != nil && !apierrors.IsNotFound(err) {
@@ -267,22 +274,10 @@ func (r *MachineReconciler) isDeleteReady(ctx context.Context, m *clusterv1.Mach
 			path.Join(m.Spec.InfrastructureRef.APIVersion, m.Spec.InfrastructureRef.Kind),
 			m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 	} else if err == nil {
-		return &capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second}
+		return errors.Wrapf(&capierrors.RequeueAfterError{RequeueAfter: 10 * time.Second},
+			"delete is not ready, Infrastructure configuration still exists")
 	}
 
-	return nil
-}
-
-func (r *MachineReconciler) patchMachine(ctx context.Context, machine *clusterv1.Machine, patch client.Patch) error {
-	// Always patch the status before the spec
-	if err := r.Client.Status().Patch(ctx, machine, patch); err != nil {
-		klog.Errorf("Error Patching Machine status %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		return err
-	}
-	if err := r.Client.Patch(ctx, machine, patch); err != nil {
-		klog.Errorf("Error Patching Machine %q in namespace %q: %v", machine.Name, machine.Namespace, err)
-		return err
-	}
 	return nil
 }
 

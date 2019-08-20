@@ -37,6 +37,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinedeployments/status,verbs=get;list;watch;create;update;patch;delete
+
 // MachineDeploymentReconciler reconciles a MachineDeployment object
 type MachineDeploymentReconciler struct {
 	client.Client
@@ -116,6 +122,10 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, d *clusterv
 	if !selector.Matches(labels.Set(d.Spec.Template.Labels)) {
 		return ctrl.Result{}, errors.Errorf("failed validation on MachineDeployment %q label selector, cannot match Machine template labels", d.Name)
 	}
+
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	d.Status.Selector = selector.String()
 
 	// Cluster might be nil as some providers might not require a cluster object
 	// for machine management.

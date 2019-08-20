@@ -103,6 +103,12 @@ const (
 /// [MachineSetStatus]
 // MachineSetStatus defines the observed state of MachineSet
 type MachineSetStatus struct {
+	// Selector is the same as the label selector but in the string format to avoid introspection
+	// by clients. The string will be in the same format as the query-param syntax.
+	// More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+	// +optional
+	Selector string `json:"selector,omitempty"`
+
 	// Replicas is the most recently observed number of replicas.
 	Replicas int32 `json:"replicas"`
 
@@ -192,10 +198,10 @@ func (m *MachineSet) Default() {
 /// [MachineSetStatus]
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=machinesets,shortName=ms,scope=Namespaced
+// +kubebuilder:resource:path=machinesets,shortName=ms,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
-// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.labelSelector
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
 
 /// [MachineSet]
 // MachineSet is the Schema for the machinesets API
