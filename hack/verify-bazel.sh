@@ -18,9 +18,11 @@ set -o nounset
 set -o pipefail
 set -o verbose
 
-if ! which bazel &>/dev/null; then echo "Bazel not available, skipping validation"; exit; fi
+if ! command -v bazel &>/dev/null; then echo "Bazel not available, skipping validation"; exit; fi
 
+set +o errexit
 diff=$(bazel run //:gazelle -- update -mode diff -external vendored -build_tags=integration)
+set -o errexit
 
 if [[ -n "${diff}" ]]; then
   echo "${diff}" >&2
