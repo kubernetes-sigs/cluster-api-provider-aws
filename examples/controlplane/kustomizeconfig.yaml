@@ -1,0 +1,15 @@
+namespace:
+- kind: Machine
+  group: cluster.x-k8s.io
+  version: v1alpha2
+  path: spec/infrastructureRef/namespace
+  create: true
+- kind: Machine
+  group: cluster.x-k8s.io
+  version: v1alpha2
+  path: spec/bootstrap/configRef/namespace
+  create: true
+
+commonLabels:
+- path: metadata/labels
+  create: true

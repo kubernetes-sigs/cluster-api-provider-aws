@@ -34,20 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
 )
 
-// KubernetesAWSSecret is the template to generate an encoded version of the
-// users' AWS credentials
-// nolint
-const KubernetesAWSSecret = `---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: manager-bootstrap-credentials
-  namespace: aws-provider-system
-type: Opaque
-data:
-  credentials: {{ .CredentialsFile }}
-`
-
 // AWSCredentialsTemplate generates an AWS credentials file that can
 // be loaded by the various SDKs.
 const AWSCredentialsTemplate = `[default]
@@ -311,10 +297,6 @@ type awsCredential struct {
 	Region          string
 }
 
-type awsCredentialsFile struct {
-	CredentialsFile string
-}
-
 func getEnv(key string) (string, error) {
 	val, ok := os.LookupEnv(key)
 	if !ok {
@@ -339,32 +321,12 @@ func renderAWSDefaultProfile(creds awsCredential) (*bytes.Buffer, error) {
 }
 
 func generateAWSKubernetesSecret(creds awsCredential) error {
-
 	profile, err := renderAWSDefaultProfile(creds)
-
 	if err != nil {
 		return err
 	}
 
 	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
-
-	credsFile := awsCredentialsFile{
-		CredentialsFile: encCreds,
-	}
-
-	secretTmpl, err := template.New("AWS Credentials Secret").Parse(KubernetesAWSSecret)
-	if err != nil {
-		return err
-	}
-	var out bytes.Buffer
-
-	err = secretTmpl.Execute(&out, credsFile)
-
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(out.String())
-
+	fmt.Println(encCreds)
 	return nil
 }

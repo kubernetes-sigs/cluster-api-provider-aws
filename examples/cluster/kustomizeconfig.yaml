@@ -1,0 +1,6 @@
+namespace:
+- kind: Cluster
+  group: cluster.x-k8s.io
+  version: v1alpha2
+  path: spec/infrastructureRef/namespace
+  create: true
