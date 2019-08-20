@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
@@ -44,8 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-const waitForClusterInfrastructureReadyDuration = 15 * time.Second //nolint
 
 // AWSMachineReconciler reconciles a AwsMachine object
 type AWSMachineReconciler struct {
@@ -84,8 +81,8 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, err
 	}
 	if machine == nil {
-		logger.Info("Waiting for Machine Controller to set OwnerRef on AWSMachine")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		logger.Info("Machine Controller has not yet set OwnerRef")
+		return reconcile.Result{}, nil
 	}
 
 	logger = logger.WithName(fmt.Sprintf("machine=%s", machine.Name))
@@ -106,8 +103,8 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err := r.Client.Get(ctx, awsClusterName, awsCluster); err != nil {
-		logger.Info("Waiting for AWSCluster")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		logger.Info("AWSCluster is not available yet")
+		return reconcile.Result{}, nil
 	}
 
 	logger = logger.WithName(fmt.Sprintf("awsCluster=%s", awsCluster.Name))
@@ -162,6 +159,9 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				Kind:    "AWSMachine",
 			}),
 		},
+	).Watches(
+		&source.Kind{Type: &infrav1.AWSCluster{}},
+		&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.AWSClusterToAWSMachines)},
 	).Complete(r)
 }
 
@@ -243,14 +243,14 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	}
 
 	if !machineScope.Cluster.Status.InfrastructureReady {
-		machineScope.Info("Cluster infrastructure is not ready yet, requeuing machine")
-		return reconcile.Result{RequeueAfter: waitForClusterInfrastructureReadyDuration}, nil
+		machineScope.Info("Cluster infrastructure is not ready yet")
+		return reconcile.Result{}, nil
 	}
 
 	// Make sure bootstrap data is available and populated.
 	if machineScope.Machine.Spec.Bootstrap.Data == nil {
-		machineScope.Info("Waiting for bootstrap data to be available")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		machineScope.Info("Bootstrap data is not yet available")
+		return reconcile.Result{}, nil
 	}
 
 	ec2svc := ec2.NewService(clusterScope)
@@ -400,4 +400,29 @@ func (r *AWSMachineReconciler) validateUpdate(spec *infrav1.AWSMachineSpec, i *i
 	}
 
 	return errs
+}
+
+// AWSClusterToAWSMachine is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
+// of AWSMachines.
+func (r *AWSMachineReconciler) AWSClusterToAWSMachines(o handler.MapObject) []ctrl.Request {
+	result := []ctrl.Request{}
+
+	c, ok := o.Object.(*infrav1.AWSCluster)
+	if !ok {
+		r.Log.Error(errors.Errorf("expected a AWSCluster but got a %T", o.Object), "failed to get AWSMachine for AWSCluster")
+		return nil
+	}
+
+	labels := map[string]string{clusterv1.MachineClusterLabelName: c.Name}
+	machineList := &infrav1.AWSMachineList{}
+	if err := r.List(context.Background(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+		r.Log.Error(err, "failed to list AWSMachines", "AWSCluster", c.Name, "Namespace", c.Namespace)
+		return nil
+	}
+	for _, m := range machineList.Items {
+		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
+		result = append(result, ctrl.Request{NamespacedName: name})
+	}
+
+	return result
 }

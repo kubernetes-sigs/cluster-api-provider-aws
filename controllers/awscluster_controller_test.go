@@ -32,7 +32,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 	AfterEach(func() {})
 
 	Context("Reconcile an AWSCluster", func() {
-		It("should not error and requeue the request with insufficient set up", func() {
+		It("should not error and not requeue the request with insufficient set up", func() {
 
 			ctx := context.Background()
 
@@ -53,7 +53,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 				},
 			})
 			Expect(err).To(BeNil())
-			Expect(result.RequeueAfter).ToNot(BeZero())
+			Expect(result.RequeueAfter).To(BeZero())
 		})
 	})
 })

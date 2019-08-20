@@ -75,8 +75,8 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, err
 	}
 	if cluster == nil {
-		log.Info("Waiting for Cluster Controller to set OwnerRef on AWSCluster")
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		log.Info("Cluster Controller has not yet set OwnerRef")
+		return reconcile.Result{}, nil
 	}
 
 	log = log.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
