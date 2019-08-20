@@ -17,8 +17,13 @@ limitations under the License.
 package e2e_test
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"flag"
 	"fmt"
+	"io"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -29,9 +34,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/clientcmd"
 	capi "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	"sigs.k8s.io/cluster-api/pkg/controller/remote"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,6 +52,10 @@ import (
 
 const (
 	workerClusterK8sVersion = "v1.15.1"
+)
+
+var (
+	addonsYAML = flag.String("addonsYAML", "", "path to the addons YAML for the Cluster")
 )
 
 var _ = Describe("functional tests", func() {
@@ -95,13 +111,15 @@ var _ = Describe("functional tests", func() {
 			).Should(beHealthy())
 
 			fmt.Fprintf(GinkgoWriter, "Ensuring first control plane Machine NodeRef is set\n")
+			var nodeRef *corev1.ObjectReference
 			Eventually(
 				func() (*corev1.ObjectReference, error) {
 					machine := &capi.Machine{}
 					if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineName}, machine); err != nil {
 						return nil, err
 					}
-					return machine.Status.NodeRef, nil
+					nodeRef = machine.Status.NodeRef
+					return nodeRef, nil
 
 				},
 				10*time.Minute, 15*time.Second,
@@ -119,9 +137,55 @@ var _ = Describe("functional tests", func() {
 				10*time.Minute, 15*time.Second,
 			).Should(HaveKeyWithValue(capa.AnnotationControlPlaneReady, capa.ValueReady))
 
-			// TODO: Retrieve Cluster kubeconfig
-			// TODO: Deploy Addons
-			// TODO: Validate Node Ready
+			fmt.Fprintf(GinkgoWriter, "Fetching kubeconfig for Cluster\n")
+			kubeconfig := getKubeconfig(kindClient, namespace, clusterName)
+			remoteClient := getRemoteClient(kubeconfig)
+
+			fmt.Fprintf(GinkgoWriter, "Deploy addons to the Cluster\n")
+			if addonsYAML != nil && *addonsYAML != "" {
+				reader, err := os.Open(*addonsYAML)
+				Expect(err).To(BeNil())
+				decoder := NewYAMLDecoder(reader)
+				defer decoder.Close()
+
+				for {
+					obj, _, err := decoder.Decode(nil, nil)
+					if err == io.EOF {
+						break
+					}
+					if runtime.IsNotRegisteredError(err) {
+						continue
+					}
+					Expect(err).To(BeNil())
+					Expect(remoteClient.Create(context.TODO(), obj)).To(BeNil())
+				}
+			}
+
+			fmt.Fprintf(GinkgoWriter, "Verify first control plane Node becomes Ready\n")
+			Eventually(
+				func() bool {
+					node := &corev1.Node{}
+					if err := remoteClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: nodeRef.Name}, node); err != nil {
+						return false
+					}
+
+					conditionMap := make(map[corev1.NodeConditionType]*corev1.NodeCondition)
+					for i, condition := range node.Status.Conditions {
+						if condition.Type == corev1.NodeReady {
+							conditionMap[condition.Type] = &node.Status.Conditions[i]
+						}
+					}
+
+					if condition, ok := conditionMap[corev1.NodeReady]; ok {
+						if condition.Status == corev1.ConditionTrue {
+							return true
+						}
+					}
+					return false
+				},
+				10*time.Minute, 15*time.Second,
+			).Should(BeTrue())
+
 			// TODO: Deploy additional Control Plane Nodes
 			// TODO: Deploy a MachineDeployment
 			// TODO: Scale MachineDeployment up
@@ -163,6 +227,28 @@ func beHealthy() types.GomegaMatcher {
 			"InstanceState": PointTo(Equal(capa.InstanceStateRunning)),
 		}),
 	)
+}
+
+func getKubeconfig(client crclient.Client, namespace, clusterName string) []byte {
+	kubeconfigSecret := &corev1.Secret{}
+	secretName := remote.KubeConfigSecretName(clusterName)
+	err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: secretName}, kubeconfigSecret)
+	Expect(err).To(BeNil())
+
+	kubeconfig, err := remote.KubeConfigFromSecret(kubeconfigSecret)
+	Expect(err).To(BeNil())
+	Expect(kubeconfig).ToNot(BeNil())
+	return kubeconfig
+}
+
+func getRemoteClient(kubeconfig []byte) crclient.Client {
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	Expect(err).To(BeNil())
+	Expect(restConfig).ToNot(BeNil())
+
+	client, err := crclient.New(restConfig, crclient.Options{})
+	Expect(err).To(BeNil())
+	return client
 }
 
 func makeCluster(name string) *capi.Cluster {
@@ -243,4 +329,40 @@ func createNamespace(client kubernetes.Interface, namespace string) {
 		},
 	})
 	Expect(err).To(BeNil())
+}
+
+// This should be removed for v1alpha2+ in favor of using sigs.k8s.io/cluster-api/util.yamlDecoder
+type yamlDecoder struct {
+	reader  *yaml.YAMLReader
+	decoder runtime.Decoder
+	close   func() error
+}
+
+func (d *yamlDecoder) Decode(defaults *schema.GroupVersionKind, into runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
+	for {
+		doc, err := d.reader.Read()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		//  Skip over empty documents, i.e. a leading `---`
+		if len(bytes.TrimSpace(doc)) == 0 {
+			continue
+		}
+
+		return d.decoder.Decode(doc, defaults, into)
+	}
+
+}
+
+func (d *yamlDecoder) Close() error {
+	return d.close()
+}
+
+func NewYAMLDecoder(r io.ReadCloser) streaming.Decoder {
+	return &yamlDecoder{
+		reader:  yaml.NewYAMLReader(bufio.NewReader(r)),
+		decoder: scheme.Codecs.UniversalDeserializer(),
+		close:   r.Close,
+	}
 }

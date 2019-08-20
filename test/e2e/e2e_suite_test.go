@@ -37,6 +37,8 @@ import (
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	appsv1 "k8s.io/api/apps/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	capi "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/cluster-api/pkg/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -86,8 +88,11 @@ var _ = BeforeSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Applying Provider Components to the kind cluster\n")
 	applyProviderComponents(kindCluster)
 	cfg := kindCluster.RestConfig()
+
+	Expect(capi.SchemeBuilder.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+
 	var err error
-	kindClient, err = crclient.New(cfg, crclient.Options{})
+	kindClient, err = crclient.New(cfg, crclient.Options{Scheme: scheme.Scheme})
 	Expect(err).To(BeNil())
 
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
