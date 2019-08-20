@@ -49,7 +49,7 @@ type AWSClusterStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsclusters,scope=Namespaced
+// +kubebuilder:resource:path=awsclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 

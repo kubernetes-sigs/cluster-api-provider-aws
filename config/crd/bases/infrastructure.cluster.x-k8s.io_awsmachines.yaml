@@ -8,6 +8,8 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: AWSMachine
     plural: awsmachines
   scope: Namespaced
