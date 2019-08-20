@@ -139,7 +139,7 @@ type AWSMachineStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsmachines,scope=Namespaced
+// +kubebuilder:resource:path=awsmachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
