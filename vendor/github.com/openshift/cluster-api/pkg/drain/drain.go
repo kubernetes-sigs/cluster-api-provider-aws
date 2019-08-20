@@ -37,8 +37,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	typedappsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	typedextensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	typedpolicyv1beta1 "k8s.io/client-go/kubernetes/typed/policy/v1beta1"
 )
 
@@ -238,8 +238,8 @@ func (o *DrainOptions) unreplicatedFilter(pod corev1.Pod) (bool, *warning, *fata
 }
 
 type DaemonSetFilterOptions struct {
-	client typedextensionsv1beta1.ExtensionsV1beta1Interface
-	force bool
+	client           typedappsv1.AppsV1Interface
+	force            bool
 	ignoreDaemonSets bool
 }
 
@@ -328,8 +328,8 @@ func getPodsForDeletion(client kubernetes.Interface, node *corev1.Node, options 
 	fs := podStatuses{}
 
 	daemonSetOptions := &DaemonSetFilterOptions{
-		client: client.ExtensionsV1beta1(),
-		force: options.Force,
+		client:           client.AppsV1(),
+		force:            options.Force,
 		ignoreDaemonSets: options.IgnoreDaemonsets,
 	}
 
@@ -412,9 +412,17 @@ func deleteOrEvictPods(client kubernetes.Interface, pods []corev1.Pod, options *
 
 func evictPods(client typedpolicyv1beta1.PolicyV1beta1Interface, pods []corev1.Pod, policyGroupVersion string, options *DrainOptions, getPodFn func(namespace, name string) (*corev1.Pod, error)) error {
 	returnCh := make(chan error, 1)
+	stopCh := make(chan struct{})
+	// 0 timeout means infinite, we use MaxInt64 to represent it.
+	var globalTimeout time.Duration
+	if options.Timeout == 0 {
+		globalTimeout = time.Duration(math.MaxInt64)
+	} else {
+		globalTimeout = options.Timeout
+	}
 
 	for _, pod := range pods {
-		go func(pod corev1.Pod, returnCh chan error) {
+		go func(pod corev1.Pod, returnCh chan error, stopCh chan struct{}) {
 			var err error
 			for {
 				err = evictPod(client, pod, policyGroupVersion, options.GracePeriodSeconds)
@@ -424,33 +432,32 @@ func evictPods(client typedpolicyv1beta1.PolicyV1beta1Interface, pods []corev1.P
 					returnCh <- nil
 					return
 				} else if apierrors.IsTooManyRequests(err) {
-					logf(options.Logger, "error when evicting pod %q (will retry after 5s): %v", pod.Name, err)
-					time.Sleep(5 * time.Second)
+					select {
+					case <-stopCh:
+						returnCh <- fmt.Errorf("global timeout!! Skip eviction retries for pod %q", pod.Name)
+						return
+					default:
+						logf(options.Logger, "error when evicting pod %q (will retry after 5s): %v", pod.Name, err)
+						time.Sleep(5 * time.Second)
+					}
 				} else {
 					returnCh <- fmt.Errorf("error when evicting pod %q: %v", pod.Name, err)
 					return
 				}
 			}
 			podArray := []corev1.Pod{pod}
-			_, err = waitForDelete(podArray, 1*time.Second, time.Duration(math.MaxInt64), true, options.Logger, getPodFn)
+			_, err = waitForDelete(podArray, 1*time.Second, time.Duration(globalTimeout), true, options.Logger, getPodFn)
 			if err == nil {
 				returnCh <- nil
 			} else {
 				returnCh <- fmt.Errorf("error when waiting for pod %q terminating: %v", pod.Name, err)
 			}
-		}(pod, returnCh)
+		}(pod, returnCh, stopCh)
 	}
 
 	doneCount := 0
 	var errors []error
 
-	// 0 timeout means infinite, we use MaxInt64 to represent it.
-	var globalTimeout time.Duration
-	if options.Timeout == 0 {
-		globalTimeout = time.Duration(math.MaxInt64)
-	} else {
-		globalTimeout = options.Timeout
-	}
 	globalTimeoutCh := time.After(globalTimeout)
 	numPods := len(pods)
 	for doneCount < numPods {
@@ -461,7 +468,8 @@ func evictPods(client typedpolicyv1beta1.PolicyV1beta1Interface, pods []corev1.P
 				errors = append(errors, err)
 			}
 		case <-globalTimeoutCh:
-			return fmt.Errorf("Drain did not complete within %v", globalTimeout)
+			logf(options.Logger, "Closing stopCh")
+			close(stopCh)
 		}
 	}
 	return utilerrors.NewAggregate(errors)
