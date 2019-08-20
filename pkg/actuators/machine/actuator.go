@@ -471,6 +471,12 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	}
 	machine = modMachine
 
+	updatedMachine, err := a.updateProviderID(machine, newestInstance)
+	if err != nil {
+		return fmt.Errorf("%s: failed to update machine object with providerID: %v", machine.Name, err)
+	}
+	machine = updatedMachine
+
 	// We do not support making changes to pre-existing instances, just update status.
 	return a.updateStatus(machine, newestInstance)
 }
