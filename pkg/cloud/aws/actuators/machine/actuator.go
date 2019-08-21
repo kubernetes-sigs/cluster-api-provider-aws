@@ -148,7 +148,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 		if err != nil {
 			return err
 		}
-	} else {
+	} else if scope.Role() == "controlplane" {
 		var lockAcquired bool
 		lockAcquired, idempotencyToken = a.controlPlaneInitLocker.AcquireWithToken(cluster, machine)
 
@@ -156,6 +156,9 @@ func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machi
 			log.Info("did not acquire init lock, will retry")
 			return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
 		}
+	} else {
+		log.Info("No control plane machine is ready yet - requeuing")
+		return &controllerError.RequeueAfterError{RequeueAfter: waitForControlPlaneReadyDuration}
 	}
 
 	i, err := ec2svc.CreateOrGetMachine(scope, bootstrapToken, idempotencyToken)
