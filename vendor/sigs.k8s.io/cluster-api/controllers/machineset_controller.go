@@ -53,6 +53,12 @@ var (
 	stateConfirmationInterval = 100 * time.Millisecond
 )
 
+// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets;machinesets/status,verbs=get;list;watch;create;update;patch;delete
+
 // MachineSetReconciler reconciles a MachineSet object
 type MachineSetReconciler struct {
 	client.Client
@@ -71,6 +77,7 @@ func (r *MachineSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		).
 		Complete(r)
 
+	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
 	return err
 }
 
@@ -122,6 +129,11 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, machineSet *cluste
 		return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
 	}
 
+	// Copy label selector to its status counterpart in string format.
+	// This is necessary for CRDs including scale subresources.
+	machineSet.Status.Selector = selector.String()
+
+	// Get all Machines linked to this MachineSet.
 	allMachines := &clusterv1.MachineList{}
 	err = r.Client.List(
 		context.Background(), allMachines,

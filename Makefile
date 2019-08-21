@@ -49,9 +49,6 @@ ifndef BAZEL_VERSION
 		https://docs.bazel.build/versions/master/install.html")
 endif
 
-# Set B64_CREDENTIALS to set an actual value in a secret
-B64_CREDENTIALS ?= CREDENTIALS
-
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
@@ -98,7 +95,6 @@ docker-build: generate lint-full ## Build the docker image for controller-manage
 	docker build --pull . -t $(MANAGER_IMAGE)
 	# TODO: sed probably needs to be gnu sed not bsd sed
 	sed -i '' -e 's@image: .*@image: '"${MANAGER_IMAGE}"'@' ./config/default/manager_image_patch.yaml
-	sed -i '' -e 's@credentials: .*@credentials: '"${B64_CREDENTIALS}"'@' ./config/default/aws_credentials_patch.yaml
 
 .PHONY: docker-push
 docker-push: docker-build ## Push the docker image
@@ -154,6 +150,10 @@ generate-kubebuilder-code: ## Runs controller-gen
 		paths=./api/... \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
 
+.PHONY: generate-examples
+generate-examples: clean-examples ## Generate examples configurations to run a cluster.
+	./examples/generate.sh
+
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
@@ -207,19 +207,21 @@ create-cluster: binaries ## Create a development Kubernetes cluster on AWS using
 	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
-	-m ./examples/out/machines.yaml \
-	-c ./examples/out/cluster.yaml \
-	-p ./examples/out/provider-components.yaml \
-	-a ./examples/out/addons.yaml
+	-m ./examples/_out/controlplane.yaml \
+	-c ./examples/_out/cluster.yaml \
+	-p ./examples/_out/provider-components.yaml \
+	-a ./examples/addons.yaml
 
+
+# TODO(vincepri): Add an example to make this target work.
 .PHONY: create-cluster-ha
 create-cluster-ha: binaries ## Create a development Kubernetes cluster on AWS using HA examples
 	bin/clusterctl create cluster -v 4 \
 	--provider aws \
 	--bootstrap-type kind \
-	-m ./examples/machines-ha.yaml \
-	-c ./examples/cluster.yaml \
-	-p ./examples/provider-components.yaml \
+	-m ./examples/_out/controlplane-ha.yaml \
+	-c ./examples/_out/cluster.yaml \
+	-p ./examples/_out/provider-components.yaml \
 	-a ./examples/addons.yaml
 
 .PHONY: create-cluster-management
@@ -228,28 +230,29 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 	# Apply provider-components.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f examples/out/provider-components.yaml
+		create -f examples/_out/provider-components.yaml
 	# Create Cluster.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f examples/out/cluster.yaml
+		create -f examples/_out/cluster.yaml
 	# Create control plane machine.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f examples/out/controlplane-machine.yaml
+		create -f examples/_out/controlplane.yaml
 	# Get KubeConfig using clusterctl.
 	bin/clusterctl alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		--provider=aws \
+		--namespace=default \
 		--cluster-name=test1
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
 	bin/clusterctl alpha phases apply-addons -v=3 \
 		--kubeconfig=./kubeconfig \
-		-a examples/out/addons.yaml
+		-a examples/addons.yaml
 	# Create a worker node with MachineDeployment.
-	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f examples/out/machine-deployment.yaml
+	# TODO(vincepri): Fix the following example when we have a MachineDeployment.
+	# kubectl \
+	# 	--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+	# 	create -f examples/_out/machine-deployment.yaml
 
 .PHONY: delete-cluster
 delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
@@ -289,8 +292,11 @@ clean-temporary: ## Remove all temporary files and folders
 	rm -f minikube.kubeconfig
 	rm -f kubeconfig
 	rm -rf out/
-	rm -rf examples/out/
-	rm -f examples/provider-components-base.yaml
+
+.PHONY: clean-examples
+clean-examples: ## Remove all the temporary files generated in the examples folder
+	rm -rf examples/_out/
+	rm -f examples/provider-components/provider-components-*.yaml
 
 .PHONY: verify
 verify: ## Runs verification scripts to ensure correct execution
