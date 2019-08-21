@@ -123,6 +123,10 @@ lint: ## Go lint your code
 fmt: ## Go fmt your code
 	hack/go-fmt.sh .
 
+.PHONY: goimports
+goimports: ## Go fmt your code
+	hack/goimports.sh .
+
 .PHONY: vet
 vet: ## Apply go vet to all go files
 	hack/go-vet.sh ./...
