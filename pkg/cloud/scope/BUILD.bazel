@@ -27,6 +27,7 @@ go_library(
         "//vendor/sigs.k8s.io/cluster-api/controllers/noderefutil:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/errors:go_default_library",
         "//vendor/sigs.k8s.io/cluster-api/util:go_default_library",
+        "//vendor/sigs.k8s.io/cluster-api/util/patch:go_default_library",
         "//vendor/sigs.k8s.io/controller-runtime/pkg/client:go_default_library",
     ],
 )
