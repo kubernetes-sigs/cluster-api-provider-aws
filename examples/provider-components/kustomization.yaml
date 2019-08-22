@@ -4,3 +4,5 @@ resources:
 - provider-components-kubeadm.yaml
 - provider-components-cluster-api.yaml
 - provider-components-aws.yaml
+patchesStrategicMerge:
+- manager_tolerations_patch.yaml
