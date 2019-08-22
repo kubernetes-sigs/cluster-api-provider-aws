@@ -1,0 +1,11 @@
+namespace:
+- kind: MachineDeployment
+  group: cluster.x-k8s.io
+  version: v1alpha2
+  path: spec/template/spec/infrastructureRef/namespace
+  create: true
+- kind: MachineDeployment
+  group: cluster.x-k8s.io
+  version: v1alpha2
+  path: spec/template/spec/bootstrap/configRef/namespace
+  create: true
