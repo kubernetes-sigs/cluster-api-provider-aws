@@ -17,6 +17,7 @@ go_library(
         "service.go",
         "subnets.go",
         "vpc.go",
+        "vpc_ip_resource_limit.go"
     ],
     importpath = "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/services/ec2",
     visibility = ["//visibility:public"],
@@ -51,6 +52,7 @@ go_test(
         "securitygroups_test.go",
         "subnets_test.go",
         "vpc_test.go",
+        "vpc_ip_resource_limit.go",
     ],
     embed = [":go_default_library"],
     deps = [

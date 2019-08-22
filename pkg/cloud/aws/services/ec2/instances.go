@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -202,10 +203,35 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 		return input, err
 	}
 
+	// amazon vpc cni k8s and this work for node not for control plane
+	var amazonVPCCNIEnabled = false
+	// kubeadm default max-pods value is 110
+	var instanceMaxPods = 110
+	if value, ok := machine.Cluster.Annotations["cluster.k8s.io/network-cni"]; ok {
+		if value == "amazon-vpc-cni-k8s" {
+			machine.Logger.Info("cluster is enable cni", "plugin is ", "amazon-vpc-cni-k8s")
+			amazonVPCCNIEnabled = true
+			enis := InstanceENIsAvailable[machine.MachineConfig.InstanceType]
+			ips := InstanceIPsAvailable[machine.MachineConfig.InstanceType]
+			if enis > 0 && ips > 0 {
+				instanceMaxPods = enis*(ips-1) + 2
+			}
+		}
+	}
+
 	// apply values based on the role of the machine
 	switch machine.Role() {
 	case "controlplane":
 		var userData string
+
+		if amazonVPCCNIEnabled {
+			if userSetMaxPodsInStr, exists := machine.MachineConfig.KubeadmConfiguration.Join.NodeRegistration.KubeletExtraArgs["max-pods"]; exists {
+				userSetMaxPodsNr, err := strconv.Atoi(userSetMaxPodsInStr)
+				if err == nil && userSetMaxPodsNr > instanceMaxPods {
+					instanceMaxPods = userSetMaxPodsNr
+				}
+			}
+		}
 
 		if bootstrapToken != "" {
 			s.scope.V(2).Info("Allowing a machine to join the control plane")
@@ -225,11 +251,16 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
-						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+						kubeadm.WithKubeletExtraArgs(map[string]string{
+							"cloud-provider": cloudProvider,
+							"node-ip":        localIPV4Lookup,
+							"max-pods":       strconv.Itoa(instanceMaxPods),
+						}),
 					),
 				),
 				kubeadm.WithLocalAPIEndpointAndPort(localIPV4Lookup, apiServerBindPort),
 			)
+
 			joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(&machine.MachineConfig.KubeadmConfiguration.Join)
 			if err != nil {
 				return nil, err
@@ -286,7 +317,11 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 						kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
 						kubeadm.WithNodeRegistrationName(hostnameLookup),
 						kubeadm.WithCRISocket(containerdSocket),
-						kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
+						kubeadm.WithKubeletExtraArgs(map[string]string{
+							"cloud-provider": cloudProvider,
+							"node-ip":        localIPV4Lookup,
+							"max-pods":       strconv.Itoa(instanceMaxPods),
+						}),
 					),
 				),
 			)
@@ -326,6 +361,15 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 
 		kubeadmConfig := machine.MachineConfig.KubeadmConfiguration.Join.DeepCopy()
 
+		if amazonVPCCNIEnabled {
+			if userSetMaxPodsInStr, exists := kubeadmConfig.NodeRegistration.KubeletExtraArgs["max-pods"]; exists {
+				userSetMaxPodsNr, err := strconv.Atoi(userSetMaxPodsInStr)
+				if err == nil && userSetMaxPodsNr > instanceMaxPods {
+					instanceMaxPods = userSetMaxPodsNr
+				}
+			}
+		}
+
 		kubeadm.SetJoinConfigurationOptions(
 			kubeadmConfig,
 			kubeadm.WithBootstrapTokenDiscovery(
@@ -340,12 +384,17 @@ func (s *Service) createInstance(machine *actuators.MachineScope, bootstrapToken
 					&kubeadmConfig.NodeRegistration,
 					kubeadm.WithNodeRegistrationName(hostnameLookup),
 					kubeadm.WithCRISocket(containerdSocket),
-					kubeadm.WithKubeletExtraArgs(map[string]string{"cloud-provider": cloudProvider}),
 					kubeadm.WithTaints(machine.GetMachine().Spec.Taints),
-					kubeadm.WithKubeletExtraArgs(map[string]string{"node-labels": nodeRole}),
+					kubeadm.WithKubeletExtraArgs(map[string]string{
+						"cloud-provider": cloudProvider,
+						"node-labels":    nodeRole,
+						"node-ip":        localIPV4Lookup,
+						"max-pods":       strconv.Itoa(instanceMaxPods),
+					}),
 				),
 			),
 		)
+
 		joinConfigurationYAML, err := kubeadm.ConfigurationToYAML(kubeadmConfig)
 		if err != nil {
 			return nil, err

@@ -44,7 +44,7 @@ CONTROLPLANE_MACHINE_TEMPLATE_FILE=${DIR}/controlplane-machine.yaml.template
 CONTROLPLANE_MACHINE_GENERATED_FILE=${OUTPUT_DIR}/controlplane-machine.yaml
 DEPLOYMENT_MACHINES_TEMPLATE_FILE=${DIR}/machine-deployment.yaml.template
 DEPLOYMENT_MACHINES_GENERATED_FILE=${OUTPUT_DIR}/machine-deployment.yaml
-ADDONS_FILE=${OUTPUT_DIR}/addons.yaml
+ADDONS_FILE=${OUTPUT_DIR}/addons-calico.yaml
 PROVIDER_COMPONENTS_SRC=${DIR}/provider-components-base.yaml
 PROVIDER_COMPONENTS_FILE=${OUTPUT_DIR}/provider-components.yaml
 CREDENTIALS_FILE=${OUTPUT_DIR}/aws-credentials.yaml
@@ -106,7 +106,7 @@ echo "Done generating ${CONTROLPLANE_MACHINE_GENERATED_FILE}"
 $ENVSUBST < $DEPLOYMENT_MACHINES_TEMPLATE_FILE > "${DEPLOYMENT_MACHINES_GENERATED_FILE}"
 echo "Done generating ${DEPLOYMENT_MACHINES_GENERATED_FILE}"
 
-cp  ${DIR}/addons.yaml ${ADDONS_FILE}
+cp ${DIR}/addons-calico.yaml ${ADDONS_FILE}
 echo "Done copying ${ADDONS_FILE}"
 
 CREDENTIALS="$(${CLUSTERAWSADM} alpha bootstrap encode-aws-credentials)"

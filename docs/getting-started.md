@@ -197,7 +197,7 @@ clusterctl create cluster -v 3 \
   -m ./aws/out/machines.yaml \
   -c ./aws/out/cluster.yaml \
   -p ./aws/out/provider-components.yaml \
-  -a ./aws/out/addons.yaml
+  -a ./aws/out/addons-calico.yaml
 
 I0119 12:16:07.521123   38557 plugins.go:39] Registered cluster provisioner "aws"
 I0119 12:16:07.522563   38557 createbootstrapcluster.go:27] Creating bootstrap cluster
@@ -231,6 +231,28 @@ I0119 12:16:41.002232   38557 applycluster.go:36] Creating cluster object test1 
 I0119 12:16:41.007516   38557 clusterdeployer.go:109] Creating control plane controlplane-0 in namespace "default"
 I0119 12:16:41.011616   38557 applymachines.go:36] Creating machines in namespace "default"
 I0119 12:16:41.021539   38557 clusterclient.go:573] Waiting for Machine controlplane-0 to become ready...
+```
+
+If you want to use `amazon-vpc-cni` support, you need to add `annotation` to the `cluster.yaml`.
+
+```yaml
+apiVersion: "cluster.k8s.io/v1alpha1"
+kind: Cluster
+metadata:
+  annotations:
+    cluster.k8s.io/network-cni: amazon-vpc-cni-k8s
+``` 
+
+and create cluster with follow command.
+
+```bash
+clusterctl create cluster -v 3 \
+  --bootstrap-type kind \
+  --provider aws \
+  -m ./aws/out/machines.yaml \
+  -c ./aws/out/cluster.yaml \
+  -p ./aws/out/provider-components.yaml \
+  -a ./aws/out/addons-amazon-vpc-cni.yaml
 ```
 
 The created KIND cluster is ephemeral and is cleaned up automatically when done. During the cluster creation, the KIND configuration is written to a local directory and can be retrieved using `kind get kubeconfig-path --name="clusterapi"`.
