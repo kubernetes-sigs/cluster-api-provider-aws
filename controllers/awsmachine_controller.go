@@ -231,6 +231,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc *e
 }
 
 func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+	machineScope.Info("Reconciling AWSMachine")
 	// If the AWSMachine is in an error state, return early.
 	if machineScope.AWSMachine.Status.ErrorReason != nil || machineScope.AWSMachine.Status.ErrorMessage != nil {
 		machineScope.Info("Error state detected, skipping reconciliation")
@@ -361,8 +362,8 @@ func (r *AWSMachineReconciler) validateUpdate(spec *infrav1.AWSMachineSpec, i *i
 		errs = append(errs, errors.Errorf("instance IAM profile cannot be mutated from %q to %q", i.IAMProfile, spec.IAMInstanceProfile))
 	}
 
-	// SSH Key Name
-	if spec.KeyName != aws.StringValue(i.KeyName) {
+	// SSH Key Name (also account for default)
+	if spec.KeyName != aws.StringValue(i.KeyName) && spec.KeyName != "" {
 		errs = append(errs, errors.Errorf("SSH key name cannot be mutated from %q to %q", aws.StringValue(i.KeyName), spec.KeyName))
 	}
 

@@ -89,7 +89,10 @@ func (s *Service) reconcileVPC() error {
 }
 
 func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha2.VPCSpec) error {
-	var errs []error
+	var (
+		errs    []error
+		updated bool
+	)
 
 	// Cannot get or set both attributes at the same time.
 	descAttrInput := &ec2.DescribeVpcAttributeInput{
@@ -106,6 +109,8 @@ func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha2.VPCSpec) error {
 		}
 		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsHostnames vpc attribute"))
+		} else {
+			updated = true
 		}
 	}
 
@@ -123,6 +128,8 @@ func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha2.VPCSpec) error {
 		}
 		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsSupport vpc attribute"))
+		} else {
+			updated = true
 		}
 	}
 
@@ -131,7 +138,10 @@ func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha2.VPCSpec) error {
 		return kerrors.NewAggregate(errs)
 	}
 
-	record.Eventf(s.scope.Cluster, "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID, err)
+	if updated {
+		record.Eventf(s.scope.Cluster, "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID)
+	}
+
 	return nil
 }
 

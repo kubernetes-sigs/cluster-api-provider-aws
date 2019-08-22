@@ -219,7 +219,7 @@ func (s *Service) createSecurityGroup(role v1alpha2.SecurityGroupRole, input *ec
 		return errors.Wrapf(err, "failed to create security group %q in vpc %q", *input.GroupName, *input.VpcId)
 	}
 
-	record.Eventf(s.scope.Cluster, "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %v for Role %q", s.scope.SecurityGroups()[role], role)
+	record.Eventf(s.scope.Cluster, "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %q for Role %q", s.scope.SecurityGroups()[role].Name, role)
 
 	// Set the group id.
 	input.GroupId = out.GroupId
@@ -290,7 +290,7 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 				record.Warnf(s.scope.Cluster, "FailedRevokeSecurityGroupIngressRules", "Failed to revoke all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
 				return errors.Wrapf(err, "failed to revoke security group %q ingress rules", id)
 			}
-			record.Eventf(s.scope.Cluster, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
+			record.Eventf(s.scope.Cluster, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked all security group ingress rules for SecurityGroup %q", *sg.GroupId)
 		}
 	}
 
