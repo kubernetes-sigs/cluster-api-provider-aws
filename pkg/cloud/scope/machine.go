@@ -19,16 +19,16 @@ package scope
 import (
 	"context"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
-
-	"github.com/go-logr/logr"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -63,21 +63,25 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		params.Logger = klogr.New()
 	}
 
+	helper, err := patch.NewHelper(params.AWSMachine, params.Client)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init patch helper")
+	}
 	return &MachineScope{
-		client:     params.Client,
-		patch:      client.MergeFrom(params.AWSMachine.DeepCopy()),
-		Cluster:    params.Cluster,
-		Machine:    params.Machine,
-		AWSMachine: params.AWSMachine,
-		Logger:     params.Logger,
+		client:      params.Client,
+		Cluster:     params.Cluster,
+		Machine:     params.Machine,
+		AWSMachine:  params.AWSMachine,
+		Logger:      params.Logger,
+		patchHelper: helper,
 	}, nil
 }
 
 // MachineScope defines a scope defined around a machine and its cluster.
 type MachineScope struct {
 	logr.Logger
-	patch  client.Patch
-	client client.Client
+	client      client.Client
+	patchHelper *patch.Helper
 
 	Cluster    *clusterv1.Cluster
 	Machine    *clusterv1.Machine
@@ -164,15 +168,5 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 
 // Close the MachineScope by updating the machine spec, machine status.
 func (m *MachineScope) Close() error {
-	ctx := context.Background()
-
-	if err := m.client.Patch(ctx, m.AWSMachine, m.patch); err != nil {
-		return errors.WithStack(err)
-	}
-
-	if err := m.client.Status().Patch(ctx, m.AWSMachine, m.patch); err != nil {
-		return errors.WithStack(err)
-	}
-
-	return nil
+	return m.patchHelper.Patch(context.Background(), m.AWSMachine)
 }

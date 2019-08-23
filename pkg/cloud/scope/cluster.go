@@ -27,6 +27,7 @@ import (
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -66,24 +67,29 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		params.AWSClients.ELB = elb.New(session)
 	}
 
+	helper, err := patch.NewHelper(params.AWSCluster, params.Client)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to init patch helper")
+	}
 	return &ClusterScope{
-		Logger:          params.Logger,
-		client:          params.Client,
-		AWSClients:      params.AWSClients,
-		Cluster:         params.Cluster,
-		AWSCluster:      params.AWSCluster,
-		awsClusterPatch: client.MergeFrom(params.AWSCluster.DeepCopy()),
+		Logger:      params.Logger,
+		client:      params.Client,
+		AWSClients:  params.AWSClients,
+		Cluster:     params.Cluster,
+		AWSCluster:  params.AWSCluster,
+		patchHelper: helper,
 	}, nil
 }
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
 	logr.Logger
-	client client.Client
+	client      client.Client
+	patchHelper *patch.Helper
+
 	AWSClients
-	Cluster         *clusterv1alpha2.Cluster
-	AWSCluster      *v1alpha2.AWSCluster
-	awsClusterPatch client.Patch
+	Cluster    *clusterv1alpha2.Cluster
+	AWSCluster *v1alpha2.AWSCluster
 }
 
 // Network returns the cluster network object.
@@ -136,17 +142,5 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 
 // Close closes the current scope persisting the cluster configuration and status.
 func (s *ClusterScope) Close() error {
-	ctx := context.TODO()
-
-	// Patch Cluster object.
-	if err := s.client.Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {
-		return errors.Wrapf(err, "error patching AWSCluster %s/%s", s.Cluster.Namespace, s.Cluster.Name)
-	}
-
-	// Patch Cluster status.
-	if err := s.client.Status().Patch(ctx, s.AWSCluster, s.awsClusterPatch); err != nil {
-		return errors.Wrapf(err, "error patching AWSCluster %s/%s status", s.Cluster.Namespace, s.Cluster.Name)
-	}
-
-	return nil
+	return s.patchHelper.Patch(context.Background(), s.AWSCluster)
 }
