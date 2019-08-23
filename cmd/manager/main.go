@@ -47,7 +47,21 @@ func main() {
 
 	profilerAddress := flag.String("profiler-address", "", "Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
+	clusterConcurrency := flag.Int("cluster-concurrency", 1, "Number of clusters to process simultaneously")
+
+	machineConcurrency := flag.Int("machine-concurrency", 1, "Number of machines to process simultaneously")
+
 	flag.Parse()
+
+	if *clusterConcurrency < 1 {
+		klog.Warningf("Invalid cluster concurrency value %q. Defaulting to 1.", *clusterConcurrency)
+		*clusterConcurrency = 1
+	}
+
+	if *machineConcurrency < 1 {
+		klog.Warningf("Invalid machine concurrency value %q. Defaulting to 1.", *machineConcurrency)
+		*machineConcurrency = 1
+	}
 
 	cfg := config.GetConfigOrDie()
 
@@ -112,8 +126,8 @@ func main() {
 		klog.Fatal(err)
 	}
 
-	capimachine.AddWithActuator(mgr, machineActuator)
-	capicluster.AddWithActuator(mgr, clusterActuator)
+	capimachine.AddWithActuator(mgr, machineActuator, *machineConcurrency)
+	capicluster.AddWithActuator(mgr, clusterActuator, *clusterConcurrency)
 
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
 		klog.Fatalf("Failed to run manager: %v", err)
