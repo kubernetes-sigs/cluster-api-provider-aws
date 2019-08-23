@@ -118,7 +118,7 @@ generate: ## Generate code
 	$(MAKE) generate-go
 	$(MAKE) generate-mocks
 	$(MAKE) generate-manifests
-	$(MAKE) generate-kubebuilder-code
+	$(MAKE) generate-deepcopy
 	$(MAKE) gazelle
 
 .PHONY: generate-go
@@ -144,8 +144,8 @@ generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
 		output:rbac:dir=$(RBAC_ROOT) \
 		rbac:roleName=manager-role
 
-.PHONY: generate-kubebuilder-code
-generate-kubebuilder-code: ## Runs controller-gen
+.PHONY: generate-deepcopy
+generate-deepcopy: ## Runs controller-gen to generate deepcopy files.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
 		paths=./api/... \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
@@ -203,9 +203,9 @@ release-artifacts: ## Build release artifacts
 ## --------------------------------------
 
 .PHONY: create-cluster
-create-cluster: binaries ## Create a development Kubernetes cluster on AWS using examples
+create-cluster: ## Create a development Kubernetes cluster on AWS using examples
 	bin/clusterctl create cluster -v 4 \
-	--provider aws \
+	--bootstrap-flags="name=clusterapi" \
 	--bootstrap-type kind \
 	-m ./examples/_out/controlplane.yaml \
 	-c ./examples/_out/cluster.yaml \
@@ -217,9 +217,9 @@ create-cluster: binaries ## Create a development Kubernetes cluster on AWS using
 .PHONY: create-cluster-ha
 create-cluster-ha: binaries ## Create a development Kubernetes cluster on AWS using HA examples
 	bin/clusterctl create cluster -v 4 \
-	--provider aws \
+	--bootstrap-flags="name=clusterapi" \
 	--bootstrap-type kind \
-	-m ./examples/_out/controlplane-ha.yaml \
+	-m ./examples/_out/machines-ha.yaml \
 	-c ./examples/_out/cluster.yaml \
 	-p ./examples/_out/provider-components.yaml \
 	-a ./examples/addons.yaml
@@ -249,15 +249,15 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		--kubeconfig=./kubeconfig \
 		-a examples/addons.yaml
 	# Create a worker node with MachineDeployment.
-	# TODO(vincepri): Fix the following example when we have a MachineDeployment.
-	# kubectl \
-	# 	--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-	# 	create -f examples/_out/machine-deployment.yaml
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		create -f examples/_out/machinedeployment.yaml
 
 .PHONY: delete-cluster
 delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
 	bin/clusterctl delete cluster -v 4 \
 	--bootstrap-type kind \
+	--bootstrap-flags="name=clusterapi" \
 	--cluster test1 \
 	--kubeconfig ./kubeconfig \
 	-p ./examples/out/provider-components.yaml \
