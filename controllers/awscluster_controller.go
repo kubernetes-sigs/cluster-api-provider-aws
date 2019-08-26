@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -180,8 +181,9 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
 		Complete(r)
 }
