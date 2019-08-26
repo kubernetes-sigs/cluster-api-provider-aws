@@ -12,12 +12,6 @@ spec:
           key: node-role.kubernetes.io/master
         - key: CriticalAddonsOnly
           operator: Exists
-        - effect: NoExecute
-          key: node.alpha.kubernetes.io/notReady
-          operator: Exists
-        - effect: NoExecute
-          key: node.alpha.kubernetes.io/unreachable
-          operator: Exists
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -32,12 +26,6 @@ spec:
           key: node-role.kubernetes.io/master
         - key: CriticalAddonsOnly
           operator: Exists
-        - effect: NoExecute
-          key: node.alpha.kubernetes.io/notReady
-          operator: Exists
-        - effect: NoExecute
-          key: node.alpha.kubernetes.io/unreachable
-          operator: Exists
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -51,10 +39,4 @@ spec:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master
         - key: CriticalAddonsOnly
-          operator: Exists
-        - effect: NoExecute
-          key: node.alpha.kubernetes.io/notReady
-          operator: Exists
-        - effect: NoExecute
-          key: node.alpha.kubernetes.io/unreachable
           operator: Exists

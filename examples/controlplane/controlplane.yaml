@@ -23,7 +23,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-0
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
   keyName: "${SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
@@ -69,7 +69,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-1
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
   keyName: "${SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
@@ -78,9 +78,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-1
 spec:
   joinConfiguration:
-    controlPlane:
-      advertiseAddress: '{{ ds.meta_data.local_ipv4 }}'
-      bindPort: 6443
+    controlPlane: {}
     nodeRegistration:
       name: '{{ ds.meta_data.hostname }}'
       kubeletExtraArgs:
@@ -111,7 +109,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-2
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
   keyName: "${SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
@@ -120,9 +118,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-2
 spec:
   joinConfiguration:
-    controlPlane:
-      advertiseAddress: '{{ ds.meta_data.local_ipv4 }}'
-      bindPort: 6443
+    controlPlane: {}
     nodeRegistration:
       name: '{{ ds.meta_data.hostname }}'
       kubeletExtraArgs:

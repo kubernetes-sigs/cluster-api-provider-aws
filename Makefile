@@ -213,17 +213,6 @@ create-cluster: ## Create a development Kubernetes cluster on AWS using examples
 	-a ./examples/addons.yaml
 
 
-# TODO(vincepri): Add an example to make this target work.
-.PHONY: create-cluster-ha
-create-cluster-ha: binaries ## Create a development Kubernetes cluster on AWS using HA examples
-	bin/clusterctl create cluster -v 4 \
-	--bootstrap-flags="name=clusterapi" \
-	--bootstrap-type kind \
-	-m ./examples/_out/machines-ha.yaml \
-	-c ./examples/_out/cluster.yaml \
-	-p ./examples/_out/provider-components.yaml \
-	-a ./examples/addons.yaml
-
 .PHONY: create-cluster-management
 create-cluster-management: ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
 	kind create cluster --name=clusterapi
