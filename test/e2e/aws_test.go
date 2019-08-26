@@ -1,3 +1,5 @@
+// +build e2e
+
 /*
 Copyright 2018 The Kubernetes Authors.
 
@@ -17,17 +19,15 @@ limitations under the License.
 package e2e_test
 
 import (
-	"bytes"
-	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -50,17 +50,15 @@ const (
 )
 
 var (
-	credFile   = flag.String("credFile", "", "path to an AWS credentials file")
-	regionFile = flag.String("regionFile", "", "The path to a text file containing the AWS region")
-	region     string
+	region string
 )
 
 func initRegion() error {
-	data, err := ioutil.ReadFile(*regionFile)
-	if err != nil {
-		return fmt.Errorf("error reading AWS region file: %v", err)
+	val, ok := os.LookupEnv("AWS_REGION")
+	if !ok {
+		return fmt.Errorf("Environment variable AWS_REGION not found")
 	}
-	region = string(bytes.TrimSpace(data))
+	region = strings.TrimSpace(val)
 	return nil
 }
 
@@ -126,10 +124,7 @@ func createKeyPair(prov client.ConfigProvider) {
 }
 
 func getSession() client.ConfigProvider {
-	creds := credentials.NewCredentials(&credentials.SharedCredentialsProvider{
-		Filename: *credFile,
-	})
-	sess, err := session.NewSession(aws.NewConfig().WithCredentials(creds).WithRegion(region))
+	sess, err := session.NewSession(aws.NewConfig())
 	Expect(err).To(BeNil())
 	return sess
 }

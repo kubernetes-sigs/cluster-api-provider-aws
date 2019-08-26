@@ -14,16 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
 set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+# shellcheck source=../hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
-source "${REPO_ROOT}/hack/ensure-kind.sh"
-source "${REPO_ROOT}/hack/ensure-kubectl.sh"
-cd "${REPO_ROOT}" || exit 1
 
-bazel test --define='gotags=integration' --test_output all --host_force_python=PY2 //test/integration/...
-bazel_status="${?}"
-python hack/coalesce.py
-exit "${bazel_status}"
+cd "${REPO_ROOT}" && make binaries

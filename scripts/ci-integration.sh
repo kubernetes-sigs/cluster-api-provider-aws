@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
-# Copyright 2019 The Kubernetes Authors.
+#!/bin/bash
+
+# Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,18 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
 set -o nounset
 set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
 
-BOILERPLATE=$(sed "s/YEAR/$(date +%Y)/g" < hack/boilerplate/boilerplate.generatego.txt)
+# shellcheck source=../hack/ensure-go.sh
+source "${REPO_ROOT}/hack/ensure-go.sh"
+# shellcheck source=../hack/ensure-kind.sh
+source "${REPO_ROOT}/hack/ensure-kind.sh"
+# shellcheck source=../hack/ensure-kubectl.sh
+source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
-while IFS= read -r -d '' file
-do
-    out=$(echo "${file}" | sed "s#bazel-bin/##g")
-    echo -e "${BOILERPLATE}\n" > "${out}"
-    cat "${file}" >> "${out}"
-done < <(find bazel-bin/pkg -name '*_mock.go' -type f -print0)
+make test-integration

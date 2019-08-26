@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
 # Copyright 2018 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,8 +18,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-export KUBE_ROOT=$(dirname "${BASH_SOURCE}")/..
+REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+# shellcheck source=../hack/ensure-go.sh
+source "${REPO_ROOT}/hack/ensure-go.sh"
 
-cd "${KUBE_ROOT}"
-find "${KUBE_ROOT}/vendor" -name 'BUILD' -delete
-bazel run //:gazelle --define='gotags=integration'
+cd "${REPO_ROOT}" && \
+	source ./scripts/fetch_ext_bins.sh && \
+	fetch_tools && \
+	setup_envs && \
+	make test

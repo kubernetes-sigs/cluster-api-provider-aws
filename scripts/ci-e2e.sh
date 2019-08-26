@@ -29,8 +29,11 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
 
+# shellcheck source=../hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
+# shellcheck source=../hack/ensure-kind.sh
 source "${REPO_ROOT}/hack/ensure-kind.sh"
+# shellcheck source=../hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
@@ -64,11 +67,8 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
   exit 1
 fi
 
-bazel test --define='gotags=e2e' --host_force_python=PY2 --test_output all //test/e2e/... $@
-bazel_status="${?}"
-
-# If the artifacts environment variable is set then coalesce the test results.
-[ -z "${ARTIFACTS:-}" ] || python hack/coalesce.py
+make test-e2e
+test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
 [ -z "${BOSKOS_HOST:-}" ] || hack/checkin_account.py
@@ -89,4 +89,4 @@ else
   echo "skipping janitor; JANITOR_ENABLED=${JANITOR_ENABLED}" 1>&2
 fi
 
-exit "${bazel_status}"
+exit "${test_status}"
