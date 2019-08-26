@@ -5,7 +5,7 @@
 - [Getting started](getting-started.md)
 - [List of AMIs](amis.md)
 - [Accessing cluster instances](accessing-instances.md)
-- [Building AMIs with Packer](../build/amis/README.md)
+- [Building AMIs with Packer](https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi#make-targets)
 
 ## Development
 
