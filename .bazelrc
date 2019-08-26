@@ -1,8 +1,0 @@
-build --workspace_status_command=./hack/print-workspace-status.sh
-build --verbose_failures
-
-run --workspace_status_command=./hack/print-workspace-status.sh
-
-test --features=race --test_output=errors
-test --build_tests_only
-test --test_summary=detailed
