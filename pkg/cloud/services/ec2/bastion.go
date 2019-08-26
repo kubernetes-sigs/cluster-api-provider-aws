@@ -59,11 +59,11 @@ func (s *Service) ReconcileBastion() error {
 	if awserrors.IsNotFound(err) {
 		instance, err = s.runInstance("bastion", spec)
 		if err != nil {
-			record.Warnf(s.scope.Cluster, "FailedCreateBastion", "Failed to create bastion instance: %v", err)
+			record.Warnf(s.scope.AWSCluster, "FailedCreateBastion", "Failed to create bastion instance: %v", err)
 			return err
 		}
 
-		record.Eventf(s.scope.Cluster, "SuccessfulCreateBastion", "Created bastion instance %q", instance.ID)
+		record.Eventf(s.scope.AWSCluster, "SuccessfulCreateBastion", "Created bastion instance %q", instance.ID)
 		s.scope.V(2).Info("Created new bastion host", "instance", instance)
 
 	} else if err != nil {
@@ -94,10 +94,10 @@ func (s *Service) DeleteBastion() error {
 	}
 
 	if err := s.TerminateInstanceAndWait(instance.ID); err != nil {
-		record.Warnf(s.scope.Cluster, "FailedTerminateBastion", "Failed to terminate bastion instance %q: %v", instance.ID, err)
+		record.Warnf(s.scope.AWSCluster, "FailedTerminateBastion", "Failed to terminate bastion instance %q: %v", instance.ID, err)
 		return errors.Wrap(err, "unable to delete bastion instance")
 	}
-	record.Eventf(s.scope.Cluster, "SuccessfulTerminateBastion", "Terminated bastion instance %q", instance.ID)
+	record.Eventf(s.scope.AWSCluster, "SuccessfulTerminateBastion", "Terminated bastion instance %q", instance.ID)
 
 	return nil
 }

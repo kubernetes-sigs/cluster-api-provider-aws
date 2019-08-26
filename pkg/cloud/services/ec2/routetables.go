@@ -66,7 +66,7 @@ func (s *Service) reconcileRouteTables() error {
 				}
 				return true, nil
 			}, awserrors.RouteTableNotFound); err != nil {
-				record.Warnf(s.scope.Cluster, "FailedTagRouteTable", "Failed to tag managed RouteTable %q: %v", *rt.RouteTableId, err)
+				record.Warnf(s.scope.AWSCluster, "FailedTagRouteTable", "Failed to tag managed RouteTable %q: %v", *rt.RouteTableId, err)
 				return errors.Wrapf(err, "failed to ensure tags on route table %q", *rt.RouteTableId)
 			}
 
@@ -157,20 +157,20 @@ func (s *Service) deleteRouteTables() error {
 			}
 
 			if _, err := s.scope.EC2.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{AssociationId: as.RouteTableAssociationId}); err != nil {
-				record.Warnf(s.scope.Cluster, "FailedDisassociateRouteTable", "Failed to disassociate managed RouteTable %q from Subnet %q: %v", *rt.RouteTableId, *as.SubnetId, err)
+				record.Warnf(s.scope.AWSCluster, "FailedDisassociateRouteTable", "Failed to disassociate managed RouteTable %q from Subnet %q: %v", *rt.RouteTableId, *as.SubnetId, err)
 				return errors.Wrapf(err, "failed to disassociate route table %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
 			}
 
-			record.Eventf(s.scope.Cluster, "SuccessfulDisassociateRouteTable", "Disassociated managed RouteTable %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
+			record.Eventf(s.scope.AWSCluster, "SuccessfulDisassociateRouteTable", "Disassociated managed RouteTable %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
 			s.scope.Info("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
 		}
 
 		if _, err := s.scope.EC2.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
-			record.Warnf(s.scope.Cluster, "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", *rt.RouteTableId, err)
+			record.Warnf(s.scope.AWSCluster, "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", *rt.RouteTableId, err)
 			return errors.Wrapf(err, "failed to delete route table %q", *rt.RouteTableId)
 		}
 
-		record.Eventf(s.scope.Cluster, "SuccessfulDeleteRouteTable", "Deleted managed RouteTable %q", *rt.RouteTableId)
+		record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteRouteTable", "Deleted managed RouteTable %q", *rt.RouteTableId)
 		s.scope.Info("Deleted route table", "route-table-id", *rt.RouteTableId)
 	}
 	return nil
@@ -201,10 +201,10 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 		VpcId: aws.String(s.scope.VPC().ID),
 	})
 	if err != nil {
-		record.Warnf(s.scope.Cluster, "FailedCreateRouteTable", "Failed to create managed RouteTable: %v", err)
+		record.Warnf(s.scope.AWSCluster, "FailedCreateRouteTable", "Failed to create managed RouteTable: %v", err)
 		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", s.scope.VPC().ID)
 	}
-	record.Eventf(s.scope.Cluster, "SuccessfulCreateRouteTable", "Created managed RouteTable %q", *out.RouteTable.RouteTableId)
+	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateRouteTable", "Created managed RouteTable %q", *out.RouteTable.RouteTableId)
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
@@ -215,10 +215,10 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 		}
 		return true, nil
 	}, awserrors.RouteTableNotFound); err != nil {
-		record.Warnf(s.scope.Cluster, "FailedTagRouteTable", "Failed to tag managed RouteTable %q: %v", *out.RouteTable.RouteTableId, err)
+		record.Warnf(s.scope.AWSCluster, "FailedTagRouteTable", "Failed to tag managed RouteTable %q: %v", *out.RouteTable.RouteTableId, err)
 		return nil, errors.Wrapf(err, "failed to tag route table %q", *out.RouteTable.RouteTableId)
 	}
-	record.Eventf(s.scope.Cluster, "SuccessfulTagRouteTable", "Tagged managed RouteTable %q", *out.RouteTable.RouteTableId)
+	record.Eventf(s.scope.AWSCluster, "SuccessfulTagRouteTable", "Tagged managed RouteTable %q", *out.RouteTable.RouteTableId)
 
 	for _, route := range routes {
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -238,10 +238,10 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 			return true, nil
 		}, awserrors.RouteTableNotFound, awserrors.NATGatewayNotFound, awserrors.GatewayNotFound); err != nil {
 			// TODO(vincepri): cleanup the route table if this fails.
-			record.Warnf(s.scope.Cluster, "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route.GoString(), *out.RouteTable.RouteTableId, err)
+			record.Warnf(s.scope.AWSCluster, "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route.GoString(), *out.RouteTable.RouteTableId, err)
 			return nil, errors.Wrapf(err, "failed to create route in route table %q: %s", *out.RouteTable.RouteTableId, route.GoString())
 		}
-		record.Eventf(s.scope.Cluster, "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route.GoString(), *out.RouteTable.RouteTableId)
+		record.Eventf(s.scope.AWSCluster, "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route.GoString(), *out.RouteTable.RouteTableId)
 	}
 
 	return &v1alpha2.RouteTable{
@@ -255,11 +255,11 @@ func (s *Service) associateRouteTable(rt *v1alpha2.RouteTable, subnetID string) 
 		SubnetId:     aws.String(subnetID),
 	})
 	if err != nil {
-		record.Warnf(s.scope.Cluster, "FailedAssociateRouteTable", "Failed to associate managed RouteTable %q with Subnet %q: %v", rt.ID, subnetID, err)
+		record.Warnf(s.scope.AWSCluster, "FailedAssociateRouteTable", "Failed to associate managed RouteTable %q with Subnet %q: %v", rt.ID, subnetID, err)
 		return errors.Wrapf(err, "failed to associate route table %q to subnet %q", rt.ID, subnetID)
 	}
 
-	record.Eventf(s.scope.Cluster, "SuccessfulAssociateRouteTable", "Associated managed RouteTable %q with subnet %q", rt.ID, subnetID)
+	record.Eventf(s.scope.AWSCluster, "SuccessfulAssociateRouteTable", "Associated managed RouteTable %q with subnet %q", rt.ID, subnetID)
 
 	return nil
 }
