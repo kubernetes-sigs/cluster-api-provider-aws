@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+GO111MODULE = on
+export GO111MODULE
+GOFLAGS += -mod=vendor
+export GOFLAGS
+GOPROXY ?=
+export GOPROXY
+
 DBG ?= 0
 
 ifeq ($(DBG),1)
@@ -37,19 +44,14 @@ else
   IMAGE_BUILD_CMD = docker build
 endif
 
-.PHONY: depend
-depend:
-	dep version || go get -u github.com/golang/dep/cmd/dep
-	dep ensure
-
 .PHONY: vendor
 vendor:
-	dep version || go get -u github.com/golang/dep/cmd/dep
-	dep ensure -v
+	go mod tidy
+	go mod vendor
+	go mod verify
 
 .PHONY: generate
 generate:
-	go install $(GOGCFLAGS) -ldflags '-extldflags "-static"' sigs.k8s.io/cluster-api-provider-aws/vendor/github.com/golang/mock/mockgen
 	go generate ./pkg/... ./cmd/...
 
 .PHONY: test
@@ -64,6 +66,7 @@ build: ## build binaries
                -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' \
                "$(REPO_PATH)/vendor/github.com/openshift/cluster-api/cmd/manager"
+
 
 aws-actuator:
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
