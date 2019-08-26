@@ -32,61 +32,48 @@ import (
 */
 
 // NewBackoff creates a new API Machinery backoff parameter set suitable
-// for use with AWS services, with values based loosely on
-// https://github.com/Netflix/edda/blob/master/src/main/scala/com/netflix/edda/Crawler.scala#L159
+// for use with AWS services.
 func NewBackoff() wait.Backoff {
+	// Return a exponential backoff configuration which
+	// returns durations for a total time of ~10m.
+	// Example: 1s, 2s, 4s, 8s, 16s, 20s, ... 20s — for a total of N steps.
 	return wait.Backoff{
-		Duration: 2 * time.Second,
-		Factor:   1.5,
-		Jitter:   1.0,
-		Steps:    100,
+		Duration: time.Second,
+		Factor:   2,
+		Steps:    32,
+		Jitter:   4,
+		Cap:      20 * time.Second,
 	}
 }
 
 // WaitForWithRetryable repeats a condition check with exponential backoff.
-//
-// It takes a list of string slice of AWS API errors that can be considered as retriable.
-//
-// It checks the condition up to Steps times.
-//
-// If Jitter is greater than zero, a random amount of each duration is added
-// (between duration and duration*(1+jitter)).
-//
-// If it receives a RequestLimitExceeded or Throttling error, then we
-// multiply the delay by the specified factor.
-//
-// If the condition never returns true, ErrWaitTimeout is returned. All other
-// errors terminate immediately.
 func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, retryableErrors ...string) error { //nolint
-	duration := backoff.Duration
-	for i := 0; i < backoff.Steps; i++ {
-		if i != 0 {
-			adjusted := duration
-			if backoff.Jitter > 0.0 {
-				adjusted = wait.Jitter(duration, backoff.Jitter)
-			}
-			time.Sleep(adjusted)
-			duration = time.Duration(float64(duration) * backoff.Factor)
-		}
+	return wait.ExponentialBackoff(backoff, func() (bool, error) {
 		ok, err := condition()
 		if ok {
-			return nil
+			// All done!
+			return true, nil
 		}
-		if err != nil {
-			code, ok := awserrors.Code(errors.Cause(err))
-			if !ok {
-				return err
-			}
-			isRetryable := false
-			for _, r := range retryableErrors {
-				if code == r {
-					isRetryable = true
-				}
-			}
-			if !isRetryable {
-				return err
+		if err == nil {
+			// Not done, but no error, so keep waiting.
+			return false, nil
+		}
+
+		// If the returned error isn't empty, check if the error is a retryable one,
+		// or return immediately.
+		code, ok := awserrors.Code(errors.Cause(err))
+		if !ok {
+			return false, err
+		}
+
+		for _, r := range retryableErrors {
+			if code == r {
+				// We should retry.
+				return false, nil
 			}
 		}
-	}
-	return wait.ErrWaitTimeout
+
+		// Got an error that we can't retry, so return it.
+		return false, err
+	})
 }
