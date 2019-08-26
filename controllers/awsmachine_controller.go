@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
@@ -39,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -148,21 +148,21 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 	return r.reconcileNormal(ctx, machineScope, clusterScope)
 }
 
-func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.AWSMachine{}).Watches(
-		&source.Kind{Type: &clusterv1.Machine{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.MachineToInfrastructureMapFunc(schema.GroupVersionKind{
-				Group:   infrav1.SchemeBuilder.GroupVersion.Group,
-				Version: infrav1.SchemeBuilder.GroupVersion.Version,
-				Kind:    "AWSMachine",
-			}),
-		},
-	).Watches(
-		&source.Kind{Type: &infrav1.AWSCluster{}},
-		&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.AWSClusterToAWSMachines)},
-	).Complete(r)
+		WithOptions(options).
+		For(&infrav1.AWSMachine{}).
+		Watches(
+			&source.Kind{Type: &clusterv1.Machine{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("AWSMachine")),
+			},
+		).
+		Watches(
+			&source.Kind{Type: &infrav1.AWSCluster{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.AWSClusterToAWSMachines)},
+		).
+		Complete(r)
 }
 
 func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope, clusterScope *scope.ClusterScope) (reconcile.Result, error) {

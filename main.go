@@ -19,10 +19,9 @@ package main
 import (
 	"flag"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
-
-	_ "net/http/pprof"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -33,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -51,25 +51,65 @@ func init() {
 func main() {
 	klog.InitFlags(nil)
 
-	var metricsAddr string
-	var enableLeaderElection bool
+	var (
+		metricsAddr           string
+		enableLeaderElection  bool
+		watchNamespace        string
+		profilerAddress       string
+		awsClusterConcurrency int
+		awsMachineConcurrency int
+	)
 
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
-		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
-	watchNamespace := flag.String("namespace", "",
-		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
-	profilerAddress := flag.String("profiler-address", "", "Bind address to expose the pprof profiler (e.g. localhost:6060)")
+	flag.StringVar(
+		&metricsAddr,
+		"metrics-addr",
+		":8080",
+		"The address the metric endpoint binds to.",
+	)
+
+	flag.BoolVar(
+		&enableLeaderElection,
+		"enable-leader-election",
+		false,
+		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.",
+	)
+
+	flag.StringVar(
+		&watchNamespace,
+		"namespace",
+		"",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.",
+	)
+
+	flag.StringVar(
+		&profilerAddress,
+		"profiler-address",
+		"",
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)",
+	)
+
+	flag.IntVar(&awsClusterConcurrency,
+		"awscluster-concurrency",
+		1,
+		"Number of AWSClusters to process simultaneously",
+	)
+
+	flag.IntVar(&awsMachineConcurrency,
+		"awsmachine-concurrency",
+		1,
+		"Number of AWSMachines to process simultaneously",
+	)
+
 	flag.Parse()
 
-	if *watchNamespace != "" {
-		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", *watchNamespace)
+	if watchNamespace != "" {
+		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", watchNamespace)
 	}
 
-	if *profilerAddress != "" {
-		setupLog.Info("Profiler listening for requests", "profiler-address", *profilerAddress)
+	if profilerAddress != "" {
+		setupLog.Info("Profiler listening for requests", "profiler-address", profilerAddress)
 		go func() {
-			setupLog.Error(http.ListenAndServe(*profilerAddress, nil), "listen and serve error")
+			setupLog.Error(http.ListenAndServe(profilerAddress, nil), "listen and serve error")
 		}()
 	}
 
@@ -82,7 +122,7 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
 		SyncPeriod:         &syncPeriod,
-		Namespace:          *watchNamespace,
+		Namespace:          watchNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -96,7 +136,7 @@ func main() {
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("AWSMachine"),
 		Recorder: mgr.GetEventRecorderFor("awsmachine-controller"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 		os.Exit(1)
 	}
@@ -104,7 +144,7 @@ func main() {
 		Client:   mgr.GetClient(),
 		Log:      ctrl.Log.WithName("controllers").WithName("AWSCluster"),
 		Recorder: mgr.GetEventRecorderFor("awscluster-controller"),
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 		os.Exit(1)
 	}
