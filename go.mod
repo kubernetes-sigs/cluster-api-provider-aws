@@ -19,10 +19,9 @@ require (
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
-	github.com/openshift/cluster-api v0.0.0-20190805113604-f8de78af80fc
+	github.com/openshift/cluster-api v0.0.0-20190820083002-b2bf995e2bba
 	github.com/openshift/cluster-api-actuator-pkg v0.0.0-20190527090340-7628df78fb4c
 	github.com/openshift/cluster-autoscaler-operator v0.0.0-20190521201101-62768a6ba480 // indirect
-	github.com/openshift/kubernetes-drain v0.0.0-20190712013109-4b061affbd00 // indirect
 	github.com/openshift/machine-api-operator v0.0.0-20190312153711-9650e16c9880 // indirect
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/prometheus/client_golang v0.9.2 // indirect

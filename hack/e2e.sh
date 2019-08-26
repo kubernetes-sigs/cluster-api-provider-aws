@@ -3,7 +3,8 @@
 set -euo pipefail
 
 unset GOFLAGS
+tmp="$(mktemp -d)"
 
-git clone "https://github.com/openshift/cluster-api-actuator-pkg.git" cluster-api-actuator-pkg
+git clone "https://github.com/openshift/cluster-api-actuator-pkg.git" "$tmp"
 
-exec make -C cluster-api-actuator-pkg test-e2e
+exec make -C "$tmp" test-e2e

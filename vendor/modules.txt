@@ -167,7 +167,7 @@ github.com/onsi/gomega/matchers/support/goraph/bipartitegraph
 github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
-# github.com/openshift/cluster-api v0.0.0-20190805113604-f8de78af80fc
+# github.com/openshift/cluster-api v0.0.0-20190820083002-b2bf995e2bba
 github.com/openshift/cluster-api/cmd/manager
 github.com/openshift/cluster-api/pkg/apis/machine/v1beta1
 github.com/openshift/cluster-api/pkg/apis
@@ -177,6 +177,7 @@ github.com/openshift/cluster-api/pkg/controller/error
 github.com/openshift/cluster-api/pkg/errors
 github.com/openshift/cluster-api/pkg/controller
 github.com/openshift/cluster-api/pkg/apis/machine/common
+github.com/openshift/cluster-api/pkg/drain
 github.com/openshift/cluster-api/pkg/util
 github.com/openshift/cluster-api/pkg/apis/cluster/common
 github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset
@@ -193,8 +194,6 @@ github.com/openshift/cluster-api-actuator-pkg/pkg/manifests
 # github.com/openshift/cluster-autoscaler-operator v0.0.0-20190521201101-62768a6ba480
 github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1
 github.com/openshift/cluster-autoscaler-operator/pkg/apis/autoscaling/v1beta1
-# github.com/openshift/kubernetes-drain v0.0.0-20190712013109-4b061affbd00
-github.com/openshift/kubernetes-drain
 # github.com/openshift/machine-api-operator v0.0.0-20190312153711-9650e16c9880
 github.com/openshift/machine-api-operator/pkg/apis/healthchecking/v1alpha1
 github.com/openshift/machine-api-operator/pkg/generated/clientset/versioned
