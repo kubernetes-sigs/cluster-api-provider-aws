@@ -25,12 +25,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
-const (
-	AnnotationClusterInfrastructureReady = "aws.infrastructure.cluster.x-k8s.io/infrastructure-ready"
-	AnnotationControlPlaneReady          = "aws.infrastructure.cluster.x-k8s.io/control-plane-ready"
-	ValueReady                           = "true"
-)
-
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
 // Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 // a validation error.
