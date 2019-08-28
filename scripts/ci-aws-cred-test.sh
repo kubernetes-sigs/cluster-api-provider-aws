@@ -18,7 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-
 GROUP_NAME=capa-cred-test-group-$(openssl rand -hex 8)
 USERNAME=capa-cred-test-user-$(openssl rand -hex 8)
 
@@ -40,21 +39,21 @@ aws iam create-user --user-name "${USERNAME}"
 echo "Adding User to Group"
 aws iam add-user-to-group --user-name "${USERNAME}" --group-name "${GROUP_NAME}"
 
-echo '### Clean up ###\n'
-echo '\n'
+echo -e "### Clean up ###\n"
+echo -e "\n"
 
-echo 'Remove user from group'
+echo "Remove user from group"
 aws iam remove-user-from-group --user-name "${USERNAME}" --group-name "${GROUP_NAME}"
 
-echo 'Delete user'
+echo "Delete user"
 aws iam delete-user --user-name "${USERNAME}"
 
-echo 'Detach policies'
+echo "Detach policies"
 aws iam detach-group-policy --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess --group-name "${GROUP_NAME}"
 aws iam detach-group-policy --policy-arn arn:aws:iam::aws:policy/IAMFullAccess --group-name "${GROUP_NAME}"
 aws iam detach-group-policy --policy-arn arn:aws:iam::aws:policy/AmazonVPCFullAccess --group-name "${GROUP_NAME}"
 
-echo 'Delete group'
+echo "Delete group"
 aws iam delete-group --group-name "${GROUP_NAME}"
 
-echo 'All tasks done'
+echo "All tasks done"

@@ -20,34 +20,33 @@ SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
 
-# A release should define this with gcr.io/cluster-api-provider-aws
-REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
-# A release does not need to define this
-MANAGER_IMAGE_NAME ?= cluster-api-aws-controller
-# A release should define this with the next version after 0.0.4
-MANAGER_IMAGE_TAG ?= dev
-# A release should define this with IfNotPresent
-PULL_POLICY ?= Always
-
-# Used in docker-* targets.
-MANAGER_IMAGE ?= $(REGISTRY)/$(MANAGER_IMAGE_NAME):$(MANAGER_IMAGE_TAG)
-
-## Image URL to use all building/pushing image targets
-BAZEL_ARGS ?=
-BAZEL_BUILD_ARGS := --define=REGISTRY=$(REGISTRY)\
- --define=PULL_POLICY=$(PULL_POLICY)\
- --define=MANAGER_IMAGE_NAME=$(MANAGER_IMAGE_NAME)\
- --define=MANAGER_IMAGE_TAG=$(MANAGER_IMAGE_TAG)\
- --host_force_python=PY2\
-$(BAZEL_ARGS)
-
-# Bazel variables
-BAZEL_VERSION := $(shell command -v bazel 2> /dev/null)
-ifndef BAZEL_VERSION
-    $(error "Bazel is not available. \
-		Installation instructions can be found at \
-		https://docs.bazel.build/versions/master/install.html")
+# Use GOPROXY environment variable if set
+GOPROXY := $(shell go env GOPROXY)
+ifeq ($(GOPROXY),)
+GOPROXY := https://proxy.golang.org
 endif
+export GOPROXY
+
+# Active module mode, as we use go modules to manage dependencies
+export GO111MODULE=on
+
+# Directories.
+TOOLS_DIR := hack/tools
+TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+BIN_DIR := bin
+
+# Binaries.
+CLUSTERCTL := $(BIN_DIR)/clusterctl
+CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
+
+# Define Docker related variables. Releases should modify and double check these vars.
+REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
+CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
+TAG ?= dev
+ARCH ?= amd64
+ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
@@ -55,8 +54,9 @@ CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 
-.PHONY: all
-all: verify-install test binaries
+## --------------------------------------
+## Help
+## --------------------------------------
 
 help:  ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
@@ -67,24 +67,95 @@ help:  ## Display this help
 
 .PHONY: test
 test: generate lint ## Run tests
-	$(MAKE) test-go
+	go test -v ./...
 
-.PHONY: test-go
-test-go: ## Run tests
-	go test -v -tags=integration ./pkg/... ./cmd/... ./api/... ./controllers/...
+.PHONY: test-integration
+test-integration: ## Run integration tests
+	go test -v -tags=integration ./test/integration/...
 
-.PHONY: integration
-integration: generate verify ## Run integraion tests
-	bazel test --define='gotags=integration' --test_output all //test/integration/...
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests
+	go test -v -tags=e2e ./test/e2e/...
 
-JANITOR_ENABLED ?= 0
-.PHONY: e2e
-e2e: generate verify ## Run e2e tests
-	JANITOR_ENABLED=$(JANITOR_ENABLED) ./hack/e2e.sh  $(BAZEL_BUILD_ARGS)
+## --------------------------------------
+## Binaries
+## --------------------------------------
 
-.PHONY: e2e-janitor
-e2e-janitor:
-	./hack/e2e-aws-janitor.sh
+.PHONY: binaries
+binaries: manager clusterawsadm ## Builds and installs all binaries
+
+.PHONY: manager
+manager: ## Build manager binary.
+	go build -o $(BIN_DIR)/manager .
+
+.PHONY: clusterawsadm
+clusterawsadm: ## Build clusterawsadm binary.
+	go build -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
+
+## --------------------------------------
+## Tooling Binaries
+## --------------------------------------
+
+$(CLUSTERCTL): go.mod ## Build clusterctl binary.
+	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
+
+$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+
+$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+
+$(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
+
+## --------------------------------------
+## Linting
+## --------------------------------------
+
+.PHONY: lint
+lint: $(GOLANGCI_LINT) ## Lint codebase
+	$(GOLANGCI_LINT) run -v
+
+lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
+	$(GOLANGCI_LINT) run -v --fast=false
+
+## --------------------------------------
+## Generate
+## --------------------------------------
+
+.PHONY: modules
+modules: ## Runs go mod to ensure proper vendoring.
+	go mod tidy
+	cd $(TOOLS_DIR); go mod tidy
+
+.PHONY: generate
+generate: ## Generate code
+	$(MAKE) generate-go
+	$(MAKE) generate-manifests
+
+.PHONY: generate-go
+generate-go: $(CONTROLLER_GEN) $(MOCKGEN) ## Runs Go related generate targets
+	go generate ./...
+	$(CONTROLLER_GEN) \
+		paths=./api/... \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
+
+.PHONY: generate-manifests
+generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
+		paths=./api/... \
+		crd:trivialVersions=true \
+		output:crd:dir=$(CRD_ROOT) \
+		output:webhook:dir=$(WEBHOOK_ROOT) \
+		webhook
+	$(CONTROLLER_GEN) \
+		paths=./controllers/... \
+		output:rbac:dir=$(RBAC_ROOT) \
+		rbac:roleName=manager-role
+
+.PHONY: generate-examples
+generate-examples: clean-examples ## Generate examples configurations to run a cluster.
+	./examples/generate.sh
 
 ## --------------------------------------
 ## Docker
@@ -92,97 +163,13 @@ e2e-janitor:
 
 .PHONY: docker-build
 docker-build: generate lint-full ## Build the docker image for controller-manager
-	docker build --pull . -t $(MANAGER_IMAGE)
-	# TODO: sed probably needs to be gnu sed not bsd sed
-	sed -i '' -e 's@image: .*@image: '"${MANAGER_IMAGE}"'@' ./config/default/manager_image_patch.yaml
+	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	@echo "updating kustomize image patch file for manager resource"
+	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}-$(ARCH):$(TAG)"'@' ./config/default/manager_image_patch.yaml
 
 .PHONY: docker-push
 docker-push: docker-build ## Push the docker image
-	docker push $(MANAGER_IMAGE)
-
-## --------------------------------------
-## Generate
-## --------------------------------------
-
-.PHONY: vendor
-vendor: ## Runs go mod to ensure proper vendoring.
-	./hack/update-vendor.sh
-	$(MAKE) gazelle
-
-.PHONY: gazelle
-gazelle: ## Run Bazel Gazelle
-	(which bazel && ./hack/update-bazel.sh) || true
-
-.PHONY: generate
-generate: ## Generate code
-	$(MAKE) generate-go
-	$(MAKE) generate-mocks
-	$(MAKE) generate-manifests
-	$(MAKE) generate-deepcopy
-	$(MAKE) gazelle
-
-.PHONY: generate-go
-generate-go: ## Runs go generate
-	go generate ./pkg/... ./cmd/...
-
-.PHONY: generate-mocks
-generate-mocks: clean-bazel-mocks ## Generate mocks, CRDs and runs `go generate` through Bazel
-	bazel build $(BAZEL_ARGS) //pkg/cloud/services/ec2/mock_ec2iface:mocks \
-		//pkg/cloud/services/elb/mock_elbiface:mocks
-	./hack/copy-bazel-mocks.sh
-
-.PHONY: generate-manifests
-generate-manifests: ## Generate manifests e.g. CRD, RBAC etc.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./api/... \
-		crd:trivialVersions=true \
-		output:crd:dir=$(CRD_ROOT) \
-		output:webhook:dir=$(WEBHOOK_ROOT) \
-		webhook
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./controllers/... \
-		output:rbac:dir=$(RBAC_ROOT) \
-		rbac:roleName=manager-role
-
-.PHONY: generate-deepcopy
-generate-deepcopy: ## Runs controller-gen to generate deepcopy files.
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go \
-		paths=./api/... \
-		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
-
-.PHONY: generate-examples
-generate-examples: clean-examples ## Generate examples configurations to run a cluster.
-	./examples/generate.sh
-
-## --------------------------------------
-## Linting
-## --------------------------------------
-
-.PHONY: lint
-lint: ## Lint codebase
-	bazel run //:lint $(BAZEL_ARGS)
-
-lint-full: ## Run slower linters to detect possible issues
-	bazel run //:lint-full $(BAZEL_ARGS)
-
-## --------------------------------------
-## Binaries
-## --------------------------------------
-
-.PHONY: binaries
-binaries: manager clusterawsadm clusterctl ## Builds and installs all binaries
-
-.PHONY: manager
-manager: ## Build manager binary.
-	go build -o bin/manager .
-
-.PHONY: clusterctl
-clusterctl: ## Build clusterctl binary.
-	GOFLAGS="" go build -o bin/clusterctl ./vendor/sigs.k8s.io/cluster-api/cmd/clusterctl
-
-.PHONY: clusterawsadm
-clusterawsadm: ## Build clusterawsadm binary.
-	go build -o bin/clusterawsadm ./cmd/clusterawsadm
+	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Release
@@ -190,21 +177,16 @@ clusterawsadm: ## Build clusterawsadm binary.
 
 .PHONY: release-artifacts
 release-artifacts: ## Build release artifacts
-	bazel build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 //cmd/clusterawsadm
-	bazel build --platforms=@io_bazel_rules_go//go/toolchain:darwin_amd64 //cmd/clusterawsadm
-	bazel build //examples $(BAZEL_BUILD_ARGS)
-	mkdir -p out
-	install bazel-bin/cmd/clusterawsadm/darwin_amd64_pure_stripped/clusterawsadm out/clusterawsadm-darwin-amd64
-	install bazel-bin/cmd/clusterawsadm/linux_amd64_pure_stripped/clusterawsadm out/clusterawsadm-linux-amd64
-	install bazel-bin/examples/aws.tar out/cluster-api-provider-aws-examples.tar
+	## TODO: Implement.
 
 ## --------------------------------------
-## Define local development targets here
+## Development
 ## --------------------------------------
 
 .PHONY: create-cluster
-create-cluster: ## Create a development Kubernetes cluster on AWS using examples
-	bin/clusterctl create cluster -v 4 \
+create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS using examples
+	$(CLUSTERCTL) \
+	create cluster -v 4 \
 	--bootstrap-flags="name=clusterapi" \
 	--bootstrap-type kind \
 	-m ./examples/_out/controlplane.yaml \
@@ -214,7 +196,7 @@ create-cluster: ## Create a development Kubernetes cluster on AWS using examples
 
 
 .PHONY: create-cluster-management
-create-cluster-management: ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
 	kind create cluster --name=clusterapi
 	# Apply provider-components.
 	kubectl \
@@ -229,12 +211,14 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/controlplane.yaml
 	# Get KubeConfig using clusterctl.
-	bin/clusterctl alpha phases get-kubeconfig -v=3 \
+	$(CLUSTERCTL) \
+		alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		--namespace=default \
 		--cluster-name=test1
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
-	bin/clusterctl alpha phases apply-addons -v=3 \
+	$(CLUSTERCTL) \
+		alpha phases apply-addons -v=3 \
 		--kubeconfig=./kubeconfig \
 		-a examples/addons.yaml
 	# Create a worker node with MachineDeployment.
@@ -243,8 +227,9 @@ create-cluster-management: ## Create a development Kubernetes cluster on AWS in 
 		create -f examples/_out/machinedeployment.yaml
 
 .PHONY: delete-cluster
-delete-cluster: binaries ## Deletes the development Kubernetes Cluster "test1"
-	bin/clusterctl delete cluster -v 4 \
+delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "test1"
+	$(CLUSTERCTL) \
+	delete cluster -v 4 \
 	--bootstrap-type kind \
 	--bootstrap-flags="name=clusterapi" \
 	--cluster test1 \
@@ -260,21 +245,13 @@ kind-reset: ## Destroys the "clusterapi" kind cluster.
 
 .PHONY: clean
 clean: ## Remove all generated files
-	$(MAKE) clean-bazel
 	$(MAKE) clean-bin
 	$(MAKE) clean-temporary
-
-.PHONY: clean-bazel
-clean-bazel: ## Remove all generated bazel symlinks
-	bazel clean
-
-.PHONY: clean-bazel-mocks
-clean-bazel-mocks: ## Remove all generated bazel mocks files
-	if [[ -d "bazel-bin/pkg" ]]; then find bazel-bin/pkg -name '*_mock.go' -type f -delete; fi
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
 	rm -rf bin
+	rm -rf hack/tools/bin
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders
@@ -290,7 +267,6 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 .PHONY: verify
 verify: ## Runs verification scripts to ensure correct execution
 	./hack/verify-boilerplate.sh
-	./hack/verify-bazel.sh
 
 .PHONY: verify-install
 verify-install: ## Checks that you've installed this repository correctly
