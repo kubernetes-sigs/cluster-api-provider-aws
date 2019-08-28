@@ -86,7 +86,7 @@ if [ "${JANITOR_ENABLED:-0}" = "1" ]; then
     aws-janitor -all -v 2
   fi
 else
-  echo "skipping janitor; JANITOR_ENABLED=${JANITOR_ENABLED}" 1>&2
+  echo "skipping janitor; JANITOR_ENABLED=${JANITOR_ENABLED:-0}" 1>&2
 fi
 
 exit "${test_status}"
