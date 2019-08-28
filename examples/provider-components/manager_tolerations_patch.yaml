@@ -30,8 +30,8 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cluster-api-controller-manager
-  namespace: cluster-api-system
+  name: capi-controller-manager
+  namespace: capi-system
 spec:
   template:
     spec:
