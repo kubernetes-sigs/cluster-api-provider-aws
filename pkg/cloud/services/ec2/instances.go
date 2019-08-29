@@ -29,7 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
@@ -38,7 +38,7 @@ import (
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
-func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*v1alpha2.Instance, error) {
+func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error) {
 	s.scope.V(2).Info("Looking for existing machine instance by tags")
 
 	input := &ec2.DescribeInstancesInput{
@@ -71,7 +71,7 @@ func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*v1alpha2
 }
 
 // InstanceIfExists returns the existing instance or nothing if it doesn't exist.
-func (s *Service) InstanceIfExists(id *string) (*v1alpha2.Instance, error) {
+func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 	if id == nil {
 		s.scope.Info("Instance does not have an instance id")
 		return nil, nil
@@ -99,22 +99,22 @@ func (s *Service) InstanceIfExists(id *string) (*v1alpha2.Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance, error) {
+func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
-	input := &v1alpha2.Instance{
+	input := &infrav1.Instance{
 		Type:           scope.AWSMachine.Spec.InstanceType,
 		IAMProfile:     scope.AWSMachine.Spec.IAMInstanceProfile,
 		RootDeviceSize: scope.AWSMachine.Spec.RootDeviceSize,
 	}
 
-	input.Tags = v1alpha2.Build(v1alpha2.BuildParams{
+	input.Tags = infrav1.Build(infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
-		Additional: v1alpha2.Tags{
-			v1alpha2.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(v1alpha2.ResourceLifecycleOwned),
+		Additional: infrav1.Tags{
+			infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(infrav1.ResourceLifecycleOwned),
 		},
 	})
 
@@ -197,15 +197,15 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*v1alpha2.Instance,
 // They are considered "core" to its proper functioning
 func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, error) {
 	// These are common across both controlplane and node machines
-	sgRoles := []v1alpha2.SecurityGroupRole{
-		v1alpha2.SecurityGroupNode,
-		v1alpha2.SecurityGroupLB,
+	sgRoles := []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupNode,
+		infrav1.SecurityGroupLB,
 	}
 	switch scope.Role() {
 	case "node":
 		// Just the common security groups above
 	case "control-plane":
-		sgRoles = append(sgRoles, v1alpha2.SecurityGroupControlPlane)
+		sgRoles = append(sgRoles, infrav1.SecurityGroupControlPlane)
 	default:
 		return nil, errors.Errorf("Unknown node role %q", scope.Role())
 	}
@@ -258,7 +258,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 	return nil
 }
 
-func (s *Service) runInstance(role string, i *v1alpha2.Instance) (*v1alpha2.Instance, error) {
+func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instance, error) {
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
@@ -519,10 +519,10 @@ func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, err
 // converters.SDKToInstance populates all instance fields except for rootVolumeSize,
 // because EC2.DescribeInstances does not return the size of storage devices. An
 // additional call to EC2 is required to get this value.
-func (s *Service) SDKToInstance(v *ec2.Instance) (*v1alpha2.Instance, error) {
-	i := &v1alpha2.Instance{
+func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
+	i := &infrav1.Instance{
 		ID:           aws.StringValue(v.InstanceId),
-		State:        v1alpha2.InstanceState(*v.State.Name),
+		State:        infrav1.InstanceState(*v.State.Name),
 		Type:         aws.StringValue(v.InstanceType),
 		SubnetID:     aws.StringValue(v.SubnetId),
 		ImageID:      aws.StringValue(v.ImageId),

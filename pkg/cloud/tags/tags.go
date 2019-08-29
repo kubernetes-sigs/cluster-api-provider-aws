@@ -21,18 +21,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 )
 
 // ApplyParams are function parameters used to apply tags on an aws resource.
 type ApplyParams struct {
-	v1alpha2.BuildParams
+	infrav1.BuildParams
 	EC2Client ec2iface.EC2API
 }
 
 // Apply tags a resource with tags including the cluster tag.
 func Apply(params *ApplyParams) error {
-	tags := v1alpha2.Build(params.BuildParams)
+	tags := infrav1.Build(params.BuildParams)
 
 	awsTags := make([]*ec2.Tag, 0, len(tags))
 	for k, v := range tags {
@@ -53,8 +53,8 @@ func Apply(params *ApplyParams) error {
 }
 
 // Ensure applies the tags if the current tags differ from the params.
-func Ensure(current v1alpha2.Tags, params *ApplyParams) error {
-	want := v1alpha2.Build(params.BuildParams)
+func Ensure(current infrav1.Tags, params *ApplyParams) error {
+	want := infrav1.Build(params.BuildParams)
 	if !current.Equals(want) {
 		return Apply(params)
 	}

@@ -21,17 +21,17 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 )
 
 // SDKToInstance converts an EC2 instance type to the CAPA
 // instance type.
 // Note: This does not return a complete instance, as rootVolumeSize
 // can not be determined via the output of EC2.DescribeInstances.
-func SDKToInstance(v *ec2.Instance) *v1alpha2.Instance {
-	i := &v1alpha2.Instance{
+func SDKToInstance(v *ec2.Instance) *infrav1.Instance {
+	i := &infrav1.Instance{
 		ID:           aws.StringValue(v.InstanceId),
-		State:        v1alpha2.InstanceState(*v.State.Name),
+		State:        infrav1.InstanceState(*v.State.Name),
 		Type:         aws.StringValue(v.InstanceType),
 		SubnetID:     aws.StringValue(v.SubnetId),
 		ImageID:      aws.StringValue(v.ImageId),

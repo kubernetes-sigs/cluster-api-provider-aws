@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
@@ -142,7 +142,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 
 	// Update the tags, so that when ig.InternetGateway is returned it has the
 	// latest tag data rather than returning empty tags.
-	ig.InternetGateway.Tags = converters.MapToTags(v1alpha2.Build(tagParams))
+	ig.InternetGateway.Tags = converters.MapToTags(infrav1.Build(tagParams))
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if _, err := s.scope.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 			InternetGatewayId: ig.InternetGateway.InternetGatewayId,
@@ -179,14 +179,14 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	return out.InternetGateways, nil
 }
 
-func (s *Service) getGatewayTagParams(id string) v1alpha2.BuildParams {
+func (s *Service) getGatewayTagParams(id string) infrav1.BuildParams {
 	name := fmt.Sprintf("%s-igw", s.scope.Name())
 
-	return v1alpha2.BuildParams{
+	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(v1alpha2.CommonRoleTagValue),
+		Role:        aws.String(infrav1.CommonRoleTagValue),
 	}
 }

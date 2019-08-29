@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
@@ -196,7 +196,7 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 	return out.RouteTables, nil
 }
 
-func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool) (*v1alpha2.RouteTable, error) {
+func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool) (*infrav1.RouteTable, error) {
 	out, err := s.scope.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(s.scope.VPC().ID),
 	})
@@ -244,12 +244,12 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 		record.Eventf(s.scope.AWSCluster, "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route.GoString(), *out.RouteTable.RouteTableId)
 	}
 
-	return &v1alpha2.RouteTable{
+	return &infrav1.RouteTable{
 		ID: *out.RouteTable.RouteTableId,
 	}, nil
 }
 
-func (s *Service) associateRouteTable(rt *v1alpha2.RouteTable, subnetID string) error {
+func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) error {
 	_, err := s.scope.EC2.AssociateRouteTable(&ec2.AssociateRouteTableInput{
 		RouteTableId: aws.String(rt.ID),
 		SubnetId:     aws.String(subnetID),
@@ -282,7 +282,7 @@ func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
 	}
 }
 
-func (s *Service) getRouteTableTagParams(id string, public bool) v1alpha2.BuildParams {
+func (s *Service) getRouteTableTagParams(id string, public bool) infrav1.BuildParams {
 	var name strings.Builder
 
 	name.WriteString(s.scope.Name())
@@ -293,11 +293,11 @@ func (s *Service) getRouteTableTagParams(id string, public bool) v1alpha2.BuildP
 		name.WriteString("private")
 	}
 
-	return v1alpha2.BuildParams{
+	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
-		Role:        aws.String(v1alpha2.CommonRoleTagValue),
+		Role:        aws.String(infrav1.CommonRoleTagValue),
 	}
 }

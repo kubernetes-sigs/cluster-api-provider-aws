@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
@@ -40,12 +40,12 @@ func TestReconcileNatGateways(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  []*v1alpha2.SubnetSpec
+		input  []*infrav1.SubnetSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name: "single private subnet exists, should create no NAT gateway",
-			input: []*v1alpha2.SubnetSpec{
+			input: []*infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -59,7 +59,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "no private subnet exists, should create no NAT gateway",
-			input: []*v1alpha2.SubnetSpec{
+			input: []*infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -74,7 +74,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet exists, should create 1 NAT gateway",
-			input: []*v1alpha2.SubnetSpec{
+			input: []*infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -135,7 +135,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "two public & 1 private subnet, and one NAT gateway exists",
-			input: []*v1alpha2.SubnetSpec{
+			input: []*infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -204,7 +204,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet, and one NAT gateway exists",
-			input: []*v1alpha2.SubnetSpec{
+			input: []*infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
 					AvailabilityZone: "us-east-1a",
@@ -261,7 +261,7 @@ func TestReconcileNatGateways(t *testing.T) {
 		},
 		{
 			name: "public & private subnet declared, but don't exist yet",
-			input: []*v1alpha2.SubnetSpec{
+			input: []*infrav1.SubnetSpec{
 				{
 					ID:               "",
 					AvailabilityZone: "us-east-1a",
@@ -296,13 +296,13 @@ func TestReconcileNatGateways(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				AWSCluster: &v1alpha2.AWSCluster{
-					Spec: v1alpha2.AWSClusterSpec{
-						NetworkSpec: v1alpha2.NetworkSpec{
-							VPC: v1alpha2.VPCSpec{
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{
+							VPC: infrav1.VPCSpec{
 								ID: subnetsVPCID,
-								Tags: v1alpha2.Tags{
-									v1alpha2.ClusterTagKey("test-cluster"): "owned",
+								Tags: infrav1.Tags{
+									infrav1.ClusterTagKey("test-cluster"): "owned",
 								},
 							},
 							Subnets: tc.input,

@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
@@ -146,20 +146,20 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, err
 	return gateways, nil
 }
 
-func (s *Service) getNatGatewayTagParams(id string) v1alpha2.BuildParams {
+func (s *Service) getNatGatewayTagParams(id string) infrav1.BuildParams {
 	name := fmt.Sprintf("%s-nat", s.scope.Name())
 
-	return v1alpha2.BuildParams{
+	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(v1alpha2.CommonRoleTagValue),
+		Role:        aws.String(infrav1.CommonRoleTagValue),
 	}
 }
 
 func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.getOrAllocateAddress(v1alpha2.APIServerRoleTagValue)
+	ip, err := s.getOrAllocateAddress(infrav1.APIServerRoleTagValue)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
 	}
@@ -249,7 +249,7 @@ func (s *Service) deleteNatGateway(id string) error {
 	return nil
 }
 
-func (s *Service) getNatGatewayForSubnet(sn *v1alpha2.SubnetSpec) (string, error) {
+func (s *Service) getNatGatewayForSubnet(sn *infrav1.SubnetSpec) (string, error) {
 	if sn.IsPublic {
 		return "", errors.Errorf("cannot get NAT gateway for a public subnet, got id %q", sn.ID)
 	}

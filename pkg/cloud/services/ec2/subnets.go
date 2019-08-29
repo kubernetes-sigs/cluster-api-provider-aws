@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -64,7 +64,7 @@ func (s *Service) reconcileSubnets() error {
 				return errors.New("expected at least one private subnet available for use, got 0")
 			}
 
-			subnets = append(subnets, &v1alpha2.SubnetSpec{
+			subnets = append(subnets, &infrav1.SubnetSpec{
 				CidrBlock:        defaultPrivateSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         false,
@@ -76,7 +76,7 @@ func (s *Service) reconcileSubnets() error {
 				return errors.New("expected at least one public subnet available for use, got 0")
 			}
 
-			subnets = append(subnets, &v1alpha2.SubnetSpec{
+			subnets = append(subnets, &infrav1.SubnetSpec{
 				CidrBlock:        defaultPublicSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         true,
@@ -162,7 +162,7 @@ func (s *Service) deleteSubnets() error {
 	return nil
 }
 
-func (s *Service) describeVpcSubnets() (v1alpha2.Subnets, error) {
+func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 	input := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
@@ -190,11 +190,11 @@ func (s *Service) describeVpcSubnets() (v1alpha2.Subnets, error) {
 		return nil, err
 	}
 
-	subnets := make([]*v1alpha2.SubnetSpec, 0, len(out.Subnets))
+	subnets := make([]*infrav1.SubnetSpec, 0, len(out.Subnets))
 	// Besides what the AWS API tells us directly about the subnets, we also want to discover whether the subnet is "public" (i.e. directly connected to the internet) and if there are any associated NAT gateways.
 	// We also look for a tag indicating that a particular subnet should be public, to try and determine whether a managed VPC's subnet should have such a route, but does not.
 	for _, ec2sn := range out.Subnets {
-		spec := &v1alpha2.SubnetSpec{
+		spec := &infrav1.SubnetSpec{
 			ID:               *ec2sn.SubnetId,
 			CidrBlock:        *ec2sn.CidrBlock,
 			AvailabilityZone: *ec2sn.AvailabilityZone,
@@ -202,7 +202,7 @@ func (s *Service) describeVpcSubnets() (v1alpha2.Subnets, error) {
 		}
 
 		// A subnet is public if it's tagged as such...
-		if spec.Tags.GetRole() == v1alpha2.PublicRoleTagValue {
+		if spec.Tags.GetRole() == infrav1.PublicRoleTagValue {
 			spec.IsPublic = true
 		}
 
@@ -231,7 +231,7 @@ func (s *Service) describeVpcSubnets() (v1alpha2.Subnets, error) {
 	return subnets, nil
 }
 
-func (s *Service) createSubnet(sn *v1alpha2.SubnetSpec) (*v1alpha2.SubnetSpec, error) {
+func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, error) {
 	out, err := s.scope.EC2.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(s.scope.VPC().ID),
 		CidrBlock:        aws.String(sn.CidrBlock),
@@ -291,7 +291,7 @@ func (s *Service) createSubnet(sn *v1alpha2.SubnetSpec) (*v1alpha2.SubnetSpec, e
 		"cidr-block", *out.Subnet.CidrBlock,
 		"availability-zone", *out.Subnet.AvailabilityZone)
 
-	return &v1alpha2.SubnetSpec{
+	return &infrav1.SubnetSpec{
 		ID:               *out.Subnet.SubnetId,
 		AvailabilityZone: *out.Subnet.AvailabilityZone,
 		CidrBlock:        *out.Subnet.CidrBlock,
@@ -314,19 +314,19 @@ func (s *Service) deleteSubnet(id string) error {
 	return nil
 }
 
-func (s *Service) getSubnetTagParams(id string, public bool) v1alpha2.BuildParams {
+func (s *Service) getSubnetTagParams(id string, public bool) infrav1.BuildParams {
 	var role string
-	var additionalTags v1alpha2.Tags
+	var additionalTags infrav1.Tags
 
 	if public {
-		role = v1alpha2.PublicRoleTagValue
+		role = infrav1.PublicRoleTagValue
 	} else {
-		role = v1alpha2.PrivateRoleTagValue
+		role = infrav1.PrivateRoleTagValue
 	}
 
 	// Add tag needed for Service type=LoadBalancer
-	additionalTags = v1alpha2.Tags{
-		v1alpha2.NameKubernetesAWSCloudProviderPrefix + s.scope.Name(): string(v1alpha2.ResourceLifecycleShared),
+	additionalTags = infrav1.Tags{
+		infrav1.NameKubernetesAWSCloudProviderPrefix + s.scope.Name(): string(infrav1.ResourceLifecycleShared),
 	}
 
 	var name strings.Builder
@@ -334,10 +334,10 @@ func (s *Service) getSubnetTagParams(id string, public bool) v1alpha2.BuildParam
 	name.WriteString("-subnet-")
 	name.WriteString(role)
 
-	return v1alpha2.BuildParams{
+	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
 		Role:        aws.String(role),
 		Additional:  additionalTags,

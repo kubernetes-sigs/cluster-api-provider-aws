@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
@@ -37,27 +37,27 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha2.NetworkSpec
+		input  *infrav1.NetworkSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 		err    error
 	}{
 		{
 			name: "no existing",
-			input: &v1alpha2.NetworkSpec{
-				VPC: v1alpha2.VPCSpec{
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
 					InternetGatewayID: aws.String("igw-01"),
-					Tags: v1alpha2.Tags{
-						v1alpha2.ClusterTagKey("test-cluster"): "owned",
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
 				},
-				Subnets: v1alpha2.Subnets{
-					&v1alpha2.SubnetSpec{
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-private",
 						IsPublic:         false,
 						AvailabilityZone: "us-east-1a",
 					},
-					&v1alpha2.SubnetSpec{
+					&infrav1.SubnetSpec{
 						ID:               "subnet-securitygroups-public",
 						IsPublic:         true,
 						NatGatewayID:     aws.String("nat-01"),
@@ -148,8 +148,8 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				AWSCluster: &v1alpha2.AWSCluster{
-					Spec: v1alpha2.AWSClusterSpec{
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
 						NetworkSpec: *tc.input,
 					},
 				},
