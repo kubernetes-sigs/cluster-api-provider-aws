@@ -24,9 +24,11 @@ import (
 
 	"github.com/go-log/log/info"
 	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
+	commonerrors "github.com/openshift/cluster-api/pkg/apis/machine/common"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	controllerError "github.com/openshift/cluster-api/pkg/controller/error"
 	kubedrain "github.com/openshift/cluster-api/pkg/drain"
+	clusterapiError "github.com/openshift/cluster-api/pkg/errors"
 	"github.com/openshift/cluster-api/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -217,8 +219,16 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if err := r.actuator.Delete(ctx, cluster, m); err != nil {
-			klog.Errorf("Failed to delete machine %q: %v", name, err)
-			return delayIfRequeueAfterError(err)
+			// isInvalidMachineConfiguration will take care of the case where the
+			// configuration is invalid from the beginning. len(m.Status.Addresses) > 0
+			// will handle the case when a machine configuration was invalidated
+			// after an instance was created. So only a small window is left when
+			// we can loose instances, e.g. right after request to create one
+			// was sent and before a list of node addresses was set.
+			if  len(m.Status.Addresses) > 0 || !isInvalidMachineConfigurationError(err) {
+				klog.Errorf("Failed to delete machine %q: %v", name, err)
+				return delayIfRequeueAfterError(err)
+			}
 		}
 
 		if m.Status.NodeRef != nil {
@@ -365,4 +375,15 @@ func delayIfRequeueAfterError(err error) (reconcile.Result, error) {
 		return reconcile.Result{Requeue: true, RequeueAfter: t.RequeueAfter}, nil
 	}
 	return reconcile.Result{}, err
+}
+
+func isInvalidMachineConfigurationError(err error) bool {
+	switch t := err.(type) {
+	case *clusterapiError.MachineError:
+		if t.Reason == commonerrors.InvalidConfigurationMachineError {
+			klog.Infof("Actuator returned invalid configuration error: %v", err)
+			return true
+		}
+	}
+	return false
 }
