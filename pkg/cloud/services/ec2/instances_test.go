@@ -449,12 +449,12 @@ func TestCreateInstance(t *testing.T) {
 					Name: "test1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetworkingConfig{
+					ClusterNetwork: &clusterv1.ClusterNetwork{
 						ServiceDomain: "cluster.local",
-						Services: clusterv1.NetworkRanges{
+						Services: &clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
 						},
-						Pods: clusterv1.NetworkRanges{
+						Pods: &clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
 						},
 					},

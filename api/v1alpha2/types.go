@@ -20,9 +20,6 @@ import (
 	"fmt"
 	"sort"
 	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -46,11 +43,6 @@ type AWSResourceReference struct {
 
 // AWSMachineTemplateResource describes the data needed to create am AWSMachine from a template
 type AWSMachineTemplateResource struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// Standard object's metadata.
-	clusterv1.ObjectMeta `json:"metadata,omitempty"`
-
 	// Spec is the specification of the desired behavior of the machine.
 	Spec AWSMachineSpec `json:"spec"`
 }
