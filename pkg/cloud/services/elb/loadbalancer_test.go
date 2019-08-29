@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
@@ -46,7 +46,7 @@ func TestDeleteLoadBalancers(t *testing.T) {
 						{
 							LoadBalancerName: aws.String("test-cluster-apiserver"),
 							VPCId:            aws.String("test-vpc"),
-							Scheme:           aws.String(string(v1alpha2.ClassicELBSchemeInternetFacing)),
+							Scheme:           aws.String(string(infrav1.ClassicELBSchemeInternetFacing)),
 						},
 					},
 				}, nil)
@@ -77,10 +77,10 @@ func TestDeleteLoadBalancers(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				AWSCluster: &v1alpha2.AWSCluster{
-					Spec: v1alpha2.AWSClusterSpec{
-						NetworkSpec: v1alpha2.NetworkSpec{
-							VPC: v1alpha2.VPCSpec{
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{
+							VPC: infrav1.VPCSpec{
 								ID: "test-vpc",
 							},
 						},

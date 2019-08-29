@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -70,7 +70,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	Expect(v1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(infrav1.AddToScheme(scheme.Scheme)).To(Succeed())
 
 	// +kubebuilder:scaffold:scheme

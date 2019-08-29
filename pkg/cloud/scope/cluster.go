@@ -25,8 +25,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
-	clusterv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -36,8 +36,8 @@ type ClusterScopeParams struct {
 	AWSClients
 	Client     client.Client
 	Logger     logr.Logger
-	Cluster    *clusterv1alpha2.Cluster
-	AWSCluster *v1alpha2.AWSCluster
+	Cluster    *clusterv1.Cluster
+	AWSCluster *infrav1.AWSCluster
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -88,27 +88,27 @@ type ClusterScope struct {
 	patchHelper *patch.Helper
 
 	AWSClients
-	Cluster    *clusterv1alpha2.Cluster
-	AWSCluster *v1alpha2.AWSCluster
+	Cluster    *clusterv1.Cluster
+	AWSCluster *infrav1.AWSCluster
 }
 
 // Network returns the cluster network object.
-func (s *ClusterScope) Network() *v1alpha2.Network {
+func (s *ClusterScope) Network() *infrav1.Network {
 	return &s.AWSCluster.Status.Network
 }
 
 // VPC returns the cluster VPC.
-func (s *ClusterScope) VPC() *v1alpha2.VPCSpec {
+func (s *ClusterScope) VPC() *infrav1.VPCSpec {
 	return &s.AWSCluster.Spec.NetworkSpec.VPC
 }
 
 // Subnets returns the cluster subnets.
-func (s *ClusterScope) Subnets() v1alpha2.Subnets {
+func (s *ClusterScope) Subnets() infrav1.Subnets {
 	return s.AWSCluster.Spec.NetworkSpec.Subnets
 }
 
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
-func (s *ClusterScope) SecurityGroups() map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup {
+func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
 	return s.AWSCluster.Status.Network.SecurityGroups
 }
 
@@ -136,7 +136,7 @@ func (s *ClusterScope) ControlPlaneConfigMapName() string {
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
 func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 	return client.MatchingLabels(map[string]string{
-		clusterv1alpha2.MachineClusterLabelName: s.Cluster.Name,
+		clusterv1.MachineClusterLabelName: s.Cluster.Name,
 	})
 }
 

@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
@@ -42,7 +42,7 @@ func TestInstanceIfExists(t *testing.T) {
 		name       string
 		instanceID string
 		expect     func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		check      func(instance *v1alpha2.Instance, err error)
+		check      func(instance *infrav1.Instance, err error)
 	}{
 		{
 			name:       "does not exist",
@@ -53,7 +53,7 @@ func TestInstanceIfExists(t *testing.T) {
 				})).
 					Return(nil, awserrors.NewNotFound(errors.New("not found")))
 			},
-			check: func(instance *v1alpha2.Instance, err error) {
+			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -92,7 +92,7 @@ func TestInstanceIfExists(t *testing.T) {
 						},
 					}, nil)
 			},
-			check: func(instance *v1alpha2.Instance, err error) {
+			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -115,7 +115,7 @@ func TestInstanceIfExists(t *testing.T) {
 				}).
 					Return(nil, errors.New("some unknown error"))
 			},
-			check: func(i *v1alpha2.Instance, err error) {
+			check: func(i *infrav1.Instance, err error) {
 				if err == nil {
 					t.Fatalf("expected an error but got none.")
 				}
@@ -134,10 +134,10 @@ func TestInstanceIfExists(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				AWSCluster: &v1alpha2.AWSCluster{
-					Spec: v1alpha2.AWSClusterSpec{
-						NetworkSpec: v1alpha2.NetworkSpec{
-							VPC: v1alpha2.VPCSpec{
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{
+							VPC: infrav1.VPCSpec{
 								ID: "test-vpc",
 							},
 						},
@@ -212,7 +212,7 @@ func TestTerminateInstance(t *testing.T) {
 					ELB: elbMock,
 				},
 				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &v1alpha2.AWSCluster{},
+				AWSCluster: &infrav1.AWSCluster{},
 			})
 
 			if err != nil {
@@ -232,10 +232,10 @@ func TestCreateInstance(t *testing.T) {
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
-		machineConfig *v1alpha2.AWSMachineSpec
-		awsCluster    *v1alpha2.AWSCluster
+		machineConfig *infrav1.AWSMachineSpec
+		awsCluster    *infrav1.AWSCluster
 		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
-		check         func(instance *v1alpha2.Instance, err error)
+		check         func(instance *infrav1.Instance, err error)
 	}{
 		{
 			name: "simple",
@@ -250,40 +250,40 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			machineConfig: &v1alpha2.AWSMachineSpec{
-				AMI: v1alpha2.AWSResourceReference{
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
 			},
-			awsCluster: &v1alpha2.AWSCluster{
-				Spec: v1alpha2.AWSClusterSpec{
-					NetworkSpec: v1alpha2.NetworkSpec{
-						Subnets: v1alpha2.Subnets{
-							&v1alpha2.SubnetSpec{
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
 								ID:       "subnet-1",
 								IsPublic: false,
 							},
-							&v1alpha2.SubnetSpec{
+							&infrav1.SubnetSpec{
 								IsPublic: false,
 							},
 						},
 					},
 				},
-				Status: v1alpha2.AWSClusterStatus{
-					Network: v1alpha2.Network{
-						SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
-							v1alpha2.SecurityGroupControlPlane: {
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
 							},
-							v1alpha2.SecurityGroupNode: {
+							infrav1.SecurityGroupNode: {
 								ID: "2",
 							},
-							v1alpha2.SecurityGroupLB: {
+							infrav1.SecurityGroupLB: {
 								ID: "3",
 							},
 						},
-						APIServerELB: v1alpha2.ClassicELB{
+						APIServerELB: infrav1.ClassicELB{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -320,7 +320,7 @@ func TestCreateInstance(t *testing.T) {
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
-			check: func(instance *v1alpha2.Instance, err error) {
+			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -339,33 +339,33 @@ func TestCreateInstance(t *testing.T) {
 					},
 				},
 			},
-			machineConfig: &v1alpha2.AWSMachineSpec{
-				AMI: v1alpha2.AWSResourceReference{
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
 				InstanceType:     "m5.2xlarge",
 				AvailabilityZone: aws.String("us-east-1c"),
 			},
-			awsCluster: &v1alpha2.AWSCluster{
-				Spec: v1alpha2.AWSClusterSpec{
-					NetworkSpec: v1alpha2.NetworkSpec{
-						Subnets: v1alpha2.Subnets{
-							&v1alpha2.SubnetSpec{
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
 								ID:               "subnet-1",
 								AvailabilityZone: "us-east-1a",
 								IsPublic:         false,
 							},
-							&v1alpha2.SubnetSpec{
+							&infrav1.SubnetSpec{
 								ID:               "subnet-2",
 								AvailabilityZone: "us-east-1b",
 								IsPublic:         false,
 							},
-							&v1alpha2.SubnetSpec{
+							&infrav1.SubnetSpec{
 								ID:               "subnet-3",
 								AvailabilityZone: "us-east-1c",
 								IsPublic:         false,
 							},
-							&v1alpha2.SubnetSpec{
+							&infrav1.SubnetSpec{
 								ID:               "subnet-3-public",
 								AvailabilityZone: "us-east-1c",
 								IsPublic:         true,
@@ -373,20 +373,20 @@ func TestCreateInstance(t *testing.T) {
 						},
 					},
 				},
-				Status: v1alpha2.AWSClusterStatus{
-					Network: v1alpha2.Network{
-						SecurityGroups: map[v1alpha2.SecurityGroupRole]v1alpha2.SecurityGroup{
-							v1alpha2.SecurityGroupControlPlane: {
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
 								ID: "1",
 							},
-							v1alpha2.SecurityGroupNode: {
+							infrav1.SecurityGroupNode: {
 								ID: "2",
 							},
-							v1alpha2.SecurityGroupLB: {
+							infrav1.SecurityGroupLB: {
 								ID: "3",
 							},
 						},
-						APIServerELB: v1alpha2.ClassicELB{
+						APIServerELB: infrav1.ClassicELB{
 							DNSName: "test-apiserver.us-east-1.aws",
 						},
 					},
@@ -425,7 +425,7 @@ func TestCreateInstance(t *testing.T) {
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
-			check: func(instance *v1alpha2.Instance, err error) {
+			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -477,7 +477,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
-			awsMachine := &v1alpha2.AWSMachine{
+			awsMachine := &infrav1.AWSMachine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{

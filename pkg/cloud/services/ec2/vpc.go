@@ -27,7 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
@@ -88,7 +88,7 @@ func (s *Service) reconcileVPC() error {
 	return nil
 }
 
-func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha2.VPCSpec) error {
+func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 	var (
 		errs    []error
 		updated bool
@@ -145,7 +145,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *v1alpha2.VPCSpec) error {
 	return nil
 }
 
-func (s *Service) createVPC() (*v1alpha2.VPCSpec, error) {
+func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		return nil, errors.Errorf("cannot create a managed vpc in unmanaged mode")
 	}
@@ -192,10 +192,10 @@ func (s *Service) createVPC() (*v1alpha2.VPCSpec, error) {
 	}
 	record.Eventf(s.scope.AWSCluster, "SuccesfulTagVPC", "Tagged managed VPC %q", *out.Vpc.VpcId)
 
-	return &v1alpha2.VPCSpec{
+	return &infrav1.VPCSpec{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
-		Tags:      v1alpha2.Build(tagParams),
+		Tags:      infrav1.Build(tagParams),
 	}, nil
 }
 
@@ -235,7 +235,7 @@ func (s *Service) deleteVPC() error {
 	return nil
 }
 
-func (s *Service) describeVPC() (*v1alpha2.VPCSpec, error) {
+func (s *Service) describeVPC() (*infrav1.VPCSpec, error) {
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{
 			filter.EC2.VPCStates(ec2.VpcStatePending, ec2.VpcStateAvailable),
@@ -270,21 +270,21 @@ func (s *Service) describeVPC() (*v1alpha2.VPCSpec, error) {
 		return nil, awserrors.NewNotFound(errors.Errorf("could not find available or pending vpc"))
 	}
 
-	return &v1alpha2.VPCSpec{
+	return &infrav1.VPCSpec{
 		ID:        *out.Vpcs[0].VpcId,
 		CidrBlock: *out.Vpcs[0].CidrBlock,
 		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),
 	}, nil
 }
 
-func (s *Service) getVPCTagParams(id string) v1alpha2.BuildParams {
+func (s *Service) getVPCTagParams(id string) infrav1.BuildParams {
 	name := fmt.Sprintf("%s-vpc", s.scope.Name())
 
-	return v1alpha2.BuildParams{
+	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		ResourceID:  id,
-		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
-		Role:        aws.String(v1alpha2.CommonRoleTagValue),
+		Role:        aws.String(infrav1.CommonRoleTagValue),
 	}
 }

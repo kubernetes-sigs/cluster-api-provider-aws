@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
@@ -63,14 +63,14 @@ func TestReconcileVPC(t *testing.T) {
 
 	testCases := []struct {
 		name   string
-		input  *v1alpha2.VPCSpec
-		output *v1alpha2.VPCSpec
+		input  *infrav1.VPCSpec
+		output *infrav1.VPCSpec
 		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
 			name:   "managed vpc exists",
-			input:  &v1alpha2.VPCSpec{ID: "vpc-exists"},
-			output: &v1alpha2.VPCSpec{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
+			input:  &infrav1.VPCSpec{ID: "vpc-exists"},
+			output: &infrav1.VPCSpec{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -113,8 +113,8 @@ func TestReconcileVPC(t *testing.T) {
 		},
 		{
 			name:   "managed vpc does not exist",
-			input:  &v1alpha2.VPCSpec{},
-			output: &v1alpha2.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
+			input:  &infrav1.VPCSpec{},
+			output: &infrav1.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					Filters: []*ec2.Filter{
@@ -169,9 +169,9 @@ func TestReconcileVPC(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				AWSCluster: &v1alpha2.AWSCluster{
-					Spec: v1alpha2.AWSClusterSpec{
-						NetworkSpec: v1alpha2.NetworkSpec{
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{
 							VPC: *tc.input,
 						},
 					},

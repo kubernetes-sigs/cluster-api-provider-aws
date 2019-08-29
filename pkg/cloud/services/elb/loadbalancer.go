@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
@@ -68,7 +68,7 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
 func (s *Service) GetAPIServerDNSName() (string, error) {
-	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue))
+	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue))
 
 	if err != nil {
 		return "", err
@@ -82,7 +82,7 @@ func (s *Service) DeleteLoadbalancers() error {
 	s.scope.V(2).Info("Deleting load balancers")
 
 	// Get default api server name.
-	elbName := GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue)
+	elbName := GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue)
 
 	// Describe and delete if exists.
 	if _, err := s.describeClassicELB(elbName); err != nil {
@@ -119,7 +119,7 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 func (s *Service) RegisterInstanceWithAPIServerELB(instanceID string) error {
 	input := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
-		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue)),
+		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue)),
 	}
 
 	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
@@ -135,35 +135,35 @@ func GenerateELBName(clusterName string, elbName string) string {
 	return fmt.Sprintf("%s-%s", clusterName, elbName)
 }
 
-func (s *Service) getAPIServerClassicELBSpec() *v1alpha2.ClassicELB {
-	res := &v1alpha2.ClassicELB{
-		Name:   GenerateELBName(s.scope.Name(), v1alpha2.APIServerRoleTagValue),
-		Scheme: v1alpha2.ClassicELBSchemeInternetFacing,
-		Listeners: []*v1alpha2.ClassicELBListener{
+func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
+	res := &infrav1.ClassicELB{
+		Name:   GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue),
+		Scheme: infrav1.ClassicELBSchemeInternetFacing,
+		Listeners: []*infrav1.ClassicELBListener{
 			{
-				Protocol:         v1alpha2.ClassicELBProtocolTCP,
+				Protocol:         infrav1.ClassicELBProtocolTCP,
 				Port:             6443,
-				InstanceProtocol: v1alpha2.ClassicELBProtocolTCP,
+				InstanceProtocol: infrav1.ClassicELBProtocolTCP,
 				InstancePort:     6443,
 			},
 		},
-		HealthCheck: &v1alpha2.ClassicELBHealthCheck{
-			Target:             fmt.Sprintf("%v:%d", v1alpha2.ClassicELBProtocolSSL, 6443),
+		HealthCheck: &infrav1.ClassicELBHealthCheck{
+			Target:             fmt.Sprintf("%v:%d", infrav1.ClassicELBProtocolSSL, 6443),
 			Interval:           10 * time.Second,
 			Timeout:            5 * time.Second,
 			HealthyThreshold:   5,
 			UnhealthyThreshold: 3,
 		},
-		SecurityGroupIDs: []string{s.scope.SecurityGroups()[v1alpha2.SecurityGroupControlPlane].ID},
-		Attributes: v1alpha2.ClassicELBAttributes{
+		SecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID},
+		Attributes: infrav1.ClassicELBAttributes{
 			IdleTimeout: 10 * time.Minute,
 		},
 	}
 
-	res.Tags = v1alpha2.Build(v1alpha2.BuildParams{
+	res.Tags = infrav1.Build(infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
-		Lifecycle:   v1alpha2.ResourceLifecycleOwned,
-		Role:        aws.String(v1alpha2.APIServerRoleTagValue),
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Role:        aws.String(infrav1.APIServerRoleTagValue),
 	})
 
 	for _, sn := range s.scope.Subnets().FilterPublic() {
@@ -173,7 +173,7 @@ func (s *Service) getAPIServerClassicELBSpec() *v1alpha2.ClassicELB {
 	return res
 }
 
-func (s *Service) createClassicELB(spec *v1alpha2.ClassicELB) (*v1alpha2.ClassicELB, error) {
+func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicELB, error) {
 	input := &elb.CreateLoadBalancerInput{
 		LoadBalancerName: aws.String(spec.Name),
 		Subnets:          aws.StringSlice(spec.SubnetIDs),
@@ -223,7 +223,7 @@ func (s *Service) createClassicELB(spec *v1alpha2.ClassicELB) (*v1alpha2.Classic
 	return res, nil
 }
 
-func (s *Service) configureAttributes(name string, attributes v1alpha2.ClassicELBAttributes) error {
+func (s *Service) configureAttributes(name string, attributes infrav1.ClassicELBAttributes) error {
 	attrs := &elb.ModifyLoadBalancerAttributesInput{
 		LoadBalancerName:       aws.String(name),
 		LoadBalancerAttributes: &elb.LoadBalancerAttributes{},
@@ -288,7 +288,7 @@ func (s *Service) deleteClassicELBAndWait(name string) error {
 	return nil
 }
 
-func (s *Service) describeClassicELB(name string) (*v1alpha2.ClassicELB, error) {
+func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 	input := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
@@ -330,10 +330,10 @@ func (s *Service) describeClassicELB(name string) (*v1alpha2.ClassicELB, error) 
 	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0], outAtt.LoadBalancerAttributes), nil
 }
 
-func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *v1alpha2.ClassicELB {
-	res := &v1alpha2.ClassicELB{
+func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *infrav1.ClassicELB {
+	res := &infrav1.ClassicELB{
 		Name:             aws.StringValue(v.LoadBalancerName),
-		Scheme:           v1alpha2.ClassicELBScheme(*v.Scheme),
+		Scheme:           infrav1.ClassicELBScheme(*v.Scheme),
 		SubnetIDs:        aws.StringValueSlice(v.Subnets),
 		SecurityGroupIDs: aws.StringValueSlice(v.SecurityGroups),
 		DNSName:          aws.StringValue(v.DNSName),
