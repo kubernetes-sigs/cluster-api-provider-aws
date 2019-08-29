@@ -24,34 +24,46 @@ import (
 	capiv1a1 "sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1"
 )
 
-// ConvertMachineSet turns a CAPI v1alpha1 MachineSet with embedded AWS MachineProviderSpec into a
-// CAPA v1alpha2 AWSMachine and a CAPI v1alpha2 MachineSet that references it
-func ConvertMachineSet(in *capiv1a1.MachineSet) (*capiv1a2.MachineSet, *capav1a2.AWSMachineTemplate, error) {
-	var (
-		out    capiv1a2.MachineSet
-		awsOut capav1a2.AWSMachineTemplate
-	)
+type MachineSetConverter struct {
+	machineSpecConverter
 
-	if err := capiv1a2.Convert_v1alpha1_MachineSet_To_v1alpha2_MachineSet(in, &out, nil); err != nil {
-		return nil, nil, errors.Wrap(err, "Failed to convert MachineSet")
+	oldMachineSet *capiv1a1.MachineSet
+}
+
+func NewMachineSetConverter(cluster *capiv1a1.Cluster, machineSet *capiv1a1.MachineSet) *MachineSetConverter {
+	return &MachineSetConverter{
+		machineSpecConverter: machineSpecConverter{
+			ClusterConverter: ClusterConverter{
+				oldCluster: cluster,
+			},
+			oldMachine: &machineSet.Spec.Template.Spec,
+		},
+		oldMachineSet: machineSet,
+	}
+}
+
+func (m *MachineSetConverter) GetMachineSet(machineSet *capiv1a2.MachineSet) error {
+	if err := capiv1a2.Convert_v1alpha1_MachineSet_To_v1alpha2_MachineSet(m.oldMachineSet, machineSet, nil); err != nil {
+		return errors.Wrap(err, "Failed to convert MachineSet")
 	}
 
-	err := getAWSMachine(&in.Spec.Template.Spec, &awsOut.Spec.Template.Spec)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	awsOut.Name = in.Name
-	awsOut.Namespace = in.Namespace
-
-	ref := corev1.ObjectReference{
-		Name:       awsOut.Name,
-		Namespace:  awsOut.Namespace,
+	machineSet.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+		Name:       m.oldMachine.Name,
+		Namespace:  m.oldMachine.Namespace,
 		APIVersion: capav1a2.GroupVersion.String(),
-		Kind:       "AWSMachine",
+		Kind:       "AWSMachineTemplate",
 	}
 
-	out.Spec.Template.Spec.InfrastructureRef = ref
+	return nil
+}
 
-	return &out, &awsOut, nil
+func (m *MachineSetConverter) GetAWSMachineTemplate(machineTemplate *capav1a2.AWSMachineTemplate) error {
+	if err := m.getAWSMachineSpec(&machineTemplate.Spec.Template.Spec); err != nil {
+		return errors.WithStack(err)
+	}
+
+	machineTemplate.Name = m.oldMachineSet.Name
+	machineTemplate.Namespace = m.oldMachineSet.Namespace
+
+	return nil
 }

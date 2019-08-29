@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"errors"
 	unsafe "unsafe"
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
@@ -87,8 +88,23 @@ func Convert_v1alpha1_AWSMachineProviderSpec_To_v1alpha2_AWSMachineSpec(in *v1al
 
 	out.Subnet = &subnet
 
-	out.KeyName = in.KeyName
+	out.SSHKeyName = in.KeyName
 	out.RootDeviceSize = in.RootDeviceSize
 
+	return nil
+}
+
+// nolint
+func Convert_v1alpha2_Instance_To_v1alpha1_Instance(in *Instance, out *v1alpha1.Instance, s conversion.Scope) error {
+	return errors.New("not implemented")
+}
+
+// nolint
+func Convert_v1alpha1_Instance_To_v1alpha2_Instance(in *v1alpha1.Instance, out *Instance, s conversion.Scope) error {
+	if err := autoConvert_v1alpha1_Instance_To_v1alpha2_Instance(in, out, s); err != nil {
+		return err
+	}
+
+	out.SSHKeyName = in.KeyName
 	return nil
 }

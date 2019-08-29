@@ -24,34 +24,46 @@ import (
 	capiv1a1 "sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1"
 )
 
-// ConvertMachineDeployment turns a CAPI v1alpha1 MachineDeployment with embedded AWS MachineProviderSpec into a
-// CAPA v1alpha2 AWSMachine and a CAPI v1alpha2 MachineDeployment that references it
-func ConvertMachineDeployment(in *capiv1a1.MachineDeployment) (*capiv1a2.MachineDeployment, *capav1a2.AWSMachineTemplate, error) {
-	var (
-		out    capiv1a2.MachineDeployment
-		awsOut capav1a2.AWSMachineTemplate
-	)
+type MachineDeploymentConverter struct {
+	machineSpecConverter
 
-	if err := capiv1a2.Convert_v1alpha1_MachineDeployment_To_v1alpha2_MachineDeployment(in, &out, nil); err != nil {
-		return nil, nil, errors.Wrap(err, "Failed to convert MachineSet")
+	oldMachineDeployment *capiv1a1.MachineDeployment
+}
+
+func NewMachineDeploymentConverter(cluster *capiv1a1.Cluster, machineDeployment *capiv1a1.MachineDeployment) *MachineDeploymentConverter {
+	return &MachineDeploymentConverter{
+		machineSpecConverter: machineSpecConverter{
+			ClusterConverter: ClusterConverter{
+				oldCluster: cluster,
+			},
+			oldMachine: &machineDeployment.Spec.Template.Spec,
+		},
+		oldMachineDeployment: machineDeployment,
+	}
+}
+
+func (m *MachineDeploymentConverter) GetMachineDeployment(machineDeployment *capiv1a2.MachineDeployment) error {
+	if err := capiv1a2.Convert_v1alpha1_MachineDeployment_To_v1alpha2_MachineDeployment(m.oldMachineDeployment, machineDeployment, nil); err != nil {
+		return errors.Wrap(err, "Failed to convert MachineDeployment")
 	}
 
-	err := getAWSMachine(&in.Spec.Template.Spec, &awsOut.Spec.Template.Spec)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	awsOut.Name = in.Name
-	awsOut.Namespace = in.Namespace
-
-	ref := corev1.ObjectReference{
-		Name:       awsOut.Name,
-		Namespace:  awsOut.Namespace,
+	machineDeployment.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
+		Name:       m.oldMachine.Name,
+		Namespace:  m.oldMachine.Namespace,
 		APIVersion: capav1a2.GroupVersion.String(),
 		Kind:       "AWSMachineTemplate",
 	}
 
-	out.Spec.Template.Spec.InfrastructureRef = ref
+	return nil
+}
 
-	return &out, &awsOut, nil
+func (m *MachineDeploymentConverter) GetAWSMachineTemplate(machineTemplate *capav1a2.AWSMachineTemplate) error {
+	if err := m.getAWSMachineSpec(&machineTemplate.Spec.Template.Spec); err != nil {
+		return errors.WithStack(err)
+	}
+
+	machineTemplate.Name = m.oldMachineDeployment.Name
+	machineTemplate.Namespace = m.oldMachineDeployment.Namespace
+
+	return nil
 }

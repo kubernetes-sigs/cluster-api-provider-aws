@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"testing"
 
+	kubeadm "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	vkubeadm "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	capav1a2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	capav1a1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 )
@@ -73,6 +75,39 @@ func (a *asserter) awsRefEqual(expected *capav1a1.AWSResourceReference, actual *
 		for i, exFilter := range expected.Filters {
 			actFilter := actual.Filters[i]
 			a.stringArrayEqual(exFilter.Values, actFilter.Values, fmt.Sprintf("%s filter[%d]", name, i))
+		}
+	}
+}
+
+func (a *asserter) stringMapEqual(expected, actual map[string]string, name string) {
+	if len(expected) == len(actual) {
+		for key := range expected {
+			a.stringEqual(expected[key], actual[key], fmt.Sprintf("%s[%s]", name, key))
+		}
+	} else {
+		a.Errorf("%s has length %d, expected %d", name, len(expected), len(actual))
+	}
+}
+
+func (a *asserter) nodeRegistrationEqual(expected *kubeadm.NodeRegistrationOptions, actual *vkubeadm.NodeRegistrationOptions, name string) {
+	a.stringEqual(expected.Name, actual.Name, fmt.Sprintf("%s node registration name", name))
+	a.stringEqual(expected.CRISocket, actual.CRISocket, fmt.Sprintf("%s node registration CRISocket", name))
+
+	if len(actual.Taints) == len(expected.Taints) {
+		for i, expectedTaint := range expected.Taints {
+			actualTaint := actual.Taints[i]
+
+			a.stringEqual(expectedTaint.Key, actualTaint.Key, fmt.Sprintf("%s taint[%d] key", name, i))
+			a.stringEqual(expectedTaint.Value, actualTaint.Value, fmt.Sprintf("%s taint[%d] value", name, i))
+			a.stringEqual(string(expectedTaint.Effect), string(actualTaint.Effect), fmt.Sprintf("%s taint[%d] effect", name, i))
+		}
+	} else {
+		a.Errorf("Expected %d init taints, got %d", len(expected.Taints), len(actual.Taints))
+	}
+
+	if len(expected.KubeletExtraArgs) == len(actual.KubeletExtraArgs) {
+		for k, oldv := range expected.KubeletExtraArgs {
+			a.stringEqual(oldv, actual.KubeletExtraArgs[k], fmt.Sprintf("%s kubelet arg %s", name, k))
 		}
 	}
 }

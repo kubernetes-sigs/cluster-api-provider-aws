@@ -22,7 +22,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	capav1a2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	capav1a1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
+	capiv1a2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capiv1a1 "sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1"
 )
 
@@ -61,6 +63,67 @@ spec:
           twilight: alicorn
       region: "equestria-west2"
       sshKeyName: "harmony"
+      clusterConfiguration:
+        etcd:
+          local:
+            imageRepository: "ponyville/library"
+            imageTag: "goldenoaks"
+            dataDir: "/var/lib/goldenoaks"
+            extraArgs:
+              "--window-open": "true"
+            serverCertSANs:
+            - "goldenoaks.ponyville.eq"
+            peerCertSANs:
+            - "your.local.library"
+          external:
+            endpoints:
+            - "goldenoaks.ponyville.eq"
+            caFile: "/etc/canterlot.cert"
+            certFile: "/etc/oaks.cert"
+            keyFile: "/etc/oaks.key"
+        networking:
+          serviceSubnet: "172.16.0.0/24"
+          podSubnet: "172.16.80.0/24"
+          dnsDomain: "ponyville.eq"
+        kubernetesVersion: "v1.15.2"
+        controlPlaneEndpoint: "castle.ponyville.eq"
+        apiServer:
+          extraArgs:
+            "--run": "leaves"
+          extraVolumes:
+          - name: "magic"
+            hostPath: "/etc/magic"
+            mountPath: "/var/lib/magic"
+            readOnly: true
+            pathType: "BlockDevice"
+          certSANs:
+          - "door.castle.ponyville.eq"
+          timeoutForControlPlane: "30s"
+        controllerManager:
+          extraArgs:
+            "--winter-wrapup": "yes"
+        scheduler:
+          extraArgs:
+            "--tardy": "false"
+        dns:
+          type: "kube-dns"
+          imageRepository: "ponyville/phonebook"
+          imageTag: "s4"
+        certificatesDir: "/etc/scrolls"
+        imageRepository: "canter.eq"
+        useHyperKubeImage: true
+        featureGates:
+          "alicorn": true
+        clusterName: "ponyville"
+      additionalUserDataFiles:
+      - path: "/lib/journal"
+        owner: "twilight:harmony"
+        permissions: "0777"
+        content: "today I learned..."
+      - path: "/var/spool/mail/celestia"
+        owner: "twilight:twilight"
+        permissions: "0660"
+        content: "dear princess celestia..."
 `
 
 func getCluster(t *testing.T) (*capiv1a1.Cluster, *capav1a1.AWSClusterProviderSpec) {
@@ -88,18 +151,20 @@ func getCluster(t *testing.T) (*capiv1a1.Cluster, *capav1a1.AWSClusterProviderSp
 }
 
 func TestConvertCluster(t *testing.T) {
+	var (
+		newCluster    capiv1a2.Cluster
+		newAWSCluster capav1a2.AWSCluster
+	)
+
 	oldCluster, oldAWSCluster := getCluster(t)
 
-	newCluster, newAWSCluster, err := ConvertCluster(oldCluster)
-	if err != nil {
-		t.Fatalf("Unexpected error running convertCluster: %v", err)
+	converter := NewClusterConvert(oldCluster)
+
+	if err := converter.GetCluster(&newCluster); err != nil {
+		t.Fatalf("Unexpected error converting cluster: %v", err)
 	}
 
 	assert := asserter{t}
-
-	if newCluster == nil {
-		t.Fatal("Unexepctedly nil cluster")
-	}
 
 	assert.stringEqual(oldCluster.Name, newCluster.Name, "name")
 	assert.stringEqual(oldCluster.Namespace, newCluster.Namespace, "namespace")
@@ -117,8 +182,8 @@ func TestConvertCluster(t *testing.T) {
 	)
 	assert.stringEqual(oldCluster.Spec.ClusterNetwork.ServiceDomain, oldCluster.Spec.ClusterNetwork.ServiceDomain, "service domain")
 
-	if newAWSCluster == nil {
-		t.Fatalf("unexpectedly nil provider spec")
+	if err := converter.GetAWSCluster(&newAWSCluster); err != nil {
+		t.Fatalf("Unexpected error converting AWS Cluster: %v", err)
 	}
 
 	t.Logf("converted cluster: %+v", newAWSCluster)

@@ -27,55 +27,68 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ConvertCluster turns a CAPI v1alpha1 cluster with embedded CAPA ProviderSpec into a AWSCluster and a v1alpha2 Cluster object that references it
-func ConvertCluster(in *capiv1a1.Cluster) (*capiv1a2.Cluster, *capav1a2.AWSCluster, error) {
-	var out capiv1a2.Cluster
+type ClusterConverter struct {
+	oldCluster    *capiv1a1.Cluster
+	oldAWSCluster *capav1a1.AWSClusterProviderSpec
+}
 
-	if err := capiv1a2.Convert_v1alpha1_Cluster_To_v1alpha2_Cluster(in, &out, nil); err != nil {
-		return nil, nil, err
+func NewClusterConvert(cluster *capiv1a1.Cluster) *ClusterConverter {
+	return &ClusterConverter{
+		oldCluster:    cluster,
+		oldAWSCluster: nil,
 	}
+}
 
-	awsOut, err := getAWSCluster(&in.Spec)
-	if err != nil {
-		return nil, nil, err
+func (c *ClusterConverter) GetCluster(cluster *capiv1a2.Cluster) error {
+	if err := capiv1a2.Convert_v1alpha1_Cluster_To_v1alpha2_Cluster(c.oldCluster, cluster, nil); err != nil {
+		return errors.WithStack(err)
 	}
-
-	if awsOut == nil {
-		return &out, nil, nil
-	}
-
-	awsOut.Name = in.Name
-	awsOut.Namespace = in.Namespace
 
 	ref := corev1.ObjectReference{
-		Name:       awsOut.Name,
-		Namespace:  awsOut.Namespace,
+		Name:       c.oldCluster.Name,
+		Namespace:  c.oldCluster.Namespace,
 		APIVersion: capav1a2.GroupVersion.String(),
 		Kind:       "AWSCluster",
 	}
 
-	out.Spec.InfrastructureRef = &ref
+	cluster.Spec.InfrastructureRef = &ref
 
-	return &out, awsOut, nil
+	return nil
 }
 
-func getAWSCluster(in *capiv1a1.ClusterSpec) (*capav1a2.AWSCluster, error) {
-	var (
-		awsIn  capav1a1.AWSClusterProviderSpec
-		awsOut capav1a2.AWSCluster
-	)
+func (c *ClusterConverter) getOldAWSCluster() (*capav1a1.AWSClusterProviderSpec, error) {
+	if c.oldAWSCluster == nil {
+		var oldAWSCluster capav1a1.AWSClusterProviderSpec
+		if c.oldCluster.Spec.ProviderSpec.Value == nil {
+			return nil, nil
+		}
 
-	if in.ProviderSpec.Value == nil {
-		return nil, nil
+		if err := yaml.Unmarshal(c.oldCluster.Spec.ProviderSpec.Value.Raw, &oldAWSCluster); err != nil {
+			return nil, errors.Wrap(err, "couldn't decode ProviderSpec")
+		}
+
+		c.oldAWSCluster = &oldAWSCluster
 	}
 
-	if err := yaml.Unmarshal(in.ProviderSpec.Value.Raw, &awsIn); err != nil {
-		return nil, errors.Wrap(err, "couldn't decode ProviderSpec")
+	return c.oldAWSCluster, nil
+}
+
+func (c *ClusterConverter) GetAWSCluster(cluster *capav1a2.AWSCluster) error {
+	oldCluster, err := c.getOldAWSCluster()
+	if err != nil {
+		return err
 	}
 
-	if err := capav1a2.Convert_v1alpha1_AWSClusterProviderSpec_To_v1alpha2_AWSClusterSpec(&awsIn, &awsOut.Spec, nil); err != nil {
-		return nil, errors.Wrap(err, "couldn't convert ProviderSpec")
+	if oldCluster == nil {
+		return nil
 	}
 
-	return &awsOut, nil
+	if err := capav1a2.Convert_v1alpha1_AWSClusterProviderSpec_To_v1alpha2_AWSClusterSpec(oldCluster, &cluster.Spec, nil); err != nil {
+		return err
+	}
+
+	cluster.Name = c.oldCluster.Name
+	cluster.Namespace = c.oldCluster.Namespace
+
+	return nil
 }
