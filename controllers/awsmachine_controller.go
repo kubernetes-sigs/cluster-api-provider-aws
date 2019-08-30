@@ -188,7 +188,6 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	switch instance.State {
 	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
 		machineScope.Info("Instance is shutting down or already terminated")
-		return reconcile.Result{}, nil
 	default:
 		machineScope.Info("Terminating instance")
 		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
