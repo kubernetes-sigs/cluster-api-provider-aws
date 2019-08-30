@@ -58,6 +58,7 @@ func main() {
 		profilerAddress       string
 		awsClusterConcurrency int
 		awsMachineConcurrency int
+		syncPeriod            time.Duration
 	)
 
 	flag.StringVar(
@@ -100,6 +101,12 @@ func main() {
 		"Number of AWSMachines to process simultaneously",
 	)
 
+	flag.DurationVar(&syncPeriod,
+		"sync-period",
+		10*time.Minute,
+		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
+	)
+
 	flag.Parse()
 
 	if watchNamespace != "" {
@@ -112,8 +119,6 @@ func main() {
 			setupLog.Error(http.ListenAndServe(profilerAddress, nil), "listen and serve error")
 		}()
 	}
-
-	syncPeriod := 10 * time.Minute
 
 	ctrl.SetLogger(klogr.New())
 
