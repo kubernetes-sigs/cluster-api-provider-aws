@@ -490,7 +490,7 @@ type Instance struct {
 	ImageID string `json:"imageId,omitempty"`
 
 	// The name of the SSH key pair.
-	KeyName *string `json:"keyName,omitempty"`
+	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// SecurityGroupIDs are one or more security group IDs this instance belongs to.
 	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`

@@ -139,11 +139,11 @@ func (s *Service) getDefaultBastion() *infrav1.Instance {
 	}
 
 	i := &infrav1.Instance{
-		Type:     "t2.micro",
-		SubnetID: s.scope.Subnets().FilterPublic()[0].ID,
-		ImageID:  s.defaultBastionAMILookup(s.scope.AWSCluster.Spec.Region),
-		KeyName:  aws.String(keyName),
-		UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
+		Type:       "t2.micro",
+		SubnetID:   s.scope.Subnets().FilterPublic()[0].ID,
+		ImageID:    s.defaultBastionAMILookup(s.scope.AWSCluster.Spec.Region),
+		SSHKeyName: aws.String(keyName),
+		UserData:   aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
 		SecurityGroupIDs: []string{
 			s.scope.Network().SecurityGroups[infrav1.SecurityGroupBastion].ID,
 		},

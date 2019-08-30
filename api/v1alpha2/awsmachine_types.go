@@ -77,9 +77,8 @@ type AWSMachineSpec struct {
 	// +optional
 	Subnet *AWSResourceReference `json:"subnet,omitempty"`
 
-	// KeyName is the name of the SSH key to install on the instance.
-	// +optional
-	KeyName string `json:"keyName,omitempty"`
+	// SSHKeyName is the name of the ssh key to attach to the instance.
+	SSHKeyName string `json:"sshKeyName,omitempty"`
 
 	// RootDeviceSize is the size of the root volume.
 	// +optional
