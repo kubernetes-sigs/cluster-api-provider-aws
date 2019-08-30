@@ -59,7 +59,7 @@ func (s *Service) reconcileVPC() error {
 	}
 
 	// Make sure tags are up to date.
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Ensure(vpc.Tags, &tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
 			BuildParams: s.getVPCTagParams(vpc.ID),
@@ -73,7 +73,7 @@ func (s *Service) reconcileVPC() error {
 	}
 
 	// Make sure attributes are configured
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := s.ensureManagedVPCAttributes(vpc); err != nil {
 			return false, err
 		}
@@ -159,7 +159,7 @@ func (s *Service) createVPC() (*v1alpha1.VPCSpec, error) {
 
 	// Apply tags so that we know this is a managed VPC.
 	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
 			BuildParams: tagParams,

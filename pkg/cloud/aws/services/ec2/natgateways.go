@@ -59,7 +59,7 @@ func (s *Service) reconcileNatGateways() error {
 
 		if ngw, ok := existing[sn.ID]; ok {
 			// Make sure tags are up to date.
-			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if err := wait.PollWithRetryable(func() (bool, error) {
 				if err := tags.Ensure(converters.TagsToMap(ngw.Tags), &tags.ApplyParams{
 					EC2Client:   s.scope.EC2,
 					BuildParams: s.getNatGatewayTagParams(*ngw.NatGatewayId),
@@ -170,7 +170,7 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	}
 
 	var out *ec2.CreateNatGatewayOutput
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if out, err = s.scope.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
 			SubnetId:     aws.String(subnetID),
 			AllocationId: aws.String(ip),
@@ -182,7 +182,7 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
 			BuildParams: s.getNatGatewayTagParams(*out.NatGateway.NatGatewayId),
@@ -218,7 +218,7 @@ func (s *Service) deleteNatGateway(id string) error {
 		NatGatewayIds: []*string{aws.String(id)},
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
+	if err := wait.PollWithRetryable(func() (done bool, err error) {
 		out, err := s.scope.EC2.DescribeNatGateways(describeInput)
 		if err != nil {
 			return false, err

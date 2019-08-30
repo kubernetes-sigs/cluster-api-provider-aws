@@ -56,7 +56,7 @@ func (s *Service) reconcileRouteTables() error {
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 
 			// Make sure tags are up to date.
-			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if err := wait.PollWithRetryable(func() (bool, error) {
 				if err := tags.Ensure(converters.TagsToMap(rt.Tags), &tags.ApplyParams{
 					EC2Client:   s.scope.EC2,
 					BuildParams: s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic),
@@ -97,7 +97,7 @@ func (s *Service) reconcileRouteTables() error {
 		}
 		record.Eventf(s.scope.Cluster, "SuccessfulCreateRouteTable", "Created managed RouteTable %q", rt.ID)
 
-		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := wait.PollWithRetryable(func() (bool, error) {
 			if err := s.associateRouteTable(rt, sn.ID); err != nil {
 				return false, err
 			}
@@ -205,7 +205,7 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", s.scope.VPC().ID)
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
 			BuildParams: s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic),
@@ -218,7 +218,7 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 	}
 
 	for _, route := range routes {
-		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := wait.PollWithRetryable(func() (bool, error) {
 			if _, err := s.scope.EC2.CreateRoute(&ec2.CreateRouteInput{
 				RouteTableId:                out.RouteTable.RouteTableId,
 				DestinationCidrBlock:        route.DestinationCidrBlock,

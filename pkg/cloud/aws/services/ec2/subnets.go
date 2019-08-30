@@ -97,7 +97,7 @@ LoopExisting:
 				}
 
 				// Make sure tags are up to date.
-				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if err := wait.PollWithRetryable(func() (bool, error) {
 					if err := tags.Ensure(exsn.Tags, &tags.ApplyParams{
 						EC2Client:   s.scope.EC2,
 						BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic),
@@ -248,7 +248,7 @@ func (s *Service) createSubnet(sn *v1alpha1.SubnetSpec) (*v1alpha1.SubnetSpec, e
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
 			BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic),
@@ -269,7 +269,7 @@ func (s *Service) createSubnet(sn *v1alpha1.SubnetSpec) (*v1alpha1.SubnetSpec, e
 			SubnetId: out.Subnet.SubnetId,
 		}
 
-		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := wait.PollWithRetryable(func() (bool, error) {
 			if _, err := s.scope.EC2.ModifySubnetAttribute(attReq); err != nil {
 				return false, err
 			}
