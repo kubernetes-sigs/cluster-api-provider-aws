@@ -60,7 +60,7 @@ func (s *Service) reconcileInternetGateways() error {
 	s.scope.VPC().InternetGatewayID = gateway.InternetGatewayId
 
 	// Make sure tags are up to date.
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Ensure(converters.TagsToMap(gateway.Tags), &tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
 			BuildParams: s.getGatewayTagParams(*gateway.InternetGatewayId),
@@ -127,7 +127,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 	s.scope.Info("Created internet gateway for VPC", "vpc-id", s.scope.VPC().ID)
 
 	tagParams := s.getGatewayTagParams(*ig.InternetGateway.InternetGatewayId)
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
 			BuildParams: tagParams,
@@ -144,7 +144,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 	// latest tag data rather than returning empty tags.
 	ig.InternetGateway.Tags = converters.MapToTags(v1alpha1.Build(tagParams))
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if _, err := s.scope.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 			InternetGatewayId: ig.InternetGateway.InternetGatewayId,
 			VpcId:             aws.String(s.scope.VPC().ID),

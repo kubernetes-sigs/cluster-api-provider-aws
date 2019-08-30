@@ -197,7 +197,7 @@ func (s *Service) createClassicELB(spec *v1alpha1.ClassicELB) (*v1alpha1.Classic
 	}
 
 	if spec.HealthCheck != nil {
-		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if err := wait.PollWithRetryable(func() (bool, error) {
 			if _, err := s.scope.ELB.ConfigureHealthCheck(&elb.ConfigureHealthCheckInput{
 				LoadBalancerName: aws.String(spec.Name),
 				HealthCheck: &elb.HealthCheck{
@@ -235,7 +235,7 @@ func (s *Service) configureAttributes(name string, attributes v1alpha1.ClassicEL
 		}
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if _, err := s.scope.ELB.ModifyLoadBalancerAttributes(attrs); err != nil {
 			return false, err
 		}
@@ -267,7 +267,7 @@ func (s *Service) deleteClassicELBAndWait(name string) error {
 		LoadBalancerNames: aws.StringSlice([]string{name}),
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
+	if err := wait.PollWithRetryable(func() (done bool, err error) {
 		out, err := s.scope.ELB.DescribeLoadBalancers(input)
 		if err != nil {
 			if code, ok := awserrors.Code(err); ok && code == awserrors.LoadBalancerNotFound {

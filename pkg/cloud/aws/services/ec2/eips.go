@@ -54,7 +54,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 		return "", errors.Wrap(err, "failed to create Elastic IP address")
 	}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+	if err := wait.PollWithRetryable(func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client: s.scope.EC2,
 			BuildParams: v1alpha1.BuildParams{
@@ -100,7 +100,7 @@ func (s *Service) releaseAddresses() error {
 			return errors.Errorf("failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
 		}
 
-		err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		err := wait.PollWithRetryable(func() (bool, error) {
 			_, err := s.scope.EC2.ReleaseAddress(&ec2.ReleaseAddressInput{AllocationId: ip.AllocationId})
 			if err != nil {
 				return false, err
