@@ -413,15 +413,28 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(o handler.MapObject) []ct
 		r.Log.Error(errors.Errorf("expected a AWSCluster but got a %T", o.Object), "failed to get AWSMachine for AWSCluster")
 		return nil
 	}
+	log := r.Log.WithValues("AWSCluster", c.Name, "Namespace", c.Namespace)
 
-	labels := map[string]string{clusterv1.MachineClusterLabelName: c.Name}
-	machineList := &infrav1.AWSMachineList{}
+	cluster, err := util.GetOwnerCluster(context.Background(), r.Client, c.ObjectMeta)
+	switch {
+	case apierrors.IsNotFound(err) || cluster == nil:
+		return result
+	case err != nil:
+		log.Error(err, "failed to get owning cluster")
+		return result
+	}
+
+	labels := map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}
+	machineList := &clusterv1.MachineList{}
 	if err := r.List(context.Background(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
-		r.Log.Error(err, "failed to list AWSMachines", "AWSCluster", c.Name, "Namespace", c.Namespace)
+		log.Error(err, "failed to list Machines")
 		return nil
 	}
 	for _, m := range machineList.Items {
-		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
+		if m.Spec.InfrastructureRef.Name == "" {
+			continue
+		}
+		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
 
