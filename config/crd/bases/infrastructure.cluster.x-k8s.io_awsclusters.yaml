@@ -150,9 +150,6 @@ spec:
                 instanceState:
                   description: The current state of the instance.
                   type: string
-                keyName:
-                  description: The name of the SSH key pair.
-                  type: string
                 privateIp:
                   description: The private IPv4 address assigned to the instance.
                   type: string
@@ -170,6 +167,9 @@ spec:
                   items:
                     type: string
                   type: array
+                sshKeyName:
+                  description: The name of the SSH key pair.
+                  type: string
                 subnetId:
                   description: The ID of the subnet of the instance.
                   type: string

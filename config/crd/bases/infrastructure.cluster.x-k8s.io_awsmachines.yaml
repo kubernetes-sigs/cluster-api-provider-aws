@@ -131,9 +131,6 @@ spec:
               description: 'InstanceType is the type of instance to create. Example:
                 m4.xlarge'
               type: string
-            keyName:
-              description: KeyName is the name of the SSH key to install on the instance.
-              type: string
             providerID:
               description: ProviderID is the unique identifier as specified by the
                 cloud provider.
@@ -147,6 +144,10 @@ spec:
               description: RootDeviceSize is the size of the root volume.
               format: int64
               type: integer
+            sshKeyName:
+              description: SSHKeyName is the name of the ssh key to attach to the
+                instance.
+              type: string
             subnet:
               description: Subnet is a reference to the subnet to use for this instance.
                 If not specified, the cluster subnet will be used.

@@ -172,10 +172,10 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 	input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 
 	// Pick SSH key, if any.
-	if scope.AWSMachine.Spec.KeyName != "" {
-		input.KeyName = aws.String(scope.AWSMachine.Spec.KeyName)
+	if scope.AWSMachine.Spec.SSHKeyName != "" {
+		input.SSHKeyName = aws.String(scope.AWSMachine.Spec.SSHKeyName)
 	} else {
-		input.KeyName = aws.String(defaultSSHKeyName)
+		input.SSHKeyName = aws.String(defaultSSHKeyName)
 	}
 
 	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
@@ -263,7 +263,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		InstanceType: aws.String(i.Type),
 		SubnetId:     aws.String(i.SubnetID),
 		ImageId:      aws.String(i.ImageID),
-		KeyName:      i.KeyName,
+		KeyName:      i.SSHKeyName,
 		EbsOptimized: i.EBSOptimized,
 		MaxCount:     aws.Int64(1),
 		MinCount:     aws.Int64(1),
@@ -526,7 +526,7 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 		Type:         aws.StringValue(v.InstanceType),
 		SubnetID:     aws.StringValue(v.SubnetId),
 		ImageID:      aws.StringValue(v.ImageId),
-		KeyName:      v.KeyName,
+		SSHKeyName:   v.KeyName,
 		PrivateIP:    v.PrivateIpAddress,
 		PublicIP:     v.PublicIpAddress,
 		ENASupport:   v.EnaSupport,

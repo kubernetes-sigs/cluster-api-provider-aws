@@ -35,7 +35,7 @@ func SDKToInstance(v *ec2.Instance) *infrav1.Instance {
 		Type:         aws.StringValue(v.InstanceType),
 		SubnetID:     aws.StringValue(v.SubnetId),
 		ImageID:      aws.StringValue(v.ImageId),
-		KeyName:      v.KeyName,
+		SSHKeyName:   v.KeyName,
 		PrivateIP:    v.PrivateIpAddress,
 		PublicIP:     v.PublicIpAddress,
 		ENASupport:   v.EnaSupport,

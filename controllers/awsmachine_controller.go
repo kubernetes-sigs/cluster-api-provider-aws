@@ -362,8 +362,8 @@ func (r *AWSMachineReconciler) validateUpdate(spec *infrav1.AWSMachineSpec, i *i
 	}
 
 	// SSH Key Name (also account for default)
-	if spec.KeyName != aws.StringValue(i.KeyName) && spec.KeyName != "" {
-		errs = append(errs, errors.Errorf("SSH key name cannot be mutated from %q to %q", aws.StringValue(i.KeyName), spec.KeyName))
+	if spec.SSHKeyName != aws.StringValue(i.SSHKeyName) && spec.SSHKeyName != "" {
+		errs = append(errs, errors.Errorf("SSH key name cannot be mutated from %q to %q", aws.StringValue(i.SSHKeyName), spec.SSHKeyName))
 	}
 
 	// Root Device Size
