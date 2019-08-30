@@ -19,7 +19,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
-	github.com/openshift/cluster-api v0.0.0-20190820083002-b2bf995e2bba
+	github.com/openshift/cluster-api v0.0.0-20190829140302-072f7d777dc8
 	github.com/openshift/cluster-api-actuator-pkg v0.0.0-20190527090340-7628df78fb4c
 	github.com/openshift/cluster-autoscaler-operator v0.0.0-20190521201101-62768a6ba480 // indirect
 	github.com/openshift/machine-api-operator v0.0.0-20190312153711-9650e16c9880 // indirect
