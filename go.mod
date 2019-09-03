@@ -19,8 +19,8 @@ require (
 	k8s.io/cluster-bootstrap v0.0.0-20190711112844-b7409fb13d1b // indirect
 	k8s.io/klog v0.4.0
 	k8s.io/kubernetes v1.14.2
-	k8s.io/utils v0.0.0-20190506122338-8fab8cb257d5
-	sigs.k8s.io/cluster-api v0.0.0-20190829154355-58b8460b80c5
+	k8s.io/utils v0.0.0-20190809000727-6c36bc71fc4a
+	sigs.k8s.io/cluster-api v0.2.0
 	sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/yaml v1.1.0
 )
@@ -28,5 +28,5 @@ require (
 replace (
 	k8s.io/api => k8s.io/api v0.0.0-20190704095032-f4ca3d3bdf1d
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190704094733-8f6ac2502e51
-	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.0.0-20190829154355-58b8460b80c5
+	sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.2.0
 )
