@@ -52,7 +52,8 @@ vendor:
 
 .PHONY: generate
 generate:
-	go generate ./pkg/... ./cmd/...
+	$(DOCKER_CMD) go generate ./pkg/... ./cmd/...
+	hack/goimports.sh .
 
 .PHONY: test
 test: unit
