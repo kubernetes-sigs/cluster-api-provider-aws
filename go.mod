@@ -31,7 +31,7 @@ require (
 	k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	k8s.io/klog v0.3.2
 	k8s.io/kubernetes v1.13.3
-	sigs.k8s.io/cluster-api v0.1.10-0.20190821205433-c80f6e5ecc7f
+	sigs.k8s.io/cluster-api v0.1.10
 	sigs.k8s.io/controller-runtime v0.1.12
 	sigs.k8s.io/controller-tools v0.1.11
 	sigs.k8s.io/testing_frameworks v0.1.1
