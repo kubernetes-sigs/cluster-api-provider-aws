@@ -414,7 +414,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(o handler.MapObject) []ct
 	}
 	log := r.Log.WithValues("AWSCluster", c.Name, "Namespace", c.Namespace)
 
-	cluster, err := util.GetOwnerCluster(context.Background(), r.Client, c.ObjectMeta)
+	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:
 		return result
@@ -425,7 +425,7 @@ func (r *AWSMachineReconciler) AWSClusterToAWSMachines(o handler.MapObject) []ct
 
 	labels := map[string]string{clusterv1.MachineClusterLabelName: cluster.Name}
 	machineList := &clusterv1.MachineList{}
-	if err := r.List(context.Background(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.List(context.TODO(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Machines")
 		return nil
 	}
