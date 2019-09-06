@@ -573,7 +573,7 @@ k8s.io/kubernetes/pkg/apis/core
 k8s.io/kubernetes/pkg/registry/core/service/allocator
 # k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
 k8s.io/utils/exec
-# sigs.k8s.io/cluster-api v0.1.10-0.20190821205433-c80f6e5ecc7f
+# sigs.k8s.io/cluster-api v0.1.10
 sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset
 sigs.k8s.io/cluster-api/cmd/clusterctl/cmd
 sigs.k8s.io/cluster-api/pkg/apis/cluster/common
