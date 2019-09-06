@@ -168,5 +168,5 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 
 // Close the MachineScope by updating the machine spec, machine status.
 func (m *MachineScope) Close() error {
-	return m.patchHelper.Patch(context.Background(), m.AWSMachine)
+	return m.patchHelper.Patch(context.TODO(), m.AWSMachine)
 }
