@@ -86,7 +86,11 @@ func (s *Service) defaultAMILookup(ownerID, baseOS, baseOSVersion, kubernetesVer
 	if len(out.Images) == 0 {
 		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
-	latestImage := getLatestImage(out.Images)
+	latestImage, err := getLatestImage(out.Images)
+	if err != nil {
+		s.scope.Error(err, "failed getting latest image from AMI list")
+		return "", err
+	}
 	s.scope.V(2).Info("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
 	return aws.StringValue(latestImage.ImageId), nil
 }
@@ -100,16 +104,10 @@ func (i images) Len() int {
 
 // Less reports whether the element with
 // index i should sort before the element with index j.
-// TODO(chuckha) Ignoring errors until this causes a problem
+// At this point all CreationDates have been checked for errors so ignoring the error is ok.
 func (i images) Less(k, j int) bool {
-	firstTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[k].CreationDate))
-	if err != nil {
-		return false
-	}
-	secondTime, err := time.Parse(createDateTimestampFormat, aws.StringValue(i[j].CreationDate))
-	if err != nil {
-		return false
-	}
+	firstTime, _ := time.Parse(createDateTimestampFormat, aws.StringValue(i[k].CreationDate))
+	secondTime, _ := time.Parse(createDateTimestampFormat, aws.StringValue(i[j].CreationDate))
 	return firstTime.Before(secondTime)
 }
 
@@ -119,10 +117,15 @@ func (i images) Swap(k, j int) {
 }
 
 // getLatestImage assumes imgs is not empty. Responsibility of the caller to check.
-func getLatestImage(imgs []*ec2.Image) *ec2.Image {
+func getLatestImage(imgs []*ec2.Image) (*ec2.Image, error) {
+	for _, img := range imgs {
+		if _, err := time.Parse(createDateTimestampFormat, aws.StringValue(img.CreationDate)); err != nil {
+			return nil, err
+		}
+	}
 	// old to new (newest one is last)
 	sort.Sort(images(imgs))
-	return imgs[len(imgs)-1]
+	return imgs[len(imgs)-1], nil
 }
 
 func (s *Service) defaultBastionAMILookup(region string) string {

@@ -89,3 +89,61 @@ func TestAMIs(t *testing.T) {
 		})
 	}
 }
+
+func TestAMIsWithInvalidCreationDate(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name   string
+		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+	}{
+		{
+			name: "simple test",
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								ImageId:      aws.String("ancient"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("pretty new"),
+								CreationDate: aws.String("invalid creation date"),
+							},
+							{
+								ImageId:      aws.String("pretty old"),
+								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster:    &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{},
+				AWSClients: scope.AWSClients{
+					EC2: ec2Mock,
+				},
+			})
+			if err != nil {
+				t.Fatalf("did not expect err: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
+			_, err = s.defaultAMILookup("", "base os", "baseos version", "1.11.1")
+			if err == nil {
+				t.Fatalf("expected an error but did not get one")
+			}
+		})
+	}
+}
