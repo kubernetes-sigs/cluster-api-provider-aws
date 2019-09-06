@@ -85,11 +85,11 @@ spec:
                     additionalTags:
                       additionalProperties:
                         type: string
-                      description: AdditionalTags is the set of tags to add to an
-                        instance, in addition to the ones added by default by the
-                        actuator. These tags are additive. The actuator will ensure
-                        these tags are present, but will not remove any other tags
-                        that may exist on the instance.
+                      description: AdditionalTags is an optional set of tags to add
+                        to an instance, in addition to the ones added by default by
+                        the AWS provider. If both the AWSCluster and the AWSMachine
+                        specify the same tag name with different values, the AWSMachine's
+                        value takes precedence.
                       type: object
                     ami:
                       description: AMI is the reference to the AMI from which to create

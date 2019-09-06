@@ -42,10 +42,9 @@ type AWSMachineSpec struct {
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType,omitempty"`
 
-	// AdditionalTags is the set of tags to add to an instance, in addition to the ones
-	// added by default by the actuator. These tags are additive. The actuator will ensure
-	// these tags are present, but will not remove any other tags that may exist on the
-	// instance.
+	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
+	// AWS provider. If both the AWSCluster and the AWSMachine specify the same tag name with different values, the
+	// AWSMachine's value takes precedence.
 	// +optional
 	AdditionalTags map[string]string `json:"additionalTags,omitempty"`
 

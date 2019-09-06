@@ -34,6 +34,13 @@ spec:
         spec:
           description: AWSClusterSpec defines the desired state of AWSCluster
           properties:
+            additionalTags:
+              additionalProperties:
+                type: string
+              description: AdditionalTags is an optional set of tags to add to AWS
+                resources managed by the AWS provider, in addition to the ones added
+                by default.
+              type: object
             networkSpec:
               description: NetworkSpec encapsulates all things related to AWS network.
               properties:

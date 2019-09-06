@@ -36,6 +36,11 @@ type AWSClusterSpec struct {
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
 	SSHKeyName string `json:"sshKeyName,omitempty"`
+
+	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
+	// ones added by default.
+	// +optional
+	AdditionalTags map[string]string `json:"additionalTags,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster
