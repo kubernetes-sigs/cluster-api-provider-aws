@@ -164,6 +164,7 @@ func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
 		ClusterName: s.scope.Name(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Role:        aws.String(infrav1.APIServerRoleTagValue),
+		Additional:  s.scope.AdditionalTags(),
 	})
 
 	for _, sn := range s.scope.Subnets().FilterPublic() {
