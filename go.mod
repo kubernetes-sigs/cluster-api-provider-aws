@@ -21,7 +21,7 @@ require (
 	k8s.io/kubernetes v1.14.2
 	k8s.io/utils v0.0.0-20190809000727-6c36bc71fc4a
 	sigs.k8s.io/cluster-api v0.2.0
-	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.0.0-20190903162828-be5a88101a9c
+	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.0
 	sigs.k8s.io/controller-runtime v0.2.0
 	sigs.k8s.io/yaml v1.1.0
 )

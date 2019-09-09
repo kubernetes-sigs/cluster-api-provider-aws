@@ -17,9 +17,11 @@ limitations under the License.
 package conversion
 
 import (
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/pkg/errors"
+
+	corev1 "k8s.io/api/core/v1"
+	cabpkv1a2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	capav1a2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	capav1a1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	capiv1a2 "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -32,7 +34,7 @@ type ClusterConverter struct {
 	oldAWSCluster *capav1a1.AWSClusterProviderSpec
 }
 
-func NewClusterConvert(cluster *capiv1a1.Cluster) *ClusterConverter {
+func NewClusterConverter(cluster *capiv1a1.Cluster) *ClusterConverter {
 	return &ClusterConverter{
 		oldCluster:    cluster,
 		oldAWSCluster: nil,
@@ -91,4 +93,28 @@ func (c *ClusterConverter) GetAWSCluster(cluster *capav1a2.AWSCluster) error {
 	cluster.Namespace = c.oldCluster.Namespace
 
 	return nil
+}
+
+func (c *ClusterConverter) GetSecrets(cluster *capiv1a2.Cluster, cfg *cabpkv1a2.KubeadmConfig) ([]*corev1.Secret, error) {
+	oldCluster, err := c.getOldAWSCluster()
+	if err != nil {
+		return []*corev1.Secret{}, err
+	}
+
+	certificates := certs.Certificates{
+		ClusterCA:      convertKeypair(&oldCluster.CAKeyPair),
+		EtcdCA:         convertKeypair(&oldCluster.EtcdCAKeyPair),
+		FrontProxyCA:   convertKeypair(&oldCluster.FrontProxyCAKeyPair),
+		ServiceAccount: convertKeypair(&oldCluster.SAKeyPair),
+	}
+
+	return certs.NewSecretsFromCertificates(cluster, cfg, &certificates), nil
+
+}
+
+func convertKeypair(in *capav1a1.KeyPair) *certs.KeyPair {
+	return &certs.KeyPair{
+		Cert: in.Cert,
+		Key:  in.Key,
+	}
 }

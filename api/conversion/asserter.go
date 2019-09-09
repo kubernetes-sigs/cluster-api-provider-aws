@@ -109,5 +109,7 @@ func (a *asserter) nodeRegistrationEqual(expected *kubeadm.NodeRegistrationOptio
 		for k, oldv := range expected.KubeletExtraArgs {
 			a.stringEqual(oldv, actual.KubeletExtraArgs[k], fmt.Sprintf("%s kubelet arg %s", name, k))
 		}
+	} else {
+		a.Errorf("expected %s to have length %d, got %d", name, len(expected.KubeletExtraArgs), len(actual.KubeletExtraArgs))
 	}
 }

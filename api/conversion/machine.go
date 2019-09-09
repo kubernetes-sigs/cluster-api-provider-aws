@@ -103,6 +103,13 @@ func (m *MachineConverter) GetMachine(machine *capiv1a2.Machine) error {
 		Kind:       "AWSMachine",
 	}
 
+	machine.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
+		Name:       m.oldMachine.Name,
+		Namespace:  m.oldMachine.Namespace,
+		APIVersion: cabpkv1a2.GroupVersion.String(),
+		Kind:       "KubeadmConfig",
+	}
+
 	return nil
 }
 

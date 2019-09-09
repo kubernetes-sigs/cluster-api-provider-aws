@@ -276,6 +276,8 @@ sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.0.0-20190829215101-33e369b
 sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.0.0-20190829215101-33e369bc9b08/go.mod h1:H9EdQUf5sc5KQ2d3UM5sQM6RJSrdSu8a4ybHOD0aoog=
 sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.0.0-20190903162828-be5a88101a9c h1:/jzszJjxN6gkUk/o74ezUciisqIa7CoBfMoWuwwIrWg=
 sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.0.0-20190903162828-be5a88101a9c/go.mod h1:tENVfoxn/Z9k2JwTqfHr0YX6FkO5bjMhB9b4jJECLxc=
+sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.0 h1:G7lcxGnpeX6CNZtpVAhI7/o8vxhBhR5RZrNRYtHKotg=
+sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.0/go.mod h1:gm6jhmmVzFGFw6OlpiMDq1/7lbXfjwCPgmbeXTeQSEY=
 sigs.k8s.io/controller-runtime v0.2.0-rc.0 h1:49JLOielmXfrd44Cmk2c0eeIkQ/Vq4AvfqsZqya16/E=
 sigs.k8s.io/controller-runtime v0.2.0-rc.0/go.mod h1:HweyYKQ8fBuzdu2bdaeBJvsFgAi/OqBBnrVGXcqKhME=
 sigs.k8s.io/controller-runtime v0.2.0 h1:5gL30PXOisGZl+Osi4CmLhvMUj77BO3wJeouKF2va50=

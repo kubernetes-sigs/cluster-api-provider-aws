@@ -188,7 +188,9 @@ func TestConvertMachine(t *testing.T) {
 
 	t.Logf("converted machine: %+v", newAWSMachine)
 
-	// Pull the provider ID from the machine (why is it in both places?)
+	// Pull the provider ID from the machine
+	// It's in both places because the infra provider is the primary component responsible for the value, but CAPI needs it
+	// for setting node refs, so CAPI copies it from the infra resource to the machine.
 	assert.stringPtrEqual(newAWSMachine.Spec.ProviderID, newMachine.Spec.ProviderID, "aws machine provider ID")
 
 	assert.stringEqual(newAWSMachine.Name, oldMachine.Name, "aws machine name")
