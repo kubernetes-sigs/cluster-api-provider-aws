@@ -63,6 +63,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 				Lifecycle:   infrav1.ResourceLifecycleOwned,
 				Name:        aws.String(fmt.Sprintf("%s-eip-%s", s.scope.Name(), role)),
 				Role:        aws.String(role),
+				Additional:  s.scope.AdditionalTags(),
 			},
 		}); err != nil {
 			return false, err
