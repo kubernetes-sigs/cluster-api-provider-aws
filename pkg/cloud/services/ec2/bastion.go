@@ -152,6 +152,7 @@ func (s *Service) getDefaultBastion() *infrav1.Instance {
 			Lifecycle:   infrav1.ResourceLifecycleOwned,
 			Name:        aws.String(name),
 			Role:        aws.String(infrav1.BastionRoleTagValue),
+			Additional:  s.scope.AdditionalTags(),
 		}),
 	}
 
