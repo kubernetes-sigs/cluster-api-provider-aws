@@ -430,7 +430,7 @@ func (s *Service) getDefaultSecurityGroup(role infrav1.SecurityGroupRole) *ec2.S
 }
 
 func (s *Service) getSecurityGroupTagParams(name string, id string, role infrav1.SecurityGroupRole) infrav1.BuildParams {
-	additional := infrav1.Tags{}
+	additional := s.scope.AdditionalTags()
 	if role == infrav1.SecurityGroupLB {
 		additional[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
 	}

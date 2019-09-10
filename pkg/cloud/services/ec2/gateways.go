@@ -188,5 +188,6 @@ func (s *Service) getGatewayTagParams(id string) infrav1.BuildParams {
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name),
 		Role:        aws.String(infrav1.CommonRoleTagValue),
+		Additional:  s.scope.AdditionalTags(),
 	}
 }

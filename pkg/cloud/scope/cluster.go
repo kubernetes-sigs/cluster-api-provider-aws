@@ -144,3 +144,12 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 func (s *ClusterScope) Close() error {
 	return s.patchHelper.Patch(context.TODO(), s.AWSCluster)
 }
+
+// AdditionalTags returns AdditionalTags from the scope's AWSCluster. The returned value will never be nil.
+func (s *ClusterScope) AdditionalTags() infrav1.Tags {
+	if s.AWSCluster.Spec.AdditionalTags == nil {
+		s.AWSCluster.Spec.AdditionalTags = infrav1.Tags{}
+	}
+
+	return s.AWSCluster.Spec.AdditionalTags
+}

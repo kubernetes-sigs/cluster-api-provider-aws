@@ -316,7 +316,7 @@ func (s *Service) deleteSubnet(id string) error {
 
 func (s *Service) getSubnetTagParams(id string, public bool) infrav1.BuildParams {
 	var role string
-	var additionalTags infrav1.Tags
+	additionalTags := s.scope.AdditionalTags()
 
 	if public {
 		role = infrav1.PublicRoleTagValue
@@ -325,9 +325,7 @@ func (s *Service) getSubnetTagParams(id string, public bool) infrav1.BuildParams
 	}
 
 	// Add tag needed for Service type=LoadBalancer
-	additionalTags = infrav1.Tags{
-		infrav1.NameKubernetesAWSCloudProviderPrefix + s.scope.Name(): string(infrav1.ResourceLifecycleShared),
-	}
+	additionalTags[infrav1.NameKubernetesAWSCloudProviderPrefix+s.scope.Name()] = string(infrav1.ResourceLifecycleShared)
 
 	var name strings.Builder
 	name.WriteString(s.scope.Name())

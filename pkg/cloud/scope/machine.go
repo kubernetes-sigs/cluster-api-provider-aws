@@ -35,11 +35,11 @@ import (
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
 	AWSClients
-	Client  client.Client
-	Logger  logr.Logger
-	Cluster *clusterv1.Cluster
-	//AWSCluster *infrav1.AWSCluster
+	Client     client.Client
+	Logger     logr.Logger
+	Cluster    *clusterv1.Cluster
 	Machine    *clusterv1.Machine
+	AWSCluster *infrav1.AWSCluster
 	AWSMachine *infrav1.AWSMachine
 }
 
@@ -58,6 +58,9 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.AWSMachine == nil {
 		return nil, errors.New("aws machine is required when creating a MachineScope")
 	}
+	if params.AWSCluster == nil {
+		return nil, errors.New("aws cluster is required when creating a MachineScope")
+	}
 
 	if params.Logger == nil {
 		params.Logger = klogr.New()
@@ -68,12 +71,14 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 	return &MachineScope{
-		client:      params.Client,
-		Cluster:     params.Cluster,
-		Machine:     params.Machine,
-		AWSMachine:  params.AWSMachine,
 		Logger:      params.Logger,
+		client:      params.Client,
 		patchHelper: helper,
+
+		Cluster:    params.Cluster,
+		Machine:    params.Machine,
+		AWSCluster: params.AWSCluster,
+		AWSMachine: params.AWSMachine,
 	}, nil
 }
 
@@ -85,6 +90,7 @@ type MachineScope struct {
 
 	Cluster    *clusterv1.Cluster
 	Machine    *clusterv1.Machine
+	AWSCluster *infrav1.AWSCluster
 	AWSMachine *infrav1.AWSMachine
 }
 
@@ -169,4 +175,17 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 // Close the MachineScope by updating the machine spec, machine status.
 func (m *MachineScope) Close() error {
 	return m.patchHelper.Patch(context.TODO(), m.AWSMachine)
+}
+
+// AdditionalTags merges AdditionalTags from the scope's AWSCluster and AWSMachine. If the same key is present in both,
+// the value from AWSMachine takes precedence. The returned Tags will never be nil.
+func (m *MachineScope) AdditionalTags() infrav1.Tags {
+	var tags infrav1.Tags = m.AWSCluster.Spec.AdditionalTags
+	if tags == nil {
+		tags = infrav1.Tags{}
+	}
+
+	tags.Merge(m.AWSMachine.Spec.AdditionalTags)
+
+	return tags
 }

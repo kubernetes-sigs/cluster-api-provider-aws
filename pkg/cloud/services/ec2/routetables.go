@@ -299,5 +299,6 @@ func (s *Service) getRouteTableTagParams(id string, public bool) infrav1.BuildPa
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(name.String()),
 		Role:        aws.String(infrav1.CommonRoleTagValue),
+		Additional:  s.scope.AdditionalTags(),
 	}
 }
