@@ -24,7 +24,7 @@ OUTPUT_DIR=${OUTPUT_DIR:-${SOURCE_DIR}/_out}
 ENVSUBST=${ENVSUBST:-envsubst}
 command -v "${ENVSUBST}" >/dev/null 2>&1 || echo -v "Cannot find ${ENVSUBST} in path."
 
-CLUSTERAWSADM=${CLUSTERAWSADM:-clusterawsadm}
+CLUSTERAWSADM=${CLUSTERAWSADM:-${SOURCE_DIR}/../bin/clusterawsadm}
 command -v "${CLUSTERAWSADM}" >/dev/null 2>&1 || echo -v "Cannot find ${CLUSTERAWSADM} in path, build it using 'make binaries' in this repository."
 
 # Cluster.

@@ -157,7 +157,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		rbac:roleName=manager-role
 
 .PHONY: generate-examples
-generate-examples: clean-examples ## Generate examples configurations to run a cluster.
+generate-examples: clean-examples clusterawsadm ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
 
 ## --------------------------------------
