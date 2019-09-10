@@ -461,6 +461,18 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+							Name:       "test1",
+						},
+					},
+				},
+			}
+
 			machine := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test1",
@@ -498,6 +510,7 @@ func TestCreateInstance(t *testing.T) {
 				Cluster:    cluster,
 				Machine:    machine,
 				AWSMachine: awsMachine,
+				AWSCluster: awsCluster,
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
