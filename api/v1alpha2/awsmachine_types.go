@@ -79,7 +79,7 @@ type AWSMachineSpec struct {
 	// SSHKeyName is the name of the ssh key to attach to the instance.
 	SSHKeyName string `json:"sshKeyName,omitempty"`
 
-	// RootDeviceSize is the size of the root volume.
+	// RootDeviceSize is the size of the root volume in gigabytes(GB).
 	// +optional
 	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
 }
