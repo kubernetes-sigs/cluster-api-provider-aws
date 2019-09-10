@@ -141,7 +141,7 @@ spec:
                 2. Cluster/flavor setting 3. Subnet default'
               type: boolean
             rootDeviceSize:
-              description: RootDeviceSize is the size of the root volume.
+              description: RootDeviceSize is the size of the root volume in gigabytes(GB).
               format: int64
               type: integer
             sshKeyName:
