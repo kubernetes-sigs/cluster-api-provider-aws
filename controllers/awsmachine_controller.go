@@ -312,7 +312,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	}
 
 	// Ensure that the tags are correct.
-	_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AWSMachine.Spec.AdditionalTags)
+	_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
 	}

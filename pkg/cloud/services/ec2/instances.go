@@ -108,14 +108,17 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		RootDeviceSize: scope.AWSMachine.Spec.RootDeviceSize,
 	}
 
+	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
+	additionalTags := scope.AdditionalTags()
+	// Set the cloud provider tag
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+
 	input.Tags = infrav1.Build(infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
-		Additional: infrav1.Tags{
-			infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name()): string(infrav1.ResourceLifecycleOwned),
-		},
+		Additional:  additionalTags,
 	})
 
 	var err error
