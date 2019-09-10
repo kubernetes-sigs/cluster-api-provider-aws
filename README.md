@@ -21,7 +21,7 @@ previous cluster managers such as [kops][kops] and
 
 ## Launching a Kubernetes cluster on AWS
 
-Check out the [getting started guide](docs/getting-started.md) for launching a
+Check out the [Cluster API Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html) for launching a
 cluster on AWS.
 
 ## Features
