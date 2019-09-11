@@ -19,112 +19,438 @@ limitations under the License.
 package e2e_test
 
 import (
+	"context"
+	"flag"
 	"fmt"
-	"os"
-	"strings"
+	"io/ioutil"
+	"os/exec"
+	"path"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/session"
-	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	awssts "github.com/aws/aws-sdk-go/service/sts"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
-)
-
-const (
-	kindTimeout = 5 * 60
-	stackName   = "cluster-api-provider-aws-sigs-k8s-io"
-	partition   = "aws"
-	keyPairName = "cluster-api-provider-aws-sigs-k8s-io"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 var (
-	region string
+	cniManifests  = flag.String("cniManifests", "https://docs.projectcalico.org/v3.8/manifests/calico.yaml", "URL to CNI manifests to load")
+	kubectlBinary = defineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 )
 
-func initRegion() error {
-	val, ok := os.LookupEnv("AWS_REGION")
-	if !ok {
-		return fmt.Errorf("Environment variable AWS_REGION not found")
-	}
-	region = strings.TrimSpace(val)
-	return nil
-}
-
-var _ = Describe("AWS", func() {
+var _ = Describe("functional tests", func() {
 	var (
-		kindCluster kind.Cluster
+		namespace               string
+		clusterName             string
+		awsClusterName          string
+		cpMachinePrefix         string
+		cpAWSMachinePrefix      string
+		cpBootstrapConfigPrefix string
+		testTmpDir              string
 	)
 	BeforeEach(func() {
-		fmt.Fprintf(GinkgoWriter, "running in AWS region: %s\n", region)
-		kindCluster = kind.Cluster{
-			Name: "capa-test-" + util.RandomString(6),
-		}
-		kindCluster.Setup()
-	}, kindTimeout)
+		var err error
+		testTmpDir, err = ioutil.TempDir(suiteTmpDir, "aws-test")
+		Expect(err).NotTo(HaveOccurred())
 
-	AfterEach(func() {
-		kindCluster.Teardown()
+		namespace = "test-" + util.RandomString(6)
+		createNamespace(namespace)
+
+		clusterName = "test-" + util.RandomString(6)
+		awsClusterName = "test-infra-" + util.RandomString(6)
+		cpMachinePrefix = "test-" + util.RandomString(6)
+		cpAWSMachinePrefix = "test-infra-" + util.RandomString(6)
+		cpBootstrapConfigPrefix = "test-boot-" + util.RandomString(6)
 	})
 
-	Describe("control plane node", func() {
-		It("should be running", func() {
-			sess := getSession()
-			accountID := getAccountID(sess)
+	Describe("workload cluster lifecycle", func() {
+		It("It should be creatable and deletable", func() {
+			By("Creating an AWSCluster")
+			makeAWSCluster(namespace, awsClusterName)
 
-			createKeyPair(sess)
-			createIAMRoles(sess, accountID)
+			By("Creating a Cluster")
+			makeCluster(namespace, clusterName, awsClusterName)
 
-			namespace := "test-" + util.RandomString(6)
-			createNamespace(kindCluster.KubeClient(), namespace)
+			By("Ensuring Cluster Infrastructure Reports as Ready")
+			waitForClusterInfrastructureReady(namespace, clusterName)
+
+			By("Creating the initial Control Plane Machine")
+			awsMachineName := cpAWSMachinePrefix + "-0"
+			bootstrapConfigName := cpBootstrapConfigPrefix + "-0"
+			machineName := cpMachinePrefix + "-0"
+			createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
+
+			By("Deploying CNI to created Cluster")
+			deployCNI(testTmpDir, namespace, clusterName, *cniManifests)
+			waitForMachineNodeReady(namespace, machineName)
+
+			By("Creating the second Control Plane Machine")
+			awsMachineName = cpAWSMachinePrefix + "-1"
+			bootstrapConfigName = cpBootstrapConfigPrefix + "-1"
+			machineName = cpMachinePrefix + "-1"
+			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
+
+			By("Creating the third Control Plane Machine")
+			awsMachineName = cpAWSMachinePrefix + "-2"
+			bootstrapConfigName = cpBootstrapConfigPrefix + "-2"
+			machineName = cpMachinePrefix + "-2"
+			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
+
+			// TODO: Deploy a MachineDeployment
+			// TODO: Scale MachineDeployment up
+			// TODO: Scale MachineDeployment down
+
+			By("Deleting the Cluster")
+			deleteCluster(namespace, clusterName)
+
 		})
 	})
 })
 
-func createNamespace(client kubernetes.Interface, namespace string) {
-	_, err := client.CoreV1().Namespaces().Create(&corev1.Namespace{
+func deployCNI(tmpDir, namespace, clusterName, manifestPath string) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      clusterName,
+		},
+	}
+	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
+	Expect(err).NotTo(HaveOccurred())
+	kubeConfigPath := path.Join(tmpDir, clusterName+".kubeconfig")
+	err = ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0640)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = exec.Command(
+		*kubectlBinary,
+		"create",
+		"--kubeconfig="+kubeConfigPath,
+		"-f", manifestPath,
+	).Run()
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func waitForMachineNodeReady(namespace, name string) {
+	machine := &clusterv1.Machine{}
+	err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(
+		func() bool {
+			node := &corev1.Node{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: name}, node); err != nil {
+				return false
+			}
+
+			conditionMap := make(map[corev1.NodeConditionType]*corev1.NodeCondition)
+			for i, condition := range node.Status.Conditions {
+				if condition.Type == corev1.NodeReady {
+					conditionMap[condition.Type] = &node.Status.Conditions[i]
+				}
+			}
+
+			if condition, ok := conditionMap[corev1.NodeReady]; ok {
+				if condition.Status == corev1.ConditionTrue {
+					return true
+				}
+			}
+			return false
+		},
+		2*time.Minute, 15*time.Second,
+	).ShouldNot(BeTrue())
+}
+
+func createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName string) {
+	makeAWSMachine(namespace, awsMachineName)
+	makeJoinBootstrapConfig(namespace, bootstrapConfigName)
+	makeMachine(namespace, machineName, awsMachineName, bootstrapConfigName, clusterName)
+	waitForMachineBootstrapReady(namespace, machineName)
+	waitForAWSMachineRunning(namespace, awsMachineName)
+	waitForAWSMachineReady(namespace, awsMachineName)
+	waitForMachineNodeRef(namespace, machineName)
+	waitForMachineNodeReady(namespace, machineName)
+}
+
+func createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName string) {
+	makeAWSMachine(namespace, awsMachineName)
+	makeInitBootstrapConfig(namespace, bootstrapConfigName)
+	makeMachine(namespace, machineName, awsMachineName, bootstrapConfigName, clusterName)
+	waitForMachineBootstrapReady(namespace, machineName)
+	waitForAWSMachineRunning(namespace, awsMachineName)
+	waitForAWSMachineReady(namespace, awsMachineName)
+	waitForMachineNodeRef(namespace, machineName)
+	waitForClusterControlPlaneInitialized(namespace, clusterName)
+}
+
+func deleteCluster(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Deleting Cluster %s/%s\n", namespace, name)
+	Expect(kindClient.Delete(context.TODO(), &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	})).NotTo(HaveOccurred())
+
+	Eventually(
+		func() bool {
+			cluster := &clusterv1.Cluster{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); err != nil {
+				if apierrors.IsNotFound(err) {
+					return true
+				}
+				return false
+			}
+			return false
+		},
+		20*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func waitForMachineNodeRef(namespace, name string) {
+	Eventually(
+		func() *corev1.ObjectReference {
+			machine := &clusterv1.Machine{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine); err != nil {
+				return nil
+			}
+			return machine.Status.NodeRef
+
+		},
+		5*time.Minute, 15*time.Second,
+	).ShouldNot(BeNil())
+}
+
+func waitForClusterControlPlaneInitialized(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Ensuring control plane initialized for cluster %s/%s\n", namespace, name)
+	Eventually(
+		func() (bool, error) {
+			cluster := &clusterv1.Cluster{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); err != nil {
+				return false, err
+			}
+			return cluster.Status.ControlPlaneInitialized, nil
+		},
+		10*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func waitForAWSMachineRunning(namespace, name string) {
+	Eventually(
+		func() (bool, error) {
+			awsMachine := &infrav1.AWSMachine{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, awsMachine); err != nil {
+				return false, err
+			}
+			if awsMachine.Status.InstanceState == nil {
+				return false, nil
+			}
+			return *awsMachine.Status.InstanceState == infrav1.InstanceStateRunning, nil
+		},
+		5*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func waitForClusterInfrastructureReady(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Ensuring infrastructure is ready for cluster %s/%s\n", namespace, name)
+	Eventually(
+		func() (bool, error) {
+			cluster := &clusterv1.Cluster{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); err != nil {
+				return false, err
+			}
+			return cluster.Status.InfrastructureReady, nil
+		},
+		10*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func waitForMachineBootstrapReady(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Ensuring Machine %s/%s has bootstrapReady\n", namespace, name)
+	Eventually(
+		func() (bool, error) {
+			machine := &clusterv1.Machine{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine); err != nil {
+				return false, err
+			}
+			return machine.Status.BootstrapReady, nil
+		},
+		2*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func waitForAWSMachineReady(namespace, name string) {
+	Eventually(
+		func() (bool, error) {
+			awsMachine := &infrav1.AWSMachine{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, awsMachine); err != nil {
+				return false, err
+			}
+			return awsMachine.Status.Ready, nil
+		},
+		2*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func makeMachine(namespace, name, awsMachineName, bootstrapConfigName, clusterName string) {
+	fmt.Fprintf(GinkgoWriter, "Creating Machine %s/%s\n", namespace, name)
+	k8s_version := "v1.15.3"
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels: map[string]string{
+				clusterv1.MachineClusterLabelName:      clusterName,
+				clusterv1.MachineControlPlaneLabelName: "true",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Name:       bootstrapConfigName,
+					Namespace:  namespace,
+				},
+			},
+			InfrastructureRef: corev1.ObjectReference{
+				Kind:       "AWSMachine",
+				APIVersion: infrav1.GroupVersion.String(),
+				Name:       awsMachineName,
+				Namespace:  namespace,
+			},
+			Version: &k8s_version,
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), machine)).NotTo(HaveOccurred())
+}
+
+func makeJoinBootstrapConfig(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Creating Join KubeadmConfig %s/%s\n", namespace, name)
+	config := &bootstrapv1.KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: bootstrapv1.KubeadmConfigSpec{
+			JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+				ControlPlane: &kubeadmv1beta1.JoinControlPlane{},
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:             "{{ ds.meta_data.hostname }}",
+					KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
+				},
+			},
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), config)).NotTo(HaveOccurred())
+}
+
+func makeInitBootstrapConfig(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Creating Init KubeadmConfig %s/%s\n", namespace, name)
+	config := &bootstrapv1.KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: bootstrapv1.KubeadmConfigSpec{
+			ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+				APIServer: kubeadmv1beta1.APIServer{
+					ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+						ExtraArgs: map[string]string{"cloud-provider": "aws"},
+					},
+				},
+				ControllerManager: kubeadmv1beta1.ControlPlaneComponent{
+					ExtraArgs: map[string]string{"cloud-provider": "aws"},
+				},
+			},
+			InitConfiguration: &kubeadmv1beta1.InitConfiguration{
+				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					Name:             "{{ ds.meta_data.hostname }}",
+					KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
+				},
+			},
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), config)).NotTo(HaveOccurred())
+}
+
+func makeAWSMachine(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Creating AWSMachine %s/%s\n", namespace, name)
+	awsMachine := &infrav1.AWSMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: infrav1.AWSMachineSpec{
+			InstanceType:       "t3.large",
+			IAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+			SSHKeyName:         keyPairName,
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), awsMachine)).NotTo(HaveOccurred())
+}
+
+func makeCluster(namespace, name, awsClusterName string) {
+	fmt.Fprintf(GinkgoWriter, "Creating Cluster %s/%s\n", namespace, name)
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				Pods: &clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"192.168.0.0/16"},
+				},
+			},
+			InfrastructureRef: &corev1.ObjectReference{
+				Kind:       "AWSCluster",
+				APIVersion: infrav1.GroupVersion.String(),
+				Name:       awsClusterName,
+				Namespace:  namespace,
+			},
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), cluster)).NotTo(HaveOccurred())
+}
+
+func makeAWSCluster(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Creating AWSCluster %s/%s\n", namespace, name)
+	awsCluster := &infrav1.AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: infrav1.AWSClusterSpec{
+			Region:     "us-east-1",
+			SSHKeyName: keyPairName,
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), awsCluster)).NotTo(HaveOccurred())
+}
+
+func createNamespace(namespace string) {
+	fmt.Fprintf(GinkgoWriter, "creating namespace %q\n", namespace)
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 		},
-	})
-	Expect(err).To(BeNil())
-}
-
-func getAccountID(prov client.ConfigProvider) string {
-	stsSvc := sts.NewService(awssts.New(prov))
-	accountID, err := stsSvc.AccountID()
-	Expect(err).To(BeNil())
-	return accountID
-}
-
-func createIAMRoles(prov client.ConfigProvider, accountID string) {
-	cfnSvc := cloudformation.NewService(cfn.New(prov))
-	Expect(
-		cfnSvc.ReconcileBootstrapStack(stackName, accountID, partition),
-	).To(Succeed())
-}
-
-func createKeyPair(prov client.ConfigProvider) {
-	ec2c := ec2.New(prov)
-	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
-	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
-		Expect(err).To(BeNil())
 	}
+	Expect(kindClient.Create(context.TODO(), ns)).NotTo(HaveOccurred())
 }
 
-func getSession() client.ConfigProvider {
-	sess, err := session.NewSession(aws.NewConfig())
-	Expect(err).To(BeNil())
-	return sess
+func defineOrLookupStringFlag(name string, value string, usage string) *string {
+	f := flag.Lookup(name)
+	if f != nil {
+		v := f.Value.String()
+		return &v
+	}
+	return flag.String(name, value, usage)
 }
