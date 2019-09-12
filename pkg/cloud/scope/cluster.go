@@ -172,3 +172,11 @@ func (s *ClusterScope) AdditionalTags() infrav1.Tags {
 
 	return s.AWSCluster.Spec.AdditionalTags
 }
+
+// APIServerPort returns the APIServerPort to use when creating the load balancer.
+func (s *ClusterScope) APIServerPort() int64 {
+	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
+		return int64(*s.Cluster.Spec.ClusterNetwork.APIServerPort)
+	}
+	return 6443
+}
