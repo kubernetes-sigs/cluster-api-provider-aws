@@ -2,7 +2,7 @@
 
 ## Quick start
 
-- [Getting started](getting-started.md)
+- [Cluster API Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html)
 - [List of AMIs](amis.md)
 - [Accessing cluster instances](accessing-instances.md)
 - [Building AMIs with Packer](https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi#make-targets)
