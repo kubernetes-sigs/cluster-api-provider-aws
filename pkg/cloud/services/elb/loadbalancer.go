@@ -124,13 +124,32 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 }
 
 // RegisterInstanceWithAPIServerELB registers an instance with a classic ELB
-func (s *Service) RegisterInstanceWithAPIServerELB(instanceID string) error {
-	input := &elb.RegisterInstancesWithLoadBalancerInput{
-		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
-		LoadBalancerName: aws.String(GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue)),
+func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
+	name := GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue)
+	out, err := s.describeClassicELB(name)
+	if err != nil {
+		return err
 	}
 
-	_, err := s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
+	// Validate that the subnets associated with the load balancer has the instance AZ.
+	instanceAZ := s.scope.Subnets().FindByID(i.SubnetID).AvailabilityZone
+	found := false
+	for _, subnetID := range out.SubnetIDs {
+		if subnet := s.scope.Subnets().FindByID(subnetID); subnet != nil && instanceAZ == subnet.AvailabilityZone {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return errors.Errorf("failed to register instance with APIServer ELB %q: instance is in availability zone %q, no public subnets attached to the ELB in the same zone", name, instanceAZ)
+	}
+
+	input := &elb.RegisterInstancesWithLoadBalancerInput{
+		Instances:        []*elb.Instance{{InstanceId: aws.String(i.ID)}},
+		LoadBalancerName: aws.String(name),
+	}
+
+	_, err = s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
 	if err != nil {
 		return err
 	}

@@ -343,7 +343,9 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 	}
 
 	elbsvc := elb.NewService(clusterScope)
-	if err := elbsvc.RegisterInstanceWithAPIServerELB(i.ID); err != nil {
+	if err := elbsvc.RegisterInstanceWithAPIServerELB(i); err != nil {
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
+			"Failed to register control plane instance %q with load balancer: %v", i.ID, err)
 		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 	}
 	return nil
