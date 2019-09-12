@@ -58,6 +58,16 @@ func (s *Service) ReconcileLoadbalancers() error {
 		}
 	}
 
+	// Reconciliate the subnets from the spec and the ones currently attached to the load balancer.
+	if len(apiELB.SubnetIDs) != len(spec.SubnetIDs) {
+		_, err := s.scope.ELB.AttachLoadBalancerToSubnets(&elb.AttachLoadBalancerToSubnetsInput{
+			Subnets: aws.StringSlice(spec.SubnetIDs),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
+		}
+	}
+
 	// TODO(vincepri): check if anything has changed and reconcile as necessary.
 	apiELB.DeepCopyInto(&s.scope.Network().APIServerELB)
 	s.scope.V(4).Info("Control plane load balancer", "api-server-elb", apiELB)
@@ -69,11 +79,9 @@ func (s *Service) ReconcileLoadbalancers() error {
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
 func (s *Service) GetAPIServerDNSName() (string, error) {
 	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue))
-
 	if err != nil {
 		return "", err
 	}
-
 	return apiELB.DNSName, nil
 }
 
@@ -167,8 +175,13 @@ func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
 		Additional:  s.scope.AdditionalTags(),
 	})
 
+	// The load balancer APIs require us to only attach one subnet for each AZ.
+	zones := map[string]struct{}{}
 	for _, sn := range s.scope.Subnets().FilterPublic() {
-		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+		if _, ok := zones[sn.AvailabilityZone]; !ok {
+			zones[sn.AvailabilityZone] = struct{}{}
+			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+		}
 	}
 
 	return res
