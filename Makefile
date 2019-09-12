@@ -359,7 +359,3 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 .PHONY: verify
 verify: ## Runs verification scripts to ensure correct execution
 	./hack/verify-boilerplate.sh
-
-.PHONY: verify-install
-verify-install: ## Checks that you've installed this repository correctly
-	./hack/verify-install.sh
