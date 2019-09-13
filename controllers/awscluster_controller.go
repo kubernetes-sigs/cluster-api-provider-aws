@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -36,10 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	controllerName = "awscluster-controller"
-)
-
 // AWSClusterReconciler reconciles a AwsCluster object
 type AWSClusterReconciler struct {
 	client.Client
@@ -53,9 +48,7 @@ type AWSClusterReconciler struct {
 
 func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.TODO()
-	log := r.Log.WithName(controllerName).
-		WithName(fmt.Sprintf("namespace=%s", req.Namespace)).
-		WithName(fmt.Sprintf("awsCluster=%s", req.Name))
+	log := r.Log.WithValues("namespace", req.Namespace, "awsCluster", req.Name)
 
 	// Fetch the AWSCluster instance
 	awsCluster := &infrav1.AWSCluster{}
@@ -67,8 +60,6 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, err
 	}
 
-	log = log.WithName(awsCluster.APIVersion)
-
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, awsCluster.ObjectMeta)
 	if err != nil {
@@ -79,7 +70,7 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, nil
 	}
 
-	log = log.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
+	log = log.WithValues("cluster", cluster.Name)
 
 	// Create the scope.
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{

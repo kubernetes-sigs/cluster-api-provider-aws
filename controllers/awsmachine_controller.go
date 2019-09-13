@@ -58,10 +58,7 @@ type AWSMachineReconciler struct {
 
 func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.TODO()
-	logger := r.Log.
-		WithName(controllerName).
-		WithName(fmt.Sprintf("namespace=%s", req.Namespace)).
-		WithName(fmt.Sprintf("awsMachine=%s", req.Name))
+	logger := r.Log.WithValues("namespace", req.Namespace, "awsMachine", req.Name)
 
 	// Fetch the AWSMachine instance.
 	awsMachine := &infrav1.AWSMachine{}
@@ -73,8 +70,6 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, err
 	}
 
-	logger = logger.WithName(awsMachine.APIVersion)
-
 	// Fetch the Machine.
 	machine, err := util.GetOwnerMachine(ctx, r.Client, awsMachine.ObjectMeta)
 	if err != nil {
@@ -85,7 +80,7 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("machine=%s", machine.Name))
+	logger = logger.WithValues("machine", machine.Name)
 
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
@@ -94,7 +89,7 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
+	logger = logger.WithValues("cluster", cluster.Name)
 
 	awsCluster := &infrav1.AWSCluster{}
 
@@ -107,7 +102,7 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, nil
 	}
 
-	logger = logger.WithName(fmt.Sprintf("awsCluster=%s", awsCluster.Name))
+	logger = logger.WithValues("awsCluster", awsCluster.Name)
 
 	// Create the cluster scope
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
