@@ -20,12 +20,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,11 +64,15 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	if params.AWSClients.EC2 == nil {
-		params.AWSClients.EC2 = ec2.New(session)
+		ec2Client := ec2.New(session)
+		ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
+		params.AWSClients.EC2 = ec2Client
 	}
 
 	if params.AWSClients.ELB == nil {
-		params.AWSClients.ELB = elb.New(session)
+		elbClient := elb.New(session)
+		elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
+		params.AWSClients.ELB = elbClient
 	}
 
 	helper, err := patch.NewHelper(params.AWSCluster, params.Client)
@@ -79,6 +87,17 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		AWSCluster:  params.AWSCluster,
 		patchHelper: helper,
 	}, nil
+}
+
+func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
+	return func(r *request.Request) {
+		if awsErr, ok := r.Error.(awserr.Error); ok {
+			switch awsErr.Code() {
+			case "AuthFailure", "UnauthorizedOperation":
+				record.Warnf(target, awsErr.Code(), "Operation %s failed with a credentials or permission issue", r.Operation.Name)
+			}
+		}
+	}
 }
 
 // ClusterScope defines the basic context for an actuator to operate upon.
