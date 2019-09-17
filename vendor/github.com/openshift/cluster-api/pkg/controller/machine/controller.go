@@ -19,7 +19,6 @@ package machine
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/go-log/log/info"
@@ -78,14 +77,8 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 		eventRecorder: mgr.GetEventRecorderFor("machine-controller"),
 		config:        mgr.GetConfig(),
 		scheme:        mgr.GetScheme(),
-		nodeName:      os.Getenv(NodeNameEnvVar),
 		actuator:      actuator,
 	}
-
-	if r.nodeName == "" {
-		klog.Warningf("Environment variable %q is not set, this controller will not protect against deleting its own machine", NodeNameEnvVar)
-	}
-
 	return r
 }
 
@@ -113,9 +106,6 @@ type ReconcileMachine struct {
 	eventRecorder record.EventRecorder
 
 	actuator Actuator
-
-	// nodeName is the name of the node on which the machine controller is running, if not present, it is loaded from NODE_NAME.
-	nodeName string
 }
 
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
@@ -199,13 +189,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, nil
 		}
 
-		if !r.isDeleteAllowed(m) {
-			klog.Infof("Deleting machine hosting this controller is not allowed. Skipping reconciliation of machine %q", name)
-			return reconcile.Result{}, nil
-		}
-
 		klog.Infof("Reconciling machine %q triggers delete", name)
-
 		// Drain node before deletion
 		// If a machine is not linked to a node, just delete the machine. Since a node
 		// can be unlinked from a machine when the node goes NotReady and is removed
@@ -225,7 +209,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			// after an instance was created. So only a small window is left when
 			// we can loose instances, e.g. right after request to create one
 			// was sent and before a list of node addresses was set.
-			if  len(m.Status.Addresses) > 0 || !isInvalidMachineConfigurationError(err) {
+			if len(m.Status.Addresses) > 0 || !isInvalidMachineConfigurationError(err) {
 				klog.Errorf("Failed to delete machine %q: %v", name, err)
 				return delayIfRequeueAfterError(err)
 			}
@@ -332,27 +316,6 @@ func (r *ReconcileMachine) getCluster(ctx context.Context, machine *machinev1.Ma
 	}
 
 	return cluster, nil
-}
-
-func (r *ReconcileMachine) isDeleteAllowed(machine *machinev1.Machine) bool {
-	if r.nodeName == "" || machine.Status.NodeRef == nil {
-		return true
-	}
-
-	if machine.Status.NodeRef.Name != r.nodeName {
-		return true
-	}
-
-	node := &corev1.Node{}
-	if err := r.Client.Get(context.Background(), client.ObjectKey{Name: r.nodeName}, node); err != nil {
-		klog.Infof("Failed to determine if controller's node %q is associated with machine %q: %v", r.nodeName, machine.Name, err)
-		return true
-	}
-
-	// When the UID of the machine's node reference and this controller's actual node match then then the request is to
-	// delete the machine this machine-controller is running on. Return false to not allow machine controller to delete its
-	// own machine.
-	return node.UID != machine.Status.NodeRef.UID
 }
 
 func (r *ReconcileMachine) deleteNode(ctx context.Context, name string) error {
