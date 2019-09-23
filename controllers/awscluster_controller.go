@@ -37,8 +37,7 @@ import (
 )
 
 const (
-	controllerName  = "awscluster-controller"
-	apiEndpointPort = 6443
+	controllerName = "awscluster-controller"
 )
 
 // AWSClusterReconciler reconciles a AwsCluster object
@@ -170,8 +169,7 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	awsCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
 		{
 			Host: awsCluster.Status.Network.APIServerELB.DNSName,
-			// TODO(ncdc): should this come from awsCluster.Status.Network.APIServerELB.Listeners[0].Port?
-			Port: apiEndpointPort,
+			Port: int(awsCluster.Status.Network.APIServerELB.Listeners[0].Port),
 		},
 	}
 
