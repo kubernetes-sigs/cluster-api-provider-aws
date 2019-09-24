@@ -144,9 +144,10 @@ spec:
                       type: string
                     networkInterfaces:
                       description: NetworkInterfaces is a list of ENI's to associate
-                        with the instance
+                        with the instance. A maximum of 2 may be specified.
                       items:
                         type: string
+                      maxItems: 2
                       type: array
                     providerID:
                       description: ProviderID is the unique identifier as specified
