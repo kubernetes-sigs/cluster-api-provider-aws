@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -103,9 +104,10 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
-		Type:           scope.AWSMachine.Spec.InstanceType,
-		IAMProfile:     scope.AWSMachine.Spec.IAMInstanceProfile,
-		RootDeviceSize: scope.AWSMachine.Spec.RootDeviceSize,
+		Type:              scope.AWSMachine.Spec.InstanceType,
+		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
+		RootDeviceSize:    scope.AWSMachine.Spec.RootDeviceSize,
+		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
 	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
@@ -192,6 +194,15 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		return nil, err
 	}
 
+	if len(input.NetworkInterfaces) > 0 {
+		for _, id := range input.NetworkInterfaces {
+			s.scope.V(2).Info("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
+			if err := s.attachSecurityGroupsToNetworkInterface(input.SecurityGroupIDs, id); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	record.Eventf(scope.Machine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
 	return out, nil
 }
@@ -264,7 +275,6 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instance, error) {
 	input := &ec2.RunInstancesInput{
 		InstanceType: aws.String(i.Type),
-		SubnetId:     aws.String(i.SubnetID),
 		ImageId:      aws.String(i.ImageID),
 		KeyName:      i.SSHKeyName,
 		EbsOptimized: i.EBSOptimized,
@@ -294,8 +304,23 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		input.UserData = aws.String(base64.StdEncoding.EncodeToString(buf.Bytes()))
 	}
 
-	if len(i.SecurityGroupIDs) > 0 {
-		input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
+	if len(i.NetworkInterfaces) > 0 {
+		instances := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
+
+		for index, id := range i.NetworkInterfaces {
+			instances = append(instances, &ec2.InstanceNetworkInterfaceSpecification{
+				NetworkInterfaceId: aws.String(id),
+				DeviceIndex:        aws.Int64(int64(index)),
+			})
+		}
+
+		input.NetworkInterfaces = instances
+	} else {
+		input.SubnetId = aws.String(i.SubnetID)
+
+		if len(i.SecurityGroupIDs) > 0 {
+			input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
+		}
 	}
 
 	if i.IAMProfile != "" {
@@ -399,13 +424,8 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) 
 	s.scope.V(3).Info("Found ENIs on instance", "number-of-enis", len(enis), "instance-id", instanceID)
 
 	for _, eni := range enis {
-		input := &ec2.ModifyNetworkInterfaceAttributeInput{
-			NetworkInterfaceId: eni.NetworkInterfaceId,
-			Groups:             aws.StringSlice(ids),
-		}
-
-		if _, err := s.scope.EC2.ModifyNetworkInterfaceAttribute(input); err != nil {
-			return errors.Wrapf(err, "failed to modify interface %q on instance %q", aws.StringValue(eni.NetworkInterfaceId), instanceID)
+		if err := s.attachSecurityGroupsToNetworkInterface(ids, aws.StringValue(eni.NetworkInterfaceId)); err != nil {
+			return errors.Wrapf(err, "failed to modify network interfaces on instance %q", instanceID)
 		}
 	}
 
@@ -561,4 +581,78 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 
 	i.RootDeviceSize = aws.Int64Value(rootSize)
 	return i, nil
+}
+
+func (s *Service) getNetworkInterfaceSecurityGroups(interfaceID string) ([]string, error) {
+	input := &ec2.DescribeNetworkInterfaceAttributeInput{
+		Attribute:          aws.String("groupSet"),
+		NetworkInterfaceId: aws.String(interfaceID),
+	}
+
+	output, err := s.scope.EC2.DescribeNetworkInterfaceAttribute(input)
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make([]string, len(output.Groups))
+	for i := range output.Groups {
+		groups[i] = aws.StringValue(output.Groups[i].GroupId)
+	}
+
+	return groups, nil
+}
+
+func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interfaceID string) error {
+	existingGroups, err := s.getNetworkInterfaceSecurityGroups(interfaceID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to look up network interface security groups: %+v", err)
+	}
+
+	var totalGroups []string
+	copy(existingGroups, totalGroups)
+
+	for _, group := range groups {
+		if !util.Contains(existingGroups, group) {
+			totalGroups = append(totalGroups, group)
+		}
+	}
+
+	// no new groups to attach
+	if len(existingGroups) == len(totalGroups) {
+		return nil
+	}
+
+	input := &ec2.ModifyNetworkInterfaceAttributeInput{
+		NetworkInterfaceId: aws.String(interfaceID),
+		Groups:             aws.StringSlice(totalGroups),
+	}
+
+	if _, err := s.scope.EC2.ModifyNetworkInterfaceAttribute(input); err != nil {
+		return errors.Wrapf(err, "failed to modify interface %q to have security groups %v", interfaceID, totalGroups)
+	}
+	return nil
+}
+
+// DetachSecurityGroupsFromNetworkInterface looks up an ENI by interfaceID and
+// detaches a list of Security Groups from that ENI.
+func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error {
+	existingGroups, err := s.getNetworkInterfaceSecurityGroups(interfaceID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to look up network interface security groups")
+	}
+
+	remainingGroups := existingGroups
+	for _, group := range groups {
+		remainingGroups = util.Filter(remainingGroups, group)
+	}
+
+	input := &ec2.ModifyNetworkInterfaceAttributeInput{
+		NetworkInterfaceId: aws.String(interfaceID),
+		Groups:             aws.StringSlice(remainingGroups),
+	}
+
+	if _, err := s.scope.EC2.ModifyNetworkInterfaceAttribute(input); err != nil {
+		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
+	}
+	return nil
 }

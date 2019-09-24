@@ -82,6 +82,12 @@ type AWSMachineSpec struct {
 	// RootDeviceSize is the size of the root volume in gigabytes(GB).
 	// +optional
 	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
+
+	// NetworkInterfaces is a list of ENIs to associate with the instance.
+	// A maximum of 2 may be specified.
+	// +optional
+	// +kubebuilder:validation:MaxItems=2
+	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine

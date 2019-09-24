@@ -517,6 +517,9 @@ type Instance struct {
 	// Specifies size (in Gi) of the root storage device
 	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
 
+	// Specifies ENIs attached to instance
+	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
+
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
 }

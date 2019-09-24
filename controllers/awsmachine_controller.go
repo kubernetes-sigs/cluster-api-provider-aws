@@ -196,6 +196,23 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
 			return reconcile.Result{}, errors.Errorf("failed to terminate instance: %+v", err)
 		}
+
+		// If the AWSMachine specifies Network Interfaces, detach the cluster's core Security Groups from them as part of deletion.
+		if len(machineScope.AWSMachine.Spec.NetworkInterfaces) > 0 {
+			core, err := ec2Service.GetCoreSecurityGroups(machineScope)
+			if err != nil {
+				return reconcile.Result{}, errors.Errorf("failed to get core security groups to detach from instance's network interfaces: %+v", err)
+			}
+
+			machineScope.V(3).Info("Detaching security groups from provided network interface", "groups", core)
+
+			for _, id := range machineScope.AWSMachine.Spec.NetworkInterfaces {
+				if err := ec2Service.DetachSecurityGroupsFromNetworkInterface(core, id); err != nil {
+					return reconcile.Result{}, errors.Errorf("failed to detach security groups from instance's network interfaces: %+v", err)
+				}
+			}
+		}
+
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
 	}
 

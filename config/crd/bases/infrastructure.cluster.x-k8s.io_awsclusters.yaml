@@ -157,6 +157,11 @@ spec:
                 instanceState:
                   description: The current state of the instance.
                   type: string
+                networkInterfaces:
+                  description: Specifies ENIs to attach to instance
+                  items:
+                    type: string
+                  type: array
                 privateIp:
                   description: The private IPv4 address assigned to the instance.
                   type: string

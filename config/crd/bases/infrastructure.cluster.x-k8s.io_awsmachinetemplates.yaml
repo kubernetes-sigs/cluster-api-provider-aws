@@ -142,6 +142,13 @@ spec:
                       description: 'InstanceType is the type of instance to create.
                         Example: m4.xlarge'
                       type: string
+                    networkInterfaces:
+                      description: NetworkInterfaces is a list of ENI's to associate
+                        with the instance. A maximum of 2 may be specified.
+                      items:
+                        type: string
+                      maxItems: 2
+                      type: array
                     providerID:
                       description: ProviderID is the unique identifier as specified
                         by the cloud provider.
