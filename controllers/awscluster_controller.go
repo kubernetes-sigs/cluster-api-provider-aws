@@ -166,10 +166,11 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	}
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull them
+	// TODO: should we get the Port from the first listener on the ELB?
 	awsCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
 		{
 			Host: awsCluster.Status.Network.APIServerELB.DNSName,
-			Port: int(awsCluster.Status.Network.APIServerELB.Listeners[0].Port),
+			Port: int(clusterScope.APIServerPort()),
 		},
 	}
 
