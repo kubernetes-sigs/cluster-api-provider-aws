@@ -196,7 +196,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 
 	if len(input.NetworkInterfaces) > 0 {
 		for _, id := range input.NetworkInterfaces {
-			s.scope.V(2).Info("attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
+			s.scope.V(2).Info("Attaching security groups to provided network interface", "groups", input.SecurityGroupIDs, "interface", id)
 			if err := s.attachSecurityGroupsToNetworkInterface(input.SecurityGroupIDs, id); err != nil {
 				return nil, err
 			}
@@ -305,7 +305,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	if len(i.NetworkInterfaces) > 0 {
-		instances := make([]*ec2.InstanceNetworkInterfaceSpecification, len(i.NetworkInterfaces))
+		instances := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
 
 		for index, id := range i.NetworkInterfaces {
 			instances = append(instances, &ec2.InstanceNetworkInterfaceSpecification{
@@ -608,11 +608,18 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 		return errors.Wrapf(err, "failed to look up network interface security groups: %+v", err)
 	}
 
-	totalGroups := existingGroups
+	var totalGroups []string
+	copy(existingGroups, totalGroups)
+
 	for _, group := range groups {
 		if !util.Contains(existingGroups, group) {
 			totalGroups = append(totalGroups, group)
 		}
+	}
+
+	// no new groups to attach
+	if len(existingGroups) == len(totalGroups) {
+		return nil
 	}
 
 	input := &ec2.ModifyNetworkInterfaceAttributeInput{
@@ -626,10 +633,12 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 	return nil
 }
 
+// DetachSecurityGroupsFromNetworkInterface looks up an ENI by interfaceID and
+// detaches a list of Security Groups from that ENI.
 func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error {
 	existingGroups, err := s.getNetworkInterfaceSecurityGroups(interfaceID)
 	if err != nil {
-		return errors.Wrapf(err, "failed to look up network interface security groups: %+v", err)
+		return errors.Wrapf(err, "failed to look up network interface security groups")
 	}
 
 	remainingGroups := existingGroups

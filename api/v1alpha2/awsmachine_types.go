@@ -83,7 +83,7 @@ type AWSMachineSpec struct {
 	// +optional
 	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
 
-	// NetworkInterfaces is a list of ENI's to associate with the instance.
+	// NetworkInterfaces is a list of ENIs to associate with the instance.
 	// A maximum of 2 may be specified.
 	// +optional
 	// +kubebuilder:validation:MaxItems=2
