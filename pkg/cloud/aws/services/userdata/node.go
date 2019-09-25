@@ -19,15 +19,14 @@ package userdata
 const (
 	nodeCloudInit = `{{.Header}}
 write_files:
--   path: /tmp/kubeadm-node.yaml
+-   path: /tmp/kubeadm.yaml
     owner: root:root
     permissions: '0640'
     content: |
       ---
 {{.JoinConfiguration | Indent 6}}
-kubeadm:
-  operation: join
-  config: /tmp/kubeadm-node.yaml
+runcmd:
+- [kubeadm, join, --config, /tmp/kubeadm.yaml]
 `
 )
 
