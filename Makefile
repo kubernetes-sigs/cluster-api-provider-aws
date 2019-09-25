@@ -357,5 +357,16 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 	rm -f examples/provider-components/provider-components-*.yaml
 
 .PHONY: verify
-verify: ## Runs verification scripts to ensure correct execution
+verify: verify-boilerplate verify-modules
+
+.PHONY: verify-boilerplate
+verify-boilerplate:
 	./hack/verify-boilerplate.sh
+
+.PHONY: verify-modules
+verify-modules: modules
+	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
+		echo "go module files are out of date"; exit 1; \
+	fi
+
+
