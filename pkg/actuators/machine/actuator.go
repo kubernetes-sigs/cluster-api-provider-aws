@@ -21,29 +21,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
-
+	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
+	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
+	mapierrors "github.com/openshift/cluster-api/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-
-	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
-	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
-	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
-	apierrors "github.com/openshift/cluster-api/pkg/errors"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
 )
 
 const (
@@ -99,12 +95,12 @@ const (
 
 // Set corresponding event based on error. It also returns the original error
 // for convenience, so callers can do "return handleMachineError(...)".
-func (a *Actuator) handleMachineError(machine *machinev1.Machine, err *apierrors.MachineError, eventAction string) error {
+func (a *Actuator) handleMachineError(machine *machinev1.Machine, err error, eventAction string) error {
 	if eventAction != noEventAction {
-		a.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err.Reason)
+		a.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err)
 	}
 
-	glog.Errorf("%s: Machine error: %v", machine.Name, err.Message)
+	glog.Errorf("%s: Machine error: %v", machine.Name, err)
 	return err
 }
 
@@ -267,7 +263,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *machinev1.Machine, c
 func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		return nil, a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
+		return nil, a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
 	}
 
 	credentialsSecretName := ""
@@ -276,8 +272,7 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *machinev1.
 	}
 	awsClient, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, machineProviderConfig.Placement.Region)
 	if err != nil {
-		glog.Errorf("%s: unable to obtain AWS client: %v", machine.Name, err)
-		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error creating aws services: %v", err), createEventAction)
+		return nil, a.handleMachineError(machine, err, createEventAction)
 	}
 
 	// We explicitly do NOT want to remove stopped masters.
@@ -300,32 +295,43 @@ func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *machinev1.
 		}
 	}
 
-	userData := []byte{}
-	if machineProviderConfig.UserDataSecret != nil {
-		var userDataSecret corev1.Secret
-		err := a.client.Get(context.Background(), client.ObjectKey{Namespace: machine.Namespace, Name: machineProviderConfig.UserDataSecret.Name}, &userDataSecret)
-		if err != nil {
-			return nil, a.handleMachineError(machine, apierrors.CreateMachine("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
-		}
-		if data, exists := userDataSecret.Data[userDataSecretKey]; exists {
-			userData = data
-		} else {
-			glog.Warningf("%s: Secret %v/%v does not have %q field set. Thus, no user data applied when creating an instance.", machine.Name, machine.Namespace, machineProviderConfig.UserDataSecret.Name, userDataSecretKey)
-		}
+	userData, err := a.getUserData(machine, machineProviderConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	instance, err := launchInstance(machine, machineProviderConfig, userData, awsClient)
 	if err != nil {
-		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error launching instance: %v", err), createEventAction)
+		return nil, a.handleMachineError(machine, err, createEventAction)
 	}
 
 	err = a.updateLoadBalancers(awsClient, machineProviderConfig, instance, machine.Name)
 	if err != nil {
-		return nil, a.handleMachineError(machine, apierrors.CreateMachine("error updating load balancers: %v", err), createEventAction)
+		return nil, a.handleMachineError(machine, err, createEventAction)
 	}
 
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, "Created", "Created Machine %v", machine.Name)
 	return instance, nil
+}
+
+func (a *Actuator) getUserData(machine *machinev1.Machine, machineProviderConfig *providerconfigv1.AWSMachineProviderConfig) ([]byte, error) {
+	if machineProviderConfig.UserDataSecret == nil {
+		return []byte{}, nil
+	}
+
+	var userDataSecret corev1.Secret
+	err := a.client.Get(context.Background(), client.ObjectKey{Namespace: machine.Namespace, Name: machineProviderConfig.UserDataSecret.Name}, &userDataSecret)
+	if err != nil {
+		if apimachineryerrors.IsNotFound(err) {
+			return nil, a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("user data secret %s: %v not found", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
+		}
+		return nil, a.handleMachineError(machine, mapierrors.CreateMachine("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
+	}
+	userData, exists := userDataSecret.Data[userDataSecretKey]
+	if !exists {
+		return nil, a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("%s: Secret %v/%v does not have %q field set. Thus, no user data applied when creating an instance.", machine.Name, machine.Namespace, machineProviderConfig.UserDataSecret.Name, userDataSecretKey), createEventAction)
+	}
+	return userData, nil
 }
 
 // Delete deletes a machine and updates its finalizer
@@ -352,7 +358,7 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
+		return a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
 	}
 
 	region := machineProviderConfig.Placement.Region
@@ -362,9 +368,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *machinev1.
 	}
 	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
-		errMsg := fmt.Errorf("%s: error getting EC2 client: %v", machine.Name, err)
-		glog.Error(errMsg)
-		return errMsg
+		return a.handleMachineError(machine, err, deleteEventAction)
 	}
 
 	instances, err := getRunningInstances(machine, client)
@@ -379,7 +383,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *machinev1.
 
 	terminatingInstances, err := terminateInstances(client, instances)
 	if err != nil {
-		return a.handleMachineError(machine, apierrors.DeleteMachine(err.Error()), noEventAction)
+		return a.handleMachineError(machine, mapierrors.DeleteMachine(err.Error()), noEventAction)
 	}
 
 	if len(terminatingInstances) == 1 {
@@ -403,7 +407,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		return a.handleMachineError(machine, apierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), updateEventAction)
+		return a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), updateEventAction)
 	}
 
 	region := machineProviderConfig.Placement.Region
@@ -414,9 +418,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	}
 	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
-		errMsg := fmt.Errorf("%s: error getting EC2 client: %v", machine.Name, err)
-		glog.Error(errMsg)
-		return errMsg
+		return a.handleMachineError(machine, err, updateEventAction)
 	}
 	// Get all instances not terminated.
 	existingInstances, err := getExistingInstances(machine, client)
@@ -432,7 +434,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	if existingLen == 0 {
 		glog.Warningf("%s: attempted to update machine but no instances found", machine.Name)
 
-		a.handleMachineError(machine, apierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
+		a.handleMachineError(machine, mapierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
 
 		// Update status to clear out machine details.
 		if err := a.updateStatus(machine, nil); err != nil {
@@ -454,7 +456,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 
 		err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance, machine.Name)
 		if err != nil {
-			a.handleMachineError(machine, apierrors.CreateMachine("Error updating load balancers: %v", err), updateEventAction)
+			a.handleMachineError(machine, mapierrors.CreateMachine("Error updating load balancers: %v", err), updateEventAction)
 			return err
 		}
 	} else {
@@ -532,9 +534,8 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *mach
 	}
 	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
-		errMsg := fmt.Sprintf("%s: Error getting EC2 client: %v", machine.Name, err)
-		glog.Errorf(errMsg)
-		return nil, fmt.Errorf(errMsg)
+		glog.Errorf("%s: Error getting EC2 client: %v", machine.Name, err)
+		return nil, err
 	}
 
 	return getExistingInstances(machine, client)
