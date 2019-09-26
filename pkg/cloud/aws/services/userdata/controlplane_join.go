@@ -23,14 +23,13 @@ import (
 const (
 	controlPlaneJoinCloudInit = `{{.Header}}
 {{template "files" .WriteFiles}}
--   path: /tmp/kubeadm-controlplane-join-config.yaml
+-   path: /tmp/kubeadm.yaml
     owner: root:root
     permissions: '0640'
     content: |
 {{.JoinConfiguration | Indent 6}}
-kubeadm:
-  operation: join
-  config: /tmp/kubeadm-controlplane-join-config.yaml
+runcmd:
+- [kubeadm, join, --config, /tmp/kubeadm.yaml]
 `
 )
 
