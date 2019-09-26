@@ -608,8 +608,8 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 		return errors.Wrapf(err, "failed to look up network interface security groups: %+v", err)
 	}
 
-	var totalGroups []string
-	copy(existingGroups, totalGroups)
+	totalGroups := make([]string, len(existingGroups))
+	copy(totalGroups, existingGroups)
 
 	for _, group := range groups {
 		if !util.Contains(existingGroups, group) {
@@ -621,6 +621,8 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 	if len(existingGroups) == len(totalGroups) {
 		return nil
 	}
+
+	s.scope.Info("Updating security groups", "groups", totalGroups)
 
 	input := &ec2.ModifyNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String(interfaceID),
