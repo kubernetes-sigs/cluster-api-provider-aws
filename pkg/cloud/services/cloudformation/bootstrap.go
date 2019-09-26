@@ -175,6 +175,7 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 					"ec2:DescribeImages",
 					"ec2:DescribeNatGateways",
 					"ec2:DescribeNetworkInterfaces",
+					"ec2:DescribeNetworkInterfaceAttribute",
 					"ec2:DescribeRouteTables",
 					"ec2:DescribeSecurityGroups",
 					"ec2:DescribeSubnets",
