@@ -622,7 +622,7 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 		return nil
 	}
 
-	s.scope.V(3).Info("Updating security groups", "groups", totalGroups)
+	s.scope.Info("Updating security groups", "groups", totalGroups)
 
 	input := &ec2.ModifyNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String(interfaceID),
