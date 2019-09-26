@@ -54,7 +54,7 @@ This provider's versions are able to install and manage the following versions o
 |-|-|-|-|-|
 |AWS Provider v1alpha1 (v0.2)|✓|✓|✓||
 |AWS Provider v1alpha1 (v0.3)|✓|✓|✓||
-|AWS Provider v1alpha1 (v0.4)||✓|✓|✓|
+|AWS Provider v1alpha2 (v0.4)||✓|✓|✓|
 
 Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.2`
 may support Kubernetes 1.13 and Kubernetes 1.14.
