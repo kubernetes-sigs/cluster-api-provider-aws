@@ -62,9 +62,9 @@ func (s *Service) reconcileSecurityGroups() error {
 	// Declare all security group roles that the reconcile loop takes care of.
 	roles := []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupLB,
 		infrav1.SecurityGroupControlPlane,
 		infrav1.SecurityGroupNode,
-		infrav1.SecurityGroupLB,
 	}
 
 	// First iteration makes sure that the security group are valid and fully created.

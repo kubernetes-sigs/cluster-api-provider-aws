@@ -650,6 +650,11 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.NetworkInterfaces != nil {
+		in, out := &in.NetworkInterfaces, &out.NetworkInterfaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags
 		*out = make(map[string]string, len(*in))

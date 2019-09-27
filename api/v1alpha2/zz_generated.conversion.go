@@ -449,6 +449,7 @@ func autoConvert_v1alpha2_Instance_To_v1alpha1_Instance(in *Instance, out *v1alp
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
 	out.EBSOptimized = (*bool)(unsafe.Pointer(in.EBSOptimized))
 	out.RootDeviceSize = in.RootDeviceSize
+	// WARNING: in.NetworkInterfaces requires manual conversion: does not exist in peer-type
 	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	return nil
 }

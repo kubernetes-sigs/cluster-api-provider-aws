@@ -158,7 +158,7 @@ spec:
                   description: The current state of the instance.
                   type: string
                 networkInterfaces:
-                  description: Specifies ENIs to attach to instance
+                  description: Specifies ENIs attached to instance
                   items:
                     type: string
                   type: array
