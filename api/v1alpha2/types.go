@@ -169,6 +169,10 @@ type NetworkSpec struct {
 	// Subnets configuration.
 	// +optional
 	Subnets Subnets `json:"subnets,omitempty"`
+
+	// ControlPlaneLoadBalancerScheme (defaults to Internet-facing)
+	// +optional
+	ControlPlaneLoadBalancerScheme ClassicELBScheme `json:"controlPlaneLoadBalancerScheme,omitempty""`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.

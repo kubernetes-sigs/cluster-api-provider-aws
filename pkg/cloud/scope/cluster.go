@@ -146,6 +146,14 @@ func (s *ClusterScope) Region() string {
 	return s.AWSCluster.Spec.Region
 }
 
+// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing)
+func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme {
+	if s.AWSCluster.Spec.NetworkSpec.ControlPlaneLoadBalancerScheme == "" {
+		return infrav1.ClassicELBSchemeInternetFacing
+	}
+	return s.AWSCluster.Spec.NetworkSpec.ControlPlaneLoadBalancerScheme
+}
+
 // ControlPlaneConfigMapName returns the name of the ConfigMap used to
 // coordinate the bootstrapping of control plane nodes.
 func (s *ClusterScope) ControlPlaneConfigMapName() string {
