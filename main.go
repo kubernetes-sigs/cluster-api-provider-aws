@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	cgrecord "k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
@@ -121,6 +122,11 @@ func main() {
 	}
 
 	ctrl.SetLogger(klogr.New())
+	// Machine and cluster operations can create enough events to trigger the event recorder spam filter
+	// Setting the burst size higher ensures all events will be recorded and submitted to the API
+	broadcaster := cgrecord.NewBroadcasterWithCorrelatorOptions(cgrecord.CorrelatorOptions{
+		BurstSize: 100,
+	})
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
@@ -128,6 +134,7 @@ func main() {
 		LeaderElection:     enableLeaderElection,
 		SyncPeriod:         &syncPeriod,
 		Namespace:          watchNamespace,
+		EventBroadcaster:   broadcaster,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
