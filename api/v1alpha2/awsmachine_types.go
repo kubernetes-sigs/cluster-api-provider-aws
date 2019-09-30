@@ -46,7 +46,7 @@ type AWSMachineSpec struct {
 	// AWS provider. If both the AWSCluster and the AWSMachine specify the same tag name with different values, the
 	// AWSMachine's value takes precedence.
 	// +optional
-	AdditionalTags map[string]string `json:"additionalTags,omitempty"`
+	AdditionalTags Tags `json:"additionalTags,omitempty"`
 
 	// IAMInstanceProfile is a name of an IAM instance profile to assign to the instance
 	// +optional

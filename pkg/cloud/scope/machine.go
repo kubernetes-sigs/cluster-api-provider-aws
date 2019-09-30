@@ -180,9 +180,11 @@ func (m *MachineScope) Close() error {
 // AdditionalTags merges AdditionalTags from the scope's AWSCluster and AWSMachine. If the same key is present in both,
 // the value from AWSMachine takes precedence. The returned Tags will never be nil.
 func (m *MachineScope) AdditionalTags() infrav1.Tags {
-	var tags infrav1.Tags = make(infrav1.Tags)
+	tags := make(infrav1.Tags)
 
+	// Start with the cluster-wide tags...
 	tags.Merge(m.AWSCluster.Spec.AdditionalTags)
+	// ... and merge in the Machine's
 	tags.Merge(m.AWSMachine.Spec.AdditionalTags)
 
 	return tags

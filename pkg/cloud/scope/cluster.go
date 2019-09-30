@@ -170,7 +170,7 @@ func (s *ClusterScope) AdditionalTags() infrav1.Tags {
 		s.AWSCluster.Spec.AdditionalTags = infrav1.Tags{}
 	}
 
-	return infrav1.Tags(s.AWSCluster.Spec.AdditionalTags).DeepCopy()
+	return s.AWSCluster.Spec.AdditionalTags.DeepCopy()
 }
 
 // APIServerPort returns the APIServerPort to use when creating the load balancer.

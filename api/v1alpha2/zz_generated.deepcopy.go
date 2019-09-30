@@ -106,7 +106,7 @@ func (in *AWSClusterSpec) DeepCopyInto(out *AWSClusterSpec) {
 	in.NetworkSpec.DeepCopyInto(&out.NetworkSpec)
 	if in.AdditionalTags != nil {
 		in, out := &in.AdditionalTags, &out.AdditionalTags
-		*out = make(map[string]string, len(*in))
+		*out = make(Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
@@ -215,7 +215,7 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 	in.AMI.DeepCopyInto(&out.AMI)
 	if in.AdditionalTags != nil {
 		in, out := &in.AdditionalTags, &out.AdditionalTags
-		*out = make(map[string]string, len(*in))
+		*out = make(Tags, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
