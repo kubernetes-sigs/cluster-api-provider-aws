@@ -132,8 +132,8 @@ spec:
                 m4.xlarge'
               type: string
             networkInterfaces:
-              description: NetworkInterfaces is a list of ENI's to associate with
-                the instance. A maximum of 2 may be specified.
+              description: NetworkInterfaces is a list of ENIs to associate with the
+                instance. A maximum of 2 may be specified.
               items:
                 type: string
               maxItems: 2

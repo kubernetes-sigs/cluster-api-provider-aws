@@ -40,7 +40,7 @@ type AWSClusterSpec struct {
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
 	// +optional
-	AdditionalTags map[string]string `json:"additionalTags,omitempty"`
+	AdditionalTags Tags `json:"additionalTags,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster
