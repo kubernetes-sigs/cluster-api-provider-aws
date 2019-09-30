@@ -36,6 +36,8 @@ spec:
       name: '{{ ds.meta_data.hostname }}'
       kubeletExtraArgs:
         cloud-provider: aws
+        node-ip: '{{ ds.meta_data.local_ipv4 }}'
+        max-pods: "${CONTROL_PLANE_MAXPODS}"
   clusterConfiguration:
     apiServer:
       extraArgs:
@@ -83,6 +85,8 @@ spec:
       name: '{{ ds.meta_data.hostname }}'
       kubeletExtraArgs:
         cloud-provider: aws
+        node-ip: '{{ ds.meta_data.local_ipv4 }}'
+        max-pods: "${CONTROL_PLANE_MAXPODS}"
 ---
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Machine
@@ -123,3 +127,5 @@ spec:
       name: '{{ ds.meta_data.hostname }}'
       kubeletExtraArgs:
         cloud-provider: aws
+        node-ip: '{{ ds.meta_data.local_ipv4 }}'
+        max-pods: "${CONTROL_PLANE_MAXPODS}"

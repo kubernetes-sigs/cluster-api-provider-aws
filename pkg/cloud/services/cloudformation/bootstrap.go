@@ -321,6 +321,28 @@ func cloudProviderNodeAwsPolicy() *iam.PolicyDocument {
 					"ecr:BatchGetImage",
 				},
 			},
+			{
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{"*"},
+				Action: iam.Actions{
+					"ec2:CreateNetworkInterface",
+					"ec2:AttachNetworkInterface",
+					"ec2:DeleteNetworkInterface",
+					"ec2:DetachNetworkInterface",
+					"ec2:DescribeNetworkInterfaces",
+					"ec2:DescribeInstances",
+					"ec2:ModifyNetworkInterfaceAttribute",
+					"ec2:AssignPrivateIpAddresses",
+					"ec2:UnassignPrivateIpAddresses",
+				},
+			},
+			{
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{"arn:aws:ec2:*:*:network-interface/*"},
+				Action: iam.Actions{
+					"ec2:CreateTags",
+				},
+			},
 		},
 	}
 }

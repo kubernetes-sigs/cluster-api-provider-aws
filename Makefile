@@ -302,7 +302,7 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 	-m ./examples/_out/controlplane.yaml \
 	-c ./examples/_out/cluster.yaml \
 	-p ./examples/_out/provider-components.yaml \
-	-a ./examples/addons.yaml
+	-a ./examples/_out/addons.yaml
 
 
 .PHONY: create-cluster-management
@@ -330,7 +330,7 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 	$(CLUSTERCTL) \
 		alpha phases apply-addons -v=3 \
 		--kubeconfig=./kubeconfig \
-		-a examples/addons.yaml
+		-a examples/_out/addons.yaml
 	# Create a worker node with MachineDeployment.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \

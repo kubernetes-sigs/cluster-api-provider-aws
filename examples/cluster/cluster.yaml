@@ -2,11 +2,17 @@
 apiVersion: cluster.x-k8s.io/v1alpha2
 kind: Cluster
 metadata:
+  annotations:
+    cluster.x-k8s.io/network-cni: ${NETWORK}
   name: ${CLUSTER_NAME}
 spec:
   clusterNetwork:
+    services:
+      cidrBlocks:
+        - ${SERVICECIDR}
     pods:
-      cidrBlocks: ["192.168.0.0/16"]
+      cidrBlocks:
+        - ${PODCIDR}
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
     kind: AWSCluster

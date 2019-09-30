@@ -51,3 +51,5 @@ spec:
           name: '{{ ds.meta_data.hostname }}'
           kubeletExtraArgs:
             cloud-provider: aws
+            node-ip: '{{ ds.meta_data.local_ipv4 }}'
+            max-pods: ${NODE_MACHINE_MAXPODS}

@@ -27,6 +27,11 @@ command -v "${ENVSUBST}" >/dev/null 2>&1 || echo -v "Cannot find ${ENVSUBST} in 
 CLUSTERAWSADM=${CLUSTERAWSADM:-${SOURCE_DIR}/../bin/clusterawsadm}
 command -v "${CLUSTERAWSADM}" >/dev/null 2>&1 || echo -v "Cannot find ${CLUSTERAWSADM} in path, build it using 'make binaries' in this repository."
 
+# NETWORK
+export NETWORK="${NETWORK:-Calico}"
+export PODCIDR="${PODCIDR:-192.168.0.0/16}"
+export SERVICECIDR="${PODCIDR:-192.168.0.0/16}"
+
 # Cluster.
 export CLUSTER_NAME="${CLUSTER_NAME:-test1}"
 export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.15.3}"
@@ -34,6 +39,8 @@ export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.15.3}"
 # Machine settings.
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
+export CONTROL_PLANE_MAXPODS="${CONTROL_PLANE_MAXPODS:-\"110\"}"
+export NODE_MACHINE_MAXPODS="${NODE_MACHINE_MAXPODS:-\"110\"}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
 
 # Outputs.
@@ -45,6 +52,9 @@ PROVIDER_COMPONENTS_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 CONTROLPLANE_GENERATED_FILE=${OUTPUT_DIR}/controlplane.yaml
 MACHINEDEPLOYMENT_GENERATED_FILE=${OUTPUT_DIR}/machinedeployment.yaml
+
+# ADDONS
+ADDONS_GENERATED_FILE=${OUTPUT_DIR}/addons.yaml
 
 # Overwrite flag.
 OVERWRITE=0
@@ -82,6 +92,18 @@ if [ $OVERWRITE -ne 1 ] && [ -d "$OUTPUT_DIR" ]; then
 fi
 
 mkdir -p "${OUTPUT_DIR}"
+
+# Generate ADDONS.
+if [ ${NETWORK} == "AmazonVPC" ]; then
+    cat "${SOURCE_DIR}/amazon-k8s-cni-addons.yaml" | envsubst > "${ADDONS_GENERATED_FILE}"
+    source ${SOURCE_DIR}/vpc_ip_resource_limit.sh
+    CONTROL_PLANE_MAXPODS=$(getMaxPods $CONTROL_PLANE_MACHINE_TYPE)
+    NODE_MACHINE_MAXPODS=$(getMaxPods $NODE_MACHINE_TYPE)
+    PODCIDR="10.0.0.0/16"
+else
+    cat "${SOURCE_DIR}/calico-addons.yaml" | envsubst > "${ADDONS_GENERATED_FILE}"
+fi
+echo "Generated ${ADDONS_GENERATED_FILE}"
 
 # Generate AWS Credentials.
 AWS_B64ENCODED_CREDENTIALS="$(${CLUSTERAWSADM} alpha bootstrap encode-aws-credentials)"

@@ -47,6 +47,15 @@ const (
 	IPProtocolICMPv6 = "58"
 )
 
+const (
+	// user set specify cni
+	ClusterSetCNI = "cluster.x-k8s.io/network-cni"
+
+	// the amazon native network solution
+	// https://github.com/aws/amazon-vpc-cni-k8s
+	AmazonVPC = "AmazonVPC"
+)
+
 func (s *Service) reconcileSecurityGroups() error {
 	s.scope.V(2).Info("Reconciling security groups")
 
@@ -371,7 +380,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 			},
 		}, nil
 	case infrav1.SecurityGroupControlPlane:
-		return infrav1.IngressRules{
+		defaultIngressRuleForControlPlane := infrav1.IngressRules{
 			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Kubernetes API",
@@ -394,30 +403,38 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				ToPort:                 2380,
 				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID},
 			},
-			{
-				Description: "bgp (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    179,
-				ToPort:      179,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
-				},
-			},
-			{
-				Description: "IP-in-IP (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolIPinIP,
-				FromPort:    -1,
-				ToPort:      65535,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
-				},
-			},
-		}, nil
+		}
+
+		if value, ok := s.scope.Cluster.Annotations[ClusterSetCNI]; ok {
+			if value != AmazonVPC {
+				defaultIngressRuleForControlPlane = append(defaultIngressRuleForControlPlane, infrav1.IngressRules{
+					{
+						Description: "bgp (calico)",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    179,
+						ToPort:      179,
+						SourceSecurityGroupIDs: []string{
+							s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+							s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+						},
+					},
+					{
+						Description: "IP-in-IP (calico)",
+						Protocol:    infrav1.SecurityGroupProtocolIPinIP,
+						FromPort:    -1,
+						ToPort:      65535,
+						SourceSecurityGroupIDs: []string{
+							s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+							s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+						},
+					},
+				}...)
+			}
+		}
+		return defaultIngressRuleForControlPlane, nil
 
 	case infrav1.SecurityGroupNode:
-		return infrav1.IngressRules{
+		defaultIngressRuleForNode := infrav1.IngressRules{
 			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Node Port Services",
@@ -437,27 +454,48 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
 				},
 			},
-			{
-				Description: "bgp (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    179,
-				ToPort:      179,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+		}
+		if value, ok := s.scope.Cluster.Annotations[ClusterSetCNI]; ok {
+			if value == AmazonVPC {
+				defaultIngressRuleForNode = append(defaultIngressRuleForNode, infrav1.IngressRules{
+					{
+						Description: "nodes communication",
+						Protocol:    infrav1.SecurityGroupProtocolAll,
+						FromPort:    -1,
+						ToPort:      65535,
+						SourceSecurityGroupIDs: []string{
+							s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+							s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+						},
+					},
+				}...)
+			}
+		} else {
+			defaultIngressRuleForNode = append(defaultIngressRuleForNode, infrav1.IngressRules{
+				{
+					Description: "bgp (calico)",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    179,
+					ToPort:      179,
+					SourceSecurityGroupIDs: []string{
+						s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+						s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+					},
 				},
-			},
-			{
-				Description: "IP-in-IP (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolIPinIP,
-				FromPort:    -1,
-				ToPort:      65535,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+				{
+					Description: "IP-in-IP (calico)",
+					Protocol:    infrav1.SecurityGroupProtocolIPinIP,
+					FromPort:    -1,
+					ToPort:      65535,
+					SourceSecurityGroupIDs: []string{
+						s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+						s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+					},
 				},
-			},
-		}, nil
+			}...)
+		}
+		return defaultIngressRuleForNode, nil
+
 	case infrav1.SecurityGroupLB:
 		// We hand this group off to the in-cluster cloud provider, so these rules aren't used
 		return infrav1.IngressRules{}, nil
