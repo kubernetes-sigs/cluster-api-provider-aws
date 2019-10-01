@@ -58,6 +58,9 @@ CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 
+# Allow overriding the imagePullPolicy
+PULL_POLICY ?= Always
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -79,7 +82,8 @@ test-integration: ## Run integration tests
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
-	go test -v -tags=e2e ./test/e2e/...
+	PULL_POLICY=IfNotPresent $(MAKE) docker-build
+	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Binaries
@@ -178,6 +182,7 @@ generate-examples: clean-examples clusterawsadm ## Generate examples configurati
 docker-build: ## Build the docker image for controller-manager
 	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
+	$(MAKE) set-manifest-pull-policy
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
@@ -207,11 +212,18 @@ docker-push-manifest: ## Push the fat manifest docker image.
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge ${CONTROLLER_IMG}:${TAG}
 	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
+	$(MAKE) set-manifest-pull-policy
 
 .PHONY: set-manifest-image
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/default/manager_image_patch.yaml
+	
+
+.PHONY: set-manifest-pull-policy
+set-manifest-pull-policy:
+	$(info Updating kustomize pull policy file for manager resource)
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/default/manager_pull_policy.yaml
 
 ## --------------------------------------
 ## Release
@@ -232,6 +244,8 @@ release: clean-release  ## Builds and push container images using the latest git
 	# Set the manifest image to the production bucket.
 	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image
+	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
+		
 	$(MAKE) release-manifests
 	$(MAKE) release-binaries
 

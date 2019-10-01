@@ -50,5 +50,6 @@ examples/provider-components-base.yaml
 examples/provider-components/provider-components-*.yaml
 config/samples
 manager_image_patch.yaml-e
+manager_pull_policy.yaml-e
 
 .DS_Store
