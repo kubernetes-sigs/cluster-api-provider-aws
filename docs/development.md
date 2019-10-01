@@ -64,7 +64,7 @@ make vendor
 ### Get familiar with basic concepts
 
 This provider is modeled after the upstream cluster-api project. To get familiar
-with resources, concepts and conventions refer to the [upstream gitbook](https://kubernetes-sigs.github.io/cluster-api/).
+with resources, concepts and conventions refer to the [upstream book](https://cluster-api.sigs.k8s.io/).
 
 ### Dev images
 
