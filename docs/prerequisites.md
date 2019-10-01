@@ -1,21 +1,21 @@
-# Prerequisites
+<!-- NB: This page is meant to be embedded in Cluster API book -->
 
 ## Requirements
 
 - Linux or MacOS (Windows isn't supported at the moment).
 - AWS credentials.
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
-- [jq][jq]
+- [jq](https://stedolan.github.io/jq/download/)
 
-### `clusterawsadm`
+### With `clusterawsadm`
 
-Get the latest [`clusterawsadm`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases)
+Get the latest [clusterawsadm](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases)
 and place it in your path.
 
-Cluster API Provider AWS ships with `clusterawsadm`, a utility to help you manage
+Cluster API Provider AWS ships with clusterawsadm, a utility to help you manage
 IAM objects for this project.
 
-In order to use `clusterawsadm` you must have an administrative user in an AWS account.
+In order to use clusterawsadm you must have an administrative user in an AWS account.
 Once you have that administrator user you need to set your environment variables:
 
 * `AWS_REGION`
@@ -25,7 +25,9 @@ Once you have that administrator user you need to set your environment variables
 
 After these are set run this command to get you up and running:
 
-`clusterawsadm alpha bootstrap create-stack`
+```bash
+clusterawsadm alpha bootstrap create-stack
+```
 
 ### Without `clusterawsadm`
 
@@ -61,9 +63,6 @@ Store with KMS encryption for security, you can use the following command:
 aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
   --type SecureString \
   --value "$(aws ec2 create-key-pair --key-name default | jq .KeyMaterial -r)"
-{
-"Version": 1
-}
 ```
 
 ### Adding an existing public key to AWS
@@ -98,15 +97,6 @@ export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq .AccessKey.SecretAcces
 If you did not use `clusterawsadm` to provision your user, you will need to set
 these environment variables in your own way.
 
-> To save credentials securely in your environment, [aws-vault][aws-vault] uses
+> To save credentials securely in your environment, [aws-vault](https://github.com/99designs/aws-vault) uses
 > the OS keystore as permanent storage, and offers shell features to securely
 > expose and setup local AWS environments.
-
----
-### You can now proceed to the [Cluster API Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html) for instructions on how to create a cluster.
-
-<!-- links -->
-[jq]: https://stedolan.github.io/jq/download/
-[kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[aws-vault]: https://github.com/99designs/aws-vault
-[kustomize]: https://github.com/kubernetes-sigs/kustomize
