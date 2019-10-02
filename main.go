@@ -92,13 +92,13 @@ func main() {
 
 	flag.IntVar(&awsClusterConcurrency,
 		"awscluster-concurrency",
-		1,
+		2,
 		"Number of AWSClusters to process simultaneously",
 	)
 
 	flag.IntVar(&awsMachineConcurrency,
 		"awsmachine-concurrency",
-		1,
+		2,
 		"Number of AWSMachines to process simultaneously",
 	)
 
