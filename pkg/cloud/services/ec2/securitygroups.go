@@ -19,12 +19,12 @@ package ec2
 import (
 	"fmt"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-
+	errlist "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -160,20 +160,67 @@ func (s *Service) deleteSecurityGroups() error {
 	}
 
 	for _, sg := range s.scope.SecurityGroups() {
-		input := &ec2.DeleteSecurityGroupInput{
-			GroupId: aws.String(sg.ID),
-		}
+		s.deleteSecurityGroup(&sg, "managed")
+	}
 
-		if _, err := s.scope.EC2.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
-			record.Warnf(s.scope.AWSCluster, "FailedDeleteSecurityGroup", "Failed to delete managed SecurityGroup %q: %v", sg.ID, err)
-			return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
-		}
+	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
+	if err != nil {
+		return err
+	}
 
-		record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteSecurityGroup", "Deleted managed SecurityGroup %q", sg.ID)
-		s.scope.V(2).Info("Deleted security group security group", "security-group-id", sg.ID)
+	errs := []error{}
+	for _, sg := range clusterGroups {
+		if err := s.deleteSecurityGroup(&sg, "cluster managed"); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) != 0 {
+		return errlist.NewAggregate(errs)
 	}
 
 	return nil
+}
+
+func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) error {
+	input := &ec2.DeleteSecurityGroupInput{
+		GroupId: aws.String(sg.ID),
+	}
+
+	if _, err := s.scope.EC2.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+		record.Warnf(s.scope.AWSCluster, "FailedDeleteSecurityGroup", "Failed to delete %s SecurityGroup %q: %v", typ, sg.ID, err)
+		return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
+	}
+
+	record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteSecurityGroup", "Deleted %s SecurityGroup %q", typ, sg.ID)
+	s.scope.V(2).Info("Deleted security group", "security-group-id", sg.ID, "kind", typ)
+
+	return nil
+}
+
+func (s *Service) describeClusterOwnedSecurityGroups() ([]infrav1.SecurityGroup, error) {
+	input := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.VPC(s.scope.VPC().ID),
+			filter.EC2.ProviderOwned(s.scope.Name()),
+		},
+	}
+
+	groups := []infrav1.SecurityGroup{}
+
+	err := s.scope.EC2.DescribeSecurityGroupsPages(input, func(out *ec2.DescribeSecurityGroupsOutput, last bool) bool {
+		for _, group := range out.SecurityGroups {
+			if group != nil {
+				groups = append(groups, makeInfraSecurityGroup(group))
+			}
+		}
+		return true
+	})
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to describe cluster-owned security groups in vpc %q", s.scope.VPC().ID)
+	}
+	return groups, nil
 }
 
 func (s *Service) describeSecurityGroupsByName() (map[string]infrav1.SecurityGroup, error) {
@@ -191,11 +238,7 @@ func (s *Service) describeSecurityGroupsByName() (map[string]infrav1.SecurityGro
 
 	res := make(map[string]infrav1.SecurityGroup, len(out.SecurityGroups))
 	for _, ec2sg := range out.SecurityGroups {
-		sg := infrav1.SecurityGroup{
-			ID:   *ec2sg.GroupId,
-			Name: *ec2sg.GroupName,
-			Tags: converters.TagsToMap(ec2sg.Tags),
-		}
+		sg := makeInfraSecurityGroup(ec2sg)
 
 		for _, ec2rule := range ec2sg.IpPermissions {
 			sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
@@ -205,6 +248,14 @@ func (s *Service) describeSecurityGroupsByName() (map[string]infrav1.SecurityGro
 	}
 
 	return res, nil
+}
+
+func makeInfraSecurityGroup(ec2sg *ec2.SecurityGroup) infrav1.SecurityGroup {
+	return infrav1.SecurityGroup{
+		ID:   *ec2sg.GroupId,
+		Name: *ec2sg.GroupName,
+		Tags: converters.TagsToMap(ec2sg.Tags),
+	}
 }
 
 func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2.SecurityGroup) error {

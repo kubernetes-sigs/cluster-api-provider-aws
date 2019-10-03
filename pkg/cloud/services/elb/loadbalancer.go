@@ -19,17 +19,23 @@ package elb
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/elb"
+	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 )
+
+// ResourceGroups are filtered by ARN identifier: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax
+// this is the identifier for classic ELBs: https://docs.aws.amazon.com/IAM/latest/UserGuide/list_elasticloadbalancing.html#elasticloadbalancing-resources-for-iam-policies
+const elbResourceType = "elasticloadbalancing:loadbalancer"
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
 func (s *Service) ReconcileLoadbalancers() error {
@@ -89,19 +95,25 @@ func (s *Service) GetAPIServerDNSName() (string, error) {
 func (s *Service) DeleteLoadbalancers() error {
 	s.scope.V(2).Info("Deleting load balancers")
 
-	// Get default api server name.
-	elbName := GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue)
-
-	// Describe and delete if exists.
-	if _, err := s.describeClassicELB(elbName); err != nil {
-		if IsNotFound(err) {
-			return nil
-		}
+	elbs, err := s.listOwnedELBs()
+	if err != nil {
 		return err
 	}
 
-	if err := s.deleteClassicELBAndWait(elbName); err != nil {
-		return err
+	for _, elb := range elbs {
+		s.scope.V(3).Info("deleting load balancer", "arn", elb)
+		s.deleteClassicELB(elb)
+	}
+
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
+		elbs, err := s.listOwnedELBs()
+		if err != nil {
+			return false, err
+		}
+
+		return len(elbs) == 0, nil
+	}); err != nil {
+		return errors.Wrapf(err, "failed to wait for %q ELB deletions", s.scope.Name())
 	}
 
 	s.scope.V(2).Info("Deleting load balancers completed successfully")
@@ -291,34 +303,58 @@ func (s *Service) deleteClassicELB(name string) error {
 	return nil
 }
 
-func (s *Service) deleteClassicELBAndWait(name string) error {
-	if err := s.deleteClassicELB(name); err != nil {
-		return err
+func (s *Service) listByTag(tag string) ([]string, error) {
+	input := rgapi.GetResourcesInput{
+		ResourceTypeFilters: aws.StringSlice([]string{elbResourceType}),
+		TagFilters: []*rgapi.TagFilter{
+			{
+				Key:    aws.String(tag),
+				Values: aws.StringSlice([]string{string(infrav1.ResourceLifecycleOwned)}),
+			},
+		},
 	}
 
-	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: aws.StringSlice([]string{name}),
-	}
+	names := []string{}
 
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
-		out, err := s.scope.ELB.DescribeLoadBalancers(input)
-		if err != nil {
-			if code, ok := awserrors.Code(err); ok && code == awserrors.LoadBalancerNotFound {
-				return true, nil
+	err := s.scope.ResourceTagging.GetResourcesPages(&input, func(r *rgapi.GetResourcesOutput, last bool) bool {
+		for _, tagmapping := range r.ResourceTagMappingList {
+			if tagmapping.ResourceARN != nil {
+				// We can't use arn.Parse because the "Resource" is loadbalancer/<name>
+				parts := strings.Split(*tagmapping.ResourceARN, "/")
+				name := parts[len(parts)-1]
+				if name == "" {
+					s.scope.Info("failed to parse ARN", "arn", *tagmapping.ResourceARN, "tag", tag)
+					continue
+				}
+				names = append(names, name)
 			}
-			return false, err
 		}
+		return true
+	})
 
-		// ELB already deleted.
-		if len(out.LoadBalancerDescriptions) == 0 {
-			return true, nil
-		}
-		return false, nil
-	}); err != nil {
-		return errors.Wrapf(err, "failed to wait for ELB deletion %q", name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list %s ELBs by tag group", s.scope.Name())
 	}
 
-	return nil
+	return names, nil
+}
+
+func (s *Service) listOwnedELBs() ([]string, error) {
+	// k8s.io/cluster/<name>, created by k/k cloud provider
+	serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
+	arns, err := s.listByTag(serviceTag)
+	if err != nil {
+		return nil, err
+	}
+
+	// sigs.k8s.io/cluster-api-provider-aws/cluster/<name>, created by CAPA
+	capaTag := infrav1.ClusterTagKey(s.scope.Name())
+	clusterArns, err := s.listByTag(capaTag)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(arns, clusterArns...), nil
 }
 
 func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {

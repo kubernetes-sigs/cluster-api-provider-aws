@@ -80,6 +80,14 @@ func (ec2Filters) ProviderRole(role string) *ec2.Filter {
 	}
 }
 
+// ProviderOwned returns a filter using the cloud provider tag where the resource is owned.
+func (ec2Filters) ProviderOwned(clusterName string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String(fmt.Sprintf("tag:%s", infrav1.ClusterAWSCloudProviderTagKey(clusterName))),
+		Values: aws.StringSlice([]string{string(infrav1.ResourceLifecycleOwned)}),
+	}
+}
+
 // VPC returns a filter based on the id of the VPC.
 func (ec2Filters) VPC(vpcID string) *ec2.Filter {
 	return &ec2.Filter{
