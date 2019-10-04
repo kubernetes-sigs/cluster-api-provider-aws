@@ -51,7 +51,9 @@ type DrainOptions struct {
 
 	// Period of time in seconds given to each pod to terminate
 	// gracefully.  If negative, the default value specified in the pod
-	// will be used.
+	// will be used. If higher than pod's, it's ignored in favor of the
+	// period specified in the pod. If lower, it's passed to the delete
+	// and eviction API requests.
 	GracePeriodSeconds int
 
 	// The length of time to wait before giving up on deletion or
@@ -368,11 +370,6 @@ func getPodsForDeletion(client kubernetes.Interface, node *corev1.Node, options 
 }
 
 func evictPod(client typedpolicyv1beta1.PolicyV1beta1Interface, pod corev1.Pod, policyGroupVersion string, gracePeriodSeconds int) error {
-	deleteOptions := &metav1.DeleteOptions{}
-	if gracePeriodSeconds >= 0 {
-		gracePeriod := int64(gracePeriodSeconds)
-		deleteOptions.GracePeriodSeconds = &gracePeriod
-	}
 	eviction := &policyv1beta1.Eviction{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: policyGroupVersion,
@@ -382,7 +379,7 @@ func evictPod(client typedpolicyv1beta1.PolicyV1beta1Interface, pod corev1.Pod, 
 			Name:      pod.Name,
 			Namespace: pod.Namespace,
 		},
-		DeleteOptions: deleteOptions,
+		DeleteOptions: buildDeleteOptions(&pod, gracePeriodSeconds),
 	}
 	return client.Evictions(eviction.Namespace).Evict(eviction)
 }
@@ -483,19 +480,26 @@ func deletePods(client typedcorev1.CoreV1Interface, pods []corev1.Pod, options *
 	} else {
 		globalTimeout = options.Timeout
 	}
-	deleteOptions := &metav1.DeleteOptions{}
-	if options.GracePeriodSeconds >= 0 {
-		gracePeriodSeconds := int64(options.GracePeriodSeconds)
-		deleteOptions.GracePeriodSeconds = &gracePeriodSeconds
-	}
 	for _, pod := range pods {
-		err := client.Pods(pod.Namespace).Delete(pod.Name, deleteOptions)
+		err := client.Pods(pod.Namespace).Delete(pod.Name, buildDeleteOptions(&pod, options.GracePeriodSeconds))
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
 	_, err := waitForDelete(pods, 1*time.Second, globalTimeout, false, options.Logger, getPodFn)
 	return err
+}
+
+func buildDeleteOptions(pod *corev1.Pod, gracePeriodSeconds int) *metav1.DeleteOptions {
+	deleteOptions := &metav1.DeleteOptions{}
+	if gracePeriodSeconds >= 0 {
+		gracePeriod := int64(gracePeriodSeconds)
+		if pod.DeletionGracePeriodSeconds != nil && gracePeriod > *pod.DeletionGracePeriodSeconds {
+			gracePeriod = *pod.DeletionGracePeriodSeconds
+		}
+		deleteOptions.GracePeriodSeconds = &gracePeriod
+	}
+	return deleteOptions
 }
 
 func waitForDelete(pods []corev1.Pod, interval, timeout time.Duration, usingEviction bool, logger golog.Logger, getPodFn func(string, string) (*corev1.Pod, error)) ([]corev1.Pod, error) {

@@ -62,6 +62,30 @@ const (
 
 	// MachineInstanceTypeLabelName as annotation name for a machine instance type
 	MachineInstanceTypeLabelName = "machine.openshift.io/instance-type"
+
+	// https://github.com/openshift/enhancements/blob/master/enhancements/machine-instance-lifecycle.md
+	// This is not a transient error, but
+	// indicates a state that will likely need to be fixed before progress can be made
+	// e.g Instance does NOT exist but Machine has providerID/address
+	// e.g Cloud service returns a 4xx response
+	phaseFailed = "Failed"
+
+	// Instance does NOT exist
+	// Machine has NOT been given providerID/address
+	phaseProvisioning = "Provisioning"
+
+	// Instance exists
+	// Machine has been given providerID/address
+	// Machine has NOT been given nodeRef
+	phaseProvisioned = "Provisioned"
+
+	// Instance exists
+	// Machine has been given providerID/address
+	// Machine has been given a nodeRef
+	phaseRunning = "Running"
+
+	// Machine has a deletion timestamp
+	phaseDeleting = "Deleting"
 )
 
 var DefaultActuator Actuator
@@ -80,6 +104,13 @@ func newReconciler(mgr manager.Manager, actuator Actuator) reconcile.Reconciler 
 		actuator:      actuator,
 	}
 	return r
+}
+
+func stringPointerDeref(stringPointer *string) string {
+	if stringPointer != nil {
+		return *stringPointer
+	}
+	return ""
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -183,6 +214,10 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
+		if err := r.setPhase(m, phaseDeleting, ""); err != nil {
+			return reconcile.Result{}, err
+		}
+
 		// no-op if finalizer has been removed.
 		if !util.Contains(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer) {
 			klog.Infof("Reconciling machine %q causes a no-op as there is no finalizer", name)
@@ -234,25 +269,62 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, nil
 	}
 
-	exist, err := r.actuator.Exists(ctx, cluster, m)
+	if machineIsFailed(m) {
+		klog.Warningf("Machine %q has gone %q phase. It won't reconcile", name, phaseFailed)
+		return reconcile.Result{}, nil
+	}
+
+	instanceExists, err := r.actuator.Exists(ctx, cluster, m)
 	if err != nil {
 		klog.Errorf("Failed to check if machine %q exists: %v", name, err)
 		return reconcile.Result{}, err
 	}
 
-	if exist {
+	if instanceExists {
 		klog.Infof("Reconciling machine %q triggers idempotent update", name)
 		if err := r.actuator.Update(ctx, cluster, m); err != nil {
 			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
 			return delayIfRequeueAfterError(err)
 		}
+
+		if !machineIsProvisioned(m) {
+			klog.Errorf(`Instance for Machine "%s/%s exists but providerID or addresses has not been given to the machine yet"`, m.Namespace, name)
+			return reconcile.Result{}, err
+		}
+		if machineHasNode(m) {
+			if err := r.setPhase(m, phaseRunning, ""); err != nil {
+				return reconcile.Result{}, err
+			}
+		} else {
+			if err := r.setPhase(m, phaseProvisioned, ""); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
 		return reconcile.Result{}, nil
 	}
 
-	// Machine resource created. Machine does not yet exist.
+	// Instance does not exist but the machine has been given a providerID/address.
+	// This can only be reached if an instance was deleted outside the machine API
+	if machineIsProvisioned(m) {
+		if err := r.setPhase(m, phaseFailed, "Can't find created instance."); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// Machine resource created and instance does not exist yet.
+	if err := r.setPhase(m, phaseProvisioning, ""); err != nil {
+		return reconcile.Result{}, err
+	}
 	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
 	if err := r.actuator.Create(ctx, cluster, m); err != nil {
 		klog.Warningf("Failed to create machine %q: %v", name, err)
+		if isInvalidMachineConfigurationError(err) {
+			if err := r.setPhase(m, phaseFailed, err.Error()); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
+		}
 		return delayIfRequeueAfterError(err)
 	}
 
@@ -347,6 +419,40 @@ func isInvalidMachineConfigurationError(err error) bool {
 			klog.Infof("Actuator returned invalid configuration error: %v", err)
 			return true
 		}
+	}
+	return false
+}
+
+func (r *ReconcileMachine) setPhase(machine *machinev1.Machine, phase string, errorMessage string) error {
+	if stringPointerDeref(machine.Status.Phase) != phase {
+		klog.V(3).Infof("Machine %q going into phase %q", machine.GetName(), phase)
+		baseToPatch := client.MergeFrom(machine.DeepCopy())
+		machine.Status.Phase = &phase
+		machine.Status.ErrorMessage = nil
+		now := metav1.Now()
+		machine.Status.LastUpdated = &now
+		if phase == phaseFailed && errorMessage != "" {
+			machine.Status.ErrorMessage = &errorMessage
+		}
+		if err := r.Client.Status().Patch(context.Background(), machine, baseToPatch); err != nil {
+			klog.Errorf("Failed to update machine %q: %v", machine.GetName(), err)
+			return err
+		}
+	}
+	return nil
+}
+
+func machineIsProvisioned(machine *machinev1.Machine) bool {
+	return len(machine.Status.Addresses) > 0 || stringPointerDeref(machine.Spec.ProviderID) != ""
+}
+
+func machineHasNode(machine *machinev1.Machine) bool {
+	return machine.Status.NodeRef != nil
+}
+
+func machineIsFailed(machine *machinev1.Machine) bool {
+	if stringPointerDeref(machine.Status.Phase) == phaseFailed {
+		return true
 	}
 	return false
 }
