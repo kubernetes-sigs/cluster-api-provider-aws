@@ -44,8 +44,6 @@ const (
 )
 
 func TestReconcileSubnets(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
 	testCases := []struct {
 		name   string
@@ -158,6 +156,10 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any())
 
+				// Tags for existing private subnets
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+				// Tags for new subnets
 				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
@@ -491,6 +493,10 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any())
 
+				// Private subnet
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+				// Public subnet
 				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 			},
@@ -499,6 +505,8 @@ func TestReconcileSubnets(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
@@ -531,9 +539,6 @@ func TestReconcileSubnets(t *testing.T) {
 }
 
 func TestDiscoverSubnets(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	testCases := []struct {
 		name   string
 		input  *infrav1.NetworkSpec
@@ -641,7 +646,6 @@ func TestDiscoverSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
-
 			},
 			expect: []*infrav1.SubnetSpec{
 				{
@@ -669,6 +673,8 @@ func TestDiscoverSubnets(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
