@@ -111,7 +111,7 @@ func mergeIdenticalPrinterColumns(crd *apiext.CustomResourceDefinition) {
 // this restriction it would be ambiguous how a v1-with-identical-subresources
 // converts into a v1beta1).
 func MergeIdenticalVersionInfo(crd *apiext.CustomResourceDefinition) {
-	if len(crd.Spec.Versions) > 1 {
+	if len(crd.Spec.Versions) > 0 {
 		mergeIdenticalSubresources(crd)
 		mergeIdenticalSchemata(crd)
 		mergeIdenticalPrinterColumns(crd)
@@ -148,8 +148,10 @@ func (p *Parser) NeedCRDFor(groupKind schema.GroupKind, maxDescLen *int) {
 		Spec: apiext.CustomResourceDefinitionSpec{
 			Group: groupKind.Group,
 			Names: apiext.CustomResourceDefinitionNames{
-				Kind:   groupKind.Kind,
-				Plural: defaultPlural,
+				Kind:     groupKind.Kind,
+				ListKind: groupKind.Kind + "List",
+				Plural:   defaultPlural,
+				Singular: strings.ToLower(groupKind.Kind),
 			},
 		},
 	}
@@ -160,15 +162,17 @@ func (p *Parser) NeedCRDFor(groupKind schema.GroupKind, maxDescLen *int) {
 		if typeInfo == nil {
 			continue
 		}
-		fullSchema := FlattenEmbedded(p.flattener.FlattenType(typeIdent), pkg)
+		p.NeedFlattenedSchemaFor(typeIdent)
+		fullSchema := p.FlattenedSchemata[typeIdent]
+		fullSchema = *fullSchema.DeepCopy() // don't mutate the cache (we might be truncating description, etc)
 		if maxDescLen != nil {
-			TruncateDescription(fullSchema, *maxDescLen)
+			TruncateDescription(&fullSchema, *maxDescLen)
 		}
 		ver := apiext.CustomResourceDefinitionVersion{
 			Name:   p.GroupVersions[pkg].Version,
 			Served: true,
 			Schema: &apiext.CustomResourceValidation{
-				OpenAPIV3Schema: fullSchema,
+				OpenAPIV3Schema: &fullSchema, // fine to take a reference since we deepcopy above
 			},
 		}
 		crd.Spec.Versions = append(crd.Spec.Versions, ver)

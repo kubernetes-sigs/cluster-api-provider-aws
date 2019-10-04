@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"path"
+	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -85,8 +85,14 @@ func (s *Server) setDefaults() {
 	}
 
 	if len(s.CertDir) == 0 {
-		s.CertDir = path.Join("/tmp", "k8s-webhook-server", "serving-certs")
+		s.CertDir = filepath.Join(os.TempDir(), "k8s-webhook-server", "serving-certs")
 	}
+}
+
+// NeedLeaderElection implements the LeaderElectionRunnable interface, which indicates
+// the webhook server doesn't need leader election.
+func (*Server) NeedLeaderElection() bool {
+	return false
 }
 
 // Register marks the given webhook as being served at the given path.

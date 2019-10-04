@@ -65,6 +65,8 @@ func main() {
 	syncPeriod := 10 * time.Minute
 	opts := manager.Options{
 		SyncPeriod: &syncPeriod,
+		// Disable metrics serving
+		MetricsBindAddress: "0",
 	}
 	if *watchNamespace != "" {
 		opts.Namespace = *watchNamespace
