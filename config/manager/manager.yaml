@@ -29,3 +29,6 @@ spec:
         imagePullPolicy: Always
         name: manager
       terminationGracePeriodSeconds: 10
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
