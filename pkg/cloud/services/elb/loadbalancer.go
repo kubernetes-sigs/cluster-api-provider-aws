@@ -208,6 +208,20 @@ func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
 
 	// The load balancer APIs require us to only attach one subnet for each AZ.
 	zones := map[string]struct{}{}
+
+	// Apply any specified load balancer subnets, if any
+	if s.scope.ControlPlaneLoadBalancer() != nil {
+		subnets := s.scope.ControlPlaneLoadBalancer().Subnets.ToMap()
+		for _, sn := range subnets {
+			if _, ok := zones[sn.AvailabilityZone]; !ok {
+				zones[sn.AvailabilityZone] = struct{}{}
+				res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+			}
+		}
+	}
+
+	// Apply any public load balancers for availability zones a subnet wasn't specified for
+	// (should this be skipped if subnets have been specified?)
 	for _, sn := range s.scope.Subnets().FilterPublic() {
 		if _, ok := zones[sn.AvailabilityZone]; !ok {
 			zones[sn.AvailabilityZone] = struct{}{}

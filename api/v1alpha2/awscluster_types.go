@@ -52,6 +52,10 @@ type AWSLoadBalancerSpec struct {
 	// Scheme sets the scheme of the load balancer (defaults to Internet-facing)
 	// +optional
 	Scheme *ClassicELBScheme `json:"scheme,omitempty"`
+
+	// Subnets specifies the subnets that should be used by the load balancer
+	// +optional
+	Subnets Subnets `json:"subnets,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster
