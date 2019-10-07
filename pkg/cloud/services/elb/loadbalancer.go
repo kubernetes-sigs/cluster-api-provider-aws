@@ -303,7 +303,10 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 	if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
 		subnets = s.scope.Subnets().FilterPublic()
 	}
-
+	// Apply any specified load balancer subnets, if any
+	if s.scope.ControlPlaneLoadBalancer() != nil {
+		subnets = s.scope.ControlPlaneLoadBalancer().Subnets
+	}
 subnetLoop:
 	for _, sn := range subnets {
 		for _, az := range res.AvailabilityZones {

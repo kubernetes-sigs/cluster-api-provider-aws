@@ -107,6 +107,10 @@ type AWSLoadBalancerSpec struct {
 	// Defaults to false.
 	// +optional
 	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"`
+
+	// Subnets specifies the subnets that should be used by the load balancer
+	// +optional
+	Subnets Subnets `json:"subnets,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster
