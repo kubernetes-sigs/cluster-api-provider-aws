@@ -174,6 +174,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	if instance == nil {
 		// The machine was never created or was deleted by some other entity
 		machineScope.V(2).Info("Unable to locate instance by ID or tags")
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
 		machineScope.AWSMachine.Finalizers = util.Filter(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
 		return reconcile.Result{}, nil
 	}
