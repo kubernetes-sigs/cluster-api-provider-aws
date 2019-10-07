@@ -132,6 +132,7 @@ func main() {
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
+		LeaderElectionID:   "controller-leader-election-capa",
 		SyncPeriod:         &syncPeriod,
 		Namespace:          watchNamespace,
 		EventBroadcaster:   broadcaster,
