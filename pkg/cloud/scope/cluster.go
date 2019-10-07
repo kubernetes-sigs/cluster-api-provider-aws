@@ -177,7 +177,7 @@ func (s *ClusterScope) Region() string {
 	return s.AWSCluster.Spec.Region
 }
 
-// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec
+// ControlPlaneLoadBalancer returns the ControlPlane AWSLoadBalancerSpec
 func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 	return s.AWSCluster.Spec.ControlPlaneLoadBalancer
 }
