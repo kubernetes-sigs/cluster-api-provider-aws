@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
@@ -16,6 +18,7 @@ import (
 	machineapierrors "github.com/openshift/cluster-api/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -563,7 +566,7 @@ func TestActuator(t *testing.T) {
 	}
 }
 
-func TestAvailabiltyZone(t *testing.T) {
+func TestAvailabilityZone(t *testing.T) {
 	cases := []struct {
 		name             string
 		availabilityZone string
@@ -790,6 +793,345 @@ func TestGetUserData(t *testing.T) {
 			if compare := bytes.Compare(userData, []byte(userDataBlob)); compare != 0 {
 				t.Errorf("Expected: %v, got: %v", []byte(userDataBlob), userData)
 			}
+		}
+	}
+}
+
+func TestCreate(t *testing.T) {
+	// mock aws API calls
+	mockCtrl := gomock.NewController(t)
+	mockAWSClient := mockaws.NewMockClient(mockCtrl)
+	mockAWSClient.EXPECT().DescribeSecurityGroups(gomock.Any()).Return(nil, fmt.Errorf("describeSecurityGroups error")).AnyTimes()
+	mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, fmt.Errorf("describeAvailabilityZones error")).AnyTimes()
+	mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(nil, fmt.Errorf("describeImages error")).AnyTimes()
+	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
+	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil).AnyTimes()
+	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
+	mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), nil)
+	mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+	mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
+
+	testCases := []struct {
+		testcase             string
+		providerConfig       *providerconfigv1.AWSMachineProviderConfig
+		userDataSecret       *corev1.Secret
+		awsCredentialsSecret *corev1.Secret
+		error                error
+	}{
+		{
+			testcase: "Create succeed",
+			providerConfig: &providerconfigv1.AWSMachineProviderConfig{
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-a9acbbd6"),
+				},
+				CredentialsSecret: &corev1.LocalObjectReference{
+					Name: awsCredentialsSecretName,
+				},
+				InstanceType: "m4.xlarge",
+				Placement: providerconfigv1.Placement{
+					Region:           region,
+					AvailabilityZone: defaultAvailabilityZone,
+				},
+				Subnet: providerconfigv1.AWSResourceReference{
+					ID: aws.String("subnet-0e56b13a64ff8a941"),
+				},
+				IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("openshift_master_launch_instances"),
+				},
+				KeyName: aws.String(keyName),
+				UserDataSecret: &corev1.LocalObjectReference{
+					Name: userDataSecretName,
+				},
+				Tags: []providerconfigv1.TagSpecification{
+					{Name: "openshift-node-group-config", Value: "node-config-master"},
+					{Name: "host-type", Value: "master"},
+					{Name: "sub-host-type", Value: "default"},
+				},
+				SecurityGroups: []providerconfigv1.AWSResourceReference{
+					{ID: aws.String("sg-00868b02fbe29de17")},
+					{ID: aws.String("sg-0a4658991dc5eb40a")},
+					{ID: aws.String("sg-009a70e28fa4ba84e")},
+					{ID: aws.String("sg-07323d56fb932c84c")},
+					{ID: aws.String("sg-08b1ffd32874d59a2")},
+				},
+				PublicIP: aws.Bool(true),
+				LoadBalancers: []providerconfigv1.LoadBalancerReference{
+					{
+						Name: "cluster-con",
+						Type: providerconfigv1.ClassicLoadBalancerType,
+					},
+					{
+						Name: "cluster-ext",
+						Type: providerconfigv1.ClassicLoadBalancerType,
+					},
+					{
+						Name: "cluster-int",
+						Type: providerconfigv1.ClassicLoadBalancerType,
+					},
+					{
+						Name: "cluster-net-lb",
+						Type: providerconfigv1.NetworkLoadBalancerType,
+					},
+				},
+			},
+			userDataSecret:       stubUserDataSecret(),
+			awsCredentialsSecret: stubAwsCredentialsSecret(),
+			error:                nil,
+		},
+		{
+			testcase: "Bad userData",
+			providerConfig: &providerconfigv1.AWSMachineProviderConfig{
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-a9acbbd6"),
+				},
+				CredentialsSecret: &corev1.LocalObjectReference{
+					Name: awsCredentialsSecretName,
+				},
+				InstanceType: "m4.xlarge",
+				Placement: providerconfigv1.Placement{
+					Region:           region,
+					AvailabilityZone: defaultAvailabilityZone,
+				},
+				Subnet: providerconfigv1.AWSResourceReference{
+					ID: aws.String("subnet-0e56b13a64ff8a941"),
+				},
+				IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("openshift_master_launch_instances"),
+				},
+				KeyName: aws.String(keyName),
+				UserDataSecret: &corev1.LocalObjectReference{
+					Name: userDataSecretName,
+				},
+				Tags: []providerconfigv1.TagSpecification{
+					{Name: "openshift-node-group-config", Value: "node-config-master"},
+					{Name: "host-type", Value: "master"},
+					{Name: "sub-host-type", Value: "default"},
+				},
+				SecurityGroups: []providerconfigv1.AWSResourceReference{
+					{ID: aws.String("sg-00868b02fbe29de17")},
+					{ID: aws.String("sg-0a4658991dc5eb40a")},
+					{ID: aws.String("sg-009a70e28fa4ba84e")},
+					{ID: aws.String("sg-07323d56fb932c84c")},
+					{ID: aws.String("sg-08b1ffd32874d59a2")},
+				},
+				PublicIP: aws.Bool(true),
+				LoadBalancers: []providerconfigv1.LoadBalancerReference{
+					{
+						Name: "cluster-con",
+						Type: providerconfigv1.ClassicLoadBalancerType,
+					},
+					{
+						Name: "cluster-ext",
+						Type: providerconfigv1.ClassicLoadBalancerType,
+					},
+					{
+						Name: "cluster-int",
+						Type: providerconfigv1.ClassicLoadBalancerType,
+					},
+					{
+						Name: "cluster-net-lb",
+						Type: providerconfigv1.NetworkLoadBalancerType,
+					},
+				},
+			},
+			userDataSecret: &apiv1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      userDataSecretName,
+					Namespace: defaultNamespace,
+				},
+				Data: map[string][]byte{
+					"badKey": []byte(userDataBlob),
+				},
+			},
+			awsCredentialsSecret: stubAwsCredentialsSecret(),
+			error:                &machineapierrors.MachineError{},
+		},
+		{
+			testcase: "Failed security groups return invalid config machine error",
+			providerConfig: &providerconfigv1.AWSMachineProviderConfig{
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-a9acbbd6"),
+				},
+				CredentialsSecret: &corev1.LocalObjectReference{
+					Name: awsCredentialsSecretName,
+				},
+				InstanceType: "m4.xlarge",
+				Placement: providerconfigv1.Placement{
+					Region:           region,
+					AvailabilityZone: defaultAvailabilityZone,
+				},
+				Subnet: providerconfigv1.AWSResourceReference{
+					ID: aws.String("subnet-0e56b13a64ff8a941"),
+				},
+				IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("openshift_master_launch_instances"),
+				},
+				KeyName: aws.String(keyName),
+				UserDataSecret: &corev1.LocalObjectReference{
+					Name: userDataSecretName,
+				},
+				Tags: []providerconfigv1.TagSpecification{
+					{Name: "openshift-node-group-config", Value: "node-config-master"},
+					{Name: "host-type", Value: "master"},
+					{Name: "sub-host-type", Value: "default"},
+				},
+				SecurityGroups: []providerconfigv1.AWSResourceReference{{
+					Filters: []providerconfigv1.Filter{{
+						Name:   "tag:Name",
+						Values: []string{fmt.Sprintf("%s-%s-sg", clusterID, "role")},
+					}},
+				}},
+				PublicIP: aws.Bool(true),
+			},
+			userDataSecret:       stubUserDataSecret(),
+			awsCredentialsSecret: stubAwsCredentialsSecret(),
+			error:                &machineapierrors.MachineError{},
+		},
+		{
+			testcase: "Failed Availability zones return invalid config machine error",
+			providerConfig: &providerconfigv1.AWSMachineProviderConfig{
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-a9acbbd6"),
+				},
+				CredentialsSecret: &corev1.LocalObjectReference{
+					Name: awsCredentialsSecretName,
+				},
+				InstanceType: "m4.xlarge",
+				Placement: providerconfigv1.Placement{
+					Region:           region,
+					AvailabilityZone: defaultAvailabilityZone,
+				},
+				Subnet: providerconfigv1.AWSResourceReference{
+					Filters: []providerconfigv1.Filter{{
+						Name:   "tag:Name",
+						Values: []string{fmt.Sprintf("%s-private-%s", clusterID, "az")},
+					}},
+				},
+				IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("openshift_master_launch_instances"),
+				},
+				KeyName: aws.String(keyName),
+				UserDataSecret: &corev1.LocalObjectReference{
+					Name: userDataSecretName,
+				},
+				Tags: []providerconfigv1.TagSpecification{
+					{Name: "openshift-node-group-config", Value: "node-config-master"},
+					{Name: "host-type", Value: "master"},
+					{Name: "sub-host-type", Value: "default"},
+				},
+				SecurityGroups: []providerconfigv1.AWSResourceReference{
+					{ID: aws.String("sg-00868b02fbe29de17")},
+					{ID: aws.String("sg-0a4658991dc5eb40a")},
+					{ID: aws.String("sg-009a70e28fa4ba84e")},
+					{ID: aws.String("sg-07323d56fb932c84c")},
+					{ID: aws.String("sg-08b1ffd32874d59a2")},
+				},
+				PublicIP: aws.Bool(true),
+			},
+			userDataSecret:       stubUserDataSecret(),
+			awsCredentialsSecret: stubAwsCredentialsSecret(),
+			error:                &machineapierrors.MachineError{},
+		},
+		{
+			testcase: "Failed BlockDevices return invalid config machine error",
+			providerConfig: &providerconfigv1.AWSMachineProviderConfig{
+				AMI: providerconfigv1.AWSResourceReference{
+					ID: aws.String("ami-a9acbbd6"),
+				},
+				CredentialsSecret: &corev1.LocalObjectReference{
+					Name: awsCredentialsSecretName,
+				},
+				InstanceType: "m4.xlarge",
+				Placement: providerconfigv1.Placement{
+					Region:           region,
+					AvailabilityZone: defaultAvailabilityZone,
+				},
+				BlockDevices: []providerconfigv1.BlockDeviceMappingSpec{
+					{
+						EBS: &providerconfigv1.EBSBlockDeviceSpec{
+							VolumeType: pointer.StringPtr("type"),
+							VolumeSize: pointer.Int64Ptr(int64(1)),
+							Iops:       pointer.Int64Ptr(int64(1)),
+						},
+					},
+				},
+				Subnet: providerconfigv1.AWSResourceReference{
+					ID: aws.String("subnet-0e56b13a64ff8a941"),
+				},
+				IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
+					ID: aws.String("openshift_master_launch_instances"),
+				},
+				KeyName: aws.String(keyName),
+				UserDataSecret: &corev1.LocalObjectReference{
+					Name: userDataSecretName,
+				},
+				Tags: []providerconfigv1.TagSpecification{
+					{Name: "openshift-node-group-config", Value: "node-config-master"},
+					{Name: "host-type", Value: "master"},
+					{Name: "sub-host-type", Value: "default"},
+				},
+				SecurityGroups: []providerconfigv1.AWSResourceReference{
+					{ID: aws.String("sg-00868b02fbe29de17")},
+					{ID: aws.String("sg-0a4658991dc5eb40a")},
+					{ID: aws.String("sg-009a70e28fa4ba84e")},
+					{ID: aws.String("sg-07323d56fb932c84c")},
+					{ID: aws.String("sg-08b1ffd32874d59a2")},
+				},
+				PublicIP: aws.Bool(true),
+			},
+			userDataSecret:       stubUserDataSecret(),
+			awsCredentialsSecret: stubAwsCredentialsSecret(),
+			error:                &machineapierrors.MachineError{},
+		},
+	}
+
+	for _, tc := range testCases {
+		// create fake resources
+		t.Logf("testCase: %v", tc.testcase)
+		codec, err := providerconfigv1.NewCodec()
+		if err != nil {
+			t.Fatalf("unable to build codec: %v", err)
+		}
+		encodedProviderConfig, err := codec.EncodeProviderSpec(tc.providerConfig)
+		if err != nil {
+			t.Fatalf("Unexpected error")
+		}
+		machine, err := stubMachine()
+		if err != nil {
+			t.Fatal(err)
+		}
+		machine.Spec.ProviderSpec = *encodedProviderConfig
+		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, machine, tc.awsCredentialsSecret, tc.userDataSecret)
+
+		// create actuator
+		params := ActuatorParams{
+			Client: fakeClient,
+			AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
+				return mockAWSClient, nil
+			},
+			Codec: codec,
+			// use empty recorder dropping any event recorded
+			EventRecorder: &record.FakeRecorder{},
+		}
+		actuator, err := NewActuator(params)
+		if err != nil {
+			t.Fatalf("Could not create AWS machine actuator: %v", err)
+		}
+
+		// test create
+		err = actuator.Create(context.TODO(), nil, machine)
+		if tc.error != nil {
+			if err == nil {
+				t.Fatalf("Expected error")
+			}
+			_, expectMachineError := tc.error.(*machineapierrors.MachineError)
+			_, gotMachineError := err.(*machineapierrors.MachineError)
+			if expectMachineError && !gotMachineError || !expectMachineError && gotMachineError {
+				t.Fatalf("Expected %T, got: %T", tc.error, err)
+			}
+		} else if err != nil {
+			t.Fatalf("Unexpected error")
 		}
 	}
 }
