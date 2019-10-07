@@ -18,11 +18,11 @@ package ec2
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -239,6 +239,101 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
 					After(securityGroupNode)
 
+			},
+		},
+		{
+			name: "all overridden, do not tag",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					&infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+				TagSecurityGroups: aws.Bool(false),
+				SecurityGroupOverrides: map[infrav1.SecurityGroupRole]infrav1.AWSResourceReference{
+					infrav1.SecurityGroupBastion:      {ID: aws.String("sg-bastion")},
+					infrav1.SecurityGroupAPIServerLB:  {ID: aws.String("sg-apiserver-lb")},
+					infrav1.SecurityGroupLB:           {ID: aws.String("sg-lb")},
+					infrav1.SecurityGroupControlPlane: {ID: aws.String("sg-control")},
+					infrav1.SecurityGroupNode:         {ID: aws.String("sg-node")},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
+					Return(&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{ GroupId: aws.String("sg-bastion"), GroupName: aws.String("Bastion Security Group") },
+							{ GroupId: aws.String("sg-apiserver-lb"), GroupName: aws.String("API load balancer Security Group") },
+							{ GroupId: aws.String("sg-lb"), GroupName: aws.String("Load balancer Security Group") },
+							{ GroupId: aws.String("sg-control"), GroupName: aws.String("Control plane Security Group") },
+							{ GroupId: aws.String("sg-node"), GroupName: aws.String("Node Security Group") },
+						},
+					}, nil).AnyTimes()
+
+			},
+		},
+		{
+			name: "all overridden, create tags",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					&infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+				TagSecurityGroups: aws.Bool(true),
+				SecurityGroupOverrides: map[infrav1.SecurityGroupRole]infrav1.AWSResourceReference{
+					infrav1.SecurityGroupBastion:      {ID: aws.String("sg-bastion")},
+					infrav1.SecurityGroupAPIServerLB:  {ID: aws.String("sg-apiserver-lb")},
+					infrav1.SecurityGroupLB:           {ID: aws.String("sg-lb")},
+					infrav1.SecurityGroupControlPlane: {ID: aws.String("sg-control")},
+					infrav1.SecurityGroupNode:         {ID: aws.String("sg-node")},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
+					Return(&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{ GroupId: aws.String("sg-bastion"), GroupName: aws.String("test-cluster-bastion") },
+							{ GroupId: aws.String("sg-apiserver-lb"), GroupName: aws.String("test-cluster-apiserver-lb") },
+							{ GroupId: aws.String("sg-lb"), GroupName: aws.String("test-cluster-lb") },
+							{ GroupId: aws.String("sg-control"), GroupName: aws.String("test-cluster-control") },
+							{ GroupId: aws.String("sg-node"), GroupName: aws.String("test-cluster-node") },
+						},
+					}, nil).AnyTimes()
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil).
+					Times(5)
 			},
 		},
 	}

@@ -194,6 +194,14 @@ type NetworkSpec struct {
 	// CNI configuration
 	// +optional
 	CNI *CNISpec `json:"cni,omitempty"`
+
+	// TagSecurityGroups optionally disables tagging the security groups used by the cluster
+	// +optional
+	TagSecurityGroups *bool `json:"tagSecurityGroups,omitempty"`
+
+	// SecurityGroupOverrides is an optional set of security groups to use for cluster instances
+	// +optional
+	SecurityGroupOverrides map[SecurityGroupRole]AWSResourceReference `json:"securityGroupOverrides,omitempty"`
 }
 
 // VPCSpec configures an AWS VPC.

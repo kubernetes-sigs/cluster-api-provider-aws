@@ -157,9 +157,22 @@ func (s *ClusterScope) CNIIngressRules() infrav1.CNIIngressRules {
 	return infrav1.CNIIngressRules{}
 }
 
+// SecurityGroupOverrides returns the cluster security group overrides
+func (s *ClusterScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]infrav1.AWSResourceReference {
+	return s.AWSCluster.Spec.NetworkSpec.SecurityGroupOverrides
+}
+
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
 	return s.AWSCluster.Status.Network.SecurityGroups
+}
+
+// TagSecurityGroups returns whether security groups should be tagged during reconciliation
+func (s *ClusterScope) TagSecurityGroups() bool {
+	if s.AWSCluster.Spec.NetworkSpec.TagSecurityGroups != nil {
+		return *s.AWSCluster.Spec.NetworkSpec.TagSecurityGroups
+	}
+	return true
 }
 
 // Name returns the cluster name.
@@ -177,7 +190,7 @@ func (s *ClusterScope) Region() string {
 	return s.AWSCluster.Spec.Region
 }
 
-// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec
+// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec (can be nil)
 func (s *ClusterScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec {
 	return s.AWSCluster.Spec.ControlPlaneLoadBalancer
 }

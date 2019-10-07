@@ -47,6 +47,15 @@ const (
 	IPProtocolICMPv6 = "58"
 )
 
+// Declare all security group roles that the reconcile loop takes care of.
+var roles = []infrav1.SecurityGroupRole{
+	infrav1.SecurityGroupBastion,
+	infrav1.SecurityGroupControlPlane,
+	infrav1.SecurityGroupAPIServerLB,
+	infrav1.SecurityGroupNode,
+	infrav1.SecurityGroupLB,
+}
+
 func (s *Service) reconcileSecurityGroups() error {
 	s.scope.V(2).Info("Reconciling security groups")
 
@@ -54,24 +63,39 @@ func (s *Service) reconcileSecurityGroups() error {
 		s.scope.Network().SecurityGroups = make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 	}
 
-	sgs, err := s.describeSecurityGroupsByName()
+	var sgs map[string]infrav1.SecurityGroup
+	var err error
+
+	// Security group overrides are mapped by Role rather than their security group name
+	// They are copied into the main 'sgs' list by their group name later
+	var securityGroupOverrides map[infrav1.SecurityGroupRole]*ec2.SecurityGroup
+	securityGroupOverrides, err = s.describeSecurityGroupOverridesByID()
 	if err != nil {
 		return err
 	}
 
-	// Declare all security group roles that the reconcile loop takes care of.
-	roles := []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
+	sgs, err = s.describeSecurityGroupsByName()
+	if err != nil {
+		return err
+	}
+
+	// Add security group overrides to known security group map
+	for _, securityGroupOverride := range securityGroupOverrides {
+		sg := s.ec2SecurityGroupToSecurityGroup(securityGroupOverride)
+		sgs[sg.Name] = sg
 	}
 
 	// First iteration makes sure that the security group are valid and fully created.
 	for i := range roles {
 		role := roles[i]
 		sg := s.getDefaultSecurityGroup(role)
+
+		sgOverride, ok := securityGroupOverrides[role]
+		if ok {
+			s.scope.V(2).Info("Using security group override", "role", role, "security group", sgOverride)
+			sg = sgOverride
+		}
+
 		existing, ok := sgs[*sg.GroupName]
 
 		if !ok {
@@ -91,16 +115,18 @@ func (s *Service) reconcileSecurityGroups() error {
 		s.scope.SecurityGroups()[role] = existing
 
 		// Make sure tags are up to date.
-		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if err := tags.Ensure(existing.Tags, &tags.ApplyParams{
-				EC2Client:   s.scope.EC2,
-				BuildParams: s.getSecurityGroupTagParams(existing.Name, existing.ID, role),
-			}); err != nil {
-				return false, err
+		if s.scope.TagSecurityGroups() {
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if err := tags.Ensure(existing.Tags, &tags.ApplyParams{
+					EC2Client:   s.scope.EC2,
+					BuildParams: s.getSecurityGroupTagParams(existing.Name, existing.ID, role),
+				}); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.GroupNotFound); err != nil {
+				return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
 			}
-			return true, nil
-		}, awserrors.GroupNotFound); err != nil {
-			return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
 		}
 	}
 
@@ -108,10 +134,16 @@ func (s *Service) reconcileSecurityGroups() error {
 	// the specified ingress rules.
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
+		if s.securityGroupIsOverridden(sg.ID) {
+			// skip rule/tag reconciliation on security groups that are overridden, assuming they're managed by another process
+			continue
+		}
+
 		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) {
 			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
 			continue
 		}
+
 		current := sg.IngressRules
 
 		want, err := s.getSecurityGroupIngressRules(i)
@@ -120,6 +152,13 @@ func (s *Service) reconcileSecurityGroups() error {
 		}
 
 		toRevoke := current.Difference(want)
+		toAuthorize := want.Difference(current)
+
+		if securityGroupOverrides[role] != nil {
+			s.scope.V(4).Info("Skipping security group rules reconciliation for overidden security group", "revocations", toRevoke, "authorizations", toAuthorize)
+			continue
+		}
+
 		if len(toRevoke) > 0 {
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				if err := s.revokeSecurityGroupIngressRules(sg.ID, toRevoke); err != nil {
@@ -133,7 +172,6 @@ func (s *Service) reconcileSecurityGroups() error {
 			s.scope.V(2).Info("Revoked ingress rules from security group", "revoked-ingress-rules", toRevoke, "security-group-id", sg.ID)
 		}
 
-		toAuthorize := want.Difference(current)
 		if len(toAuthorize) > 0 {
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
@@ -151,8 +189,79 @@ func (s *Service) reconcileSecurityGroups() error {
 	return nil
 }
 
+func (s *Service) securityGroupIsOverridden(securityGroupId string) bool {
+	for _, sg := range s.scope.SecurityGroupOverrides() {
+		if *sg.ID == securityGroupId {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGroupRole]*ec2.SecurityGroup, error) {
+	securityGroupIds := map[infrav1.SecurityGroupRole]*string{}
+	input := &ec2.DescribeSecurityGroupsInput{}
+
+	overrides := s.scope.SecurityGroupOverrides()
+
+	// return if no security group overrides have been provided
+	if len(overrides) == 0 {
+		return nil, nil
+	}
+
+	if len(overrides) > 0 {
+		for _, role := range roles {
+			sg, ok := s.scope.SecurityGroupOverrides()[role]
+			if !ok {
+				return nil, fmt.Errorf("Security group overrides have been provided for some but not all roles - missing security group for role %s", role)
+			}
+			securityGroupIds[role] = sg.ID
+			input.GroupIds = append(input.GroupIds, sg.ID)
+		}
+	}
+
+	out, err := s.scope.EC2.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to describe security groups in vpc %q", s.scope.VPC().ID)
+	}
+
+	res := make(map[infrav1.SecurityGroupRole]*ec2.SecurityGroup, len(out.SecurityGroups))
+	for _, role := range roles {
+		for _, ec2sg := range out.SecurityGroups {
+			if *ec2sg.GroupId == *securityGroupIds[role] {
+				s.scope.V(2).Info("found security group override", "role", role, "security group", *ec2sg.GroupName)
+
+				res[role] = ec2sg
+				break
+			}
+		}
+	}
+
+	return res, nil
+}
+
 func (s *Service) deleteSecurityGroups() error {
+	// Security group overrides are mapped by Role rather than their security group name
+	// They are copied into the main 'sgs' list by their group name later
+	var securityGroupOverrides map[infrav1.SecurityGroupRole]*ec2.SecurityGroup
+	securityGroupOverrides, err := s.describeSecurityGroupOverridesByID()
+	if err != nil {
+		return err
+	}
+
 	for _, sg := range s.scope.SecurityGroups() {
+		// do not attempt to delete security groups that are overrides
+		isOverride := false
+		for _, sgOverride := range securityGroupOverrides {
+			if sg.ID == *sgOverride.GroupId {
+				isOverride = true
+				break
+			}
+		}
+		if isOverride {
+			continue
+		}
+
 		current := sg.IngressRules
 
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
@@ -164,6 +273,18 @@ func (s *Service) deleteSecurityGroups() error {
 
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
+		// do not attempt to delete security groups that are overrides
+		isOverride := false
+		for _, sgOverride := range securityGroupOverrides {
+			if sg.ID == *sgOverride.GroupId {
+				isOverride = true
+				break
+			}
+		}
+		if isOverride {
+			continue
+		}
+
 		if err := s.deleteSecurityGroup(&sg, "managed"); err != nil {
 			return err
 		}
@@ -177,6 +298,18 @@ func (s *Service) deleteSecurityGroups() error {
 	errs := []error{}
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
+		// do not attempt to delete security groups that are overrides
+		isOverride := false
+		for _, sgOverride := range securityGroupOverrides {
+			if sg.ID == *sgOverride.GroupId {
+				isOverride = true
+				break
+			}
+		}
+		if isOverride {
+			continue
+		}
+
 		if err := s.deleteSecurityGroup(&sg, "cluster managed"); err != nil {
 			errs = append(errs, err)
 		}
@@ -230,6 +363,19 @@ func (s *Service) describeClusterOwnedSecurityGroups() ([]infrav1.SecurityGroup,
 	return groups, nil
 }
 
+func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.SecurityGroup) infrav1.SecurityGroup {
+	sg := infrav1.SecurityGroup{
+		ID:   *ec2SecurityGroup.GroupId,
+		Name: *ec2SecurityGroup.GroupName,
+		Tags: converters.TagsToMap(ec2SecurityGroup.Tags),
+	}
+
+	for _, ec2rule := range ec2SecurityGroup.IpPermissions {
+		sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
+	}
+	return sg
+}
+
 func (s *Service) describeSecurityGroupsByName() (map[string]infrav1.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
@@ -245,12 +391,7 @@ func (s *Service) describeSecurityGroupsByName() (map[string]infrav1.SecurityGro
 
 	res := make(map[string]infrav1.SecurityGroup, len(out.SecurityGroups))
 	for _, ec2sg := range out.SecurityGroups {
-		sg := makeInfraSecurityGroup(ec2sg)
-
-		for _, ec2rule := range ec2sg.IpPermissions {
-			sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
-		}
-
+		sg := s.ec2SecurityGroupToSecurityGroup(ec2sg)
 		res[sg.Name] = sg
 	}
 
