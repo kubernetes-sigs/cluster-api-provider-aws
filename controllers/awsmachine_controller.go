@@ -173,7 +173,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 	if instance == nil {
 		// The machine was never created or was deleted by some other entity
-		machineScope.V(3).Info("Unable to locate instance by ID or tags")
+		machineScope.V(2).Info("Unable to locate instance by ID or tags")
 		machineScope.AWSMachine.Finalizers = util.Filter(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
 		return reconcile.Result{}, nil
 	}
