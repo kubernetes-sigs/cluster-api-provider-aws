@@ -4,11 +4,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/golang/glog"
-
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	mapierrors "github.com/openshift/cluster-api/pkg/errors"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -219,16 +222,16 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerconfigv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
 	amiID, err := getAMI(machineProviderConfig.AMI, client)
 	if err != nil {
-		return nil, fmt.Errorf("error getting AMI: %v,", err)
+		return nil, mapierrors.InvalidMachineConfiguration("error getting AMI: %v", err)
 	}
 
 	securityGroupsIDs, err := getSecurityGroupsIDs(machineProviderConfig.SecurityGroups, client)
 	if err != nil {
-		return nil, fmt.Errorf("error getting security groups IDs: %v,", err)
+		return nil, mapierrors.InvalidMachineConfiguration("error getting security groups IDs: %v", err)
 	}
 	subnetIDs, err := getSubnetIDs(machineProviderConfig.Subnet, machineProviderConfig.Placement.AvailabilityZone, client)
 	if err != nil {
-		return nil, fmt.Errorf("error getting subnet IDs: %v,", err)
+		return nil, mapierrors.InvalidMachineConfiguration("error getting subnet IDs: %v", err)
 	}
 	if len(subnetIDs) > 1 {
 		glog.Warningf("More than one subnet id returned, only first one will be used")
@@ -246,13 +249,13 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 
 	blockDeviceMappings, err := getBlockDeviceMappings(machineProviderConfig.BlockDevices, *amiID, client)
 	if err != nil {
-		return nil, fmt.Errorf("error getting blockDeviceMappings: %v,", err)
+		return nil, mapierrors.InvalidMachineConfiguration("error getting blockDeviceMappings: %v", err)
 	}
 
 	clusterID, ok := getClusterID(machine)
 	if !ok {
 		glog.Errorf("Unable to get cluster ID for machine: %q", machine.Name)
-		return nil, err
+		return nil, mapierrors.InvalidMachineConfiguration("Unable to get cluster ID for machine: %q", machine.Name)
 	}
 	// Add tags to the created machine
 	rawTagList := []*ec2.Tag{}
@@ -308,13 +311,25 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 	}
 	runResult, err := client.RunInstances(&inputConfig)
 	if err != nil {
+		// we return InvalidMachineConfiguration for 4xx errors which by convention signal client misconfiguration
+		// https://tools.ietf.org/html/rfc2616#section-6.1.1
+		// https: //docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html
+		// https://docs.aws.amazon.com/sdk-for-go/api/aws/awserr/
+		if _, ok := err.(awserr.Error); ok {
+			if reqErr, ok := err.(awserr.RequestFailure); ok {
+				if strings.HasPrefix(strconv.Itoa(reqErr.StatusCode()), "4") {
+					glog.Infof("Error launching instance: %v", reqErr)
+					return nil, mapierrors.InvalidMachineConfiguration("error launching instance: %v", reqErr.Message())
+				}
+			}
+		}
 		glog.Errorf("Error creating EC2 instance: %v", err)
-		return nil, fmt.Errorf("error creating EC2 instance: %v", err)
+		return nil, mapierrors.CreateMachine("error creating EC2 instance: %v", err)
 	}
 
 	if runResult == nil || len(runResult.Instances) != 1 {
 		glog.Errorf("Unexpected reservation creating instances: %v", runResult)
-		return nil, fmt.Errorf("unexpected reservation creating instance")
+		return nil, mapierrors.CreateMachine("unexpected reservation creating instance")
 	}
 
 	return runResult.Instances[0], nil

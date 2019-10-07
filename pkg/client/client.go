@@ -18,7 +18,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
@@ -34,6 +33,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
+	machineapiapierrors "github.com/openshift/cluster-api/pkg/errors"
+	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 //go:generate go run ../../vendor/github.com/golang/mock/mockgen -source=./client.go -destination=./mock/client_generated.go -package=mock
@@ -134,16 +135,19 @@ func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region st
 	if secretName != "" {
 		var secret corev1.Secret
 		if err := ctrlRuntimeClient.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: secretName}, &secret); err != nil {
+			if apimachineryerrors.IsNotFound(err) {
+				return nil, machineapiapierrors.InvalidMachineConfiguration("aws credentials secret %s/%s: %v not found", namespace, secretName, err)
+			}
 			return nil, err
 		}
 		accessKeyID, ok := secret.Data[AwsCredsSecretIDKey]
 		if !ok {
-			return nil, fmt.Errorf("AWS credentials secret %v did not contain key %v",
+			return nil, machineapiapierrors.InvalidMachineConfiguration("AWS credentials secret %v did not contain key %v",
 				secretName, AwsCredsSecretIDKey)
 		}
 		secretAccessKey, ok := secret.Data[AwsCredsSecretAccessKey]
 		if !ok {
-			return nil, fmt.Errorf("AWS credentials secret %v did not contain key %v",
+			return nil, machineapiapierrors.InvalidMachineConfiguration("AWS credentials secret %v did not contain key %v",
 				secretName, AwsCredsSecretAccessKey)
 		}
 

@@ -1,27 +1,28 @@
 package machine
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
-	"k8s.io/client-go/tools/record"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/mock/gomock"
 	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	machineapierrors "github.com/openshift/cluster-api/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
-
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -77,7 +78,7 @@ func TestMachineEvents(t *testing.T) {
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
-			event: "Warning FailedCreate InvalidConfiguration",
+			event: "Warning FailedCreate error decoding MachineProviderConfig: unable to find machine provider config: Spec.ProviderSpec.Value is not set",
 		},
 		{
 			name:    "Create machine event failed (error creating aws service)",
@@ -86,7 +87,7 @@ func TestMachineEvents(t *testing.T) {
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
-			event: "Warning FailedCreate CreateError",
+			event: "Warning FailedCreate error creating aws service",
 		},
 		{
 			name:            "Create machine event failed (error launching instance)",
@@ -95,16 +96,16 @@ func TestMachineEvents(t *testing.T) {
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
-			event: "Warning FailedCreate CreateError",
+			event: "Warning FailedCreate error creating EC2 instance: error",
 		},
 		{
 			name:    "Create machine event failed (error updating load balancers)",
 			machine: machine,
-			lbErr:   fmt.Errorf("error"),
+			lbErr:   fmt.Errorf("lb error"),
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *machinev1.Machine) {
 				actuator.CreateMachine(cluster, machine)
 			},
-			event: "Warning FailedCreate CreateError",
+			event: "Warning FailedCreate lb error",
 		},
 		{
 			name:    "Create machine event succeed",
@@ -128,7 +129,7 @@ func TestMachineEvents(t *testing.T) {
 			operation: func(actuator *Actuator, cluster *clusterv1.Cluster, machine *machinev1.Machine) {
 				actuator.DeleteMachine(cluster, machine)
 			},
-			event: "Warning FailedDelete InvalidConfiguration",
+			event: "Warning FailedDelete error decoding MachineProviderConfig: unable to find machine provider config: Spec.ProviderSpec.Value is not set",
 		},
 		{
 			name:    "Delete machine event succeed",
@@ -708,4 +709,87 @@ func (m placementMatcher) Matches(input interface{}) bool {
 
 func (m placementMatcher) String() string {
 	return fmt.Sprintf("is placement: %#v", m.placement)
+}
+
+func TestGetUserData(t *testing.T) {
+	machine, err := stubMachine()
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerConfig := stubProviderConfig()
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
+
+	testCases := []struct {
+		secret *apiv1.Secret
+		error  error
+	}{
+		{
+			secret: &apiv1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      userDataSecretName,
+					Namespace: defaultNamespace,
+				},
+				Data: map[string][]byte{
+					userDataSecretKey: []byte(userDataBlob),
+				},
+			},
+			error: nil,
+		},
+		{
+			secret: &apiv1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "notFound",
+					Namespace: defaultNamespace,
+				},
+				Data: map[string][]byte{
+					userDataSecretKey: []byte(userDataBlob),
+				},
+			},
+			error: &machineapierrors.MachineError{},
+		},
+		{
+			secret: &apiv1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      userDataSecretName,
+					Namespace: defaultNamespace,
+				},
+				Data: map[string][]byte{
+					"badKey": []byte(userDataBlob),
+				},
+			},
+			error: &machineapierrors.MachineError{},
+		},
+	}
+
+	for _, tc := range testCases {
+		params := ActuatorParams{
+			Client: fake.NewFakeClient(tc.secret),
+			Codec:  codec,
+			EventRecorder: &record.FakeRecorder{
+				Events: make(chan string, 1),
+			},
+		}
+		actuator, err := NewActuator(params)
+		if err != nil {
+			t.Fatalf("Could not create AWS machine actuator: %v", err)
+		}
+		userData, err := actuator.getUserData(machine, providerConfig)
+		if tc.error != nil {
+			if err == nil {
+				t.Fatal("Expected error")
+			}
+			_, expectMachineError := tc.error.(*machineapierrors.MachineError)
+			_, gotMachineError := err.(*machineapierrors.MachineError)
+			if expectMachineError && !gotMachineError || !expectMachineError && gotMachineError {
+				t.Errorf("Expected %T, got: %T", tc.error, err)
+			}
+		} else {
+			if compare := bytes.Compare(userData, []byte(userDataBlob)); compare != 0 {
+				t.Errorf("Expected: %v, got: %v", []byte(userDataBlob), userData)
+			}
+		}
+	}
 }
