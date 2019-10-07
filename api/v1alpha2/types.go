@@ -172,7 +172,7 @@ type NetworkSpec struct {
 
 	// ControlPlaneLoadBalancerScheme (defaults to Internet-facing)
 	// +optional
-	ControlPlaneLoadBalancerScheme ClassicELBScheme `json:"controlPlaneLoadBalancerScheme,omitempty""`
+	ControlPlaneLoadBalancerScheme *ClassicELBScheme `json:"controlPlaneLoadBalancerScheme,omitempty""`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
