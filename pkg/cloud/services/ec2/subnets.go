@@ -35,6 +35,9 @@ import (
 const (
 	defaultPrivateSubnetCidr = "10.0.0.0/24"
 	defaultPublicSubnetCidr  = "10.0.1.0/24"
+
+	internalLoadBalancerTag = "kubernetes.io/role/internal-elb"
+	externalLoadBalancerTag = "kubernetes.io/role/elb"
 )
 
 func (s *Service) reconcileSubnets() error {
@@ -320,8 +323,10 @@ func (s *Service) getSubnetTagParams(id string, public bool) infrav1.BuildParams
 
 	if public {
 		role = infrav1.PublicRoleTagValue
+		additionalTags[externalLoadBalancerTag] = "1"
 	} else {
 		role = infrav1.PrivateRoleTagValue
+		additionalTags[internalLoadBalancerTag] = "1"
 	}
 
 	// Add tag needed for Service type=LoadBalancer
