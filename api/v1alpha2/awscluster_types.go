@@ -41,6 +41,17 @@ type AWSClusterSpec struct {
 	// ones added by default.
 	// +optional
 	AdditionalTags Tags `json:"additionalTags,omitempty"`
+
+	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior
+	// +optional
+	ControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
+}
+
+// AWSLoadBalancerSpec defines the desired state of an AWS load balancer
+type AWSLoadBalancerSpec struct {
+	// Scheme sets the scheme of the load balancer (defaults to Internet-facing)
+	// +optional
+	Scheme *ClassicELBScheme `json:"scheme,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster

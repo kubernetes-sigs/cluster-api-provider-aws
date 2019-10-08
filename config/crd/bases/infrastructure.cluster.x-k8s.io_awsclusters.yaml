@@ -43,6 +43,15 @@ spec:
                 resources managed by the AWS provider, in addition to the ones added
                 by default.
               type: object
+            controlPlaneLoadBalancer:
+              description: ControlPlaneLoadBalancer is optional configuration for
+                customizing control plane behavior
+              properties:
+                scheme:
+                  description: Scheme sets the scheme of the load balancer (defaults
+                    to Internet-facing)
+                  type: string
+              type: object
             networkSpec:
               description: NetworkSpec encapsulates all things related to AWS network.
               properties:

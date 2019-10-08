@@ -177,7 +177,7 @@ func GenerateELBName(clusterName string, elbName string) string {
 func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
 	res := &infrav1.ClassicELB{
 		Name:   GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue),
-		Scheme: infrav1.ClassicELBSchemeInternetFacing,
+		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
 		Listeners: []*infrav1.ClassicELBListener{
 			{
 				Protocol:         infrav1.ClassicELBProtocolTCP,
