@@ -31,7 +31,7 @@ func Convert_v1alpha1_AWSClusterProviderSpec_To_v1alpha2_AWSClusterSpec(in *v1al
 	}
 
 	out.Region = in.Region
-	out.SSHKeyName = in.SSHKeyName
+	out.SSHKeyName = &in.SSHKeyName
 
 	// DISCARDS:
 	// CAKeyPair
@@ -88,7 +88,7 @@ func Convert_v1alpha1_AWSMachineProviderSpec_To_v1alpha2_AWSMachineSpec(in *v1al
 
 	out.Subnet = &subnet
 
-	out.SSHKeyName = in.KeyName
+	out.SSHKeyName = &in.KeyName
 	out.RootDeviceSize = in.RootDeviceSize
 
 	return nil

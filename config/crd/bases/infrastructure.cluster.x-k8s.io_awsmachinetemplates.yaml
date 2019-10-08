@@ -167,7 +167,9 @@ spec:
                       type: integer
                     sshKeyName:
                       description: SSHKeyName is the name of the ssh key to attach
-                        to the instance.
+                        to the instance. If nil, will use a default SSH key pair name
+                        If empty string, will NOT set an SSH key pair Otherwise, will
+                        set the SSH key pair name
                       type: string
                     subnet:
                       description: Subnet is a reference to the subnet to use for
