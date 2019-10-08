@@ -85,7 +85,7 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args -ginkgo.v --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Binaries

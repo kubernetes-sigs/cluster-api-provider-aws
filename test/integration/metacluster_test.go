@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"sigs.k8s.io/cluster-api/util"
 
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
+	"sigs.k8s.io/cluster-api/test/helpers/kind"
 )
 
 const (

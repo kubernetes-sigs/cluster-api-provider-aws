@@ -17,16 +17,30 @@ limitations under the License.
 package conversion
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cabpkv1a2 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/certs"
 	capav1a2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	capav1a1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1alpha1"
 	capiv1a2 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capiv1a1 "sigs.k8s.io/cluster-api/pkg/apis/deprecated/v1alpha1"
+	"sigs.k8s.io/cluster-api/util/certs"
+	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/yaml"
+)
+
+const (
+	// EtcdCA is the secret name suffix for the Etcd CA
+	etcdCA secret.Purpose = "etcd"
+
+	// ServiceAccount is the secret name suffix for the Service Account keys
+	serviceAccount secret.Purpose = "sa"
+
+	// FrontProxyCA is the secret name suffix for Front Proxy CA
+	frontProxyCA secret.Purpose = "proxy"
 )
 
 type ClusterConverter struct {
@@ -101,20 +115,63 @@ func (c *ClusterConverter) GetSecrets(cluster *capiv1a2.Cluster, cfg *cabpkv1a2.
 		return []*corev1.Secret{}, err
 	}
 
-	certificates := certs.Certificates{
+	certificates := certificates{
 		ClusterCA:      convertKeypair(&oldCluster.CAKeyPair),
 		EtcdCA:         convertKeypair(&oldCluster.EtcdCAKeyPair),
 		FrontProxyCA:   convertKeypair(&oldCluster.FrontProxyCAKeyPair),
 		ServiceAccount: convertKeypair(&oldCluster.SAKeyPair),
 	}
 
-	return certs.NewSecretsFromCertificates(cluster, cfg, &certificates), nil
+	return newSecretsFromCertificates(cluster, cfg, &certificates), nil
 
+}
+
+// newSecretsFromCertificates returns a list of secrets, 1 for each certificate.
+func newSecretsFromCertificates(cluster *capiv1a2.Cluster, config *cabpkv1a2.KubeadmConfig, c *certificates) []*corev1.Secret {
+	return []*corev1.Secret{
+		keyPairToSecret(cluster, config, string(secret.ClusterCA), c.ClusterCA),
+		keyPairToSecret(cluster, config, string(etcdCA), c.EtcdCA),
+		keyPairToSecret(cluster, config, string(frontProxyCA), c.FrontProxyCA),
+		keyPairToSecret(cluster, config, string(serviceAccount), c.ServiceAccount),
+	}
+}
+
+// certificates hold all the certificates necessary for a Kubernetes cluster
+type certificates struct {
+	ClusterCA      *certs.KeyPair
+	EtcdCA         *certs.KeyPair
+	FrontProxyCA   *certs.KeyPair
+	ServiceAccount *certs.KeyPair
 }
 
 func convertKeypair(in *capav1a1.KeyPair) *certs.KeyPair {
 	return &certs.KeyPair{
 		Cert: in.Cert,
 		Key:  in.Key,
+	}
+}
+
+// KeyPairToSecret creates a Secret from a KeyPair.
+func keyPairToSecret(cluster *capiv1a2.Cluster, config *cabpkv1a2.KubeadmConfig, name string, keyPair *certs.KeyPair) *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      fmt.Sprintf("%s-%s", cluster.Name, name),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: cabpkv1a2.GroupVersion.String(),
+					Kind:       "KubeadmConfig",
+					Name:       config.Name,
+					UID:        config.UID,
+				},
+			},
+			Labels: map[string]string{
+				capiv1a2.MachineClusterLabelName: cluster.Name,
+			},
+		},
+		Data: map[string][]byte{
+			secret.TLSKeyDataName: keyPair.Key,
+			secret.TLSCrtDataName: keyPair.Cert,
+		},
 	}
 }
