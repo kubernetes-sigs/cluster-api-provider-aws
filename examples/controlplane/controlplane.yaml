@@ -23,7 +23,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-0
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
+  iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
@@ -69,7 +69,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-1
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
+  iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
@@ -109,7 +109,7 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-2
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  iamInstanceProfile: "controllers.cluster-api-provider-aws.sigs.k8s.io"
+  iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
