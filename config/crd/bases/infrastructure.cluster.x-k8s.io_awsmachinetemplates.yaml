@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: AWSMachineTemplate
+    listKind: AWSMachineTemplateList
     plural: awsmachinetemplates
+    singular: awsmachinetemplate
   scope: Namespaced
   validation:
     openAPIV3Schema:
