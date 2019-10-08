@@ -104,7 +104,7 @@ LoopExisting:
 				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 					if err := tags.Ensure(exsn.Tags, &tags.ApplyParams{
 						EC2Client:   s.scope.EC2,
-						BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic),
+						BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic, sn.Tags),
 					}); err != nil {
 						return false, err
 					}
@@ -256,7 +256,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
-			BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic),
+			BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic, sn.Tags),
 		}); err != nil {
 			return false, err
 		}
@@ -317,7 +317,7 @@ func (s *Service) deleteSubnet(id string) error {
 	return nil
 }
 
-func (s *Service) getSubnetTagParams(id string, public bool) infrav1.BuildParams {
+func (s *Service) getSubnetTagParams(id string, public bool, manualTags infrav1.Tags) infrav1.BuildParams {
 	var role string
 	additionalTags := s.scope.AdditionalTags()
 
@@ -331,6 +331,10 @@ func (s *Service) getSubnetTagParams(id string, public bool) infrav1.BuildParams
 
 	// Add tag needed for Service type=LoadBalancer
 	additionalTags[infrav1.NameKubernetesAWSCloudProviderPrefix+s.scope.Name()] = string(infrav1.ResourceLifecycleShared)
+
+	for k, v := range manualTags {
+		additionalTags[k] = v
+	}
 
 	var name strings.Builder
 	name.WriteString(s.scope.Name())
