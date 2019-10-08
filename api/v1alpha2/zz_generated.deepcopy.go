@@ -72,7 +72,7 @@ func (in *AWSCluster) DeepCopyObject() runtime.Object {
 func (in *AWSClusterList) DeepCopyInto(out *AWSClusterList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AWSCluster, len(*in))
@@ -176,7 +176,7 @@ func (in *AWSMachine) DeepCopyObject() runtime.Object {
 func (in *AWSMachineList) DeepCopyInto(out *AWSMachineList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AWSMachine, len(*in))
@@ -324,7 +324,7 @@ func (in *AWSMachineTemplate) DeepCopyObject() runtime.Object {
 func (in *AWSMachineTemplateList) DeepCopyInto(out *AWSMachineTemplateList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AWSMachineTemplate, len(*in))

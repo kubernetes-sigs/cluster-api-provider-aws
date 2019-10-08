@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: AWSMachine
+    listKind: AWSMachineList
     plural: awsmachines
+    singular: awsmachine
   scope: Namespaced
   subresources:
     status: {}

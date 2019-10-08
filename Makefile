@@ -378,7 +378,7 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 	rm -f examples/provider-components/provider-components-*.yaml
 
 .PHONY: verify
-verify: verify-boilerplate verify-modules
+verify: verify-boilerplate verify-modules verify-gen
 
 .PHONY: verify-boilerplate
 verify-boilerplate:
@@ -390,4 +390,7 @@ verify-modules: modules
 		echo "go module files are out of date"; exit 1; \
 	fi
 
-
+verify-gen: generate
+	@if !(git diff --quiet HEAD); then \
+		echo "generated files are out of date, run make generate"; exit 1; \
+	fi

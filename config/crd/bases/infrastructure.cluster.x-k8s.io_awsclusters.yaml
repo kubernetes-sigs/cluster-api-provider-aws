@@ -11,7 +11,9 @@ spec:
     categories:
     - cluster-api
     kind: AWSCluster
+    listKind: AWSClusterList
     plural: awsclusters
+    singular: awscluster
   scope: Namespaced
   subresources:
     status: {}
