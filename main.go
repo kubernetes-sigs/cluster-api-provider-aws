@@ -60,6 +60,7 @@ func main() {
 		awsClusterConcurrency int
 		awsMachineConcurrency int
 		syncPeriod            time.Duration
+		webhookPort           int
 	)
 
 	flag.StringVar(
@@ -108,6 +109,12 @@ func main() {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
 	)
 
+	flag.IntVar(&webhookPort,
+		"webhook-port",
+		9443,
+		"Webhook server port",
+	)
+
 	flag.Parse()
 
 	if watchNamespace != "" {
@@ -136,6 +143,7 @@ func main() {
 		SyncPeriod:         &syncPeriod,
 		Namespace:          watchNamespace,
 		EventBroadcaster:   broadcaster,
+		Port:               webhookPort,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
