@@ -371,6 +371,14 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 			},
 		}, nil
 	case infrav1.SecurityGroupControlPlane:
+		// check and see if ingress CIDR blocks were specified for the API-server/ELB
+		elbCidrBlocks := []string{anyIPv4CidrBlock}
+		controlPlaneLBSpec := s.scope.AWSCluster.AwsClusterSpec.ControlPlaneLoadBalancer
+
+		if controlPlaneLBSpec.IngressCidrBlock {
+			elbCidrBlocks = controlPlaneLBSpec.IngressCidrBlock
+		}
+
 		return infrav1.IngressRules{
 			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
@@ -378,7 +386,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    6443,
 				ToPort:      6443,
-				CidrBlocks:  []string{anyIPv4CidrBlock},
+				CidrBlocks:  elbCidrBlocks,
 			},
 			{
 				Description:            "etcd",
