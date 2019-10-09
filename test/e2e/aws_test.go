@@ -20,7 +20,6 @@ package e2e_test
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -34,17 +33,20 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capiFlag "sigs.k8s.io/cluster-api/test/helpers/flag"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	cniManifests  = flag.String("cniManifests", "https://docs.projectcalico.org/v3.8/manifests/calico.yaml", "URL to CNI manifests to load")
-	kubectlBinary = defineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
+	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.8/manifests/calico.yaml", "URL to CNI manifests to load")
+	kubectlBinary = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 )
 
 var _ = Describe("functional tests", func() {
@@ -126,27 +128,42 @@ func deployCNI(tmpDir, namespace, clusterName, manifestPath string) {
 	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
 	Expect(err).NotTo(HaveOccurred())
 	kubeConfigPath := path.Join(tmpDir, clusterName+".kubeconfig")
-	err = ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0640)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0640)).To(Succeed())
 
-	err = exec.Command(
+	Expect(exec.Command(
 		*kubectlBinary,
 		"create",
 		"--kubeconfig="+kubeConfigPath,
 		"-f", manifestPath,
-	).Run()
-	Expect(err).NotTo(HaveOccurred())
+	).Run()).To(Succeed())
 }
 
 func waitForMachineNodeReady(namespace, name string) {
 	machine := &clusterv1.Machine{}
-	err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine)
+	Expect(kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine)).To(Succeed())
+
+	nodeName := machine.Status.NodeRef.Name
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      machine.Labels[clusterv1.MachineClusterLabelName],
+		},
+	}
+	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
+	Expect(err).NotTo(HaveOccurred())
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigData)
+	Expect(err).NotTo(HaveOccurred())
+
+	nodeClient, err := crclient.New(restConfig, crclient.Options{})
 	Expect(err).NotTo(HaveOccurred())
 
 	Eventually(
 		func() bool {
 			node := &corev1.Node{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: name}, node); err != nil {
+			if err := nodeClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: nodeName}, node); err != nil {
+				fmt.Fprintf(GinkgoWriter, "Error retrieving node: %v", err)
 				return false
 			}
 
@@ -165,7 +182,7 @@ func waitForMachineNodeReady(namespace, name string) {
 			return false
 		},
 		2*time.Minute, 15*time.Second,
-	).ShouldNot(BeTrue())
+	).Should(BeTrue())
 }
 
 func createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName string) {
@@ -197,7 +214,7 @@ func deleteCluster(namespace, name string) {
 			Namespace: namespace,
 			Name:      name,
 		},
-	})).NotTo(HaveOccurred())
+	})).To(Succeed())
 
 	Eventually(
 		func() bool {
@@ -329,7 +346,7 @@ func makeMachine(namespace, name, awsMachineName, bootstrapConfigName, clusterNa
 			Version: &k8s_version,
 		},
 	}
-	Expect(kindClient.Create(context.TODO(), machine)).NotTo(HaveOccurred())
+	Expect(kindClient.Create(context.TODO(), machine)).To(Succeed())
 }
 
 func makeJoinBootstrapConfig(namespace, name string) {
@@ -349,7 +366,7 @@ func makeJoinBootstrapConfig(namespace, name string) {
 			},
 		},
 	}
-	Expect(kindClient.Create(context.TODO(), config)).NotTo(HaveOccurred())
+	Expect(kindClient.Create(context.TODO(), config)).To(Succeed())
 }
 
 func makeInitBootstrapConfig(namespace, name string) {
@@ -378,7 +395,7 @@ func makeInitBootstrapConfig(namespace, name string) {
 			},
 		},
 	}
-	Expect(kindClient.Create(context.TODO(), config)).NotTo(HaveOccurred())
+	Expect(kindClient.Create(context.TODO(), config)).To(Succeed())
 }
 
 func makeAWSMachine(namespace, name string) {
@@ -394,7 +411,7 @@ func makeAWSMachine(namespace, name string) {
 			SSHKeyName:         keyPairName,
 		},
 	}
-	Expect(kindClient.Create(context.TODO(), awsMachine)).NotTo(HaveOccurred())
+	Expect(kindClient.Create(context.TODO(), awsMachine)).To(Succeed())
 }
 
 func makeCluster(namespace, name, awsClusterName string) {
@@ -418,7 +435,7 @@ func makeCluster(namespace, name, awsClusterName string) {
 			},
 		},
 	}
-	Expect(kindClient.Create(context.TODO(), cluster)).NotTo(HaveOccurred())
+	Expect(kindClient.Create(context.TODO(), cluster)).To(Succeed())
 }
 
 func makeAWSCluster(namespace, name string) {
@@ -433,7 +450,7 @@ func makeAWSCluster(namespace, name string) {
 			SSHKeyName: keyPairName,
 		},
 	}
-	Expect(kindClient.Create(context.TODO(), awsCluster)).NotTo(HaveOccurred())
+	Expect(kindClient.Create(context.TODO(), awsCluster)).To(Succeed())
 }
 
 func createNamespace(namespace string) {
@@ -443,14 +460,5 @@ func createNamespace(namespace string) {
 			Name: namespace,
 		},
 	}
-	Expect(kindClient.Create(context.TODO(), ns)).NotTo(HaveOccurred())
-}
-
-func defineOrLookupStringFlag(name string, value string, usage string) *string {
-	f := flag.Lookup(name)
-	if f != nil {
-		v := f.Value.String()
-		return &v
-	}
-	return flag.String(name, value, usage)
+	Expect(kindClient.Create(context.TODO(), ns)).To(Succeed())
 }

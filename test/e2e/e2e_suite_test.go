@@ -20,9 +20,7 @@ package e2e_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -30,7 +28,6 @@ import (
 	"path"
 	"testing"
 	"text/template"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,17 +39,16 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/util/kind"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	common "sigs.k8s.io/cluster-api/test/helpers/components"
+	capiFlag "sigs.k8s.io/cluster-api/test/helpers/flag"
+	"sigs.k8s.io/cluster-api/test/helpers/kind"
+	"sigs.k8s.io/cluster-api/test/helpers/scheme"
 	"sigs.k8s.io/cluster-api/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -78,11 +74,10 @@ const (
 )
 
 var (
-	managerImage    = flag.String("managerImage", "", "Docker image to load into the kind cluster for testing")
-	capiComponents  = flag.String("capiComponents", "https://github.com/kubernetes-sigs/cluster-api/releases/download/"+CAPI_VERSION+"/cluster-api-components.yaml", "URL to CAPI components to load")
-	cabpkComponents = flag.String("cabpkComponents", "https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/download/"+CABPK_VERSION+"/bootstrap-components.yaml", "URL to CAPI components to load")
-	capaComponents  = flag.String("capaComponents", "", "capa components to load")
-	kustomizeBinary = flag.String("kustomizeBinary", "kustomize", "path to the kustomize binary")
+	managerImage    = capiFlag.DefineOrLookupStringFlag("managerImage", "", "Docker image to load into the kind cluster for testing")
+	cabpkComponents = capiFlag.DefineOrLookupStringFlag("cabpkComponents", "https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/download/"+CABPK_VERSION+"/bootstrap-components.yaml", "URL to CAPI components to load")
+	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
+	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
 
 	kindCluster kind.Cluster
 	kindClient  crclient.Client
@@ -105,7 +100,7 @@ var _ = BeforeSuite(func() {
 	loadManagerImage(kindCluster)
 
 	// Deploy the CAPI components
-	applyManifests(kindCluster, capiComponents)
+	common.DeployCAPIComponents(kindCluster)
 
 	// Deploy the CABPK components
 	applyManifests(kindCluster, cabpkComponents)
@@ -123,13 +118,13 @@ var _ = BeforeSuite(func() {
 	createIAMRoles(sess, accountID)
 
 	// Verify capi components are deployed
-	waitDeployment(capiNamespace, capiDeploymentName)
+	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
 
 	// Verify cabpk components are deployed
-	waitDeployment(cabpkNamespace, cabpkDeploymentName)
+	common.WaitDeployment(kindClient, cabpkNamespace, cabpkDeploymentName)
 
 	// Verify capa components are deployed
-	waitDeployment(capaNamespace, capaDeploymentName)
+	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
 }, setupTimeout)
 
 var _ = AfterSuite(func() {
@@ -137,19 +132,6 @@ var _ = AfterSuite(func() {
 	kindCluster.Teardown()
 	os.RemoveAll(suiteTmpDir)
 })
-
-func waitDeployment(namespace, name string) {
-	fmt.Fprintf(GinkgoWriter, "Ensuring %s/%s is deployed\n", namespace, name)
-	Eventually(
-		func() (int32, error) {
-			deployment := &appsv1.Deployment{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, deployment); err != nil {
-				return 0, err
-			}
-			return deployment.Status.ReadyReplicas, nil
-		}, 5*time.Minute, 15*time.Second,
-	).ShouldNot(BeZero())
-}
 
 func getSession() client.ConfigProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -219,7 +201,7 @@ func deployCAPAComponents(kindCluster kind.Cluster) {
 
 	// write out the manifests
 	manifestFile := path.Join(suiteTmpDir, "infrastructure-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, []byte(manifestsContent), 0644)).NotTo(HaveOccurred())
+	Expect(ioutil.WriteFile(manifestFile, []byte(manifestsContent), 0644)).To(Succeed())
 
 	// apply generated manifests
 	applyManifests(kindCluster, &manifestFile)
@@ -277,10 +259,8 @@ func generateB64Credentials() (string, error) {
 }
 
 func setupScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	Expect(clientgoscheme.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(clusterv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(bootstrapv1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	Expect(infrav1.AddToScheme(scheme)).NotTo(HaveOccurred())
-	return scheme
+	s := scheme.SetupScheme()
+	Expect(bootstrapv1.AddToScheme(s)).To(Succeed())
+	Expect(infrav1.AddToScheme(s)).To(Succeed())
+	return s
 }
