@@ -31,6 +31,9 @@ command -v "${ENVSUBST}" >/dev/null 2>&1 || echo -v "Cannot find ${ENVSUBST} in 
 CLUSTERAWSADM=${CLUSTERAWSADM:-${SOURCE_DIR}/../bin/clusterawsadm}
 command -v "${CLUSTERAWSADM}" >/dev/null 2>&1 || echo -v "Cannot find ${CLUSTERAWSADM} in path, build it using 'make binaries' in this repository."
 
+# NETWROK
+export INGRESS="${INGRESS:-"disbale"}"
+
 # Cluster.
 export CLUSTER_NAME="${CLUSTER_NAME:-test1}"
 export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.15.3}"
@@ -39,6 +42,9 @@ export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.15.3}"
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
+
+# ADDONS
+ADDONS_GENERATED_FILE=${OUTPUT_DIR}/addons.yaml
 
 # Outputs.
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-cluster-api.yaml
@@ -86,6 +92,15 @@ if [ $OVERWRITE -ne 1 ] && [ -d "$OUTPUT_DIR" ]; then
 fi
 
 mkdir -p "${OUTPUT_DIR}"
+
+# Generate ADDONS.
+cat "${SOURCE_DIR}/addons.yaml" | envsubst > "${ADDONS_GENERATED_FILE}"
+
+if [ ${INGRESS} == "ALB" ]; then
+  echo "Generated addons will include alb ingress controller"
+  cat "${SOURCE_DIR}/alb-ingress-controller-addons.yaml" | envsubst >> "${ADDONS_GENERATED_FILE}"
+fi
+echo "Generated ${ADDONS_GENERATED_FILE}"
 
 # Generate AWS Credentials.
 AWS_B64ENCODED_CREDENTIALS="$(${CLUSTERAWSADM} alpha bootstrap encode-aws-credentials)"
