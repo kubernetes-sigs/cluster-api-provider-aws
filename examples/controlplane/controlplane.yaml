@@ -25,6 +25,7 @@ spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
+  availabilityZone: ${AWS_REGION_AZA}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfig
@@ -71,6 +72,7 @@ spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
+  availabilityZone: ${AWS_REGION_AZB}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfig
@@ -111,6 +113,7 @@ spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
+  availabilityZone: ${AWS_REGION_AZC}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfig

@@ -6,7 +6,11 @@ metadata:
 spec:
   clusterNetwork:
     pods:
-      cidrBlocks: ["192.168.0.0/16"]
+      cidrBlocks:
+        - "192.168.0.0/16"
+    services:
+      cidrBlocks:
+        - "192.168.1.0/24"
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
     kind: AWSCluster
@@ -19,3 +23,23 @@ metadata:
 spec:
   region: ${AWS_REGION}
   sshKeyName: ${SSH_KEY_NAME}
+  networkSpec:
+    subnets:
+    - availabilityZone: ${AWS_REGION_AZA}
+      cidrBlock: "10.0.100.0/24"
+      isPublic: true
+    - availabilityZone: ${AWS_REGION_AZA}
+      cidrBlock: "10.0.101.0/24"
+      isPublic: false
+    - availabilityZone: ${AWS_REGION_AZB}
+      cidrBlock: "10.0.102.0/24"
+      isPublic: true
+    - availabilityZone: ${AWS_REGION_AZB}
+      cidrBlock: "10.0.103.0/24"
+      isPublic: false
+    - availabilityZone: ${AWS_REGION_AZC}
+      cidrBlock: "10.0.104.0/24"
+      isPublic: true
+    - availabilityZone: ${AWS_REGION_AZC}
+      cidrBlock: "10.0.105.0/24"
+      isPublic: false

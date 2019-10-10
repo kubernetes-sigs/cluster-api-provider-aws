@@ -20,6 +20,10 @@ set -o nounset
 SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${OUTPUT_DIR:-${SOURCE_DIR}/_out}
 
+# import azinfo
+source $SOURCE_DIR/aws-region-az.sh
+set_region_az_info ${AWS_REGION}
+
 # Binaries
 ENVSUBST=${ENVSUBST:-envsubst}
 command -v "${ENVSUBST}" >/dev/null 2>&1 || echo -v "Cannot find ${ENVSUBST} in path."
