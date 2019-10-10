@@ -23,7 +23,7 @@ package mock_services
 import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	v1alpha2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	scope "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -51,10 +51,10 @@ func (m *MockEC2MachineInterface) EXPECT() *MockEC2MachineInterfaceMockRecorder 
 }
 
 // CreateInstance mocks base method
-func (m *MockEC2MachineInterface) CreateInstance(arg0 *scope.MachineScope) (*v1alpha2.Instance, error) {
+func (m *MockEC2MachineInterface) CreateInstance(arg0 *scope.MachineScope) (*v1alpha3.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateInstance", arg0)
-	ret0, _ := ret[0].(*v1alpha2.Instance)
+	ret0, _ := ret[0].(*v1alpha3.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -96,10 +96,10 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetInstanceSecurityGroups(arg0 in
 }
 
 // GetRunningInstanceByTags mocks base method
-func (m *MockEC2MachineInterface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1alpha2.Instance, error) {
+func (m *MockEC2MachineInterface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1alpha3.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRunningInstanceByTags", arg0)
-	ret0, _ := ret[0].(*v1alpha2.Instance)
+	ret0, _ := ret[0].(*v1alpha3.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -111,10 +111,10 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetRunningInstanceByTags(arg0 int
 }
 
 // InstanceIfExists mocks base method
-func (m *MockEC2MachineInterface) InstanceIfExists(arg0 *string) (*v1alpha2.Instance, error) {
+func (m *MockEC2MachineInterface) InstanceIfExists(arg0 *string) (*v1alpha3.Instance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstanceIfExists", arg0)
-	ret0, _ := ret[0].(*v1alpha2.Instance)
+	ret0, _ := ret[0].(*v1alpha3.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

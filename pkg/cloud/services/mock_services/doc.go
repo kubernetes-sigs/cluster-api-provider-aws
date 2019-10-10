@@ -17,4 +17,4 @@ limitations under the License.
 // Run go generate to regenerate this mock.
 //go:generate ../../../../hack/tools/bin/mockgen -destination ec2_machine_interface_mock.go -package mock_services sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services EC2MachineInterface
 //go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt ec2_machine_interface_mock.go > _ec2_machine_interface_mock.go && mv _ec2_machine_interface_mock.go ec2_machine_interface_mock.go"
-package mock_elbiface //nolint
+package mock_services //nolint

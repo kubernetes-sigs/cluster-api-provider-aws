@@ -26,8 +26,11 @@ import (
 type EC2MachineInterface interface {
 	InstanceIfExists(id *string) (*infrav1.Instance, error)
 	TerminateInstance(id string) error
+	CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, error)
+	GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error)
+
 	GetCoreSecurityGroups(machine *scope.MachineScope) ([]string, error)
-	GetInstanceSecurityGroups(id string) (map[string][]string, error)
+	GetInstanceSecurityGroups(instanceID string) (map[string][]string, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
 }
