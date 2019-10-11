@@ -173,6 +173,12 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 	if instance == nil {
 		// The machine was never created or was deleted by some other entity
+		// One way to reach this state:
+		// 1. Scale deployment to 0
+		// 2. Rename EC2 machine, and delete ProviderID from spec of both Machine
+		// and AWSMachine
+		// 3. Issue a delete
+		// 4. Scale controller deployment to 1
 		machineScope.V(2).Info("Unable to locate instance by ID or tags")
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
 		machineScope.AWSMachine.Finalizers = util.Filter(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
