@@ -191,6 +191,7 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 					"ec2:RevokeSecurityGroupIngress",
 					"ec2:RunInstances",
 					"ec2:TerminateInstances",
+					"tag:GetResources",
 					"elasticloadbalancing:CreateLoadBalancer",
 					"elasticloadbalancing:ConfigureHealthCheck",
 					"elasticloadbalancing:DeleteLoadBalancer",
