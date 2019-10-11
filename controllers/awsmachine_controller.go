@@ -173,10 +173,19 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 	if instance == nil {
 		// The machine was never created or was deleted by some other entity
-		machineScope.V(3).Info("Unable to locate instance by ID or tags")
+		// One way to reach this state:
+		// 1. Scale deployment to 0
+		// 2. Rename EC2 machine, and delete ProviderID from spec of both Machine
+		// and AWSMachine
+		// 3. Issue a delete
+		// 4. Scale controller deployment to 1
+		machineScope.V(2).Info("Unable to locate instance by ID or tags")
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
 		machineScope.AWSMachine.Finalizers = util.Filter(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
 		return reconcile.Result{}, nil
 	}
+
+	machineScope.V(3).Info("Instance found matching deleted AWSMachine", "instanceID", instance.ID)
 
 	// Check the instance state. If it's already shutting down or terminated,
 	// do nothing. Otherwise attempt to delete it.
@@ -184,9 +193,9 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
 	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
-		machineScope.Info("Instance is shutting down or already terminated")
+		machineScope.Info("Instance is shutting down or already terminated", "instanceID", instance.ID)
 	default:
-		machineScope.Info("Terminating instance")
+		machineScope.Info("Terminating instance", "instanceID", instance.ID)
 		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
 			return reconcile.Result{}, errors.Errorf("failed to terminate instance: %+v", err)
@@ -199,7 +208,11 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 				return reconcile.Result{}, errors.Errorf("failed to get core security groups to detach from instance's network interfaces: %+v", err)
 			}
 
-			machineScope.V(3).Info("Detaching security groups from provided network interface", "groups", core)
+			machineScope.V(3).Info(
+				"Detaching security groups from provided network interface",
+				"groups", core,
+				"instanceID", instance.ID,
+			)
 
 			for _, id := range machineScope.AWSMachine.Spec.NetworkInterfaces {
 				if err := ec2Service.DetachSecurityGroupsFromNetworkInterface(core, id); err != nil {
