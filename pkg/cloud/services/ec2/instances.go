@@ -177,10 +177,11 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 	input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 
 	// Pick SSH key, if any.
+	input.SSHKeyName = aws.String(defaultSSHKeyName)
 	if scope.AWSMachine.Spec.SSHKeyName != "" {
 		input.SSHKeyName = aws.String(scope.AWSMachine.Spec.SSHKeyName)
-	} else {
-		input.SSHKeyName = aws.String(defaultSSHKeyName)
+	} else if scope.AWSCluster.Spec.SSHKeyName != "" {
+		input.SSHKeyName = aws.String(scope.AWSCluster.Spec.SSHKeyName)
 	}
 
 	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
