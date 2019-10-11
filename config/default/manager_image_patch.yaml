@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
+      - image: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:release-0.4
         name: manager
