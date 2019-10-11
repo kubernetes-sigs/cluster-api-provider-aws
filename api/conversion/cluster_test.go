@@ -235,7 +235,7 @@ func TestConvertCluster(t *testing.T) {
 	}
 
 	assert.stringEqual(oldAWSCluster.Region, newAWSCluster.Spec.Region, "region")
-	assert.stringEqual(oldAWSCluster.SSHKeyName, newAWSCluster.Spec.SSHKeyName, "sshkey")
+	assert.stringEqual(oldAWSCluster.SSHKeyName, *newAWSCluster.Spec.SSHKeyName, "sshkey")
 
 	if newCluster.Spec.InfrastructureRef == nil {
 		t.Error("Unexpectedly nil infrastructure ref")

@@ -227,7 +227,7 @@ func TestConvertMachine(t *testing.T) {
 	assert.stringPtrEqual(oldAWSMachine.AvailabilityZone, newAWSMachine.Spec.AvailabilityZone, "availability zone")
 	assert.awsRefEqual(oldAWSMachine.Subnet, newAWSMachine.Spec.Subnet, "subnet")
 
-	assert.stringEqual(oldAWSMachine.KeyName, newAWSMachine.Spec.SSHKeyName, "KeyName")
+	assert.stringEqual(oldAWSMachine.KeyName, *newAWSMachine.Spec.SSHKeyName, "KeyName")
 
 	if oldAWSMachine.RootDeviceSize != newAWSMachine.Spec.RootDeviceSize {
 		t.Errorf("Expected RoodDeviceSize %d, got %d", oldAWSMachine.RootDeviceSize, newAWSMachine.Spec.RootDeviceSize)
