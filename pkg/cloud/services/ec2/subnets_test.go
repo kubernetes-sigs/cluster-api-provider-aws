@@ -27,7 +27,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
@@ -36,7 +35,6 @@ import (
 
 func init() {
 	clusterv1.AddToScheme(scheme.Scheme)
-	apis.AddToScheme(scheme.Scheme)
 }
 
 const (
