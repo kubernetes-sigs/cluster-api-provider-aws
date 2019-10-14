@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,6 +66,7 @@ type AWSClusterStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsclusters,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 
 // AWSCluster is the Schema for the awsclusters API

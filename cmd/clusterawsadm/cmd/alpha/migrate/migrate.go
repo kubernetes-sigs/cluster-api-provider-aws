@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	awstags "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/spf13/cobra"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 var (
