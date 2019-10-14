@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 )
 
