@@ -175,7 +175,7 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		}
 		return true, nil
 	}, awserrors.InvalidSubnet); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedCreateNATGateway", "Failed to create new NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
+		record.Warnf(s.scope.AWSCluster, "FailedCreateNATGateway", "Failed to create new NAT Gateway: %v", err)
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
