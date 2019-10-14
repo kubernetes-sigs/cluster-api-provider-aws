@@ -33,7 +33,4 @@ var (
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
-
-	// localSchemeBuilder is for automatically generated conversions
-	localSchemeBuilder = SchemeBuilder.SchemeBuilder
 )
