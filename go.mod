@@ -18,7 +18,9 @@ require (
 	k8s.io/client-go v0.0.0-20190918200256-06eb1244587a
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20190809000727-6c36bc71fc4a
-	sigs.k8s.io/cluster-api v0.2.5
+	sigs.k8s.io/cluster-api v0.2.6-0.20191014202550-20da46b4c73c
 	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.3
 	sigs.k8s.io/controller-runtime v0.3.0
 )
+
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.2.6-0.20191014202550-20da46b4c73c
