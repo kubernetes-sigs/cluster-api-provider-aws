@@ -48,7 +48,8 @@ func NewBackoff() wait.Backoff {
 
 // WaitForWithRetryable repeats a condition check with exponential backoff.
 func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, retryableErrors ...string) error { //nolint
-	return wait.ExponentialBackoff(backoff, func() (bool, error) {
+	var actualErr error
+	waitErr := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		ok, err := condition()
 		if ok {
 			// All done!
@@ -69,6 +70,7 @@ func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, re
 		for _, r := range retryableErrors {
 			if code == r {
 				// We should retry.
+				actualErr = err
 				return false, nil
 			}
 		}
@@ -76,4 +78,17 @@ func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, re
 		// Got an error that we can't retry, so return it.
 		return false, err
 	})
+
+	// no error, return nil
+	if waitErr == nil {
+		return nil
+	}
+
+	// error occurred, return the actual error
+	if actualErr != nil {
+		return actualErr
+	}
+
+	// no error occurred inside condition(), the error was timeout error
+	return waitErr
 }
