@@ -106,6 +106,11 @@ if [[ ${CAPI_BRANCH} == "stable" ]]; then
   echo "Downloaded ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api stable branch - v0.2.4"
 else
   kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+
+  if [[ ${CAPI_BRANCH} == "master" ]]; then
+      curl -L https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/${CAPI_BRANCH}/config/certmanager/cert-manager.yaml >> "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  fi
+
   echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
 fi
 
