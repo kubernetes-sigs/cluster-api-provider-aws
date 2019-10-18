@@ -31,7 +31,7 @@ func (r *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinetemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1alpha3,name=validation.awsmachine.infrastructure.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinetemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1alpha3,name=validation.awsmachinetemplate.infrastructure.x-k8s.io
 
 var _ webhook.Validator = &AWSMachineTemplate{}
 
