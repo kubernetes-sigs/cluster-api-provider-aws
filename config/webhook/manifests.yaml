@@ -13,7 +13,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinetemplate
   failurePolicy: Fail
-  name: vawsmachinetemplate.kb.io
+  name: validation.awsmachine.infrastructure.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
