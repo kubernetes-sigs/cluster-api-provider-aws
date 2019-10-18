@@ -59,13 +59,8 @@ func TestE2e(t *testing.T) {
 }
 
 const (
-	CAPI_VERSION  = "v0.2.2"
-	CABPK_VERSION = "v0.1.0"
-
 	capiNamespace       = "capi-system"
 	capiDeploymentName  = "capi-controller-manager"
-	cabpkNamespace      = "cabpk-system"
-	cabpkDeploymentName = "cabpk-controller-manager"
 	capaNamespace       = "capa-system"
 	capaDeploymentName  = "capa-controller-manager"
 	setupTimeout        = 10 * 60
@@ -75,7 +70,6 @@ const (
 
 var (
 	managerImage    = capiFlag.DefineOrLookupStringFlag("managerImage", "", "Docker image to load into the kind cluster for testing")
-	cabpkComponents = capiFlag.DefineOrLookupStringFlag("cabpkComponents", "https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/download/"+CABPK_VERSION+"/bootstrap-components.yaml", "URL to CAPI components to load")
 	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
 	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
 
@@ -99,11 +93,17 @@ var _ = BeforeSuite(func() {
 	kindCluster.Setup()
 	loadManagerImage(kindCluster)
 
-	// Deploy the CAPI components
-	common.DeployCAPIComponents(kindCluster)
+	// Deploy CertManager
+	certmanagerYaml := "https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/master/config/certmanager/cert-manager.yaml"
+	applyManifests(kindCluster, &certmanagerYaml)
 
-	// Deploy the CABPK components
-	applyManifests(kindCluster, cabpkComponents)
+	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
+	Expect(err).NotTo(HaveOccurred())
+	common.WaitDeployment(kindClient, "cert-manager", "cert-manager-webhook")
+
+	// Deploy the CAPI components
+	// workaround since there isn't a v1alpha3 capi release yet
+	deployCAPIComponents(kindCluster)
 
 	// Deploy the CAPA components
 	deployCAPAComponents(kindCluster)
@@ -119,9 +119,6 @@ var _ = BeforeSuite(func() {
 
 	// Verify capi components are deployed
 	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
-
-	// Verify cabpk components are deployed
-	common.WaitDeployment(kindClient, cabpkNamespace, cabpkDeploymentName)
 
 	// Verify capa components are deployed
 	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
@@ -174,6 +171,26 @@ func applyManifests(kindCluster kind.Cluster, manifests *string) {
 	fmt.Fprintf(GinkgoWriter, "Applying manifests for %s\n", *manifests)
 	Expect(*manifests).ToNot(BeEmpty())
 	kindCluster.ApplyYAML(*manifests)
+}
+
+func deployCAPIComponents(kindCluster kind.Cluster) {
+	fmt.Fprintf(GinkgoWriter, "Generating CAPI manifests\n")
+
+	// Build the manifests using kustomize
+	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//config/default").Output()
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
+		}
+	}
+	Expect(err).NotTo(HaveOccurred())
+
+	// write out the manifests
+	manifestFile := path.Join(suiteTmpDir, "cluster-api-components.yaml")
+	Expect(ioutil.WriteFile(manifestFile, capiManifests, 0644)).To(Succeed())
+
+	// apply generated manifests
+	applyManifests(kindCluster, &manifestFile)
 }
 
 func deployCAPAComponents(kindCluster kind.Cluster) {
