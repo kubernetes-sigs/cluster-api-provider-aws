@@ -285,7 +285,7 @@ func waitForClusterInfrastructureReady(namespace, name string) {
 			}
 			return cluster.Status.InfrastructureReady, nil
 		},
-		10*time.Minute, 15*time.Second,
+		15*time.Minute, 15*time.Second,
 	).Should(BeTrue())
 }
 
