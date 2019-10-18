@@ -30,11 +30,16 @@ RUN go mod download
 # Copy the sources
 COPY ./ ./
 
+RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
+    wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
+    chmod +x /start.sh && chmod +x /restart.sh
+
 # Build
 ARG ARCH
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -a -ldflags '-extldflags "-static"' \
     -o manager .
+ENTRYPOINT [ "/start.sh", "/workspace/manager" ]
 
 # Copy the controller-manager into a thin image
 FROM gcr.io/distroless/static:latest
