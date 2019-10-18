@@ -34,10 +34,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
-	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/kubeadm/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capiFlag "sigs.k8s.io/cluster-api/test/helpers/flag"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -147,7 +147,7 @@ func waitForMachineNodeReady(namespace, name string) {
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
-			Name:      machine.Labels[clusterv1.MachineClusterLabelName],
+			Name:      machine.Labels[clusterv1.ClusterLabelName],
 		},
 	}
 	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
@@ -324,7 +324,7 @@ func makeMachine(namespace, name, awsMachineName, bootstrapConfigName, clusterNa
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName:      clusterName,
+				clusterv1.ClusterLabelName:      clusterName,
 				clusterv1.MachineControlPlaneLabelName: "true",
 			},
 		},

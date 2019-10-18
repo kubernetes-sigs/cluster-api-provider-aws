@@ -477,8 +477,8 @@ func TestCreateInstance(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test1",
 					Labels: map[string]string{
-						"set":                             "node",
-						clusterv1.MachineClusterLabelName: "test1",
+						"set":                      "node",
+						clusterv1.ClusterLabelName: "test1",
 					},
 				},
 				Spec: clusterv1.MachineSpec{

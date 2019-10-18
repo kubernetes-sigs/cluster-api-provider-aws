@@ -40,7 +40,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"k8s.io/apimachinery/pkg/runtime"
-	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"

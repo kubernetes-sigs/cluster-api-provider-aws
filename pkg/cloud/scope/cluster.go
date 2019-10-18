@@ -175,7 +175,7 @@ func (s *ClusterScope) ControlPlaneConfigMapName() string {
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
 func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 	return client.MatchingLabels(map[string]string{
-		clusterv1.MachineClusterLabelName: s.Cluster.Name,
+		clusterv1.ClusterLabelName: s.Cluster.Name,
 	})
 }
 
