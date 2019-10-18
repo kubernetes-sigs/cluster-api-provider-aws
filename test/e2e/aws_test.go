@@ -324,11 +324,11 @@ func makeMachine(namespace, name, awsMachineName, bootstrapConfigName, clusterNa
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName:      clusterName,
 				clusterv1.MachineControlPlaneLabelName: "true",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{
 					Kind:       "KubeadmConfig",
