@@ -44,7 +44,7 @@ func newMachine(clusterName, machineName string) *clusterv1.Machine {
 	return &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: clusterName,
+				clusterv1.ClusterLabelName: clusterName,
 			},
 			Name:      machineName,
 			Namespace: "default",
