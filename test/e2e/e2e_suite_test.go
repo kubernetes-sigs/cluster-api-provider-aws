@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/helpers/scheme"
 	"sigs.k8s.io/cluster-api/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 )
 
 func TestE2e(t *testing.T) {
