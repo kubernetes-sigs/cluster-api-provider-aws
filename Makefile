@@ -100,7 +100,7 @@ manager: ## Build manager binary.
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
-	go build -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
 
 ## --------------------------------------
 ## Tooling Binaries
@@ -233,6 +233,7 @@ set-manifest-pull-policy:
 ## Release
 ## --------------------------------------
 
+LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 RELEASE_DIR := out
 
@@ -271,7 +272,7 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
 		golang:1.12.10 \
-		go build -a -ldflags '-extldflags "-static"' \
+		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
 .PHONY: release-staging
