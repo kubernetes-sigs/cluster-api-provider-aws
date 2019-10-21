@@ -3,7 +3,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 go 1.12
 
 require (
-	github.com/aws/aws-sdk-go v1.20.19
+	github.com/aws/aws-sdk-go v1.25.16
 	github.com/awslabs/goformation v0.0.0-20190310235947-776555df5a6d
 	github.com/go-logr/logr v0.1.0
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
