@@ -30,6 +30,7 @@ import (
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -47,8 +48,17 @@ import (
 // AWSMachineReconciler reconciles a AwsMachine object
 type AWSMachineReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Recorder record.EventRecorder
+	Log            logr.Logger
+	Recorder       record.EventRecorder
+	serviceFactory func(*scope.ClusterScope) services.EC2MachineInterface
+}
+
+func (r *AWSMachineReconciler) getEC2Service(scope *scope.ClusterScope) services.EC2MachineInterface {
+	if r.serviceFactory != nil {
+		return r.serviceFactory(scope)
+	}
+
+	return ec2.NewService(scope)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=get;list;watch;create;update;patch;delete
@@ -231,7 +241,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 }
 
 // findInstance queries the EC2 apis and retrieves the instance if it exists, returns nil otherwise.
-func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc *ec2.Service) (*infrav1.Instance, error) {
+func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2MachineInterface) (*infrav1.Instance, error) {
 	// Parse the ProviderID.
 	pid, err := noderefutil.NewProviderID(scope.GetProviderID())
 	if err != nil && err != noderefutil.ErrEmptyProviderID {
@@ -280,7 +290,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		return reconcile.Result{}, nil
 	}
 
-	ec2svc := ec2.NewService(clusterScope)
+	ec2svc := r.getEC2Service(clusterScope)
 
 	// Get or create the instance.
 	instance, err := r.getOrCreate(machineScope, ec2svc)
@@ -346,7 +356,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc *ec2.Service) (*infrav1.Instance, error) {
+func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc services.EC2MachineInterface) (*infrav1.Instance, error) {
 	instance, err := r.findInstance(scope, ec2svc)
 	if err != nil {
 		return nil, err
