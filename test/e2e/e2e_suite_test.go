@@ -20,8 +20,10 @@ package e2e_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -40,6 +42,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"k8s.io/apimachinery/pkg/runtime"
+	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -129,9 +135,55 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
+	retrieveAllLogs()
 	kindCluster.Teardown()
 	os.RemoveAll(suiteTmpDir)
 })
+
+func retrieveAllLogs() {
+	capiLogs := retrieveLogs(capiNamespace, capiDeploymentName)
+	cabpkLogs := retrieveLogs(cabpkNamespace, cabpkDeploymentName)
+	capaLogs := retrieveLogs(capaNamespace, capaDeploymentName)
+
+	// If running in prow, output the logs to the artifacts path
+	artifactPath, exists := os.LookupEnv("ARTIFACTS")
+	if exists {
+		ioutil.WriteFile(path.Join(artifactPath, "capi.log"), []byte(capiLogs), 0644)
+		ioutil.WriteFile(path.Join(artifactPath, "cabpk.log"), []byte(cabpkLogs), 0644)
+		ioutil.WriteFile(path.Join(artifactPath, "capa.log"), []byte(capaLogs), 0644)
+		return
+	}
+
+	fmt.Fprintf(GinkgoWriter, "CAPI Logs:\n%s\n", capiLogs)
+	fmt.Fprintf(GinkgoWriter, "CABPK Logs:\n%s\n", cabpkLogs)
+	fmt.Fprintf(GinkgoWriter, "CAPA Logs:\n%s\n", capaLogs)
+}
+
+func retrieveLogs(namespace, deploymentName string) string {
+	deployment := &appsv1.Deployment{}
+	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment)).To(Succeed())
+
+	pods := &corev1.PodList{}
+
+	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(kindClient.List(context.TODO(), pods, crclient.InNamespace(namespace), crclient.MatchingLabels(selector))).To(Succeed())
+	Expect(pods.Items).NotTo(BeEmpty())
+
+	clientset, err := kubernetes.NewForConfig(kindCluster.RestConfig())
+	Expect(err).NotTo(HaveOccurred())
+
+	podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{Container:"manager"}).Stream()
+	Expect(err).NotTo(HaveOccurred())
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	Expect(err).NotTo(HaveOccurred())
+
+	return buf.String()
+}
 
 func getSession() client.ConfigProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
