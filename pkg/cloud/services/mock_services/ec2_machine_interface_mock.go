@@ -65,6 +65,20 @@ func (mr *MockEC2MachineInterfaceMockRecorder) CreateInstance(arg0 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2MachineInterface)(nil).CreateInstance), arg0)
 }
 
+// DetachSecurityGroupsFromNetworkInterface mocks base method
+func (m *MockEC2MachineInterface) DetachSecurityGroupsFromNetworkInterface(arg0 []string, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DetachSecurityGroupsFromNetworkInterface", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DetachSecurityGroupsFromNetworkInterface indicates an expected call of DetachSecurityGroupsFromNetworkInterface
+func (mr *MockEC2MachineInterfaceMockRecorder) DetachSecurityGroupsFromNetworkInterface(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachSecurityGroupsFromNetworkInterface", reflect.TypeOf((*MockEC2MachineInterface)(nil).DetachSecurityGroupsFromNetworkInterface), arg0, arg1)
+}
+
 // GetCoreSecurityGroups mocks base method
 func (m *MockEC2MachineInterface) GetCoreSecurityGroups(arg0 *scope.MachineScope) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -137,6 +151,20 @@ func (m *MockEC2MachineInterface) TerminateInstance(arg0 string) error {
 func (mr *MockEC2MachineInterfaceMockRecorder) TerminateInstance(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateInstance", reflect.TypeOf((*MockEC2MachineInterface)(nil).TerminateInstance), arg0)
+}
+
+// TerminateInstanceAndWait mocks base method
+func (m *MockEC2MachineInterface) TerminateInstanceAndWait(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TerminateInstanceAndWait", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TerminateInstanceAndWait indicates an expected call of TerminateInstanceAndWait
+func (mr *MockEC2MachineInterfaceMockRecorder) TerminateInstanceAndWait(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateInstanceAndWait", reflect.TypeOf((*MockEC2MachineInterface)(nil).TerminateInstanceAndWait), arg0)
 }
 
 // UpdateInstanceSecurityGroups mocks base method

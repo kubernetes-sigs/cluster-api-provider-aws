@@ -33,4 +33,7 @@ type EC2MachineInterface interface {
 	GetInstanceSecurityGroups(instanceID string) (map[string][]string, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
+
+	TerminateInstanceAndWait(instanceID string) error
+	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error
 }
