@@ -538,6 +538,24 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *mach
 		return nil, err
 	}
 
+	status := &providerconfigv1.AWSMachineProviderStatus{}
+	err = a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
+
+	// If the status was decoded successfully, and there is a non-empty instance
+	// ID, search using that, otherwise fallback to filtering based on tags.
+	if err == nil && status.InstanceID != nil && *status.InstanceID != "" {
+		i, err := getExistingInstanceByID(*status.InstanceID, client)
+
+		if err != nil {
+			glog.Warningf("%s: Failed to find running instance by id %s: %v",
+				machine.Name, *status.InstanceID, err)
+		} else {
+			glog.Infof("%s: Found instance by id: %s", machine.Name, *status.InstanceID)
+
+			return []*ec2.Instance{i}, nil
+		}
+	}
+
 	return getExistingInstances(machine, client)
 }
 
