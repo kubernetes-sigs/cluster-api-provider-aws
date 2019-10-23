@@ -23,8 +23,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -41,22 +41,22 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
-	"k8s.io/apimachinery/pkg/runtime"
-	corev1 "k8s.io/api/core/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 	common "sigs.k8s.io/cluster-api/test/helpers/components"
 	capiFlag "sigs.k8s.io/cluster-api/test/helpers/flag"
 	"sigs.k8s.io/cluster-api/test/helpers/kind"
 	"sigs.k8s.io/cluster-api/test/helpers/scheme"
 	"sigs.k8s.io/cluster-api/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha2"
 )
 
 func TestE2e(t *testing.T) {
@@ -65,13 +65,13 @@ func TestE2e(t *testing.T) {
 }
 
 const (
-	capiNamespace       = "capi-system"
-	capiDeploymentName  = "capi-controller-manager"
-	capaNamespace       = "capa-system"
-	capaDeploymentName  = "capa-controller-manager"
-	setupTimeout        = 10 * 60
-	stackName           = "cluster-api-provider-aws-sigs-k8s-io"
-	keyPairName         = "cluster-api-provider-aws-sigs-k8s-io"
+	capiNamespace      = "capi-system"
+	capiDeploymentName = "capi-controller-manager"
+	capaNamespace      = "capa-system"
+	capaDeploymentName = "capa-controller-manager"
+	setupTimeout       = 10 * 60
+	stackName          = "cluster-api-provider-aws-sigs-k8s-io"
+	keyPairName        = "cluster-api-provider-aws-sigs-k8s-io"
 )
 
 var (
@@ -84,7 +84,7 @@ var (
 	sess        client.ConfigProvider
 	accountID   string
 	suiteTmpDir string
-	region string
+	region      string
 )
 
 var _ = BeforeSuite(func() {
@@ -94,8 +94,9 @@ var _ = BeforeSuite(func() {
 	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 	Expect(err).NotTo(HaveOccurred())
 
-	// still needed as defaults.CredChain doesn't contain region
-	region, ok := os.LookupEnv("AWS_REGION")
+	var ok bool
+	region, ok = os.LookupEnv("AWS_REGION")
+	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
 	if !ok {
 		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
 		Expect(ok).To(BeTrue())
