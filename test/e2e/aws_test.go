@@ -49,6 +49,11 @@ var (
 	kubectlBinary = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 )
 
+const (
+	scaleUpReplicas   = 5
+	scaleDownReplicas = 0
+)
+
 var _ = Describe("functional tests", func() {
 	var (
 		namespace               string
@@ -57,7 +62,11 @@ var _ = Describe("functional tests", func() {
 		cpMachinePrefix         string
 		cpAWSMachinePrefix      string
 		cpBootstrapConfigPrefix string
+		mdBootstrapConfig       string
+		machineDeploymentName   string
+		awsMachineTemplateName  string
 		testTmpDir              string
+		initialReplicas         int32
 	)
 	BeforeEach(func() {
 		var err error
@@ -72,6 +81,10 @@ var _ = Describe("functional tests", func() {
 		cpMachinePrefix = "test-" + util.RandomString(6)
 		cpAWSMachinePrefix = "test-infra-" + util.RandomString(6)
 		cpBootstrapConfigPrefix = "test-boot-" + util.RandomString(6)
+		mdBootstrapConfig = "test-boot-md" + util.RandomString(6)
+		machineDeploymentName = "test-capa-md" + util.RandomString(6)
+		awsMachineTemplateName = "test-infra-capa-mt" + util.RandomString(6)
+		initialReplicas = 2
 	})
 
 	Describe("workload cluster lifecycle", func() {
@@ -107,9 +120,17 @@ var _ = Describe("functional tests", func() {
 			machineName = cpMachinePrefix + "-2"
 			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
 
-			// TODO: Deploy a MachineDeployment
-			// TODO: Scale MachineDeployment up
-			// TODO: Scale MachineDeployment down
+			By("Creating the MachineDeployment")
+			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, initialReplicas)
+
+			By("Scale the MachineDeployment up")
+			scaleMachineDeployment(namespace, machineDeploymentName, initialReplicas, scaleUpReplicas)
+
+			By("Scale the MachineDeployment down")
+			scaleMachineDeployment(namespace, machineDeploymentName, scaleUpReplicas, scaleDownReplicas)
+
+			By("Scale the MachineDeployment up again")
+			scaleMachineDeployment(namespace, machineDeploymentName, scaleDownReplicas, initialReplicas)
 
 			By("Deleting the Cluster")
 			deleteCluster(namespace, clusterName)
@@ -117,6 +138,171 @@ var _ = Describe("functional tests", func() {
 		})
 	})
 })
+
+func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent int32, replicasProposed int32) {
+	fmt.Fprintf(GinkgoWriter, "Scaling MachineDeployment from %d to %d\n", replicasCurrent, replicasProposed)
+	deployment := &clusterv1.MachineDeployment{}
+	Expect(kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeployment}, deployment))
+	deployment.Spec.Replicas = &replicasProposed
+	Expect(kindClient.Update(context.TODO(), deployment)).NotTo(HaveOccurred())
+	waitForMachinesCountMatch(namespace, machineDeployment, replicasCurrent, replicasProposed)
+	waitForMachineDeploymentRunning(namespace, machineDeployment)
+}
+
+func createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName string, replicas int32) {
+	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", namespace, machineDeploymentName)
+	makeAWSMachineTemplate(namespace, awsMachineTemplateName)
+	makeJoinBootstrapConfigTemplate(namespace, bootstrapConfigName)
+	makeMachineDeployment(namespace, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, clusterName, replicas)
+	waitForMachinesCountMatch(namespace, machineDeploymentName, replicas, replicas)
+	waitForMachineDeploymentRunning(namespace, machineDeploymentName)
+}
+
+func waitForMachinesCountMatch(namespace, machineDeploymentName string, replicasCurrent int32, replicasProposed int32) {
+	fmt.Fprintf(GinkgoWriter, "Ensuring Machine count matched to %d \n", replicasProposed)
+	machineDeployment := &clusterv1.MachineDeployment{}
+	if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
+		return
+	}
+	scalingDown := replicasCurrent > replicasProposed
+	Eventually(
+		func() (int32, error) {
+			machineList := &clusterv1.MachineList{}
+			selector, err := metav1.LabelSelectorAsMap(&machineDeployment.Spec.Selector)
+			if err != nil {
+				return -1, err
+			}
+			if err := kindClient.List(context.TODO(), machineList, crclient.InNamespace(namespace), crclient.MatchingLabels(selector)); err != nil {
+				return -1, err
+			} else {
+				var runningMachines int32
+				var deletingMachines int32
+				for _, item := range machineList.Items {
+					if string(clusterv1.MachinePhaseRunning) == item.Status.Phase {
+						runningMachines += 1
+					}
+					if string(clusterv1.MachinePhaseDeleting) == item.Status.Phase {
+						deletingMachines += 1
+					}
+				}
+				if scalingDown {
+					if deletingMachines > 0 {
+						return -1, nil
+					}
+				}
+				return runningMachines, nil
+			}
+
+		},
+		20*time.Minute, 30*time.Second,
+	).Should(Equal(replicasProposed))
+}
+
+func waitForMachineDeploymentRunning(namespace, machineDeploymentName string) {
+	Eventually(
+		func() (bool, error) {
+			machineDeployment := &clusterv1.MachineDeployment{}
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
+				return false, err
+			}
+			return machineDeployment.Status.Replicas == machineDeployment.Status.ReadyReplicas, nil
+		},
+		5*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func makeMachineDeployment(namespace, mdName, awsMachineTemplateName, bootstrapConfigName, clusterName string, replicas int32) {
+	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment %s/%s\n", namespace, mdName)
+	k8s_version := "v1.15.3"
+	machineDeployment := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mdName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				clusterv1.MachineClusterLabelName: clusterName,
+				"nodepool":                        mdName,
+			},
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			Replicas: &replicas,
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					clusterv1.MachineClusterLabelName: clusterName,
+					"nodepool":                        mdName,
+				},
+			},
+			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.MachineClusterLabelName: clusterName,
+						"nodepool":                        mdName,
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							Kind:       "KubeadmConfigTemplate",
+							APIVersion: bootstrapv1.GroupVersion.String(),
+							Name:       bootstrapConfigName,
+							Namespace:  namespace,
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						Kind:       "AWSMachineTemplate",
+						APIVersion: infrav1.GroupVersion.String(),
+						Name:       awsMachineTemplateName,
+						Namespace:  namespace,
+					},
+					Version: &k8s_version,
+				},
+			},
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), machineDeployment)).NotTo(HaveOccurred())
+}
+
+func makeJoinBootstrapConfigTemplate(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Creating Join KubeadmConfigTemplate %s/%s\n", namespace, name)
+	configTemplate := &bootstrapv1.KubeadmConfigTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+			Template: bootstrapv1.KubeadmConfigTemplateResource{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+							Name:             "{{ ds.meta_data.hostname }}",
+							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
+						},
+					},
+				},
+			},
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), configTemplate)).NotTo(HaveOccurred())
+}
+
+func makeAWSMachineTemplate(namespace, name string) {
+	fmt.Fprintf(GinkgoWriter, "Creating AWSMachineTemplate %s/%s\n", namespace, name)
+	awsMachine := &infrav1.AWSMachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: infrav1.AWSMachineTemplateSpec{
+			Template: infrav1.AWSMachineTemplateResource{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:       "t3.large",
+					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
+					SSHKeyName:         keyPairName,
+				},
+			},
+		},
+	}
+	Expect(kindClient.Create(context.TODO(), awsMachine)).NotTo(HaveOccurred())
+}
 
 func deployCNI(tmpDir, namespace, clusterName, manifestPath string) {
 	cluster := &clusterv1.Cluster{
