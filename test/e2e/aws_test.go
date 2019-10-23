@@ -446,7 +446,7 @@ func makeAWSCluster(namespace, name string) {
 			Namespace: namespace,
 		},
 		Spec: infrav1.AWSClusterSpec{
-			Region:     "us-east-1",
+			Region:     region,
 			SSHKeyName: keyPairName,
 		},
 	}
