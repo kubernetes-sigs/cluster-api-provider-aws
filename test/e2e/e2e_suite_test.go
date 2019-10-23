@@ -41,10 +41,10 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
-	"k8s.io/apimachinery/pkg/runtime"
-	corev1 "k8s.io/api/core/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
@@ -90,7 +90,7 @@ var (
 	sess        client.ConfigProvider
 	accountID   string
 	suiteTmpDir string
-	region string
+	region      string
 )
 
 var _ = BeforeSuite(func() {
@@ -100,8 +100,9 @@ var _ = BeforeSuite(func() {
 	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 	Expect(err).NotTo(HaveOccurred())
 
-	// still needed as defaults.CredChain doesn't contain region
-	region, ok := os.LookupEnv("AWS_REGION")
+	var ok bool
+	region, ok = os.LookupEnv("AWS_REGION")
+	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
 	if !ok {
 		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
 		Expect(ok).To(BeTrue())
@@ -182,7 +183,7 @@ func retrieveLogs(namespace, deploymentName string) string {
 	clientset, err := kubernetes.NewForConfig(kindCluster.RestConfig())
 	Expect(err).NotTo(HaveOccurred())
 
-	podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{Container:"manager"}).Stream()
+	podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{Container: "manager"}).Stream()
 	Expect(err).NotTo(HaveOccurred())
 	defer podLogs.Close()
 
