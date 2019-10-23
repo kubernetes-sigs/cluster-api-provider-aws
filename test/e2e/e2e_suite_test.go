@@ -84,6 +84,7 @@ var (
 	sess        client.ConfigProvider
 	accountID   string
 	suiteTmpDir string
+	region string
 )
 
 var _ = BeforeSuite(func() {
@@ -92,6 +93,13 @@ var _ = BeforeSuite(func() {
 	var err error
 	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 	Expect(err).NotTo(HaveOccurred())
+
+	// still needed as defaults.CredChain doesn't contain region
+	region, ok := os.LookupEnv("AWS_REGION")
+	if !ok {
+		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
+		Expect(ok).To(BeTrue())
+	}
 
 	kindCluster = kind.Cluster{
 		Name: "capa-test-" + util.RandomString(6),
@@ -298,13 +306,7 @@ func generateB64Credentials() (string, error) {
 		return "", err
 	}
 
-	// still needed as defaults.CredChain doesn't contain region
-	region, ok := os.LookupEnv("AWS_REGION")
-	if !ok {
-		return "", fmt.Errorf("Environment variable AWS_REGION not found")
-	}
 	creds.Region = region
-
 	creds.AccessKeyID = chainCreds.AccessKeyID
 	creds.SecretAccessKey = chainCreds.SecretAccessKey
 	creds.SessionToken = chainCreds.SessionToken
