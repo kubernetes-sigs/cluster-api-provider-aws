@@ -219,26 +219,35 @@ var _ = Describe("AWSMachineReconciler", func() {
 						klog.SetOutput(buf)
 					})
 
-					It("should set instance to running", func() {
-						instance.State = infrav1.InstanceStateRunning
-						_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
-						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
-						Expect(buf.String()).To(ContainSubstring(("Machine instance is running")))
-					})
-
 					It("should set instance to pending", func() {
 						instance.State = infrav1.InstanceStatePending
 						_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
 						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStatePending)))
-						Expect(buf.String()).To(ContainSubstring(("Machine instance is pending")))
+						Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
+						Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					})
+
+					It("should set instance to running", func() {
+						instance.State = infrav1.InstanceStateRunning
+						_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
+						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
+						Expect(ms.AWSMachine.Status.Ready).To(Equal(true))
+						Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
 					})
 				})
+			})
 
-				It("should set error message when instance status unknown", func() {
-					instance.State = infrav1.InstanceStateStopping
+			Context("New EC2 instance state", func() {
+				It("should error when the instance state is a new unseen one", func() {
+					buf := new(bytes.Buffer)
+					klog.SetOutput(buf)
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(nil, errors.New("stop here"))
+					instance.State = "NewAWSMachineState"
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
-					Expect(ms.AWSMachine.Status.ErrorReason).To(PointTo(Equal(capierrors.UpdateMachineError)))
-					Expect(ms.AWSMachine.Status.ErrorMessage).To(PointTo(Equal("EC2 instance state \"stopping\" is unexpected")))
+					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
+					Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
+					Expect(recorder.Events).To(Receive(ContainSubstring("InstanceUnhandledState")))
+					Expect(ms.AWSMachine.Status.ErrorMessage).To(PointTo(Equal("EC2 instance state \"NewAWSMachineState\" is undefined")))
 				})
 			})
 
@@ -284,6 +293,71 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(err).To(BeNil())
 				})
 			})
+
+			When("temporarily stopping then starting the AWSMachine", func() {
+				var buf *bytes.Buffer
+				BeforeEach(func() {
+					buf = new(bytes.Buffer)
+					klog.SetOutput(buf)
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).
+						Return(map[string][]string{"eid": {}}, nil).AnyTimes()
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).AnyTimes()
+				})
+
+				It("should set instance to stopping and unready", func() {
+					instance.State = infrav1.InstanceStateStopping
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
+					Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopping)))
+					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
+					Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+				})
+
+				It("should then set instance to stopped and unready", func() {
+					instance.State = infrav1.InstanceStateStopped
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
+					Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopped)))
+					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
+					Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+				})
+
+				It("should then set instance to running and ready once it is restarted", func() {
+					instance.State = infrav1.InstanceStateRunning
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
+					Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
+					Expect(ms.AWSMachine.Status.Ready).To(Equal(true))
+					Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+				})
+			})
+
+			When("deleting the AWSMachine outside of Kubernetes", func() {
+				var buf *bytes.Buffer
+				BeforeEach(func() {
+					buf = new(bytes.Buffer)
+					klog.SetOutput(buf)
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).
+						Return(map[string][]string{"eid": {}}, nil).AnyTimes()
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).AnyTimes()
+				})
+
+				It("should warn if an instance is shutting-down", func() {
+					instance.State = infrav1.InstanceStateShuttingDown
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
+					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
+					Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
+					Expect(recorder.Events).To(Receive(ContainSubstring("UnexpectedTermination")))
+				})
+
+				It("should error when the instance is seen as terminated", func() {
+					instance.State = infrav1.InstanceStateTerminated
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
+					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
+					Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
+					Expect(recorder.Events).To(Receive(ContainSubstring("UnexpectedTermination")))
+					Expect(ms.AWSMachine.Status.ErrorMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
+				})
+
+			})
+
 		})
 	})
 
@@ -312,7 +386,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 			_, err := reconciler.reconcileDelete(ms, cs)
 			Expect(err).To(BeNil())
-			Expect(buf.String()).To(ContainSubstring("Unable to locate instance by ID or tags"))
+			Expect(buf.String()).To(ContainSubstring("Unable to locate EC2 instance by ID or tags"))
 			Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 			Expect(recorder.Events).To(Receive(ContainSubstring("NoInstanceFound")))
 		})
@@ -327,7 +401,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 			_, err := reconciler.reconcileDelete(ms, cs)
 			Expect(err).To(BeNil())
-			Expect(buf.String()).To(ContainSubstring("Instance is shutting down or already terminated"))
+			Expect(buf.String()).To(ContainSubstring("EC2 instance is shutting down or already terminated"))
 			Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 		})
 
@@ -341,7 +415,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 			_, err := reconciler.reconcileDelete(ms, cs)
 			Expect(err).To(BeNil())
-			Expect(buf.String()).To(ContainSubstring("Instance is shutting down or already terminated"))
+			Expect(buf.String()).To(ContainSubstring("EC2 instance is shutting down or already terminated"))
 			Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
 		})
 
@@ -361,7 +435,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 				_, err := reconciler.reconcileDelete(ms, cs)
 				Expect(errors.Cause(err)).To(MatchError(expected))
-				Expect(buf.String()).To(ContainSubstring("Terminating instance"))
+				Expect(buf.String()).To(ContainSubstring("Terminating EC2 instance"))
 				Expect(recorder.Events).To(Receive(ContainSubstring("FailedTerminate")))
 			})
 
@@ -414,7 +488,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 				})
 			})
 		})
-
 	})
 })
 
