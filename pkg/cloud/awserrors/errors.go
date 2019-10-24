@@ -37,6 +37,7 @@ const (
 	LoadBalancerNotFound    = "LoadBalancerNotFound"
 	ResourceNotFound        = "InvalidResourceID.NotFound"
 	InvalidSubnet           = "InvalidSubnet"
+	AssociationIDNotFound   = "InvalidAssociationID.NotFound"
 )
 
 var _ error = &EC2Error{}

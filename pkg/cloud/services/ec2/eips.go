@@ -87,6 +87,25 @@ func (s *Service) describeAddresses(role string) (*ec2.DescribeAddressesOutput, 
 	})
 }
 
+func (s *Service) disassociateAddress(ip *ec2.Address) error {
+	err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		_, err := s.scope.EC2.DisassociateAddress(&ec2.DisassociateAddressInput{
+			AssociationId: ip.AssociationId,
+		})
+		if err != nil {
+			cause, _ := awserrors.Code(errors.Cause(err))
+			if cause != awserrors.AssociationIDNotFound {
+				return false, err
+			}
+		}
+		return true, nil
+	}, awserrors.AuthFailure)
+	if err != nil {
+		return errors.Wrapf(err, "failed to disassociate ElasticIP %q", *ip.AllocationId)
+	}
+	return nil
+}
+
 func (s *Service) releaseAddresses() error {
 	out, err := s.scope.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{filter.EC2.Cluster(s.scope.Name())},
@@ -98,12 +117,22 @@ func (s *Service) releaseAddresses() error {
 
 	for _, ip := range out.Addresses {
 		if ip.AssociationId != nil {
-			return errors.Errorf("failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
+			_, err := s.scope.EC2.DisassociateAddress(&ec2.DisassociateAddressInput{
+				AssociationId: ip.AssociationId,
+			})
+			if err != nil {
+				return errors.Errorf("failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
+			}
 		}
 
 		err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			_, err := s.scope.EC2.ReleaseAddress(&ec2.ReleaseAddressInput{AllocationId: ip.AllocationId})
 			if err != nil {
+				if ip.AssociationId != nil {
+					if s.disassociateAddress(ip) != nil {
+						return false, err
+					}
+				}
 				return false, err
 			}
 
