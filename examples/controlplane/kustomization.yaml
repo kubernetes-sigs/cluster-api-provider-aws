@@ -5,3 +5,5 @@ resources:
 - controlplane.yaml
 configurations:
 - kustomizeconfig.yaml
+patchesStrategicMerge:
+- kustomizeversions.yaml

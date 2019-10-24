@@ -5,3 +5,5 @@ resources:
 - machinedeployment.yaml
 configurations:
 - kustomizeconfig.yaml
+patchesStrategicMerge:
+- kustomizeversions.yaml
