@@ -55,14 +55,15 @@ func main() {
 	klog.InitFlags(nil)
 
 	var (
-		metricsAddr           string
-		enableLeaderElection  bool
-		watchNamespace        string
-		profilerAddress       string
-		awsClusterConcurrency int
-		awsMachineConcurrency int
-		syncPeriod            time.Duration
-		webhookPort           int
+		metricsAddr             string
+		enableLeaderElection    bool
+		leaderElectionNamespace string
+		watchNamespace          string
+		profilerAddress         string
+		awsClusterConcurrency   int
+		awsMachineConcurrency   int
+		syncPeriod              time.Duration
+		webhookPort             int
 	)
 
 	flag.StringVar(
@@ -84,6 +85,13 @@ func main() {
 		"namespace",
 		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.",
+	)
+
+	flag.StringVar(
+		&leaderElectionNamespace,
+		"leader-election-namespace",
+		"",
+		"Namespace that the controller performs leader election in. If unspecified, the controller will discover which namespace it is running in.",
 	)
 
 	flag.StringVar(
@@ -114,7 +122,7 @@ func main() {
 	flag.IntVar(&webhookPort,
 		"webhook-port",
 		9443,
-		"Webhook server port",
+		"Webhook server port (set to 0 to disable)",
 	)
 
 	flag.Parse()
@@ -138,14 +146,15 @@ func main() {
 	})
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "controller-leader-election-capa",
-		SyncPeriod:         &syncPeriod,
-		Namespace:          watchNamespace,
-		EventBroadcaster:   broadcaster,
-		Port:               webhookPort,
+		Scheme:                  scheme,
+		MetricsBindAddress:      metricsAddr,
+		LeaderElection:          enableLeaderElection,
+		LeaderElectionID:        "controller-leader-election-capa",
+		LeaderElectionNamespace: leaderElectionNamespace,
+		SyncPeriod:              &syncPeriod,
+		Namespace:               watchNamespace,
+		EventBroadcaster:        broadcaster,
+		Port:                    webhookPort,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -171,9 +180,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 		os.Exit(1)
 	}
-	if err = (&infrav1alpha3.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
-		os.Exit(1)
+
+	if webhookPort != 0 {
+		if err = (&infrav1alpha3.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
