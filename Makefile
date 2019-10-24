@@ -308,6 +308,10 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 .PHONY: create-cluster-management
 create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
 	kind create cluster --name=clusterapi
+	@if [ ! -z "${LOAD_IMAGE}" ]; then \
+		echo "loading ${LOAD_IMAGE} into kind cluster ..." && \
+		kind --name="clusterapi" load docker-image "${LOAD_IMAGE}"; \
+	fi
 	# Apply provider-components.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
