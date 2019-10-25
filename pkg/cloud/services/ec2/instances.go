@@ -189,7 +189,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		// Only record the failure event if the error is not related to failed dependencies.
 		// This is to avoid spamming failure events since the machine will be requeued by the actuator.
 		if !awserrors.IsFailedDependency(errors.Cause(err)) {
-			record.Warnf(scope.Machine, "FailedCreate", "Failed to create instance: %v", err)
+			record.Warnf(scope.AWSMachine, "FailedCreate", "Failed to create instance: %v", err)
 		}
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		}
 	}
 
-	record.Eventf(scope.Machine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
+	record.Eventf(scope.AWSMachine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
 	return out, nil
 }
 
