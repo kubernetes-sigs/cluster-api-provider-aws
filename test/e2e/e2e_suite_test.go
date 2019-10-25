@@ -83,7 +83,7 @@ var (
 	kindClient  crclient.Client
 	sess        client.ConfigProvider
 	accountID   string
-	accessKey   iam.AccessKey
+	accessKey   *iam.AccessKey
 	suiteTmpDir string
 	region      string
 )
@@ -103,8 +103,12 @@ var _ = BeforeSuite(func() {
 		Expect(ok).To(BeTrue())
 	}
 
+	sess = getSession()
 	iamc := iam.New(sess)
-	accessKey, err := iamc.CreateAccessKey(iam.CreateAccessKeyInput{UserName: "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"})
+	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(out.AccessKey).NotTo(BeNil())
+	accessKey = out.AccessKey
 
 	kindCluster = kind.Cluster{
 		Name: "capa-test-" + util.RandomString(6),
@@ -131,7 +135,6 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
-	sess = getSession()
 	accountID = getAccountID(sess)
 	createKeyPair(sess)
 	createIAMRoles(sess, accountID)
@@ -148,7 +151,7 @@ var _ = AfterSuite(func() {
 	retrieveAllLogs()
 	kindCluster.Teardown()
 	iamc := iam.New(sess)
-	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{Username: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
+	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
 	os.RemoveAll(suiteTmpDir)
 })
 
@@ -303,8 +306,8 @@ type awsCredential struct {
 func generateB64Credentials() string {
 	creds := awsCredential{
 		Region:          region,
-		AccessKeyID:     accessKey.AccessKeyId,
-		SecretAccessKey: accessKey.SecretAccessKey,
+		AccessKeyID:     *accessKey.AccessKeyId,
+		SecretAccessKey: *accessKey.SecretAccessKey,
 	}
 
 	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
