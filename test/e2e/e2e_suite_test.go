@@ -110,6 +110,12 @@ var _ = BeforeSuite(func() {
 	}
 
 	sess = getSession()
+
+	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
+	accountID = getAccountID(sess)
+	createKeyPair(sess)
+	createIAMRoles(sess, accountID)
+
 	iamc := iam.New(sess)
 	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
 	Expect(err).NotTo(HaveOccurred())
@@ -130,14 +136,6 @@ var _ = BeforeSuite(func() {
 
 	// Deploy the CAPA components
 	deployCAPAComponents(kindCluster)
-
-	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
-	Expect(err).NotTo(HaveOccurred())
-
-	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
-	accountID = getAccountID(sess)
-	createKeyPair(sess)
-	createIAMRoles(sess, accountID)
 
 	// Verify capi components are deployed
 	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
