@@ -27,6 +27,8 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -47,12 +49,14 @@ var _ = Describe("AWSMachineReconciler", func() {
 		ms         *scope.MachineScope
 		mockCtrl   *gomock.Controller
 		ec2Svc     *mock_services.MockEC2MachineInterface
+		recorder   *record.FakeRecorder
 	)
 
 	BeforeEach(func() {
 		// https://github.com/kubernetes/klog/issues/87#issuecomment-540153080
 		// TODO: Replace with LogToOutput when https://github.com/kubernetes/klog/pull/99 merges
 		flag.Set("logtostderr", "false")
+		flag.Set("v", "2")
 		klog.SetOutput(GinkgoWriter)
 		var err error
 
@@ -87,10 +91,14 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 		mockCtrl = gomock.NewController(GinkgoT())
 		ec2Svc = mock_services.NewMockEC2MachineInterface(mockCtrl)
+
+		recorder = record.NewFakeRecorder(1)
+
 		reconciler = AWSMachineReconciler{
 			serviceFactory: func(*scope.ClusterScope) services.EC2MachineInterface {
 				return ec2Svc
 			},
+			Recorder: recorder,
 		}
 
 	})
@@ -232,10 +240,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(ms.AWSMachine.Status.ErrorReason).To(PointTo(Equal(capierrors.UpdateMachineError)))
 					Expect(ms.AWSMachine.Status.ErrorMessage).To(PointTo(Equal("EC2 instance state \"stopping\" is unexpected")))
 				})
-
-				// TODO: Mock out ELB API as well
-				XIt("should call security ELB attachment when node is control plane", func() {
-				})
 			})
 
 			Context("Security Groups succeed", func() {
@@ -281,6 +285,136 @@ var _ = Describe("AWSMachineReconciler", func() {
 				})
 			})
 		})
+	})
+
+	Context("deleting an AWSMachine", func() {
+
+		BeforeEach(func() {
+			ms.AWSMachine.Finalizers = []string{
+				infrav1.MachineFinalizer,
+				metav1.FinalizerDeleteDependents,
+			}
+		})
+
+		It("should exit immediately on an error state", func() {
+			expectedErr := errors.New("no connection available ")
+			ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, expectedErr).AnyTimes()
+
+			_, err := reconciler.reconcileDelete(ms, cs)
+			Expect(errors.Cause(err)).To(MatchError(expectedErr))
+		})
+
+		It("should log and remove finalizer when no machine exists", func() {
+			ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
+
+			buf := new(bytes.Buffer)
+			klog.SetOutput(buf)
+
+			_, err := reconciler.reconcileDelete(ms, cs)
+			Expect(err).To(BeNil())
+			Expect(buf.String()).To(ContainSubstring("Unable to locate instance by ID or tags"))
+			Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
+			Expect(recorder.Events).To(Receive(ContainSubstring("NoInstanceFound")))
+		})
+
+		It("should ignore instances in shutting down state", func() {
+			ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
+				State: infrav1.InstanceStateShuttingDown,
+			}, nil)
+
+			buf := new(bytes.Buffer)
+			klog.SetOutput(buf)
+
+			_, err := reconciler.reconcileDelete(ms, cs)
+			Expect(err).To(BeNil())
+			Expect(buf.String()).To(ContainSubstring("Instance is shutting down or already terminated"))
+			Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
+		})
+
+		It("should ignore instances in terminated down state", func() {
+			ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
+				State: infrav1.InstanceStateTerminated,
+			}, nil)
+
+			buf := new(bytes.Buffer)
+			klog.SetOutput(buf)
+
+			_, err := reconciler.reconcileDelete(ms, cs)
+			Expect(err).To(BeNil())
+			Expect(buf.String()).To(ContainSubstring("Instance is shutting down or already terminated"))
+			Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
+		})
+
+		Context("Instance not shutting down yet", func() {
+			id := "aws:////myid"
+
+			BeforeEach(func() {
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{ID: id}, nil)
+			})
+
+			It("should return an error when the instance can't be terminated", func() {
+				expected := errors.New("can't reach AWS to terminate machine")
+				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(expected)
+
+				buf := new(bytes.Buffer)
+				klog.SetOutput(buf)
+
+				_, err := reconciler.reconcileDelete(ms, cs)
+				Expect(errors.Cause(err)).To(MatchError(expected))
+				Expect(buf.String()).To(ContainSubstring("Terminating instance"))
+				Expect(recorder.Events).To(Receive(ContainSubstring("FailedTerminate")))
+			})
+
+			When("instance can be shut down", func() {
+				BeforeEach(func() {
+					ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil)
+
+				})
+
+				When("there are network interfaces", func() {
+					BeforeEach(func() {
+						ms.AWSMachine.Spec.NetworkInterfaces = []string{
+							"eth0",
+							"eth1",
+						}
+					})
+
+					It("should error when it can't retrieve security groups", func() {
+						expected := errors.New("can't reach AWS to list security groups")
+						ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return(nil, expected)
+
+						_, err := reconciler.reconcileDelete(ms, cs)
+						Expect(errors.Cause(err)).To(MatchError(expected))
+					})
+
+					It("should error when it can't detach a security group from an interface", func() {
+						expected := errors.New("can't reach AWS to detach security group")
+						ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{"sg0", "sg1"}, nil)
+						ec2Svc.EXPECT().DetachSecurityGroupsFromNetworkInterface(gomock.Any(), gomock.Any()).Return(expected)
+
+						_, err := reconciler.reconcileDelete(ms, cs)
+						Expect(errors.Cause(err)).To(MatchError(expected))
+					})
+
+					It("should detach all combinations of network interfaces", func() {
+						groups := []string{"sg0", "sg1"}
+						ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{"sg0", "sg1"}, nil)
+						ec2Svc.EXPECT().DetachSecurityGroupsFromNetworkInterface(groups, "eth0").Return(nil)
+						ec2Svc.EXPECT().DetachSecurityGroupsFromNetworkInterface(groups, "eth1").Return(nil)
+
+						_, err := reconciler.reconcileDelete(ms, cs)
+						Expect(err).To(BeNil())
+					})
+				})
+
+				It("should remove security groups", func() {
+					_, err := reconciler.reconcileDelete(ms, cs)
+					Expect(err).To(BeNil())
+					Expect(ms.AWSMachine.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
+				})
+			})
+		})
+
 	})
 })
 
