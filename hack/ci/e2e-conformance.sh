@@ -76,6 +76,8 @@ cleanup() {
   fi
   # clean up e2e.test symlink
   (cd "$(go env GOPATH)/src/k8s.io/kubernetes" && rm -f _output/bin/e2e.test) || true
+
+  delete_key_pair
 }
 
 # our exit handler (trap)
@@ -216,6 +218,15 @@ fix_manifests() {
   sed -i 's|CI_VERSION=.*|CI_VERSION='$CI_VERSION'|' examples/_out/machinedeployment.yaml
 }
 
+
+create_key_pair() {
+  aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.jsons
+}
+
+delete_key_pair() {
+  aws ec2 delete-key-pair --key-name default --region ${AWS_REGION} || true
+}
+
 # up a cluster with kind
 create_cluster() {
   # actually create the cluster
@@ -322,6 +333,7 @@ main() {
     fix_manifests
   fi
   create_stack
+  create_key_pair
   create_cluster
 
   SKIP_RUN_TESTS=${SKIP_RUN_TESTS:-""}
