@@ -174,7 +174,7 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	machineScope.Info("Handling deleted AWSMachine")
 
-	ec2Service := r.serviceFactory(clusterScope)
+	ec2Service := r.getEC2Service(clusterScope)
 
 	instance, err := r.findInstance(machineScope, ec2Service)
 	if err != nil {
