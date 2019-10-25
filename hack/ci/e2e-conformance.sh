@@ -316,7 +316,7 @@ main() {
   source "${REPO_ROOT}/hack/ensure-kind.sh"
 
   build
-  init_image
+  #init_image
   generate_manifests
   if [[ ${1:-} == "--use-ci-artifacts" ]]; then
     fix_manifests
