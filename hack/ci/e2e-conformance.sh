@@ -136,6 +136,8 @@ init_image() {
     # assume we are running in the CI environment as root
     # Add a user for ansible to work properly
     groupadd -r packer && useradd -m -s /bin/bash -r -g packer packer
+    # Ensure go is available in PATH
+    ln -s /usr/local/go/bin/go /usr/bin/go
     # install goss plugin
     su - packer -c "bash -c 'cd /go/src/sigs.k8s.io/image-builder/images/capi/packer/ami && make plugins'"
     # use the packer user to run the build
