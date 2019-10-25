@@ -142,6 +142,10 @@ var _ = BeforeSuite(func() {
 
 	// Verify capa components are deployed
 	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
+
+	// Recreate kindClient so that it knows about the cluster api types
+	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
+	Expect(err).NotTo(HaveOccurred())
 }, setupTimeout)
 
 var _ = AfterSuite(func() {
