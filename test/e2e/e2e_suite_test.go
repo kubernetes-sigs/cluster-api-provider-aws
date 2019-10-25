@@ -36,10 +36,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/iam"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -89,6 +89,7 @@ var (
 	kindClient  crclient.Client
 	sess        client.ConfigProvider
 	accountID   string
+	accessKey   iam.AccessKey
 	suiteTmpDir string
 	region      string
 )
@@ -107,6 +108,9 @@ var _ = BeforeSuite(func() {
 		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
 		Expect(ok).To(BeTrue())
 	}
+
+	iamc := iam.New(sess)
+	accessKey, err := iamc.CreateAccessKey(iam.CreateAccessKeyInput{UserName: "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"})
 
 	kindCluster = kind.Cluster{
 		Name: "capa-test-" + util.RandomString(6),
@@ -146,6 +150,8 @@ var _ = AfterSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
 	retrieveAllLogs()
 	kindCluster.Teardown()
+	iamc := iam.New(sess)
+	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{Username: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
 	os.RemoveAll(suiteTmpDir)
 })
 
@@ -255,8 +261,8 @@ func deployCAPAComponents(kindCluster kind.Cluster) {
 	Expect(err).NotTo(HaveOccurred())
 
 	// envsubst the credentials
-	b64credentials, err := generateB64Credentials()
 	Expect(err).NotTo(HaveOccurred())
+	b64credentials := generateB64Credentials()
 	os.Setenv("AWS_B64ENCODED_CREDENTIALS", b64credentials)
 	manifestsContent := os.ExpandEnv(string(capaManifests))
 
@@ -272,45 +278,29 @@ const AWSCredentialsTemplate = `[default]
 aws_access_key_id = {{ .AccessKeyID }}
 aws_secret_access_key = {{ .SecretAccessKey }}
 region = {{ .Region }}
-{{if .SessionToken }}
-aws_session_token = {{ .SessionToken }}
-{{end}}
 `
 
 type awsCredential struct {
 	AccessKeyID     string
 	SecretAccessKey string
-	SessionToken    string
 	Region          string
 }
 
-func generateB64Credentials() (string, error) {
-	creds := awsCredential{}
-	conf := aws.NewConfig()
-	chain := defaults.CredChain(conf, defaults.Handlers())
-	chainCreds, err := chain.Get()
-	if err != nil {
-		return "", err
+func generateB64Credentials() string {
+	creds := awsCredential{
+		Region:          region,
+		AccessKeyID:     accessKey.AccessKeyId,
+		SecretAccessKey: accessKey.SecretAccessKey,
 	}
-
-	creds.Region = region
-	creds.AccessKeyID = chainCreds.AccessKeyID
-	creds.SecretAccessKey = chainCreds.SecretAccessKey
-	creds.SessionToken = chainCreds.SessionToken
 
 	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
-	if err != nil {
-		return "", err
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	var profile bytes.Buffer
-	err = tmpl.Execute(&profile, creds)
-	if err != nil {
-		return "", err
-	}
+	Expect(tmpl.Execute(&profile, creds)).To(Succeed())
 
 	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
-	return encCreds, nil
+	return encCreds
 }
 
 func setupScheme() *runtime.Scheme {
