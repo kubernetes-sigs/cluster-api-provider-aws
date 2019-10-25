@@ -1135,3 +1135,123 @@ func TestCreate(t *testing.T) {
 		}
 	}
 }
+
+func TestGetMachineInstances(t *testing.T) {
+	clusterID := "aws-actuator-cluster"
+	instanceID := "i-02fa4197109214b46"
+	imageID := "ami-a9acbbd6"
+
+	machine, err := stubMachine()
+	if err != nil {
+		t.Fatalf("unable to build stub machine: %v", err)
+	}
+
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
+
+	testCases := []struct {
+		testcase       string
+		providerStatus providerconfigv1.AWSMachineProviderStatus
+		awsClientFunc  func(*gomock.Controller) awsclient.Client
+	}{
+		{
+			testcase:       "empty-status-search-by-tag",
+			providerStatus: providerconfigv1.AWSMachineProviderStatus{},
+			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
+				mockAWSClient := mockaws.NewMockClient(ctrl)
+
+				request := &ec2.DescribeInstancesInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   awsTagFilter("Name"),
+							Values: aws.StringSlice([]string{machine.Name}),
+						},
+
+						clusterFilter(clusterID),
+
+						{
+							Name:   aws.String("instance-state-name"),
+							Values: existingInstanceStates(),
+						},
+					},
+				}
+
+				mockAWSClient.EXPECT().DescribeInstances(request).Return(
+					stubDescribeInstancesOutput(imageID, instanceID),
+					nil,
+				).Times(1)
+
+				return mockAWSClient
+			},
+		},
+		{
+			testcase: "has-status-search-by-id",
+			providerStatus: providerconfigv1.AWSMachineProviderStatus{
+				InstanceID: aws.String(instanceID),
+			},
+			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
+				mockAWSClient := mockaws.NewMockClient(ctrl)
+
+				request := &ec2.DescribeInstancesInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("instance-id"),
+							Values: aws.StringSlice([]string{instanceID}),
+						},
+						{
+							Name:   aws.String("instance-state-name"),
+							Values: existingInstanceStates(),
+						},
+					},
+				}
+
+				mockAWSClient.EXPECT().DescribeInstances(request).Return(
+					stubDescribeInstancesOutput(imageID, instanceID),
+					nil,
+				).Times(1)
+
+				return mockAWSClient
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testcase, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			awsStatusRaw, err := codec.EncodeProviderStatus(&tc.providerStatus)
+			if err != nil {
+				t.Errorf("Error encoding ProviderStatus: %v", err)
+			}
+
+			machineCopy := machine.DeepCopy()
+			machineCopy.Status.ProviderStatus = awsStatusRaw
+
+			awsClient := tc.awsClientFunc(ctrl)
+
+			params := ActuatorParams{
+				Codec:            codec,
+				AwsClientBuilder: awsClientBuilderFunc(awsClient),
+			}
+
+			actuator, err := NewActuator(params)
+			if err != nil {
+				t.Errorf("Error creating Actuator: %v", err)
+			}
+
+			_, err = actuator.getMachineInstances(nil, machineCopy)
+			if err != nil {
+				t.Errorf("Unexpected error from getMachineInstances: %v", err)
+			}
+		})
+	}
+}
+
+func awsClientBuilderFunc(c awsclient.Client) awsclient.AwsClientBuilderFuncType {
+	return func(_ client.Client, _, _, _ string) (awsclient.Client, error) {
+		return c, nil
+	}
+}
