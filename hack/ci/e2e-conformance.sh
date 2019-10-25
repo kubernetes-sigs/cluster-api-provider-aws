@@ -123,6 +123,10 @@ init_image() {
   (cd "$(go env GOPATH)/src/sigs.k8s.io/image-builder/images/capi" && \
     sed -i 's/1\.15\.4/1.16.1/' packer/config/kubernetes.json && \
     sed -i 's/1\.15/1.16/' packer/config/kubernetes.json)
+
+  tracestate="$(shopt -po xtrace)"
+  set +o xtrace
+
   if [[ $EUID -ne 0 ]]; then
     # install goss plugin
     (cd "$(go env GOPATH)/src/sigs.k8s.io/image-builder/images/capi/packer/ami" && \
@@ -143,6 +147,8 @@ init_image() {
     # use the packer user to run the build
     su - packer -c "bash -c 'cd /go/src/sigs.k8s.io/image-builder/images/capi && AWS_REGION=$AWS_REGION AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-""} AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-""} make build-ami-default'"
   fi
+
+  eval "$tracestate"
 }
 
 # build kubernetes / node image, e2e binaries
