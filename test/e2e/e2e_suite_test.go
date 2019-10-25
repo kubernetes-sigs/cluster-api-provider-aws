@@ -128,6 +128,9 @@ var _ = BeforeSuite(func() {
 	kindCluster.Setup()
 	loadManagerImage(kindCluster)
 
+	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
+	Expect(err).NotTo(HaveOccurred())
+
 	// Deploy the CAPI components
 	common.DeployCAPIComponents(kindCluster)
 
