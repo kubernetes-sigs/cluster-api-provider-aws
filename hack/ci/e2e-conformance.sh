@@ -200,7 +200,6 @@ generate_manifests() {
   PULL_POLICY=IfNotPresent \
   AWS_REGION=${AWS_REGION} \
   KUBERNETES_VERSION=$KUBERNETES_VERSION \
-  IMAGE_LOOKUP_ORG="o-08i2i7oky6" \
     make modules docker-build generate-examples
 }
 
