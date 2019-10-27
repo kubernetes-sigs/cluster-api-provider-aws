@@ -69,10 +69,11 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
   exit 1
 fi
 
-echo "before running script"
-hack/ci/e2e-conformance.sh --verbose
+# FIXME(dims): 278290968696 is Dims' org.
+# FIXME(dims): init_image does not work yet.
+IMAGE_LOOKUP_ORG=278290968696 SKIP_INIT_IMAGE=yes \
+  hack/ci/e2e-conformance.sh --verbose
 test_status="${?}"
-echo "after running script"
 
 # If Boskos is being used then release the AWS account back to Boskos.
 [ -z "${BOSKOS_HOST:-}" ] || hack/checkin_account.py

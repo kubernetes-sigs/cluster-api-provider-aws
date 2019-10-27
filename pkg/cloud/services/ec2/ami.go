@@ -30,7 +30,7 @@ import (
 const (
 	// defaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
-	defaultMachineAMIOwnerID = "278290968696"
+	defaultMachineAMIOwnerID = "258751437250"
 
 	// amiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
@@ -54,7 +54,6 @@ func (s *Service) defaultAMILookup(ownerID, baseOS, baseOSVersion, kubernetesVer
 	if ownerID == "" {
 		ownerID = defaultMachineAMIOwnerID
 	}
-	s.scope.Info(">>>> defaultAMILookup ", "ownerID", ownerID)
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -79,20 +78,16 @@ func (s *Service) defaultAMILookup(ownerID, baseOS, baseOSVersion, kubernetesVer
 			},
 		},
 	}
-	s.scope.Info(">>>> describeImageInput ", "struct", describeImageInput.String())
 
 	out, err := s.scope.EC2.DescribeImages(describeImageInput)
 	if err != nil {
-		s.scope.Error(err, ">>>> failed in DescribeImages")
 		return "", errors.Wrapf(err, "failed to find ami: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
 	if len(out.Images) == 0 {
-		s.scope.Info(">>>> Images is empty")
 		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
 	}
 	latestImage, err := getLatestImage(out.Images)
 	if err != nil {
-		s.scope.Error(err, ">>>> failed in getLatestImage")
 		s.scope.Error(err, "failed getting latest image from AMI list")
 		return "", err
 	}

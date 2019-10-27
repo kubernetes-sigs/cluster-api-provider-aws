@@ -47,7 +47,7 @@ spec:
     value:
       ami:
         arn: "equestria://rainbow"
-      imageLookupOrg: "w0nd3rb0lt5"
+      imageLookupOrg: "12345"
       instanceType: "pegasus.1xsmall"
       additionalTags:
         profession: "weather"

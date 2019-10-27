@@ -22,6 +22,7 @@ OUTPUT_DIR=${OUTPUT_DIR:-${SOURCE_DIR}/_out}
 
 # Binaries
 envsubst() {
+IMAGE_ID=${IMAGE_ID:-""} IMAGE_LOOKUP_ORG=${IMAGE_LOOKUP_ORG:-""} \
   python -c 'import os,sys;[sys.stdout.write(os.path.expandvars(l)) for l in sys.stdin]'
 }
 

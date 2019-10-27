@@ -219,11 +219,14 @@ fix_manifests() {
 
 
 create_key_pair() {
-  aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.jsons
+  aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.json && KEY_PAIR_CREATED="true"
 }
 
 delete_key_pair() {
-  aws ec2 delete-key-pair --key-name default --region ${AWS_REGION} || true
+  # Delete only if we created it
+  if [[ "${KEY_PAIR_CREATED:-}" = true ]]; then
+    aws ec2 delete-key-pair --key-name default --region ${AWS_REGION} || true
+  fi
 }
 
 # up a cluster with kind
@@ -326,7 +329,10 @@ main() {
   source "${REPO_ROOT}/hack/ensure-kind.sh"
 
   build
-  #init_image
+  SKIP_INIT_IMAGE=${SKIP_INIT_IMAGE:-""}
+  if [[ "${SKIP_INIT_IMAGE}" != "yes" ]]; then
+    init_image
+  fi
   generate_manifests
   if [[ ${1:-} == "--use-ci-artifacts" ]]; then
     fix_manifests
