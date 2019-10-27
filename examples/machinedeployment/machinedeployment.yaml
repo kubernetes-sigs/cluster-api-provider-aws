@@ -37,8 +37,7 @@ spec:
     spec:
       instanceType: ${NODE_MACHINE_TYPE}
       ami:
-        id: "${IMAGE_ID}"
-      imageLookupOrg: "${IMAGE_LOOKUP_ORG}"
+        id: ${IMAGE_ID}
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${SSH_KEY_NAME}"
 ---

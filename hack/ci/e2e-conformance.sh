@@ -185,7 +185,20 @@ generate_manifests() {
   fi
 
   filter="capa-ami-ubuntu-18.04-1.16.*"
-  image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' --filters "Name=name,Values=$filter" --region ${AWS_REGION} --output json | jq -r '.[0][0] | select (.!=null)')
+  if [[ -z "${IMAGE_LOOKUP_ORG}" ]]; then
+    image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' \
+      --filters "Name=name,Values=$filter" \
+      --region ${AWS_REGION} --output json | jq -r '.[0][0] | select (.!=null)')
+  else
+    image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' \
+      --filters "Name=name,Values=$filter" "Name=owner-id,Values=$IMAGE_LOOKUP_ORG" \
+      --region ${AWS_REGION} --output json | jq -r '.[0][0] | select (.!=null)')
+  fi
+
+  if [[ -z "$image_id" ]]; then
+    echo "unable to find image using : $filter $IMAGE_LOOKUP_ORG ... bailing out!"
+    exit 1
+  fi
 
   # Enable the bits to inject a script that can pull newer versions of kubernetes
   if ! grep -i -wq "patchesStrategicMerge" "examples/controlplane/kustomization.yaml"; then
@@ -200,6 +213,7 @@ generate_manifests() {
   PULL_POLICY=IfNotPresent \
   AWS_REGION=${AWS_REGION} \
   KUBERNETES_VERSION=$KUBERNETES_VERSION \
+  IMAGE_ID=$image_id \
     make modules docker-build generate-examples
 }
 
@@ -219,7 +233,7 @@ fix_manifests() {
 
 
 create_key_pair() {
-  aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.json && KEY_PAIR_CREATED="true"
+  (aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.json && KEY_PAIR_CREATED="true") || true
 }
 
 delete_key_pair() {

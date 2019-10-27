@@ -71,7 +71,7 @@ fi
 
 # FIXME(dims): 278290968696 is Dims' org.
 # FIXME(dims): init_image does not work yet.
-IMAGE_LOOKUP_ORG=278290968696 SKIP_INIT_IMAGE=yes \
+IMAGE_LOOKUP_ORG="278290968696" SKIP_INIT_IMAGE=yes \
   hack/ci/e2e-conformance.sh --verbose
 test_status="${?}"
 
