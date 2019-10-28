@@ -32,6 +32,8 @@ import (
 	"text/template"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -61,7 +63,15 @@ import (
 
 func TestE2e(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "e2e Suite")
+
+	// If running in prow, output the junit files to the artifacts path
+	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode)
+	artifactPath, exists := os.LookupEnv("ARTIFACTS")
+	if exists {
+		junitPath = path.Join(artifactPath, junitPath)
+	}
+	junitReporter := reporters.NewJUnitReporter(junitPath)
+	RunSpecsWithDefaultAndCustomReporters(t, "e2e Suite", []Reporter{junitReporter})
 }
 
 const (
