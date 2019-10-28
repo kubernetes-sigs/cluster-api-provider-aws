@@ -184,6 +184,7 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 					"ec2:DescribeVolumes",
 					"ec2:DetachInternetGateway",
 					"ec2:DisassociateRouteTable",
+					"ec2:DisassociateAddress",
 					"ec2:ModifyInstanceAttribute",
 					"ec2:ModifyNetworkInterfaceAttribute",
 					"ec2:ModifySubnetAttribute",
