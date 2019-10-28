@@ -254,7 +254,28 @@ spec:
   - name: v1alpha2
     served: true
     storage: false
-  - name: v1alpha3
+  - additionalPrinterColumns:
+    - JSONPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      description: Cluster to which this AWSMachine belongs
+      name: Cluster
+      type: string
+    - JSONPath: .status.instanceState
+      description: EC2 instance state
+      name: State
+      type: string
+    - JSONPath: .status.ready
+      description: Machine ready status
+      name: Ready
+      type: string
+    - JSONPath: .spec.providerID
+      description: EC2 instance ID
+      name: InstanceID
+      type: string
+    - JSONPath: .metadata.ownerReferences[?(@.kind=="Machine")].name
+      description: Machine object which owns with this AWSMachine
+      name: Machine
+      type: string
+    name: v1alpha3
     served: true
     storage: true
 status:
