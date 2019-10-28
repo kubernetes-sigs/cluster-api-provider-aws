@@ -35,14 +35,15 @@ import (
 // for use with AWS services.
 func NewBackoff() wait.Backoff {
 	// Return a exponential backoff configuration which
-	// returns durations for a total time of ~10m.
-	// Example: 1s, 2s, 4s, 8s, 16s, 20s, ... 20s — for a total of N steps.
+	// returns durations for a total time of ~5m.
+	// Example: 1s, 1.7s, 2.9s, 5s, 8.6s, 14.6s, 25s, 42.8s, 73.1s ... 125s
+	// Jitter is added as a random fraction of the duration multiplied by the
+	// jitter factor.
 	return wait.Backoff{
 		Duration: time.Second,
-		Factor:   2,
-		Steps:    32,
-		Jitter:   4,
-		Cap:      20 * time.Second,
+		Factor:   1.71,
+		Steps:    10,
+		Jitter:   0.4,
 	}
 }
 
