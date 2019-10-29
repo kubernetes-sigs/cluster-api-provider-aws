@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/hash"
 )
 
 // ResourceGroups are filtered by ARN identifier: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax
@@ -42,7 +43,11 @@ func (s *Service) ReconcileLoadbalancers() error {
 	s.scope.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
-	spec := s.getAPIServerClassicELBSpec()
+	spec, err := s.getAPIServerClassicELBSpec()
+
+	if err != nil {
+		return err
+	}
 
 	// Describe or create.
 	apiELB, err := s.describeClassicELB(spec.Name)
@@ -84,7 +89,11 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
 func (s *Service) GetAPIServerDNSName() (string, error) {
-	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue))
+	elbName, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return "", err
+	}
+	apiELB, err := s.describeClassicELB(elbName)
 	if err != nil {
 		return "", err
 	}
@@ -137,7 +146,10 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 
 // RegisterInstanceWithAPIServerELB registers an instance with a classic ELB
 func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
-	name := GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue)
+	name, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return err
+	}
 	out, err := s.describeClassicELB(name)
 	if err != nil {
 		return err
@@ -169,14 +181,49 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 	return nil
 }
 
-// GenerateELBName generates a formatted ELB name
-func GenerateELBName(clusterName string, elbName string) string {
-	return fmt.Sprintf("%s-%s", clusterName, elbName)
+// GenerateELBName generates a formatted ELB name via either
+// concatenating the cluster name to the "-apiserver" suffix
+// or computing a hash for clusters with names above 32 characters.
+func GenerateELBName(clusterName string) (string, error) {
+	standardELBName := generateStandardELBName(clusterName)
+	if len(standardELBName) <= 32 {
+		return standardELBName, nil
+	}
+
+	elbName, err := generateHashedELBName(clusterName)
+	if err != nil {
+		return "", err
+	}
+
+	return elbName, nil
 }
 
-func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
+// generateStandardELBName generates a formatted ELB name based on cluster
+// and ELB name
+func generateStandardELBName(clusterName string) string {
+	elbCompatibleClusterName := strings.Replace(clusterName, ".", "-", -1)
+	return fmt.Sprintf("%s-%s", elbCompatibleClusterName, infrav1.APIServerRoleTagValue)
+}
+
+// generateHashedELBName generates a 32-character hashed name based on cluster
+// and ELB name
+func generateHashedELBName(clusterName string) (string, error) {
+	// hashSize = 32 - length of "k8s" - length of "-" = 28
+	shortName, err := hash.Base36TruncatedHash(clusterName, 28)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to create ELB name")
+	}
+
+	return fmt.Sprintf("%s-%s", shortName, "k8s"), nil
+}
+
+func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
+	elbName, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return nil, err
+	}
 	res := &infrav1.ClassicELB{
-		Name:   GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue),
+		Name:   elbName,
 		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
 		Listeners: []*infrav1.ClassicELBListener{
 			{
@@ -223,7 +270,7 @@ func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
 		}
 	}
 
-	return res
+	return res, nil
 }
 
 func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicELB, error) {
