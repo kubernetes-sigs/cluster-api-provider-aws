@@ -60,8 +60,7 @@ The two binaries produced by a release are the `clusterctl` binary and the
 
 ### Release Notes
 
-Release notes are written by hand. Generally we'll make a [hackmd](hackmd.io)
-and share the release note responsibility for a few days in advance of the
-release.
+Running `make release-notes` will generate an output that can be copied to the drafted release.
+Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
 
-The markdown is shared in the kubernetes slack in the channel #cluster-api-aws.
+
