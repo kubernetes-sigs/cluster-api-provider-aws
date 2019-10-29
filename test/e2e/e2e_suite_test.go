@@ -95,13 +95,14 @@ var (
 	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
 	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
 
-	kindCluster kind.Cluster
-	kindClient  crclient.Client
-	sess        client.ConfigProvider
-	accountID   string
-	accessKey   *iam.AccessKey
-	suiteTmpDir string
-	region      string
+	kindCluster  kind.Cluster
+	kindClient   crclient.Client
+	sess         client.ConfigProvider
+	accountID    string
+	accessKey    *iam.AccessKey
+	suiteTmpDir  string
+	region       string
+	artifactPath string
 )
 
 var _ = BeforeSuite(func() {
