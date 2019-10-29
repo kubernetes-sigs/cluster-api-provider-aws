@@ -21,8 +21,8 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/awslabs/goformation/cloudformation"
-	"github.com/awslabs/goformation/cloudformation/resources"
+	"github.com/awslabs/goformation/v3/cloudformation"
+	cfn_iam "github.com/awslabs/goformation/v3/cloudformation/iam"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
@@ -44,7 +44,7 @@ var ManagedIAMPolicyNames = [...]string{ControllersPolicy, ControlPlanePolicy, N
 func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
-	template.Resources[ControllersPolicy] = &resources.AWSIAMManagedPolicy{
+	template.Resources[ControllersPolicy] = &cfn_iam.ManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("controllers"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
 		PolicyDocument:    controllersPolicy(accountID, partition),
@@ -57,7 +57,7 @@ func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources[ControlPlanePolicy] = &resources.AWSIAMManagedPolicy{
+	template.Resources[ControlPlanePolicy] = &cfn_iam.ManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("control-plane"),
 		Description:       `For the Kubernetes Cloud Provider AWS Control Plane`,
 		PolicyDocument:    cloudProviderControlPlaneAwsPolicy(),
@@ -66,7 +66,7 @@ func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources[NodePolicy] = &resources.AWSIAMManagedPolicy{
+	template.Resources[NodePolicy] = &cfn_iam.ManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("nodes"),
 		Description:       `For the Kubernetes Cloud Provider AWS nodes`,
 		PolicyDocument:    cloudProviderNodeAwsPolicy(),
@@ -76,47 +76,47 @@ func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
 		},
 	}
 
-	template.Resources["AWSIAMUserBootstrapper"] = &resources.AWSIAMUser{
+	template.Resources["AWSIAMUserBootstrapper"] = &cfn_iam.User{
 		UserName: iam.NewManagedName("bootstrapper"),
 		Groups: []string{
 			cloudformation.Ref("AWSIAMGroupBootstrapper"),
 		},
 	}
 
-	template.Resources["AWSIAMGroupBootstrapper"] = &resources.AWSIAMGroup{
+	template.Resources["AWSIAMGroupBootstrapper"] = &cfn_iam.Group{
 		GroupName: iam.NewManagedName("bootstrapper"),
 	}
 
-	template.Resources["AWSIAMRoleControlPlane"] = &resources.AWSIAMRole{
+	template.Resources["AWSIAMRoleControlPlane"] = &cfn_iam.Role{
 		RoleName:                 iam.NewManagedName("control-plane"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
-	template.Resources["AWSIAMRoleControllers"] = &resources.AWSIAMRole{
+	template.Resources["AWSIAMRoleControllers"] = &cfn_iam.Role{
 		RoleName:                 iam.NewManagedName("controllers"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
-	template.Resources["AWSIAMRoleNodes"] = &resources.AWSIAMRole{
+	template.Resources["AWSIAMRoleNodes"] = &cfn_iam.Role{
 		RoleName:                 iam.NewManagedName("nodes"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
 	}
 
-	template.Resources["AWSIAMInstanceProfileControlPlane"] = &resources.AWSIAMInstanceProfile{
+	template.Resources["AWSIAMInstanceProfileControlPlane"] = &cfn_iam.InstanceProfile{
 		InstanceProfileName: iam.NewManagedName("control-plane"),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
 		},
 	}
 
-	template.Resources["AWSIAMInstanceProfileControllers"] = &resources.AWSIAMInstanceProfile{
+	template.Resources["AWSIAMInstanceProfileControllers"] = &cfn_iam.InstanceProfile{
 		InstanceProfileName: iam.NewManagedName("controllers"),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControllers"),
 		},
 	}
 
-	template.Resources["AWSIAMInstanceProfileNodes"] = &resources.AWSIAMInstanceProfile{
+	template.Resources["AWSIAMInstanceProfileNodes"] = &cfn_iam.InstanceProfile{
 		InstanceProfileName: iam.NewManagedName("nodes"),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleNodes"),
@@ -365,7 +365,7 @@ func (s *Service) ReconcileBootstrapStack(stackName, accountID, partition string
 
 	template := BootstrapTemplate(accountID, partition)
 	yaml, err := template.YAML()
-	processedYaml := iam.ProcessPolicyDocument(string(yaml))
+	processedYaml := string(yaml)
 	if err != nil {
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
 	}
