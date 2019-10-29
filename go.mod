@@ -12,7 +12,8 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
+	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
+	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
 	k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
 	k8s.io/client-go v0.0.0-20190918200256-06eb1244587a
