@@ -205,7 +205,7 @@ func waitForMachineDeploymentRunning(namespace, machineDeploymentName string) {
 			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
 				return false, err
 			}
-			return machineDeployment.Spec.Replicas == machineDeployment.Status.ReadyReplicas, nil
+			return *machineDeployment.Spec.Replicas == machineDeployment.Status.ReadyReplicas, nil
 		},
 		5*time.Minute, 15*time.Second,
 	).Should(BeTrue())
