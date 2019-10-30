@@ -38,7 +38,6 @@ export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
 
 # Outputs.
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-cluster-api.yaml
-COMPONENTS_KUBEADM_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-kubeadm.yaml
 COMPONENTS_AWS_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-aws.yaml
 
 PROVIDER_COMPONENTS_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
@@ -100,28 +99,15 @@ kustomize build "${SOURCE_DIR}/machinedeployment" | envsubst >> "${MACHINEDEPLOY
 echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
 # Generate Cluster API provider components file.
-CAPI_BRANCH=${CAPI_BRANCH:-"stable"}
+CAPI_BRANCH=${CAPI_BRANCH:-"master"}
 if [[ ${CAPI_BRANCH} == "stable" ]]; then
-  curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.2.4/cluster-api-components.yaml > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-  echo "Downloaded ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api stable branch - v0.2.4"
+  # TODO(vincepri): Fix the version once the first v0.3.x is released.
+  curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.2.5/cluster-api-components.yaml > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  echo "Downloaded ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api stable branch - v0.2.5"
 else
   kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-
-  if [[ ${CAPI_BRANCH} == "master" ]]; then
-      curl -L https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/${CAPI_BRANCH}/config/certmanager/cert-manager.yaml >> "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-  fi
-
+  curl -L "https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/${CAPI_BRANCH}/config/certmanager/cert-manager.yaml" >> "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
-fi
-
-# Generate Kubeadm Bootstrap Provider components file.
-CABPK_BRANCH=${CABPK_BRANCH:-"stable"}
-if [[ ${CABPK_BRANCH} == "stable" ]]; then
-  curl -L https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/download/v0.1.2/bootstrap-components.yaml > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
-  echo "Downloaded ${COMPONENTS_KUBEADM_GENERATED_FILE} from cluster-api-bootstrap-provider-kubeadm stable branch - v0.1.2"
-else
-  kustomize build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/config/default/?ref=${CABPK_BRANCH}" > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
-  echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE} from cluster-api-bootstrap-provider-kubeadm - ${CABPK_BRANCH}"
 fi
 
 # Generate AWS Infrastructure Provider components file.
