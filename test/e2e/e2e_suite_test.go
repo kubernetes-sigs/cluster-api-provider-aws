@@ -164,6 +164,7 @@ var _ = AfterSuite(func() {
 	kindCluster.Teardown()
 	iamc := iam.New(sess)
 	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
+	deleteIAMRoles(sess)
 	os.RemoveAll(suiteTmpDir)
 })
 
@@ -228,6 +229,13 @@ func createIAMRoles(prov client.ConfigProvider, accountID string) {
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	Expect(
 		cfnSvc.ReconcileBootstrapStack(stackName, accountID, "aws"),
+	).To(Succeed())
+}
+
+func deleteIAMRoles(prov client.ConfigProvider) {
+	cfnSvc := cloudformation.NewService(cfn.New(prov))
+	Expect(
+		cfnSvc.DeleteStack(stackName),
 	).To(Succeed())
 }
 

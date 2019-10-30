@@ -70,6 +70,22 @@ func (s *Service) updateStack(stackName string, yaml string) error {
 	return nil
 }
 
+// DeleteStack deletes a cloudformation stack
+func (s *Service) DeleteStack(stackName string) error {
+	klog.V(2).Infof("deleting AWS CloudFormation stack %q", stackName)
+	if _, err := s.CFN.DeleteStack(&cfn.DeleteStackInput{StackName: aws.String(stackName)}); err != nil {
+		return errors.Wrap(err, "failed to delete AWS CloudFormation stack")
+	}
+
+	klog.V(2).Infof("waiting for stack %q to delete", stackName)
+	if err := s.CFN.WaitUntilStackDeleteComplete(&cfn.DescribeStacksInput{StackName: aws.String(stackName)}); err != nil {
+		return errors.Wrap(err, "failed to delete AWS CloudFormation stack")
+	}
+
+	klog.V(2).Infof("stack %q deleted", stackName)
+	return nil
+}
+
 // ShowStackResources prints out in tabular format the resources in the
 // stack
 func (s *Service) ShowStackResources(stackName string) error {
