@@ -293,18 +293,6 @@ release-notes: $(RELEASE_NOTES)
 ## Development
 ## --------------------------------------
 
-.PHONY: create-cluster
-create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS using examples
-	$(CLUSTERCTL) \
-	create cluster -v 4 \
-	--bootstrap-flags="name=clusterapi" \
-	--bootstrap-type kind \
-	-m ./examples/_out/controlplane.yaml \
-	-c ./examples/_out/cluster.yaml \
-	-p ./examples/_out/provider-components.yaml \
-	-a ./examples/addons.yaml
-
-
 .PHONY: create-cluster-management
 create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
 	kind create cluster --name=clusterapi
@@ -312,6 +300,11 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 		echo "loading ${LOAD_IMAGE} into kind cluster ..." && \
 		kind --name="clusterapi" load docker-image "${LOAD_IMAGE}"; \
 	fi
+	# Install cert manager.
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		create -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml
+	sleep 20
 	# Apply provider-components.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
@@ -339,16 +332,6 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/machinedeployment.yaml
-
-.PHONY: delete-cluster
-delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "test1"
-	$(CLUSTERCTL) \
-	delete cluster -v 4 \
-	--bootstrap-type kind \
-	--bootstrap-flags="name=clusterapi" \
-	--cluster test1 \
-	--kubeconfig ./kubeconfig \
-	-p ./examples/_out/provider-components.yaml \
 
 .PHONY: kind-reset
 kind-reset: ## Destroys the "clusterapi" kind cluster.
