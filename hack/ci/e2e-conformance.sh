@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# hack script for running a cluster-api-provider-gcp e2e
+# hack script for running a cluster-api-provider-aws e2e
 
 set -o errexit -o nounset -o pipefail
 
@@ -40,7 +40,7 @@ dump-logs() {
 
   # dump all the info from the CAPI related CRDs
   kubectl --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") get \
-  clusters,gcpclusters,machines,gcpmachines,kubeadmconfigs,machinedeployments,gcpmachinetemplates,kubeadmconfigtemplates,machinesets \
+  clusters,awsclusters,machines,awsmachines,kubeadmconfigs,machinedeployments,awsmachinetemplates,kubeadmconfigtemplates,machinesets \
   --all-namespaces -o yaml >> "${ARTIFACTS}/logs/capg.info" || true
 
   # dump images info

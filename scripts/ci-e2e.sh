@@ -59,6 +59,9 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
     echo "error getting account from boskos" 1>&2
     exit "${checkout_account_status}"
   fi
+
+  python -u hack/heartbeat_account.py >> $ARTIFACTS/boskos.log 2>&1 &
+  HEART_BEAT_PID=$(echo $!)
 fi
 
 # Prevent a disallowed AWS key from being used.
@@ -74,6 +77,7 @@ test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
 [ -z "${BOSKOS_HOST:-}" ] || hack/checkin_account.py
+[[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
 
 # The janitor is typically not run as part of the e2e process, but rather
 # in a parallel process via a service on the same cluster that runs Prow and
