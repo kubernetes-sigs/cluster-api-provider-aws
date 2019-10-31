@@ -133,7 +133,7 @@ var _ = BeforeSuite(func() {
 	loadManagerImage(kindCluster)
 
 	// Deploy CertManager
-	certmanagerYaml := "https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/master/config/certmanager/cert-manager.yaml"
+	certmanagerYaml := "https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
 	applyManifests(kindCluster, &certmanagerYaml)
 
 	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
