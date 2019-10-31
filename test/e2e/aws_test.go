@@ -219,23 +219,23 @@ func makeMachineDeployment(namespace, mdName, awsMachineTemplateName, bootstrapC
 			Name:      mdName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: clusterName,
-				"nodepool":                        mdName,
+				clusterv1.ClusterLabelName: clusterName,
+				"nodepool":                 mdName,
 			},
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			Replicas: &replicas,
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					clusterv1.MachineClusterLabelName: clusterName,
-					"nodepool":                        mdName,
+					clusterv1.ClusterLabelName: clusterName,
+					"nodepool":                 mdName,
 				},
 			},
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineClusterLabelName: clusterName,
-						"nodepool":                        mdName,
+						clusterv1.ClusterLabelName: clusterName,
+						"nodepool":                 mdName,
 					},
 				},
 				Spec: clusterv1.MachineSpec{
