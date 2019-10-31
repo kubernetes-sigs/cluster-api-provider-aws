@@ -304,7 +304,14 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml
+	# Wait for cert-manager pods to be created
 	sleep 20
+	# Wait for cert-manager pods to be ready.
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		wait --for=condition=Ready --namespace=cert-manager --timeout=15m pods --all
+	# Wait for webhook servers to be ready to take requests
+	sleep 10
 	# Apply provider-components.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
