@@ -60,7 +60,11 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
     exit "${checkout_account_status}"
   fi
 
-  python -u hack/heartbeat_account.py >> $ARTIFACTS/boskos.log 2>&1 &
+  # run the heart beat process to tell boskos that we are still
+  # using the checked out account periodically
+  ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
+  mkdir -p "$ARTIFACTS/logs/"
+  python -u hack/heartbeat_account.py >> $ARTIFACTS/logs/boskos.log 2>&1 &
   HEART_BEAT_PID=$(echo $!)
 fi
 
