@@ -1,12 +1,12 @@
 namespace:
 - kind: Machine
   group: cluster.x-k8s.io
-  version: v1alpha2
+  version: v1alpha3
   path: spec/infrastructureRef/namespace
   create: true
 - kind: Machine
   group: cluster.x-k8s.io
-  version: v1alpha2
+  version: v1alpha3
   path: spec/bootstrap/configRef/namespace
   create: true
 
