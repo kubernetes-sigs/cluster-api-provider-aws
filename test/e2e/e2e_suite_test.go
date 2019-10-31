@@ -161,11 +161,18 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
 	retrieveAllLogs()
-	kindCluster.Teardown()
-	iamc := iam.New(sess)
-	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
-	deleteIAMRoles(sess)
-	os.RemoveAll(suiteTmpDir)
+	if kindCluster != nil {
+		kindCluster.Teardown()
+	}
+	if sess != nil {
+		iamc := iam.New(sess)
+		iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
+		deleteIAMRoles(sess)
+	}
+
+	if suiteTmpDir != "" {
+		os.RemoveAll(suiteTmpDir)
+	}
 })
 
 func retrieveAllLogs() {
@@ -175,8 +182,14 @@ func retrieveAllLogs() {
 	// If running in prow, output the logs to the artifacts path
 	artifactPath, exists := os.LookupEnv("ARTIFACTS")
 	if exists {
-		ioutil.WriteFile(path.Join(artifactPath, "capi.log"), []byte(capiLogs), 0644)
-		ioutil.WriteFile(path.Join(artifactPath, "capa.log"), []byte(capaLogs), 0644)
+		logPath := path.Join(artifactPath, "logs")
+		os.MkdirAll(logPath)
+		if capiLogs != "" {
+			ioutil.WriteFile(path.Join(logPath, "capi.log"), []byte(capiLogs), 0644)
+		}
+		if capaLogs != "" {
+			ioutil.WriteFile(path.Join(logPath, "capa.log"), []byte(capaLogs), 0644)
+		}
 		return
 	}
 
@@ -185,29 +198,31 @@ func retrieveAllLogs() {
 }
 
 func retrieveLogs(namespace, deploymentName string) string {
-	deployment := &appsv1.Deployment{}
-	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment)).To(Succeed())
+	if kindClient != nil {
+		deployment := &appsv1.Deployment{}
+		Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment)).To(Succeed())
+		pods := &corev1.PodList{}
 
-	pods := &corev1.PodList{}
+		selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+		Expect(err).NotTo(HaveOccurred())
 
-	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
-	Expect(err).NotTo(HaveOccurred())
+		Expect(kindClient.List(context.TODO(), pods, crclient.InNamespace(namespace), crclient.MatchingLabels(selector))).To(Succeed())
+		Expect(pods.Items).NotTo(BeEmpty())
 
-	Expect(kindClient.List(context.TODO(), pods, crclient.InNamespace(namespace), crclient.MatchingLabels(selector))).To(Succeed())
-	Expect(pods.Items).NotTo(BeEmpty())
+		clientset, err := kubernetes.NewForConfig(kindCluster.RestConfig())
+		Expect(err).NotTo(HaveOccurred())
 
-	clientset, err := kubernetes.NewForConfig(kindCluster.RestConfig())
-	Expect(err).NotTo(HaveOccurred())
+		podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{}).Stream()
+		Expect(err).NotTo(HaveOccurred())
+		defer podLogs.Close()
 
-	podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{}).Stream()
-	Expect(err).NotTo(HaveOccurred())
-	defer podLogs.Close()
+		buf := new(bytes.Buffer)
+		_, err = io.Copy(buf, podLogs)
+		Expect(err).NotTo(HaveOccurred())
 
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	Expect(err).NotTo(HaveOccurred())
-
-	return buf.String()
+		return buf.String()
+	}
+	return ""
 }
 
 func getSession() client.ConfigProvider {
