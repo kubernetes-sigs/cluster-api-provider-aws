@@ -435,6 +435,346 @@ func TestCreateInstance(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "with ImageLookupOrg specified at the machine level",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						// echo "user-data" | base64
+						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+					},
+					Version: pointer.StringPtr("v1.16.1"),
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				ImageLookupOrg: "test-org-123",
+				InstanceType:   "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				// verify that the ImageLookupOrg is used when finding AMIs
+				m.
+					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("owner-id"),
+								Values: []*string{aws.String("test-org-123")},
+							},
+							{
+								Name:   aws.String("name"),
+								Values: []*string{aws.String(amiName("ubuntu", "18.04", "v1.16.1"))},
+							},
+							{
+								Name:   aws.String("architecture"),
+								Values: []*string{aws.String("x86_64")},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("available")},
+							},
+							{
+								Name:   aws.String("virtualization-type"),
+								Values: []*string{aws.String("hvm")},
+							},
+						},
+					})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2006-01-02T15:04:05.000Z"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:   aws.String("two"),
+								InstanceType: aws.String("m5.large"),
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "with ImageLookupOrg specified at the cluster-level",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						// echo "user-data" | base64
+						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+					},
+					Version: pointer.StringPtr("v1.16.1"),
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				InstanceType: "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+					ImageLookupOrg: "cluster-level-image-lookup-org",
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				// verify that the ImageLookupOrg is used when finding AMIs
+				m.
+					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("owner-id"),
+								Values: []*string{aws.String("cluster-level-image-lookup-org")},
+							},
+							{
+								Name:   aws.String("name"),
+								Values: []*string{aws.String(amiName("ubuntu", "18.04", "v1.16.1"))},
+							},
+							{
+								Name:   aws.String("architecture"),
+								Values: []*string{aws.String("x86_64")},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("available")},
+							},
+							{
+								Name:   aws.String("virtualization-type"),
+								Values: []*string{aws.String("hvm")},
+							},
+						},
+					})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2006-01-02T15:04:05.000Z"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:   aws.String("two"),
+								InstanceType: aws.String("m5.large"),
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "AWSMachine ImageLookupOrg overrides AWSCluster ImageLookupOrg",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						// echo "user-data" | base64
+						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+					},
+					Version: pointer.StringPtr("v1.16.1"),
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				InstanceType:   "m5.large",
+				ImageLookupOrg: "machine-level-image-lookup-org",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+					ImageLookupOrg: "cluster-level-image-lookup-org",
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				// verify that the ImageLookupOrg is used when finding AMIs
+				m.
+					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+						Filters: []*ec2.Filter{
+							{
+								Name:   aws.String("owner-id"),
+								Values: []*string{aws.String("machine-level-image-lookup-org")},
+							},
+							{
+								Name:   aws.String("name"),
+								Values: []*string{aws.String(amiName("ubuntu", "18.04", "v1.16.1"))},
+							},
+							{
+								Name:   aws.String("architecture"),
+								Values: []*string{aws.String("x86_64")},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("available")},
+							},
+							{
+								Name:   aws.String("virtualization-type"),
+								Values: []*string{aws.String("hvm")},
+							},
+						},
+					})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name:         aws.String("ami-1"),
+								CreationDate: aws.String("2006-01-02T15:04:05.000Z"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:   aws.String("two"),
+								InstanceType: aws.String("m5.large"),
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
 	}
 
 	for _, tc := range testcases {
@@ -461,33 +801,9 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
-			awsCluster := &infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: clusterv1.GroupVersion.String(),
-							Kind:       "Cluster",
-							Name:       "test1",
-						},
-					},
-				},
-			}
+			awsCluster := tc.awsCluster
 
-			machine := &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test1",
-					Labels: map[string]string{
-						"set":                      "node",
-						clusterv1.ClusterLabelName: "test1",
-					},
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						// echo "user-data" | base64
-						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
-					},
-				},
-			}
+			machine := &tc.machine
 
 			awsMachine := &infrav1.AWSMachine{
 				ObjectMeta: metav1.ObjectMeta{

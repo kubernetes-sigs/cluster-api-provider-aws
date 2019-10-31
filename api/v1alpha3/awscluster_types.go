@@ -45,6 +45,12 @@ type AWSClusterSpec struct {
 	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior
 	// +optional
 	ControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
+
+	// ImageLookupOrg is the AWS Organization ID to look up machine images when a
+	// machine does not specify an AMI. When set, this will be used for all
+	// cluster machines unless a machine specifies a different ImageLookupOrg.
+	// +optional
+	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
 }
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer
