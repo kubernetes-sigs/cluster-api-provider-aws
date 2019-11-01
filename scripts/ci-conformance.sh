@@ -29,6 +29,13 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
 
+# our exit handler (trap)
+cleanup() {
+  # stop boskos heartbeat
+  [[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
+}
+trap cleanup EXIT
+
 # shellcheck source=../hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
 # shellcheck source=../hack/ensure-kind.sh
@@ -59,6 +66,13 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
     echo "error getting account from boskos" 1>&2
     exit "${checkout_account_status}"
   fi
+
+  # run the heart beat process to tell boskos that we are still
+  # using the checked out account periodically
+  ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
+  mkdir -p "$ARTIFACTS/logs/"
+  python -u hack/heartbeat_account.py >> "$ARTIFACTS/logs/boskos.log" 2>&1 &
+  HEART_BEAT_PID=$(echo $!)
 fi
 
 # Prevent a disallowed AWS key from being used.
@@ -69,7 +83,8 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
   exit 1
 fi
 
-hack/ci/e2e-conformance.sh --verbose
+# TODO(dims): remove "SKIP_INIT_IMAGE" once we fix problem building images in CI
+SKIP_INIT_IMAGE=yes hack/ci/e2e-conformance.sh --verbose
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
