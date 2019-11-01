@@ -19,15 +19,16 @@ limitations under the License.
 package e2e_test
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"text/template"
@@ -36,6 +37,7 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -90,16 +92,23 @@ var (
 	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
 	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
 
-	kindCluster kind.Cluster
-	kindClient  crclient.Client
-	sess        client.ConfigProvider
-	accountID   string
-	accessKey   *iam.AccessKey
-	suiteTmpDir string
-	region      string
+	kindCluster  kind.Cluster
+	kindClient   crclient.Client
+	clientSet    *kubernetes.Clientset
+	sess         client.ConfigProvider
+	accountID    string
+	accessKey    *iam.AccessKey
+	suiteTmpDir  string
+	region       string
+	artifactPath string
+	logPath      string
 )
 
 var _ = BeforeSuite(func() {
+	artifactPath, _ = os.LookupEnv("ARTIFACTS")
+	logPath = path.Join(artifactPath, "logs")
+	Expect(os.MkdirAll(filepath.Dir(logPath), 0755)).To(Succeed())
+
 	fmt.Fprintf(GinkgoWriter, "Setting up kind cluster\n")
 
 	var err error
@@ -133,12 +142,20 @@ var _ = BeforeSuite(func() {
 	kindCluster.Setup()
 	loadManagerImage(kindCluster)
 
+	// create the management cluster clients we'll need
+	restConfig := kindCluster.RestConfig()
+	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, apiutil.WithLazyDiscovery)
+	Expect(err).NotTo(HaveOccurred())
+	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme(), Mapper: mapper})
+	Expect(err).NotTo(HaveOccurred())
+	clientSet, err = kubernetes.NewForConfig(kindCluster.RestConfig())
+	Expect(err).NotTo(HaveOccurred())
+
 	// Deploy CertManager
 	certmanagerYaml := "https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
 	applyManifests(kindCluster, &certmanagerYaml)
 
-	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
-	Expect(err).NotTo(HaveOccurred())
+	// Wait for CertManager to be available before continuing
 	common.WaitDeployment(kindClient, "cert-manager", "cert-manager-webhook")
 
 	// Deploy the CAPI components
@@ -150,21 +167,22 @@ var _ = BeforeSuite(func() {
 
 	// Verify capi components are deployed
 	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
+	go func() {
+		defer GinkgoRecover()
+		watchLogs(capiNamespace, capiDeploymentName, logPath)
+	}()
 
 	// Verify capa components are deployed
 	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
+	go func() {
+		defer GinkgoRecover()
+		watchLogs(capaNamespace, capaDeploymentName, logPath)
+	}()
 
-	// Recreate kindClient so that it knows about the cluster api types
-	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
-	Expect(err).NotTo(HaveOccurred())
 }, setupTimeout)
 
 var _ = AfterSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
-
-	if reflect.TypeOf(kindClient) != nil {
-		retrieveAllLogs()
-	}
 
 	if kindCluster.Name != "" {
 		kindCluster.Teardown()
@@ -183,51 +201,43 @@ var _ = AfterSuite(func() {
 	}
 })
 
-func retrieveAllLogs() {
-	capiLogs := retrieveLogs(capiNamespace, capiDeploymentName)
-	capaLogs := retrieveLogs(capaNamespace, capaDeploymentName)
-
-	// If running in prow, output the logs to the artifacts path
-	artifactPath, exists := os.LookupEnv("ARTIFACTS")
-	if exists {
-		logPath := path.Join(artifactPath, "logs")
-		os.MkdirAll(logPath, 0755)
-		if capiLogs != "" {
-			ioutil.WriteFile(path.Join(logPath, "capi.log"), []byte(capiLogs), 0644)
-		}
-		if capaLogs != "" {
-			ioutil.WriteFile(path.Join(logPath, "capa.log"), []byte(capaLogs), 0644)
-		}
-		return
-	}
-
-	fmt.Fprintf(GinkgoWriter, "CAPI Logs:\n%s\n", capiLogs)
-	fmt.Fprintf(GinkgoWriter, "CAPA Logs:\n%s\n", capaLogs)
-}
-
-func retrieveLogs(namespace, deploymentName string) string {
+func watchLogs(namespace, deploymentName, logDir string) {
 	deployment := &appsv1.Deployment{}
 	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment)).To(Succeed())
-	pods := &corev1.PodList{}
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
 	Expect(err).NotTo(HaveOccurred())
 
+	pods := &corev1.PodList{}
 	Expect(kindClient.List(context.TODO(), pods, crclient.InNamespace(namespace), crclient.MatchingLabels(selector))).To(Succeed())
-	Expect(pods.Items).NotTo(BeEmpty())
 
-	clientset, err := kubernetes.NewForConfig(kindCluster.RestConfig())
-	Expect(err).NotTo(HaveOccurred())
+	for _, pod := range pods.Items {
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			logFile := path.Join(logDir, deploymentName, pod.Name, container.Name+".log")
+			fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
+			Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
 
-	podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{}).Stream()
-	Expect(err).NotTo(HaveOccurred())
-	defer podLogs.Close()
+			opts := &corev1.PodLogOptions{
+				Container: container.Name,
+				Follow:    true,
+			}
 
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	Expect(err).NotTo(HaveOccurred())
+			podLogs, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod.Name, opts).Stream()
+			Expect(err).NotTo(HaveOccurred())
+			defer podLogs.Close()
 
-	return buf.String()
+			f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			Expect(err).NotTo(HaveOccurred())
+			defer f.Close()
+
+			out := bufio.NewWriter(f)
+			defer out.Flush()
+			_, err = out.ReadFrom(podLogs)
+			if err != nil && err.Error() != "unexpected EOF" {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		}
+	}
 }
 
 func getSession() client.ConfigProvider {
