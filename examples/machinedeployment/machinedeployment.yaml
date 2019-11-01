@@ -6,7 +6,7 @@ metadata:
     nodepool: nodepool-0
 spec:
   clusterName: "${CLUSTER_NAME}"
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       nodepool: nodepool-0

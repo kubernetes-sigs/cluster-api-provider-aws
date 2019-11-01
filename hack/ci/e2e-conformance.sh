@@ -76,6 +76,8 @@ cleanup() {
   fi
   # clean up e2e.test symlink
   (cd "$(go env GOPATH)/src/k8s.io/kubernetes" && rm -f _output/bin/e2e.test) || true
+
+  delete_key_pair
 }
 
 # our exit handler (trap)
@@ -120,9 +122,10 @@ init_image() {
       rm packer.zip && \
       ln -s $PWD/packer /usr/local/bin/packer
   fi
-  (cd "$(go env GOPATH)/src/sigs.k8s.io/image-builder/images/capi" && \
-    sed -i 's/1\.15\.4/1.16.1/' packer/config/kubernetes.json && \
-    sed -i 's/1\.15/1.16/' packer/config/kubernetes.json)
+
+  tracestate="$(shopt -po xtrace)"
+  set +o xtrace
+
   if [[ $EUID -ne 0 ]]; then
     # install goss plugin
     (cd "$(go env GOPATH)/src/sigs.k8s.io/image-builder/images/capi/packer/ami" && \
@@ -136,11 +139,15 @@ init_image() {
     # assume we are running in the CI environment as root
     # Add a user for ansible to work properly
     groupadd -r packer && useradd -m -s /bin/bash -r -g packer packer
+    # Ensure go is available in PATH
+    ln -s /usr/local/go/bin/go /usr/bin/go
     # install goss plugin
     su - packer -c "bash -c 'cd /go/src/sigs.k8s.io/image-builder/images/capi/packer/ami && make plugins'"
     # use the packer user to run the build
     su - packer -c "bash -c 'cd /go/src/sigs.k8s.io/image-builder/images/capi && AWS_REGION=$AWS_REGION AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-""} AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-""} make build-ami-default'"
   fi
+
+  eval "$tracestate"
 }
 
 # build kubernetes / node image, e2e binaries
@@ -174,8 +181,26 @@ generate_manifests() {
     (cd ./hack/tools/ && GO111MODULE=on go install sigs.k8s.io/kustomize/kustomize/v3)
   fi
 
-  filter="capa-ami-ubuntu-18.04-1.16.*"
-  image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' --filters "Name=name,Values=$filter" --region ${AWS_REGION} --output json | jq -r '.[0][0] | select (.!=null)')
+  if [[ -z ${IMAGE_ID:-} ]]; then
+    # default lookup org hould be the same as defaultMachineAMIOwnerID
+    IMAGE_LOOKUP_ORG=${IMAGE_LOOKUP_ORG:-"258751437250"}
+    filter="capa-ami-ubuntu-18.04-1.16.*"
+    image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' \
+      --filters "Name=name,Values=$filter" "Name=owner-id,Values=$IMAGE_LOOKUP_ORG" \
+      --region ${AWS_REGION} --output json | jq -r '.[0][0] | select (.!=null)')
+    if [[ -z "$image_id" ]]; then
+      echo "unable to find image using : $filter $IMAGE_LOOKUP_ORG ... bailing out!"
+      exit 1
+    fi
+  else
+    image_id=$(aws ec2 describe-images --image-ids $IMAGE_ID \
+      --query 'Images[*].[ImageId,Name]' --output json | jq -r '.[0][0] | select (.!=null)')
+    echo "using specified image id : ${IMAGE_ID}"
+    if [[ -z "$image_id" ]]; then
+      echo "unable to find image using id : $IMAGE_ID ... bailing out!"
+      exit 1
+    fi
+  fi
 
   # Enable the bits to inject a script that can pull newer versions of kubernetes
   if ! grep -i -wq "patchesStrategicMerge" "examples/controlplane/kustomization.yaml"; then
@@ -208,6 +233,18 @@ fix_manifests() {
   sed -i 's|CI_VERSION=.*|CI_VERSION='$CI_VERSION'|' examples/_out/machinedeployment.yaml
 }
 
+
+create_key_pair() {
+  (aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.json && KEY_PAIR_CREATED="true") || true
+}
+
+delete_key_pair() {
+  # Delete only if we created it
+  if [[ "${KEY_PAIR_CREATED:-}" = true ]]; then
+    aws ec2 delete-key-pair --key-name default --region ${AWS_REGION} || true
+  fi
+}
+
 # up a cluster with kind
 create_cluster() {
   # actually create the cluster
@@ -223,7 +260,7 @@ create_cluster() {
     kubectl get machines --kubeconfig=$(kind get kubeconfig-path --name="clusterapi")
     read running total <<< $(kubectl get machines --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") \
       -o json | jq -r '.items[].status.phase' | awk 'BEGIN{count=0} /(r|R)unning/{count++} END{print count " " NR}') ;
-    if [[ $total == "4" && $running == "4" ]]; then
+    if [[ $total == "5" && $running == "5" ]]; then
       return 0
     fi
     read failed total <<< $(kubectl get machines --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") \
@@ -308,12 +345,16 @@ main() {
   source "${REPO_ROOT}/hack/ensure-kind.sh"
 
   build
-  init_image
+  SKIP_INIT_IMAGE=${SKIP_INIT_IMAGE:-""}
+  if [[ "${SKIP_INIT_IMAGE}" != "yes" ]]; then
+    init_image
+  fi
   generate_manifests
   if [[ ${1:-} == "--use-ci-artifacts" ]]; then
     fix_manifests
   fi
   create_stack
+  create_key_pair
   create_cluster
 
   SKIP_RUN_TESTS=${SKIP_RUN_TESTS:-""}
