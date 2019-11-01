@@ -133,7 +133,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		if imageLookupOrg == "" {
 			imageLookupOrg = scope.AWSCluster.Spec.ImageLookupOrg
 		}
-		input.ImageID, err = s.defaultAMILookup(imageLookupOrg, "ubuntu", "18.04", *scope.Machine.Spec.Version)
+		input.ImageID, err = s.defaultAMILookup(imageLookupOrg, "ubuntu-18.04", *scope.Machine.Spec.Version)
 		if err != nil {
 			return nil, err
 		}
