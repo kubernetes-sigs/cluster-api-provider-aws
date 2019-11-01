@@ -32,6 +32,10 @@ const (
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
 	defaultMachineAMIOwnerID = "258751437250"
 
+	// defaultMachineAMILookupBaseOS is the default base operating system to use
+	// when looking up machine AMIs
+	defaultMachineAMILookupBaseOS = "ubuntu-18.04"
+
 	// amiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
 	// 1. the string value `capa-ami-`
@@ -52,6 +56,9 @@ func amiName(baseOS, kubernetesVersion string) string {
 func (s *Service) defaultAMILookup(ownerID, baseOS, kubernetesVersion string) (string, error) {
 	if ownerID == "" {
 		ownerID = defaultMachineAMIOwnerID
+	}
+	if baseOS == "" {
+		baseOS = defaultMachineAMILookupBaseOS
 	}
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{

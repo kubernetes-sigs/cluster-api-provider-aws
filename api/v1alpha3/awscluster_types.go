@@ -51,6 +51,12 @@ type AWSClusterSpec struct {
 	// cluster machines unless a machine specifies a different ImageLookupOrg.
 	// +optional
 	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
+
+	// ImageLookupBaseOS is the name of the base operating system used to look
+	// up machine images when a machine does not specify an AMI. When set, this
+	// will be used for all cluster machines unless a machine specifies a
+	// different ImageLookupBaseOS.
+	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 }
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer

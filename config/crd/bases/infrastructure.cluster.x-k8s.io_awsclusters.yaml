@@ -474,6 +474,12 @@ spec:
                       to Internet-facing)
                     type: string
                 type: object
+              imageLookupBaseOS:
+                description: ImageLookupBaseOS is the name of the base operating system
+                  used to look up machine images when a machine does not specify an
+                  AMI. When set, this will be used for all cluster machines unless
+                  a machine specifies a different ImageLookupBaseOS.
+                type: string
               imageLookupOrg:
                 description: ImageLookupOrg is the AWS Organization ID to look up
                   machine images when a machine does not specify an AMI. When set,
