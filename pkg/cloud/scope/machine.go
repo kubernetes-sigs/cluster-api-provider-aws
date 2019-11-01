@@ -21,6 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -170,6 +171,11 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 		m.AWSMachine.Annotations = map[string]string{}
 	}
 	m.AWSMachine.Annotations[key] = value
+}
+
+// SetAddresses sets the AWSMachine address status.
+func (m *MachineScope) SetAddresses(addrs []corev1.NodeAddress) {
+	m.AWSMachine.Status.Addresses = addrs
 }
 
 // Close the MachineScope by updating the machine spec, machine status.

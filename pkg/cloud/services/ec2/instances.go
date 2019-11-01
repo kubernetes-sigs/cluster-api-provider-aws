@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -310,16 +311,16 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	if len(i.NetworkInterfaces) > 0 {
-		instances := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
+		netInterfaces := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
 
 		for index, id := range i.NetworkInterfaces {
-			instances = append(instances, &ec2.InstanceNetworkInterfaceSpecification{
+			netInterfaces = append(netInterfaces, &ec2.InstanceNetworkInterfaceSpecification{
 				NetworkInterfaceId: aws.String(id),
 				DeviceIndex:        aws.Int64(int64(index)),
 			})
 		}
 
-		input.NetworkInterfaces = instances
+		input.NetworkInterfaces = netInterfaces
 	} else {
 		input.SubnetId = aws.String(i.SubnetID)
 
@@ -585,7 +586,40 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 	}
 
 	i.RootDeviceSize = aws.Int64Value(rootSize)
+
+	i.Addresses = s.getInstanceAddresses(v)
+
 	return i, nil
+}
+
+func (s *Service) getInstanceAddresses(instance *ec2.Instance) []corev1.NodeAddress {
+	addresses := []corev1.NodeAddress{}
+
+	for _, eni := range instance.NetworkInterfaces {
+		privateDNSAddress := corev1.NodeAddress{
+			Type:    corev1.NodeInternalDNS,
+			Address: aws.StringValue(eni.PrivateDnsName),
+		}
+		privateIPAddress := corev1.NodeAddress{
+			Type:    corev1.NodeInternalIP,
+			Address: aws.StringValue(eni.PrivateIpAddress),
+		}
+		addresses = append(addresses, privateDNSAddress, privateIPAddress)
+
+		// An elastic IP is attached if association is non nil pointer
+		if eni.Association != nil {
+			publicDNSAddress := corev1.NodeAddress{
+				Type:    corev1.NodeExternalDNS,
+				Address: aws.StringValue(eni.Association.PublicDnsName),
+			}
+			publicIPAddress := corev1.NodeAddress{
+				Type:    corev1.NodeExternalIP,
+				Address: aws.StringValue(eni.Association.PublicIp),
+			}
+			addresses = append(addresses, publicDNSAddress, publicIPAddress)
+		}
+	}
+	return addresses
 }
 
 func (s *Service) getNetworkInterfaceSecurityGroups(interfaceID string) ([]string, error) {

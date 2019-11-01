@@ -321,6 +321,8 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
 	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
 
+	machineScope.SetAddresses(instance.Addresses)
+
 	switch instance.State {
 	case infrav1.InstanceStateRunning:
 		machineScope.Info("Machine instance is running", "instance-id", *machineScope.GetInstanceID())
