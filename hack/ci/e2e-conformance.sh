@@ -322,14 +322,22 @@ run_tests() {
 
 # setup kind, build kubernetes, create a cluster, run the e2es
 main() {
-  if [[ ${1:-} == "--verbose" ]]; then
-     set -o xtrace
-  fi
-
-  if [[ ${1:-} == "--clean" ]]; then
-    cleanup
-    return 0
-  fi
+  for arg in "$@"
+  do
+    if [[ "$arg" == "--verbose" ]]; then
+      set -o xtrace
+    fi
+    if [[ "$arg" == "--clean" ]]; then
+      cleanup
+      return 0
+    fi
+    if [[ "$arg" == "--use-ci-artifacts" ]]; then
+      USE_CI_ARTIFACTS="1"
+    fi
+    if [[ "$arg" == "--skip-init-image" ]]; then
+      SKIP_INIT_IMAGE="1"
+    fi
+  done
 
   # create temp dir and setup cleanup
   TMP_DIR=$(mktemp -d)
@@ -346,11 +354,14 @@ main() {
 
   build
   SKIP_INIT_IMAGE=${SKIP_INIT_IMAGE:-""}
-  if [[ "${SKIP_INIT_IMAGE}" != "yes" ]]; then
+  if [[ "${SKIP_INIT_IMAGE}" == "yes" || "${SKIP_INIT_IMAGE}" == "1" ]]; then
+    echo "Skipping image initialization..."
+  else
     init_image
   fi
   generate_manifests
-  if [[ ${1:-} == "--use-ci-artifacts" ]]; then
+  if [[ ${USE_CI_ARTIFACTS:-""} == "yes" || ${USE_CI_ARTIFACTS:-""} == "1" ]]; then
+    echo "Fixing manifests to use latest CI artifacts..."
     fix_manifests
   fi
   create_stack
