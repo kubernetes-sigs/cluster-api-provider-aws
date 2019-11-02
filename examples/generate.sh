@@ -31,6 +31,11 @@ command -v "${CLUSTERAWSADM}" >/dev/null 2>&1 || echo -v "Cannot find ${CLUSTERA
 # Cluster.
 export CLUSTER_NAME="${CLUSTER_NAME:-test1}"
 export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.16.1}"
+export ENABLE_IPV6="${ENABLE_IPV6:-false}"
+if [ "${ENABLE_IPV6}" = true ]; then
+  export CLUSTER_CIDR="${CLUSTER_CIDR:-fd00:192:168::/64}"
+fi
+export CLUSTER_CIDR="${CLUSTER_CIDR:-192.168.0.0/16}"
 
 # Machine settings.
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"

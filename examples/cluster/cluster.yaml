@@ -6,7 +6,7 @@ metadata:
 spec:
   clusterNetwork:
     pods:
-      cidrBlocks: ["192.168.0.0/16"]
+      cidrBlocks: ["${CLUSTER_CIDR}"]
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
     kind: AWSCluster
@@ -19,3 +19,6 @@ metadata:
 spec:
   region: ${AWS_REGION}
   sshKeyName: ${SSH_KEY_NAME}
+  networkSpec:
+    vpc:
+      enableIPv6: ${ENABLE_IPV6}
