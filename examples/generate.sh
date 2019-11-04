@@ -42,6 +42,7 @@ COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider
 COMPONENTS_AWS_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-aws.yaml
 
 PROVIDER_COMPONENTS_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
+CERTMANAGER_COMPONENTS_GENERATED_FILE=${OUTPUT_DIR}/cert-manager.yaml
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 CONTROLPLANE_GENERATED_FILE=${OUTPUT_DIR}/controlplane.yaml
 MACHINEDEPLOYMENT_GENERATED_FILE=${OUTPUT_DIR}/machinedeployment.yaml
@@ -83,6 +84,10 @@ fi
 
 mkdir -p "${OUTPUT_DIR}"
 
+# Download cert-manager component
+curl -sL https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml > "${CERTMANAGER_COMPONENTS_GENERATED_FILE}"
+echo "Generated ${CERTMANAGER_COMPONENTS_GENERATED_FILE}"
+
 # Generate AWS Credentials.
 AWS_B64ENCODED_CREDENTIALS="$(${CLUSTERAWSADM} alpha bootstrap encode-aws-credentials)"
 export AWS_B64ENCODED_CREDENTIALS
@@ -103,7 +108,7 @@ echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 CAPI_BRANCH=${CAPI_BRANCH:-"master"}
 if [[ ${CAPI_BRANCH} == "stable" ]]; then
   # TODO(vincepri): Fix the version once the first v0.3.x is released.
-  curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.2.5/cluster-api-components.yaml > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  curl -sL https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.2.5/cluster-api-components.yaml > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Downloaded ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api stable branch - v0.2.5"
 else
   kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
@@ -121,3 +126,5 @@ echo "WARNING: ${PROVIDER_COMPONENTS_GENERATED_FILE} includes AWS credentials"
 
 # Patch kubernetes version
 sed -i'' -e 's|kubernetesVersion: .*|kubernetesVersion: '$KUBERNETES_VERSION'|' examples/_out/controlplane.yaml
+
+echo "NOTE: Ensure that the cert-manager components are running before creating the provider-components, cluster and control-plane."

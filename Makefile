@@ -294,7 +294,7 @@ release-notes: $(RELEASE_NOTES)
 ## --------------------------------------
 
 .PHONY: create-cluster-management
-create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+create-cluster-management: $(CLUSTERCTL) generate-examples ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
 	kind create cluster --name=clusterapi
 	@if [ ! -z "${LOAD_IMAGE}" ]; then \
 		echo "loading ${LOAD_IMAGE} into kind cluster ..." && \
@@ -303,7 +303,7 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 	# Install cert manager.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
-		create -f https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml
+		create -f examples/_out/cert-manager.yaml
 	# Wait for cert-manager pods to be created
 	sleep 20
 	# Wait for cert-manager pods to be ready.
