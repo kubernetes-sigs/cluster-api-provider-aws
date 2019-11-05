@@ -35,7 +35,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -72,8 +71,12 @@ var _ = Describe("functional tests", func() {
 		awsMachineTemplateName  string
 		testTmpDir              string
 		initialReplicas         int32
+		cancelWatches           context.CancelFunc
 	)
 	BeforeEach(func() {
+		var ctx context.Context
+		ctx, cancelWatches = context.WithCancel(context.Background())
+
 		var err error
 		testTmpDir, err = ioutil.TempDir(suiteTmpDir, "aws-test")
 		Expect(err).NotTo(HaveOccurred())
@@ -83,11 +86,7 @@ var _ = Describe("functional tests", func() {
 
 		go func() {
 			defer GinkgoRecover()
-			stopWatch := make(chan struct{})
-			defer close(stopWatch)
-			stopLog := make(chan struct{})
-			defer close(stopLog)
-			watchEvents(namespace, stopWatch, stopLog)
+			watchEvents(ctx, namespace)
 		}()
 
 		clusterName = "test-" + util.RandomString(6)
@@ -99,6 +98,10 @@ var _ = Describe("functional tests", func() {
 		machineDeploymentName = "test-capa-md" + util.RandomString(6)
 		awsMachineTemplateName = "test-infra-capa-mt" + util.RandomString(6)
 		initialReplicas = 2
+	})
+
+	AfterEach(func() {
+		defer cancelWatches()
 	})
 
 	Describe("workload cluster lifecycle", func() {
@@ -152,7 +155,7 @@ var _ = Describe("functional tests", func() {
 	})
 })
 
-func watchEvents(namespace string, stopWatch, stopLog <-chan struct{}) {
+func watchEvents(ctx context.Context, namespace string) {
 	logFile := path.Join(artifactPath, "resources", namespace, "events.log")
 	fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
 	Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
@@ -181,8 +184,11 @@ func watchEvents(namespace string, stopWatch, stopLog <-chan struct{}) {
 		DeleteFunc: func(obj interface{}) {},
 	})
 
-	informerFactory.Start(stopWatch)
-	wait.Until(func() {}, 10*time.Second, stopLog)
+	stopInformer := make(chan struct{})
+	defer close(stopInformer)
+	informerFactory.Start(stopInformer)
+	<-ctx.Done()
+	stopInformer <- struct{}{}
 }
 
 func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent int32, replicasProposed int32) {
