@@ -142,9 +142,9 @@ init_image() {
     # Ensure go is available in PATH
     ln -s /usr/local/go/bin/go /usr/bin/go
     # install goss plugin
-    su - packer -c "bash -c 'cd /go/src/sigs.k8s.io/image-builder/images/capi/packer/ami && make plugins'"
+    su - packer -c "bash -c 'cd /home/prow/go/src/sigs.k8s.io/image-builder/images/capi/packer/ami && make plugins'"
     # use the packer user to run the build
-    su - packer -c "bash -c 'cd /go/src/sigs.k8s.io/image-builder/images/capi && AWS_REGION=$AWS_REGION AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-""} AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-""} make build-ami-default'"
+    su - packer -c "bash -c 'cd /home/prow/go/src/sigs.k8s.io/image-builder/images/capi && AWS_REGION=$AWS_REGION AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-""} AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-""} make build-ami-default'"
   fi
 
   eval "$tracestate"
