@@ -84,7 +84,7 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
 fi
 
 # TODO(dims): remove "SKIP_INIT_IMAGE" once we fix problem building images in CI
-hack/ci/e2e-conformance.sh --verbose --skip-init-image --use-ci-artifacts
+hack/ci/e2e-conformance.sh --verbose --skip-init-image $*
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
