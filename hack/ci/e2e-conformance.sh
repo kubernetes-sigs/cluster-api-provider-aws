@@ -58,6 +58,15 @@ dump-logs() {
   # dump cluster info for kind
   kubectl --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") cluster-info dump > "${ARTIFACTS}/logs/kind-cluster.info" || true
 
+  # dump cluster info for kind
+  echo "=== aws ec2 describe-instances ===" >> "${ARTIFACTS}/logs/capa-cluster.info" || true
+  aws ec2 describe-instances --region "${AWS_REGION}" >> "${ARTIFACTS}/logs/capa-cluster.info" || true
+  echo "=== cluster-info dump ===" >> "${ARTIFACTS}/logs/capa-cluster.info" || true
+  kubectl --kubeconfig=${PWD}/kubeconfig cluster-info dump >> "${ARTIFACTS}/logs/capa-cluster.info" || true
+
+  # dump cluster info for kind
+  kubectl --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") cluster-info dump > "${ARTIFACTS}/logs/kind-cluster.info" || true
+
   # export all logs from kind
   kind "export" logs --name="clusterapi" "${ARTIFACTS}/logs" || true
 }
@@ -339,6 +348,26 @@ main() {
     fi
   done
 
+  if [[ -z "AWS_ACCESS_KEY_ID" ]]; then
+    cat <<EOF
+AWS_ACCESS_KEY_ID is not set.
+EOF
+    return 2
+  fi
+  if [[ -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+    cat <<EOF
+AWS_SECRET_ACCESS_KEY is not set.
+EOF
+    return 2
+  fi
+  if [[ -z "$AWS_REGION" ]]; then
+    cat <<EOF
+AWS_REGION is not set.
+Please specify which the AWS region to use.
+EOF
+    return 2
+  fi
+
   # create temp dir and setup cleanup
   TMP_DIR=$(mktemp -d)
   SKIP_CLEANUP=${SKIP_CLEANUP:-""}
@@ -353,17 +382,18 @@ main() {
   source "${REPO_ROOT}/hack/ensure-kind.sh"
 
   build
+  generate_manifests
+  if [[ ${USE_CI_ARTIFACTS:-""} == "yes" || ${USE_CI_ARTIFACTS:-""} == "1" ]]; then
+    echo "Fixing manifests to use latest CI artifacts..."
+    fix_manifests
+  fi
   SKIP_INIT_IMAGE=${SKIP_INIT_IMAGE:-""}
   if [[ "${SKIP_INIT_IMAGE}" == "yes" || "${SKIP_INIT_IMAGE}" == "1" ]]; then
     echo "Skipping image initialization..."
   else
     init_image
   fi
-  generate_manifests
-  if [[ ${USE_CI_ARTIFACTS:-""} == "yes" || ${USE_CI_ARTIFACTS:-""} == "1" ]]; then
-    echo "Fixing manifests to use latest CI artifacts..."
-    fix_manifests
-  fi
+
   create_stack
   create_key_pair
   create_cluster
