@@ -186,6 +186,26 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
 			os.Exit(1)
 		}
+		if err = (&infrav1alpha3.AWSMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplateList")
+			os.Exit(1)
+		}
+		if err = (&infrav1alpha3.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
+			os.Exit(1)
+		}
+		if err = (&infrav1alpha3.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
+			os.Exit(1)
+		}
+		if err = (&infrav1alpha3.AWSMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineList")
+			os.Exit(1)
+		}
+		if err = (&infrav1alpha3.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
