@@ -22,8 +22,10 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -33,6 +35,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -67,14 +71,23 @@ var _ = Describe("functional tests", func() {
 		awsMachineTemplateName  string
 		testTmpDir              string
 		initialReplicas         int32
+		cancelWatches           context.CancelFunc
 	)
 	BeforeEach(func() {
+		var ctx context.Context
+		ctx, cancelWatches = context.WithCancel(context.Background())
+
 		var err error
 		testTmpDir, err = ioutil.TempDir(suiteTmpDir, "aws-test")
 		Expect(err).NotTo(HaveOccurred())
 
 		namespace = "test-" + util.RandomString(6)
 		createNamespace(namespace)
+
+		go func() {
+			defer GinkgoRecover()
+			watchEvents(ctx, namespace)
+		}()
 
 		clusterName = "test-" + util.RandomString(6)
 		awsClusterName = "test-infra-" + util.RandomString(6)
@@ -85,6 +98,10 @@ var _ = Describe("functional tests", func() {
 		machineDeploymentName = "test-capa-md" + util.RandomString(6)
 		awsMachineTemplateName = "test-infra-capa-mt" + util.RandomString(6)
 		initialReplicas = 2
+	})
+
+	AfterEach(func() {
+		defer cancelWatches()
 	})
 
 	Describe("workload cluster lifecycle", func() {
@@ -134,10 +151,45 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(namespace, clusterName)
-
 		})
 	})
 })
+
+func watchEvents(ctx context.Context, namespace string) {
+	logFile := path.Join(artifactPath, "resources", namespace, "events.log")
+	fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
+	Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	Expect(err).NotTo(HaveOccurred())
+	defer f.Close()
+
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(
+		clientSet,
+		10*time.Minute,
+		informers.WithNamespace(namespace),
+	)
+	eventInformer := informerFactory.Core().V1().Events().Informer()
+	eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			e := obj.(*corev1.Event)
+			f.WriteString(fmt.Sprintf("[New Event] %s/%s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
+				e.Namespace, e.Name, e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e))
+		},
+		UpdateFunc: func(_, obj interface{}) {
+			e := obj.(*corev1.Event)
+			f.WriteString(fmt.Sprintf("[Updated Event] %s/%s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
+				e.Namespace, e.Name, e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e))
+		},
+		DeleteFunc: func(obj interface{}) {},
+	})
+
+	stopInformer := make(chan struct{})
+	defer close(stopInformer)
+	informerFactory.Start(stopInformer)
+	<-ctx.Done()
+	stopInformer <- struct{}{}
+}
 
 func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent int32, replicasProposed int32) {
 	fmt.Fprintf(GinkgoWriter, "Scaling MachineDeployment from %d to %d\n", replicasCurrent, replicasProposed)

@@ -38,6 +38,9 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=../hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
+ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
+mkdir -p "$ARTIFACTS/logs/"
+
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then
   # Check out the account from Boskos and store the produced environment
@@ -62,8 +65,6 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
 
   # run the heart beat process to tell boskos that we are still
   # using the checked out account periodically
-  ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
-  mkdir -p "$ARTIFACTS/logs/"
   python -u hack/heartbeat_account.py >> $ARTIFACTS/logs/boskos.log 2>&1 &
   HEART_BEAT_PID=$(echo $!)
 fi
@@ -76,7 +77,7 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
   exit 1
 fi
 
-make test-e2e
+make test-e2e ARTIFACTS=$ARTIFACTS
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
