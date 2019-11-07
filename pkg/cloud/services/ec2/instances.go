@@ -385,7 +385,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		s.scope.V(2).Info("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
 	}
 
-	return converters.SDKToInstance(out.Instances[0]), nil
+	return s.SDKToInstance(out.Instances[0])
 }
 
 // An internal type to satisfy aws' log interface.
@@ -544,7 +544,7 @@ func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, err
 }
 
 // SDKToInstance converts an AWS EC2 SDK instance to the CAPA instance type.
-// converters.SDKToInstance populates all instance fields except for rootVolumeSize,
+// SDKToInstance populates all instance fields except for rootVolumeSize,
 // because EC2.DescribeInstances does not return the size of storage devices. An
 // additional call to EC2 is required to get this value.
 func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {

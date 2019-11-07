@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -121,7 +120,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 	for _, res := range out.Reservations {
 		for _, instance := range res.Instances {
 			if aws.StringValue(instance.State.Name) != ec2.InstanceStateNameTerminated {
-				return converters.SDKToInstance(instance), nil
+				return s.SDKToInstance(instance)
 			}
 		}
 	}
