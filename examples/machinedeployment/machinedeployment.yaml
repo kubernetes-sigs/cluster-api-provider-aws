@@ -36,8 +36,6 @@ spec:
   template:
     spec:
       instanceType: ${NODE_MACHINE_TYPE}
-      ami:
-        id: ${IMAGE_ID}
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${SSH_KEY_NAME}"
 ---

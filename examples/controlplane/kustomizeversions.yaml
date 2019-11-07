@@ -209,3 +209,27 @@ spec:
         echo "kubelet version: " $(kubelet --version)
 
         echo "$LINE_SEPARATOR"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AWSMachine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-0
+spec:
+  ami:
+    id: ${IMAGE_ID}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AWSMachine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-1
+spec:
+  ami:
+    id: ${IMAGE_ID}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AWSMachine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-2
+spec:
+  ami:
+    id: ${IMAGE_ID}
