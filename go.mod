@@ -16,7 +16,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7 // indirect
+	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
 	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
 	golang.org/x/sys v0.0.0-20190911201528-7ad0cfa0b7b5 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
