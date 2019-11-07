@@ -5,6 +5,9 @@ kind: CustomResourceDefinition
 metadata:
   name: awsclusters.infrastructure.cluster.x-k8s.io
 spec:
+  # preserveUnknownFields was added manually. When https://github.com/kubernetes-sigs/controller-tools/issues/281 is
+  # closed and a new controller-tools version is released we can use the PreserveUnknownFields marker and remove it
+  preserveUnknownFields: false
   conversion:
     strategy: Webhook
     webhookClientConfig:

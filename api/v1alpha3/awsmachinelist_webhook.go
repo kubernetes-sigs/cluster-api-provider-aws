@@ -13,5 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3
-package v1alpha2
+
+package v1alpha3
+
+import (
+	ctrl "sigs.k8s.io/controller-runtime"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+)
+
+// log is for logging in this package.
+var _ = logf.Log.WithName("awsmachinelist-resource")
+
+func (r *AWSMachineList) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(r).
+		Complete()
+}

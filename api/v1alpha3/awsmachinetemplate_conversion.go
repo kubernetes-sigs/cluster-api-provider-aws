@@ -13,5 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3
-package v1alpha2
+
+package v1alpha3
+
+// Hub marks AWSMachineTemplate as a conversion hub.
+func (*AWSMachineTemplate) Hub() {}
+
+// Hub marks AWSMachineTemplateList as a conversion hub.
+func (*AWSMachineTemplateList) Hub() {}
