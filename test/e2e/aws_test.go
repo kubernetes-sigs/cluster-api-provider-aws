@@ -271,21 +271,24 @@ func makeMachineDeployment(namespace, mdName, awsMachineTemplateName, bootstrapC
 			Name:      mdName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"nodepool": mdName,
+				"cluster.x-k8s.io/cluster-name": clusterName,
+				"nodepool":                      mdName,
 			},
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			Replicas: &replicas,
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"nodepool": mdName,
+					"cluster.x-k8s.io/cluster-name": clusterName,
+					"nodepool":                      mdName,
 				},
 			},
 			ClusterName: clusterName,
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{
-						"nodepool": mdName,
+						"cluster.x-k8s.io/cluster-name": clusterName,
+						"nodepool":                      mdName,
 					},
 				},
 				Spec: clusterv1.MachineSpec{
