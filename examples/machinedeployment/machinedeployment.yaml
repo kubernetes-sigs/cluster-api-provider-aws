@@ -24,10 +24,10 @@ spec:
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: ${CLUSTER_NAME}-md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: AWSMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AWSMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -35,8 +35,6 @@ spec:
   template:
     spec:
       instanceType: ${NODE_MACHINE_TYPE}
-      ami:
-        id: ${IMAGE_ID}
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${SSH_KEY_NAME}"
 ---
