@@ -24,8 +24,6 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-0
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  ami:
-    id: ${IMAGE_ID}
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
@@ -72,8 +70,6 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-1
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  ami:
-    id: ${IMAGE_ID}
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
@@ -114,8 +110,6 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane-2
 spec:
   instanceType: ${CONTROL_PLANE_MACHINE_TYPE}
-  ami:
-    id: ${IMAGE_ID}
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
