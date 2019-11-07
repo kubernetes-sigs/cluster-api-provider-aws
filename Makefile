@@ -293,8 +293,10 @@ release-notes: $(RELEASE_NOTES)
 ## Development
 ## --------------------------------------
 
+# NOTE: do not add 'generate-exmaples' as a prerequisite of this target. It will break e2e conformance testing.
 .PHONY: create-cluster-management
-create-cluster-management: $(CLUSTERCTL) generate-examples ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+	@if [[ ! -f examples/_out/cert-manager.yaml ]]; then echo "Examples are missing. Run 'make generate-examples' first."; exit 1; fi
 	kind create cluster --name=clusterapi
 	@if [ ! -z "${LOAD_IMAGE}" ]; then \
 		echo "loading ${LOAD_IMAGE} into kind cluster ..." && \
