@@ -153,6 +153,24 @@ spec:
               bastion:
                 description: Instance describes an AWS instance.
                 properties:
+                  addresses:
+                    description: Addresses contains the AWS instance associated addresses.
+                    items:
+                      description: NodeAddress contains information for the node's
+                        address.
+                      properties:
+                        address:
+                          description: The node address.
+                          type: string
+                        type:
+                          description: Node address type, one of Hostname, ExternalIP
+                            or InternalIP.
+                          type: string
+                      required:
+                      - address
+                      - type
+                      type: object
+                    type: array
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -560,6 +578,24 @@ spec:
               bastion:
                 description: Instance describes an AWS instance.
                 properties:
+                  addresses:
+                    description: Addresses contains the AWS instance associated addresses.
+                    items:
+                      description: NodeAddress contains information for the node's
+                        address.
+                      properties:
+                        address:
+                          description: The node address.
+                          type: string
+                        type:
+                          description: Node address type, one of Hostname, ExternalIP
+                            or InternalIP.
+                          type: string
+                      required:
+                      - address
+                      - type
+                      type: object
+                    type: array
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
