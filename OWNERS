@@ -2,7 +2,6 @@
 
 approvers:
   - sig-cluster-lifecycle-leads
-  - sig-aws-leads
   - cluster-api-admins
   - cluster-api-maintainers
   - cluster-api-aws-maintainers
@@ -11,3 +10,8 @@ reviewers:
   - cluster-api-maintainers
   - cluster-api-aws-maintainers
   - cluster-api-aws-reviewers
+
+emeritus_approvers:
+  - davidewatson
+  - ingvagabund
+  - enxebre
