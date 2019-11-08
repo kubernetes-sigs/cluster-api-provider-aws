@@ -69,6 +69,33 @@ dump-logs() {
 
   # export all logs from kind
   kind "export" logs --name="clusterapi" "${ARTIFACTS}/logs" || true
+
+  jump_node=$(aws ec2 describe-instances --region $AWS_REGION --query "Reservations[*].Instances[*].PublicIpAddress" --output text | head -1)
+  for node in $(aws ec2 describe-instances --region $AWS_REGION --query "Reservations[*].Instances[*].PrivateIpAddress" --output text | tail -n +2)
+  do
+    echo "collecting logs from ${node} using jump host ${jump_node}"
+    dir="${ARTIFACTS}/logs/${node}"
+    mkdir -p ${dir}
+    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --output=short-precise -k" > "${dir}/kern.log" || true
+    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --output=short-precise" > "${dir}/systemd.log" || true
+    ssh-to-node "${node}" "${jump_node}" "sudo crictl version && sudo crictl info" > "${dir}/containerd.info" || true
+    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u cloud-final" > "${dir}/cloud-final.log" || true
+    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u kubelet.service" > "${dir}/kubelet.log" || true
+    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u containerd.service" > "${dir}/containerd.log" || true
+  done
+}
+
+# SSH to a node by name ($1) via jump server ($2) and run a command ($3).
+function ssh-to-node() {
+  local node="$1"
+  local jump="$2"
+  local cmd="$3"
+
+  scp -i /tmp/default.pem /tmp/default.pem ubuntu@${jump}:/tmp/default.pem
+  ssh_params="-o LogLevel=quiet -o ConnectTimeout=30 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+  ssh $ssh_params -i /tmp/default.pem \
+    -o "ProxyCommand ssh $ssh_params -W %h:%p -i /tmp/default.pem ubuntu@${jump}" \
+    ubuntu@${node} "${cmd}"
 }
 
 # cleanup all resources we use
@@ -244,13 +271,18 @@ fix_manifests() {
 
 
 create_key_pair() {
-  (aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.json && KEY_PAIR_CREATED="true") || true
+  (aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.json \
+   && KEY_PAIR_CREATED="true" \
+   && jq -r '.KeyMaterial' /tmp/keypair-default.json > /tmp/default.pem \
+   && chmod 600 /tmp/default.pem) || true
 }
 
 delete_key_pair() {
   # Delete only if we created it
   if [[ "${KEY_PAIR_CREATED:-}" = true ]]; then
     aws ec2 delete-key-pair --key-name default --region ${AWS_REGION} || true
+    rm /tmp/keypair-default.json || true
+    rm /tmp/default.pem || true
   fi
 }
 
