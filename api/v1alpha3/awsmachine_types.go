@@ -39,6 +39,10 @@ type AWSMachineSpec struct {
 	// ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.
 	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
 
+	// ImageLookupBaseOS is the name of the base operating system to use for
+	// image lookup the AMI is not set.
+	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
+
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType,omitempty"`
 

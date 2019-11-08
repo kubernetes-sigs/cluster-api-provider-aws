@@ -32,27 +32,33 @@ const (
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
 	defaultMachineAMIOwnerID = "258751437250"
 
+	// defaultMachineAMILookupBaseOS is the default base operating system to use
+	// when looking up machine AMIs
+	defaultMachineAMILookupBaseOS = "ubuntu-18.04"
+
 	// amiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
-	// 1. the string value `ami-`
-	// 2. the baseOS of the AMI, for example: ubuntu, centos, amazon
-	// 3. the version of the baseOS, for example: 18.04 (ubuntu), 7 (centos), 2 (amazon)
-	// 4. the kubernetes version as defined by the packages produced by kubernetes/release, for example: 1.13.0-00, 1.12.5-01
-	// 5. the timestamp that the AMI was built
-	amiNameFormat = "capa-ami-%s-%s-%s-??-??????????"
+	// 1. the string value `capa-ami-`
+	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
+	// 3. the kubernetes version as defined by the packages produced by kubernetes/release, for example: 1.13.0-00, 1.12.5-01
+	// 4. the timestamp that the AMI was built
+	amiNameFormat = "capa-ami-%s-%s-??-??????????"
 
 	// Amazon's AMI timestamp format
 	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
 )
 
-func amiName(baseOS, baseOSVersion, kubernetesVersion string) string {
-	return fmt.Sprintf(amiNameFormat, baseOS, baseOSVersion, strings.TrimPrefix(kubernetesVersion, "v"))
+func amiName(baseOS, kubernetesVersion string) string {
+	return fmt.Sprintf(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
 }
 
 // defaultAMILookup returns the default AMI based on region
-func (s *Service) defaultAMILookup(ownerID, baseOS, baseOSVersion, kubernetesVersion string) (string, error) {
+func (s *Service) defaultAMILookup(ownerID, baseOS, kubernetesVersion string) (string, error) {
 	if ownerID == "" {
 		ownerID = defaultMachineAMIOwnerID
+	}
+	if baseOS == "" {
+		baseOS = defaultMachineAMILookupBaseOS
 	}
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
@@ -62,7 +68,7 @@ func (s *Service) defaultAMILookup(ownerID, baseOS, baseOSVersion, kubernetesVer
 			},
 			{
 				Name:   aws.String("name"),
-				Values: []*string{aws.String(amiName(baseOS, baseOSVersion, kubernetesVersion))},
+				Values: []*string{aws.String(amiName(baseOS, kubernetesVersion))},
 			},
 			{
 				Name:   aws.String("architecture"),
@@ -81,10 +87,10 @@ func (s *Service) defaultAMILookup(ownerID, baseOS, baseOSVersion, kubernetesVer
 
 	out, err := s.scope.EC2.DescribeImages(describeImageInput)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to find ami: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
+		return "", errors.Wrapf(err, "failed to find ami: %q", amiName(baseOS, kubernetesVersion))
 	}
 	if len(out.Images) == 0 {
-		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, baseOSVersion, kubernetesVersion))
+		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, kubernetesVersion))
 	}
 	latestImage, err := getLatestImage(out.Images)
 	if err != nil {

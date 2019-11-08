@@ -497,7 +497,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("ubuntu", "18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName("ubuntu-18.04", "v1.16.1"))},
 							},
 							{
 								Name:   aws.String("architecture"),
@@ -610,7 +610,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("ubuntu", "18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName("ubuntu-18.04", "v1.16.1"))},
 							},
 							{
 								Name:   aws.String("architecture"),
@@ -724,7 +724,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("ubuntu", "18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName("ubuntu-18.04", "v1.16.1"))},
 							},
 							{
 								Name:   aws.String("architecture"),
