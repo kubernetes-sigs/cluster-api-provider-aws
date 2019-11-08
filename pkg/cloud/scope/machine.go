@@ -155,6 +155,11 @@ func (m *MachineScope) SetReady() {
 	m.AWSMachine.Status.Ready = true
 }
 
+// SetNotReady sets the AWSMachine Ready Status to false
+func (m *MachineScope) SetNotReady() {
+	m.AWSMachine.Status.Ready = false
+}
+
 // SetErrorMessage sets the AWSMachine status error message.
 func (m *MachineScope) SetErrorMessage(v error) {
 	m.AWSMachine.Status.ErrorMessage = pointer.StringPtr(v.Error())

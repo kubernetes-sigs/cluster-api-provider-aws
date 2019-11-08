@@ -189,13 +189,13 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		// and AWSMachine
 		// 3. Issue a delete
 		// 4. Scale controller deployment to 1
-		machineScope.V(2).Info("Unable to locate instance by ID or tags")
+		machineScope.V(2).Info("Unable to locate EC2 instance by ID or tags")
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
 		machineScope.AWSMachine.Finalizers = util.Filter(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
 		return reconcile.Result{}, nil
 	}
 
-	machineScope.V(3).Info("Instance found matching deleted AWSMachine", "instanceID", instance.ID)
+	machineScope.V(3).Info("EC2 instance found matching deleted AWSMachine", "instance-id", instance.ID)
 
 	// Check the instance state. If it's already shutting down or terminated,
 	// do nothing. Otherwise attempt to delete it.
@@ -203,9 +203,9 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 	switch instance.State {
 	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
-		machineScope.Info("Instance is shutting down or already terminated", "instanceID", instance.ID)
+		machineScope.Info("EC2 instance is shutting down or already terminated", "instance-id", instance.ID)
 	default:
-		machineScope.Info("Terminating instance", "instanceID", instance.ID)
+		machineScope.Info("Terminating EC2 instance", "instance-id", instance.ID)
 		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
 			return reconcile.Result{}, errors.Wrap(err, "failed to terminate instance")
@@ -231,6 +231,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 			}
 		}
 
+		machineScope.Info("EC2 instance successfully terminated", "instance-id", instance.ID)
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
 	}
 
@@ -276,6 +277,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// If the AWSMachine doesn't have our finalizer, add it.
 	if !util.Contains(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer) {
+		machineScope.V(1).Info("Adding Cluster API Provider AWS finalizer")
 		machineScope.AWSMachine.Finalizers = append(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
 	}
 
@@ -300,6 +302,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// Set an error message if we couldn't find the instance.
 	if instance == nil {
+		machineScope.Info("EC2 instance cannot be found")
 		machineScope.SetErrorReason(capierrors.UpdateMachineError)
 		machineScope.SetErrorMessage(errors.New("EC2 instance cannot be found"))
 		return reconcile.Result{}, nil
@@ -308,6 +311,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	// TODO(ncdc): move this validation logic into a validating webhook
 	if errs := r.validateUpdate(&machineScope.AWSMachine.Spec, instance); len(errs) > 0 {
 		agg := kerrors.NewAggregate(errs)
+		machineScope.Info("Invalid update", "failedUpdates", agg.Error())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InvalidUpdate", "Invalid update: %s", agg.Error())
 		return reconcile.Result{}, nil
 	}
@@ -315,21 +319,36 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	// Make sure Spec.ProviderID is always set.
 	machineScope.SetProviderID(fmt.Sprintf("aws:////%s", instance.ID))
 
-	// Proceed to reconcile the AWSMachine state.
+	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
+
+	existingInstanceState := machineScope.GetInstanceState()
 	machineScope.SetInstanceState(instance.State)
 
-	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
-	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
+	// Proceed to reconcile the AWSMachine state.
+	if existingInstanceState == nil || *existingInstanceState != instance.State {
+		machineScope.Info("EC2 instance state changed", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+	}
 
 	machineScope.SetAddresses(instance.Addresses)
 
 	switch instance.State {
+	case infrav1.InstanceStatePending, infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
+		machineScope.SetNotReady()
 	case infrav1.InstanceStateRunning:
-		machineScope.Info("Machine instance is running", "instance-id", *machineScope.GetInstanceID())
 		machineScope.SetReady()
-	case infrav1.InstanceStatePending:
-		machineScope.Info("Machine instance is pending", "instance-id", *machineScope.GetInstanceID())
+	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
+		machineScope.SetNotReady()
+		machineScope.Info("Unexpected EC2 instance termination", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnexpectedTermination", "Unexpected EC2 instance termination")
 	default:
+		machineScope.SetNotReady()
+		machineScope.Info("EC2 instance state is undefined", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnhandledState", "EC2 instance state is undefined")
+		machineScope.SetErrorReason(capierrors.UpdateMachineError)
+		machineScope.SetErrorMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
+	}
+
+	if instance.State == infrav1.InstanceStateTerminated {
 		machineScope.SetErrorReason(capierrors.UpdateMachineError)
 		machineScope.SetErrorMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
 	}
@@ -337,6 +356,9 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
 	}
+
+	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
+	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
 
 	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
 	if err != nil {
@@ -365,10 +387,11 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc ser
 	}
 
 	if instance == nil {
+		scope.Info("Creating EC2 instance")
 		// Create a new AWSMachine instance if we couldn't find a running instance.
 		instance, err = ec2svc.CreateInstance(scope)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create AWSMachine instance")
+			return nil, errors.Wrapf(err, "failed to create EC2 instance")
 		}
 	}
 
@@ -392,14 +415,21 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 // validateUpdate checks that no immutable fields have been updated and
 // returns a slice of errors representing attempts to change immutable state.
 func (r *AWSMachineReconciler) validateUpdate(spec *infrav1.AWSMachineSpec, i *infrav1.Instance) (errs []error) {
+
+	// EC2 instance attributes start disapearing during shutdown and termination, so do not
+	// perform more checks
+	if i.State == infrav1.InstanceStateTerminated || i.State == infrav1.InstanceStateShuttingDown {
+		return nil
+	}
+
 	// Instance Type
 	if spec.InstanceType != i.Type {
-		errs = append(errs, errors.Errorf("instance type cannot be mutated from %q to %q", i.Type, spec.InstanceType))
+		errs = append(errs, errors.Errorf("EC2 instance type cannot be mutated from %q to %q", i.Type, spec.InstanceType))
 	}
 
 	// IAM Profile
 	if spec.IAMInstanceProfile != i.IAMProfile {
-		errs = append(errs, errors.Errorf("instance IAM profile cannot be mutated from %q to %q", i.IAMProfile, spec.IAMInstanceProfile))
+		errs = append(errs, errors.Errorf("EC2 instance IAM profile cannot be mutated from %q to %q", i.IAMProfile, spec.IAMInstanceProfile))
 	}
 
 	// SSH Key Name (also account for default)
