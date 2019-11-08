@@ -380,7 +380,7 @@ main() {
     fi
   done
 
-  if [[ -z "AWS_ACCESS_KEY_ID" ]]; then
+  if [[ -z "$AWS_ACCESS_KEY_ID" ]]; then
     cat <<EOF
 AWS_ACCESS_KEY_ID is not set.
 EOF
