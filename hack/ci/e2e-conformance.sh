@@ -371,6 +371,26 @@ main() {
     fi
   done
 
+  if [[ -z "$AWS_ACCESS_KEY_ID" ]]; then
+    cat <<EOF
+AWS_ACCESS_KEY_ID is not set.
+EOF
+    return 2
+  fi
+  if [[ -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+    cat <<EOF
+AWS_SECRET_ACCESS_KEY is not set.
+EOF
+    return 2
+  fi
+  if [[ -z "$AWS_REGION" ]]; then
+    cat <<EOF
+AWS_REGION is not set.
+Please specify which the AWS region to use.
+EOF
+    return 2
+  fi
+
   # create temp dir and setup cleanup
   TMP_DIR=$(mktemp -d)
   SKIP_CLEANUP=${SKIP_CLEANUP:-""}
