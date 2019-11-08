@@ -20,6 +20,8 @@ set -o errexit -o nounset -o pipefail
 
 REGISTRY=${REGISTRY:-"gcr.io/"$(gcloud config get-value project)}
 AWS_REGION=${AWS_REGION:-"us-east-1"}
+CLUSTER_NAME=${CLUSTER_NAME:-test1}
+SSH_KEY_NAME=${SSH_KEY_NAME:-"${CLUSTER_NAME}-key"}
 KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.16.1"}
 TIMESTAMP=$(date +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -82,10 +84,11 @@ function ssh-to-node() {
   local jump="$2"
   local cmd="$3"
 
-  scp -i /tmp/default.pem /tmp/default.pem ubuntu@${jump}:/tmp/default.pem
+  ssh_key_pem="/tmp/${SSH_KEY_NAME}.pem"
+  scp -i $ssh_key_pem $ssh_key_pem "ubuntu@${jump}:$ssh_key_pem"
   ssh_params="-o LogLevel=quiet -o ConnectTimeout=30 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-  ssh $ssh_params -i /tmp/default.pem \
-    -o "ProxyCommand ssh $ssh_params -W %h:%p -i /tmp/default.pem ubuntu@${jump}" \
+  ssh $ssh_params -i $ssh_key_pem \
+    -o "ProxyCommand ssh $ssh_params -W %h:%p -i $ssh_key_pem ubuntu@${jump}" \
     ubuntu@${node} "${cmd}"
 }
 
@@ -95,10 +98,10 @@ cleanup() {
   if [[ "${KIND_IS_UP:-}" = true ]]; then
     timeout 600 kubectl \
       --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") \
-      delete cluster test1 || true
+      delete cluster ${CLUSTER_NAME} || true
      timeout 600 kubectl \
       --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") \
-      wait --for=delete cluster/test1 || true
+      wait --for=delete cluster/${CLUSTER_NAME} || true
     make kind-reset || true
   fi
   # clean up e2e.test symlink
@@ -243,6 +246,8 @@ generate_manifests() {
   AWS_REGION=${AWS_REGION} \
   KUBERNETES_VERSION=$KUBERNETES_VERSION \
   IMAGE_ID=$image_id \
+  CLUSTER_NAME=$CLUSTER_NAME \
+  SSH_KEY_NAME=$SSH_KEY_NAME \
     make modules docker-build generate-examples
 }
 
@@ -262,18 +267,18 @@ fix_manifests() {
 
 
 create_key_pair() {
-  (aws ec2 create-key-pair --key-name default --region ${AWS_REGION} > /tmp/keypair-default.json \
+  (aws ec2 create-key-pair --key-name ${SSH_KEY_NAME} --region ${AWS_REGION} > /tmp/keypair-${SSH_KEY_NAME}.json \
    && KEY_PAIR_CREATED="true" \
-   && jq -r '.KeyMaterial' /tmp/keypair-default.json > /tmp/default.pem \
-   && chmod 600 /tmp/default.pem) || true
+   && jq -r '.KeyMaterial' /tmp/keypair-${SSH_KEY_NAME}.json > /tmp/${SSH_KEY_NAME}.pem \
+   && chmod 600 /tmp/${SSH_KEY_NAME}.pem) || true
 }
 
 delete_key_pair() {
   # Delete only if we created it
   if [[ "${KEY_PAIR_CREATED:-}" = true ]]; then
-    aws ec2 delete-key-pair --key-name default --region ${AWS_REGION} || true
-    rm /tmp/keypair-default.json || true
-    rm /tmp/default.pem || true
+    aws ec2 delete-key-pair --key-name ${SSH_KEY_NAME} --region ${AWS_REGION} || true
+    rm /tmp/keypair-${SSH_KEY_NAME}.json || true
+    rm /tmp/${SSH_KEY_NAME}.pem || true
   fi
 }
 
