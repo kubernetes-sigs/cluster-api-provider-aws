@@ -125,6 +125,6 @@ echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "WARNING: ${PROVIDER_COMPONENTS_GENERATED_FILE} includes AWS credentials"
 
 # Patch kubernetes version
-sed -i'' -e 's|kubernetesVersion: .*|kubernetesVersion: '$KUBERNETES_VERSION'|' examples/_out/controlplane.yaml
+sed -i'' -e 's|kubernetesVersion: .*|kubernetesVersion: '$KUBERNETES_VERSION'|' ${OUTPUT_DIR}/controlplane.yaml
 
 echo "NOTE: Ensure that the cert-manager components are running before creating the provider-components, cluster and control-plane."
