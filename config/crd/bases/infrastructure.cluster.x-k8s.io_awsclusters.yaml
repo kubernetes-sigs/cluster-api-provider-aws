@@ -541,6 +541,11 @@ spec:
                         description: CidrBlock is the CIDR block to be used when the
                           provider creates a managed VPC. Defaults to 10.0.0.0/16.
                         type: string
+                      enableIPv6:
+                        description: EnableIPv6 requests an Amazon-provided IPv6 CIDR
+                          block with a /56 prefix length for the VPC. You cannot specify
+                          the range of IP addresses, or the size of the CIDR block.
+                        type: boolean
                       id:
                         description: ID is the vpc-id of the VPC this provider should
                           use to create resources.
@@ -548,6 +553,10 @@ spec:
                       internetGatewayId:
                         description: InternetGatewayID is the id of the internet gateway
                           associated with the VPC.
+                        type: string
+                      ipv6CidrBlock:
+                        description: Ipv6CidrBlock is the CIDR block provided by Amazon
+                          when VPC has enabled IPv6.
                         type: string
                       tags:
                         additionalProperties:

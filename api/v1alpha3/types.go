@@ -191,6 +191,16 @@ type VPCSpec struct {
 	// Defaults to 10.0.0.0/16.
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
+	// EnableIPv6 requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for
+	// the VPC. You cannot specify the range of IP addresses, or the size of the
+	// CIDR block.
+	// +optional
+	EnableIPv6 bool `json:"enableIPv6"`
+
+	// Ipv6CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// +optional
+	Ipv6CidrBlock *string `json:"ipv6CidrBlock,omitempty"`
+
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
 	// +optional
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
