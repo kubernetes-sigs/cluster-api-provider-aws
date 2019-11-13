@@ -34,6 +34,7 @@ import (
 
 const (
 	anyIPv4CidrBlock       = "0.0.0.0/0"
+	anyIPv6CidrBlock       = "::/0"
 	mainRouteTableInVPCKey = "main"
 )
 
@@ -84,6 +85,12 @@ func (s *Service) reconcileRouteTables() error {
 			}
 
 			routes = s.getDefaultPublicRoutes()
+			// NAT gateways are not supported for IPv6 traffic
+			// only check IPv6 routes on public subnets
+			if sn.IsIPv6 {
+				routes = append(routes, s.getDefaultPublicIPv6Routes()...)
+			}
+
 		} else {
 			natGatewayID, err := s.getNatGatewayForSubnet(sn)
 			if err != nil {
@@ -278,6 +285,15 @@ func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
 		{
 			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
 			GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
+		},
+	}
+}
+
+func (s *Service) getDefaultPublicIPv6Routes() []*ec2.Route {
+	return []*ec2.Route{
+		{
+			DestinationIpv6CidrBlock: aws.String(anyIPv6CidrBlock),
+			GatewayId:                aws.String(*s.scope.VPC().InternetGatewayID),
 		},
 	}
 }

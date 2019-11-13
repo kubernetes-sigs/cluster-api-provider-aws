@@ -112,6 +112,85 @@ func TestReconcileRouteTables(t *testing.T) {
 			},
 		},
 		{
+			name: "no routes existing, single private and single public, same AZ and ipv6 enabled",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-routetables",
+					EnableIPv6:        true,
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
+						ID:               "subnet-routetables-private",
+						IsPublic:         false,
+						IsIPv6:           true,
+						AvailabilityZone: "us-east-1a",
+					},
+					&infrav1.SubnetSpec{
+						ID:               "subnet-routetables-public",
+						IsPublic:         true,
+						IsIPv6:           true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				privateRouteTable := m.CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
+					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+
+				m.CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
+					NatGatewayId:         aws.String("nat-01"),
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					RouteTableId:         aws.String("rt-1"),
+				})).
+					After(privateRouteTable)
+
+				m.AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
+					RouteTableId: aws.String("rt-1"),
+					SubnetId:     aws.String("subnet-routetables-private"),
+				})).
+					Return(&ec2.AssociateRouteTableOutput{}, nil).
+					After(privateRouteTable)
+
+				publicRouteTable := m.CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
+					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-2")}}, nil)
+
+				m.CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
+					GatewayId:            aws.String("igw-01"),
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					RouteTableId:         aws.String("rt-2"),
+				})).
+					After(publicRouteTable)
+
+				m.CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
+					GatewayId:                aws.String("igw-01"),
+					DestinationIpv6CidrBlock: aws.String("::/0"),
+					RouteTableId:             aws.String("rt-2"),
+				})).
+					After(publicRouteTable)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+
+				m.AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
+					RouteTableId: aws.String("rt-2"),
+					SubnetId:     aws.String("subnet-routetables-public"),
+				})).
+					Return(&ec2.AssociateRouteTableOutput{}, nil).
+					After(publicRouteTable)
+			},
+		},
+		{
 			name: "subnets in different availability zones, returns error",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
