@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"net"
 	"strings"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -67,11 +68,21 @@ func (s *Service) reconcileSubnets() error {
 				return errors.New("expected at least one private subnet available for use, got 0")
 			}
 
-			subnets = append(subnets, &infrav1.SubnetSpec{
+			subnet := &infrav1.SubnetSpec{
 				CidrBlock:        defaultPrivateSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         false,
-			})
+			}
+
+			if s.scope.VPC().EnableIPv6 {
+				// The CIDR block has to have a /64 prefix size
+				// and use the prefix assigned to the VPC
+				// We use the aws_ipv6_prefix:0::/64
+				subnet.Ipv6CidrBlockID = aws.Uint8(0)
+				subnet.IsIPv6 = true
+			}
+
+			subnets = append(subnets, subnet)
 		}
 
 		if len(subnets.FilterPublic()) == 0 {
@@ -79,11 +90,20 @@ func (s *Service) reconcileSubnets() error {
 				return errors.New("expected at least one public subnet available for use, got 0")
 			}
 
-			subnets = append(subnets, &infrav1.SubnetSpec{
+			subnet := &infrav1.SubnetSpec{
 				CidrBlock:        defaultPublicSubnetCidr,
 				AvailabilityZone: zones[0],
 				IsPublic:         true,
-			})
+			}
+			if s.scope.VPC().EnableIPv6 {
+				// The CIDR block has to have a /64 prefix size
+				// and use the prefix assigned to the VPC
+				// We use  aws_ipv6_prefix:1::/64
+				subnet.Ipv6CidrBlockID = aws.Uint8(1)
+				subnet.IsIPv6 = true
+			}
+
+			subnets = append(subnets, subnet)
 		}
 	}
 
@@ -204,6 +224,13 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 			Tags:             converters.TagsToMap(ec2sn.Tags),
 		}
 
+		// A subnet is IPv6 if it has associated an IPv6 block
+		for _, ipv6Block := range ec2sn.Ipv6CidrBlockAssociationSet {
+			if *ipv6Block.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+				spec.IsIPv6 = true
+			}
+		}
+
 		// A subnet is public if it's tagged as such...
 		if spec.Tags.GetRole() == infrav1.PublicRoleTagValue {
 			spec.IsPublic = true
@@ -235,12 +262,26 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 }
 
 func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, error) {
-	out, err := s.scope.EC2.CreateSubnet(&ec2.CreateSubnetInput{
+	input := &ec2.CreateSubnetInput{
 		VpcId:            aws.String(s.scope.VPC().ID),
 		CidrBlock:        aws.String(sn.CidrBlock),
 		AvailabilityZone: aws.String(sn.AvailabilityZone),
-	})
+	}
 
+	if sn.IsIPv6 {
+		// Obtain the assigned /56 IPv6 prefix assigned to the VPC
+		_, ipv6CidrBlock, err := net.ParseCIDR(*s.scope.VPC().Ipv6CidrBlock)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse VPC assigned IPv6 prefix")
+		}
+		// Change the mask to /64 so we can assign a prefix to the subnet
+		ipv6CidrBlock.Mask = net.CIDRMask(64, 128)
+		// Configure the subnet number assigned
+		ipv6CidrBlock.IP[7] = *sn.Ipv6CidrBlockID
+		input.Ipv6CidrBlock = aws.String(ipv6CidrBlock.String())
+	}
+
+	out, err := s.scope.EC2.CreateSubnet(input)
 	if err != nil {
 		record.Warnf(s.scope.AWSCluster, "FailedCreateSubnet", "Failed creating new managed Subnet %v", err)
 		return nil, errors.Wrap(err, "failed to create subnet")
@@ -249,6 +290,11 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
+	if sn.IsIPv6 {
+		// Check the VPC has the IPv6 CIDR block associated
+		wReq.Filters = []*ec2.Filter{filterIPv6BlockAssociatedSubnet()}
+	}
+
 	if err := s.scope.EC2.WaitUntilSubnetAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
@@ -268,14 +314,24 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 
 	record.Eventf(s.scope.AWSCluster, "SuccessfulTagSubnet", "Tagged managed Subnet %q", *out.Subnet.SubnetId)
 
-	if sn.IsPublic {
+	// modify subnet attributes
+	// if the subnet is ipv4 and public then map public ips on launch
+	// if the subnet is ipv6 then assign ipv6 addresses on creation
+	if sn.IsPublic || sn.IsIPv6 {
 		attReq := &ec2.ModifySubnetAttributeInput{
-			MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
-				Value: aws.Bool(true),
-			},
 			SubnetId: out.Subnet.SubnetId,
 		}
-
+		// IPv6 subnets assign IPv6 on creation
+		// MapPublicIpOnLaunch and AssignIpv6AddressOnCreation are exclusive
+		if sn.IsIPv6 {
+			attReq.AssignIpv6AddressOnCreation = &ec2.AttributeBooleanValue{
+				Value: aws.Bool(true),
+			}
+		} else {
+			attReq.MapPublicIpOnLaunch = &ec2.AttributeBooleanValue{
+				Value: aws.Bool(true),
+			}
+		}
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.scope.EC2.ModifySubnetAttribute(attReq); err != nil {
 				return false, err
@@ -294,12 +350,35 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		"cidr-block", *out.Subnet.CidrBlock,
 		"availability-zone", *out.Subnet.AvailabilityZone)
 
-	return &infrav1.SubnetSpec{
+	output := &infrav1.SubnetSpec{
 		ID:               *out.Subnet.SubnetId,
 		AvailabilityZone: *out.Subnet.AvailabilityZone,
 		CidrBlock:        *out.Subnet.CidrBlock,
 		IsPublic:         sn.IsPublic,
-	}, nil
+		IsIPv6:           sn.IsIPv6,
+	}
+	if sn.IsIPv6 {
+		for _, ipv6Block := range out.Subnet.Ipv6CidrBlockAssociationSet {
+			if *ipv6Block.Ipv6CidrBlockState.State == ec2.SubnetCidrBlockStateCodeAssociated {
+				//we can only ever have 1 IPv6 block associated at once
+				s.scope.V(2).Info("IPv6 enabled with cidr",
+					"subnet-id", *out.Subnet.SubnetId,
+					"vpc-id", *out.Subnet.VpcId,
+					"ipv6-cidr-block", *ipv6Block.Ipv6CidrBlock)
+				_, ipv6CidrBlock, err := net.ParseCIDR(aws.StringValue(ipv6Block.Ipv6CidrBlock))
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to parse subnet associated IPv6 prefix in subnet %s", *out.Subnet.SubnetId)
+				}
+				// The IPv6 CIDR block has to have a /64 prefix size
+				// and uses a /56 prefix assigned to the VPC
+				// we use the 8th byte of the Vidr block to configure the subnet prefix
+				output.Ipv6CidrBlockID = aws.Uint8(ipv6CidrBlock.IP[7])
+				return output, nil
+			}
+		}
+		return nil, errors.Wrapf(err, "failed to find an associated IPv6 prefix to the subnet %s", *out.Subnet.SubnetId)
+	}
+	return output, nil
 }
 
 func (s *Service) deleteSubnet(id string) error {
@@ -348,5 +427,14 @@ func (s *Service) getSubnetTagParams(id string, public bool, manualTags infrav1.
 		Name:        aws.String(name.String()),
 		Role:        aws.String(role),
 		Additional:  additionalTags,
+	}
+}
+
+// returns a filter that checks that the ipv6 cidr block is associated to the subnet
+// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeSubnets.html
+func filterIPv6BlockAssociatedSubnet() *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String("ipv6-cidr-block-association.state"),
+		Values: aws.StringSlice([]string{ec2.SubnetCidrBlockStateCodeAssociated}),
 	}
 }

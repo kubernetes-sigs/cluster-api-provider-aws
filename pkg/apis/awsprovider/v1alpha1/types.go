@@ -183,6 +183,105 @@ type ClassicELBHealthCheck struct {
 	UnhealthyThreshold int64         `json:"unhealthyThreshold"`
 }
 
+// NetworkSpec encapsulates all things related to AWS network.
+type NetworkSpec struct {
+	// VPC configuration.
+	// +optional
+	VPC VPCSpec `json:"vpc,omitempty"`
+
+	// Subnets configuration.
+	// +optional
+	Subnets Subnets `json:"subnets,omitempty"`
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+type APIEndpoint struct {
+	// The hostname on which the API server is serving.
+	Host string `json:"host"`
+
+	// The port on which the API server is serving.
+	Port int `json:"port"`
+}
+
+// VPCSpec configures an AWS VPC.
+type VPCSpec struct {
+	// ID is the vpc-id of the VPC this provider should use to create resources.
+	ID string `json:"id,omitempty"`
+
+	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
+	// Defaults to 10.0.0.0/16.
+	CidrBlock string `json:"cidrBlock,omitempty"`
+
+	// EnableIPv6 requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for
+	// the VPC. You cannot specify the range of IP addresses, or the size of the
+	// CIDR block.
+	// +optional
+	EnableIPv6 bool `json:"enableIPv6"`
+
+	// Ipv6CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// +optional
+	Ipv6CidrBlock *string `json:"ipv6CidrBlock,omitempty"`
+
+	// InternetGatewayID is the id of the internet gateway associated with the VPC.
+	// +optional
+	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
+
+	// Tags is a collection of tags describing the resource.
+	Tags Tags `json:"tags,omitempty"`
+}
+
+// String returns a string representation of the VPC.
+func (v *VPCSpec) String() string {
+	return fmt.Sprintf("id=%s", v.ID)
+}
+
+// IsUnmanaged returns true if the VPC is unmanaged.
+func (v *VPCSpec) IsUnmanaged(clusterName string) bool {
+	return v.ID != "" && !v.Tags.HasOwned(clusterName)
+}
+
+// SubnetSpec configures an AWS Subnet.
+type SubnetSpec struct {
+	// ID defines a unique identifier to reference this resource.
+	ID string `json:"id,omitempty"`
+
+	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
+	CidrBlock string `json:"cidrBlock,omitempty"`
+
+	// AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
+	AvailabilityZone string `json:"availabilityZone,omitempty"`
+
+	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
+	// +optional
+	IsPublic bool `json:"isPublic"`
+
+	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+	// +optional
+	IsIPv6 bool `json:"isIpv6"`
+
+	// Ipv6CidrBlockID is the IPv6 CIDR subnet identifier to be used when the provider creates a managed VPC.
+	// It is a base 10 integer (0-256) that creates a /64 subnet appended to the Amazon provided /56 prefix.
+	// +optional
+	Ipv6CidrBlockID *uint8 `json:"ipv6CidrBlockId,omitempty"`
+
+	// RouteTableID is the routing table id associated with the subnet.
+	// +optional
+	RouteTableID *string `json:"routeTableId,omitempty"`
+
+	// NatGatewayID is the NAT gateway id associated with the subnet.
+	// Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
+	// +optional
+	NatGatewayID *string `json:"natGatewayId,omitempty"`
+
+	// Tags is a collection of tags describing the resource.
+	Tags Tags `json:"tags,omitempty"`
+}
+
+// String returns a string representation of the subnet.
+func (s *SubnetSpec) String() string {
+	return fmt.Sprintf("id=%s/az=%s/public=%v", s.ID, s.AvailabilityZone, s.IsPublic)
+}
+
 // Subnets is a slice of Subnet.
 type Subnets []*SubnetSpec
 
