@@ -234,6 +234,15 @@ type SubnetSpec struct {
 	// +optional
 	IsPublic bool `json:"isPublic"`
 
+	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+	// +optional
+	IsIPv6 bool `json:"isIpv6"`
+
+	// Ipv6CidrBlockID is the IPv6 CIDR subnet identifier to be used when the provider creates a managed VPC.
+	// It is a base 10 integer (0-256) that creates a /64 subnet appended to the Amazon provided /56 prefix.
+	// +optional
+	Ipv6CidrBlockID *uint8 `json:"ipv6CidrBlockId,omitempty"`
+
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional
 	RouteTableID *string `json:"routeTableId,omitempty"`

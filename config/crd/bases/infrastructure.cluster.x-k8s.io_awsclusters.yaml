@@ -509,6 +509,17 @@ spec:
                           description: ID defines a unique identifier to reference
                             this resource.
                           type: string
+                        ipv6CidrBlockId:
+                          description: Ipv6CidrBlockID is the IPv6 CIDR subnet identifier
+                            to be used when the provider creates a managed VPC. It
+                            is a base 10 integer (0-256) that creates a /64 subnet
+                            appended to the Amazon provided /56 prefix.
+                          type: integer
+                        isIpv6:
+                          description: IsIPv6 defines the subnet as an IPv6 subnet.
+                            A subnet is IPv6 when it is associated with a VPC that
+                            has IPv6 enabled.
+                          type: boolean
                         isPublic:
                           description: IsPublic defines the subnet as a public subnet.
                             A subnet is public when it is associated with a route
