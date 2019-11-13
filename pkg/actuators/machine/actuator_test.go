@@ -1184,7 +1184,7 @@ func TestGetMachineInstances(t *testing.T) {
 			exists: true,
 		},
 		{
-			testcase: "has-status-search-by-id",
+			testcase: "has-status-search-by-id-running",
 			providerStatus: providerconfigv1.AWSMachineProviderStatus{
 				InstanceID: aws.String(instanceID),
 			},
@@ -1205,23 +1205,21 @@ func TestGetMachineInstances(t *testing.T) {
 			exists: true,
 		},
 		{
-			testcase: "has-status-search-by-id and machine is terminated",
+			testcase: "has-status-search-by-id-terminated",
 			providerStatus: providerconfigv1.AWSMachineProviderStatus{
 				InstanceID: aws.String(instanceID),
 			},
 			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
 				mockAWSClient := mockaws.NewMockClient(ctrl)
 
-				request := &ec2.DescribeInstancesInput{
+				first := mockAWSClient.EXPECT().DescribeInstances(&ec2.DescribeInstancesInput{
 					InstanceIds: aws.StringSlice([]string{instanceID}),
-				}
-
-				mockAWSClient.EXPECT().DescribeInstances(request).Return(
+				}).Return(
 					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameTerminated),
 					nil,
 				).Times(1)
 
-				request2 := &ec2.DescribeInstancesInput{
+				mockAWSClient.EXPECT().DescribeInstances(&ec2.DescribeInstancesInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   awsTagFilter("Name"),
@@ -1230,16 +1228,13 @@ func TestGetMachineInstances(t *testing.T) {
 
 						clusterFilter(clusterID),
 					},
-				}
-
-				mockAWSClient.EXPECT().DescribeInstances(request2).Return(
-					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameTerminated),
+				}).Return(
+					&ec2.DescribeInstancesOutput{},
 					nil,
-				).Times(1)
+				).Times(1).After(first)
 
 				return mockAWSClient
 			},
-			exists: false,
 		},
 	}
 
