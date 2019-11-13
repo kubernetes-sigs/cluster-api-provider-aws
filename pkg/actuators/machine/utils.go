@@ -166,7 +166,6 @@ func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceS
 		})
 	}
 
-	// Query instances with our machine's name, and in running/pending state.
 	request := &ec2.DescribeInstancesInput{
 		Filters: requestFilters,
 	}
