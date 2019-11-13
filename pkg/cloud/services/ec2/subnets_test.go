@@ -404,14 +404,14 @@ func TestReconcileSubnets(t *testing.T) {
 					{
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.1.0.0/16",
-						Ipv6CidrBlockID:  aws.Uint8(10),
+						Ipv6CidrBlockID:  Uint8(10),
 						IsPublic:         false,
 						IsIPv6:           true,
 					},
 					{
 						AvailabilityZone: "us-east-1b",
 						CidrBlock:        "10.2.0.0/16",
-						Ipv6CidrBlockID:  aws.Uint8(11),
+						Ipv6CidrBlockID:  Uint8(11),
 						IsPublic:         true,
 						IsIPv6:           true,
 					},

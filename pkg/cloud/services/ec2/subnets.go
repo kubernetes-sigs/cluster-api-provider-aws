@@ -78,7 +78,7 @@ func (s *Service) reconcileSubnets() error {
 				// The CIDR block has to have a /64 prefix size
 				// and use the prefix assigned to the VPC
 				// We use the aws_ipv6_prefix:0::/64
-				subnet.Ipv6CidrBlockID = aws.Uint8(0)
+				subnet.Ipv6CidrBlockID = Uint8(0)
 				subnet.IsIPv6 = true
 			}
 
@@ -99,7 +99,7 @@ func (s *Service) reconcileSubnets() error {
 				// The CIDR block has to have a /64 prefix size
 				// and use the prefix assigned to the VPC
 				// We use  aws_ipv6_prefix:1::/64
-				subnet.Ipv6CidrBlockID = aws.Uint8(1)
+				subnet.Ipv6CidrBlockID = Uint8(1)
 				subnet.IsIPv6 = true
 			}
 
@@ -372,7 +372,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 				// The IPv6 CIDR block has to have a /64 prefix size
 				// and uses a /56 prefix assigned to the VPC
 				// we use the 8th byte of the Vidr block to configure the subnet prefix
-				output.Ipv6CidrBlockID = aws.Uint8(ipv6CidrBlock.IP[7])
+				output.Ipv6CidrBlockID = Uint8(ipv6CidrBlock.IP[7])
 				return output, nil
 			}
 		}
@@ -437,4 +437,9 @@ func filterIPv6BlockAssociatedSubnet() *ec2.Filter {
 		Name:   aws.String("ipv6-cidr-block-association.state"),
 		Values: aws.StringSlice([]string{ec2.SubnetCidrBlockStateCodeAssociated}),
 	}
+}
+
+// Uint8 returns a pointer to the int value passed in.
+func Uint8(v uint8) *uint8 {
+	return &v
 }

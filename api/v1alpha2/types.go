@@ -189,6 +189,16 @@ type VPCSpec struct {
 	// Defaults to 10.0.0.0/16.
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
+	// EnableIPv6 requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for
+	// the VPC. You cannot specify the range of IP addresses, or the size of the
+	// CIDR block.
+	// +optional
+	EnableIPv6 bool `json:"enableIPv6"`
+
+	// Ipv6CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+	// +optional
+	Ipv6CidrBlock *string `json:"ipv6CidrBlock,omitempty"`
+
 	// InternetGatewayID is the id of the internet gateway associated with the VPC.
 	// +optional
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
@@ -221,6 +231,15 @@ type SubnetSpec struct {
 	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
 	// +optional
 	IsPublic bool `json:"isPublic"`
+
+	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+	// +optional
+	IsIPv6 bool `json:"isIpv6"`
+
+	// Ipv6CidrBlockID is the IPv6 CIDR subnet identifier to be used when the provider creates a managed VPC.
+	// It is a base 10 integer (0-256) that creates a /64 subnet appended to the Amazon provided /56 prefix.
+	// +optional
+	Ipv6CidrBlockID *uint8 `json:"ipv6CidrBlockId,omitempty"`
 
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional

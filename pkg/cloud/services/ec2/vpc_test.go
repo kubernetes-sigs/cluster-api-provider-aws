@@ -112,6 +112,62 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
+			name:   "managed vpc exists and ipv6 enabled",
+			input:  &infrav1.VPCSpec{ID: "vpc-exists", EnableIPv6: true},
+			output: &infrav1.VPCSpec{ID: "vpc-exists", CidrBlock: "10.0.0.0/8", EnableIPv6: true, Ipv6CidrBlock: aws.String("2001:10:10:10::/56")},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+					VpcIds: []*string{
+						aws.String("vpc-exists"),
+					},
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+						},
+						{
+							Name:   aws.String("ipv6-cidr-block-association.state"),
+							Values: aws.StringSlice([]string{ec2.VpcCidrBlockStateCodeAssociated}),
+						},
+					},
+				})).
+					Return(&ec2.DescribeVpcsOutput{
+						Vpcs: []*ec2.Vpc{
+							{
+								State:     aws.String("available"),
+								VpcId:     aws.String("vpc-exists"),
+								CidrBlock: aws.String("10.0.0.0/8"),
+								Ipv6CidrBlockAssociationSet: []*ec2.VpcIpv6CidrBlockAssociation{
+									{
+										Ipv6CidrBlock: aws.String("2001:10:10:10::/56"),
+										Ipv6CidrBlockState: &ec2.VpcCidrBlockState{
+											State: aws.String(ec2.VpcCidrBlockStateCodeAssociated),
+										},
+									},
+								},
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-vpc"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
+			},
+		},
+		{
 			name:   "managed vpc does not exist",
 			input:  &infrav1.VPCSpec{},
 			output: &infrav1.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
@@ -146,6 +202,67 @@ func TestReconcileVPC(t *testing.T) {
 					Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
 
 				m.WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
+					VpcIds: []*string{aws.String("vpc-new")},
+				})).
+					Return(nil)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+			},
+		},
+		{
+			name:   "managed vpc does not exist and ipv6 enabled",
+			input:  &infrav1.VPCSpec{EnableIPv6: true},
+			output: &infrav1.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16", EnableIPv6: true, Ipv6CidrBlock: aws.String("2001:10:10:10::/56")},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+						},
+						{
+							Name:   aws.String("tag-key"),
+							Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
+						},
+						{
+							Name:   aws.String("ipv6-cidr-block-association.state"),
+							Values: aws.StringSlice([]string{ec2.VpcCidrBlockStateCodeAssociated}),
+						},
+					},
+				})).
+					Return(&ec2.DescribeVpcsOutput{}, nil)
+
+				m.CreateVpc(gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).
+					Return(&ec2.CreateVpcOutput{
+						Vpc: &ec2.Vpc{
+							State:     aws.String("available"),
+							VpcId:     aws.String("vpc-new"),
+							CidrBlock: aws.String("10.1.0.0/16"),
+							Ipv6CidrBlockAssociationSet: []*ec2.VpcIpv6CidrBlockAssociation{
+								{
+									Ipv6CidrBlock: aws.String("2001:10:10:10::/56"),
+									Ipv6CidrBlockState: &ec2.VpcCidrBlockState{
+										State: aws.String(ec2.VpcCidrBlockStateCodeAssociated),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeVpcAttribute(gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
+					DoAndReturn(describeVpcAttributeFalse).MinTimes(1)
+
+				m.ModifyVpcAttribute(gomock.AssignableToTypeOf(&ec2.ModifyVpcAttributeInput{})).
+					Return(&ec2.ModifyVpcAttributeOutput{}, nil).Times(2)
+
+				m.WaitUntilVpcAvailable(gomock.Eq(&ec2.DescribeVpcsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("ipv6-cidr-block-association.state"),
+							Values: aws.StringSlice([]string{ec2.VpcCidrBlockStateCodeAssociated}),
+						},
+					},
 					VpcIds: []*string{aws.String("vpc-new")},
 				})).
 					Return(nil)

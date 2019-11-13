@@ -155,7 +155,8 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	input := &ec2.CreateVpcInput{
-		CidrBlock: aws.String(s.scope.VPC().CidrBlock),
+		CidrBlock:                   aws.String(s.scope.VPC().CidrBlock),
+		AmazonProvidedIpv6CidrBlock: aws.Bool(s.scope.VPC().EnableIPv6),
 	}
 
 	out, err := s.scope.EC2.CreateVpc(input)
@@ -171,7 +172,14 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	// however, the logic used for determining managed vs unmanaged VPCs relies on the tags and will
 	// need to be updated to accommodate for the recording of the VPC ID prior to the tagging.
 
-	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
+	wReq := &ec2.DescribeVpcsInput{
+		VpcIds: []*string{out.Vpc.VpcId},
+	}
+
+	if s.scope.VPC().EnableIPv6 {
+		// Check the VPC has the IPv6 CIDR block associated
+		wReq.Filters = []*ec2.Filter{filterIPv6BlockAssociatedVPC()}
+	}
 	if err := s.scope.EC2.WaitUntilVpcAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
@@ -192,11 +200,28 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	}
 	record.Eventf(s.scope.AWSCluster, "SuccesfulTagVPC", "Tagged managed VPC %q", *out.Vpc.VpcId)
 
-	return &infrav1.VPCSpec{
-		ID:        *out.Vpc.VpcId,
-		CidrBlock: *out.Vpc.CidrBlock,
-		Tags:      infrav1.Build(tagParams),
-	}, nil
+	output := &infrav1.VPCSpec{
+		ID:         *out.Vpc.VpcId,
+		CidrBlock:  *out.Vpc.CidrBlock,
+		Tags:       infrav1.Build(tagParams),
+		EnableIPv6: s.scope.VPC().EnableIPv6,
+	}
+
+	if s.scope.VPC().EnableIPv6 {
+		if len(out.Vpc.Ipv6CidrBlockAssociationSet) == 0 {
+			return nil, errors.Errorf("failed to find associate IPv6 prefix creating VPC %s", *out.Vpc.VpcId)
+		}
+
+		for _, ipv6CidrBlock := range out.Vpc.Ipv6CidrBlockAssociationSet {
+			if *ipv6CidrBlock.Ipv6CidrBlockState.State == ec2.VpcCidrBlockStateCodeAssociated {
+				output.Ipv6CidrBlock = ipv6CidrBlock.Ipv6CidrBlock
+				s.scope.V(2).Info("VPC IPv6 enabled with cidr", "ipv6-cidr-block", ipv6CidrBlock.Ipv6CidrBlock)
+				return output, nil
+			}
+		}
+		return nil, errors.Wrapf(err, "failed waiting to associate an IPv6 prefix creating VPC %s", *out.Vpc.VpcId)
+	}
+	return output, nil
 }
 
 func (s *Service) deleteVPC() error {
@@ -249,6 +274,11 @@ func (s *Service) describeVPC() (*infrav1.VPCSpec, error) {
 		input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
 	}
 
+	if s.scope.VPC().EnableIPv6 {
+		// Check the VPC has the IPv6 CIDR block associated
+		input.Filters = append(input.Filters, filterIPv6BlockAssociatedVPC())
+	}
+
 	out, err := s.scope.EC2.DescribeVpcs(input)
 	if err != nil {
 		if awserrors.IsNotFound(err) {
@@ -270,11 +300,28 @@ func (s *Service) describeVPC() (*infrav1.VPCSpec, error) {
 		return nil, awserrors.NewNotFound(errors.Errorf("could not find available or pending vpc"))
 	}
 
-	return &infrav1.VPCSpec{
-		ID:        *out.Vpcs[0].VpcId,
-		CidrBlock: *out.Vpcs[0].CidrBlock,
-		Tags:      converters.TagsToMap(out.Vpcs[0].Tags),
-	}, nil
+	output := &infrav1.VPCSpec{
+		ID:         *out.Vpcs[0].VpcId,
+		CidrBlock:  *out.Vpcs[0].CidrBlock,
+		Tags:       converters.TagsToMap(out.Vpcs[0].Tags),
+		EnableIPv6: s.scope.VPC().EnableIPv6,
+	}
+	// find the associated IPv6 block cidr to the VPC
+	if s.scope.VPC().EnableIPv6 {
+		if len(out.Vpcs[0].Ipv6CidrBlockAssociationSet) == 0 {
+			return nil, errors.Errorf("failed to obtain an IPv6 prefix for VPC %s", *out.Vpcs[0].VpcId)
+		}
+
+		for _, ipv6CidrBlock := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
+			if *ipv6CidrBlock.Ipv6CidrBlockState.State == ec2.VpcCidrBlockStateCodeAssociated {
+				output.Ipv6CidrBlock = ipv6CidrBlock.Ipv6CidrBlock
+				s.scope.V(2).Info("VPC IPv6 enabled with cidr", "ipv6-cidr-block", ipv6CidrBlock.Ipv6CidrBlock)
+				return output, nil
+			}
+		}
+		return nil, errors.Errorf("failed to obtain an IPv6 prefix for VPC %s", *out.Vpcs[0].VpcId)
+	}
+	return output, nil
 }
 
 func (s *Service) getVPCTagParams(id string) infrav1.BuildParams {
@@ -287,5 +334,14 @@ func (s *Service) getVPCTagParams(id string) infrav1.BuildParams {
 		Name:        aws.String(name),
 		Role:        aws.String(infrav1.CommonRoleTagValue),
 		Additional:  s.scope.AdditionalTags(),
+	}
+}
+
+// returns a filter that checks that the ipv6 cidr block is associated to the VPC
+// https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeVpcs.html
+func filterIPv6BlockAssociatedVPC() *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String("ipv6-cidr-block-association.state"),
+		Values: aws.StringSlice([]string{ec2.VpcCidrBlockStateCodeAssociated}),
 	}
 }
