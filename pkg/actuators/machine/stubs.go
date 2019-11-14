@@ -180,7 +180,7 @@ func stubInstance(imageID, instanceID string) *ec2.Instance {
 		ImageId:    aws.String(imageID),
 		InstanceId: aws.String(instanceID),
 		State: &ec2.InstanceState{
-			Name: aws.String("Running"),
+			Name: aws.String(ec2.InstanceStateNameRunning),
 			Code: aws.Int64(16),
 		},
 		LaunchTime:       aws.Time(time.Now()),
@@ -261,7 +261,7 @@ func stubReservation(imageID, instanceID string) *ec2.Reservation {
 				ImageId:    aws.String(imageID),
 				InstanceId: aws.String(instanceID),
 				State: &ec2.InstanceState{
-					Name: aws.String("Running"),
+					Name: aws.String(ec2.InstanceStateNameRunning),
 					Code: aws.Int64(16),
 				},
 				LaunchTime: aws.Time(time.Now()),

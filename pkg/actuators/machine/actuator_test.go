@@ -1229,7 +1229,7 @@ func TestGetMachineInstances(t *testing.T) {
 						clusterFilter(clusterID),
 					},
 				}).Return(
-					&ec2.DescribeInstancesOutput{},
+					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameTerminated),
 					nil,
 				).Times(1).After(first)
 
@@ -1263,12 +1263,12 @@ func TestGetMachineInstances(t *testing.T) {
 				t.Errorf("Error creating Actuator: %v", err)
 			}
 
-			instance, err := actuator.getMachineInstances(nil, machineCopy)
+			instances, err := actuator.getMachineInstances(nil, machineCopy)
 			if err != nil {
 				t.Errorf("Unexpected error from getMachineInstances: %v", err)
 			}
-			if tc.exists != (instance != nil) {
-				t.Errorf("Expected instance exists: %t, got instance: %v", tc.exists, instance)
+			if tc.exists != (len(instances) > 0) {
+				t.Errorf("Expected instance exists: %t, got instances: %v", tc.exists, instances)
 			}
 		})
 	}
