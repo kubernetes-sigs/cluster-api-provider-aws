@@ -85,35 +85,46 @@ func getStoppedInstances(machine *machinev1.Machine, client awsclient.Client) ([
 	return getInstances(machine, client, stoppedInstanceStateFilter)
 }
 
+// getExistingInstances returns all instances not terminated
 func getExistingInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
-	return getInstances(machine, client, existingInstanceStates())
+	instances, err := getInstances(machine, client, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var existingInstances []*ec2.Instance
+	for key := range instances {
+		if (instances[key].State) != nil {
+			if aws.StringValue(instances[key].State.Name) != ec2.InstanceStateNameTerminated {
+				existingInstances = append(existingInstances, instances[key])
+			}
+		}
+	}
+	return existingInstances, nil
 }
 
 func getExistingInstanceByID(id string, client awsclient.Client) (*ec2.Instance, error) {
-	return getInstanceByID(id, client, existingInstanceStates())
+	instance, err := getInstanceByID(id, client)
+	if err != nil {
+		return nil, err
+	}
+	if instance.State != nil {
+		if aws.StringValue(instance.State.Name) == ec2.InstanceStateNameTerminated {
+			return nil, fmt.Errorf("failed to getExistingInstanceByID for instance-id %s, instance is terminated", id)
+		}
+	}
+	return instance, nil
 }
 
 // getInstanceByID returns the instance with the given ID if it exists.
-func getInstanceByID(id string, client awsclient.Client, instanceStateFilter []*string) (*ec2.Instance, error) {
+func getInstanceByID(id string, client awsclient.Client) (*ec2.Instance, error) {
 	if id == "" {
 		return nil, fmt.Errorf("instance-id not specified")
 	}
 
-	requestFilters := []*ec2.Filter{
-		{
-			Name:   aws.String("instance-id"),
-			Values: aws.StringSlice([]string{id}),
-		},
+	request := &ec2.DescribeInstancesInput{
+		InstanceIds: aws.StringSlice([]string{id}),
 	}
-
-	if instanceStateFilter != nil {
-		requestFilters = append(requestFilters, &ec2.Filter{
-			Name:   aws.String("instance-state-name"),
-			Values: instanceStateFilter,
-		})
-	}
-
-	request := &ec2.DescribeInstancesInput{Filters: requestFilters}
 
 	result, err := client.DescribeInstances(request)
 	if err != nil {
@@ -136,7 +147,6 @@ func getInstanceByID(id string, client awsclient.Client, instanceStateFilter []*
 // getInstances returns all instances that have a tag matching our machine name,
 // and cluster ID.
 func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {
-
 	clusterID, ok := getClusterID(machine)
 	if !ok {
 		return []*ec2.Instance{}, fmt.Errorf("unable to get cluster ID for machine: %q", machine.Name)
@@ -149,7 +159,6 @@ func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceS
 		},
 		clusterFilter(clusterID),
 	}
-
 	if instanceStateFilter != nil {
 		requestFilters = append(requestFilters, &ec2.Filter{
 			Name:   aws.String("instance-state-name"),
