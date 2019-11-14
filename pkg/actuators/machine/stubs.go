@@ -292,3 +292,23 @@ func stubDescribeInstancesOutput(imageID, instanceID string) *ec2.DescribeInstan
 		},
 	}
 }
+
+func stubTerminatedInstanceDescribeInstancesOutput(imageID, instanceID string) *ec2.DescribeInstancesOutput {
+	return &ec2.DescribeInstancesOutput{
+		Reservations: []*ec2.Reservation{
+			{
+				Instances: []*ec2.Instance{
+					{
+						ImageId:    aws.String(imageID),
+						InstanceId: aws.String(instanceID),
+						State: &ec2.InstanceState{
+							Name: aws.String(ec2.InstanceStateNameTerminated),
+							Code: aws.Int64(16),
+						},
+						LaunchTime: aws.Time(time.Now()),
+					},
+				},
+			},
+		},
+	}
+}

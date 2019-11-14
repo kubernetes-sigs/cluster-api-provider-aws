@@ -483,14 +483,14 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	return a.updateStatus(machine, newestInstance)
 }
 
-// Exists determines if the given machine currently exists. For AWS we query for instances in
-// running state, with a matching name tag, to determine a match.
+// Exists determines if the given machine currently exists.
+// A machine which is not terminated is considered as existing.
 func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) (bool, error) {
 	glog.Infof("%s: Checking if machine exists", machine.Name)
 
 	instances, err := a.getMachineInstances(cluster, machine)
 	if err != nil {
-		glog.Errorf("%s: Error getting running instances: %v", machine.Name, err)
+		glog.Errorf("%s: Error getting existing instances: %v", machine.Name, err)
 		return false, err
 	}
 	if len(instances) == 0 {
@@ -545,13 +545,11 @@ func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *mach
 	// ID, search using that, otherwise fallback to filtering based on tags.
 	if err == nil && status.InstanceID != nil && *status.InstanceID != "" {
 		i, err := getExistingInstanceByID(*status.InstanceID, client)
-
 		if err != nil {
-			glog.Warningf("%s: Failed to find running instance by id %s: %v",
+			glog.Warningf("%s: Failed to find existing instance by id %s: %v",
 				machine.Name, *status.InstanceID, err)
 		} else {
 			glog.Infof("%s: Found instance by id: %s", machine.Name, *status.InstanceID)
-
 			return []*ec2.Instance{i}, nil
 		}
 	}

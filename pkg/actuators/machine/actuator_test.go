@@ -1155,6 +1155,7 @@ func TestGetMachineInstances(t *testing.T) {
 		testcase       string
 		providerStatus providerconfigv1.AWSMachineProviderStatus
 		awsClientFunc  func(*gomock.Controller) awsclient.Client
+		exists         bool
 	}{
 		{
 			testcase:       "empty-status-search-by-tag",
@@ -1170,11 +1171,6 @@ func TestGetMachineInstances(t *testing.T) {
 						},
 
 						clusterFilter(clusterID),
-
-						{
-							Name:   aws.String("instance-state-name"),
-							Values: existingInstanceStates(),
-						},
 					},
 				}
 
@@ -1185,6 +1181,7 @@ func TestGetMachineInstances(t *testing.T) {
 
 				return mockAWSClient
 			},
+			exists: true,
 		},
 		{
 			testcase: "has-status-search-by-id",
@@ -1195,16 +1192,7 @@ func TestGetMachineInstances(t *testing.T) {
 				mockAWSClient := mockaws.NewMockClient(ctrl)
 
 				request := &ec2.DescribeInstancesInput{
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("instance-id"),
-							Values: aws.StringSlice([]string{instanceID}),
-						},
-						{
-							Name:   aws.String("instance-state-name"),
-							Values: existingInstanceStates(),
-						},
-					},
+					InstanceIds: aws.StringSlice([]string{instanceID}),
 				}
 
 				mockAWSClient.EXPECT().DescribeInstances(request).Return(
@@ -1214,6 +1202,44 @@ func TestGetMachineInstances(t *testing.T) {
 
 				return mockAWSClient
 			},
+			exists: true,
+		},
+		{
+			testcase: "has-status-search-by-id and machine is terminated",
+			providerStatus: providerconfigv1.AWSMachineProviderStatus{
+				InstanceID: aws.String(instanceID),
+			},
+			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
+				mockAWSClient := mockaws.NewMockClient(ctrl)
+
+				request := &ec2.DescribeInstancesInput{
+					InstanceIds: aws.StringSlice([]string{instanceID}),
+				}
+
+				mockAWSClient.EXPECT().DescribeInstances(request).Return(
+					stubTerminatedInstanceDescribeInstancesOutput(imageID, instanceID),
+					nil,
+				).Times(1)
+
+				request2 := &ec2.DescribeInstancesInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   awsTagFilter("Name"),
+							Values: aws.StringSlice([]string{machine.Name}),
+						},
+
+						clusterFilter(clusterID),
+					},
+				}
+
+				mockAWSClient.EXPECT().DescribeInstances(request2).Return(
+					stubTerminatedInstanceDescribeInstancesOutput(imageID, instanceID),
+					nil,
+				).Times(1)
+
+				return mockAWSClient
+			},
+			exists: false,
 		},
 	}
 
@@ -1242,9 +1268,12 @@ func TestGetMachineInstances(t *testing.T) {
 				t.Errorf("Error creating Actuator: %v", err)
 			}
 
-			_, err = actuator.getMachineInstances(nil, machineCopy)
+			instance, err := actuator.getMachineInstances(nil, machineCopy)
 			if err != nil {
 				t.Errorf("Unexpected error from getMachineInstances: %v", err)
+			}
+			if tc.exists != (instance != nil) {
+				t.Errorf("Expected instance exists: %t, got instance: %v", tc.exists, instance)
 			}
 		})
 	}
