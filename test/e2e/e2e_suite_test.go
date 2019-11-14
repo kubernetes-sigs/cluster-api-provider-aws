@@ -178,9 +178,9 @@ var _ = AfterSuite(func() {
 })
 
 func retrieveAllLogs() {
-	capiLogs := retrieveLogs(capiNamespace, capiDeploymentName)
-	cabpkLogs := retrieveLogs(cabpkNamespace, cabpkDeploymentName)
-	capaLogs := retrieveLogs(capaNamespace, capaDeploymentName)
+	capiLogs := retrieveCapiLogs()
+	cabpkLogs := retrieveCabpkLogs()
+	capaLogs := retrieveCapaLogs()
 
 	// If running in prow, output the logs to the artifacts path
 	artifactPath, exists := os.LookupEnv("ARTIFACTS")
@@ -194,6 +194,18 @@ func retrieveAllLogs() {
 	fmt.Fprintf(GinkgoWriter, "CAPI Logs:\n%s\n", capiLogs)
 	fmt.Fprintf(GinkgoWriter, "CABPK Logs:\n%s\n", cabpkLogs)
 	fmt.Fprintf(GinkgoWriter, "CAPA Logs:\n%s\n", capaLogs)
+}
+
+func retrieveCapaLogs() string {
+	return retrieveLogs(capaNamespace, capaDeploymentName)
+}
+
+func retrieveCapiLogs() string {
+	return retrieveLogs(capiNamespace, capiDeploymentName)
+}
+
+func retrieveCabpkLogs() string {
+	return retrieveLogs(cabpkNamespace, cabpkDeploymentName)
 }
 
 func retrieveLogs(namespace, deploymentName string) string {

@@ -76,25 +76,10 @@ var _ = Describe("conformance tests", func() {
 
 	Describe("conformance on workload cluster", func() {
 		It("It should pass k8s certified-conformance tests", func() {
-			By("Creating an AWSCluster")
-			makeAWSCluster(namespace, awsClusterName)
+			instanceType := "t3.large"
 
-			By("Creating a Cluster")
-			makeCluster(namespace, clusterName, awsClusterName)
-
-			By("Ensuring Cluster Infrastructure Reports as Ready")
-			waitForClusterInfrastructureReady(namespace, clusterName)
-
-			By("Creating the initial Control Plane Machine")
-			awsMachineName := cpAWSMachinePrefix + "-0"
-			bootstrapConfigName := cpBootstrapConfigPrefix + "-0"
-			machineName := cpMachinePrefix + "-0"
-			instanceType := "m5.large"
-			createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
-
-			By("Deploying CNI to created Cluster")
-			deployCNI(testTmpDir, namespace, clusterName, *cniManifests)
-			waitForMachineNodeReady(namespace, machineName)
+			By("Creating a cluster with single control plane")
+			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir)
 
 			By("Deploying a MachineDeployment")
 			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, 2)

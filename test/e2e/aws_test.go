@@ -24,13 +24,21 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"path"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/elb"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -54,7 +62,25 @@ const (
 	scaleDownReplicas = 0
 )
 
+type statefulSetInfo struct {
+	name                      string
+	namespace                 string
+	replicas                  int32
+	selector                  map[string]string
+	storageClassName          string
+	volumeName                string
+	svcName                   string
+	svcPort                   int32
+	svcPortName               string
+	containerName             string
+	containerImage            string
+	containerPort             int32
+	podTerminationGracePeriod int64
+	volMountPath              string
+}
+
 var _ = Describe("functional tests", func() {
+
 	var (
 		namespace               string
 		clusterName             string
@@ -66,8 +92,10 @@ var _ = Describe("functional tests", func() {
 		machineDeploymentName   string
 		awsMachineTemplateName  string
 		testTmpDir              string
+		instanceType            string
 		initialReplicas         int32
 	)
+
 	BeforeEach(func() {
 		var err error
 		testTmpDir, err = ioutil.TempDir(suiteTmpDir, "aws-test")
@@ -85,34 +113,18 @@ var _ = Describe("functional tests", func() {
 		machineDeploymentName = "test-capa-md" + util.RandomString(6)
 		awsMachineTemplateName = "test-infra-capa-mt" + util.RandomString(6)
 		initialReplicas = 2
+		instanceType = "t3.large"
 	})
 
 	Describe("workload cluster lifecycle", func() {
 		It("It should be creatable and deletable", func() {
-			By("Creating an AWSCluster")
-			makeAWSCluster(namespace, awsClusterName)
-
-			By("Creating a Cluster")
-			makeCluster(namespace, clusterName, awsClusterName)
-
-			By("Ensuring Cluster Infrastructure Reports as Ready")
-			waitForClusterInfrastructureReady(namespace, clusterName)
-
-			By("Creating the initial Control Plane Machine")
-			awsMachineName := cpAWSMachinePrefix + "-0"
-			bootstrapConfigName := cpBootstrapConfigPrefix + "-0"
-			machineName := cpMachinePrefix + "-0"
-			instanceType := "t3.large"
-			createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
-
-			By("Deploying CNI to created Cluster")
-			deployCNI(testTmpDir, namespace, clusterName, *cniManifests)
-			waitForMachineNodeReady(namespace, machineName)
+			By("Creating a cluster with single control plane")
+			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir)
 
 			By("Creating the second Control Plane Machine")
-			awsMachineName = cpAWSMachinePrefix + "-1"
-			bootstrapConfigName = cpBootstrapConfigPrefix + "-1"
-			machineName = cpMachinePrefix + "-1"
+			awsMachineName := cpAWSMachinePrefix + "-1"
+			bootstrapConfigName := cpBootstrapConfigPrefix + "-1"
+			machineName := cpMachinePrefix + "-1"
 			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
 
 			By("Creating the third Control Plane Machine")
@@ -135,10 +147,385 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(namespace, clusterName)
+		})
+	})
 
+	Describe("Provisioning LoadBalancer dynamically and deleting on cluster deletion", func() {
+		lbServiceName := "test-svc-" + util.RandomString(6)
+		It("It should create and delete Load Balancer", func() {
+			By("Creating a cluster with single control plane")
+			clusterK8sClient := makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir)
+
+			By("Creating the MachineDeployment")
+			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas)
+
+			By("Creating the LB service")
+			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterK8sClient)
+			verifyElbExists(elbName, true)
+
+			By("Deleting the Cluster")
+			deleteCluster(namespace, clusterName)
+
+			By("Verifying whether provisioned LB deleted")
+			verifyElbExists(elbName, false)
+		})
+	})
+
+	Describe("Provisioning volumes dynamically and retain on cluster deletion", func() {
+		nginxStatefulsetInfo := statefulSetInfo{
+			name:                      "nginx-statefulset",
+			namespace:                 metav1.NamespaceDefault,
+			replicas:                  int32(2),
+			selector:                  map[string]string{"app": "nginx"},
+			storageClassName:          "aws-ebs-volumes",
+			volumeName:                "nginx-volumes",
+			svcName:                   "nginx-svc",
+			svcPort:                   int32(80),
+			svcPortName:               "nginx-web",
+			containerName:             "nginx",
+			containerImage:            "k8s.gcr.io/nginx-slim:0.8",
+			containerPort:             int32(80),
+			podTerminationGracePeriod: int64(30),
+			volMountPath:              "/usr/share/nginx/html",
+		}
+
+		It("It should create volumes and volumes should not be deleted along with cluster infra", func() {
+			By("Creating a cluster with single control plane")
+			clusterK8sClient := makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir)
+
+			By("Creating the MachineDeployment")
+			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas)
+
+			By("Deploying StatefulSet on infra")
+			createStatefulSet(nginxStatefulsetInfo, clusterK8sClient)
+			awsVolIds := getVolumeIds(nginxStatefulsetInfo, clusterK8sClient)
+			verifyVolumesExists(awsVolIds)
+
+			By("Deleting the Cluster")
+			deleteCluster(namespace, clusterName)
+
+			By("Verifying dynamically provisioned volumes retention")
+			verifyVolumesExists(awsVolIds)
+
+			By("Deleting retained dynamically provisioned volumes")
+			deleteRetainedVolumes(awsVolIds)
+		})
+	})
+
+	Describe("MachineDeployment with invalid subnet ID and AZ", func() {
+		It("It should be creatable and deletable", func() {
+			By("Creating a cluster with single control plane")
+			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir)
+
+			By("Creating Machine Deployment with invalid subnet ID")
+			subnetId := "notcreated"
+			deployment1 := machineDeploymentName + "-1"
+			awsTemplate1 := awsMachineTemplateName + "-1"
+			bsConfig1 := mdBootstrapConfig + "-1"
+			createPendingMachineDeployment(namespace, clusterName, deployment1, awsTemplate1, bsConfig1, instanceType, nil, &subnetId, initialReplicas)
+
+			By("Creating Machine Deployment in non-configured Availability Zone")
+			az := getAvailabilityZones()[1].ZoneName
+			deployment2 := machineDeploymentName + "-2"
+			awsTemplate2 := awsMachineTemplateName + "-2"
+			bsConfig2 := mdBootstrapConfig + "-2"
+			createPendingMachineDeployment(namespace, clusterName, deployment2, awsTemplate2, bsConfig2, instanceType, az, nil, initialReplicas)
+
+			By("Ensuring MachineDeployments are not in running state")
+			Expect(waitForMachineDeploymentRunning(namespace, deployment1)).To(BeFalse())
+			Expect(waitForMachineDeploymentRunning(namespace, deployment2)).To(BeFalse())
+			eventList := getEvents(namespace)
+			subnetError := "Failed to create instance: failed to run instance: InvalidSubnetID.NotFound: " +
+				"The subnet ID 'notcreated' does not exist"
+			Expect(isErrorEventExists(namespace, deployment1, "FailedCreate", fmt.Sprintf(subnetError, subnetId), eventList)).To(BeTrue())
+
+			By("Deleting the cluster")
+			deleteCluster(namespace, clusterName)
 		})
 	})
 })
+
+func getAvailabilityZones() []*ec2.AvailabilityZone {
+	ec2Client := ec2.New(getSession())
+	azs, err := ec2Client.DescribeAvailabilityZones(nil)
+	Expect(err).NotTo(HaveOccurred())
+	return azs.AvailabilityZones
+}
+
+func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Client) {
+	fmt.Fprintf(GinkgoWriter, "Creating statefulset...\n")
+	createStorageClass(statefulsetinfo.storageClassName, k8sclient)
+	svcSpec := corev1.ServiceSpec{
+		ClusterIP: "None",
+		Ports: []corev1.ServicePort{
+			{
+				Port: statefulsetinfo.svcPort,
+				Name: statefulsetinfo.svcPortName,
+			},
+		},
+		Selector: statefulsetinfo.selector,
+	}
+	createService(statefulsetinfo.svcName, statefulsetinfo.namespace, statefulsetinfo.selector, svcSpec, k8sclient)
+	podTemplateSpec := createPodTemplateSpec(statefulsetinfo)
+	volClaimTemplate := createPVC(statefulsetinfo)
+	deployStatefulSet(statefulsetinfo, volClaimTemplate, podTemplateSpec, k8sclient)
+	waitForStatefulSetRunning(statefulsetinfo, k8sclient)
+}
+
+func deleteRetainedVolumes(awsVolIds []*string) {
+	fmt.Fprintf(GinkgoWriter, "Deleting dynamically provisioned volumes...\n")
+	ec2Client := ec2.New(getSession())
+	for _, volumeId := range awsVolIds {
+		input := &ec2.DeleteVolumeInput{
+			VolumeId: aws.String(*volumeId),
+		}
+		_, err := ec2Client.DeleteVolume(input)
+		Expect(err).NotTo(HaveOccurred())
+		fmt.Fprintf(GinkgoWriter, "Deleted dynamically provisioned volume with ID: %s \n", *volumeId)
+	}
+}
+
+func verifyVolumesExists(awsVolumeIds []*string) {
+	fmt.Fprintf(GinkgoWriter, "Ensuring dynamically provisioned volumes exists..\n")
+	ec2Client := ec2.New(getSession())
+	input := &ec2.DescribeVolumesInput{
+		VolumeIds: awsVolumeIds,
+	}
+	_, err := ec2Client.DescribeVolumes(input)
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
+	fmt.Fprintf(GinkgoWriter, "Retrieving IDs of dynamically provisioned volumes..\n")
+	statefulset := &appsv1.StatefulSet{}
+	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: info.name}, statefulset)
+	Expect(err).NotTo(HaveOccurred())
+	podSelector, err := metav1.LabelSelectorAsMap(statefulset.Spec.Selector)
+	pvcList := &corev1.PersistentVolumeClaimList{}
+	err = k8sclient.List(context.TODO(), pvcList, crclient.InNamespace(info.namespace), crclient.MatchingLabels(podSelector))
+	Expect(err).NotTo(HaveOccurred())
+	var volIds []*string
+	for _, pvc := range pvcList.Items {
+		volName := pvc.Spec.VolumeName
+		volDescription := &corev1.PersistentVolume{}
+		err = k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: volName}, volDescription)
+		Expect(err).NotTo(HaveOccurred())
+		urlSlice := strings.Split(volDescription.Spec.AWSElasticBlockStore.VolumeID, "/")
+		volIds = append(volIds, &urlSlice[len(urlSlice)-1])
+	}
+	return volIds
+}
+
+func waitForStatefulSetRunning(info statefulSetInfo, k8sclient crclient.Client) {
+	fmt.Fprintf(GinkgoWriter, "Ensuring Statefulset(%s) is running..\n", info.name)
+	statefulset := &appsv1.StatefulSet{}
+	Eventually(
+		func() (bool, error) {
+			if err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: info.name}, statefulset); err != nil {
+				return false, err
+			}
+			return *statefulset.Spec.Replicas == statefulset.Status.ReadyReplicas, nil
+		}, 10*time.Minute, 30*time.Second,
+	).Should(BeTrue())
+}
+
+func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.PersistentVolumeClaim, podTemplate corev1.PodTemplateSpec, k8sclient crclient.Client) {
+	fmt.Fprintf(GinkgoWriter, "Deploying Statefulset with name: %s under namespace: %s\n", statefulsetinfo.name, statefulsetinfo.namespace)
+	statefulset := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: statefulsetinfo.name, Namespace: statefulsetinfo.namespace},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas:             &statefulsetinfo.replicas,
+			Selector:             &metav1.LabelSelector{MatchLabels: statefulsetinfo.selector},
+			Template:             podTemplate,
+			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{volClaimTemp},
+		},
+	}
+	Expect(k8sclient.Create(context.TODO(), &statefulset)).NotTo(HaveOccurred())
+}
+
+func createPVC(statefulsetinfo statefulSetInfo) corev1.PersistentVolumeClaim {
+	fmt.Fprintf(GinkgoWriter, "Creating PersistentVolumeClaim config object\n")
+	volClaimTemplate := corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: statefulsetinfo.volumeName,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			StorageClassName: &statefulsetinfo.storageClassName,
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse("1Gi"),
+				},
+			},
+		},
+	}
+	return volClaimTemplate
+}
+
+func createPodTemplateSpec(statefulsetinfo statefulSetInfo) corev1.PodTemplateSpec {
+	fmt.Fprintf(GinkgoWriter, "Creating PodTemplateSpec config object\n")
+	podTemplateSpec := corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: statefulsetinfo.selector,
+		},
+		Spec: corev1.PodSpec{
+			TerminationGracePeriodSeconds: &statefulsetinfo.podTerminationGracePeriod,
+			Containers: []corev1.Container{
+				{
+					Name:  statefulsetinfo.containerName,
+					Image: statefulsetinfo.containerImage,
+					Ports: []corev1.ContainerPort{{Name: statefulsetinfo.svcPortName, ContainerPort: statefulsetinfo.containerPort}},
+					VolumeMounts: []corev1.VolumeMount{
+						{Name: statefulsetinfo.volumeName, MountPath: statefulsetinfo.volMountPath},
+					},
+				},
+			},
+		},
+	}
+	return podTemplateSpec
+}
+
+func createStorageClass(storageClassName string, k8sclient crclient.Client) {
+	fmt.Fprintf(GinkgoWriter, "Creating StorageClass object with name: %s\n", storageClassName)
+	volExpansion := true
+	bindingMode := storagev1.VolumeBindingImmediate
+	storageClass := storagev1.StorageClass{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "storage.k8s.io/v1",
+			Kind:       "StorageClass",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: storageClassName,
+		},
+		Parameters: map[string]string{
+			"type": "gp2",
+		},
+		Provisioner:          "kubernetes.io/aws-ebs",
+		AllowVolumeExpansion: &volExpansion,
+		MountOptions:         []string{"debug"},
+		VolumeBindingMode:    &bindingMode,
+	}
+	Expect(k8sclient.Create(context.TODO(), &storageClass)).NotTo(HaveOccurred())
+}
+
+func createService(svcName string, svcNamespace string, labels map[string]string, serviceSpec corev1.ServiceSpec, k8sClient crclient.Client) {
+	svcToCreate := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: svcNamespace,
+			Name:      svcName,
+		},
+		Spec: serviceSpec,
+	}
+	if labels != nil && len(labels) > 0 {
+		svcToCreate.ObjectMeta.Labels = labels
+	}
+	Expect(k8sClient.Create(context.TODO(), &svcToCreate)).NotTo(HaveOccurred())
+}
+
+func createLBService(svcNamespace string, svcName string, k8sclient crclient.Client) string {
+	fmt.Fprintf(GinkgoWriter, "Creating service of type Load Balancer with name: %s under namespace: %s\n", svcName, svcNamespace)
+	svcSpec := corev1.ServiceSpec{
+		Type: corev1.ServiceTypeLoadBalancer,
+		Ports: []corev1.ServicePort{
+			{
+				Port:     80,
+				Protocol: corev1.ProtocolTCP,
+			},
+		},
+		Selector: map[string]string{
+			"app": "nginx",
+		},
+	}
+	createService(svcName, svcNamespace, nil, svcSpec, k8sclient)
+	//this sleep is required for the service to get updated with ingress details
+	time.Sleep(15 * time.Second)
+	svcCreated := &corev1.Service{}
+	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: svcNamespace, Name: svcName}, svcCreated)
+	Expect(err).NotTo(HaveOccurred())
+	elbName := ""
+	if lbs := len(svcCreated.Status.LoadBalancer.Ingress); lbs > 0 {
+		ingressHostname := svcCreated.Status.LoadBalancer.Ingress[0].Hostname
+		elbName = strings.Split(ingressHostname, "-")[0]
+	}
+	fmt.Fprintf(GinkgoWriter, "Created Load Balancer service and ELB name is: %s\n", elbName)
+	return elbName
+}
+
+func verifyElbExists(elbName string, exists bool) {
+	fmt.Fprintf(GinkgoWriter, "Verifying ELB with name %s present\n", elbName)
+	elbClient := elb.New(getSession())
+	input := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: []*string{
+			aws.String(elbName),
+		},
+	}
+	elbsOutput, err := elbClient.DescribeLoadBalancers(input)
+	if exists {
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(elbsOutput.LoadBalancerDescriptions)).To(Equal(1))
+		fmt.Fprintf(GinkgoWriter, "ELB with name %s exists\n", elbName)
+	} else {
+		aerr, ok := err.(awserr.Error)
+		Expect(ok).To(BeTrue())
+		Expect(aerr.Code()).To(Equal(elb.ErrCodeAccessPointNotFoundException))
+		fmt.Fprintf(GinkgoWriter, "ELB with name %s doesn't exists\n", elbName)
+	}
+}
+
+func createClusterKubeConfigs(tmpDir, namespace, clusterName string) (string, crclient.Client) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      clusterName,
+		},
+	}
+	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
+	Expect(err).NotTo(HaveOccurred())
+
+	kubeConfigPath := path.Join(tmpDir, clusterName+".kubeconfig")
+	Expect(ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0640)).To(Succeed())
+
+	kubeConfigData, readErr := ioutil.ReadFile(kubeConfigPath)
+	Expect(readErr).NotTo(HaveOccurred())
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigData)
+	Expect(err).NotTo(HaveOccurred())
+
+	k8sclient, err := crclient.New(restConfig, crclient.Options{})
+	Expect(err).NotTo(HaveOccurred())
+
+	return kubeConfigPath, k8sclient
+}
+
+func makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir string) crclient.Client {
+	By("Creating an AWSCluster")
+	makeAWSCluster(namespace, awsClusterName)
+
+	By("Creating a Cluster")
+	makeCluster(namespace, clusterName, awsClusterName)
+
+	By("Ensuring Cluster Infrastructure Reports as Ready")
+	waitForClusterInfrastructureReady(namespace, clusterName)
+
+	By("Creating the initial Control Plane Machine")
+	awsMachineName := cpAWSMachinePrefix + "-0"
+	bootstrapConfigName := cpBootstrapConfigPrefix + "-0"
+	machineName := cpMachinePrefix + "-0"
+	createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
+	clusterKubeConfigPath, clusterK8sClient := createClusterKubeConfigs(testTmpDir, namespace, clusterName)
+
+	By("Deploying CNI to created Cluster")
+	deployCNI(clusterKubeConfigPath, *cniManifests)
+	waitForMachineNodeReady(namespace, machineName)
+	return clusterK8sClient
+}
+
+func createPendingMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, instanceType string, aZone, subnetId *string, replicas int32) {
+	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", namespace, machineDeploymentName)
+	makeAWSMachineTemplate(namespace, awsMachineTemplateName, instanceType, aZone, subnetId)
+	makeJoinBootstrapConfigTemplate(namespace, bootstrapConfigName)
+	makeMachineDeployment(namespace, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, clusterName, replicas)
+}
 
 func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent int32, replicasProposed int32) {
 	fmt.Fprintf(GinkgoWriter, "Scaling MachineDeployment from %d to %d\n", replicasCurrent, replicasProposed)
@@ -152,11 +539,55 @@ func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent
 
 func createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, instanceType string, replicas int32) {
 	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", namespace, machineDeploymentName)
-	makeAWSMachineTemplate(namespace, awsMachineTemplateName, instanceType)
+	makeAWSMachineTemplate(namespace, awsMachineTemplateName, instanceType, nil, nil)
 	makeJoinBootstrapConfigTemplate(namespace, bootstrapConfigName)
 	makeMachineDeployment(namespace, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, clusterName, replicas)
 	waitForMachinesCountMatch(namespace, machineDeploymentName, replicas, replicas)
 	waitForMachineDeploymentRunning(namespace, machineDeploymentName)
+}
+
+func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg string, eList *corev1.EventList) bool {
+	fmt.Fprintf(GinkgoWriter, "Checking Error event with message %s is present \n", errorMsg)
+	machineDeployment := &clusterv1.MachineDeployment{}
+	if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Got error while getting machinedeployment %s \n", machineDeploymentName)
+		return false
+	}
+
+	selector, err := metav1.LabelSelectorAsMap(&machineDeployment.Spec.Selector)
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "Got error while reading lables of machinedeployment: %s, %s \n", machineDeploymentName, err.Error())
+		return false
+	}
+
+	awsMachineList := &infrav1.AWSMachineList{}
+	if err := kindClient.List(context.TODO(), awsMachineList, crclient.InNamespace(namespace), crclient.MatchingLabels(selector)); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Got error while getting awsmachines of machinedeployment: %s, %s \n", machineDeploymentName, err.Error())
+		return false
+	}
+
+	for _, awsMachine := range awsMachineList.Items {
+		exists := false
+		for _, event := range eList.Items {
+			if strings.Contains(event.Name, awsMachine.Name) && event.Reason == eventReason && strings.Contains(event.Message, errorMsg) {
+				exists = true
+				break
+			}
+		}
+		if false == exists {
+			return false
+		}
+	}
+	return true
+}
+
+func getEvents(namespace string) *corev1.EventList {
+	eventsList := &corev1.EventList{}
+	if err := kindClient.List(context.TODO(), eventsList, crclient.InNamespace(namespace), crclient.MatchingLabels{}); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Got error while fetching events of namespace: %s, %s \n", namespace, err.Error())
+	}
+
+	return eventsList
 }
 
 func waitForMachinesCountMatch(namespace, machineDeploymentName string, replicasCurrent int32, replicasProposed int32) {
@@ -199,17 +630,19 @@ func waitForMachinesCountMatch(namespace, machineDeploymentName string, replicas
 	).Should(Equal(replicasProposed))
 }
 
-func waitForMachineDeploymentRunning(namespace, machineDeploymentName string) {
-	Eventually(
-		func() (bool, error) {
-			machineDeployment := &clusterv1.MachineDeployment{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
-				return false, err
+func waitForMachineDeploymentRunning(namespace, machineDeploymentName string) bool {
+	fmt.Fprintf(GinkgoWriter, "Verifying MachineDeployment %s/%s is running..\n", namespace, machineDeploymentName)
+	endTime := time.Now().Add(5 * time.Minute)
+	for time.Now().Before(endTime) {
+		machineDeployment := &clusterv1.MachineDeployment{}
+		if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); nil == err {
+			if *machineDeployment.Spec.Replicas == machineDeployment.Status.ReadyReplicas {
+				return true
 			}
-			return *machineDeployment.Spec.Replicas == machineDeployment.Status.ReadyReplicas, nil
-		},
-		5*time.Minute, 15*time.Second,
-	).Should(BeTrue())
+		}
+		time.Sleep(15 * time.Second)
+	}
+	return false
 }
 
 func makeMachineDeployment(namespace, mdName, awsMachineTemplateName, bootstrapConfigName, clusterName string, replicas int32) {
@@ -284,7 +717,7 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) {
 	Expect(kindClient.Create(context.TODO(), configTemplate)).NotTo(HaveOccurred())
 }
 
-func makeAWSMachineTemplate(namespace, name, instanceType string) {
+func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetId *string) {
 	fmt.Fprintf(GinkgoWriter, "Creating AWSMachineTemplate %s/%s\n", namespace, name)
 	awsMachine := &infrav1.AWSMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -301,21 +734,20 @@ func makeAWSMachineTemplate(namespace, name, instanceType string) {
 			},
 		},
 	}
+	if az != nil {
+		awsMachine.Spec.Template.Spec.AvailabilityZone = az
+	}
+
+	if subnetId != nil {
+		resRef := &infrav1.AWSResourceReference{
+			ID: subnetId,
+		}
+		awsMachine.Spec.Template.Spec.Subnet = resRef
+	}
 	Expect(kindClient.Create(context.TODO(), awsMachine)).NotTo(HaveOccurred())
 }
 
-func deployCNI(tmpDir, namespace, clusterName, manifestPath string) {
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      clusterName,
-		},
-	}
-	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
-	Expect(err).NotTo(HaveOccurred())
-	kubeConfigPath := path.Join(tmpDir, clusterName+".kubeconfig")
-	Expect(ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0640)).To(Succeed())
-
+func deployCNI(kubeConfigPath, manifestPath string) {
 	Expect(exec.Command(
 		*kubectlBinary,
 		"create",
