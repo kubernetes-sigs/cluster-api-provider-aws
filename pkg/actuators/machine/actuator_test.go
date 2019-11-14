@@ -169,7 +169,7 @@ func TestMachineEvents(t *testing.T) {
 
 			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
 			if tc.describeInstancesOutput == nil {
-				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.describeInstancesErr).AnyTimes()
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), tc.describeInstancesErr).AnyTimes()
 			} else {
 				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
 			}
@@ -546,7 +546,7 @@ func TestActuator(t *testing.T) {
 			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
 
 			if tc.describeInstancesOutput == nil {
-				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.describeInstancesErr).AnyTimes()
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), tc.describeInstancesErr).AnyTimes()
 			} else {
 				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
 			}
@@ -656,7 +656,7 @@ func TestAvailabilityZone(t *testing.T) {
 							ImageId:    aws.String("ami-a9acbbd6"),
 							InstanceId: aws.String("i-02fcb933c5da7085c"),
 							State: &ec2.InstanceState{
-								Name: aws.String("Running"),
+								Name: aws.String(ec2.InstanceStateNameRunning),
 							},
 							LaunchTime: aws.Time(time.Now()),
 							Placement: &ec2.Placement{
@@ -675,7 +675,7 @@ func TestAvailabilityZone(t *testing.T) {
 									ImageId:    aws.String("ami-a9acbbd6"),
 									InstanceId: aws.String("i-02fcb933c5da7085c"),
 									State: &ec2.InstanceState{
-										Name: aws.String("Running"),
+										Name: aws.String(ec2.InstanceStateNameRunning),
 										Code: aws.Int64(16),
 									},
 									LaunchTime: aws.Time(time.Now()),
@@ -804,7 +804,7 @@ func TestCreate(t *testing.T) {
 	mockAWSClient.EXPECT().DescribeSecurityGroups(gomock.Any()).Return(nil, fmt.Errorf("describeSecurityGroups error")).AnyTimes()
 	mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, fmt.Errorf("describeAvailabilityZones error")).AnyTimes()
 	mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(nil, fmt.Errorf("describeImages error")).AnyTimes()
-	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
+	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), nil).AnyTimes()
 	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil).AnyTimes()
 	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
 	mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -1175,7 +1175,7 @@ func TestGetMachineInstances(t *testing.T) {
 				}
 
 				mockAWSClient.EXPECT().DescribeInstances(request).Return(
-					stubDescribeInstancesOutput(imageID, instanceID),
+					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameRunning),
 					nil,
 				).Times(1)
 
@@ -1184,7 +1184,7 @@ func TestGetMachineInstances(t *testing.T) {
 			exists: true,
 		},
 		{
-			testcase: "has-status-search-by-id",
+			testcase: "has-status-search-by-id-running",
 			providerStatus: providerconfigv1.AWSMachineProviderStatus{
 				InstanceID: aws.String(instanceID),
 			},
@@ -1196,7 +1196,7 @@ func TestGetMachineInstances(t *testing.T) {
 				}
 
 				mockAWSClient.EXPECT().DescribeInstances(request).Return(
-					stubDescribeInstancesOutput(imageID, instanceID),
+					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameRunning),
 					nil,
 				).Times(1)
 
@@ -1205,23 +1205,21 @@ func TestGetMachineInstances(t *testing.T) {
 			exists: true,
 		},
 		{
-			testcase: "has-status-search-by-id and machine is terminated",
+			testcase: "has-status-search-by-id-terminated",
 			providerStatus: providerconfigv1.AWSMachineProviderStatus{
 				InstanceID: aws.String(instanceID),
 			},
 			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
 				mockAWSClient := mockaws.NewMockClient(ctrl)
 
-				request := &ec2.DescribeInstancesInput{
+				first := mockAWSClient.EXPECT().DescribeInstances(&ec2.DescribeInstancesInput{
 					InstanceIds: aws.StringSlice([]string{instanceID}),
-				}
-
-				mockAWSClient.EXPECT().DescribeInstances(request).Return(
-					stubTerminatedInstanceDescribeInstancesOutput(imageID, instanceID),
+				}).Return(
+					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameTerminated),
 					nil,
 				).Times(1)
 
-				request2 := &ec2.DescribeInstancesInput{
+				mockAWSClient.EXPECT().DescribeInstances(&ec2.DescribeInstancesInput{
 					Filters: []*ec2.Filter{
 						{
 							Name:   awsTagFilter("Name"),
@@ -1230,16 +1228,13 @@ func TestGetMachineInstances(t *testing.T) {
 
 						clusterFilter(clusterID),
 					},
-				}
-
-				mockAWSClient.EXPECT().DescribeInstances(request2).Return(
-					stubTerminatedInstanceDescribeInstancesOutput(imageID, instanceID),
+				}).Return(
+					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameTerminated),
 					nil,
-				).Times(1)
+				).Times(1).After(first)
 
 				return mockAWSClient
 			},
-			exists: false,
 		},
 	}
 
@@ -1268,12 +1263,12 @@ func TestGetMachineInstances(t *testing.T) {
 				t.Errorf("Error creating Actuator: %v", err)
 			}
 
-			instance, err := actuator.getMachineInstances(nil, machineCopy)
+			instances, err := actuator.getMachineInstances(nil, machineCopy)
 			if err != nil {
 				t.Errorf("Unexpected error from getMachineInstances: %v", err)
 			}
-			if tc.exists != (instance != nil) {
-				t.Errorf("Expected instance exists: %t, got instance: %v", tc.exists, instance)
+			if tc.exists != (len(instances) > 0) {
+				t.Errorf("Expected instance exists: %t, got instances: %v", tc.exists, instances)
 			}
 		})
 	}

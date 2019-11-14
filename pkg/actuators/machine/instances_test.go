@@ -239,7 +239,7 @@ func TestRunningInstance(t *testing.T) {
 						ImageId:    aws.String("ami-a9acbbd6"),
 						InstanceId: aws.String("i-02fcb933c5da7085c"),
 						State: &ec2.InstanceState{
-							Name: aws.String("Running"),
+							Name: aws.String(ec2.InstanceStateNameRunning),
 						},
 						LaunchTime: aws.Time(time.Now()),
 					},

@@ -81,7 +81,7 @@ func (c *awsClient) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.D
 						ImageId:    aws.String("ami-a9acbbd6"),
 						InstanceId: aws.String("i-02fcb933c5da7085c"),
 						State: &ec2.InstanceState{
-							Name: aws.String("Running"),
+							Name: aws.String(ec2.InstanceStateNameRunning),
 							Code: aws.Int64(16),
 						},
 						LaunchTime: aws.Time(time.Now()),
