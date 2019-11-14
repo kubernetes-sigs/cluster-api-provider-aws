@@ -45,7 +45,7 @@ import (
 )
 
 var (
-	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.8/manifests/calico.yaml", "URL to CNI manifests to load")
+	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.9/manifests/calico.yaml", "URL to CNI manifests to load")
 	kubectlBinary = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 )
 
@@ -102,7 +102,8 @@ var _ = Describe("functional tests", func() {
 			awsMachineName := cpAWSMachinePrefix + "-0"
 			bootstrapConfigName := cpBootstrapConfigPrefix + "-0"
 			machineName := cpMachinePrefix + "-0"
-			createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
+			instanceType := "t3.large"
+			createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
 
 			By("Deploying CNI to created Cluster")
 			deployCNI(testTmpDir, namespace, clusterName, *cniManifests)
@@ -112,16 +113,16 @@ var _ = Describe("functional tests", func() {
 			awsMachineName = cpAWSMachinePrefix + "-1"
 			bootstrapConfigName = cpBootstrapConfigPrefix + "-1"
 			machineName = cpMachinePrefix + "-1"
-			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
+			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
 
 			By("Creating the third Control Plane Machine")
 			awsMachineName = cpAWSMachinePrefix + "-2"
 			bootstrapConfigName = cpBootstrapConfigPrefix + "-2"
 			machineName = cpMachinePrefix + "-2"
-			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
+			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
 
 			By("Creating the MachineDeployment")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, initialReplicas)
+			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas)
 
 			By("Scale the MachineDeployment up")
 			scaleMachineDeployment(namespace, machineDeploymentName, initialReplicas, scaleUpReplicas)
@@ -149,9 +150,9 @@ func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent
 	waitForMachineDeploymentRunning(namespace, machineDeployment)
 }
 
-func createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName string, replicas int32) {
+func createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, instanceType string, replicas int32) {
 	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", namespace, machineDeploymentName)
-	makeAWSMachineTemplate(namespace, awsMachineTemplateName)
+	makeAWSMachineTemplate(namespace, awsMachineTemplateName, instanceType)
 	makeJoinBootstrapConfigTemplate(namespace, bootstrapConfigName)
 	makeMachineDeployment(namespace, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, clusterName, replicas)
 	waitForMachinesCountMatch(namespace, machineDeploymentName, replicas, replicas)
@@ -213,7 +214,7 @@ func waitForMachineDeploymentRunning(namespace, machineDeploymentName string) {
 
 func makeMachineDeployment(namespace, mdName, awsMachineTemplateName, bootstrapConfigName, clusterName string, replicas int32) {
 	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment %s/%s\n", namespace, mdName)
-	k8s_version := "v1.15.3"
+	k8s_version := "v1.16.0"
 	machineDeployment := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mdName,
@@ -284,7 +285,7 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) {
 	Expect(kindClient.Create(context.TODO(), configTemplate)).NotTo(HaveOccurred())
 }
 
-func makeAWSMachineTemplate(namespace, name string) {
+func makeAWSMachineTemplate(namespace, name, instanceType string) {
 	fmt.Fprintf(GinkgoWriter, "Creating AWSMachineTemplate %s/%s\n", namespace, name)
 	awsMachine := &infrav1.AWSMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -294,7 +295,7 @@ func makeAWSMachineTemplate(namespace, name string) {
 		Spec: infrav1.AWSMachineTemplateSpec{
 			Template: infrav1.AWSMachineTemplateResource{
 				Spec: infrav1.AWSMachineSpec{
-					InstanceType:       "t3.large",
+					InstanceType:       instanceType,
 					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
 					SSHKeyName:         keyPairName,
 				},
@@ -371,8 +372,8 @@ func waitForMachineNodeReady(namespace, name string) {
 	).Should(BeTrue())
 }
 
-func createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName string) {
-	makeAWSMachine(namespace, awsMachineName)
+func createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType string) {
+	makeAWSMachine(namespace, awsMachineName, instanceType)
 	makeJoinBootstrapConfig(namespace, bootstrapConfigName)
 	makeMachine(namespace, machineName, awsMachineName, bootstrapConfigName, clusterName)
 	waitForMachineBootstrapReady(namespace, machineName)
@@ -382,8 +383,8 @@ func createAdditionalControlPlaneMachine(namespace, clusterName, machineName, aw
 	waitForMachineNodeReady(namespace, machineName)
 }
 
-func createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName string) {
-	makeAWSMachine(namespace, awsMachineName)
+func createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType string) {
+	makeAWSMachine(namespace, awsMachineName, instanceType)
 	makeInitBootstrapConfig(namespace, bootstrapConfigName)
 	makeMachine(namespace, machineName, awsMachineName, bootstrapConfigName, clusterName)
 	waitForMachineBootstrapReady(namespace, machineName)
@@ -504,7 +505,7 @@ func waitForAWSMachineReady(namespace, name string) {
 
 func makeMachine(namespace, name, awsMachineName, bootstrapConfigName, clusterName string) {
 	fmt.Fprintf(GinkgoWriter, "Creating Machine %s/%s\n", namespace, name)
-	k8s_version := "v1.15.3"
+	k8s_version := "v1.16.0"
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -584,7 +585,7 @@ func makeInitBootstrapConfig(namespace, name string) {
 	Expect(kindClient.Create(context.TODO(), config)).To(Succeed())
 }
 
-func makeAWSMachine(namespace, name string) {
+func makeAWSMachine(namespace, name, instanceType string) {
 	fmt.Fprintf(GinkgoWriter, "Creating AWSMachine %s/%s\n", namespace, name)
 	awsMachine := &infrav1.AWSMachine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -592,7 +593,7 @@ func makeAWSMachine(namespace, name string) {
 			Namespace: namespace,
 		},
 		Spec: infrav1.AWSMachineSpec{
-			InstanceType:       "t3.large",
+			InstanceType:       instanceType,
 			IAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
 			SSHKeyName:         keyPairName,
 		},
