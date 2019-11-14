@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,11 +37,54 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"net/http"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope" //nolint
+	mockSession "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope/mock"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services" //nolint
 )
+
+// NewTestMachineReconciler sets up a test machine reconciler
+func NewTestMachineReconciler(mockServiceFactory bool) (*mock_services.MockEC2MachineInterface, AWSMachineReconciler, *gomock.Controller, *record.FakeRecorder) {
+	recorder := record.NewFakeRecorder(10)
+	mockCtrl := gomock.NewController(GinkgoT())
+	var serviceFactory *mock_services.MockEC2MachineInterface
+	var reconciler AWSMachineReconciler
+
+	if mockServiceFactory {
+		serviceFactory = mock_services.NewMockEC2MachineInterface(mockCtrl)
+		reconciler = AWSMachineReconciler{
+			serviceFactory: func(*scope.ClusterScope) services.EC2MachineInterface {
+				return serviceFactory
+			},
+			Recorder: recorder,
+		}
+	} else {
+		reconciler = AWSMachineReconciler{
+			Recorder: recorder,
+		}
+	}
+
+	return serviceFactory, reconciler, mockCtrl, recorder
+}
+
+// NewTestClusterScope produces a new test cluster scope for a given recorder and session
+func NewTestClusterScope(evRecorder record.EventRecorder, session *session.Session) (*scope.ClusterScope, error) {
+	return scope.NewClusterScope(
+		scope.ClusterScopeParams{
+			Cluster: &clusterv1.Cluster{},
+			AWSCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					Region: "us-east-1",
+				},
+			},
+			Recorder: evRecorder,
+			Session:  session,
+		},
+	)
+}
 
 var _ = Describe("AWSMachineReconciler", func() {
 	var (
@@ -75,38 +119,47 @@ var _ = Describe("AWSMachineReconciler", func() {
 						},
 					},
 				},
-				AWSCluster: &infrav1.AWSCluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						Region: "us-east-1",
+					},
+				},
 				AWSMachine: &infrav1.AWSMachine{},
 			},
 		)
 		Expect(err).To(BeNil())
 
-		cs, err = scope.NewClusterScope(
-			scope.ClusterScopeParams{
-				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{},
-			},
-		)
+		ec2Svc, reconciler, mockCtrl, recorder = NewTestMachineReconciler(true)
+
+		cs, err = NewTestClusterScope(recorder, nil)
 		Expect(err).To(BeNil())
-
-		mockCtrl = gomock.NewController(GinkgoT())
-		ec2Svc = mock_services.NewMockEC2MachineInterface(mockCtrl)
-
-		recorder = record.NewFakeRecorder(1)
-
-		reconciler = AWSMachineReconciler{
-			serviceFactory: func(*scope.ClusterScope) services.EC2MachineInterface {
-				return ec2Svc
-			},
-			Recorder: recorder,
-		}
-
 	})
+
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
 	Context("Reconciling an AWSMachine", func() {
+
+		When("there is a failure to assume role", func() {
+			var (
+				buf *bytes.Buffer
+				err error
+			)
+			BeforeEach(func() {
+				buf = new(bytes.Buffer)
+				klog.SetOutput(buf)
+				ec2Svc, reconciler, mockCtrl, recorder = NewTestMachineReconciler(false)
+				cs, err = NewTestClusterScope(recorder, mockSession.NewMockStatusSessionForRegion(http.StatusForbidden, cs.Region()))
+				Expect(err).To(BeNil())
+			})
+			It("should warn that there are no resolved credentials", func() {
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
+				Expect(recorder.Events).To(Receive(ContainSubstring("NoCredentialProviders")))
+				Expect(err).ToNot(BeNil())
+			})
+		})
+
 		When("we can't reach amazon", func() {
 			var expectedErr = errors.New("no connection available ")
 

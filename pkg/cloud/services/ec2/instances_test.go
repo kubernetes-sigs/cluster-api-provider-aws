@@ -24,6 +24,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -143,6 +144,7 @@ func TestInstanceIfExists(t *testing.T) {
 						},
 					},
 				},
+				Recorder: record.NewFakeRecorder(1),
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -213,6 +215,7 @@ func TestTerminateInstance(t *testing.T) {
 				},
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{},
+				Recorder:   record.NewFakeRecorder(1),
 			})
 
 			if err != nil {
@@ -842,6 +845,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Cluster:    cluster,
 				AWSCluster: tc.awsCluster,
+				Recorder:   record.NewFakeRecorder(1),
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)

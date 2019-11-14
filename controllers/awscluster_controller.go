@@ -78,6 +78,7 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		Logger:     log,
 		Cluster:    cluster,
 		AWSCluster: awsCluster,
+		Recorder:   r.Recorder,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)

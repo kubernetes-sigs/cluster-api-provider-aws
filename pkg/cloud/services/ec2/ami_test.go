@@ -19,6 +19,7 @@ package ec2
 import (
 	"testing"
 
+	"k8s.io/client-go/tools/record"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -71,6 +72,7 @@ func TestAMIs(t *testing.T) {
 				AWSClients: scope.AWSClients{
 					EC2: ec2Mock,
 				},
+				Recorder: record.NewFakeRecorder(1),
 			})
 			if err != nil {
 				t.Fatalf("did not expect err: %v", err)
@@ -132,6 +134,7 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 				AWSClients: scope.AWSClients{
 					EC2: ec2Mock,
 				},
+				Recorder: record.NewFakeRecorder(1),
 			})
 			if err != nil {
 				t.Fatalf("did not expect err: %v", err)

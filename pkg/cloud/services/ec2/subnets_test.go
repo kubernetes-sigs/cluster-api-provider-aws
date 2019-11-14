@@ -26,6 +26,7 @@ import (
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
@@ -521,6 +522,7 @@ func TestReconcileSubnets(t *testing.T) {
 						NetworkSpec: *tc.input,
 					},
 				},
+				Recorder: record.NewFakeRecorder(1),
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -689,6 +691,7 @@ func TestDiscoverSubnets(t *testing.T) {
 						NetworkSpec: *tc.input,
 					},
 				},
+				Recorder: record.NewFakeRecorder(1),
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)

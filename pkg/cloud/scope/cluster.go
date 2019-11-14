@@ -22,15 +22,17 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,6 +45,8 @@ type ClusterScopeParams struct {
 	Logger     logr.Logger
 	Cluster    *clusterv1.Cluster
 	AWSCluster *infrav1.AWSCluster
+	Recorder   record.EventRecorder
+	Session    *session.Session
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -59,26 +63,33 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		params.Logger = klogr.New()
 	}
 
-	session, err := sessionForRegion(params.AWSCluster.Spec.Region)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
+	if params.Recorder == nil {
+		return nil, errors.New("failed to generate new scope from nil Recorder")
+	}
+
+	if params.Session == nil {
+		session, err := sessionForRegion(params.AWSCluster.Spec.Region)
+		if err != nil {
+			return nil, errors.Errorf("failed to create aws session: %v", err)
+		}
+		params.Session = session
 	}
 
 	if params.AWSClients.EC2 == nil {
-		ec2Client := ec2.New(session)
-		ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
+		ec2Client := ec2.New(params.Session)
+		ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster, params.Recorder))
 		params.AWSClients.EC2 = ec2Client
 	}
 
 	if params.AWSClients.ELB == nil {
-		elbClient := elb.New(session)
-		elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
+		elbClient := elb.New(params.Session)
+		elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster, params.Recorder))
 		params.AWSClients.ELB = elbClient
 	}
 
 	if params.AWSClients.ResourceTagging == nil {
-		resourceTagging := resourcegroupstaggingapi.New(session)
-		resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
+		resourceTagging := resourcegroupstaggingapi.New(params.Session)
+		resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster, params.Recorder))
 		params.AWSClients.ResourceTagging = resourceTagging
 	}
 
@@ -96,12 +107,12 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}, nil
 }
 
-func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
+func recordAWSPermissionsIssue(target runtime.Object, recorder record.EventRecorder) func(r *request.Request) {
 	return func(r *request.Request) {
 		if awsErr, ok := r.Error.(awserr.Error); ok {
 			switch awsErr.Code() {
-			case "AuthFailure", "UnauthorizedOperation":
-				record.Warnf(target, awsErr.Code(), "Operation %s failed with a credentials or permission issue", r.Operation.Name)
+			case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
+				recorder.Eventf(target, corev1.EventTypeWarning, awsErr.Code(), "Operation %s failed with a credentials or permission issue", r.Operation.Name)
 			}
 		}
 	}

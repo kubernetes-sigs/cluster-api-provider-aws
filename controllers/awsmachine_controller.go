@@ -120,6 +120,7 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		Logger:     logger,
 		Cluster:    cluster,
 		AWSCluster: awsCluster,
+		Recorder:   r.Recorder,
 	})
 	if err != nil {
 		return reconcile.Result{}, err
