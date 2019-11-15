@@ -149,6 +149,7 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
+	cd $(TEST_E2E_DIR); go mod tidy
 
 .PHONY: generate
 generate: ## Generate code

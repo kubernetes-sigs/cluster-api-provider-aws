@@ -1,6 +1,6 @@
-module bhargavmad/cluster-api-provider-aws/test/e2e
+module sigs.k8s.io/cluster-api-provider-aws/test/e2e
 
-go 1.13
+go 1.12
 
 require (
 	github.com/aws/aws-sdk-go v1.20.19
@@ -8,7 +8,7 @@ require (
 	github.com/onsi/ginkgo v1.10.3
 	github.com/onsi/gomega v1.7.1
 	github.com/pkg/errors v0.8.1
-	github.com/vmware-tanzu/sonobuoy v0.16.2
+	github.com/vmware-tanzu/sonobuoy v0.16.4
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d
