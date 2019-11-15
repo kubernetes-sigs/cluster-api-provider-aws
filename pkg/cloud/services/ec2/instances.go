@@ -528,7 +528,6 @@ func (s *Service) getImageRootDevice(imageID string) (*string, error) {
 }
 
 func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, error) {
-
 	for _, bdm := range instance.BlockDeviceMappings {
 		if aws.StringValue(bdm.DeviceName) == aws.StringValue(instance.RootDeviceName) {
 			input := &ec2.DescribeVolumesInput{
