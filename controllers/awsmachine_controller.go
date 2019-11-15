@@ -270,7 +270,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	machineScope.Info("Reconciling AWSMachine")
 	// If the AWSMachine is in an error state, return early.
-	if machineScope.AWSMachine.Status.ErrorReason != nil || machineScope.AWSMachine.Status.ErrorMessage != nil {
+	if machineScope.AWSMachine.Status.FailureReason != nil || machineScope.AWSMachine.Status.FailureMessage != nil {
 		machineScope.Info("Error state detected, skipping reconciliation")
 		return reconcile.Result{}, nil
 	}
@@ -300,11 +300,11 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		return reconcile.Result{}, err
 	}
 
-	// Set an error message if we couldn't find the instance.
+	// Set an failure message if we couldn't find the instance.
 	if instance == nil {
 		machineScope.Info("EC2 instance cannot be found")
-		machineScope.SetErrorReason(capierrors.UpdateMachineError)
-		machineScope.SetErrorMessage(errors.New("EC2 instance cannot be found"))
+		machineScope.SetFailureReason(capierrors.UpdateMachineError)
+		machineScope.SetFailureMessage(errors.New("EC2 instance cannot be found"))
 		return reconcile.Result{}, nil
 	}
 
@@ -336,13 +336,13 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		machineScope.SetNotReady()
 		machineScope.Info("EC2 instance state is undefined", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnhandledState", "EC2 instance state is undefined")
-		machineScope.SetErrorReason(capierrors.UpdateMachineError)
-		machineScope.SetErrorMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
+		machineScope.SetFailureReason(capierrors.UpdateMachineError)
+		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
 	}
 
 	if instance.State == infrav1.InstanceStateTerminated {
-		machineScope.SetErrorReason(capierrors.UpdateMachineError)
-		machineScope.SetErrorMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
+		machineScope.SetFailureReason(capierrors.UpdateMachineError)
+		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
 	}
 
 	if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {

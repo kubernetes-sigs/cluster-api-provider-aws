@@ -160,14 +160,14 @@ func (m *MachineScope) SetNotReady() {
 	m.AWSMachine.Status.Ready = false
 }
 
-// SetErrorMessage sets the AWSMachine status error message.
-func (m *MachineScope) SetErrorMessage(v error) {
-	m.AWSMachine.Status.ErrorMessage = pointer.StringPtr(v.Error())
+// SetFailureMessage sets the AWSMachine status failure message.
+func (m *MachineScope) SetFailureMessage(v error) {
+	m.AWSMachine.Status.FailureMessage = pointer.StringPtr(v.Error())
 }
 
-// SetErrorReason sets the AWSMachine status error reason.
-func (m *MachineScope) SetErrorReason(v capierrors.MachineStatusError) {
-	m.AWSMachine.Status.ErrorReason = &v
+// SetFailureReason sets the AWSMachine status failure reason.
+func (m *MachineScope) SetFailureReason(v capierrors.MachineStatusError) {
+	m.AWSMachine.Status.FailureReason = &v
 }
 
 // SetAnnotation sets a key value annotation on the AWSMachine.

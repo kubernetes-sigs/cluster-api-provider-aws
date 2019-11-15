@@ -116,8 +116,8 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 			It("should exit immediately on an error state", func() {
 				er := capierrors.CreateMachineError
-				ms.AWSMachine.Status.ErrorReason = &er
-				ms.AWSMachine.Status.ErrorMessage = pointer.StringPtr("Couldn't create machine")
+				ms.AWSMachine.Status.FailureReason = &er
+				ms.AWSMachine.Status.FailureMessage = pointer.StringPtr("Couldn't create machine")
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -247,7 +247,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
 					Expect(recorder.Events).To(Receive(ContainSubstring("InstanceUnhandledState")))
-					Expect(ms.AWSMachine.Status.ErrorMessage).To(PointTo(Equal("EC2 instance state \"NewAWSMachineState\" is undefined")))
+					Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"NewAWSMachineState\" is undefined")))
 				})
 			})
 
@@ -353,7 +353,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
 					Expect(recorder.Events).To(Receive(ContainSubstring("UnexpectedTermination")))
-					Expect(ms.AWSMachine.Status.ErrorMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
+					Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
 				})
 
 			})
