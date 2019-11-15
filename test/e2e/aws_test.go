@@ -214,7 +214,6 @@ func waitForMachineDeploymentRunning(namespace, machineDeploymentName string) {
 
 func makeMachineDeployment(namespace, mdName, awsMachineTemplateName, bootstrapConfigName, clusterName string, replicas int32) {
 	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment %s/%s\n", namespace, mdName)
-	k8s_version := "v1.16.0"
 	machineDeployment := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mdName,
@@ -254,7 +253,7 @@ func makeMachineDeployment(namespace, mdName, awsMachineTemplateName, bootstrapC
 						Name:       awsMachineTemplateName,
 						Namespace:  namespace,
 					},
-					Version: &k8s_version,
+					Version: k8sVersion,
 				},
 			},
 		},
@@ -505,7 +504,6 @@ func waitForAWSMachineReady(namespace, name string) {
 
 func makeMachine(namespace, name, awsMachineName, bootstrapConfigName, clusterName string) {
 	fmt.Fprintf(GinkgoWriter, "Creating Machine %s/%s\n", namespace, name)
-	k8s_version := "v1.16.0"
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -530,7 +528,7 @@ func makeMachine(namespace, name, awsMachineName, bootstrapConfigName, clusterNa
 				Name:       awsMachineName,
 				Namespace:  namespace,
 			},
-			Version: &k8s_version,
+			Version: k8sVersion,
 		},
 	}
 	Expect(kindClient.Create(context.TODO(), machine)).To(Succeed())
