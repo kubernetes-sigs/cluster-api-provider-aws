@@ -57,3 +57,29 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 
 	return nil
 }
+
+// Convert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus converts this AWSMachineStatus to the Hub version (v1alpha3).
+func Convert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSMachineStatus, out *infrav1alpha3.AWSMachineStatus, s apiconversion.Scope) error { // nolint
+	if err := autoConvert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Error fields to the Failure fields
+	out.FailureMessage = in.ErrorMessage
+	out.FailureReason = in.ErrorReason
+
+	return nil
+}
+
+// Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus converts from the Hub version (v1alpha3) of the AWSMachineStatus to this version.
+func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1alpha3.AWSMachineStatus, out *AWSMachineStatus, s apiconversion.Scope) error { // nolint
+	if err := autoConvert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert the Failure fields to the Error fields
+	out.ErrorMessage = in.FailureMessage
+	out.ErrorReason = in.FailureReason
+
+	return nil
+}
