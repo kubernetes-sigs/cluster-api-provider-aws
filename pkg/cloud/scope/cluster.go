@@ -140,7 +140,7 @@ func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.Se
 
 // Name returns the cluster name.
 func (s *ClusterScope) Name() string {
-	return s.Cluster.Name
+	return fmt.Sprintf("%s-%s", s.Cluster.Name, s.Cluster.Namespace)
 }
 
 // Namespace returns the cluster namespace.
