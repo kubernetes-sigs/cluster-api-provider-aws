@@ -100,7 +100,7 @@ func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
 	return func(r *request.Request) {
 		if awsErr, ok := r.Error.(awserr.Error); ok {
 			switch awsErr.Code() {
-			case "AuthFailure", "UnauthorizedOperation":
+			case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
 				record.Warnf(target, awsErr.Code(), "Operation %s failed with a credentials or permission issue", r.Operation.Name)
 			}
 		}
