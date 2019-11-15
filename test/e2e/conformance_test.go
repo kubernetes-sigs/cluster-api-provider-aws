@@ -79,10 +79,10 @@ var _ = Describe("conformance tests", func() {
 			instanceType := "t3.large"
 
 			By("Creating a cluster with single control plane")
-			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir)
+			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
 
 			By("Deploying a MachineDeployment")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, 2)
+			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, 2, nil, nil)
 
 			By("Running conformance on the workload cluster")
 			err := runConformance(testTmpDir, namespace, clusterName)
