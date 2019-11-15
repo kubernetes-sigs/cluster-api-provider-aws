@@ -23,8 +23,6 @@ import (
 )
 
 var (
-	// GitBranch is the branch from which this binary was built
-	GitBranch string
 	// GitReleaseTag is the git tag from which this binary is released
 	GitReleaseTag string
 	// GitReleaseCommit is the commit corresponding to the GitReleaseTag
@@ -60,7 +58,6 @@ func printShortCleanVersionInfo() {
 func printVerboseVersionInfo() {
 	fmt.Println("Version Info:")
 	fmt.Printf("GitReleaseTag: %q, Major: %q, Minor: %q, GitRelaseCommit: %q\n", GitReleaseTag, GitMajor, GitMinor, GitReleaseCommit)
-	fmt.Printf("Git Branch: %q\n", GitBranch)
 	fmt.Printf("Git commit: %q\n", GitCommit)
 	fmt.Printf("Git tree state: %q\n", GitTreeState)
 }
