@@ -295,13 +295,6 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		return reconcile.Result{}, nil
 	}
 
-	// TODO(ncdc): move this validation logic into a validating webhook
-	if errs := r.validateUpdate(&machineScope.AWSMachine.Spec, instance); len(errs) > 0 {
-		agg := kerrors.NewAggregate(errs)
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InvalidUpdate", "Invalid update: %s", agg.Error())
-		return reconcile.Result{}, nil
-	}
-
 	// Make sure Spec.ProviderID is always set.
 	machineScope.SetProviderID(fmt.Sprintf("aws:////%s", instance.ID))
 
@@ -341,6 +334,13 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
+	}
+
+	// TODO(ncdc): move this validation logic into a validating webhook
+	if errs := r.validateUpdate(&machineScope.AWSMachine.Spec, instance); len(errs) > 0 {
+		agg := kerrors.NewAggregate(errs)
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InvalidUpdate", "Invalid update: %s", agg.Error())
+		return reconcile.Result{}, nil
 	}
 
 	return reconcile.Result{}, nil
