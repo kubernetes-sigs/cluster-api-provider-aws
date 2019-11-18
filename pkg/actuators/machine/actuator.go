@@ -421,7 +421,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 		return a.handleMachineError(machine, err, updateEventAction)
 	}
 	// Get all instances not terminated.
-	existingInstances, err := getExistingInstances(machine, client)
+	existingInstances, err := a.getMachineInstances(cluster, machine)
 	if err != nil {
 		glog.Errorf("%s: error getting existing instances: %v", machine.Name, err)
 		return err
