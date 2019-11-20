@@ -221,6 +221,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 			}
 		}
 
+		machineScope.Info("EC2 instance successfully terminated", "instance-id", instance.ID)
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
 	}
 
@@ -266,6 +267,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// If the AWSMachine doesn't have our finalizer, add it.
 	if !util.Contains(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer) {
+		machineScope.V(1).Info("Adding Cluster API Provider AWS finalizer")
 		machineScope.AWSMachine.Finalizers = append(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
 	}
 
@@ -290,6 +292,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// Set an error message if we couldn't find the instance.
 	if instance == nil {
+		machineScope.Info("EC2 instance cannot be found")
 		machineScope.SetErrorReason(capierrors.UpdateMachineError)
 		machineScope.SetErrorMessage(errors.New("EC2 instance cannot be found"))
 		return reconcile.Result{}, nil
@@ -299,18 +302,34 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	machineScope.SetProviderID(fmt.Sprintf("aws:////%s", instance.ID))
 
 	// Proceed to reconcile the AWSMachine state.
+	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
+
+	existingInstanceState := machineScope.GetInstanceState()
 	machineScope.SetInstanceState(instance.State)
 
 	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
 	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
+	// Proceed to reconcile the AWSMachine state.
+	if existingInstanceState == nil || *existingInstanceState != instance.State {
+		machineScope.Info("EC2 instance state changed", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+	}
 
 	switch instance.State {
+	case infrav1.InstanceStatePending, infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
+		break
 	case infrav1.InstanceStateRunning:
-		machineScope.Info("Machine instance is running", "instance-id", *machineScope.GetInstanceID())
 		machineScope.SetReady()
-	case infrav1.InstanceStatePending:
-		machineScope.Info("Machine instance is pending", "instance-id", *machineScope.GetInstanceID())
+	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
+		machineScope.Info("Unexpected EC2 instance termination", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnexpectedTermination", "Unexpected EC2 instance termination")
 	default:
+		machineScope.Info("EC2 instance state is undefined", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnhandledState", "EC2 instance state is undefined")
+		machineScope.SetErrorReason(capierrors.UpdateMachineError)
+		machineScope.SetErrorMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
+	}
+
+	if instance.State == infrav1.InstanceStateTerminated {
 		machineScope.SetErrorReason(capierrors.UpdateMachineError)
 		machineScope.SetErrorMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
 	}
@@ -339,6 +358,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	// TODO(ncdc): move this validation logic into a validating webhook
 	if errs := r.validateUpdate(&machineScope.AWSMachine.Spec, instance); len(errs) > 0 {
 		agg := kerrors.NewAggregate(errs)
+		machineScope.Info("Invalid update", "failedUpdates", agg.Error())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InvalidUpdate", "Invalid update: %s", agg.Error())
 		return reconcile.Result{}, nil
 	}
@@ -353,6 +373,7 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc *ec
 	}
 
 	if instance == nil {
+		scope.Info("Creating EC2 instance")
 		// Create a new AWSMachine instance if we couldn't find a running instance.
 		instance, err = ec2svc.CreateInstance(scope)
 		if err != nil {
@@ -380,6 +401,13 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 // validateUpdate checks that no immutable fields have been updated and
 // returns a slice of errors representing attempts to change immutable state.
 func (r *AWSMachineReconciler) validateUpdate(spec *infrav1.AWSMachineSpec, i *infrav1.Instance) (errs []error) {
+
+	// EC2 instance attributes start disapearing during shutdown and termination, so do not
+	// perform more checks
+	if i.State == infrav1.InstanceStateTerminated || i.State == infrav1.InstanceStateShuttingDown {
+		return nil
+	}
+
 	// Instance Type
 	if spec.InstanceType != i.Type {
 		errs = append(errs, errors.Errorf("instance type cannot be mutated from %q to %q", i.Type, spec.InstanceType))
