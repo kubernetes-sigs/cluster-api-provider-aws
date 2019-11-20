@@ -130,7 +130,6 @@ func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, m
 	return a.updateStatus(updatedMachine, instance)
 }
 
-// updateProviderID adds providerID in the machine spec
 func (a *Actuator) setMachineCloudProviderSpecifics(machine *machinev1.Machine, instance *ec2.Instance) (*machinev1.Machine, error) {
 	if instance == nil {
 		return machine, nil
