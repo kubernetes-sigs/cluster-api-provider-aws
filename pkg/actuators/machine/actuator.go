@@ -431,6 +431,11 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	// Parent controller should prevent this from ever happening by calling Exists and then Create,
 	// but instance could be deleted between the two calls.
 	if existingLen == 0 {
+		if machine.Spec.ProviderID != nil && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
+			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
+			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
+		}
+
 		glog.Warningf("%s: attempted to update machine but no instances found", machine.Name)
 
 		a.handleMachineError(machine, mapierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
