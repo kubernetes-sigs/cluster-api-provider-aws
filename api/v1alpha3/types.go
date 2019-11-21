@@ -173,15 +173,6 @@ type NetworkSpec struct {
 	Subnets Subnets `json:"subnets,omitempty"`
 }
 
-// APIEndpoint represents a reachable Kubernetes API endpoint.
-type APIEndpoint struct {
-	// The hostname on which the API server is serving.
-	Host string `json:"host"`
-
-	// The port on which the API server is serving.
-	Port int `json:"port"`
-}
-
 // VPCSpec configures an AWS VPC.
 type VPCSpec struct {
 	// ID is the vpc-id of the VPC this provider should use to create resources.
