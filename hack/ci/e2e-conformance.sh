@@ -298,7 +298,7 @@ create_cluster() {
 
   # Load the newly built image into kind and start the cluster
   LOAD_IMAGE="${REGISTRY}/cluster-api-aws-controller-amd64:dev" \
-    make create-cluster-management
+    make create-cluster
 
   # Wait till all machines are running (bail out at 30 mins)
   attempt=0
