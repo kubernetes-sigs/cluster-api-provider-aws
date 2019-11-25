@@ -490,21 +490,8 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 // Exists determines if the given machine currently exists.
 // A machine which is not terminated is considered as existing.
 func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) (bool, error) {
-	glog.Infof("%s: Checking if machine exists", machine.Name)
-
-	instances, err := a.getMachineInstances(cluster, machine)
-	if err != nil {
-		glog.Errorf("%s: Error getting existing instances: %v", machine.Name, err)
-		return false, err
-	}
-	if len(instances) == 0 {
-		glog.Infof("%s: Instance does not exist", machine.Name)
-		return false, nil
-	}
-
-	// If more than one result was returned, it will be handled in Update.
-	glog.Infof("%s: Instance exists as %q", machine.Name, *instances[0].InstanceId)
-	return true, nil
+	instance, err := a.Describe(cluster, machine)
+	return instance != nil, err
 }
 
 // Describe provides information about machine's instance(s)
@@ -513,10 +500,15 @@ func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *machinev1.Machi
 
 	instances, err := a.getMachineInstances(cluster, machine)
 	if err != nil {
-		glog.Errorf("%s: Error getting running instances: %v", machine.Name, err)
+		glog.Errorf("%s: Error getting existing instances: %v", machine.Name, err)
 		return nil, err
 	}
 	if len(instances) == 0 {
+		if machine.Spec.ProviderID != nil && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
+			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
+			return nil, &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
+		}
+
 		glog.Infof("%s: Instance does not exist", machine.Name)
 		return nil, nil
 	}
