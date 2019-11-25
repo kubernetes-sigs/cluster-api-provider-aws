@@ -80,7 +80,8 @@ test: generate lint ## Run tests
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
-	go test -v -tags=integration ./test/integration/...
+	PULL_POLICY=IfNotPresent $(MAKE) docker-build
+	go test -v -tags=integration ./test/integration/... -args -ginkgo.v --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
