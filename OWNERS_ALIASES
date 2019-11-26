@@ -14,19 +14,13 @@ aliases:
     - justinsb
     - ncdc
     - vincepri
-  sig-aws-leads:
-    - d-nishi
-    - justinsb
-    - kris-nova
   cluster-api-aws-maintainers:
     - chuckha
-    - davidewatson
     - detiber
-    - enxebre
-    - ingvagabund
     - ncdc
+    - rudoi
     - vincepri
   cluster-api-aws-reviewers:
     - ashish-amarnath
     - sethp-nr
-    - rudoi
+    - randomvariable
