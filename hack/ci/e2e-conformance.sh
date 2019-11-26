@@ -248,6 +248,7 @@ generate_manifests() {
   IMAGE_ID=$image_id \
   CLUSTER_NAME=$CLUSTER_NAME \
   SSH_KEY_NAME=$SSH_KEY_NAME \
+  ENABLE_IPV6=true \
     make modules docker-build generate-examples
 }
 
