@@ -69,6 +69,10 @@ func (s *Service) ReconcileLoadbalancers() error {
 		}
 	}
 
+	if err := s.reconcileELBTags(apiELB.Name, spec.Tags); err != nil {
+		return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
+	}
+
 	// Reconciliate the subnets from the spec and the ones currently attached to the load balancer.
 	if len(apiELB.SubnetIDs) != len(spec.SubnetIDs) {
 		_, err := s.scope.ELB.AttachLoadBalancerToSubnets(&elb.AttachLoadBalancerToSubnetsInput{
@@ -449,6 +453,57 @@ func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 	}
 
 	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0], outAtt.LoadBalancerAttributes), nil
+}
+
+func (s *Service) reconcileELBTags(name string, desiredTags map[string]string) error {
+	tags, err := s.scope.ELB.DescribeTags(&elb.DescribeTagsInput{
+		LoadBalancerNames: []*string{aws.String(name)},
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(tags.TagDescriptions) == 0 {
+		return errors.Errorf("no tag information returned for load balancer %q", name)
+	}
+
+	currentTags := converters.ELBTagsToMap(tags.TagDescriptions[0].Tags)
+
+	addTagsInput := &elb.AddTagsInput{
+		LoadBalancerNames: []*string{aws.String(name)},
+	}
+
+	removeTagsInput := &elb.RemoveTagsInput{
+		LoadBalancerNames: []*string{aws.String(name)},
+	}
+
+	for k, v := range desiredTags {
+		if val, ok := currentTags[k]; !ok || val != v {
+			s.scope.V(4).Info("adding tag to load balancer", "elb-name", name, "key", k, "value", v)
+			addTagsInput.Tags = append(addTagsInput.Tags, &elb.Tag{Key: aws.String(k), Value: aws.String(v)})
+		}
+	}
+
+	for k := range currentTags {
+		if _, ok := desiredTags[k]; !ok {
+			s.scope.V(4).Info("removing tag from load balancer", "elb-name", name, "key", k)
+			removeTagsInput.Tags = append(removeTagsInput.Tags, &elb.TagKeyOnly{Key: aws.String(k)})
+		}
+	}
+
+	if len(addTagsInput.Tags) > 0 {
+		if _, err := s.scope.ELB.AddTags(addTagsInput); err != nil {
+			return err
+		}
+	}
+
+	if len(removeTagsInput.Tags) > 0 {
+		if _, err := s.scope.ELB.RemoveTags(removeTagsInput); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *infrav1.ClassicELB {
