@@ -66,7 +66,7 @@ build: ## build binaries
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/machine-controller-manager" \
                -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' \
-               "$(REPO_PATH)/vendor/github.com/openshift/cluster-api/cmd/manager"
+               "$(REPO_PATH)/vendor/github.com/openshift/machine-api-operator/cmd/machineset"
 
 
 aws-actuator:

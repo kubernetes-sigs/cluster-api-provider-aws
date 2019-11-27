@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	clusterapis "github.com/openshift/cluster-api/pkg/apis"
-	"github.com/openshift/cluster-api/pkg/controller/machine"
+	mapiv1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	"github.com/openshift/machine-api-operator/pkg/controller/machine"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
@@ -79,7 +79,7 @@ func main() {
 	}
 
 	// Setup Scheme for all resources
-	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
+	if err := mapiv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
 		glog.Fatalf("Error setting up scheme: %v", err)
 	}
 
