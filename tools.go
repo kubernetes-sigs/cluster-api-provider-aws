@@ -7,6 +7,6 @@ package tools
 
 import (
 	_ "github.com/golang/mock/mockgen"
-	_ "github.com/openshift/cluster-api/cmd/manager"
+	_ "github.com/openshift/machine-api-operator/cmd/machineset"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 )

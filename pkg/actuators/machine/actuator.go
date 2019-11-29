@@ -24,11 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/glog"
-	clusterv1 "github.com/openshift/cluster-api/pkg/apis/cluster/v1alpha1"
-	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
-	clustererror "github.com/openshift/cluster-api/pkg/controller/error"
-	machinecontroller "github.com/openshift/cluster-api/pkg/controller/machine"
-	mapierrors "github.com/openshift/cluster-api/pkg/errors"
+	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
+	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -105,9 +103,9 @@ func (a *Actuator) handleMachineError(machine *machinev1.Machine, err error, eve
 }
 
 // Create runs a new EC2 instance
-func (a *Actuator) Create(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Create(context context.Context, machine *machinev1.Machine) error {
 	glog.Infof("%s: creating machine", machine.Name)
-	instance, err := a.CreateMachine(cluster, machine)
+	instance, err := a.CreateMachine(machine)
 	if err != nil {
 		glog.Errorf("%s: error creating machine: %v", machine.Name, err)
 		updateConditionError := a.updateMachineProviderConditions(machine, providerconfigv1.MachineCreation, MachineCreationFailed, err.Error())
@@ -259,7 +257,7 @@ func (a *Actuator) updateMachineProviderConditions(machine *machinev1.Machine, c
 }
 
 // CreateMachine starts a new AWS instance as described by the cluster and machine resources
-func (a *Actuator) CreateMachine(cluster *clusterv1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
+func (a *Actuator) CreateMachine(machine *machinev1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		return nil, a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
@@ -334,9 +332,9 @@ func (a *Actuator) getUserData(machine *machinev1.Machine, machineProviderConfig
 }
 
 // Delete deletes a machine and updates its finalizer
-func (a *Actuator) Delete(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Delete(context context.Context, machine *machinev1.Machine) error {
 	glog.Infof("%s: deleting machine", machine.Name)
-	if err := a.DeleteMachine(cluster, machine); err != nil {
+	if err := a.DeleteMachine(machine); err != nil {
 		glog.Errorf("%s: error deleting machine: %v", machine.Name, err)
 		return err
 	}
@@ -354,7 +352,7 @@ func (gl *glogLogger) Logf(format string, v ...interface{}) {
 }
 
 // DeleteMachine deletes an AWS instance
-func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) DeleteMachine(machine *machinev1.Machine) error {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		return a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
@@ -401,7 +399,7 @@ func (a *Actuator) DeleteMachine(cluster *clusterv1.Cluster, machine *machinev1.
 // Update attempts to sync machine state with an existing instance. Today this just updates status
 // for details that may have changed. (IPs and hostnames) We do not currently support making any
 // changes to actual machines in AWS. Instead these will be replaced via MachineDeployments.
-func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) error {
+func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) error {
 	glog.Infof("%s: updating machine", machine.Name)
 
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
@@ -420,7 +418,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 		return a.handleMachineError(machine, err, updateEventAction)
 	}
 	// Get all instances not terminated.
-	existingInstances, err := a.getMachineInstances(cluster, machine)
+	existingInstances, err := a.getMachineInstances(machine)
 	if err != nil {
 		glog.Errorf("%s: error getting existing instances: %v", machine.Name, err)
 		return err
@@ -433,7 +431,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 	if existingLen == 0 {
 		if machine.Spec.ProviderID != nil && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
 			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
-			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
+			return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
 
 		glog.Warningf("%s: attempted to update machine but no instances found", machine.Name)
@@ -446,7 +444,7 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 		}
 		// This is an unrecoverable error condition.  We should delay to
 		// minimize unnecessary API calls.
-		return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterFatalSeconds * time.Second}
+		return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterFatalSeconds * time.Second}
 	}
 	sortInstances(existingInstances)
 	runningInstances := getRunningFromInstances(existingInstances)
@@ -489,16 +487,16 @@ func (a *Actuator) Update(context context.Context, cluster *clusterv1.Cluster, m
 
 // Exists determines if the given machine currently exists.
 // A machine which is not terminated is considered as existing.
-func (a *Actuator) Exists(context context.Context, cluster *clusterv1.Cluster, machine *machinev1.Machine) (bool, error) {
-	instance, err := a.Describe(cluster, machine)
+func (a *Actuator) Exists(context context.Context, machine *machinev1.Machine) (bool, error) {
+	instance, err := a.Describe(machine)
 	return instance != nil, err
 }
 
 // Describe provides information about machine's instance(s)
-func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *machinev1.Machine) (*ec2.Instance, error) {
+func (a *Actuator) Describe(machine *machinev1.Machine) (*ec2.Instance, error) {
 	glog.Infof("%s: Checking if machine exists", machine.Name)
 
-	instances, err := a.getMachineInstances(cluster, machine)
+	instances, err := a.getMachineInstances(machine)
 	if err != nil {
 		glog.Errorf("%s: Error getting existing instances: %v", machine.Name, err)
 		return nil, err
@@ -506,7 +504,7 @@ func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *machinev1.Machi
 	if len(instances) == 0 {
 		if machine.Spec.ProviderID != nil && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
 			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
-			return nil, &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
+			return nil, &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
 
 		glog.Infof("%s: Instance does not exist", machine.Name)
@@ -516,7 +514,7 @@ func (a *Actuator) Describe(cluster *clusterv1.Cluster, machine *machinev1.Machi
 	return instances[0], nil
 }
 
-func (a *Actuator) getMachineInstances(cluster *clusterv1.Cluster, machine *machinev1.Machine) ([]*ec2.Instance, error) {
+func (a *Actuator) getMachineInstances(machine *machinev1.Machine) ([]*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
 		glog.Errorf("%s: Error decoding MachineProviderConfig: %v", machine.Name, err)
@@ -658,7 +656,7 @@ func (a *Actuator) updateStatus(machine *machinev1.Machine, instance *ec2.Instan
 	// we get a public IP populated more quickly.
 	if awsStatus.InstanceState != nil && *awsStatus.InstanceState == ec2.InstanceStateNamePending {
 		glog.Infof("%s: Instance state still pending, returning an error to requeue", machine.Name)
-		return &clustererror.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
+		return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 	}
 	return nil
 }

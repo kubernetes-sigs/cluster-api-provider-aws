@@ -32,7 +32,7 @@ import (
 
 	"k8s.io/client-go/kubernetes/scheme"
 
-	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 )
 
 const (
@@ -106,7 +106,7 @@ func createCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to create actuator: %v", err)
 			}
-			result, err := actuator.CreateMachine(nil, machine)
+			result, err := actuator.CreateMachine(machine)
 			if err != nil {
 				return fmt.Errorf("unable to create machine: %v", err)
 			}
@@ -144,7 +144,7 @@ func deleteCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to create actuator: %v", err)
 			}
-			if err = actuator.DeleteMachine(nil, machine); err != nil {
+			if err = actuator.DeleteMachine(machine); err != nil {
 				return fmt.Errorf("unable to delete machine: %v", err)
 			}
 
@@ -178,7 +178,7 @@ func existsCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to create actuator: %v", err)
 			}
-			exists, err := actuator.Exists(context.TODO(), nil, machine)
+			exists, err := actuator.Exists(context.TODO(), machine)
 			if err != nil {
 				return fmt.Errorf("unable to check if machine exists: %v", err)
 			}

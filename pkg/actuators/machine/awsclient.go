@@ -3,9 +3,7 @@ package machine
 import (
 	"fmt"
 
-	"github.com/openshift/cluster-api-actuator-pkg/pkg/types"
-
-	machinev1beta1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
@@ -14,10 +12,7 @@ type AwsClientWrapper struct {
 	client awsclient.Client
 }
 
-var _ types.CloudProviderClient = &AwsClientWrapper{}
-
-// NewAwsClientWrapper returns aws client implementaton of CloudProviderClient
-// used for testing in CI environmet
+// NewAwsClientWrapper returns aws client implementation
 func NewAwsClientWrapper(client awsclient.Client) *AwsClientWrapper {
 	return &AwsClientWrapper{client: client}
 }
