@@ -19,19 +19,47 @@ package v1alpha2
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this AWSCluster to the Hub version (v1alpha3).
 func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1alpha3.AWSCluster)
-	return Convert_v1alpha2_AWSCluster_To_v1alpha3_AWSCluster(src, dst, nil)
+
+	if err := Convert_v1alpha2_AWSCluster_To_v1alpha3_AWSCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually convert Status.APIEndpoints to Spec.ControlPlaneEndpoint.
+	if len(src.Status.APIEndpoints) > 0 {
+		endpoint := src.Status.APIEndpoints[0]
+		dst.Spec.ControlPlaneEndpoint.Host = endpoint.Host
+		dst.Spec.ControlPlaneEndpoint.Port = int32(endpoint.Port)
+	}
+
+	return nil
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
 func (dst *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1alpha3.AWSCluster)
-	return Convert_v1alpha3_AWSCluster_To_v1alpha2_AWSCluster(src, dst, nil)
+
+	if err := Convert_v1alpha3_AWSCluster_To_v1alpha2_AWSCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually convert Spec.ControlPlaneEndpoint to Status.APIEndpoints.
+	if !src.Spec.ControlPlaneEndpoint.IsZero() {
+		dst.Status.APIEndpoints = []APIEndpoint{
+			{
+				Host: src.Spec.ControlPlaneEndpoint.Host,
+				Port: int(src.Spec.ControlPlaneEndpoint.Port),
+			},
+		}
+	}
+
+	return nil
 }
 
 // ConvertTo converts this AWSClusterList to the Hub version (v1alpha3).
@@ -44,6 +72,11 @@ func (src *AWSClusterList) ConvertTo(dstRaw conversion.Hub) error { // nolint
 func (dst *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1alpha3.AWSClusterList)
 	return Convert_v1alpha3_AWSClusterList_To_v1alpha2_AWSClusterList(src, dst, nil)
+}
+
+// Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus converts AWSCluster.Status from v1alpha2 to v1alpha3.
+func Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSClusterStatus, out *v1alpha3.AWSClusterStatus, s apiconversion.Scope) error { // nolint
+	return autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in, out, s)
 }
 
 // Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec converts from the Hub version (v1alpha3) of the AWSClusterSpec to this version.

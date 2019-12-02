@@ -468,6 +468,21 @@ spec:
                   resources managed by the AWS provider, in addition to the ones added
                   by default.
                 type: object
+              controlPlaneEndpoint:
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
               controlPlaneLoadBalancer:
                 description: ControlPlaneLoadBalancer is optional configuration for
                   customizing control plane behavior
@@ -567,23 +582,6 @@ spec:
           status:
             description: AWSClusterStatus defines the observed state of AWSCluster
             properties:
-              apiEndpoints:
-                description: APIEndpoints represents the endpoints to communicate
-                  with the control plane.
-                items:
-                  description: APIEndpoint represents a reachable Kubernetes API endpoint.
-                  properties:
-                    host:
-                      description: The hostname on which the API server is serving.
-                      type: string
-                    port:
-                      description: The port on which the API server is serving.
-                      type: integer
-                  required:
-                  - host
-                  - port
-                  type: object
-                type: array
               bastion:
                 description: Instance describes an AWS instance.
                 properties:

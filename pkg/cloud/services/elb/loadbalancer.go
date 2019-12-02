@@ -232,7 +232,7 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 		Listeners: []*infrav1.ClassicELBListener{
 			{
 				Protocol:         infrav1.ClassicELBProtocolTCP,
-				Port:             s.scope.APIServerPort(),
+				Port:             int64(s.scope.APIServerPort()),
 				InstanceProtocol: infrav1.ClassicELBProtocolTCP,
 				InstancePort:     6443,
 			},

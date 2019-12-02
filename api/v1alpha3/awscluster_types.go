@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -36,6 +37,10 @@ type AWSClusterSpec struct {
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
 	SSHKeyName string `json:"sshKeyName,omitempty"`
+
+	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// +optional
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
@@ -71,9 +76,6 @@ type AWSClusterStatus struct {
 	Network Network  `json:"network,omitempty"`
 	Bastion Instance `json:"bastion,omitempty"`
 	Ready   bool     `json:"ready"`
-	// APIEndpoints represents the endpoints to communicate with the control plane.
-	// +optional
-	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
 }
 
 // +kubebuilder:object:root=true

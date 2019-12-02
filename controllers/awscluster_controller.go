@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -156,13 +157,9 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
-	// Set APIEndpoints so the Cluster API Cluster Controller can pull them
-	// TODO: should we get the Port from the first listener on the ELB?
-	awsCluster.Status.APIEndpoints = []infrav1.APIEndpoint{
-		{
-			Host: awsCluster.Status.Network.APIServerELB.DNSName,
-			Port: int(clusterScope.APIServerPort()),
-		},
+	awsCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+		Host: awsCluster.Status.Network.APIServerELB.DNSName,
+		Port: clusterScope.APIServerPort(),
 	}
 
 	// No errors, so mark us ready so the Cluster API Cluster Controller can pull it
