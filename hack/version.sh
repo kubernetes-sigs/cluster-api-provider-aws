@@ -67,7 +67,6 @@ version::get_version_vars() {
         fi
     fi
 
-    GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2)
     GIT_RELEASE_TAG=$(git describe --abbrev=0 --tags)
     GIT_RELEASE_COMMIT=$(git rev-list -n 1  ${GIT_RELEASE_TAG} | head -c 14)
 }
@@ -91,7 +90,6 @@ version::ldflags() {
     add_ldflag "GitMajor" "${GIT_MAJOR}"
     add_ldflag "GitMinor" "${GIT_MINOR}"
     add_ldflag "GitVersion" "${GIT_VERSION}"
-    add_ldflag "GitBranch" "${GIT_BRANCH}"
     add_ldflag "GitReleaseTag" "${GIT_RELEASE_TAG}"
     add_ldflag "GitReleaseCommit" "${GIT_RELEASE_COMMIT}"
 
