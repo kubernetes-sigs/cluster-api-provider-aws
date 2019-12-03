@@ -162,7 +162,7 @@ func runConformance(tmpDir, namespace, clusterName string) error {
 		return errors.Wrap(err, "couldn't create sonobuoy config file")
 	}
 
-	sbConfig := sonobuoyConfig{SonobuoyVersion: "v0.16.2", K8sVersion: apiVersion.GitVersion}
+	sbConfig := sonobuoyConfig{SonobuoyVersion: *sonobuoyVersion, K8sVersion: apiVersion.GitVersion}
 	err = tmpl.Execute(fileP, sbConfig)
 	if err != nil {
 		return errors.Wrap(err, "couldn't execute template")
