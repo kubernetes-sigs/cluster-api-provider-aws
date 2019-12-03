@@ -17,8 +17,15 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"reflect"
+
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // log is for logging in this package.
@@ -28,4 +35,60 @@ func (r *AWSMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
+}
+
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachine,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,versions=v1alpha3,name=validation.awsmachine.infrastructure.cluster.x-k8s.io
+
+var _ webhook.Validator = &AWSMachine{}
+
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+func (r *AWSMachine) ValidateCreate() error {
+	return nil
+}
+
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
+	newAWSMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(r)
+	if err != nil {
+		return apierrors.NewInvalid(GroupVersion.WithKind("AWSMachine").GroupKind(), r.Name, field.ErrorList{
+			field.InternalError(nil, errors.Wrap(err, "failed to convert new AWSMachine to unstructured object")),
+		})
+	}
+	oldAWSMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(old)
+	if err != nil {
+		return apierrors.NewInvalid(GroupVersion.WithKind("AWSMachine").GroupKind(), r.Name, field.ErrorList{
+			field.InternalError(nil, errors.Wrap(err, "failed to convert old AWSMachine to unstructured object")),
+		})
+	}
+
+	var allErrs field.ErrorList
+
+	newAWSMachineSpec := newAWSMachine["spec"].(map[string]interface{})
+	oldAWSMachineSpec := oldAWSMachine["spec"].(map[string]interface{})
+
+	// allow changes to providerID
+	delete(oldAWSMachineSpec, "providerID")
+	delete(newAWSMachineSpec, "providerID")
+
+	// allow changes to additionalTags
+	delete(oldAWSMachineSpec, "additionalTags")
+	delete(newAWSMachineSpec, "additionalTags")
+
+	// allow changes to additionalSecurityGroups
+	delete(oldAWSMachineSpec, "additionalSecurityGroups")
+	delete(newAWSMachineSpec, "additionalSecurityGroups")
+
+	if !reflect.DeepEqual(oldAWSMachineSpec, newAWSMachineSpec) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
+		return apierrors.NewInvalid(
+			GroupVersion.WithKind("AWSMachine").GroupKind(),
+			r.Name, allErrs)
+	}
+
+	return nil
+}
+
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+func (r *AWSMachine) ValidateDelete() error {
+	return nil
 }

@@ -20,12 +20,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -369,14 +367,6 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		return reconcile.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
 	}
 
-	// TODO(ncdc): move this validation logic into a validating webhook
-	if errs := r.validateUpdate(&machineScope.AWSMachine.Spec, instance); len(errs) > 0 {
-		agg := kerrors.NewAggregate(errs)
-		machineScope.Info("Invalid update", "failedUpdates", agg.Error())
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InvalidUpdate", "Invalid update: %s", agg.Error())
-		return reconcile.Result{}, nil
-	}
-
 	return reconcile.Result{}, nil
 }
 
@@ -410,67 +400,6 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 	}
 	return nil
-}
-
-// validateUpdate checks that no immutable fields have been updated and
-// returns a slice of errors representing attempts to change immutable state.
-func (r *AWSMachineReconciler) validateUpdate(spec *infrav1.AWSMachineSpec, i *infrav1.Instance) (errs []error) {
-
-	// EC2 instance attributes start disapearing during shutdown and termination, so do not
-	// perform more checks
-	if i.State == infrav1.InstanceStateTerminated || i.State == infrav1.InstanceStateShuttingDown {
-		return nil
-	}
-
-	// Instance Type
-	if spec.InstanceType != i.Type {
-		errs = append(errs, errors.Errorf("EC2 instance type cannot be mutated from %q to %q", i.Type, spec.InstanceType))
-	}
-
-	// IAM Profile
-	if spec.IAMInstanceProfile != i.IAMProfile {
-		errs = append(errs, errors.Errorf("EC2 instance IAM profile cannot be mutated from %q to %q", i.IAMProfile, spec.IAMInstanceProfile))
-	}
-
-	// SSH Key Name (also account for default)
-	if spec.SSHKeyName != aws.StringValue(i.SSHKeyName) && spec.SSHKeyName != "" {
-		errs = append(errs, errors.Errorf("SSH key name cannot be mutated from %q to %q", aws.StringValue(i.SSHKeyName), spec.SSHKeyName))
-	}
-
-	// Root Device Size
-	if spec.RootDeviceSize > 0 && spec.RootDeviceSize != i.RootDeviceSize {
-		errs = append(errs, errors.Errorf("Root volume size cannot be mutated from %v to %v", i.RootDeviceSize, spec.RootDeviceSize))
-	}
-
-	// Subnet ID
-	// spec.Subnet is a *AWSResourceReference and could technically be
-	// a *string, ARN or Filter. However, elsewhere in the code it is only used
-	// as a *string, so do the same here.
-	if spec.Subnet != nil {
-		if aws.StringValue(spec.Subnet.ID) != i.SubnetID {
-			errs = append(errs, errors.Errorf("machine subnet ID cannot be mutated from %q to %q",
-				i.SubnetID, aws.StringValue(spec.Subnet.ID)))
-		}
-	}
-
-	// PublicIP check is a little more complicated as the machineConfig is a
-	// simple bool indicating if the instance should have a public IP or not,
-	// while the instanceDescription contains the public IP assigned to the
-	// instance.
-	// Work out whether the instance already has a public IP or not based on
-	// the length of the PublicIP string. Anything >0 is assumed to mean it does
-	// have a public IP.
-	instanceHasPublicIP := false
-	if len(aws.StringValue(i.PublicIP)) > 0 {
-		instanceHasPublicIP = true
-	}
-
-	if aws.BoolValue(spec.PublicIP) != instanceHasPublicIP {
-		errs = append(errs, errors.Errorf(`public IP setting cannot be mutated from "%v" to "%v"`,
-			instanceHasPublicIP, aws.BoolValue(spec.PublicIP)))
-	}
-
-	return errs
 }
 
 // AWSClusterToAWSMachine is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
