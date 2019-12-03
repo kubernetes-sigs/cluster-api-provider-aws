@@ -313,7 +313,9 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		wait --for=condition=Ready --namespace=cert-manager --timeout=15m pods --all
 	# Wait for webhook servers to be ready to take requests
-	sleep 10
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
 	# Apply provider-components.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
