@@ -20,7 +20,7 @@ set -o errexit -o nounset -o pipefail
 
 REGISTRY=${REGISTRY:-"gcr.io/"$(gcloud config get-value project)}
 AWS_REGION=${AWS_REGION:-"us-east-1"}
-CLUSTER_NAME=${CLUSTER_NAME:-test1}
+CLUSTER_NAME=${CLUSTER_NAME:-"test-$(date +%s)"}
 SSH_KEY_NAME=${SSH_KEY_NAME:-"${CLUSTER_NAME}-key"}
 KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.16.1"}
 TIMESTAMP=$(date +"%Y-%m-%dT%H:%M:%SZ")
@@ -30,7 +30,6 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 
 # dump logs from kind and all the nodes
 dump-logs() {
-
   # log version information
   echo "=== versions ==="
   echo "kind : $(kind version)" || true
@@ -43,7 +42,7 @@ dump-logs() {
   # dump all the info from the CAPI related CRDs
   kubectl --kubeconfig=$(kind get kubeconfig-path --name="clusterapi") get \
   clusters,awsclusters,machines,awsmachines,kubeadmconfigs,machinedeployments,awsmachinetemplates,kubeadmconfigtemplates,machinesets \
-  --all-namespaces -o yaml >> "${ARTIFACTS}/logs/capg.info" || true
+  --all-namespaces -o yaml >> "${ARTIFACTS}/logs/capa.info" || true
 
   # dump images info
   echo "images in docker" >> "${ARTIFACTS}/logs/images.info"
@@ -94,8 +93,8 @@ function ssh-to-node() {
   local cmd="$3"
 
   ssh_key_pem="/tmp/${SSH_KEY_NAME}.pem"
-  scp -i $ssh_key_pem $ssh_key_pem "ubuntu@${jump}:$ssh_key_pem"
   ssh_params="-o LogLevel=quiet -o ConnectTimeout=30 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+  scp $ssh_params -i $ssh_key_pem $ssh_key_pem "ubuntu@${jump}:$ssh_key_pem"
   ssh $ssh_params -i $ssh_key_pem \
     -o "ProxyCommand ssh $ssh_params -W %h:%p -i $ssh_key_pem ubuntu@${jump}" \
     ubuntu@${node} "${cmd}"
@@ -297,7 +296,7 @@ create_cluster() {
   KIND_IS_UP=true
 
   # Load the newly built image into kind and start the cluster
-  LOAD_IMAGE="${REGISTRY}/cluster-api-aws-controller-amd64:dev" \
+  LOAD_IMAGE="${REGISTRY}/cluster-api-aws-controller-amd64:dev" CLUSTER_NAME="${CLUSTER_NAME}" \
     make create-cluster
 
   # Wait till all machines are running (bail out at 30 mins)

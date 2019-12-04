@@ -293,6 +293,10 @@ release-notes: $(RELEASE_NOTES)
 ## Development
 ## --------------------------------------
 
+# This is used in the get-kubeconfig call below in the create-cluster target. It may be overridden by the
+# e2e-conformance.sh script, which is why we need it as a variable here.
+CLUSTER_NAME ?= test1
+
 # NOTE: do not add 'generate-exmaples' as a prerequisite of this target. It will break e2e conformance testing.
 .PHONY: create-cluster
 create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
@@ -335,7 +339,7 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 		alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		--namespace=default \
-		--cluster-name=test1
+		--cluster-name=$(CLUSTER_NAME)
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
 	$(CLUSTERCTL) \
 		alpha phases apply-addons -v=3 \
