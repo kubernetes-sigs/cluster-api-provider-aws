@@ -76,7 +76,8 @@ func (s *Service) ReconcileLoadbalancers() error {
 	// Reconciliate the subnets from the spec and the ones currently attached to the load balancer.
 	if len(apiELB.SubnetIDs) != len(spec.SubnetIDs) {
 		_, err := s.scope.ELB.AttachLoadBalancerToSubnets(&elb.AttachLoadBalancerToSubnetsInput{
-			Subnets: aws.StringSlice(spec.SubnetIDs),
+			LoadBalancerName: &apiELB.Name,
+			Subnets:          aws.StringSlice(spec.SubnetIDs),
 		})
 		if err != nil {
 			return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
@@ -160,7 +161,11 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 	}
 
 	// Validate that the subnets associated with the load balancer has the instance AZ.
-	instanceAZ := s.scope.Subnets().FindByID(i.SubnetID).AvailabilityZone
+	subnet := s.scope.Subnets().FindByID(i.SubnetID)
+	if subnet == nil {
+		return errors.Errorf("failed to attach load balancer subnets, could not find subnet %q description in AWSCluster", i.SubnetID)
+	}
+	instanceAZ := subnet.AvailabilityZone
 	found := false
 	for _, subnetID := range out.SubnetIDs {
 		if subnet := s.scope.Subnets().FindByID(subnetID); subnet != nil && instanceAZ == subnet.AvailabilityZone {
