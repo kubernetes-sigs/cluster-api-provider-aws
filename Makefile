@@ -314,6 +314,14 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/provider-components.yaml
+	# Wait for CAPI pod
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		wait --for=condition=Ready --timeout=5m -n capi-system pod -l control-plane=cluster-api-controller-manager
+    # Wait for CAPA pod
+	kubectl \
+		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		wait --for=condition=Ready --timeout=5m -n capa-system pod -l control-plane=capa-controller-manager
 	# Create Cluster.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
