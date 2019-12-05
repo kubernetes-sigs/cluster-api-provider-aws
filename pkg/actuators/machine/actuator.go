@@ -612,31 +612,16 @@ func (a *Actuator) updateStatus(machine *machinev1.Machine, instance *ec2.Instan
 	} else {
 		awsStatus.InstanceID = instance.InstanceId
 		awsStatus.InstanceState = instance.State.Name
-		if instance.PublicIpAddress != nil {
-			networkAddresses = append(networkAddresses, corev1.NodeAddress{
-				Type:    corev1.NodeExternalIP,
-				Address: *instance.PublicIpAddress,
-			})
+
+		addresses, err := extractNodeAddresses(instance)
+		if err != nil {
+			glog.Errorf("%s: Error extracting instance IP addresses: %v", machine.Name, err)
+			return err
 		}
-		if instance.PrivateIpAddress != nil {
-			networkAddresses = append(networkAddresses, corev1.NodeAddress{
-				Type:    corev1.NodeInternalIP,
-				Address: *instance.PrivateIpAddress,
-			})
-		}
-		if instance.PublicDnsName != nil {
-			networkAddresses = append(networkAddresses, corev1.NodeAddress{
-				Type:    corev1.NodeExternalDNS,
-				Address: *instance.PublicDnsName,
-			})
-		}
-		if instance.PrivateDnsName != nil {
-			networkAddresses = append(networkAddresses, corev1.NodeAddress{
-				Type:    corev1.NodeInternalDNS,
-				Address: *instance.PrivateDnsName,
-			})
-		}
+
+		networkAddresses = append(networkAddresses, addresses...)
 	}
+
 	glog.Infof("%s: finished calculating AWS status", machine.Name)
 
 	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", updateConditionIfReasonOrMessageChange)
