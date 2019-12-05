@@ -20,11 +20,12 @@ spec:
 
           [[ $(id -u) != 0 ]] && SUDO="sudo" || SUDO=""
 
-          if ! gsutil version > /dev/null; then
-          curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=~/gcloud --disable-prompts > /dev/null 2>&1
-          export PATH=$PATH:~/gcloud/google-cloud-sdk/bin
+          GSUTIL=gsutil
+          if ! command -v ${GSUTIL} > /dev/null; then
+            curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=~/gcloud --disable-prompts > /dev/null 2>&1
+            GSUTIL=~/gcloud/google-cloud-sdk/bin/gsutil
           fi
-          gsutil version
+          ${GSUTIL} version
 
           # This test installs debian packages that are a result of the CI and release builds.
           # It runs '... --version' commands to verify that the binaries are correctly installed
@@ -48,13 +49,13 @@ spec:
 
             for CI_PACKAGE in "${PACKAGES_TO_TEST[@]}"; do
             echo "* downloading package: $CI_URL/$CI_PACKAGE.$PACKAGE_EXT"
-            gsutil cp "$CI_URL/$CI_PACKAGE.$PACKAGE_EXT" "$CI_DIR/$CI_PACKAGE.$PACKAGE_EXT"
+            ${GSUTIL} cp "$CI_URL/$CI_PACKAGE.$PACKAGE_EXT" "$CI_DIR/$CI_PACKAGE.$PACKAGE_EXT"
             ${SUDO} dpkg -i "$CI_DIR/$CI_PACKAGE.$PACKAGE_EXT" || echo "* ignoring expected 'dpkg -i' result"
             done
 
             for CI_CONTAINER in "${CONTAINERS_TO_TEST[@]}"; do
             echo "* downloading package: $CI_URL/$CI_CONTAINER.$CONTAINER_EXT"
-            gsutil cp "$CI_URL/$CI_CONTAINER.$CONTAINER_EXT" "$CI_DIR/$CI_CONTAINER.$CONTAINER_EXT"
+            ${GSUTIL} cp "$CI_URL/$CI_CONTAINER.$CONTAINER_EXT" "$CI_DIR/$CI_CONTAINER.$CONTAINER_EXT"
             ${SUDO} ctr -n k8s.io images import "$CI_DIR/$CI_CONTAINER.$CONTAINER_EXT" || echo "* ignoring expected 'ctr images import' result"
             ${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$CI_CONTAINER-amd64:"${CI_VERSION//+/_}" k8s.gcr.io/$CI_CONTAINER:"${CI_VERSION//+/_}"
             ${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$CI_CONTAINER-amd64:"${CI_VERSION//+/_}" gcr.io/kubernetes-ci-images/$CI_CONTAINER:"${CI_VERSION//+/_}"
