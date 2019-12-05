@@ -311,6 +311,9 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 	-p ./examples/_out/provider-components.yaml \
 	-a ./examples/addons.yaml
 
+# This is used in the get-kubeconfig call below in the create-cluster-management target. It may be overridden by the
+# e2e-conformance.sh script, which is why we need it as a variable here.
+CLUSTER_NAME ?= test1
 
 .PHONY: create-cluster-management
 create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
@@ -336,7 +339,7 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 		alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		--namespace=default \
-		--cluster-name=test1
+		--cluster-name=$(CLUSTER_NAME)
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
 	$(CLUSTERCTL) \
 		alpha phases apply-addons -v=3 \
@@ -348,12 +351,12 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 		create -f examples/_out/machinedeployment.yaml
 
 .PHONY: delete-cluster
-delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "test1"
+delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "$CLUSTER_NAME"
 	$(CLUSTERCTL) \
 	delete cluster -v 4 \
 	--bootstrap-type kind \
 	--bootstrap-flags="name=clusterapi" \
-	--cluster test1 \
+	--cluster $(CLUSTER_NAME) \
 	--kubeconfig ./kubeconfig \
 	-p ./examples/_out/provider-components.yaml \
 
