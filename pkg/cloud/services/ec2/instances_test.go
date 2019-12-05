@@ -82,6 +82,15 @@ func TestInstanceIfExists(t *testing.T) {
 										IamInstanceProfile: &ec2.IamInstanceProfile{
 											Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 										},
+										RootDeviceName: aws.String("/dev/xda"),
+										BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+											{
+												DeviceName: aws.String("/dev/xda"),
+												Ebs: &ec2.EbsInstanceBlockDevice{
+													VolumeId: aws.String("vol-123"),
+												},
+											},
+										},
 										State: &ec2.InstanceState{
 											Code: aws.Int64(16),
 											Name: aws.String(ec2.StateAvailable),
@@ -91,6 +100,16 @@ func TestInstanceIfExists(t *testing.T) {
 							},
 						},
 					}, nil)
+
+				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
+					VolumeIds: []*string{aws.String("vol-123")},
+				})).Return(&ec2.DescribeVolumesOutput{
+					Volumes: []*ec2.Volume{
+						{
+							VolumeId: aws.String("vol-123"),
+						},
+					},
+				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {

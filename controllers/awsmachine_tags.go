@@ -35,7 +35,7 @@ const (
 // Returns bool, error
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
-func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machine *infrav1.AWSMachine, instanceID *string, additionalTags map[string]string) (bool, error) {
+func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machine *infrav1.AWSMachine, instance *infrav1.Instance, additionalTags map[string]string) (bool, error) {
 	annotation, err := r.machineAnnotationJSON(machine, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
@@ -47,7 +47,7 @@ func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machi
 	// upated.
 	changed, created, deleted, newAnnotation := r.tagsChanged(annotation, additionalTags)
 	if changed {
-		err = svc.UpdateResourceTags(instanceID, created, deleted)
+		err = svc.UpdateResourceTags(&instance.ID, created, deleted)
 		if err != nil {
 			return false, err
 		}
@@ -59,7 +59,28 @@ func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machi
 		}
 	}
 
+	// Do the same for root volume tags
+	if err := r.ensureRootDeviceTags(svc, instance, additionalTags); err != nil {
+		return false, err
+	}
+
 	return changed, nil
+}
+
+func (r *AWSMachineReconciler) ensureRootDeviceTags(svc service.EC2MachineInterface, instance *infrav1.Instance, additionalTags map[string]string) error {
+	input := make(map[string]interface{})
+	for k, v := range instance.RootDeviceTags {
+		input[k] = v
+	}
+
+	changed, created, deleted, _ := r.tagsChanged(input, additionalTags)
+	if changed {
+		if err := svc.UpdateResourceTags(&instance.RootDeviceID, created, deleted); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // tagsChanged determines which tags to delete and which to add.

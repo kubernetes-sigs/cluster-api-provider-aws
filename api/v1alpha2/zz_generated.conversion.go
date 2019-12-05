@@ -448,7 +448,9 @@ func autoConvert_v1alpha2_Instance_To_v1alpha1_Instance(in *Instance, out *v1alp
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
 	out.EBSOptimized = (*bool)(unsafe.Pointer(in.EBSOptimized))
+	// WARNING: in.RootDeviceID requires manual conversion: does not exist in peer-type
 	out.RootDeviceSize = in.RootDeviceSize
+	// WARNING: in.RootDeviceTags requires manual conversion: does not exist in peer-type
 	// WARNING: in.NetworkInterfaces requires manual conversion: does not exist in peer-type
 	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	return nil
