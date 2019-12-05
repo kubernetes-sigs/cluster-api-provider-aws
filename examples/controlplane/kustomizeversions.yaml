@@ -39,7 +39,14 @@ spec:
       if [[ "${CI_VERSION}" != "" ]]; then
         CI_DIR=/tmp/k8s-ci
         mkdir -p $CI_DIR
-        CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+
+        # If it's a released version, we need to pull from the release bucket
+        if [[ "${CI_VERSION}" =~ v[0-9]\.[0-9]+\.[0-9]+$ ]]; then
+          CI_URL="gs://kubernetes-release/release/$CI_VERSION/bin/linux/amd64"
+        else
+          CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+        fi
+
         declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
         PACKAGE_EXT="deb"
         declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
@@ -110,7 +117,14 @@ spec:
         if [[ "${CI_VERSION}" != "" ]]; then
           CI_DIR=/tmp/k8s-ci
           mkdir -p $CI_DIR
-          CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+
+          # If it's a released version, we need to pull from the release bucket
+          if [[ "${CI_VERSION}" =~ v[0-9]\.[0-9]+\.[0-9]+$ ]]; then
+            CI_URL="gs://kubernetes-release/release/$CI_VERSION/bin/linux/amd64"
+          else
+            CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+          fi
+
           declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
           PACKAGE_EXT="deb"
           declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
@@ -181,7 +195,14 @@ spec:
         if [[ "${CI_VERSION}" != "" ]]; then
           CI_DIR=/tmp/k8s-ci
           mkdir -p $CI_DIR
-          CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+
+          # If it's a released version, we need to pull from the release bucket
+          if [[ "${CI_VERSION}" =~ v[0-9]\.[0-9]+\.[0-9]+$ ]]; then
+            CI_URL="gs://kubernetes-release/release/$CI_VERSION/bin/linux/amd64"
+          else
+            CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+          fi
+
           declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
           PACKAGE_EXT="deb"
           declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
