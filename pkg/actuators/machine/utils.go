@@ -18,6 +18,7 @@ package machine
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/golang/glog"
@@ -368,4 +369,56 @@ func findAWSMachineProviderCondition(conditions []providerconfigv1.AWSMachinePro
 		}
 	}
 	return nil
+}
+
+// extractNodeAddresses maps the instance information from EC2 to an array of NodeAddresses
+func extractNodeAddresses(instance *ec2.Instance) ([]corev1.NodeAddress, error) {
+	// Not clear if the order matters here, but we might as well indicate a sensible preference order
+
+	if instance == nil {
+		return nil, fmt.Errorf("nil instance passed to extractNodeAddresses")
+	}
+
+	addresses := []corev1.NodeAddress{}
+
+	// handle internal network interfaces
+	for _, networkInterface := range instance.NetworkInterfaces {
+		// skip network interfaces that are not currently in use
+		if aws.StringValue(networkInterface.Status) != ec2.NetworkInterfaceStatusInUse {
+			continue
+		}
+
+		for _, internalIP := range networkInterface.PrivateIpAddresses {
+			if ipAddress := aws.StringValue(internalIP.PrivateIpAddress); ipAddress != "" {
+				ip := net.ParseIP(ipAddress)
+				if ip == nil {
+					return nil, fmt.Errorf("EC2 instance had invalid private address: %s (%q)", aws.StringValue(instance.InstanceId), ipAddress)
+				}
+				addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: ip.String()})
+			}
+		}
+	}
+
+	// TODO: Other IP addresses (multiple ips)?
+	publicIPAddress := aws.StringValue(instance.PublicIpAddress)
+	if publicIPAddress != "" {
+		ip := net.ParseIP(publicIPAddress)
+		if ip == nil {
+			return nil, fmt.Errorf("EC2 instance had invalid public address: %s (%s)", aws.StringValue(instance.InstanceId), publicIPAddress)
+		}
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalIP, Address: ip.String()})
+	}
+
+	privateDNSName := aws.StringValue(instance.PrivateDnsName)
+	if privateDNSName != "" {
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeInternalDNS, Address: privateDNSName})
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeHostName, Address: privateDNSName})
+	}
+
+	publicDNSName := aws.StringValue(instance.PublicDnsName)
+	if publicDNSName != "" {
+		addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeExternalDNS, Address: publicDNSName})
+	}
+
+	return addresses, nil
 }
