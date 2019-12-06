@@ -10,7 +10,7 @@ spec:
   version: ${KUBERNETES_VERSION}
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: ${CLUSTER_NAME}-controlplane-0
   infrastructureRef:
@@ -27,7 +27,7 @@ spec:
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
@@ -56,7 +56,7 @@ spec:
   version: ${KUBERNETES_VERSION}
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: ${CLUSTER_NAME}-controlplane-1
   infrastructureRef:
@@ -73,7 +73,7 @@ spec:
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-controlplane-1
@@ -96,7 +96,7 @@ spec:
   version: ${KUBERNETES_VERSION}
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: ${CLUSTER_NAME}-controlplane-2
   infrastructureRef:
@@ -113,7 +113,7 @@ spec:
   iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
   sshKeyName: "${SSH_KEY_NAME}"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-controlplane-2
