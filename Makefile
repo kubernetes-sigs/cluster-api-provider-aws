@@ -308,36 +308,30 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 	fi
 	# Install cert manager.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/cert-manager.yaml
 	# Wait for webhook servers to be ready to take requests
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
 	# Apply provider-components.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/provider-components.yaml
 	# Wait for CAPI pod
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		wait --for=condition=Ready --timeout=5m -n capi-system pod -l control-plane=cluster-api-controller-manager
     # Wait for CAPA pod
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		wait --for=condition=Ready --timeout=5m -n capa-system pod -l control-plane=capa-controller-manager
 	# Create Cluster.
+	sleep 10
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/cluster.yaml
 	# Create control plane machine.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/controlplane.yaml
 	# Get KubeConfig using clusterctl.
 	$(CLUSTERCTL) \
 		alpha phases get-kubeconfig -v=3 \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		--kubeconfig=$${HOME}/.kube/config \
 		--namespace=default \
 		--cluster-name=$(CLUSTER_NAME)
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
@@ -347,7 +341,6 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 		-a examples/addons.yaml
 	# Create a worker node with MachineDeployment.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		create -f examples/_out/machinedeployment.yaml
 
 .PHONY: kind-reset
