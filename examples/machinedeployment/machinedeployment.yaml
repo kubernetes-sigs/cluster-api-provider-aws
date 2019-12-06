@@ -20,7 +20,7 @@ spec:
       bootstrap:
         configRef:
           name: ${CLUSTER_NAME}-md-0
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: ${CLUSTER_NAME}-md-0
@@ -38,7 +38,7 @@ spec:
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${SSH_KEY_NAME}"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
