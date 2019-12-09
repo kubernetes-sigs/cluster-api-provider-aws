@@ -329,9 +329,9 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 	kubectl \
 		create -f examples/_out/controlplane.yaml
 	# Wait for the kubeconfig to become available.
-	timeout 300 bash -c "while ! kubectl get secrets | grep test1-kubeconfig; do sleep 1; done"
+	timeout 300 bash -c "while ! kubectl get secrets | grep $(CLUSTER_NAME)-kubeconfig; do sleep 1; done"
 	# Get kubeconfig and store it locally.
-	kubectl get secrets test1-kubeconfig -o json | jq -r .data.value | base64 -D > ./kubeconfig
+	kubectl get secrets $(CLUSTER_NAME)-kubeconfig -o json | jq -r .data.value | base64 -D > ./kubeconfig
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
 	timeout 300 bash -c "while ! kubectl --kubeconfig=./kubeconfig get nodes | grep master; do sleep 1; done"
 	kubectl --kubeconfig=./kubeconfig apply -f examples/addons.yaml
