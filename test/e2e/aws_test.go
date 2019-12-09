@@ -327,7 +327,7 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) {
 				Spec: bootstrapv1.KubeadmConfigSpec{
 					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-							Name:             "{{ ds.meta_data.hostname }}",
+							Name:             "{{ ds.meta_data.local_hostname }}",
 							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
 						},
 					},
@@ -600,7 +600,7 @@ func makeJoinBootstrapConfig(namespace, name string) {
 			JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 				ControlPlane: &kubeadmv1beta1.JoinControlPlane{},
 				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:             "{{ ds.meta_data.hostname }}",
+					Name:             "{{ ds.meta_data.local_hostname }}",
 					KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
 				},
 			},
@@ -629,7 +629,7 @@ func makeInitBootstrapConfig(namespace, name string) {
 			},
 			InitConfiguration: &kubeadmv1beta1.InitConfiguration{
 				NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-					Name:             "{{ ds.meta_data.hostname }}",
+					Name:             "{{ ds.meta_data.local_hostname }}",
 					KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
 				},
 			},
