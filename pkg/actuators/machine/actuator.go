@@ -429,7 +429,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 	// Parent controller should prevent this from ever happening by calling Exists and then Create,
 	// but instance could be deleted between the two calls.
 	if existingLen == 0 {
-		if machine.Spec.ProviderID != nil && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
+		if machine.Spec.ProviderID != nil && *machine.Spec.ProviderID != "" && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
 			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
 			return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
@@ -502,7 +502,7 @@ func (a *Actuator) Describe(machine *machinev1.Machine) (*ec2.Instance, error) {
 		return nil, err
 	}
 	if len(instances) == 0 {
-		if machine.Spec.ProviderID != nil && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
+		if machine.Spec.ProviderID != nil && *machine.Spec.ProviderID != "" && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
 			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
 			return nil, &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
