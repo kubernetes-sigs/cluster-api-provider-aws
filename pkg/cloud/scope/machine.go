@@ -18,6 +18,7 @@ package scope
 
 import (
 	"context"
+	"encoding/base64"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -201,7 +202,7 @@ func (m *MachineScope) GetBootstrapData() (string, error) {
 		return "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return string(value), nil
+	return base64.StdEncoding.EncodeToString(value), nil
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
