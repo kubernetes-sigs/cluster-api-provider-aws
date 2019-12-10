@@ -285,8 +285,8 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	}
 
 	// Make sure bootstrap data is available and populated.
-	if machineScope.Machine.Spec.Bootstrap.Data == nil {
-		machineScope.Info("Bootstrap data is not yet available")
+	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
+		machineScope.Info("Bootstrap data secret reference is not yet available")
 		return reconcile.Result{}, nil
 	}
 
@@ -381,7 +381,7 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc ser
 		// Create a new AWSMachine instance if we couldn't find a running instance.
 		instance, err = ec2svc.CreateInstance(scope)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create EC2 instance")
+			return nil, errors.Wrapf(err, "failed to create EC2 instance for AWSMachine %s/%s", scope.Namespace(), scope.Name())
 		}
 	}
 
