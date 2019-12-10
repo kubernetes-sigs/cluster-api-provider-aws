@@ -30,6 +30,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -178,7 +179,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 	}
 
 	// Set userdata.
-	input.UserData = aws.String(*scope.Machine.Spec.Bootstrap.Data)
+	userData, err := scope.GetBootstrapData()
+	if err != nil {
+		record.Warnf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+		return nil, err
+	}
+	input.UserData = pointer.StringPtr(userData)
 
 	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)

@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -229,6 +230,15 @@ func TestTerminateInstance(t *testing.T) {
 }
 
 func TestCreateInstance(t *testing.T) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "bootstrap-data",
+		},
+		Data: map[string][]byte{
+			"value": []byte("data"),
+		},
+	}
+
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
@@ -245,8 +255,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						// echo "user-data" | base64
-						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
 				},
 			},
@@ -334,8 +343,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						// echo "user-data" | base64
-						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
 				},
 			},
@@ -443,8 +451,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						// echo "user-data" | base64
-						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
 					Version: pointer.StringPtr("v1.16.1"),
 				},
@@ -556,8 +563,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						// echo "user-data" | base64
-						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
 					Version: pointer.StringPtr("v1.16.1"),
 				},
@@ -669,8 +675,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						// echo "user-data" | base64
-						Data: pointer.StringPtr("dXNlci1kYXRhCg=="),
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
 					},
 					Version: pointer.StringPtr("v1.16.1"),
 				},
@@ -780,7 +785,6 @@ func TestCreateInstance(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
-			// defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
@@ -807,6 +811,7 @@ func TestCreateInstance(t *testing.T) {
 
 			awsMachine := &infrav1.AWSMachine{
 				ObjectMeta: metav1.ObjectMeta{
+					Name: "aws-test1",
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							APIVersion: clusterv1.GroupVersion.String(),
@@ -817,8 +822,10 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
+			client := fake.NewFakeClient(secret, cluster, machine)
+
 			machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
-				Client: fake.NewFakeClient(cluster, machine),
+				Client: client,
 				AWSClients: scope.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,
@@ -835,7 +842,7 @@ func TestCreateInstance(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client: fake.NewFakeClient(cluster, machine),
+				Client: client,
 				AWSClients: scope.AWSClients{
 					EC2: ec2Mock,
 					ELB: elbMock,

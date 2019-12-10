@@ -75,7 +75,7 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: test
-test: generate lint ## Run tests
+test: ## Run tests
 	go test -v ./...
 
 .PHONY: test-integration

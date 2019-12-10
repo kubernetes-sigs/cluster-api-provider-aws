@@ -71,7 +71,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				Machine: &clusterv1.Machine{
 					Spec: clusterv1.MachineSpec{
 						Bootstrap: clusterv1.Bootstrap{
-							Data: pointer.StringPtr("best pony: all of them"),
+							DataSecretName: pointer.StringPtr("bootstrap-data"),
 						},
 					},
 				},
@@ -144,15 +144,15 @@ var _ = Describe("AWSMachineReconciler", func() {
 				Expect(buf.String()).To(ContainSubstring("Cluster infrastructure is not ready yet"))
 			})
 
-			It("should exit immediately if bootstrap data isn't available", func() {
-				ms.Machine.Spec.Bootstrap.Data = nil
+			It("should exit immediately if bootstrap data secret reference isn't available", func() {
+				ms.Machine.Spec.Bootstrap.DataSecretName = nil
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
 				Expect(err).To(BeNil())
-				Expect(buf.String()).To(ContainSubstring("Bootstrap data is not yet available"))
+				Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
 			})
 
 			It("should return an error when we can't list instances by tags", func() {
