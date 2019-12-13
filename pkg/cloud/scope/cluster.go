@@ -200,3 +200,11 @@ func (s *ClusterScope) APIServerPort() int32 {
 	}
 	return 6443
 }
+
+// SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
+func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomainSpec) {
+	if s.AWSCluster.Status.FailureDomains == nil {
+		s.AWSCluster.Status.FailureDomains = make(clusterv1.FailureDomains)
+	}
+	s.AWSCluster.Status.FailureDomains[id] = spec
+}

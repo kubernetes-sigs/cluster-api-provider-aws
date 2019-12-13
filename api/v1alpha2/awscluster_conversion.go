@@ -90,3 +90,13 @@ func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha
 
 	return nil
 }
+
+// Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus.
+func Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *infrav1alpha3.AWSClusterStatus, out *AWSClusterStatus, s apiconversion.Scope) error { //nolint
+	return autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in, out, s)
+}
+
+// Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB.
+func Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(in *infrav1alpha3.ClassicELB, out *ClassicELB, s apiconversion.Scope) error { //nolint
+	return autoConvert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(in, out, s)
+}

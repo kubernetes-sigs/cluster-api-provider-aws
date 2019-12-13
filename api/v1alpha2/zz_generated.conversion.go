@@ -332,6 +332,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1alpha3.AWSClusterStatus)(nil), (*AWSClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(a.(*v1alpha3.AWSClusterStatus), b.(*AWSClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1alpha3.AWSMachineSpec)(nil), (*AWSMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(a.(*v1alpha3.AWSMachineSpec), b.(*AWSMachineSpec), scope)
 	}); err != nil {
@@ -339,6 +344,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1alpha3.AWSMachineStatus)(nil), (*AWSMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(a.(*v1alpha3.AWSMachineStatus), b.(*AWSMachineStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha3.ClassicELB)(nil), (*ClassicELB)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(a.(*v1alpha3.ClassicELB), b.(*ClassicELB), scope)
 	}); err != nil {
 		return err
 	}

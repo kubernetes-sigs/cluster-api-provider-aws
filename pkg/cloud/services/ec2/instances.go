@@ -151,17 +151,25 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 	// TODO(vincepri): Move subnet picking logic to its own function/method.
 	if scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil {
 		input.SubnetID = *scope.AWSMachine.Spec.Subnet.ID
-	} else if scope.AWSMachine.Spec.AvailabilityZone != nil {
-		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*scope.AWSMachine.Spec.AvailabilityZone)
+	} else if scope.AWSMachine.Spec.FailureDomain != nil || scope.AWSMachine.Spec.AvailabilityZone != nil {
+		availabilityZone := scope.AWSMachine.Spec.FailureDomain
+		if availabilityZone == nil {
+			availabilityZone = scope.AWSMachine.Spec.AvailabilityZone
+		}
+
+		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*availabilityZone)
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available in availaibility zone %q",
 					scope.Name(),
-					*scope.AWSMachine.Spec.AvailabilityZone,
+					*availabilityZone,
 				),
 			)
 		}
 		input.SubnetID = sns[0].ID
+
+		// TODO(vincepri): Define a tag that would allow to pick a preferred subnet in an AZ when working
+		// with control plane machines.
 	} else if input.SubnetID == "" {
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {

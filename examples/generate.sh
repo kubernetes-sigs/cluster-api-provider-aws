@@ -110,6 +110,9 @@ if [[ ${CAPI_BRANCH} == "stable" ]]; then
   # TODO(vincepri): Fix the version once the first v0.3.x is released.
   curl -sL https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.2.5/cluster-api-components.yaml > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Downloaded ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api stable branch - v0.2.5"
+elif [[ ${CAPI_BRANCH} == "dev" ]]; then
+  kustomize build ../cluster-api/config/default > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
 else
   kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
