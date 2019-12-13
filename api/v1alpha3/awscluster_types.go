@@ -73,9 +73,10 @@ type AWSLoadBalancerSpec struct {
 
 // AWSClusterStatus defines the observed state of AWSCluster
 type AWSClusterStatus struct {
-	Network Network  `json:"network,omitempty"`
-	Bastion Instance `json:"bastion,omitempty"`
-	Ready   bool     `json:"ready"`
+	Network        Network                  `json:"network,omitempty"`
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	Bastion        Instance                 `json:"bastion,omitempty"`
+	Ready          bool                     `json:"ready"`
 }
 
 // +kubebuilder:object:root=true

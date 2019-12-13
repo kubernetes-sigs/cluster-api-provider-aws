@@ -73,7 +73,8 @@ func (s *Service) ReconcileLoadbalancers() error {
 		return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
 	}
 
-	// Reconciliate the subnets from the spec and the ones currently attached to the load balancer.
+	// Reconcile the subnets and availability zones from the spec
+	// and the ones currently attached to the load balancer.
 	if len(apiELB.SubnetIDs) != len(spec.SubnetIDs) {
 		_, err := s.scope.ELB.AttachLoadBalancerToSubnets(&elb.AttachLoadBalancerToSubnetsInput{
 			LoadBalancerName: &apiELB.Name,
@@ -82,6 +83,9 @@ func (s *Service) ReconcileLoadbalancers() error {
 		if err != nil {
 			return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
 		}
+	}
+	if len(apiELB.AvailabilityZones) != len(spec.AvailabilityZones) {
+		apiELB.AvailabilityZones = spec.AvailabilityZones
 	}
 
 	// TODO(vincepri): check if anything has changed and reconcile as necessary.
@@ -263,20 +267,21 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 	})
 
 	// The load balancer APIs require us to only attach one subnet for each AZ.
-	zones := map[string]struct{}{}
-	subnets := s.scope.Subnets()
-
+	subnets := s.scope.Subnets().FilterPrivate()
 	if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
 		subnets = subnets.FilterPublic()
-	} else {
-		subnets = subnets.FilterPrivate()
 	}
 
 	for _, sn := range subnets {
-		if _, ok := zones[sn.AvailabilityZone]; !ok {
-			zones[sn.AvailabilityZone] = struct{}{}
-			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+		for _, az := range res.AvailabilityZones {
+			if sn.AvailabilityZone == az {
+				// If we already attached another subnet in the same AZ, there is no need to
+				// add this subnet to the list of the ELB's subnets.
+				continue
+			}
 		}
+		res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
+		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
 	}
 
 	return res, nil

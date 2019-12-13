@@ -162,9 +162,21 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 		Port: clusterScope.APIServerPort(),
 	}
 
-	// No errors, so mark us ready so the Cluster API Cluster Controller can pull it
-	awsCluster.Status.Ready = true
+	for _, subnet := range clusterScope.Subnets().FilterPrivate() {
+		found := false
+		for _, az := range awsCluster.Status.Network.APIServerELB.AvailabilityZones {
+			if az == subnet.AvailabilityZone {
+				found = true
+				break
+			}
+		}
 
+		clusterScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
+			ControlPlane: found,
+		})
+	}
+
+	awsCluster.Status.Ready = true
 	return reconcile.Result{}, nil
 }
 

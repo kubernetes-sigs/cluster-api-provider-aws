@@ -53,6 +53,11 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 		return err
 	}
 
+	// Manually convert FailureDomain to AvailabilityZone.
+	if in.FailureDomain != nil && out.AvailabilityZone == nil {
+		out.AvailabilityZone = in.FailureDomain
+	}
+
 	// Discards ImageLookupBaseOS
 
 	return nil

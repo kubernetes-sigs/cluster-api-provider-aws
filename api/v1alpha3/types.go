@@ -119,6 +119,9 @@ type ClassicELB struct {
 	// Scheme is the load balancer scheme, either internet-facing or private.
 	Scheme ClassicELBScheme `json:"scheme,omitempty"`
 
+	// AvailabilityZones is an array of availability zones in the VPC attached to the load balancer.
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
+
 	// SubnetIDs is an array of subnets in the VPC attached to the load balancer.
 	SubnetIDs []string `json:"subnetIds,omitempty"`
 
