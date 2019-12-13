@@ -89,8 +89,7 @@ curl -sL https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert
 echo "Generated ${CERTMANAGER_COMPONENTS_GENERATED_FILE}"
 
 # Generate AWS Credentials.
-AWS_B64ENCODED_CREDENTIALS="$(${CLUSTERAWSADM} alpha bootstrap encode-aws-credentials)"
-export AWS_B64ENCODED_CREDENTIALS
+${SOURCE_DIR}/../hack/generate-manager-credentials-file.sh
 
 # Generate cluster resources.
 kustomize build "${SOURCE_DIR}/cluster" | envsubst > "${CLUSTER_GENERATED_FILE}"

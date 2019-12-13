@@ -8,3 +8,6 @@ docs/
 examples/
 scripts/
 **/.md
+tilt-settings.json
+tilt.d/
+Tiltfile

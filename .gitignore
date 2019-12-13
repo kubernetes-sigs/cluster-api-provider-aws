@@ -49,6 +49,7 @@ examples/_out
 examples/provider-components-base.yaml
 examples/provider-components/provider-components-*.yaml
 config/samples
+config/manager/credentials
 manager_image_patch.yaml-e
 manager_pull_policy.yaml-e
 
@@ -56,3 +57,8 @@ manager_pull_policy.yaml-e
 junit.*.xml
 
 .DS_Store
+
+# User-supplied Tiltfile extensions, settings, and builds
+tilt.d
+tilt-settings.json
+.tiltbuild

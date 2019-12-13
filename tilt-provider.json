@@ -1,0 +1,12 @@
+{
+    "name": "aws",
+    "config": {
+        "image": "gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller",
+        "ignore": [
+            "config/manager/credentials.env"
+        ],
+        "live_reload_deps": [
+            "main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "pkg"
+        ]
+    }
+}
