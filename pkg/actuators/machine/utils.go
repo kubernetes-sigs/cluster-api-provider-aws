@@ -388,6 +388,20 @@ func extractNodeAddresses(instance *ec2.Instance) ([]corev1.NodeAddress, error) 
 			continue
 		}
 
+		// Treating IPv6 addresses as type NodeInternalIP to match what the KNI
+		// patch to the AWS cloud-provider code is doing:
+		//
+		// https://github.com/openshift-kni/origin/commit/7db21c1e26a344e25ae1b825d4f21e7bef5c3650
+		for _, ipv6Address := range networkInterface.Ipv6Addresses {
+			if addr := aws.StringValue(ipv6Address.Ipv6Address); addr != "" {
+				ip := net.ParseIP(addr)
+				if ip == nil {
+					return nil, fmt.Errorf("EC2 instance had invalid IPv6 address: %s (%q)", aws.StringValue(instance.InstanceId), addr)
+				}
+				addresses = append(addresses, corev1.NodeAddress{Type: corev1.NodeInternalIP, Address: ip.String()})
+			}
+		}
+
 		for _, internalIP := range networkInterface.PrivateIpAddresses {
 			if ipAddress := aws.StringValue(internalIP.PrivateIpAddress); ipAddress != "" {
 				ip := net.ParseIP(ipAddress)
