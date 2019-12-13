@@ -141,6 +141,104 @@ func TestReconcileRouteTables(t *testing.T) {
 			},
 			err: errors.New(`no nat gateways available in "us-east-1a"`),
 		},
+		{
+			name: "routes exist, but the nat gateway ID is incorrect, replaces it",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					InternetGatewayID: aws.String("igw-01"),
+					ID:                "vpc-routetables",
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
+						ID:               "subnet-routetables-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					&infrav1.SubnetSpec{
+						ID:               "subnet-routetables-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+						RouteTableID:     aws.String("route-table-1"),
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								RouteTableId: aws.String("route-table-private"),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-private"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										NatGatewayId:         aws.String("outdated-nat-01"),
+									},
+								},
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-private"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+							{
+								RouteTableId: aws.String("route-table-public"),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-public"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										GatewayId:            aws.String("igw-01"),
+									},
+								},
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-public"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.ReplaceRoute(gomock.Eq(
+					&ec2.ReplaceRouteInput{
+						DestinationCidrBlock: aws.String("0.0.0.0/0"),
+						RouteTableId:         aws.String("route-table-private"),
+						NatGatewayId:         aws.String("nat-01"),
+					},
+				)).
+					Return(nil, nil)
+			},
+		},
 	}
 
 	for _, tc := range testCases {
