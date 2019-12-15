@@ -268,8 +268,9 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 
 	// The load balancer APIs require us to only attach one subnet for each AZ.
 	subnets := s.scope.Subnets().FilterPrivate()
+
 	if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
-		subnets = subnets.FilterPublic()
+		subnets = s.scope.Subnets().FilterPublic()
 	}
 
 	for _, sn := range subnets {
