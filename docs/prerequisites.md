@@ -29,6 +29,16 @@ After these are set run this command to get you up and running:
 clusterawsadm alpha bootstrap create-stack
 ```
 
+You can optionally specify additional AWS policies (they can be user or AWS managed, but must already exists) in the call to `create-stack` (and `generate-cloudformation`) if required, e.g.
+
+```
+clusterawsadm alpha bootstrap create-stack \
+  --extra-controlplane-policies arn:aws:iam::<AWS_ACCOUNT>:policy/my-policy,arn:aws:iam::aws:policy/AmazonEC2FullAccess \
+  --extra-node-policies arn:aws:iam::<AWS_ACCOUNT>:policy/my-other-policy
+```
+
+These will be added to the control plane and node roles respectively when they are created.
+
 ### Without `clusterawsadm`
 
 This is not a recommended route as the policies are very specific and will

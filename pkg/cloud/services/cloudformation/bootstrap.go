@@ -41,7 +41,7 @@ var ManagedIAMPolicyNames = [...]string{ControllersPolicy, ControlPlanePolicy, N
 
 // BootstrapTemplate is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS
-func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
+func BootstrapTemplate(accountID, partition string, extraControlPlanePolicies, extraNodePolicies []string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
 	template.Resources[ControllersPolicy] = &cfn_iam.ManagedPolicy{
@@ -90,6 +90,7 @@ func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
 	template.Resources["AWSIAMRoleControlPlane"] = &cfn_iam.Role{
 		RoleName:                 iam.NewManagedName("control-plane"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
+		ManagedPolicyArns:        extraControlPlanePolicies,
 	}
 
 	template.Resources["AWSIAMRoleControllers"] = &cfn_iam.Role{
@@ -100,6 +101,7 @@ func BootstrapTemplate(accountID, partition string) *cloudformation.Template {
 	template.Resources["AWSIAMRoleNodes"] = &cfn_iam.Role{
 		RoleName:                 iam.NewManagedName("nodes"),
 		AssumeRolePolicyDocument: ec2AssumeRolePolicy(),
+		ManagedPolicyArns:        extraNodePolicies,
 	}
 
 	template.Resources["AWSIAMInstanceProfileControlPlane"] = &cfn_iam.InstanceProfile{
@@ -364,9 +366,9 @@ func (s *Service) GenerateManagedIAMPolicyDocuments(policyDocDir, accountID, par
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation
-func (s *Service) ReconcileBootstrapStack(stackName, accountID, partition string) error {
+func (s *Service) ReconcileBootstrapStack(stackName, accountID, partition string, extraControlPlanePolicies, extraNodePolicies []string) error {
 
-	template := BootstrapTemplate(accountID, partition)
+	template := BootstrapTemplate(accountID, partition, extraControlPlanePolicies, extraNodePolicies)
 	yaml, err := template.YAML()
 	processedYaml := string(yaml)
 	if err != nil {
