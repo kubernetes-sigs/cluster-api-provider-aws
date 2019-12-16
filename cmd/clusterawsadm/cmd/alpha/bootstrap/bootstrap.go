@@ -44,6 +44,11 @@ aws_session_token = {{ .SessionToken }}
 {{end}}
 `
 
+var (
+	extraControlPlanePolicies []string
+	extraNodePolicies         []string
+)
+
 // RootCmd is the root of the `alpha bootstrap command`
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
@@ -98,7 +103,7 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			partition := getPartitionFlag(cmd)
-			template := cloudformation.BootstrapTemplate(args[0], partition)
+			template := cloudformation.BootstrapTemplate(args[0], partition, extraControlPlanePolicies, extraNodePolicies)
 			j, err := template.YAML()
 			if err != nil {
 				return err
@@ -108,6 +113,10 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 			return nil
 		},
 	}
+
+	newCmd.Flags().StringSliceVar(&extraControlPlanePolicies, "extra-controlplane-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created control plane role (must already exist)")
+	newCmd.Flags().StringSliceVar(&extraNodePolicies, "extra-node-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created nodes role (must already exist)")
+
 	return newCmd
 }
 
@@ -137,7 +146,7 @@ func createStackCmd() *cobra.Command {
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
 			partition := getPartitionFlag(cmd)
-			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID, partition)
+			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID, partition, extraControlPlanePolicies, extraNodePolicies)
 			if err != nil {
 				fmt.Printf("Error: %v", err)
 				return err
@@ -146,6 +155,9 @@ func createStackCmd() *cobra.Command {
 			return cfnSvc.ShowStackResources(stackName)
 		},
 	}
+
+	newCmd.Flags().StringSliceVar(&extraControlPlanePolicies, "extra-controlplane-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created control plane role (must already exist)")
+	newCmd.Flags().StringSliceVar(&extraNodePolicies, "extra-node-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created nodes role (must already exist)")
 
 	return newCmd
 }
