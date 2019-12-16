@@ -1,12 +1,12 @@
 module sigs.k8s.io/cluster-api-provider-aws
 
-go 1.12
+go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.25.16
 	github.com/awslabs/goformation/v3 v3.0.0
 	github.com/go-logr/logr v0.1.0
-	github.com/golang/mock v1.2.0
+	github.com/golang/mock v1.3.1
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1

@@ -22,3 +22,8 @@ linters:
 issue:
   max-same-issues: 0
   max-per-linter: 0
+run:
+  deadline: 4m
+  skip-files:
+    - "zz_generated.*\\.go$"
+    - ".*_mock.go$"

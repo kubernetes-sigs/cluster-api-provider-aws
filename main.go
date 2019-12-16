@@ -19,9 +19,11 @@ package main
 import (
 	"flag"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"time"
+
+	//nolint:gosec
+	_ "net/http/pprof"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
