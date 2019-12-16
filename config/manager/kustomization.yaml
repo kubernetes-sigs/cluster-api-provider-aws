@@ -1,9 +1,0 @@
-resources:
-- manager.yaml
-
-secretGenerator:
-  - name: manager-bootstrap-credentials
-    namespace: system
-    type: Opaque
-    files:
-      - credentials=credentials

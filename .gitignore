@@ -49,9 +49,8 @@ examples/_out
 examples/provider-components-base.yaml
 examples/provider-components/provider-components-*.yaml
 config/samples
-config/manager/credentials
-manager_image_patch.yaml-e
-manager_pull_policy.yaml-e
+config/default/credentials
+config/release/manager-image-patch.yaml
 
 # junit files
 junit.*.xml

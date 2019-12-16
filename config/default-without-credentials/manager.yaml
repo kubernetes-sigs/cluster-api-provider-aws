@@ -25,8 +25,7 @@ spec:
       containers:
       - args:
         - --enable-leader-election
-        image: controller:latest
-        imagePullPolicy: Always
+        image: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
         name: manager
       terminationGracePeriodSeconds: 10
       tolerations:

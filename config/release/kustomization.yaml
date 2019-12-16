@@ -1,0 +1,6 @@
+resources:
+- ../default-without-credentials
+- manager-credentials.yaml
+
+patchesStrategicMerge:
+- manager-image-patch.yaml
