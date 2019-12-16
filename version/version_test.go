@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package versioninfo
+package version
 
 import (
 	"testing"
@@ -59,9 +59,9 @@ func TestIsRepoAtRelease(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		GitTreeState = tc.inputGitTreeState
-		GitReleaseCommit = tc.inputGitReleaseCommit
-		GitCommit = tc.inputGitCommit
+		gitTreeState = tc.inputGitTreeState
+		gitReleaseCommit = tc.inputGitReleaseCommit
+		gitCommit = tc.inputGitCommit
 		actual := isRepoAtRelease()
 
 		if tc.expected != actual {

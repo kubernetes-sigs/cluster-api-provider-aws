@@ -18,7 +18,7 @@ set -o nounset
 set -o pipefail
 
 version::get_version_vars() {
-    GIT_COMMIT="$(git describe --always --dirty --abbrev=14)"
+    GIT_COMMIT="$(git rev-parse HEAD^{commit})"
 
     if git_status=$(git status --porcelain 2>/dev/null) && [[ -z ${git_status} ]]; then
         GIT_TREE_STATE="clean"
@@ -68,7 +68,7 @@ version::get_version_vars() {
     fi
 
     GIT_RELEASE_TAG=$(git describe --abbrev=0 --tags)
-    GIT_RELEASE_COMMIT=$(git rev-list -n 1  ${GIT_RELEASE_TAG} | head -c 14)
+    GIT_RELEASE_COMMIT=$(git rev-list -n 1  ${GIT_RELEASE_TAG})
 }
 
 # stolen from k8s.io/hack/lib/version.sh and modified
@@ -81,17 +81,17 @@ version::ldflags() {
         local key=${1}
         local val=${2}
         ldflags+=(
-            "-X 'sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo.${key}=${val}'"
+            "-X 'sigs.k8s.io/cluster-api-provider-aws/version.${key}=${val}'"
         )
     }
 
-    add_ldflag "GitCommit" "${GIT_COMMIT}"
-    add_ldflag "GitTreeState" "${GIT_TREE_STATE}"
-    add_ldflag "GitMajor" "${GIT_MAJOR}"
-    add_ldflag "GitMinor" "${GIT_MINOR}"
-    add_ldflag "GitVersion" "${GIT_VERSION}"
-    add_ldflag "GitReleaseTag" "${GIT_RELEASE_TAG}"
-    add_ldflag "GitReleaseCommit" "${GIT_RELEASE_COMMIT}"
+    add_ldflag "buildDate" "$(date ${SOURCE_DATE_EPOCH:+"--date=@${SOURCE_DATE_EPOCH}"} -u +'%Y-%m-%dT%H:%M:%SZ')"
+    add_ldflag "gitCommit" "${GIT_COMMIT}"
+    add_ldflag "gitTreeState" "${GIT_TREE_STATE}"
+    add_ldflag "gitMajor" "${GIT_MAJOR}"
+    add_ldflag "gitMinor" "${GIT_MINOR}"
+    add_ldflag "gitVersion" "${GIT_VERSION}"
+    add_ldflag "gitReleaseCommit" "${GIT_RELEASE_COMMIT}"
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"
