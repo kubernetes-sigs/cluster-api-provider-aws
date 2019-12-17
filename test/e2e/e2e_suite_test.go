@@ -258,7 +258,7 @@ func getAccountID(prov client.ConfigProvider) string {
 func createIAMRoles(prov client.ConfigProvider, accountID string) {
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	Expect(
-		cfnSvc.ReconcileBootstrapStack(stackName, accountID, "aws"),
+		cfnSvc.ReconcileBootstrapStack(stackName, accountID, "aws", []string{}, []string{}),
 	).To(Succeed())
 }
 
