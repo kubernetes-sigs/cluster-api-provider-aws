@@ -6,11 +6,10 @@
 2. Make sure your repo is clean by git's standards
 3. If this is a new minor release, create a new release branch and push to github, for example `release-0.2`
 4. run `go run cmd/release/main.go -version v0.1.2` but replace the version with the version you'd like.
-5. push the docker images that were generated with this release tool
-6. Edit the release notes and make sure the binaries uploaded return the correct version
-7. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter)
-8. Publish draft
-9. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release
+5. Edit the release notes and make sure the binaries uploaded return the correct version
+6. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter)
+7. Publish draft
+8. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release
 
 ## Manual
 

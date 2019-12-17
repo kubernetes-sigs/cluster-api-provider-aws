@@ -42,7 +42,6 @@ const (
 	repository = "cluster-api-provider-aws"
 
 	// TODO move these into config
-	stagingRegistry  = "gcr.io/k8s-staging-cluster-api-aws"
 	prodRegistry     = "us.gcr.io/k8s-artifacts-prod/cluster-api-aws"
 	managerImageName = "cluster-api-aws-controller"
 	pullPolicy       = "IfNotPresent"
@@ -78,7 +77,6 @@ func main() {
 			"clusterctl-darwin-amd64",
 			"clusterctl-linux-amd64",
 		},
-		stagingRegistry:  stagingRegistry,
 		prodRegistry:     prodRegistry,
 		imageName:        managerImageName,
 		pullPolicy:       pullPolicy,
@@ -90,11 +88,10 @@ func main() {
 	logger := &stdoutlogger{}
 	run := &runner{
 		builder: makebuilder{
-			stagingRegistry: cfg.stagingRegistry,
-			prodRegistry:    cfg.prodRegistry,
-			imageTag:        cfg.version,
-			pullPolicy:      cfg.pullPolicy,
-			logger:          logger,
+			prodRegistry: cfg.prodRegistry,
+			imageTag:     cfg.version,
+			pullPolicy:   cfg.pullPolicy,
+			logger:       logger,
 		},
 		releaser: gothubReleaser{
 			artifactsDir: cfg.artifactDir,
@@ -206,8 +203,6 @@ type config struct {
 	artifacts []string
 	// artifactsDir is the directory where all artifacts will be found
 	artifactDir string
-	// staging registry is the image registry where the container image will be staged
-	stagingRegistry string
 	// prod registry is the image registry where the container image will be promoted
 	prodRegistry string
 	// imageName is the name of the container image
@@ -240,16 +235,12 @@ func (r runner) run() error {
 	if err := r.tagger.checkout(r.config.version); err != nil {
 		return err
 	}
-	r.logger.Infof("building artifacts %v\n", r.config.artifacts)
-	if err := r.builder.build(); err != nil {
-		return err
-	}
-	r.logger.Infof("building container image: %s/%s:%s\n", r.config.stagingRegistry, r.config.imageName, r.config.version)
-	if err := r.builder.images(); err != nil {
-		return err
-	}
 	r.logger.Infof("pushing tag %q\n", r.config.version)
 	if err := r.tagger.pushTag(r.config.version); err != nil {
+		return err
+	}
+	r.logger.Infof("building artifacts %v\n", r.config.artifacts)
+	if err := r.builder.build(); err != nil {
 		return err
 	}
 	r.logger.Infof("drafting a release for tag %q\n", r.config.version)
@@ -420,7 +411,6 @@ func (g git) checkout(version string) error {
 
 type builder interface {
 	build() error
-	images() error
 }
 
 type makebuilder struct {
@@ -461,10 +451,6 @@ func (m makebuilder) cmdWithProdEnv(command string, args ...string) error {
 
 func (m makebuilder) build() error {
 	return m.cmdWithProdEnv("make", "release-artifacts")
-}
-
-func (m makebuilder) images() error {
-	return m.cmdWithStagingEnv("make", "docker-build")
 }
 
 type logger interface {
