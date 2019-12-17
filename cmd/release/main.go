@@ -376,7 +376,7 @@ func (g git) tagCommit(version string) (string, error) {
 }
 
 func (g git) remoteTagExists(version string) bool {
-	cmd := exec.Command("git", "ls-remote", "--tags", "--exit-code", g.remote, version)
+	cmd := exec.Command("git", "ls-remote", "--tags", "--exit-code", g.remote, version) //nolint:gosec
 	// the output is unimportant for now. It will contain the ref of the tag if it exists.
 	_, err := cmd.Output()
 	return err == nil
