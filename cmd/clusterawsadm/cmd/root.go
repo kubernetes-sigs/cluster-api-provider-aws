@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha"
-	"sigs.k8s.io/cluster-api-provider-aws/cmd/versioninfo"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/version"
 )
 
 // RootCmd is the Cobra root command
@@ -41,7 +41,7 @@ func RootCmd() *cobra.Command {
 		},
 	}
 	newCmd.AddCommand(alpha.AlphaCmd())
-	newCmd.AddCommand(versioninfo.VersionCmd())
+	newCmd.AddCommand(version.VersionCmd(os.Stdout))
 	return newCmd
 }
 

@@ -31,6 +31,7 @@ import (
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -64,20 +65,28 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	userAgentHandler := request.NamedHandler{
+		Name: "capa/user-agent",
+		Fn:   request.MakeAddToUserAgentHandler("aws.cluster.x-k8s.io", version.Get().String()),
+	}
+
 	if params.AWSClients.EC2 == nil {
 		ec2Client := ec2.New(session)
+		ec2Client.Handlers.Build.PushFrontNamed(userAgentHandler)
 		ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.EC2 = ec2Client
 	}
 
 	if params.AWSClients.ELB == nil {
 		elbClient := elb.New(session)
+		elbClient.Handlers.Build.PushFrontNamed(userAgentHandler)
 		elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.ELB = elbClient
 	}
 
 	if params.AWSClients.ResourceTagging == nil {
 		resourceTagging := resourcegroupstaggingapi.New(session)
+		resourceTagging.Handlers.Build.PushFrontNamed(userAgentHandler)
 		resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.ResourceTagging = resourceTagging
 	}

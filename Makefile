@@ -63,6 +63,9 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
+# Set build time variables including version details
+LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -96,7 +99,7 @@ binaries: manager clusterawsadm ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
-	go build -o $(BIN_DIR)/manager .
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager .
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
@@ -184,7 +187,7 @@ generate-examples: clean-examples clusterawsadm ## Generate examples configurati
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
@@ -233,7 +236,6 @@ set-manifest-pull-policy:
 ## Release
 ## --------------------------------------
 
-LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 RELEASE_DIR := out
 
