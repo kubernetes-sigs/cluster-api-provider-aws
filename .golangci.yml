@@ -19,9 +19,11 @@ linters:
   disable-all: true
   # Run with --fast=false for more extensive checks
   fast: true
-issue:
+issues:
   max-same-issues: 0
   max-per-linter: 0
+  exclude:
+    - "G108: Profiling endpoint is automatically exposed on /debug/pprof"
 run:
   deadline: 4m
   skip-files:
