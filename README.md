@@ -123,6 +123,30 @@ do!
 
 This repository uses the Kubernetes bots.  See a full list of the commands [here][prow].
 
+### Tilt-based development environment
+
+We have support for using [Tilt][tilt] for rapid iterative development. Please visit the
+[Cluster API documentation on Tilt][cluster_api_tilt] for information on how to set up your development environment.
+Additionally, you must also include your base64 encoded AWS credentials in your `tilt-settings.json` file or you
+will not be able to deploy this provider.
+
+1. `make clusterawsadm`
+1. `export AWS_REGION=<your desired region`
+1. `./bin/clusterawsadm alpha bootstrap encode-aws-credentials`
+1. Copy the output containing the base64 encoded credentials and add it to your `tilt-settings.json` file like this:
+
+```json
+{
+  "allowed_contexts": ["kind-kind"],
+  "default_registry": "your registry here",
+  "provider_repos": ["../cluster-api-provider-aws"],
+  "enable_providers": ["aws"],
+  "kustomize_substitutions": {
+    "AWS_B64ENCODED_CREDENTIALS": "put your encoded credentials here"
+  }
+}
+```
+
 ### Implementer office hours
 
 Maintainers hold office hours every two weeks, with sessions open to all
@@ -178,3 +202,5 @@ and/or other countries."
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api
 [kops]: https://github.com/kubernetes/kops
 [kubicorn]: http://kubicorn.io/
+[tilt]: https://tilt.dev
+[cluster_api_tilt]: https://master.cluster-api.sigs.k8s.io/developer/tilt.html
