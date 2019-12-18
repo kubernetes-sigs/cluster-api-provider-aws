@@ -40,7 +40,8 @@ verify_kind_version() {
   fi
 
   local kind_version
-  kind_version=$(kind version)
+  # Format is 'kind v0.6.1 go1.13.4 darwin/amd64'
+  kind_version=$(kind version | grep -E -o 'v[0-9]+\.[0-9]+\.[0-9]+')
   if [[ "${MINIMUM_KIND_VERSION}" != $(echo -e "${MINIMUM_KIND_VERSION}\n${kind_version}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
     cat <<EOF
 Detected kind version: ${kind_version}.
