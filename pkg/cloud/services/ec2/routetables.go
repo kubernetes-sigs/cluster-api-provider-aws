@@ -51,10 +51,53 @@ func (s *Service) reconcileRouteTables() error {
 	}
 
 	for _, sn := range s.scope.Subnets() {
+		// We need to compile the minimum routes for this subnet first, so we can compare it or create them.
+		var routes []*ec2.Route
+		if sn.IsPublic {
+			if s.scope.VPC().InternetGatewayID == nil {
+				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
+			}
+			routes = append(routes, s.getGatewayPublicRoute())
+		} else {
+			natGatewayID, err := s.getNatGatewayForSubnet(sn)
+			if err != nil {
+				return err
+			}
+			routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
+		}
+
 		if rt, ok := subnetRouteMap[sn.ID]; ok {
 			s.scope.V(2).Info("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *rt.RouteTableId)
-			// TODO(vincepri): if the route table ids are both non-empty and they don't match, replace the association.
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
+
+			// For managed environments we need to reconcile the routes of our tables if there is a mistmatch.
+			// For example, a gateway can be deleted and our controller will re-create it, then we replace the route
+			// for the subnet to allow traffic to flow.
+			for _, currentRoute := range rt.Routes {
+				for _, specRoute := range routes {
+					// Routes destination cidr blocks must be unique within a routing table.
+					// If there is a mistmatch, we replace the routing association.
+					if *currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock &&
+						((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
+							(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
+
+						if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+							if _, err := s.scope.EC2.ReplaceRoute(&ec2.ReplaceRouteInput{
+								RouteTableId:         rt.RouteTableId,
+								DestinationCidrBlock: specRoute.DestinationCidrBlock,
+								GatewayId:            specRoute.GatewayId,
+								NatGatewayId:         specRoute.NatGatewayId,
+							}); err != nil {
+								return false, err
+							}
+							return true, nil
+						}); err != nil {
+							record.Warnf(s.scope.AWSCluster, "FailedReplaceRoute", "Failed to replace outdated route on managed RouteTable %q: %v", *rt.RouteTableId, err)
+							return errors.Wrapf(err, "failed to replace outdated route on route table %q", *rt.RouteTableId)
+						}
+					}
+				}
+			}
 
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -71,28 +114,11 @@ func (s *Service) reconcileRouteTables() error {
 			}
 
 			// Not recording "SuccessfulTagRouteTable" here as we don't know if this was a no-op or an actual change
-
 			continue
 		}
 
 		// For each subnet that doesn't have a routing table associated with it,
 		// create a new table with the appropriate default routes and associate it to the subnet.
-		var routes []*ec2.Route
-		if sn.IsPublic {
-			if s.scope.VPC().InternetGatewayID == nil {
-				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
-			}
-
-			routes = s.getDefaultPublicRoutes()
-		} else {
-			natGatewayID, err := s.getNatGatewayForSubnet(sn)
-			if err != nil {
-				return err
-			}
-
-			routes = s.getDefaultPrivateRoutes(natGatewayID)
-		}
-
 		rt, err := s.createRouteTableWithRoutes(routes, sn.IsPublic)
 		if err != nil {
 			return err
@@ -264,21 +290,17 @@ func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) e
 	return nil
 }
 
-func (s *Service) getDefaultPrivateRoutes(natGatewayID string) []*ec2.Route {
-	return []*ec2.Route{
-		{
-			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
-			NatGatewayId:         aws.String(natGatewayID),
-		},
+func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.Route {
+	return &ec2.Route{
+		DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
+		NatGatewayId:         aws.String(natGatewayID),
 	}
 }
 
-func (s *Service) getDefaultPublicRoutes() []*ec2.Route {
-	return []*ec2.Route{
-		{
-			DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
-			GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
-		},
+func (s *Service) getGatewayPublicRoute() *ec2.Route {
+	return &ec2.Route{
+		DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
+		GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
 	}
 }
 
