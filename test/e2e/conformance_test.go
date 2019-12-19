@@ -44,52 +44,45 @@ import (
 
 var _ = Describe("conformance tests", func() {
 	var (
-		namespace               string
-		clusterName             string
-		awsClusterName          string
-		cpMachinePrefix         string
-		cpAWSMachinePrefix      string
-		cpBootstrapConfigPrefix string
-		testTmpDir              string
-		mdBootstrapConfig       string
-		machineDeploymentName   string
-		awsMachineTemplateName  string
+		setup testSetup
 	)
 
 	BeforeEach(func() {
 		var err error
-		testTmpDir, err = ioutil.TempDir(suiteTmpDir, "conformance-test")
+		setup = testSetup{}
+		setup.testTmpDir, err = ioutil.TempDir(suiteTmpDir, "conformance-test")
 		Expect(err).NotTo(HaveOccurred())
 
-		namespace = "conformance-" + util.RandomString(6)
-		createNamespace(namespace)
+		setup.namespace = "conformance-" + util.RandomString(6)
+		createNamespace(setup.namespace)
 
-		clusterName = "conformance-" + util.RandomString(6)
-		awsClusterName = "conformance-infra-" + util.RandomString(6)
-		cpMachinePrefix = "conformance-" + util.RandomString(6)
-		cpAWSMachinePrefix = "conformance-infra-" + util.RandomString(6)
-		cpBootstrapConfigPrefix = "conformance-boot-" + util.RandomString(6)
-		mdBootstrapConfig = "conformance-boot-md" + util.RandomString(6)
-		machineDeploymentName = "conformance-capa-md" + util.RandomString(6)
-		awsMachineTemplateName = "conformance-infra-capa-mt" + util.RandomString(6)
+		setup.clusterName = "conformance-" + util.RandomString(6)
+		setup.awsClusterName = "conformance-infra-" + util.RandomString(6)
+		setup.cpMachinePrefix = "conformance-" + util.RandomString(6)
+		setup.cpAWSMachinePrefix = "conformance-infra-" + util.RandomString(6)
+		setup.cpBootstrapConfigPrefix = "conformance-boot-" + util.RandomString(6)
+		setup.mdBootstrapConfig = "conformance-boot-md" + util.RandomString(6)
+		setup.machineDeploymentName = "conformance-capa-md" + util.RandomString(6)
+		setup.awsMachineTemplateName = "conformance-infra-capa-mt" + util.RandomString(6)
+		setup.initialReplicas = 2
+		setup.instanceType = "t3.large"
+		setup.multipleAZ = false
 	})
 
 	Describe("conformance on workload cluster", func() {
 		It("It should pass k8s certified-conformance tests", func() {
-			instanceType := "t3.large"
-
 			By("Creating a cluster with single control plane")
-			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+			makeSingleControlPlaneCluster(setup)
 
 			By("Deploying a MachineDeployment")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, 2, nil, nil)
+			createMachineDeployment(setup)
 
 			By("Running conformance on the workload cluster")
-			err := runConformance(testTmpDir, namespace, clusterName)
+			err := runConformance(setup.testTmpDir, setup.namespace, setup.clusterName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Deleting the Cluster")
-			deleteCluster(namespace, clusterName)
+			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
 })
