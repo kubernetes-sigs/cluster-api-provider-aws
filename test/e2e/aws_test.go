@@ -27,13 +27,13 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -82,74 +82,82 @@ type statefulSetInfo struct {
 	volMountPath              string
 }
 
-var _ = Describe("functional tests", func() {
+type testSetup struct {
+	namespace               string
+	clusterName             string
+	awsClusterName          string
+	cpMachinePrefix         string
+	cpAWSMachinePrefix      string
+	cpBootstrapConfigPrefix string
+	mdBootstrapConfig       string
+	machineDeploymentName   string
+	awsMachineTemplateName  string
+	testTmpDir              string
+	instanceType            string
+	initialReplicas         int32
+	multipleAZ              bool
+	availabilityZone        *string
+	subnetId                *string
+}
 
+var _ = Describe("functional tests", func() {
 	var (
-		namespace               string
-		clusterName             string
-		awsClusterName          string
-		cpMachinePrefix         string
-		cpAWSMachinePrefix      string
-		cpBootstrapConfigPrefix string
-		mdBootstrapConfig       string
-		machineDeploymentName   string
-		awsMachineTemplateName  string
-		testTmpDir              string
-		instanceType            string
-		initialReplicas         int32
+		setup testSetup
 	)
 
 	BeforeEach(func() {
 		var err error
-		testTmpDir, err = ioutil.TempDir(suiteTmpDir, "aws-test")
+		setup = testSetup{}
+		setup.testTmpDir, err = ioutil.TempDir(suiteTmpDir, "aws-test")
 		Expect(err).NotTo(HaveOccurred())
 
-		namespace = "test-" + util.RandomString(6)
-		createNamespace(namespace)
+		setup.namespace = "test-" + util.RandomString(6)
+		createNamespace(setup.namespace)
 
-		clusterName = "test-" + util.RandomString(6)
-		awsClusterName = "test-infra-" + util.RandomString(6)
-		cpMachinePrefix = "test-" + util.RandomString(6)
-		cpAWSMachinePrefix = "test-infra-" + util.RandomString(6)
-		cpBootstrapConfigPrefix = "test-boot-" + util.RandomString(6)
-		mdBootstrapConfig = "test-boot-md" + util.RandomString(6)
-		machineDeploymentName = "test-capa-md" + util.RandomString(6)
-		awsMachineTemplateName = "test-infra-capa-mt" + util.RandomString(6)
-		initialReplicas = 2
-		instanceType = "t3.large"
+		setup.clusterName = "test-" + util.RandomString(6)
+		setup.awsClusterName = "test-infra-" + util.RandomString(6)
+		setup.cpMachinePrefix = "test-" + util.RandomString(6)
+		setup.cpAWSMachinePrefix = "test-infra-" + util.RandomString(6)
+		setup.cpBootstrapConfigPrefix = "test-boot-" + util.RandomString(6)
+		setup.mdBootstrapConfig = "test-boot-md" + util.RandomString(6)
+		setup.machineDeploymentName = "test-capa-md" + util.RandomString(6)
+		setup.awsMachineTemplateName = "test-infra-capa-mt" + util.RandomString(6)
+		setup.initialReplicas = 2
+		setup.instanceType = "t3.large"
+		setup.multipleAZ = false
 	})
 
 	Describe("workload cluster lifecycle", func() {
 		It("It should be creatable and deletable", func() {
 			By("Creating a cluster with single control plane")
-			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+			makeSingleControlPlaneCluster(setup)
 
 			By("Creating the second Control Plane Machine")
-			awsMachineName := cpAWSMachinePrefix + "-1"
-			bootstrapConfigName := cpBootstrapConfigPrefix + "-1"
-			machineName := cpMachinePrefix + "-1"
-			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType, nil, nil)
+			awsMachineName := setup.cpAWSMachinePrefix + "-1"
+			bootstrapConfigName := setup.cpBootstrapConfigPrefix + "-1"
+			machineName := setup.cpMachinePrefix + "-1"
+			createAdditionalControlPlaneMachine(setup, machineName, awsMachineName, bootstrapConfigName)
 
 			By("Creating the third Control Plane Machine")
-			awsMachineName = cpAWSMachinePrefix + "-2"
-			bootstrapConfigName = cpBootstrapConfigPrefix + "-2"
-			machineName = cpMachinePrefix + "-2"
-			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType, nil, nil)
+			awsMachineName = setup.cpAWSMachinePrefix + "-2"
+			bootstrapConfigName = setup.cpBootstrapConfigPrefix + "-2"
+			machineName = setup.cpMachinePrefix + "-2"
+			createAdditionalControlPlaneMachine(setup, machineName, awsMachineName, bootstrapConfigName)
 
 			By("Creating the MachineDeployment")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas, nil, nil)
+			createMachineDeployment(setup)
 
 			By("Scale the MachineDeployment up")
-			scaleMachineDeployment(namespace, machineDeploymentName, initialReplicas, scaleUpReplicas)
+			scaleMachineDeployment(setup.namespace, setup.machineDeploymentName, setup.initialReplicas, scaleUpReplicas)
 
 			By("Scale the MachineDeployment down")
-			scaleMachineDeployment(namespace, machineDeploymentName, scaleUpReplicas, scaleDownReplicas)
+			scaleMachineDeployment(setup.namespace, setup.machineDeploymentName, scaleUpReplicas, scaleDownReplicas)
 
 			By("Scale the MachineDeployment up again")
-			scaleMachineDeployment(namespace, machineDeploymentName, scaleDownReplicas, initialReplicas)
+			scaleMachineDeployment(setup.namespace, setup.machineDeploymentName, scaleDownReplicas, setup.initialReplicas)
 
 			By("Deleting the Cluster")
-			deleteCluster(namespace, clusterName)
+			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
 
@@ -157,17 +165,17 @@ var _ = Describe("functional tests", func() {
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		It("It should create and delete Load Balancer", func() {
 			By("Creating a cluster with single control plane")
-			clusterK8sClient := makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+			clusterK8sClient := makeSingleControlPlaneCluster(setup)
 
 			By("Creating the MachineDeployment")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas, nil, nil)
+			createMachineDeployment(setup)
 
 			By("Creating the LB service")
 			elbName := createLBService(metav1.NamespaceDefault, lbServiceName, clusterK8sClient)
 			verifyElbExists(elbName, true)
 
 			By("Deleting the Cluster")
-			deleteCluster(namespace, clusterName)
+			deleteCluster(setup.namespace, setup.clusterName)
 
 			By("Verifying whether provisioned LB deleted")
 			verifyElbExists(elbName, false)
@@ -194,10 +202,10 @@ var _ = Describe("functional tests", func() {
 
 		It("It should create volumes and volumes should not be deleted along with cluster infra", func() {
 			By("Creating a cluster with single control plane")
-			clusterK8sClient := makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+			clusterK8sClient := makeSingleControlPlaneCluster(setup)
 
 			By("Creating the MachineDeployment")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas, nil, nil)
+			createMachineDeployment(setup)
 
 			By("Deploying StatefulSet on infra")
 			createStatefulSet(nginxStatefulsetInfo, clusterK8sClient)
@@ -205,7 +213,7 @@ var _ = Describe("functional tests", func() {
 			verifyVolumesExists(awsVolIds)
 
 			By("Deleting the Cluster")
-			deleteCluster(namespace, clusterName)
+			deleteCluster(setup.namespace, setup.clusterName)
 
 			By("Verifying dynamically provisioned volumes retention")
 			verifyVolumesExists(awsVolIds)
@@ -218,32 +226,34 @@ var _ = Describe("functional tests", func() {
 	Describe("MachineDeployment with invalid subnet ID and AZ", func() {
 		It("It should be creatable and deletable", func() {
 			By("Creating a cluster with single control plane")
-			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+			makeSingleControlPlaneCluster(setup)
 
 			By("Creating Machine Deployment with invalid subnet ID")
-			subnetId := "notcreated"
-			deployment1 := machineDeploymentName + "-1"
-			awsTemplate1 := awsMachineTemplateName + "-1"
-			bsConfig1 := mdBootstrapConfig + "-1"
-			createPendingMachineDeployment(namespace, clusterName, deployment1, awsTemplate1, bsConfig1, instanceType, nil, &subnetId, initialReplicas)
+			setup.subnetId = aws.String("notcreated")
+			deployment1 := setup.machineDeploymentName + "-1"
+			setup.machineDeploymentName = deployment1
+			setup.awsMachineTemplateName = setup.awsMachineTemplateName + "-1"
+			setup.mdBootstrapConfig = setup.mdBootstrapConfig + "-1"
+			createPendingMachineDeployment(setup)
 
 			By("Creating Machine Deployment in non-configured Availability Zone")
-			az := getAvailabilityZones()[1].ZoneName
-			deployment2 := machineDeploymentName + "-2"
-			awsTemplate2 := awsMachineTemplateName + "-2"
-			bsConfig2 := mdBootstrapConfig + "-2"
-			createPendingMachineDeployment(namespace, clusterName, deployment2, awsTemplate2, bsConfig2, instanceType, az, nil, initialReplicas)
+			setup.availabilityZone = getAvailabilityZones()[1].ZoneName
+			deployment2 := setup.machineDeploymentName + "-2"
+			setup.machineDeploymentName = deployment2
+			setup.awsMachineTemplateName = setup.awsMachineTemplateName + "-2"
+			setup.mdBootstrapConfig = setup.mdBootstrapConfig + "-2"
+			createPendingMachineDeployment(setup)
 
 			By("Ensuring MachineDeployments are not in running state")
-			Expect(waitForMachineDeploymentRunning(namespace, deployment1)).To(BeFalse())
-			Expect(waitForMachineDeploymentRunning(namespace, deployment2)).To(BeFalse())
-			eventList := getEvents(namespace)
+			Expect(waitForMachineDeploymentRunning(setup.namespace, deployment1)).To(BeFalse())
+			Expect(waitForMachineDeploymentRunning(setup.namespace, deployment2)).To(BeFalse())
+			eventList := getEvents(setup.namespace)
 			subnetError := "Failed to create instance: failed to run instance: InvalidSubnetID.NotFound: " +
 				"The subnet ID 'notcreated' does not exist"
-			Expect(isErrorEventExists(namespace, deployment1, "FailedCreate", fmt.Sprintf(subnetError, subnetId), eventList)).To(BeTrue())
+			Expect(isErrorEventExists(setup.namespace, deployment1, "FailedCreate", fmt.Sprintf(subnetError, setup.subnetId), eventList)).To(BeTrue())
 
 			By("Deleting the cluster")
-			deleteCluster(namespace, clusterName)
+			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
 
@@ -251,16 +261,16 @@ var _ = Describe("functional tests", func() {
 		Context("in different namespaces", func() {
 			var ns1, clName1, ns2, clName2 string
 			It("should create first cluster", func() {
-				ns1 = namespace
-				clName1 = clusterName
+				ns1 = setup.namespace
+				clName1 = setup.clusterName
 				By("Creating first cluster with single control plane")
-				makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+				makeSingleControlPlaneCluster(setup)
 			})
 			It("should create second cluster in a different namespace", func() {
-				ns2 = namespace
-				clName2 = clusterName
+				ns2 = setup.namespace
+				clName2 = setup.clusterName
 				By("Creating second cluster with single control plane")
-				makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+				makeSingleControlPlaneCluster(setup)
 			})
 
 			It("should delete both clusters", func() {
@@ -273,16 +283,16 @@ var _ = Describe("functional tests", func() {
 		Context("in same namespace", func() {
 			var ns, clName1, clName2 string
 			It("should create first cluster", func() {
-				ns = namespace
-				clName1 = clusterName
+				ns = setup.namespace
+				clName1 = setup.clusterName
 				By("Creating first cluster with single control plane")
-				makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+				makeSingleControlPlaneCluster(setup)
 			})
 			It("should create second cluster in the same namespace", func() {
-				namespace = ns
-				clName2 = clusterName
+				setup.namespace = ns
+				clName2 = setup.clusterName
 				By("Creating second cluster with single control plane")
-				makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+				makeSingleControlPlaneCluster(setup)
 			})
 
 			It("should delete both clusters", func() {
@@ -296,58 +306,66 @@ var _ = Describe("functional tests", func() {
 	Describe("MachineDeployment will replace a deleted Machine", func() {
 		It("It should reconcile the deleted machine", func() {
 			By("Creating a workload cluster with single control plane")
-			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, false)
+			makeSingleControlPlaneCluster(setup)
 
 			By("Creating the MachineDeployment")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas, nil, nil)
+			createMachineDeployment(setup)
 
 			By("Deleting a worker node machine")
-			deleteMachine(namespace, machineDeploymentName)
+			deleteMachine(setup.namespace, setup.machineDeploymentName)
 			time.Sleep(10 * time.Second)
 
-			waitForMachineDeploymentRunning(namespace, machineDeploymentName)
+			waitForMachineDeploymentRunning(setup.namespace, setup.machineDeploymentName)
 
 			By("Deleting the Cluster")
-			deleteCluster(namespace, clusterName)
+			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
 
 	Describe("Workload cluster in multiple AZs", func() {
 		It("It should be creatable and deletable", func() {
 			By("Creating a workload cluster with single control plane")
-			makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir, true)
+			setup.multipleAZ = true
+			makeSingleControlPlaneCluster(setup)
 
 			By("Creating the second Control Plane Machine in second AZ")
-			awsMachineName := cpAWSMachinePrefix + "-1"
-			bootstrapConfigName := cpBootstrapConfigPrefix + "-1"
-			machineName := cpMachinePrefix + "-1"
-			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType, availabilityZones[1], nil)
+			awsMachineName := setup.cpAWSMachinePrefix + "-1"
+			bootstrapConfigName := setup.cpBootstrapConfigPrefix + "-1"
+			machineName := setup.cpMachinePrefix + "-1"
+			setup.availabilityZone = availabilityZones[1]
+			createAdditionalControlPlaneMachine(setup, machineName, awsMachineName, bootstrapConfigName)
 
 			By("Creating the third Control Plane Machine using SubnetID in third AZ")
-			awsMachineName = cpAWSMachinePrefix + "-2"
-			bootstrapConfigName = cpBootstrapConfigPrefix + "-2"
-			machineName = cpMachinePrefix + "-2"
+			awsMachineName = setup.cpAWSMachinePrefix + "-2"
+			bootstrapConfigName = setup.cpBootstrapConfigPrefix + "-2"
+			machineName = setup.cpMachinePrefix + "-2"
 			subnetId3 := getSubnetId(privateCIDRs[2])
-			createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType, nil, subnetId3)
+			setup.availabilityZone = nil
+			setup.subnetId = subnetId3
+			createAdditionalControlPlaneMachine(setup, machineName, awsMachineName, bootstrapConfigName)
 
 			By("Creating the MachineDeployment in second AZ")
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas, availabilityZones[1], nil)
+			setup.availabilityZone = availabilityZones[1]
+			setup.subnetId = nil
+			createMachineDeployment(setup)
 
 			By("Creating the MachineDeployment using SubnetID in third AZ")
-			awsMachineTemplateName = awsMachineTemplateName + "-2"
-			mdBootstrapConfig = mdBootstrapConfig + "-2"
-			machineDeploymentName = machineDeploymentName + "-2"
-			createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, mdBootstrapConfig, instanceType, initialReplicas, nil, subnetId3)
+			setup.awsMachineTemplateName = setup.awsMachineTemplateName + "-2"
+			setup.mdBootstrapConfig = setup.mdBootstrapConfig + "-2"
+			setup.machineDeploymentName = setup.machineDeploymentName + "-2"
+			setup.availabilityZone = nil
+			setup.subnetId = subnetId3
+			createMachineDeployment(setup)
 
 			subnetId2 := getSubnetId(privateCIDRs[1])
 			By("Verifying if the nodes are deployed in second AZ")
-			verfiyInstancesInSubnet(initialReplicas+1, subnetId2)
+			verfiyInstancesInSubnet(setup.initialReplicas+1, subnetId2)
 
 			By("Verifying if the nodes are deployed in third AZ")
-			verfiyInstancesInSubnet(initialReplicas+1, subnetId3)
+			verfiyInstancesInSubnet(setup.initialReplicas+1, subnetId3)
 
 			By("Deleting the Cluster")
-			deleteCluster(namespace, clusterName)
+			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
 })
@@ -647,34 +665,34 @@ func getAvailabilityZone() []*ec2.AvailabilityZone {
 	return azs.AvailabilityZones
 }
 
-func makeSingleControlPlaneCluster(namespace, clusterName, awsClusterName, cpAWSMachinePrefix, cpBootstrapConfigPrefix, cpMachinePrefix, instanceType, testTmpDir string, multipleAZ bool) crclient.Client {
+func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
 	By("Creating an AWSCluster")
-	makeAWSCluster(namespace, awsClusterName, multipleAZ)
+	makeAWSCluster(setup.namespace, setup.awsClusterName, setup.multipleAZ)
 
 	By("Creating a Cluster")
-	makeCluster(namespace, clusterName, awsClusterName)
+	makeCluster(setup.namespace, setup.clusterName, setup.awsClusterName)
 
 	By("Ensuring Cluster Infrastructure Reports as Ready")
-	waitForClusterInfrastructureReady(namespace, clusterName)
+	waitForClusterInfrastructureReady(setup.namespace, setup.clusterName)
 
 	By("Creating the initial Control Plane Machine")
-	awsMachineName := cpAWSMachinePrefix + "-0"
-	bootstrapConfigName := cpBootstrapConfigPrefix + "-0"
-	machineName := cpMachinePrefix + "-0"
-	createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType)
-	clusterKubeConfigPath, clusterK8sClient := createClusterKubeConfigs(testTmpDir, namespace, clusterName)
+	awsMachineName := setup.cpAWSMachinePrefix + "-0"
+	bootstrapConfigName := setup.cpBootstrapConfigPrefix + "-0"
+	machineName := setup.cpMachinePrefix + "-0"
+	createInitialControlPlaneMachine(setup, machineName, awsMachineName, bootstrapConfigName)
+	clusterKubeConfigPath, clusterK8sClient := createClusterKubeConfigs(setup.testTmpDir, setup.namespace, setup.clusterName)
 
 	By("Deploying CNI to created Cluster")
 	deployCNI(clusterKubeConfigPath, *cniManifests)
-	waitForMachineNodeReady(namespace, machineName)
+	waitForMachineNodeReady(setup.namespace, machineName)
 	return clusterK8sClient
 }
 
-func createPendingMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, instanceType string, aZone, subnetId *string, replicas int32) {
-	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", namespace, machineDeploymentName)
-	makeAWSMachineTemplate(namespace, awsMachineTemplateName, instanceType, aZone, subnetId)
-	makeJoinBootstrapConfigTemplate(namespace, bootstrapConfigName)
-	makeMachineDeployment(namespace, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, clusterName, replicas)
+func createPendingMachineDeployment(setup testSetup) {
+	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", setup.namespace, setup.machineDeploymentName)
+	makeAWSMachineTemplate(setup.namespace, setup.awsMachineTemplateName, setup.instanceType, setup.availabilityZone, setup.subnetId)
+	makeJoinBootstrapConfigTemplate(setup.namespace, setup.mdBootstrapConfig)
+	makeMachineDeployment(setup.namespace, setup.machineDeploymentName, setup.awsMachineTemplateName, setup.mdBootstrapConfig, setup.clusterName, setup.initialReplicas)
 }
 
 func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent int32, replicasProposed int32) {
@@ -687,13 +705,13 @@ func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent
 	waitForMachineDeploymentRunning(namespace, machineDeployment)
 }
 
-func createMachineDeployment(namespace, clusterName, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, instanceType string, replicas int32, az, subnetId *string) {
-	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", namespace, machineDeploymentName)
-	makeAWSMachineTemplate(namespace, awsMachineTemplateName, instanceType, az, subnetId)
-	makeJoinBootstrapConfigTemplate(namespace, bootstrapConfigName)
-	makeMachineDeployment(namespace, machineDeploymentName, awsMachineTemplateName, bootstrapConfigName, clusterName, replicas)
-	waitForMachinesCountMatch(namespace, machineDeploymentName, replicas, replicas)
-	waitForMachineDeploymentRunning(namespace, machineDeploymentName)
+func createMachineDeployment(setup testSetup) {
+	fmt.Fprintf(GinkgoWriter, "Creating MachineDeployment in namespace %s with name %s\n", setup.namespace, setup.machineDeploymentName)
+	makeAWSMachineTemplate(setup.namespace, setup.awsMachineTemplateName, setup.instanceType, setup.availabilityZone, setup.subnetId)
+	makeJoinBootstrapConfigTemplate(setup.namespace, setup.mdBootstrapConfig)
+	makeMachineDeployment(setup.namespace, setup.machineDeploymentName, setup.awsMachineTemplateName, setup.mdBootstrapConfig, setup.clusterName, setup.initialReplicas)
+	waitForMachinesCountMatch(setup.namespace, setup.machineDeploymentName, setup.initialReplicas, setup.initialReplicas)
+	waitForMachineDeploymentRunning(setup.namespace, setup.machineDeploymentName)
 }
 
 func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg string, eList *corev1.EventList) bool {
@@ -973,26 +991,26 @@ func waitForMachineNodeReady(namespace, name string) {
 	).Should(BeTrue())
 }
 
-func createAdditionalControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType string, azName, subnetId *string) {
-	makeAWSMachine(namespace, awsMachineName, instanceType, azName, subnetId)
-	makeJoinBootstrapConfig(namespace, bootstrapConfigName)
-	makeMachine(namespace, machineName, awsMachineName, bootstrapConfigName, clusterName)
-	waitForMachineBootstrapReady(namespace, machineName)
-	waitForAWSMachineRunning(namespace, awsMachineName)
-	waitForAWSMachineReady(namespace, awsMachineName)
-	waitForMachineNodeRef(namespace, machineName)
-	waitForMachineNodeReady(namespace, machineName)
+func createAdditionalControlPlaneMachine(setup testSetup, machineName, awsMachineName, bootstrapConfigName string) {
+	makeAWSMachine(setup.namespace, awsMachineName, setup.instanceType, setup.availabilityZone, setup.subnetId)
+	makeJoinBootstrapConfig(setup.namespace, bootstrapConfigName)
+	makeMachine(setup.namespace, machineName, awsMachineName, bootstrapConfigName, setup.clusterName)
+	waitForMachineBootstrapReady(setup.namespace, machineName)
+	waitForAWSMachineRunning(setup.namespace, awsMachineName)
+	waitForAWSMachineReady(setup.namespace, awsMachineName)
+	waitForMachineNodeRef(setup.namespace, machineName)
+	waitForMachineNodeReady(setup.namespace, machineName)
 }
 
-func createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName, instanceType string) {
-	makeAWSMachine(namespace, awsMachineName, instanceType, nil, nil)
-	makeInitBootstrapConfig(namespace, bootstrapConfigName)
-	makeMachine(namespace, machineName, awsMachineName, bootstrapConfigName, clusterName)
-	waitForMachineBootstrapReady(namespace, machineName)
-	waitForAWSMachineRunning(namespace, awsMachineName)
-	waitForAWSMachineReady(namespace, awsMachineName)
-	waitForMachineNodeRef(namespace, machineName)
-	waitForClusterControlPlaneInitialized(namespace, clusterName)
+func createInitialControlPlaneMachine(setup testSetup, machineName, awsMachineName, bootstrapConfigName string) {
+	makeAWSMachine(setup.namespace, awsMachineName, setup.instanceType, setup.availabilityZone, setup.subnetId)
+	makeInitBootstrapConfig(setup.namespace, bootstrapConfigName)
+	makeMachine(setup.namespace, machineName, awsMachineName, bootstrapConfigName, setup.clusterName)
+	waitForMachineBootstrapReady(setup.namespace, machineName)
+	waitForAWSMachineRunning(setup.namespace, awsMachineName)
+	waitForAWSMachineReady(setup.namespace, awsMachineName)
+	waitForMachineNodeRef(setup.namespace, machineName)
+	waitForClusterControlPlaneInitialized(setup.namespace, setup.clusterName)
 }
 
 func deleteCluster(namespace, name string) {
