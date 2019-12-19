@@ -239,13 +239,50 @@ generate_manifests() {
   fi
 
   # Enable the bits to inject a script that can pull newer versions of kubernetes
-  if ! grep -i -wq "patchesStrategicMerge" "examples/controlplane/kustomization.yaml"; then
-    echo "patchesStrategicMerge:" >> "examples/controlplane/kustomization.yaml"
-    echo "- kustomizeversions.yaml" >> "examples/controlplane/kustomization.yaml"
+  ci_bootstrap_patch=$(<"${REPO_ROOT}/hack/ci/ci-bootstrap.yaml")
+  if ! grep -i -wq "## CI MARKER ##" examples/controlplane/kustomization.yaml; then
+    # Match the indentation below
+    patch="$(echo "${ci_bootstrap_patch}" | sed -e 's/^/        /')"
+    cat <<EOF >> examples/controlplane/kustomization.yaml
+## CI MARKER ##
+patchesStrategicMerge:
+- ci-controlplane0.yaml
+patches:
+  - patch: |-
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      metadata:
+        name: ${CLUSTER_NAME}-controlplane-0
+      spec:
+${patch}
+    target:
+      kind: KubeadmConfig
+  - path: ci-awsmachine.yaml
+    target:
+      kind: AWSMachine
+EOF
   fi
-  if ! grep -i -wq "patchesStrategicMerge" "examples/machinedeployment/kustomization.yaml"; then
-    echo "patchesStrategicMerge:" >> "examples/machinedeployment/kustomization.yaml"
-    echo "- kustomizeversions.yaml" >> "examples/machinedeployment/kustomization.yaml"
+  if ! grep -i -wq "## CI MARKER ##" examples/machinedeployment/kustomization.yaml; then
+    # Match the indentation below
+    patch="$(echo "${ci_bootstrap_patch}" | sed -e 's/^/            /')"
+    cat <<EOF >> examples/machinedeployment/kustomization.yaml
+## CI MARKER ##
+patches:
+  - patch: |-
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfigTemplate
+      metadata:
+        name: ${CLUSTER_NAME}-md-0
+      spec:
+        template:
+          spec:
+${patch}
+    target:
+      kind: KubeadmConfigTemplate
+  - path: ci-add-image-id-to-awsmachinetemplate.yaml
+    target:
+      kind: AWSMachineTemplate
+EOF
   fi
 
   PULL_POLICY=IfNotPresent \
@@ -266,9 +303,9 @@ create_stack() {
 fix_manifests() {
   CI_VERSION=${CI_VERSION:-$(curl -sSL https://dl.k8s.io/ci/latest-green.txt)}
   echo "Overriding Kubernetes version to : ${CI_VERSION}"
-  sed -i 's|kubernetesVersion: .*|kubernetesVersion: "ci/'${CI_VERSION}'"|' examples/_out/controlplane.yaml
-  sed -i 's|CI_VERSION=.*|CI_VERSION='$CI_VERSION'|' examples/_out/controlplane.yaml
-  sed -i 's|CI_VERSION=.*|CI_VERSION='$CI_VERSION'|' examples/_out/machinedeployment.yaml
+  sed -i -e 's|kubernetesVersion: .*|kubernetesVersion: "ci/'${CI_VERSION}'"|' examples/_out/controlplane.yaml
+  sed -i -e 's|CI_VERSION=.*|CI_VERSION='$CI_VERSION'|' examples/_out/controlplane.yaml
+  sed -i -e 's|CI_VERSION=.*|CI_VERSION='$CI_VERSION'|' examples/_out/machinedeployment.yaml
 }
 
 
@@ -417,16 +454,19 @@ EOF
 
   build
   SKIP_INIT_IMAGE=${SKIP_INIT_IMAGE:-""}
-  if [[ "${SKIP_INIT_IMAGE}" == "yes" || "${SKIP_INIT_IMAGE}" == "1" ]]; then
+  if [[ -n "${SKIP_INIT_IMAGE}" ]]; then
     echo "Skipping image initialization..."
   else
     init_image
   fi
+
   generate_manifests
-  if [[ ${USE_CI_ARTIFACTS:-""} == "yes" || ${USE_CI_ARTIFACTS:-""} == "1" ]]; then
-    echo "Fixing manifests to use latest CI artifacts..."
+
+  if [[ -n "${USE_CI_ARTIFACTS:-""}" || -n "${CI_VERSION-""}" ]]; then
+    echo "Fixing manifests to use CI artifacts..."
     fix_manifests
   fi
+
   create_stack
   create_key_pair
   create_cluster
