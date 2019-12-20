@@ -80,6 +80,17 @@ type AWSLoadBalancerSpec struct {
 	// Scheme sets the scheme of the load balancer (defaults to Internet-facing)
 	// +optional
 	Scheme *ClassicELBScheme `json:"scheme,omitempty"`
+
+	// CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
+	//
+	// With cross-zone load balancing, each load balancer node for your Classic Load Balancer
+	// distributes requests evenly across the registered instances in all enabled Availability Zones.
+	// If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
+	// the registered instances in its Availability Zone only.
+	//
+	// Defaults to false.
+	// +optional
+	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster

@@ -499,6 +499,16 @@ spec:
                 description: ControlPlaneLoadBalancer is optional configuration for
                   customizing control plane behavior
                 properties:
+                  crossZoneLoadBalancing:
+                    description: "CrossZoneLoadBalancing enables the classic ELB cross
+                      availability zone balancing. \n With cross-zone load balancing,
+                      each load balancer node for your Classic Load Balancer distributes
+                      requests evenly across the registered instances in all enabled
+                      Availability Zones. If cross-zone load balancing is disabled,
+                      each load balancer node distributes requests evenly across the
+                      registered instances in its Availability Zone only. \n Defaults
+                      to false."
+                    type: boolean
                   scheme:
                     description: Scheme sets the scheme of the load balancer (defaults
                       to Internet-facing)
@@ -709,6 +719,10 @@ spec:
                         description: Attributes defines extra attributes associated
                           with the load balancer.
                         properties:
+                          crossZoneLoadBalancing:
+                            description: CrossZoneLoadBalancing enables the classic
+                              load balancer load balancing.
+                            type: boolean
                           idleTimeout:
                             description: IdleTimeout is time that the connection is
                               allowed to be idle (no data has been sent over the connection)

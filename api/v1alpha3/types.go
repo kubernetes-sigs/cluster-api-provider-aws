@@ -146,6 +146,10 @@ type ClassicELBAttributes struct {
 	// IdleTimeout is time that the connection is allowed to be idle (no data
 	// has been sent over the connection) before it is closed by the load balancer.
 	IdleTimeout time.Duration `json:"idleTimeout,omitempty"`
+
+	// CrossZoneLoadBalancing enables the classic load balancer load balancing.
+	// +optional
+	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"`
 }
 
 // ClassicELBListener defines an AWS classic load balancer listener.

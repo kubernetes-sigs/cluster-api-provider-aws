@@ -20,6 +20,7 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -37,6 +38,14 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		dst.Spec.ControlPlaneEndpoint.Host = endpoint.Host
 		dst.Spec.ControlPlaneEndpoint.Port = int32(endpoint.Port)
 	}
+
+	// Manually restore data.
+	restored := &infrav1alpha3.AWSCluster{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
+	dst.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing = restored.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing
 
 	return nil
 }
@@ -57,6 +66,11 @@ func (dst *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 				Port: int(src.Spec.ControlPlaneEndpoint.Port),
 			},
 		}
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
 	}
 
 	return nil
@@ -101,8 +115,6 @@ func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha
 	// Manually convert DisableBastionHost.
 	out.DisableBastionHost = !in.Bastion.Enabled
 
-	// Discards ImageLookupOrg
-
 	return nil
 }
 
@@ -114,4 +126,13 @@ func Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *infrav1a
 // Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB.
 func Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(in *infrav1alpha3.ClassicELB, out *ClassicELB, s apiconversion.Scope) error { //nolint
 	return autoConvert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(in, out, s)
+}
+
+// Convert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec.
+func Convert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in *infrav1alpha3.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error { //nolint
+	return autoConvert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in, out, s)
+}
+
+func Convert_v1alpha3_ClassicELBAttributes_To_v1alpha2_ClassicELBAttributes(in *infrav1alpha3.ClassicELBAttributes, out *ClassicELBAttributes, s apiconversion.Scope) error { //nolint
+	return autoConvert_v1alpha3_ClassicELBAttributes_To_v1alpha2_ClassicELBAttributes(in, out, s)
 }
