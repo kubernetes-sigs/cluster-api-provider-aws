@@ -56,3 +56,5 @@ manager_pull_policy.yaml-e
 junit.*.xml
 
 .DS_Store
+
+.tiltbuild
