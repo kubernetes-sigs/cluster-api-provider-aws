@@ -560,7 +560,7 @@ func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, err
 			return out.Volumes[0].Size, nil
 		}
 	}
-	return nil, nil
+	return nil, errors.Errorf("no root volume found for EC2 instance %q", *instance.InstanceId)
 }
 
 // SDKToInstance converts an AWS EC2 SDK instance to the CAPA instance type.
@@ -603,7 +603,6 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get root volume size for instance: %q", aws.StringValue(v.InstanceId))
 	}
-
 	i.RootDeviceSize = aws.Int64Value(rootSize)
 
 	i.Addresses = s.getInstanceAddresses(v)
@@ -613,7 +612,6 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 
 func (s *Service) getInstanceAddresses(instance *ec2.Instance) []corev1.NodeAddress {
 	addresses := []corev1.NodeAddress{}
-
 	for _, eni := range instance.NetworkInterfaces {
 		privateDNSAddress := corev1.NodeAddress{
 			Type:    corev1.NodeInternalDNS,
