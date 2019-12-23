@@ -190,7 +190,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		record.Warnf(s.scope.AWSCluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", *out.Vpc.VpcId, err)
 		return nil, err
 	}
-	record.Eventf(s.scope.AWSCluster, "SuccesfulTagVPC", "Tagged managed VPC %q", *out.Vpc.VpcId)
+	record.Eventf(s.scope.AWSCluster, "SuccessfulTagVPC", "Tagged managed VPC %q", *out.Vpc.VpcId)
 
 	return &infrav1.VPCSpec{
 		ID:        *out.Vpc.VpcId,
