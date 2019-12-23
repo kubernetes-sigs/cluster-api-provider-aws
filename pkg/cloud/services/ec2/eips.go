@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 func (s *Service) getOrAllocateAddress(role string) (string, error) {
@@ -51,7 +52,8 @@ func (s *Service) allocateAddress(role string) (string, error) {
 	})
 
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create Elastic IP address")
+		record.Warnf(s.scope.AWSCluster, "FailedAllocateEIP", "Failed to allocate Elastic IP for %q: %v", role, err)
+		return "", errors.Wrap(err, "failed to allocate Elastic IP")
 	}
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -70,7 +72,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 		}
 		return true, nil
 	}, awserrors.EIPNotFound); err != nil {
-		return "", errors.Wrapf(err, "failed to tag elastic IP %q", aws.StringValue(out.AllocationId))
+		return "", errors.Wrapf(err, "failed to tag Elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 
 	return aws.StringValue(out.AllocationId), nil
@@ -101,7 +103,8 @@ func (s *Service) disassociateAddress(ip *ec2.Address) error {
 		return true, nil
 	}, awserrors.AuthFailure)
 	if err != nil {
-		return errors.Wrapf(err, "failed to disassociate ElasticIP %q", *ip.AllocationId)
+		record.Warnf(s.scope.AWSCluster, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+		return errors.Wrapf(err, "failed to disassociate Elastic IP %q", *ip.AllocationId)
 	}
 	return nil
 }
@@ -121,7 +124,8 @@ func (s *Service) releaseAddresses() error {
 				AssociationId: ip.AssociationId,
 			})
 			if err != nil {
-				return errors.Errorf("failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
+				record.Warnf(s.scope.AWSCluster, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+				return errors.Errorf("failed to disassociate Elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
 			}
 		}
 
@@ -139,6 +143,7 @@ func (s *Service) releaseAddresses() error {
 			return true, nil
 		}, awserrors.AuthFailure, awserrors.InUseIPAddress)
 		if err != nil {
+			record.Warnf(s.scope.AWSCluster, "FailedReleaseEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
 			return errors.Wrapf(err, "failed to release ElasticIP %q", *ip.AllocationId)
 		}
 
