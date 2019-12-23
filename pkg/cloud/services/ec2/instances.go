@@ -159,8 +159,11 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 
 		sns := s.scope.Subnets().FilterPrivate().FilterByZone(*availabilityZone)
 		if len(sns) == 0 {
+			record.Warnf(scope.AWSMachine, "FailedCreate",
+				"Failed to create instance: no subnets available in availability zone %q", *availabilityZone)
+
 			return nil, awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available in availaibility zone %q",
+				errors.Errorf("failed to run machine %q, no subnets available in availability zone %q",
 					scope.Name(),
 					*availabilityZone,
 				),
