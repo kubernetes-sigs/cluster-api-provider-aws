@@ -2,7 +2,7 @@
 
 ## Semi-automatic
 
-1. associate a gpg key to your github account. See: https://help.github.com/en/articles/signing-commits
+1. associate a gpg key to your github account. See: https://help.github.com/en/github/authenticating-to-github/signing-commits
 2. Make sure your repo is clean by git's standards
 3. If this is a new minor release, create a new release branch and push to github, for example `release-0.2`
 4. run `go run cmd/release/main.go -version v0.1.2` but replace the version with the version you'd like.
