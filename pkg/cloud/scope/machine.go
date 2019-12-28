@@ -205,9 +205,14 @@ func (m *MachineScope) GetBootstrapData() (string, error) {
 	return base64.StdEncoding.EncodeToString(value), nil
 }
 
+// PatchObject persists the machine spec and status.
+func (m *MachineScope) PatchObject() error {
+	return m.patchHelper.Patch(context.TODO(), m.AWSMachine)
+}
+
 // Close the MachineScope by updating the machine spec, machine status.
 func (m *MachineScope) Close() error {
-	return m.patchHelper.Patch(context.TODO(), m.AWSMachine)
+	return m.PatchObject()
 }
 
 // AdditionalTags merges AdditionalTags from the scope's AWSCluster and AWSMachine. If the same key is present in both,

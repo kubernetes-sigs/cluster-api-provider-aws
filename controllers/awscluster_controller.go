@@ -84,7 +84,7 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
 	}
 
-	// Always close the scope when exiting this function so we can persist any AWSMachine changes.
+	// Always close the scope when exiting this function so we can persist any AWSCluster changes.
 	defer func() {
 		if err := clusterScope.Close(); err != nil && reterr == nil {
 			reterr = err
@@ -135,6 +135,10 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	// If the AWSCluster doesn't have our finalizer, add it.
 	if !util.Contains(awsCluster.Finalizers, infrav1.ClusterFinalizer) {
 		awsCluster.Finalizers = append(awsCluster.Finalizers, infrav1.ClusterFinalizer)
+		// Register the finalizer immediately to avoid orphaning AWS resources on delete
+		if err := clusterScope.PatchObject(); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	ec2Service := ec2.NewService(clusterScope)

@@ -278,6 +278,10 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	if !util.Contains(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer) {
 		machineScope.V(1).Info("Adding Cluster API Provider AWS finalizer")
 		machineScope.AWSMachine.Finalizers = append(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
+		// Register the finalizer immediately to avoid orphaning AWS resources on delete
+		if err := machineScope.PatchObject(); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	if !machineScope.Cluster.Status.InfrastructureReady {

@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
@@ -60,9 +61,16 @@ var _ = Describe("AWSMachineReconciler", func() {
 		klog.SetOutput(GinkgoWriter)
 		var err error
 
+		awsMachine := &infrav1.AWSMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test",
+			},
+			Spec: infrav1.AWSMachineSpec{},
+		}
+
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
-				Client: fake.NewFakeClient(),
+				Client: fake.NewFakeClient([]runtime.Object{awsMachine}...),
 				Cluster: &clusterv1.Cluster{
 					Status: clusterv1.ClusterStatus{
 						InfrastructureReady: true,
@@ -76,7 +84,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					},
 				},
 				AWSCluster: &infrav1.AWSCluster{},
-				AWSMachine: &infrav1.AWSMachine{},
+				AWSMachine: awsMachine,
 			},
 		)
 		Expect(err).To(BeNil())
