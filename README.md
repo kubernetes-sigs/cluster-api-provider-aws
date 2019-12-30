@@ -170,7 +170,7 @@ If you think you have found a bug please follow the instructions below.
 - Get the logs from the cluster controllers. Please paste this into your issue.
 - Open a [new issue][new_issue].
 - Remember that users might be searching for your issue in the future, so please give it a meaningful title to help others.
-- Feel free to reach out to the cluster-api community on the [kubernetes slack][slack_info].
+- Feel free to reach out to the cluster-api community on the [kubernetes slack][slack].
 
 ### Tracking new features
 
@@ -198,7 +198,6 @@ and/or other countries."
 [gcal]: https://calendar.google.com/calendar/embed?src=cgnt364vd8s86hr2phapfjc6uk%40group.calendar.google.com
 [prow]: https://go.k8s.io/bot-commands
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
-[slack_info]: https://github.com/kubernetes/community/blob/master/events/2019/05-contributor-summit/communications.md#social-media
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api
 [kops]: https://github.com/kubernetes/kops
 [kubicorn]: http://kubicorn.io/
