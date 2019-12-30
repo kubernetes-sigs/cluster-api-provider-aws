@@ -198,7 +198,7 @@ and/or other countries."
 [gcal]: https://calendar.google.com/calendar/embed?src=cgnt364vd8s86hr2phapfjc6uk%40group.calendar.google.com
 [prow]: https://go.k8s.io/bot-commands
 [new_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
-[slack_info]: https://github.com/kubernetes/community/blob/master/communication.md#social-media
+[slack_info]: https://github.com/kubernetes/community/blob/master/events/2019/05-contributor-summit/communications.md#social-media
 [cluster_api]: https://github.com/kubernetes-sigs/cluster-api
 [kops]: https://github.com/kubernetes/kops
 [kubicorn]: http://kubicorn.io/
