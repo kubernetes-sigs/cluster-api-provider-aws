@@ -311,6 +311,9 @@ var (
 	// SecurityGroupControlPlane defines a Kubernetes control plane node role
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 
+	// SecurityGroupAPIServerLB defines a Kubernetes API Server Load Balancer role
+	SecurityGroupAPIServerLB = SecurityGroupRole("apiserver-lb")
+
 	// SecurityGroupLB defines a container for the cloud provider to inject its load balancer ingress rules
 	SecurityGroupLB = SecurityGroupRole("lb")
 )
