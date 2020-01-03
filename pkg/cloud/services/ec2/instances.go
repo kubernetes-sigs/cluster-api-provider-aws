@@ -534,7 +534,7 @@ func (s *Service) getInstanceRootDevice(instance *ec2.Instance) (*ec2.Volume, er
 			return out.Volumes[0], nil
 		}
 	}
-	return nil, nil
+	return nil, errors.Errorf("no root volume found for EC2 instance %q", *instance.InstanceId)
 }
 
 // SDKToInstance converts an AWS EC2 SDK instance to the CAPA instance type.

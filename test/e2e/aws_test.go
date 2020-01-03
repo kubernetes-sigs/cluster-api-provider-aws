@@ -368,7 +368,80 @@ var _ = Describe("functional tests", func() {
 			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
+
+	Describe("Delete infra node directly from infra provider", func() {
+		It("Machine referencing deleted infra node should come to failed state", func() {
+			By("Creating a workload cluster with single control plane")
+			makeSingleControlPlaneCluster(setup)
+
+			By("Creating the MachineDeployment")
+			setup.availabilityZone = nil
+			setup.subnetId = nil
+			createMachineDeployment(setup)
+
+			By("Deleting node directly from infra cloud")
+			machines, err := getMachinesOfDeployment(setup.namespace, setup.machineDeploymentName)
+			Expect(err).To(BeNil())
+			Expect(len(machines.Items)).Should(BeNumerically(">", 0))
+			terminateInstance(*machines.Items[0].Spec.ProviderID)
+			verifyMachinePhase(setup.namespace, machines.Items[0].Name, clusterv1.MachinePhaseFailed)
+
+			By("Deleting the Cluster")
+			deleteCluster(setup.namespace, setup.clusterName)
+		})
+	})
 })
+
+func verifyMachinePhase(namespace, machineName string, phase clusterv1.MachinePhase) {
+	fmt.Fprintf(GinkgoWriter, "Ensuring machine %s's state is %s ... \n", machineName, string(phase))
+	machine := &clusterv1.Machine{}
+	Eventually(
+		func() bool {
+			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineName}, machine); err != nil {
+				return false
+			}
+			return machine.Status.Phase == string(phase)
+		}, 20*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func terminateInstance(instanceId string) {
+	fmt.Fprintf(GinkgoWriter, "Terminating EC2 instance with ID: %s ... \n", instanceId)
+	ec2Client := ec2.New(getSession())
+	input := &ec2.TerminateInstancesInput{
+		InstanceIds: []*string{
+			aws.String(instanceId[strings.LastIndex(instanceId, "/")+1:]),
+		},
+	}
+
+	result, err := ec2Client.TerminateInstances(input)
+	Expect(err).To(BeNil())
+	Expect(len(result.TerminatingInstances)).To(Equal(1))
+	termCode := int64(32)
+	Expect(*result.TerminatingInstances[0].CurrentState.Code).To(Equal(termCode))
+}
+
+func getMachinesOfDeployment(namespace, machineDeploymentName string) (*clusterv1.MachineList, error) {
+	fmt.Fprintf(GinkgoWriter, "Fetching the Machines of MachineDeployment %s: \n", machineDeploymentName)
+	machineList := &clusterv1.MachineList{}
+	machineDeployment := &clusterv1.MachineDeployment{}
+	if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Got error while getting machinedeployment %s \n", machineDeploymentName)
+		return nil, err
+	}
+
+	selector, err := metav1.LabelSelectorAsMap(&machineDeployment.Spec.Selector)
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "Got error while reading lables of machinedeployment: %s, %s \n", machineDeploymentName, err.Error())
+		return nil, err
+	}
+
+	if err := kindClient.List(context.TODO(), machineList, crclient.InNamespace(namespace), crclient.MatchingLabels(selector)); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Got error while getting machines of machinedeployment: %s, %s \n", machineDeploymentName, err.Error())
+		return nil, err
+	}
+	return machineList, nil
+}
 
 func getAvailabilityZones() []*ec2.AvailabilityZone {
 	ec2Client := ec2.New(getSession())
