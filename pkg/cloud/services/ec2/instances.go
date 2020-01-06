@@ -541,28 +541,6 @@ func (s *Service) getImageRootDevice(imageID string) (*string, error) {
 	return output.Images[0].RootDeviceName, nil
 }
 
-func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, error) {
-	for _, bdm := range instance.BlockDeviceMappings {
-		if aws.StringValue(bdm.DeviceName) == aws.StringValue(instance.RootDeviceName) {
-			input := &ec2.DescribeVolumesInput{
-				VolumeIds: []*string{bdm.Ebs.VolumeId},
-			}
-
-			out, err := s.scope.EC2.DescribeVolumes(input)
-			if err != nil {
-				return nil, err
-			}
-
-			if len(out.Volumes) == 0 {
-				return nil, errors.Errorf("no volumes found for id %q", aws.StringValue(bdm.Ebs.VolumeId))
-			}
-
-			return out.Volumes[0].Size, nil
-		}
-	}
-	return nil, errors.Errorf("no root volume found for EC2 instance %q", *instance.InstanceId)
-}
-
 // SDKToInstance converts an AWS EC2 SDK instance to the CAPA instance type.
 // SDKToInstance populates all instance fields except for rootVolumeSize,
 // because EC2.DescribeInstances does not return the size of storage devices. An
@@ -598,12 +576,6 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 	if len(v.Tags) > 0 {
 		i.Tags = converters.TagsToMap(v.Tags)
 	}
-
-	rootSize, err := s.getInstanceRootDeviceSize(v)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to get root volume size for instance: %q", aws.StringValue(v.InstanceId))
-	}
-	i.RootDeviceSize = aws.Int64Value(rootSize)
 
 	i.Addresses = s.getInstanceAddresses(v)
 
