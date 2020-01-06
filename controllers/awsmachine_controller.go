@@ -424,7 +424,7 @@ func (r *AWSMachineReconciler) validateUpdate(spec *infrav1.AWSMachineSpec, i *i
 	}
 
 	// Root Device Size
-	if spec.RootDeviceSize > 0 && spec.RootDeviceSize != i.RootDeviceSize {
+	if spec.RootDeviceSize > 0 && i.RootDeviceSize > 0 && spec.RootDeviceSize != i.RootDeviceSize {
 		errs = append(errs, errors.Errorf("Root volume size cannot be mutated from %v to %v", i.RootDeviceSize, spec.RootDeviceSize))
 	}
 
