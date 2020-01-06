@@ -102,16 +102,6 @@ func TestInstanceIfExists(t *testing.T) {
 						},
 					}, nil)
 
-				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
-					VolumeIds: []*string{aws.String("volume-1")},
-				})).Return(&ec2.DescribeVolumesOutput{
-					Volumes: []*ec2.Volume{
-						{
-							VolumeId: aws.String("volume-1"),
-							Size:     aws.Int64(60),
-						},
-					},
-				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -135,42 +125,6 @@ func TestInstanceIfExists(t *testing.T) {
 					InstanceIds: []*string{aws.String("one")},
 				}).
 					Return(nil, errors.New("some unknown error"))
-			},
-			check: func(i *infrav1.Instance, err error) {
-				if err == nil {
-					t.Fatalf("expected an error but got none.")
-				}
-			},
-		},
-		{
-			name:       "instance without root volume, returns error",
-			instanceID: "one",
-			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
-				m.DescribeInstances(&ec2.DescribeInstancesInput{
-					InstanceIds: []*string{aws.String("one")},
-				}).
-					Return(&ec2.DescribeInstancesOutput{
-						Reservations: []*ec2.Reservation{
-							{
-								Instances: []*ec2.Instance{
-									{
-										InstanceId:   aws.String("id-1"),
-										InstanceType: aws.String("m5.large"),
-										SubnetId:     aws.String("subnet-1"),
-										ImageId:      aws.String("ami-1"),
-										IamInstanceProfile: &ec2.IamInstanceProfile{
-											Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
-										},
-										State: &ec2.InstanceState{
-											Code: aws.Int64(16),
-											Name: aws.String(ec2.StateAvailable),
-										},
-										RootDeviceName: aws.String("404-not-found"),
-									},
-								},
-							},
-						},
-					}, nil)
 			},
 			check: func(i *infrav1.Instance, err error) {
 				if err == nil {
@@ -394,16 +348,6 @@ func TestCreateInstance(t *testing.T) {
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 
-				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
-					VolumeIds: []*string{aws.String("volume-1")},
-				})).Return(&ec2.DescribeVolumesOutput{
-					Volumes: []*ec2.Volume{
-						{
-							VolumeId: aws.String("volume-1"),
-							Size:     aws.Int64(60),
-						},
-					},
-				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -518,16 +462,6 @@ func TestCreateInstance(t *testing.T) {
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 
-				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
-					VolumeIds: []*string{aws.String("volume-1")},
-				})).Return(&ec2.DescribeVolumesOutput{
-					Volumes: []*ec2.Volume{
-						{
-							VolumeId: aws.String("volume-1"),
-							Size:     aws.Int64(60),
-						},
-					},
-				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -655,16 +589,6 @@ func TestCreateInstance(t *testing.T) {
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 
-				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
-					VolumeIds: []*string{aws.String("volume-1")},
-				})).Return(&ec2.DescribeVolumesOutput{
-					Volumes: []*ec2.Volume{
-						{
-							VolumeId: aws.String("volume-1"),
-							Size:     aws.Int64(60),
-						},
-					},
-				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -788,16 +712,6 @@ func TestCreateInstance(t *testing.T) {
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 
-				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
-					VolumeIds: []*string{aws.String("volume-1")},
-				})).Return(&ec2.DescribeVolumesOutput{
-					Volumes: []*ec2.Volume{
-						{
-							VolumeId: aws.String("volume-1"),
-							Size:     aws.Int64(60),
-						},
-					},
-				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -922,16 +836,6 @@ func TestCreateInstance(t *testing.T) {
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 
-				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
-					VolumeIds: []*string{aws.String("volume-1")},
-				})).Return(&ec2.DescribeVolumesOutput{
-					Volumes: []*ec2.Volume{
-						{
-							VolumeId: aws.String("volume-1"),
-							Size:     aws.Int64(60),
-						},
-					},
-				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
