@@ -577,12 +577,12 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get root volume size for instance: %q", aws.StringValue(v.InstanceId))
 	}
-
-	i.RootDeviceID = aws.StringValue(rootDevice.VolumeId)
-	i.RootDeviceSize = aws.Int64Value(rootDevice.Size)
-
-	if len(rootDevice.Tags) > 0 {
-		i.RootDeviceTags = converters.TagsToMap(rootDevice.Tags)
+	if rootDevice != nil {
+		i.RootDeviceID = aws.StringValue(rootDevice.VolumeId)
+		i.RootDeviceSize = aws.Int64Value(rootDevice.Size)
+		if len(rootDevice.Tags) > 0 {
+			i.RootDeviceTags = converters.TagsToMap(rootDevice.Tags)
+		}
 	}
 
 	return i, nil
