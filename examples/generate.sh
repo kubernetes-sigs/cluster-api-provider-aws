@@ -112,9 +112,13 @@ if [[ ${CAPI_BRANCH} == "stable" ]]; then
   echo "Downloaded ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api stable branch - v0.2.5"
 elif [[ ${CAPI_BRANCH} == "dev" ]]; then
   kustomize build ../cluster-api/config/default > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build ../cluster-api/bootstrap/kubeadm/config/default > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build ../cluster-api/controlplane/kubeadm/config/default > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
 else
   kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
 fi
 
