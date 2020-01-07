@@ -45,6 +45,10 @@ type AWSClusterSpec struct {
 	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior
 	// +optional
 	ControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
+
+	// DisableBastionHost is an optional configuration field to prevent the creation of a bastion host instance.
+	// +optional
+	DisableBastionHost bool `json:"disableBastionHost,omitempty"`
 }
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer

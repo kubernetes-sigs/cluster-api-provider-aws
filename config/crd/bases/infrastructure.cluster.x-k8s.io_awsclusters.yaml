@@ -58,6 +58,10 @@ spec:
                       to Internet-facing)
                     type: string
                 type: object
+              disableBastionHost:
+                description: DisableBastionHost is an optional configuration field
+                  to prevent the creation of a bastion host instance.
+                type: boolean
               networkSpec:
                 description: NetworkSpec encapsulates all things related to AWS network.
                 properties:
@@ -467,6 +471,14 @@ spec:
                 description: AdditionalTags is an optional set of tags to add to AWS
                   resources managed by the AWS provider, in addition to the ones added
                   by default.
+                type: object
+              bastion:
+                description: Bastion contains options to configure the bastion host.
+                properties:
+                  enabled:
+                    description: Enabled allows this provider to create a bastion
+                      host instance with a public ip to access the VPC private network.
+                    type: boolean
                 type: object
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to

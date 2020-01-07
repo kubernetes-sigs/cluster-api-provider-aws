@@ -62,6 +62,17 @@ type AWSClusterSpec struct {
 	// will be used for all cluster machines unless a machine specifies a
 	// different ImageLookupBaseOS.
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
+
+	// Bastion contains options to configure the bastion host.
+	// +optional
+	Bastion Bastion `json:"bastion"`
+}
+
+type Bastion struct {
+	// Enabled allows this provider to create a bastion host instance
+	// with a public ip to access the VPC private network.
+	// +optional
+	Enabled bool `json:"enabled"`
 }
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer
@@ -73,10 +84,10 @@ type AWSLoadBalancerSpec struct {
 
 // AWSClusterStatus defines the observed state of AWSCluster
 type AWSClusterStatus struct {
+	Ready          bool                     `json:"ready"`
 	Network        Network                  `json:"network,omitempty"`
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
-	Bastion        Instance                 `json:"bastion,omitempty"`
-	Ready          bool                     `json:"ready"`
+	Bastion        *Instance                `json:"bastion,omitempty"`
 }
 
 // +kubebuilder:object:root=true
