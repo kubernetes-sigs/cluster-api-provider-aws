@@ -368,7 +368,78 @@ var _ = Describe("functional tests", func() {
 			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
+
+	Describe("Deleted NAT gateway will be reconciled", func() {
+		It("It should reconcile the deleted NAT gateway", func() {
+			By("Creating a cluster with single control plane")
+			makeSingleControlPlaneCluster(setup)
+
+			By("Deleting NAT gateway")
+			deleteNATGateway(setup.clusterName)
+
+			By("Waiting for NAT gateway to be reconciled")
+			waitForNewNatGateway(setup.clusterName)
+
+			By("Creating the MachineDeployment")
+			createMachineDeployment(setup)
+
+			By("Deleting the Cluster")
+			deleteCluster(setup.namespace, setup.clusterName)
+		})
+	})
 })
+
+func waitForNewNatGateway(clusterName string) {
+	ec2Client := ec2.New(getSession())
+	input := &ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			{
+				Name: aws.String("tag:Name"),
+				Values: []*string{
+					aws.String(clusterName + "-nat"),
+				},
+			},
+			{
+				Name: aws.String("state"),
+				Values: []*string{
+					aws.String("available"),
+				},
+			},
+		},
+	}
+	Eventually(
+		func() (int, error) {
+			output, err := ec2Client.DescribeNatGateways(input)
+			if err != nil {
+				return -1, err
+			}
+			return len(output.NatGateways), nil
+		},
+		5*time.Minute, 15*time.Second,
+	).Should(Equal(1))
+}
+
+func deleteNATGateway(clusterName string) {
+	ec2Client := ec2.New(getSession())
+	input := &ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			{
+				Name: aws.String("tag:Name"),
+				Values: []*string{
+					aws.String(clusterName + "-nat"),
+				},
+			},
+		},
+	}
+	output, err := ec2Client.DescribeNatGateways(input)
+	Expect(err).NotTo(HaveOccurred())
+
+	deleteNatInput := &ec2.DeleteNatGatewayInput{
+		NatGatewayId: output.NatGateways[0].NatGatewayId,
+	}
+	_, err = ec2Client.DeleteNatGateway(deleteNatInput)
+	Expect(err).NotTo(HaveOccurred())
+}
 
 func getAvailabilityZones() []*ec2.AvailabilityZone {
 	ec2Client := ec2.New(getSession())
