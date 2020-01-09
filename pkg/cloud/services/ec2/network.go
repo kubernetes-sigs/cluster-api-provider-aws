@@ -16,6 +16,10 @@ limitations under the License.
 
 package ec2
 
+import (
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+)
+
 // ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork() (err error) {
 	s.scope.V(2).Info("Reconciling network for cluster", "cluster-name", s.scope.Cluster.Name, "cluster-namespace", s.scope.Cluster.Namespace)
@@ -57,6 +61,17 @@ func (s *Service) ReconcileNetwork() (err error) {
 // DeleteNetwork deletes the network of the given cluster.
 func (s *Service) DeleteNetwork() (err error) {
 	s.scope.V(2).Info("Deleting network")
+
+	// Search for a previously created and tagged VPC
+	vpc, err := s.describeVPC()
+	if err != nil {
+		if awserrors.IsNotFound(err) {
+			// If the VPC does not exist, nothing to do
+			return nil
+		}
+		return err
+	}
+	vpc.DeepCopyInto(s.scope.VPC())
 
 	// Security groups.
 	if err := s.deleteSecurityGroups(); err != nil {
