@@ -53,6 +53,11 @@ spec:
                 description: ControlPlaneLoadBalancer is optional configuration for
                   customizing control plane behavior
                 properties:
+                  ingressCidrBlocks:
+                    description: Ingress CIDRs to allow access to the load balancer
+                    items:
+                      type: string
+                    type: array
                   scheme:
                     description: Scheme sets the scheme of the load balancer (defaults
                       to Internet-facing)

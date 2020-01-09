@@ -66,6 +66,12 @@ type AWSClusterSpec struct {
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer
 type AWSLoadBalancerSpec struct {
+
+	// Ingress rules associated with the load balancer's Security Group (defaults to
+	// 0.0.0.0/0 if not specified)
+	// +optional
+	IngressCidrBlocks []string `json:ingressCidrBlocks,omitempty"`
+
 	// Scheme sets the scheme of the load balancer (defaults to Internet-facing)
 	// +optional
 	Scheme *ClassicELBScheme `json:"scheme,omitempty"`
