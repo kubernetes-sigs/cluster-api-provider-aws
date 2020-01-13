@@ -20,8 +20,8 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kubernetes v1.14.2
 	k8s.io/utils v0.0.0-20190809000727-6c36bc71fc4a
-	sigs.k8s.io/cluster-api v0.2.5
-	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.3
+	sigs.k8s.io/cluster-api v0.2.9
+	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm v0.1.5
 	sigs.k8s.io/controller-runtime v0.3.0
 	sigs.k8s.io/yaml v1.1.0
 )

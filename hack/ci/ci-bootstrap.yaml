@@ -43,7 +43,7 @@ files:
         echo "* testing CI version $CI_VERSION"
 
         # Check for semver
-        if [[ "${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9] ]]; then
+        if [[ "${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           CI_URL="gs://kubernetes-release/release/$CI_VERSION/bin/linux/amd64"
 
           VERSION_WITHOUT_PREFIX="${CI_VERSION#v}"
