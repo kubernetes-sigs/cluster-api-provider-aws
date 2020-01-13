@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
@@ -53,6 +54,25 @@ func TestInstanceIfExists(t *testing.T) {
 					InstanceIds: []*string{aws.String("hello")},
 				})).
 					Return(nil, awserrors.NewNotFound(errors.New("not found")))
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if instance != nil {
+					t.Fatalf("Did not expect anything but got something: %+v", instance)
+				}
+			},
+		},
+		{
+			name:       "does not exist with bad request error",
+			instanceID: "hello-does-not-exist",
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+					InstanceIds: []*string{aws.String("hello-does-not-exist")},
+				})).
+					Return(nil, awserr.New(awserrors.InvalidInstanceID, "does not exist", nil))
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
