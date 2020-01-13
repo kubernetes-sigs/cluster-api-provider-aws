@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -86,6 +87,17 @@ func (s *Service) ReconcileLoadbalancers() error {
 	}
 	if len(apiELB.AvailabilityZones) != len(spec.AvailabilityZones) {
 		apiELB.AvailabilityZones = spec.AvailabilityZones
+	}
+
+	// Reconcile the security groups from the spec and the ones currently attached to the load balancer
+	if !sets.NewString(apiELB.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
+		_, err := s.scope.ELB.ApplySecurityGroupsToLoadBalancer(&elb.ApplySecurityGroupsToLoadBalancerInput{
+			LoadBalancerName: &apiELB.Name,
+			SecurityGroups:   aws.StringSlice(spec.SecurityGroupIDs),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "failed to apply security groups to load balancer %q", apiELB.Name)
+		}
 	}
 
 	// TODO(vincepri): check if anything has changed and reconcile as necessary.
