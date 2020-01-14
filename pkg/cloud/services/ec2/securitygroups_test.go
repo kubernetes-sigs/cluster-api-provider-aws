@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
@@ -277,6 +278,30 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})
+	}
+}
+
+func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
+	scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+		},
+		AWSCluster: &infrav1.AWSCluster{},
+	})
+	if err != nil {
+		t.Fatalf("Failed to create test context: %v", err)
+	}
+
+	s := NewService(scope)
+	rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
+	if err != nil {
+		t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
+	}
+
+	for _, r := range rules {
+		if sets.NewString(r.CidrBlocks...).Has(anyIPv4CidrBlock) {
+			t.Fatal("Ingress rule allows any CIDR block")
+		}
 	}
 }
 
