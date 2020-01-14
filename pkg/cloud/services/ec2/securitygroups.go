@@ -379,7 +379,11 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    6443,
 				ToPort:      6443,
-				CidrBlocks:  []string{anyIPv4CidrBlock},
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID,
+					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+				},
 			},
 			{
 				Description:            "etcd",
