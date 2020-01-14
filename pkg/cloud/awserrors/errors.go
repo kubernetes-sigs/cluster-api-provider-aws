@@ -38,6 +38,7 @@ const (
 	ResourceNotFound        = "InvalidResourceID.NotFound"
 	InvalidSubnet           = "InvalidSubnet"
 	AssociationIDNotFound   = "InvalidAssociationID.NotFound"
+	InvalidInstanceID       = "InvalidInstanceID.NotFound"
 )
 
 var _ error = &EC2Error{}
@@ -125,10 +126,13 @@ func IsSDKError(err error) (ok bool) {
 func IsInvalidNotFoundError(err error) bool {
 	if code, ok := Code(err); ok {
 		switch code {
-		case "InvalidVpcID.NotFound":
+		case VPCNotFound:
+			return true
+		case InvalidInstanceID:
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -141,6 +145,7 @@ func ReasonForError(err error) int {
 	return -1
 }
 
+// IsIgnorableSecurityGroupError checks for errors in SG that can be ignored and then return nil.
 func IsIgnorableSecurityGroupError(err error) error {
 	if code, ok := Code(err); ok {
 		switch code {
