@@ -140,7 +140,7 @@ func (a *Actuator) Create(context context.Context, machine *machinev1.Machine) e
 		return fmt.Errorf("%s: failed to patch machine: %v", machine.Name, err)
 	}
 
-	return nil
+	return a.requeueIfInstancePending(machine.Name, instance)
 }
 
 func (a *Actuator) setMachineCloudProviderSpecifics(machine *machinev1.Machine, instance *ec2.Instance) error {
@@ -471,7 +471,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 		return fmt.Errorf("%s: failed to patch machine: %v", machine.Name, err)
 	}
 
-	return nil
+	return a.requeueIfInstancePending(machine.Name, newestInstance)
 }
 
 // Exists determines if the given machine currently exists.
@@ -616,13 +616,6 @@ func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance)
 		return err
 	}
 
-	// If machine state is still pending, we will return an error to keep the controllers
-	// attempting to update status until it hits a more permanent state. This will ensure
-	// we get a public IP populated more quickly.
-	if awsStatus.InstanceState != nil && *awsStatus.InstanceState == ec2.InstanceStateNamePending {
-		glog.Infof("%s: Instance state still pending, returning an error to requeue", machine.Name)
-		return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
-	}
 	return nil
 }
 
@@ -647,5 +640,17 @@ func (a *Actuator) patchMachine(ctx context.Context, machine *machinev1.Machine,
 		klog.Errorf("Failed to update machine %q: %v", machine.GetName(), err)
 		return err
 	}
+	return nil
+}
+
+func (a *Actuator) requeueIfInstancePending(machineName string, instance *ec2.Instance) error {
+	// If machine state is still pending, we will return an error to keep the controllers
+	// attempting to update status until it hits a more permanent state. This will ensure
+	// we get a public IP populated more quickly.
+	if instance.State != nil && *instance.State.Name == ec2.InstanceStateNamePending {
+		glog.Infof("%s: Instance state still pending, returning an error to requeue", machineName)
+		return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
+	}
+
 	return nil
 }
