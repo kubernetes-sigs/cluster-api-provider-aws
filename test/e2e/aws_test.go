@@ -225,23 +225,29 @@ var _ = Describe("functional tests", func() {
 
 	Describe("MachineDeployment with invalid subnet ID and AZ", func() {
 		It("It should be creatable and deletable", func() {
+			deployment1 := setup.machineDeploymentName + "-1"
+			deployment2 := setup.machineDeploymentName + "-2"
+			template1 := setup.awsMachineTemplateName + "-1"
+			template2 := setup.awsMachineTemplateName + "-2"
+			template3 := setup.awsMachineTemplateName + "-3"
+			bsConfig1 := setup.mdBootstrapConfig + "-1"
+			bsConfig2 := setup.mdBootstrapConfig + "-2"
+
 			By("Creating a cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
 
 			By("Creating Machine Deployment with invalid subnet ID")
 			setup.subnetId = aws.String("notcreated")
-			deployment1 := setup.machineDeploymentName + "-1"
 			setup.machineDeploymentName = deployment1
-			setup.awsMachineTemplateName = setup.awsMachineTemplateName + "-1"
-			setup.mdBootstrapConfig = setup.mdBootstrapConfig + "-1"
+			setup.awsMachineTemplateName = template1
+			setup.mdBootstrapConfig = bsConfig1
 			createPendingMachineDeployment(setup)
 
 			By("Creating Machine Deployment in non-configured Availability Zone")
 			setup.availabilityZone = getAvailabilityZones()[1].ZoneName
-			deployment2 := setup.machineDeploymentName + "-2"
 			setup.machineDeploymentName = deployment2
-			setup.awsMachineTemplateName = setup.awsMachineTemplateName + "-2"
-			setup.mdBootstrapConfig = setup.mdBootstrapConfig + "-2"
+			setup.awsMachineTemplateName = template2
+			setup.mdBootstrapConfig = bsConfig2
 			createPendingMachineDeployment(setup)
 
 			By("Ensuring MachineDeployments are not in running state")
@@ -251,6 +257,15 @@ var _ = Describe("functional tests", func() {
 			subnetError := "Failed to create instance: failed to run instance: InvalidSubnetID.NotFound: " +
 				"The subnet ID 'notcreated' does not exist"
 			Expect(isErrorEventExists(setup.namespace, deployment1, "FailedCreate", fmt.Sprintf(subnetError, setup.subnetId), eventList)).To(BeTrue())
+
+			By("Create new AwsMachineTemplate with correct Subnet ID and update its name in MachineDeployment")
+			sess = getSession()
+			clusterVpcId := getVpcId(fmt.Sprintf("%s-vpc", setup.clusterName))
+			subnetId2 := getSubnetId("vpc-id", clusterVpcId)
+			makeAWSMachineTemplate(setup.namespace, template3, setup.instanceType, nil, subnetId2)
+			setup.machineDeploymentName = deployment1
+			setup.awsMachineTemplateName = template3
+			updateMachineDeploymentInfra(setup)
 
 			By("Deleting the cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
@@ -339,7 +354,7 @@ var _ = Describe("functional tests", func() {
 			awsMachineName = setup.cpAWSMachinePrefix + "-2"
 			bootstrapConfigName = setup.cpBootstrapConfigPrefix + "-2"
 			machineName = setup.cpMachinePrefix + "-2"
-			subnetId3 := getSubnetId(privateCIDRs[2])
+			subnetId3 := getSubnetId("cidr-block", privateCIDRs[2])
 			setup.availabilityZone = nil
 			setup.subnetId = subnetId3
 			createAdditionalControlPlaneMachine(setup, machineName, awsMachineName, bootstrapConfigName)
@@ -357,7 +372,7 @@ var _ = Describe("functional tests", func() {
 			setup.subnetId = subnetId3
 			createMachineDeployment(setup)
 
-			subnetId2 := getSubnetId(privateCIDRs[1])
+			subnetId2 := getSubnetId("cidr-block", privateCIDRs[1])
 			By("Verifying if the nodes are deployed in second AZ")
 			verfiyInstancesInSubnet(setup.initialReplicas+1, subnetId2)
 
@@ -392,6 +407,15 @@ var _ = Describe("functional tests", func() {
 	})
 
 })
+
+func updateMachineDeploymentInfra(setup testSetup) {
+	deployment := &clusterv1.MachineDeployment{}
+	Expect(kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: setup.namespace, Name: setup.machineDeploymentName}, deployment))
+	deployment.Spec.Template.Spec.InfrastructureRef.Name = setup.awsMachineTemplateName
+	Expect(kindClient.Update(context.TODO(), deployment)).NotTo(HaveOccurred())
+	waitForMachinesCountMatch(setup.namespace, setup.machineDeploymentName, setup.initialReplicas, setup.initialReplicas)
+	waitForMachineDeploymentRunning(setup.namespace, setup.machineDeploymentName)
+}
 
 func verifyMachinePhase(namespace, machineName string, phase clusterv1.MachinePhase) {
 	fmt.Fprintf(GinkgoWriter, "Ensuring machine %s's state is %s ... \n", machineName, string(phase))
@@ -696,14 +720,14 @@ func createClusterKubeConfigs(tmpDir, namespace, clusterName string) (string, cr
 	return kubeConfigPath, k8sclient
 }
 
-func getSubnetId(cidrBlock string) *string {
+func getSubnetId(filterKey, filterValue string) *string {
 	ec2c := ec2.New(sess)
 	subnetInput := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
-				Name: aws.String("cidr-block"),
+				Name: aws.String(filterKey),
 				Values: []*string{
-					aws.String(cidrBlock),
+					aws.String(filterValue),
 				},
 			},
 		},
@@ -711,6 +735,21 @@ func getSubnetId(cidrBlock string) *string {
 	result, err := ec2c.DescribeSubnets(subnetInput)
 	Expect(err).NotTo(HaveOccurred())
 	return result.Subnets[0].SubnetId
+}
+
+func getVpcId(vpcName string) string {
+	ec2c := ec2.New(sess)
+	input := &ec2.DescribeVpcsInput{}
+	result, err := ec2c.DescribeVpcs(input)
+	Expect(err).NotTo(HaveOccurred())
+	for _, tmpVpc := range result.Vpcs {
+		for _, tmpTag := range tmpVpc.Tags {
+			if *tmpTag.Key == "Name" && *tmpTag.Value == vpcName {
+				return *tmpVpc.VpcId
+			}
+		}
+	}
+	return ""
 }
 
 func verfiyInstancesInSubnet(numOfInstances int32, subnetId *string) {
