@@ -79,12 +79,27 @@ func Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSClust
 	return autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in, out, s)
 }
 
+// Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec.
+func Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *AWSClusterSpec, out *infrav1alpha3.AWSClusterSpec, s apiconversion.Scope) error { //nolint
+	if err := autoConvert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert Bastion.
+	out.Bastion.Enabled = !in.DisableBastionHost
+
+	return nil
+}
+
 // Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec converts from the Hub version (v1alpha3) of the AWSClusterSpec to this version.
 // Requires manual conversion as infrav1alpha3.AWSClusterSpec.ImageLookupOrg does not exist in AWSClusterSpec.
 func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha3.AWSClusterSpec, out *AWSClusterSpec, s apiconversion.Scope) error { // nolint
 	if err := autoConvert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in, out, s); err != nil {
 		return err
 	}
+
+	// Manually convert DisableBastionHost.
+	out.DisableBastionHost = !in.Bastion.Enabled
 
 	// Discards ImageLookupOrg
 

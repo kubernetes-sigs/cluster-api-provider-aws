@@ -41,6 +41,13 @@ func (s *Service) ReconcileBastion() error {
 		return nil
 	}
 
+	if !s.scope.AWSCluster.Spec.Bastion.Enabled {
+		if s.scope.AWSCluster.Status.Bastion != nil {
+			return s.DeleteBastion()
+		}
+		return nil
+	}
+
 	s.scope.V(2).Info("Reconciling bastion host")
 
 	subnets := s.scope.Subnets()
@@ -71,7 +78,7 @@ func (s *Service) ReconcileBastion() error {
 
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
-	instance.DeepCopyInto(&s.scope.AWSCluster.Status.Bastion)
+	s.scope.AWSCluster.Status.Bastion = instance.DeepCopy()
 	s.scope.V(2).Info("Reconcile bastion completed successfully")
 	return nil
 }
@@ -86,7 +93,7 @@ func (s *Service) DeleteBastion() error {
 	instance, err := s.describeBastionInstance()
 	if err != nil {
 		if awserrors.IsNotFound(err) {
-			s.scope.V(2).Info("bastion instance does not exist")
+			s.scope.V(4).Info("bastion instance does not exist")
 			return nil
 		}
 		return errors.Wrap(err, "unable to describe bastion instance")
