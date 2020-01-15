@@ -19,7 +19,6 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
@@ -213,19 +212,8 @@ func TestActuator(t *testing.T) {
 	}
 
 	getMachineStatus := func(objectClient client.Client, machine *machinev1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
-		// Get updated machine object from the cluster client
-		key := types.NamespacedName{
-			Namespace: machine.Namespace,
-			Name:      machine.Name,
-		}
-		updatedMachine := machinev1.Machine{}
-		err := objectClient.Get(context.Background(), client.ObjectKey(key), &updatedMachine)
-		if err != nil {
-			return nil, fmt.Errorf("unable to retrieve machine: %v", err)
-		}
-
 		machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
-		if err := codec.DecodeProviderStatus(updatedMachine.Status.ProviderStatus, machineStatus); err != nil {
+		if err := codec.DecodeProviderStatus(machine.Status.ProviderStatus, machineStatus); err != nil {
 			return nil, fmt.Errorf("error decoding machine provider status: %v", err)
 		}
 		return machineStatus, nil
