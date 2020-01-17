@@ -188,9 +188,14 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 	})
 }
 
+// PatchObject persists the cluster configuration and status.
+func (s *ClusterScope) PatchObject() error {
+	return s.patchHelper.Patch(context.TODO(), s.AWSCluster)
+}
+
 // Close closes the current scope persisting the cluster configuration and status.
 func (s *ClusterScope) Close() error {
-	return s.patchHelper.Patch(context.TODO(), s.AWSCluster)
+	return s.PatchObject()
 }
 
 // AdditionalTags returns AdditionalTags from the scope's AWSCluster. The returned value will never be nil.
