@@ -69,7 +69,7 @@ func main() {
 	flag.StringVar(
 		&metricsAddr,
 		"metrics-addr",
-		":8080",
+		":9090",
 		"The address the metric endpoint binds to.",
 	)
 
