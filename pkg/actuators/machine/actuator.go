@@ -27,6 +27,7 @@ import (
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
@@ -115,29 +116,30 @@ func (a *Actuator) Create(context context.Context, machine *machinev1.Machine) e
 		}
 		patchErr := a.patchMachine(context, machine, machineToBePatched)
 		if patchErr != nil {
-			return fmt.Errorf("%s: failed to patch machine status: %v", machine.Name, err)
+			return a.handleMachineError(machine, errors.Wrap(err, "failed to patch machine status"), createEventAction)
 		}
 		return err
 	}
 
 	err = a.setProviderID(machine, instance)
 	if err != nil {
-		return fmt.Errorf("%s: failed to update machine object with providerID: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to update machine object with providerID"), createEventAction)
 	}
 
 	err = a.setMachineCloudProviderSpecifics(machine, instance)
 	if err != nil {
-		return fmt.Errorf("%s: failed to set machine cloud provider specifics: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to set machine cloud provider specifics"), createEventAction)
 	}
 
 	err = a.setStatus(machine, instance)
 	if err != nil {
-		return fmt.Errorf("%s: failed to set machine status: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to set machine status"), createEventAction)
+
 	}
 
 	err = a.patchMachine(context, machine, machineToBePatched)
 	if err != nil {
-		return fmt.Errorf("%s: failed to patch machine: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to patch machine"), createEventAction)
 	}
 
 	return a.requeueIfInstancePending(machine.Name, instance)
@@ -160,7 +162,7 @@ func (a *Actuator) setMachineCloudProviderSpecifics(machine *machinev1.Machine, 
 	// providing by *ec2.Instance object
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		return fmt.Errorf("error decoding MachineProviderConfig: %v", err)
+		return a.handleMachineError(machine, errors.Wrapf(err, "error decoding MachineProviderConfig"), noEventAction)
 	}
 
 	machine.Labels[machinecontroller.MachineRegionLabelName] = machineProviderConfig.Placement.Region
@@ -264,9 +266,7 @@ func (a *Actuator) CreateMachine(machine *machinev1.Machine) (*ec2.Instance, err
 			// Prevent having a lot of stopped nodes sitting around.
 			err = removeStoppedMachine(machine, awsClient)
 			if err != nil {
-				errMsg := fmt.Sprintf("%s: unable to remove stopped machines: %v", machine.Name, err)
-				glog.Errorf(errMsg)
-				return nil, fmt.Errorf(errMsg)
+				return nil, a.handleMachineError(machine, errors.Wrapf(err, "unable to remove stopped machines"), createEventAction)
 			}
 		}
 	}
@@ -452,23 +452,23 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 
 	err = a.setMachineCloudProviderSpecifics(machine, newestInstance)
 	if err != nil {
-		return fmt.Errorf("%s: failed to set machine cloud provider specifics: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to set machine cloud provider specifics"), updateEventAction)
 	}
 
 	err = a.setProviderID(machine, newestInstance)
 	if err != nil {
-		return fmt.Errorf("%s: failed to update machine object with providerID: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to update machine object with providerID"), updateEventAction)
 	}
 
 	// We do not support making changes to pre-existing instances, just update status.
 	err = a.setStatus(machine, newestInstance)
 	if err != nil {
-		return fmt.Errorf("%s: failed to set machine status: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to set machine status"), updateEventAction)
 	}
 
 	err = a.patchMachine(context, machine, machineToBePatched)
 	if err != nil {
-		return fmt.Errorf("%s: failed to patch machine: %v", machine.Name, err)
+		return a.handleMachineError(machine, errors.Wrap(err, "failed to patch machine"), updateEventAction)
 	}
 
 	return a.requeueIfInstancePending(machine.Name, newestInstance)
