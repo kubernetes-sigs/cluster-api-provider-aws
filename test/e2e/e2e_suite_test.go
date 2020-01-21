@@ -169,17 +169,11 @@ var _ = BeforeSuite(func() {
 
 	// Verify capi components are deployed
 	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
-	go func() {
-		defer GinkgoRecover()
-		watchLogs(capiNamespace, capiDeploymentName, logPath)
-	}()
+	watchLogs(capiNamespace, capiDeploymentName, logPath)
 
 	// Verify capa components are deployed
 	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
-	go func() {
-		defer GinkgoRecover()
-		watchLogs(capaNamespace, capaDeploymentName, logPath)
-	}()
+	watchLogs(capaNamespace, capaDeploymentName, logPath)
 
 }, setupTimeout)
 
@@ -203,6 +197,10 @@ var _ = AfterSuite(func() {
 	}
 })
 
+// watchLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
+// in a separate goroutine so they can all be streamed concurrently. This only causes a test failure if there are errors
+// retrieving the deployment, its pods, or setting up a log file. If there is an error with the log streaming itself,
+// that does not cause the test to fail.
 func watchLogs(namespace, deploymentName, logDir string) {
 	deployment := &appsv1.Deployment{}
 	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment)).To(Succeed())
@@ -215,29 +213,40 @@ func watchLogs(namespace, deploymentName, logDir string) {
 
 	for _, pod := range pods.Items {
 		for _, container := range deployment.Spec.Template.Spec.Containers {
-			logFile := path.Join(logDir, deploymentName, pod.Name, container.Name+".log")
-			fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
-			Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+			// Watch each container's logs in a goroutine so we can stream them all concurrently.
+			go func(pod corev1.Pod, container corev1.Container) {
+				defer GinkgoRecover()
 
-			opts := &corev1.PodLogOptions{
-				Container: container.Name,
-				Follow:    true,
-			}
+				logFile := path.Join(logDir, deploymentName, pod.Name, container.Name+".log")
+				fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
+				Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
 
-			podLogs, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod.Name, opts).Stream()
-			Expect(err).NotTo(HaveOccurred())
-			defer podLogs.Close()
-
-			f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			Expect(err).NotTo(HaveOccurred())
-			defer f.Close()
-
-			out := bufio.NewWriter(f)
-			defer out.Flush()
-			_, err = out.ReadFrom(podLogs)
-			if err != nil && err.Error() != "unexpected EOF" {
+				fmt.Fprintf(GinkgoWriter, "Creating file: %s\n", logFile)
+				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				Expect(err).NotTo(HaveOccurred())
-			}
+				defer f.Close()
+
+				opts := &corev1.PodLogOptions{
+					Container: container.Name,
+					Follow:    true,
+				}
+
+				podLogs, err := clientSet.CoreV1().Pods(namespace).GetLogs(pod.Name, opts).Stream()
+				if err != nil {
+					// Failing to stream logs should not cause the test to fail
+					fmt.Fprintf(GinkgoWriter, "Error starting logs stream for pod %s/%s, container %s: %v\n", namespace, pod.Name, container.Name, err)
+					return
+				}
+				defer podLogs.Close()
+
+				out := bufio.NewWriter(f)
+				defer out.Flush()
+				_, err = out.ReadFrom(podLogs)
+				if err != nil && err.Error() != "unexpected EOF" {
+					// Failing to stream logs should not cause the test to fail
+					fmt.Fprintf(GinkgoWriter, "Got error while streaming logs for pod %s/%s, container %s: %v\n", namespace, pod.Name, container.Name, err)
+				}
+			}(pod, container)
 		}
 	}
 }
