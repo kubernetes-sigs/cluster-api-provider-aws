@@ -78,13 +78,17 @@ func TestE2e(t *testing.T) {
 }
 
 const (
-	capiNamespace      = "capi-system"
-	capiDeploymentName = "capi-controller-manager"
-	capaNamespace      = "capa-system"
-	capaDeploymentName = "capa-controller-manager"
-	setupTimeout       = 10 * 60
-	stackName          = "cluster-api-provider-aws-sigs-k8s-io"
-	keyPairName        = "cluster-api-provider-aws-sigs-k8s-io"
+	capiNamespace       = "capi-system"
+	capiDeploymentName  = "capi-controller-manager"
+	cabpkNamespace      = "capi-kubeadm-bootstrap-system"
+	cabpkDeploymentName = "capi-kubeadm-bootstrap-controller-manager"
+	kcpNamespace        = "capi-kubeadm-control-plane-system"
+	kcpDeploymentName   = "capi-kubeadm-control-plane-controller-manager"
+	capaNamespace       = "capa-system"
+	capaDeploymentName  = "capa-controller-manager"
+	setupTimeout        = 10 * 60
+	stackName           = "cluster-api-provider-aws-sigs-k8s-io"
+	keyPairName         = "cluster-api-provider-aws-sigs-k8s-io"
 )
 
 var (
@@ -170,6 +174,14 @@ var _ = BeforeSuite(func() {
 	// Verify capi components are deployed
 	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
 	watchLogs(capiNamespace, capiDeploymentName, logPath)
+
+	// Verify cabpk components are deployed
+	common.WaitDeployment(kindClient, cabpkNamespace, cabpkDeploymentName)
+	watchLogs(cabpkNamespace, cabpkDeploymentName, logPath)
+
+	// Verify kcp components are deployed
+	common.WaitDeployment(kindClient, kcpNamespace, kcpDeploymentName)
+	watchLogs(kcpNamespace, kcpDeploymentName, logPath)
 
 	// Verify capa components are deployed
 	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
