@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -384,6 +385,31 @@ var _ = Describe("functional tests", func() {
 		})
 	})
 
+	Describe("Creating cluster after reaching vpc maximum limit", func() {
+		It("Cluster created after reaching vpc limit should be in provisioning", func() {
+			By("Create clusters till vpc limit")
+			sess = getSession()
+			limit := getElasticIPsLimit()
+			var vpcsCreated []string
+			for getCurrentVPCsCount() < limit {
+				vpcsCreated = append(vpcsCreated, createVPC("10.0.0.0/16"))
+			}
+
+			By("Creating cluster beyond vpc limit")
+			Expect(createCluster(setup.namespace, setup.clusterName, setup.awsClusterName, setup.multipleAZ)).Should(BeFalse())
+			Expect(getClusterStatus(setup.namespace, setup.clusterName)).Should(Equal(string(clusterv1.ClusterPhaseProvisioning)))
+
+			By("Checking cluster gets provisioned when resources available")
+			if len(vpcsCreated) > 0 {
+				deleteVPCs(vpcsCreated)
+				Expect(waitForClusterInfrastructureReady(setup.namespace, setup.clusterName)).Should(BeTrue())
+			}
+
+			By("Deleting the cluster")
+			deleteCluster(setup.namespace, setup.clusterName)
+		})
+	})
+
 	Describe("Delete infra node directly from infra provider", func() {
 		It("Machine referencing deleted infra node should come to failed state", func() {
 			By("Creating a workload cluster with single control plane")
@@ -405,7 +431,6 @@ var _ = Describe("functional tests", func() {
 			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
-
 })
 
 func updateMachineDeploymentInfra(setup testSetup) {
@@ -466,6 +491,57 @@ func getMachinesOfDeployment(namespace, machineDeploymentName string) (*clusterv
 		return nil, err
 	}
 	return machineList, nil
+}
+
+func deleteVPCs(vpcIds []string) {
+	ec2Client := ec2.New(sess)
+	for _, vpcId := range vpcIds {
+		input := &ec2.DeleteVpcInput{
+			VpcId: aws.String(vpcId),
+		}
+		_, err := ec2Client.DeleteVpc(input)
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func createVPC(cidrblock string) string {
+	ec2Client := ec2.New(sess)
+	input := &ec2.CreateVpcInput{
+		CidrBlock: aws.String(cidrblock),
+	}
+	result, err := ec2Client.CreateVpc(input)
+	Expect(err).NotTo(HaveOccurred())
+	return *result.Vpc.VpcId
+}
+
+func getClusterStatus(namespace, clusterName string) string {
+	cluster := &clusterv1.Cluster{}
+	if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: clusterName}, cluster); nil == err {
+		return cluster.Status.Phase
+	}
+	return ""
+}
+
+func getElasticIPsLimit() int {
+	ec2Client := ec2.New(sess)
+	input := &ec2.DescribeAccountAttributesInput{
+		AttributeNames: []*string{
+			aws.String("vpc-max-elastic-ips"),
+		},
+	}
+	result, err := ec2Client.DescribeAccountAttributes(input)
+	Expect(err).NotTo(HaveOccurred())
+	res, err := strconv.Atoi(*result.AccountAttributes[0].AttributeValues[0].AttributeValue)
+	Expect(err).NotTo(HaveOccurred())
+	return res
+}
+
+func getCurrentVPCsCount() int {
+	ec2Client := ec2.New(sess)
+	input := &ec2.DescribeVpcsInput{}
+	result, err := ec2Client.DescribeVpcs(input)
+	Expect(err).NotTo(HaveOccurred())
+	return len(result.Vpcs)
 }
 
 func getAvailabilityZones() []*ec2.AvailabilityZone {
@@ -778,15 +854,20 @@ func getAvailabilityZone() []*ec2.AvailabilityZone {
 	return azs.AvailabilityZones
 }
 
-func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
+func createCluster(namespace, clusterName, awsClusterName string, multiAZ bool) bool {
 	By("Creating an AWSCluster")
-	makeAWSCluster(setup.namespace, setup.awsClusterName, setup.multipleAZ)
+	makeAWSCluster(namespace, awsClusterName, multiAZ)
 
 	By("Creating a Cluster")
-	makeCluster(setup.namespace, setup.clusterName, setup.awsClusterName)
+	makeCluster(namespace, clusterName, awsClusterName)
 
 	By("Ensuring Cluster Infrastructure Reports as Ready")
-	waitForClusterInfrastructureReady(setup.namespace, setup.clusterName)
+	return waitForClusterInfrastructureReady(namespace, clusterName)
+}
+
+func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
+
+	Expect(createCluster(setup.namespace, setup.clusterName, setup.awsClusterName, setup.multipleAZ)).Should(BeTrue())
 
 	By("Creating the initial Control Plane Machine")
 	awsMachineName := setup.cpAWSMachinePrefix + "-0"
@@ -855,7 +936,7 @@ func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg 
 				break
 			}
 		}
-		if false == exists {
+		if !exists {
 			return false
 		}
 	}
@@ -1194,18 +1275,19 @@ func waitForAWSMachineRunning(namespace, name string) {
 	).Should(BeTrue())
 }
 
-func waitForClusterInfrastructureReady(namespace, name string) {
+func waitForClusterInfrastructureReady(namespace, name string) bool {
 	fmt.Fprintf(GinkgoWriter, "Ensuring infrastructure is ready for cluster %s/%s\n", namespace, name)
-	Eventually(
-		func() (bool, error) {
-			cluster := &clusterv1.Cluster{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); err != nil {
-				return false, err
+	endTime := time.Now().Add(15 * time.Minute)
+	for time.Now().Before(endTime) {
+		cluster := &clusterv1.Cluster{}
+		if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {
+			if cluster.Status.InfrastructureReady {
+				return true
 			}
-			return cluster.Status.InfrastructureReady, nil
-		},
-		15*time.Minute, 15*time.Second,
-	).Should(BeTrue())
+		}
+		time.Sleep(15 * time.Second)
+	}
+	return false
 }
 
 func waitForMachineBootstrapReady(namespace, name string) {
