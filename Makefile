@@ -86,7 +86,7 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=3h . -args -ginkgo.v -ginkgo.focus "functional tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "functional tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: test-conformance
 test-conformance: ## Run conformance test on workload cluster
