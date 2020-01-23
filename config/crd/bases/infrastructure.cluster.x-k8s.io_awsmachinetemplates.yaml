@@ -454,7 +454,9 @@ spec:
                         type: object
                       sshKeyName:
                         description: SSHKeyName is the name of the ssh key to attach
-                          to the instance.
+                          to the instance. Valid values are empty string (do not use
+                          SSH keys), a valid SSH key name, or omitted (use the default
+                          SSH key name)
                         type: string
                       subnet:
                         description: Subnet is a reference to the subnet to use for
