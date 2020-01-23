@@ -36,7 +36,11 @@ type AWSClusterSpec struct {
 	Region string `json:"region,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host.
-	SSHKeyName string `json:"sshKeyName,omitempty"`
+	// If nil, will use a default SSH key pair name
+	// If empty string, will NOT set an SSH key pair
+	// Otherwise, will set the SSH key pair name
+	// +optional
+	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
