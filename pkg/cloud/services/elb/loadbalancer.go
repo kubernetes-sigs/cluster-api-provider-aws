@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -81,6 +82,17 @@ func (s *Service) ReconcileLoadbalancers() error {
 		})
 		if err != nil {
 			return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
+		}
+	}
+
+	// Reconcile the security groups from the spec and the ones currently attached to the load balancer
+	if !sets.NewString(apiELB.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
+		_, err := s.scope.ELB.ApplySecurityGroupsToLoadBalancer(&elb.ApplySecurityGroupsToLoadBalancerInput{
+			LoadBalancerName: &apiELB.Name,
+			SecurityGroups:   aws.StringSlice(spec.SecurityGroupIDs),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "failed to apply security groups to load balancer %q", apiELB.Name)
 		}
 	}
 
@@ -249,7 +261,7 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 			HealthyThreshold:   5,
 			UnhealthyThreshold: 3,
 		},
-		SecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID},
+		SecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID},
 		Attributes: infrav1.ClassicELBAttributes{
 			IdleTimeout: 10 * time.Minute,
 		},

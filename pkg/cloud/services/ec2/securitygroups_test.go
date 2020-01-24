@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
@@ -103,6 +104,41 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				})).
 					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
 					After(securityGroupBastion)
+
+				////////////////////////
+
+				securityGroupAPIServerLb := m.CreateSecurityGroup(gomock.Eq(&ec2.CreateSecurityGroupInput{
+					VpcId:       aws.String("vpc-securitygroups"),
+					GroupName:   aws.String("test-cluster-apiserver-lb"),
+					Description: aws.String("Kubernetes cluster test-cluster: apiserver-lb"),
+				})).
+					Return(&ec2.CreateSecurityGroupOutput{GroupId: aws.String("sg-apiserver-lb")}, nil)
+
+				m.CreateTags(matchesTags(&ec2.CreateTagsInput{
+					Resources: []*string{aws.String("sg-apiserver-lb")},
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("apiserver-lb"),
+						},
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("test-cluster-apiserver-lb"),
+						},
+					},
+				})).
+					Return(nil, nil).
+					After(securityGroupAPIServerLb)
+
+				m.AuthorizeSecurityGroupIngress(gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-apiserver-lb"),
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
+					After(securityGroupAPIServerLb)
 
 				////////////////////////
 
@@ -242,6 +278,30 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 		})
+	}
+}
+
+func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
+	scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+		},
+		AWSCluster: &infrav1.AWSCluster{},
+	})
+	if err != nil {
+		t.Fatalf("Failed to create test context: %v", err)
+	}
+
+	s := NewService(scope)
+	rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
+	if err != nil {
+		t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
+	}
+
+	for _, r := range rules {
+		if sets.NewString(r.CidrBlocks...).Has(anyIPv4CidrBlock) {
+			t.Fatal("Ingress rule allows any CIDR block")
+		}
 	}
 }
 
