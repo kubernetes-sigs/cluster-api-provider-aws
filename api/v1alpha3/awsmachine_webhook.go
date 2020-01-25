@@ -43,7 +43,12 @@ var _ webhook.Validator = &AWSMachine{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachine) ValidateCreate() error {
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, r.validateCloudInitSecret())
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.validateCloudInitSecret()...)
+	allErrs = append(allErrs, r.validateVolumeTypeIOPS()...)
+
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -112,6 +117,16 @@ func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 
 	if (r.Spec.CloudInit.SecretPrefix != "") != (r.Spec.CloudInit.SecretCount != 0) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretCount"), "must be set together with spec.CloudInit.SecretPrefix"))
+	}
+
+	return allErrs
+}
+
+func (r *AWSMachine) validateVolumeTypeIOPS() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.RootVolume != nil && r.Spec.RootVolume.Type == "io1" && r.Spec.RootVolume.IOPS == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolumeOptions.iops"), "iops required if type is 'io1'"))
 	}
 
 	return allErrs

@@ -43,6 +43,11 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 
 func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1alpha3.AWSMachineSpec) {
 	dst.ImageLookupBaseOS = restored.ImageLookupBaseOS
+
+	// Note this may override the manual conversion in Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec.
+	if restored.RootVolume != nil {
+		restored.RootVolume.DeepCopyInto(dst.RootVolume)
+	}
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
@@ -72,6 +77,8 @@ func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	return Convert_v1alpha3_AWSMachineList_To_v1alpha2_AWSMachineList(src, dst, nil)
 }
 
+// Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec converts this AWSMachineSpec to the Hub version (v1alpha3).
+// Requires manual conversion as infrav1alpha2.AWSMachineSpec.RootDeviceSize does not exist in AWSMachineSpec.
 func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSpec, out *infrav1alpha3.AWSMachineSpec, s apiconversion.Scope) error { // nolint
 	if err := autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s); err != nil {
 		return err
@@ -85,6 +92,13 @@ func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSp
 	} else {
 		if err := Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in.CloudInit, &out.CloudInit, s); err != nil {
 			return err
+		}
+	}
+
+	// Manually convert RootDeviceSize. This may be overridden by restoring / upconverting from annotation.
+	if in.RootDeviceSize != 0 {
+		out.RootVolume = &infrav1alpha3.RootVolume{
+			Size: in.RootDeviceSize,
 		}
 	}
 
@@ -105,6 +119,12 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 	if err := Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(&in.CloudInit, out.CloudInit, s); err != nil {
 		return err
 	}
+
+	if in.RootVolume != nil {
+		out.RootDeviceSize = in.RootVolume.Size
+	}
+
+	// Discards ImageLookupBaseOS
 
 	return nil
 }
@@ -131,6 +151,35 @@ func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1a
 	// Manually convert the Failure fields to the Error fields
 	out.ErrorMessage = in.FailureMessage
 	out.ErrorReason = in.FailureReason
+
+	return nil
+}
+
+// Convert_v1alpha2_Instance_To_v1alpha3_Instance converts this Instance to the Hub version (v1alpha3).
+func Convert_v1alpha2_Instance_To_v1alpha3_Instance(in *Instance, out *infrav1alpha3.Instance, s apiconversion.Scope) error { // nolint
+	if err := autoConvert_v1alpha2_Instance_To_v1alpha3_Instance(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert RootDeviceSize.
+	if in.RootDeviceSize != 0 {
+		out.RootVolume = &infrav1alpha3.RootVolume{
+			Size: in.RootDeviceSize,
+		}
+	}
+
+	return nil
+}
+
+// Convert_v1alpha3_Instance_To_v1alpha2_Instance converts from the Hub version (v1alpha3) of the Instance to this version.
+func Convert_v1alpha3_Instance_To_v1alpha2_Instance(in *infrav1alpha3.Instance, out *Instance, s apiconversion.Scope) error { // nolint
+	if err := autoConvert_v1alpha3_Instance_To_v1alpha2_Instance(in, out, s); err != nil {
+		return err
+	}
+
+	if in.RootVolume != nil {
+		out.RootDeviceSize = in.RootVolume.Size
+	}
 
 	return nil
 }
