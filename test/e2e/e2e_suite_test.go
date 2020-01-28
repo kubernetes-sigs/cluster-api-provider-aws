@@ -95,6 +95,8 @@ var (
 	managerImage    = capiFlag.DefineOrLookupStringFlag("managerImage", "", "Docker image to load into the kind cluster for testing")
 	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
 	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
+	k8sVersion      = capiFlag.DefineOrLookupStringFlag("k8sVersion", "v1.17.2", "kubernetes version to test on")
+	sonobuoyVersion = capiFlag.DefineOrLookupStringFlag("sonobuoyVersion", "v0.16.2", "sonobuoy version")
 
 	kindCluster  kind.Cluster
 	kindClient   crclient.Client
