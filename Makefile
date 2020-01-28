@@ -34,6 +34,7 @@ export GO111MODULE=on
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+TEST_E2E_DIR := test/e2e
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -66,6 +67,8 @@ PULL_POLICY ?= Always
 # Set build time variables including version details
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
+GOLANG_VERSION := 1.13.8
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -88,7 +91,12 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args -ginkgo.v --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "functional tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: test-conformance
+test-conformance: ## Run conformance test on workload cluster
+	PULL_POLICY=IfNotPresent $(MAKE) docker-build
+	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "conformance tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Binaries
@@ -146,6 +154,7 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
+	cd $(TEST_E2E_DIR); go mod tidy
 
 .PHONY: generate
 generate: ## Generate code
@@ -270,7 +279,7 @@ release-binary: $(RELEASE_DIR)
 		-e GOARCH=$(GOARCH) \
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
-		golang:1.13.5 \
+		golang:$(GOLANG_VERSION) \
 		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 

@@ -95,6 +95,8 @@ var (
 	managerImage    = capiFlag.DefineOrLookupStringFlag("managerImage", "", "Docker image to load into the kind cluster for testing")
 	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
 	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
+	k8sVersion      = capiFlag.DefineOrLookupStringFlag("k8sVersion", "v1.17.2", "kubernetes version to test on")
+	sonobuoyVersion = capiFlag.DefineOrLookupStringFlag("sonobuoyVersion", "v0.16.2", "sonobuoy version")
 
 	kindCluster  kind.Cluster
 	kindClient   crclient.Client
@@ -317,7 +319,7 @@ func deployCAPIComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CAPI manifests\n")
 
 	// Build the manifests using kustomize
-	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//config").Output()
+	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
@@ -337,7 +339,7 @@ func deployCABPKComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CABPK manifests\n")
 
 	// Build the manifests using kustomize
-	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config").Output()
+	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
@@ -357,7 +359,7 @@ func deployKCPComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating KCP manifests\n")
 
 	// Build the manifests using kustomize
-	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config").Output()
+	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
