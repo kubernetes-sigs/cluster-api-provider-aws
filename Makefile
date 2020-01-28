@@ -34,6 +34,7 @@ export GO111MODULE=on
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+TEST_E2E_DIR := test/e2e
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -44,6 +45,7 @@ MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
+GINKGO := $(abspath $(TOOLS_BIN_DIR)/ginkgo)
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -67,6 +69,8 @@ PULL_POLICY ?= Always
 # Set build time variables including version details
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
+GOLANG_VERSION := 1.13.8
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -89,11 +93,18 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args -ginkgo.v --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=4 -v -tags=e2e -focus="functional tests" ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: test-conformance
+test-conformance: ## Run conformance test on workload cluster
+	PULL_POLICY=IfNotPresent $(MAKE) docker-build
+	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "conformance tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
+$(GINKGO): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/ginkgo
 
 .PHONY: binaries
 binaries: manager clusterawsadm ## Builds and installs all binaries
@@ -147,6 +158,7 @@ lint: $(GOLANGCI_LINT) ## Lint codebase
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
+	cd $(TEST_E2E_DIR); go mod tidy
 
 .PHONY: generate
 generate: ## Generate code
@@ -268,7 +280,11 @@ release-binary: $(RELEASE_DIR)
 		-e GOARCH=$(GOARCH) \
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
+<<<<<<< HEAD
 		golang:1.13.8 \
+=======
+		golang:$(GOLANG_VERSION) \
+>>>>>>> Port E2E test automation from release-0.4 branch
 		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 

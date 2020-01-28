@@ -35,7 +35,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
@@ -67,13 +66,11 @@ import (
 func TestE2e(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	// If running in prow, output the junit files to the artifacts path
-	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode)
-	artifactPath, exists := os.LookupEnv("ARTIFACTS")
-	if exists {
-		junitPath = path.Join(artifactPath, junitPath)
+	// If running in prow, make sure to output the junit files to the artifacts path
+	if ap, exists := os.LookupEnv("ARTIFACTS"); exists {
+		artifactPath = ap
 	}
-	junitReporter := reporters.NewJUnitReporter(junitPath)
+	junitPath := path.Join(artifactPath, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
 	RunSpecsWithDefaultAndCustomReporters(t, "e2e Suite", []Reporter{junitReporter})
 }
 
@@ -95,6 +92,8 @@ var (
 	managerImage    = capiFlag.DefineOrLookupStringFlag("managerImage", "", "Docker image to load into the kind cluster for testing")
 	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
 	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
+	k8sVersion      = capiFlag.DefineOrLookupStringFlag("k8sVersion", "v1.17.2", "kubernetes version to test on")
+	sonobuoyVersion = capiFlag.DefineOrLookupStringFlag("sonobuoyVersion", "v0.16.2", "sonobuoy version")
 
 	kindCluster  kind.Cluster
 	kindClient   crclient.Client
@@ -104,11 +103,11 @@ var (
 	accessKey    *iam.AccessKey
 	suiteTmpDir  string
 	region       string
-	artifactPath string
+	artifactPath = ".artifacts"
 	logPath      string
 )
 
-var _ = BeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func() {
 	artifactPath, _ = os.LookupEnv("ARTIFACTS")
 	logPath = path.Join(artifactPath, "logs")
 	Expect(os.MkdirAll(filepath.Dir(logPath), 0755)).To(Succeed())
@@ -189,7 +188,7 @@ var _ = BeforeSuite(func() {
 
 }, setupTimeout)
 
-var _ = AfterSuite(func() {
+var _ = SynchronizedAfterSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
 
 	if kindCluster.Name != "" {
@@ -317,7 +316,7 @@ func deployCAPIComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CAPI manifests\n")
 
 	// Build the manifests using kustomize
-	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//config").Output()
+	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
@@ -337,7 +336,7 @@ func deployCABPKComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CABPK manifests\n")
 
 	// Build the manifests using kustomize
-	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config").Output()
+	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
@@ -357,7 +356,7 @@ func deployKCPComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating KCP manifests\n")
 
 	// Build the manifests using kustomize
-	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config").Output()
+	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
