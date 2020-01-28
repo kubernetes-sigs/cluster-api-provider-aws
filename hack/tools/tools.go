@@ -28,4 +28,5 @@ import (
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"     //nolint
 	_ "sigs.k8s.io/kustomize/kustomize/v3"                  //nolint
 	_ "sigs.k8s.io/testing_frameworks/integration"          //nolint
+	_ "github.com/onsi/ginkgo/ginkgo"                       //nolint
 )

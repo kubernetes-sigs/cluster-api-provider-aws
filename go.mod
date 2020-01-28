@@ -16,6 +16,7 @@ require (
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
 	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
+	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
