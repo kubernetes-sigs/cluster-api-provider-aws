@@ -35,6 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -64,6 +65,7 @@ func main() {
 		awsMachineConcurrency   int
 		syncPeriod              time.Duration
 		webhookPort             int
+		healthAddr              string
 	)
 
 	flag.StringVar(
@@ -125,6 +127,12 @@ func main() {
 		"Webhook server port (set to 0 to disable)",
 	)
 
+	flag.StringVar(&healthAddr,
+		"health-addr",
+		":9440",
+		"The address the health endpoint binds to.",
+	)
+
 	flag.Parse()
 
 	if watchNamespace != "" {
@@ -155,6 +163,7 @@ func main() {
 		Namespace:               watchNamespace,
 		EventBroadcaster:        broadcaster,
 		Port:                    webhookPort,
+		HealthProbeBindAddress:  healthAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -208,6 +217,16 @@ func main() {
 		}
 	}
 	// +kubebuilder:scaffold:builder
+
+	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create ready check")
+		os.Exit(1)
+	}
+
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create health check")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
