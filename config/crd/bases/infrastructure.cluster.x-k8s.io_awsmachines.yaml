@@ -382,14 +382,14 @@ spec:
                 description: "AvailabilityZone is references the AWS availability
                   zone to use for this instance. If multiple subnets are matched for
                   the availability zone, the first one return is picked. \n DEPRECATED:
-                  Switch to FailureDomainID."
+                  Switch to FailureDomain."
                 type: string
-              failureDomainID:
+              failureDomain:
                 description: FailureDomain is the failure domain unique identifier
                   this Machine should be attached to, as defined in Cluster API. For
                   this infrastructure provider, the ID is equivalent to an AWS Availability
                   Zone. If multiple subnets are matched for the availability zone,
-                  the first one return is picked.
+                  the first one returned is picked.
                 type: string
               iamInstanceProfile:
                 description: IAMInstanceProfile is a name of an IAM instance profile
