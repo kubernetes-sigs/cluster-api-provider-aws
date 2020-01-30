@@ -19,6 +19,7 @@ package elb
 import (
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"strings"
 	"time"
 
@@ -333,6 +334,7 @@ func (s *Service) listByTag(tag string) ([]string, error) {
 	})
 
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedListELBsByTag", "Failed to list %s ELB by Tags: %v", s.scope.Name(), err)
 		return nil, errors.Wrapf(err, "failed to list %s ELBs by tag group", s.scope.Name())
 	}
 
