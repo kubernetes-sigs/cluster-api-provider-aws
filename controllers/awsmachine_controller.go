@@ -31,6 +31,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/secretsmanager"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -46,17 +48,26 @@ import (
 // AWSMachineReconciler reconciles a AwsMachine object
 type AWSMachineReconciler struct {
 	client.Client
-	Log            logr.Logger
-	Recorder       record.EventRecorder
-	serviceFactory func(*scope.ClusterScope) services.EC2MachineInterface
+	Log                          logr.Logger
+	Recorder                     record.EventRecorder
+	ec2ServiceFactory            func(*scope.ClusterScope) services.EC2MachineInterface
+	secretsManagerServiceFactory func(*scope.ClusterScope) services.SecretsManagerInterface
 }
 
 func (r *AWSMachineReconciler) getEC2Service(scope *scope.ClusterScope) services.EC2MachineInterface {
-	if r.serviceFactory != nil {
-		return r.serviceFactory(scope)
+	if r.ec2ServiceFactory != nil {
+		return r.ec2ServiceFactory(scope)
 	}
 
 	return ec2.NewService(scope)
+}
+
+func (r *AWSMachineReconciler) getSecretsManagerService(scope *scope.ClusterScope) services.SecretsManagerInterface {
+	if r.secretsManagerServiceFactory != nil {
+		return r.secretsManagerServiceFactory(scope)
+	}
+
+	return secretsmanager.NewService(scope)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=get;list;watch;create;update;patch;delete
@@ -174,6 +185,11 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	machineScope.Info("Handling deleted AWSMachine")
 
 	ec2Service := r.getEC2Service(clusterScope)
+	secretSvc := r.getSecretsManagerService(clusterScope)
+
+	if err := r.deleteEncryptedBootstrapDataSecret(machineScope, secretSvc); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
 	if err != nil {
@@ -268,10 +284,16 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 
 func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	machineScope.Info("Reconciling AWSMachine")
+
+	secretSvc := r.getSecretsManagerService(clusterScope)
+
 	// If the AWSMachine is in an error state, return early.
-	if machineScope.AWSMachine.Status.FailureReason != nil || machineScope.AWSMachine.Status.FailureMessage != nil {
+	if machineScope.HasFailed() {
+		// If we are in a failed state, delete the secret regardless of instance state
+		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, secretSvc); err != nil {
+			return reconcile.Result{}, err
+		}
 		machineScope.Info("Error state detected, skipping reconciliation")
-		return reconcile.Result{}, nil
 	}
 
 	// If the AWSMachine doesn't have our finalizer, add it.
@@ -298,7 +320,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	ec2svc := r.getEC2Service(clusterScope)
 
 	// Get or create the instance.
-	instance, err := r.getOrCreate(machineScope, ec2svc)
+	instance, err := r.getOrCreate(machineScope, ec2svc, secretSvc)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -324,7 +346,8 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		machineScope.Info("EC2 instance state changed", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 	}
 
-	machineScope.SetAddresses(instance.Addresses)
+	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
+	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
 
 	switch instance.State {
 	case infrav1.InstanceStatePending, infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
@@ -343,39 +366,69 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
 	}
 
+	// reconcile the deletion of the bootstrap data secret now that we have updated instance state
+	if err := r.deleteEncryptedBootstrapDataSecret(machineScope, secretSvc); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	if instance.State == infrav1.InstanceStateTerminated {
 		machineScope.SetFailureReason(capierrors.UpdateMachineError)
 		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
 	}
 
-	if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
+	// tasks that can take place during all known instance states
+	if machineScope.InstanceIsInKnownState() {
+		_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
+		if err != nil {
+			return reconcile.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
+		}
 	}
 
-	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
-	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
+	// tasks that can only take place during operational instance states
+	if machineScope.InstanceIsOperational() {
+		machineScope.SetAddresses(instance.Addresses)
 
-	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+		if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {
+			return reconcile.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
+		}
 
-	// Ensure that the security groups are correct.
-	_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
-	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to apply security groups: %+v", err)
-	}
+		existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 
-	// Ensure that the tags are correct.
-	_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
-	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
+		// Ensure that the security groups are correct.
+		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
+		if err != nil {
+			return reconcile.Result{}, errors.Errorf("failed to apply security groups: %+v", err)
+		}
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc services.EC2MachineInterface) (*infrav1.Instance, error) {
+func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, secretSvc services.SecretsManagerInterface) error {
+	// do nothing if there isn't asecret
+	if machineScope.GetSecretARN() == "" {
+		return nil
+	}
+
+	// Do nothing if the AWSMachine is not in a failed state, and is operational from an EC2 perspective, but does not have a node reference
+	if !machineScope.HasFailed() && machineScope.InstanceIsOperational() && machineScope.Machine.Status.NodeRef == nil && !machineScope.AWSMachineIsDeleted() {
+		return nil
+	}
+	machineScope.Info("Deleting unneeded entry from AWS Secrets Manager", "secretARN", machineScope.GetSecretARN())
+	if err := secretSvc.Delete(machineScope); err != nil {
+		machineScope.Info("Unable to delete entry from AWS Secrets Manager containing encrypted userdata", "secretARN", machineScope.GetSecretARN())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDeleteEncryptedBootstrapDataSecret", "AWS Secret Manager entry containing userdata not deleted")
+		return err
+	}
+	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDeleteEncryptedBootstrapDataSecret", "AWS Secret Manager entry containing userdata deleted")
+	machineScope.DeleteSecretARN()
+	return nil
+}
+
+func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc services.EC2MachineInterface, secretSvc services.SecretsManagerInterface) (*infrav1.Instance, error) {
 	instance, err := r.findInstance(scope, ec2svc)
 	if err != nil {
 		return nil, err
@@ -384,7 +437,40 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc ser
 	if instance == nil {
 		scope.Info("Creating EC2 instance")
 		// Create a new AWSMachine instance if we couldn't find a running instance.
-		instance, err = ec2svc.CreateInstance(scope)
+
+		userData, err := scope.GetRawBootstrapData()
+		if err != nil {
+			r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+			return nil, err
+		}
+
+		if scope.UseSecretsManager() {
+			compressedUserData, err := userdata.GzipBytes(userData)
+			if err != nil {
+				return nil, err
+			}
+			// Do an initial check in case manager was terminated prematurely
+			if scope.GetSecretARN() == "" {
+				newSecretARN, err := secretSvc.Create(scope, compressedUserData)
+				if err != nil {
+					r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecretsManagerEntry", err.Error())
+					return nil, err
+				}
+				scope.SetSecretARN(newSecretARN)
+			}
+			// Register the Secret ARN immediately to avoid orphaning AWS resources on delete
+			if err := scope.PatchObject(); err != nil {
+				return nil, err
+			}
+			encryptedCloudInit, err := secretsmanager.GenerateCloudInitMIMEDocument(scope.GetSecretARN(), scope.AWSCluster.Spec.Region)
+			if err != nil {
+				r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsManagerCloudInit", err.Error())
+				return nil, err
+			}
+			userData = encryptedCloudInit
+		}
+
+		instance, err = ec2svc.CreateInstance(scope, userData)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create EC2 instance for AWSMachine %s/%s", scope.Namespace(), scope.Name())
 		}

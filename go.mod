@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.25.16
-	github.com/awslabs/goformation/v3 v3.0.0
+	github.com/awslabs/goformation/v4 v4.1.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.3.1
 	github.com/onsi/ginkgo v1.11.0
@@ -12,9 +12,10 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
-	gopkg.in/yaml.v2 v2.2.4
+	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
+	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.0.0-20191121015604-11707872ac1c
 	k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a
 	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90

@@ -51,18 +51,18 @@ func (m *MockEC2MachineInterface) EXPECT() *MockEC2MachineInterfaceMockRecorder 
 }
 
 // CreateInstance mocks base method
-func (m *MockEC2MachineInterface) CreateInstance(arg0 *scope.MachineScope) (*v1alpha3.Instance, error) {
+func (m *MockEC2MachineInterface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte) (*v1alpha3.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateInstance", arg0)
+	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1)
 	ret0, _ := ret[0].(*v1alpha3.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateInstance indicates an expected call of CreateInstance
-func (mr *MockEC2MachineInterfaceMockRecorder) CreateInstance(arg0 interface{}) *gomock.Call {
+func (mr *MockEC2MachineInterfaceMockRecorder) CreateInstance(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2MachineInterface)(nil).CreateInstance), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2MachineInterface)(nil).CreateInstance), arg0, arg1)
 }
 
 // DetachSecurityGroupsFromNetworkInterface mocks base method

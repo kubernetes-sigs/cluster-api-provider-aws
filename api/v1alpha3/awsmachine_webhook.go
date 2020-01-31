@@ -43,7 +43,7 @@ var _ webhook.Validator = &AWSMachine{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachine) ValidateCreate() error {
-	return nil
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, r.validateCloudInitSecret())
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -63,6 +63,8 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 
 	var allErrs field.ErrorList
 
+	allErrs = append(allErrs, r.validateCloudInitSecret()...)
+
 	newAWSMachineSpec := newAWSMachine["spec"].(map[string]interface{})
 	oldAWSMachineSpec := oldAWSMachine["spec"].(map[string]interface{})
 
@@ -78,14 +80,30 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 	delete(oldAWSMachineSpec, "additionalSecurityGroups")
 	delete(newAWSMachineSpec, "additionalSecurityGroups")
 
-	if !reflect.DeepEqual(oldAWSMachineSpec, newAWSMachineSpec) {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
-		return apierrors.NewInvalid(
-			GroupVersion.WithKind("AWSMachine").GroupKind(),
-			r.Name, allErrs)
+	// allow changes to secretARN
+	if cloudInit, ok := oldAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
+		delete(cloudInit, "secretARN")
 	}
 
-	return nil
+	if cloudInit, ok := newAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
+		delete(cloudInit, "secretARN")
+	}
+
+	if !reflect.DeepEqual(oldAWSMachineSpec, newAWSMachineSpec) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
+	}
+
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+}
+
+func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.CloudInit.SecretARN != "" && r.Spec.CloudInit.InsecureSkipSecretsManager {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretARN"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
+	}
+
+	return allErrs
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

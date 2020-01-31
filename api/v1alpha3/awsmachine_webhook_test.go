@@ -30,7 +30,7 @@ func TestAWSMachine_ValidateUpdate(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name: "change in providerid, tags and securitygroups",
+			name: "change in providerid, cloudinit, tags and securitygroups",
 			oldMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					ProviderID:               nil,
@@ -48,6 +48,9 @@ func TestAWSMachine_ValidateUpdate(t *testing.T) {
 						{
 							ID: pointer.StringPtr("ID"),
 						},
+					},
+					CloudInit: CloudInit{
+						SecretARN: "test",
 					},
 				},
 			},

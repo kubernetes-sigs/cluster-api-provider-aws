@@ -21,8 +21,8 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/awslabs/goformation/v3/cloudformation"
-	cfn_iam "github.com/awslabs/goformation/v3/cloudformation/iam"
+	"github.com/awslabs/goformation/v4/cloudformation"
+	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
@@ -69,7 +69,7 @@ func BootstrapTemplate(accountID, partition string, extraControlPlanePolicies, e
 	template.Resources[NodePolicy] = &cfn_iam.ManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("nodes"),
 		Description:       `For the Kubernetes Cloud Provider AWS nodes`,
-		PolicyDocument:    cloudProviderNodeAwsPolicy(),
+		PolicyDocument:    nodePolicy(),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
 			cloudformation.Ref("AWSIAMRoleNodes"),
@@ -233,8 +233,35 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 					"iam:PassRole",
 				},
 			},
+			{
+				Effect:   iam.EffectAllow,
+				Resource: iam.Resources{"arn:aws:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*"},
+				Action: iam.Actions{
+					"secretsmanager:CreateSecret",
+					"secretsmanager:DeleteSecret",
+				},
+			},
 		},
 	}
+}
+
+func bootstrapSecretPolicy() iam.StatementEntry {
+	return iam.StatementEntry{
+		Effect:   iam.EffectAllow,
+		Resource: iam.Resources{"arn:aws:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*"},
+		Action: iam.Actions{
+			"secretsmanager:DeleteSecret",
+			"secretsmanager:GetSecretValue",
+		},
+	}
+}
+
+func nodePolicy() *iam.PolicyDocument {
+	policyDocument := cloudProviderNodeAwsPolicy()
+	policyDocument.Statement = append(
+		policyDocument.Statement, bootstrapSecretPolicy(),
+	)
+	return policyDocument
 }
 
 // From https://github.com/kubernetes/cloud-provider-aws
