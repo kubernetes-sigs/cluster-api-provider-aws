@@ -180,6 +180,7 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 
 	out, err := s.scope.EC2.DescribeSubnets(input)
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
 	}
 

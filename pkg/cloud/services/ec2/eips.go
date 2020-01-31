@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -32,6 +33,7 @@ import (
 func (s *Service) getOrAllocateAddress(role string) (string, error) {
 	out, err := s.describeAddresses(role)
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeAddresses", "Failed to query addresses for role %q: %v", role, err)
 		return "", errors.Wrap(err, "failed to query addresses")
 	}
 
@@ -70,6 +72,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 		}
 		return true, nil
 	}, awserrors.EIPNotFound); err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedAllocateAddress", "Failed to tag elastic IP %q: %v", aws.StringValue(out.AllocationId), err)
 		return "", errors.Wrapf(err, "failed to tag elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 
@@ -121,6 +124,7 @@ func (s *Service) releaseAddresses() error {
 				AssociationId: ip.AssociationId,
 			})
 			if err != nil {
+				record.Eventf(s.scope.AWSCluster, "FailedReleaseElasticIP", "Failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q: %v", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId, err)
 				return errors.Errorf("failed to release elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
 			}
 		}
@@ -139,6 +143,7 @@ func (s *Service) releaseAddresses() error {
 			return true, nil
 		}, awserrors.AuthFailure, awserrors.InUseIPAddress)
 		if err != nil {
+			record.Eventf(s.scope.AWSCluster, "FailedReleaseElasticIP", "Failed to release ElasticIP %q: %v", *ip.AllocationId, err)
 			return errors.Wrapf(err, "failed to release ElasticIP %q", *ip.AllocationId)
 		}
 

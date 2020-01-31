@@ -190,6 +190,7 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 	})
 
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeVPCRouteTable", "Failed to describe route tables in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe route tables in vpc %q", s.scope.VPC().ID)
 	}
 

@@ -140,6 +140,7 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, err
 		})
 
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeNATGateways", "Failed to describe NAT gateways with VPC ID %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe NAT gateways with VPC ID %q", s.scope.VPC().ID)
 	}
 
