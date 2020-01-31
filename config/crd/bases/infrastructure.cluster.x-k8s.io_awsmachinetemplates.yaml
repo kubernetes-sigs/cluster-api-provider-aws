@@ -336,12 +336,6 @@ spec:
                             description: ID of resource
                             type: string
                         type: object
-                      availabilityZone:
-                        description: "AvailabilityZone is references the AWS availability
-                          zone to use for this instance. If multiple subnets are matched
-                          for the availability zone, the first one return is picked.
-                          \n DEPRECATED: Switch to FailureDomain."
-                        type: string
                       failureDomain:
                         description: FailureDomain is the failure domain unique identifier
                           this Machine should be attached to, as defined in Cluster
