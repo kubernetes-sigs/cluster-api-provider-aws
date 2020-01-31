@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -130,6 +131,13 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 	if scope.AWSMachine.Spec.AMI.ID != nil {
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
 	} else {
+		if scope.Machine.Spec.Version == nil {
+			err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
+			scope.SetFailureReason(capierrors.CreateMachineError)
+			scope.SetFailureMessage(err)
+			return nil, err
+		}
+
 		imageLookupOrg := scope.AWSMachine.Spec.ImageLookupOrg
 		if imageLookupOrg == "" {
 			imageLookupOrg = scope.AWSCluster.Spec.ImageLookupOrg
