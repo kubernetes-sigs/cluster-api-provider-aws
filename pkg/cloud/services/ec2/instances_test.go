@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
@@ -64,6 +65,25 @@ func TestInstanceIfExists(t *testing.T) {
 			},
 		},
 		{
+			name:       "does not exist with bad request error",
+			instanceID: "hello-does-not-exist",
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+					InstanceIds: []*string{aws.String("hello-does-not-exist")},
+				})).
+					Return(nil, awserr.New(awserrors.InvalidInstanceID, "does not exist", nil))
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if instance != nil {
+					t.Fatalf("Did not expect anything but got something: %+v", instance)
+				}
+			},
+		},
+		{
 			name:       "instance exists",
 			instanceID: "id-1",
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
@@ -82,6 +102,15 @@ func TestInstanceIfExists(t *testing.T) {
 										IamInstanceProfile: &ec2.IamInstanceProfile{
 											Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 										},
+										RootDeviceName: aws.String("/dev/xda"),
+										BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+											{
+												DeviceName: aws.String("/dev/xda"),
+												Ebs: &ec2.EbsInstanceBlockDevice{
+													VolumeId: aws.String("vol-123"),
+												},
+											},
+										},
 										State: &ec2.InstanceState{
 											Code: aws.Int64(16),
 											Name: aws.String(ec2.StateAvailable),
@@ -91,6 +120,16 @@ func TestInstanceIfExists(t *testing.T) {
 							},
 						},
 					}, nil)
+
+				m.DescribeVolumes(gomock.Eq(&ec2.DescribeVolumesInput{
+					VolumeIds: []*string{aws.String("vol-123")},
+				})).Return(&ec2.DescribeVolumesOutput{
+					Volumes: []*ec2.Volume{
+						{
+							VolumeId: aws.String("vol-123"),
+						},
+					},
+				}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {

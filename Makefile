@@ -34,6 +34,7 @@ export GO111MODULE=on
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+TEST_E2E_DIR := test/e2e
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -85,7 +86,12 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args -ginkgo.v --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "functional tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: test-conformance
+test-conformance: ## Run conformance test on workload cluster
+	PULL_POLICY=IfNotPresent $(MAKE) docker-build
+	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "conformance tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Binaries
@@ -100,7 +106,7 @@ manager: ## Build manager binary.
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
-	go build -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
 
 ## --------------------------------------
 ## Tooling Binaries
@@ -143,6 +149,7 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
+	cd $(TEST_E2E_DIR); go mod tidy
 
 .PHONY: generate
 generate: ## Generate code
@@ -233,6 +240,7 @@ set-manifest-pull-policy:
 ## Release
 ## --------------------------------------
 
+LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 RELEASE_DIR := out
 
@@ -271,7 +279,7 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
 		golang:1.12.10 \
-		go build -a -ldflags '-extldflags "-static"' \
+		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
 .PHONY: release-staging
@@ -303,10 +311,17 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 	-p ./examples/_out/provider-components.yaml \
 	-a ./examples/addons.yaml
 
+# This is used in the get-kubeconfig call below in the create-cluster-management target. It may be overridden by the
+# e2e-conformance.sh script, which is why we need it as a variable here.
+CLUSTER_NAME ?= test1
 
 .PHONY: create-cluster-management
 create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
 	kind create cluster --name=clusterapi
+	@if [ ! -z "${LOAD_IMAGE}" ]; then \
+		echo "loading ${LOAD_IMAGE} into kind cluster ..." && \
+		kind --name="clusterapi" load docker-image "${LOAD_IMAGE}"; \
+	fi
 	# Apply provider-components.
 	kubectl \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
@@ -324,7 +339,7 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 		alpha phases get-kubeconfig -v=3 \
 		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
 		--namespace=default \
-		--cluster-name=test1
+		--cluster-name=$(CLUSTER_NAME)
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
 	$(CLUSTERCTL) \
 		alpha phases apply-addons -v=3 \
@@ -336,12 +351,12 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 		create -f examples/_out/machinedeployment.yaml
 
 .PHONY: delete-cluster
-delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "test1"
+delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "$CLUSTER_NAME"
 	$(CLUSTERCTL) \
 	delete cluster -v 4 \
 	--bootstrap-type kind \
 	--bootstrap-flags="name=clusterapi" \
-	--cluster test1 \
+	--cluster $(CLUSTER_NAME) \
 	--kubeconfig ./kubeconfig \
 	-p ./examples/_out/provider-components.yaml \
 

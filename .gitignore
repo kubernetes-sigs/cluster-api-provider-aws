@@ -52,4 +52,9 @@ config/samples
 manager_image_patch.yaml-e
 manager_pull_policy.yaml-e
 
+# junit files
+junit.*.xml
+
 .DS_Store
+
+.tiltbuild

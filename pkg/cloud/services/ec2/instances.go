@@ -189,7 +189,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		// Only record the failure event if the error is not related to failed dependencies.
 		// This is to avoid spamming failure events since the machine will be requeued by the actuator.
 		if !awserrors.IsFailedDependency(errors.Cause(err)) {
-			record.Warnf(scope.Machine, "FailedCreate", "Failed to create instance: %v", err)
+			record.Warnf(scope.AWSMachine, "FailedCreate", "Failed to create instance: %v", err)
 		}
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		}
 	}
 
-	record.Eventf(scope.Machine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
+	record.Eventf(scope.AWSMachine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
 	return out, nil
 }
 
@@ -515,8 +515,7 @@ func (s *Service) getImageRootDevice(imageID string) (*string, error) {
 	return output.Images[0].RootDeviceName, nil
 }
 
-func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, error) {
-
+func (s *Service) getInstanceRootDevice(instance *ec2.Instance) (*ec2.Volume, error) {
 	for _, bdm := range instance.BlockDeviceMappings {
 		if aws.StringValue(bdm.DeviceName) == aws.StringValue(instance.RootDeviceName) {
 			input := &ec2.DescribeVolumesInput{
@@ -532,7 +531,7 @@ func (s *Service) getInstanceRootDeviceSize(instance *ec2.Instance) (*int64, err
 				return nil, errors.Errorf("no volumes found for id %q", aws.StringValue(bdm.Ebs.VolumeId))
 			}
 
-			return out.Volumes[0].Size, nil
+			return out.Volumes[0], nil
 		}
 	}
 	return nil, nil
@@ -574,12 +573,18 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 		i.Tags = converters.TagsToMap(v.Tags)
 	}
 
-	rootSize, err := s.getInstanceRootDeviceSize(v)
+	rootDevice, err := s.getInstanceRootDevice(v)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get root volume size for instance: %q", aws.StringValue(v.InstanceId))
 	}
+	if rootDevice != nil {
+		i.RootDeviceID = aws.StringValue(rootDevice.VolumeId)
+		i.RootDeviceSize = aws.Int64Value(rootDevice.Size)
+		if len(rootDevice.Tags) > 0 {
+			i.RootDeviceTags = converters.TagsToMap(rootDevice.Tags)
+		}
+	}
 
-	i.RootDeviceSize = aws.Int64Value(rootSize)
 	return i, nil
 }
 

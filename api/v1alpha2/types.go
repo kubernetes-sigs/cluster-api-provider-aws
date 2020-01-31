@@ -311,6 +311,9 @@ var (
 	// SecurityGroupControlPlane defines a Kubernetes control plane node role
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 
+	// SecurityGroupAPIServerLB defines a Kubernetes API Server Load Balancer role
+	SecurityGroupAPIServerLB = SecurityGroupRole("apiserver-lb")
+
 	// SecurityGroupLB defines a container for the cloud provider to inject its load balancer ingress rules
 	SecurityGroupLB = SecurityGroupRole("lb")
 )
@@ -514,8 +517,14 @@ type Instance struct {
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
 	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
 
+	// ID of the instance's root storage device
+	RootDeviceID string `json:"rootDeviceID,omitempty"`
+
 	// Specifies size (in Gi) of the root storage device
 	RootDeviceSize int64 `json:"rootDeviceSize,omitempty"`
+
+	// The tags associated with the instance's root storage device
+	RootDeviceTags map[string]string `json:"rootDeviceTags,omitempty"`
 
 	// Specifies ENIs attached to instance
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`

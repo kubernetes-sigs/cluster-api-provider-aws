@@ -126,14 +126,14 @@ func createStackCmd() *cobra.Command {
 			})
 			if err != nil {
 				fmt.Printf("Error: %v", err)
-				return nil
+				return err
 			}
 
 			stsSvc := sts.NewService(awssts.New(sess))
 			accountID, stsErr := stsSvc.AccountID()
 			if stsErr != nil {
 				fmt.Printf("Error: %v", stsErr)
-				return nil
+				return err
 			}
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
@@ -141,7 +141,7 @@ func createStackCmd() *cobra.Command {
 			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID, partition)
 			if err != nil {
 				fmt.Printf("Error: %v", err)
-				return nil
+				return err
 			}
 
 			return cfnSvc.ShowStackResources(stackName)

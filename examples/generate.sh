@@ -21,15 +21,16 @@ SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${OUTPUT_DIR:-${SOURCE_DIR}/_out}
 
 # Binaries
-ENVSUBST=${ENVSUBST:-envsubst}
-command -v "${ENVSUBST}" >/dev/null 2>&1 || echo -v "Cannot find ${ENVSUBST} in path."
+envsubst() {
+  python -c 'import os,sys;[sys.stdout.write(os.path.expandvars(l)) for l in sys.stdin]'
+}
 
 CLUSTERAWSADM=${CLUSTERAWSADM:-${SOURCE_DIR}/../bin/clusterawsadm}
 command -v "${CLUSTERAWSADM}" >/dev/null 2>&1 || echo -v "Cannot find ${CLUSTERAWSADM} in path, build it using 'make binaries' in this repository."
 
 # Cluster.
 export CLUSTER_NAME="${CLUSTER_NAME:-test1}"
-export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.15.3}"
+export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.16.1}"
 
 # Machine settings.
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
@@ -127,3 +128,6 @@ echo "Generated ${COMPONENTS_AWS_GENERATED_FILE}"
 kustomize build "${SOURCE_DIR}/provider-components" | envsubst > "${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "WARNING: ${PROVIDER_COMPONENTS_GENERATED_FILE} includes AWS credentials"
+
+# Patch kubernetes version
+sed -i'' -e 's|kubernetesVersion: .*|kubernetesVersion: '$KUBERNETES_VERSION'|' examples/_out/controlplane.yaml

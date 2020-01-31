@@ -8,3 +8,4 @@ docs/
 examples/
 scripts/
 **/.md
+tilt-provider.json

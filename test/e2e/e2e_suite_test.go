@@ -20,8 +20,10 @@ package e2e_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -30,16 +32,22 @@ import (
 	"text/template"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/iam"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -55,7 +63,15 @@ import (
 
 func TestE2e(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "e2e Suite")
+
+	// If running in prow, output the junit files to the artifacts path
+	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode)
+	artifactPath, exists := os.LookupEnv("ARTIFACTS")
+	if exists {
+		junitPath = path.Join(artifactPath, junitPath)
+	}
+	junitReporter := reporters.NewJUnitReporter(junitPath)
+	RunSpecsWithDefaultAndCustomReporters(t, "e2e Suite", []Reporter{junitReporter})
 }
 
 const (
@@ -78,12 +94,17 @@ var (
 	cabpkComponents = capiFlag.DefineOrLookupStringFlag("cabpkComponents", "https://github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/releases/download/"+CABPK_VERSION+"/bootstrap-components.yaml", "URL to CAPI components to load")
 	capaComponents  = capiFlag.DefineOrLookupStringFlag("capaComponents", "", "capa components to load")
 	kustomizeBinary = capiFlag.DefineOrLookupStringFlag("kustomizeBinary", "kustomize", "path to the kustomize binary")
+	k8sVersion      = capiFlag.DefineOrLookupStringFlag("k8sVersion", "v1.16.0", "kubernetes version to test on")
+	sonobuoyVersion = capiFlag.DefineOrLookupStringFlag("sonobuoyVersion", "v0.16.2", "sonobuoy version")
 
-	kindCluster kind.Cluster
-	kindClient  crclient.Client
-	sess        client.ConfigProvider
-	accountID   string
-	suiteTmpDir string
+	kindCluster  kind.Cluster
+	kindClient   crclient.Client
+	sess         client.ConfigProvider
+	accountID    string
+	accessKey    *iam.AccessKey
+	suiteTmpDir  string
+	region       string
+	artifactPath string
 )
 
 var _ = BeforeSuite(func() {
@@ -93,11 +114,35 @@ var _ = BeforeSuite(func() {
 	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 	Expect(err).NotTo(HaveOccurred())
 
+	var ok bool
+	region, ok = os.LookupEnv("AWS_REGION")
+	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
+	if !ok {
+		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
+		Expect(ok).To(BeTrue())
+	}
+
+	sess = getSession()
+
+	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
+	accountID = getAccountID(sess)
+	createKeyPair(sess)
+	createIAMRoles(sess, accountID)
+
+	iamc := iam.New(sess)
+	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(out.AccessKey).NotTo(BeNil())
+	accessKey = out.AccessKey
+
 	kindCluster = kind.Cluster{
 		Name: "capa-test-" + util.RandomString(6),
 	}
 	kindCluster.Setup()
 	loadManagerImage(kindCluster)
+
+	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
+	Expect(err).NotTo(HaveOccurred())
 
 	// Deploy the CAPI components
 	common.DeployCAPIComponents(kindCluster)
@@ -108,15 +153,6 @@ var _ = BeforeSuite(func() {
 	// Deploy the CAPA components
 	deployCAPAComponents(kindCluster)
 
-	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
-	Expect(err).NotTo(HaveOccurred())
-
-	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
-	sess = getSession()
-	accountID = getAccountID(sess)
-	createKeyPair(sess)
-	createIAMRoles(sess, accountID)
-
 	// Verify capi components are deployed
 	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
 
@@ -125,13 +161,78 @@ var _ = BeforeSuite(func() {
 
 	// Verify capa components are deployed
 	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
+
+	// Recreate kindClient so that it knows about the cluster api types
+	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme()})
+	Expect(err).NotTo(HaveOccurred())
 }, setupTimeout)
 
 var _ = AfterSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
+	retrieveAllLogs()
 	kindCluster.Teardown()
+	iamc := iam.New(sess)
+	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
+	deleteIAMRoles(sess)
 	os.RemoveAll(suiteTmpDir)
 })
+
+func retrieveAllLogs() {
+	capiLogs := retrieveCapiLogs()
+	cabpkLogs := retrieveCabpkLogs()
+	capaLogs := retrieveCapaLogs()
+
+	// If running in prow, output the logs to the artifacts path
+	artifactPath, exists := os.LookupEnv("ARTIFACTS")
+	if exists {
+		ioutil.WriteFile(path.Join(artifactPath, "capi.log"), []byte(capiLogs), 0644)
+		ioutil.WriteFile(path.Join(artifactPath, "cabpk.log"), []byte(cabpkLogs), 0644)
+		ioutil.WriteFile(path.Join(artifactPath, "capa.log"), []byte(capaLogs), 0644)
+		return
+	}
+
+	fmt.Fprintf(GinkgoWriter, "CAPI Logs:\n%s\n", capiLogs)
+	fmt.Fprintf(GinkgoWriter, "CABPK Logs:\n%s\n", cabpkLogs)
+	fmt.Fprintf(GinkgoWriter, "CAPA Logs:\n%s\n", capaLogs)
+}
+
+func retrieveCapaLogs() string {
+	return retrieveLogs(capaNamespace, capaDeploymentName)
+}
+
+func retrieveCapiLogs() string {
+	return retrieveLogs(capiNamespace, capiDeploymentName)
+}
+
+func retrieveCabpkLogs() string {
+	return retrieveLogs(cabpkNamespace, cabpkDeploymentName)
+}
+
+func retrieveLogs(namespace, deploymentName string) string {
+	deployment := &appsv1.Deployment{}
+	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: deploymentName}, deployment)).To(Succeed())
+
+	pods := &corev1.PodList{}
+
+	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(kindClient.List(context.TODO(), pods, crclient.InNamespace(namespace), crclient.MatchingLabels(selector))).To(Succeed())
+	Expect(pods.Items).NotTo(BeEmpty())
+
+	clientset, err := kubernetes.NewForConfig(kindCluster.RestConfig())
+	Expect(err).NotTo(HaveOccurred())
+
+	podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(pods.Items[0].Name, &corev1.PodLogOptions{Container: "manager"}).Stream()
+	Expect(err).NotTo(HaveOccurred())
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	Expect(err).NotTo(HaveOccurred())
+
+	return buf.String()
+}
 
 func getSession() client.ConfigProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -152,6 +253,13 @@ func createIAMRoles(prov client.ConfigProvider, accountID string) {
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	Expect(
 		cfnSvc.ReconcileBootstrapStack(stackName, accountID, "aws"),
+	).To(Succeed())
+}
+
+func deleteIAMRoles(prov client.ConfigProvider) {
+	cfnSvc := cloudformation.NewService(cfn.New(prov))
+	Expect(
+		cfnSvc.DeleteStack(stackName),
 	).To(Succeed())
 }
 
@@ -194,8 +302,8 @@ func deployCAPAComponents(kindCluster kind.Cluster) {
 	Expect(err).NotTo(HaveOccurred())
 
 	// envsubst the credentials
-	b64credentials, err := generateB64Credentials()
 	Expect(err).NotTo(HaveOccurred())
+	b64credentials := generateB64Credentials()
 	os.Setenv("AWS_B64ENCODED_CREDENTIALS", b64credentials)
 	manifestsContent := os.ExpandEnv(string(capaManifests))
 
@@ -211,51 +319,29 @@ const AWSCredentialsTemplate = `[default]
 aws_access_key_id = {{ .AccessKeyID }}
 aws_secret_access_key = {{ .SecretAccessKey }}
 region = {{ .Region }}
-{{if .SessionToken }}
-aws_session_token = {{ .SessionToken }}
-{{end}}
 `
 
 type awsCredential struct {
 	AccessKeyID     string
 	SecretAccessKey string
-	SessionToken    string
 	Region          string
 }
 
-func generateB64Credentials() (string, error) {
-	creds := awsCredential{}
-	conf := aws.NewConfig()
-	chain := defaults.CredChain(conf, defaults.Handlers())
-	chainCreds, err := chain.Get()
-	if err != nil {
-		return "", err
+func generateB64Credentials() string {
+	creds := awsCredential{
+		Region:          region,
+		AccessKeyID:     *accessKey.AccessKeyId,
+		SecretAccessKey: *accessKey.SecretAccessKey,
 	}
-
-	// still needed as defaults.CredChain doesn't contain region
-	region, ok := os.LookupEnv("AWS_REGION")
-	if !ok {
-		return "", fmt.Errorf("Environment variable AWS_REGION not found")
-	}
-	creds.Region = region
-
-	creds.AccessKeyID = chainCreds.AccessKeyID
-	creds.SecretAccessKey = chainCreds.SecretAccessKey
-	creds.SessionToken = chainCreds.SessionToken
 
 	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
-	if err != nil {
-		return "", err
-	}
+	Expect(err).NotTo(HaveOccurred())
 
 	var profile bytes.Buffer
-	err = tmpl.Execute(&profile, creds)
-	if err != nil {
-		return "", err
-	}
+	Expect(tmpl.Execute(&profile, creds)).To(Succeed())
 
 	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
-	return encCreds, nil
+	return encCreds
 }
 
 func setupScheme() *runtime.Scheme {

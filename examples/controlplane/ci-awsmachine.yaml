@@ -1,0 +1,7 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: AWSMachine
+metadata:
+  name: name-does-not-matter
+spec:
+  ami:
+    id: ${IMAGE_ID}

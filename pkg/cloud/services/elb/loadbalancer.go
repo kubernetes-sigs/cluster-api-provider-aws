@@ -28,10 +28,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/hash"
 )
 
 // ResourceGroups are filtered by ARN identifier: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax
@@ -43,7 +45,11 @@ func (s *Service) ReconcileLoadbalancers() error {
 	s.scope.V(2).Info("Reconciling load balancers")
 
 	// Get default api server spec.
-	spec := s.getAPIServerClassicELBSpec()
+	spec, err := s.getAPIServerClassicELBSpec()
+
+	if err != nil {
+		return err
+	}
 
 	// Describe or create.
 	apiELB, err := s.describeClassicELB(spec.Name)
@@ -65,13 +71,29 @@ func (s *Service) ReconcileLoadbalancers() error {
 		}
 	}
 
+	if err := s.reconcileELBTags(apiELB.Name, spec.Tags); err != nil {
+		return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
+	}
+
 	// Reconciliate the subnets from the spec and the ones currently attached to the load balancer.
 	if len(apiELB.SubnetIDs) != len(spec.SubnetIDs) {
 		_, err := s.scope.ELB.AttachLoadBalancerToSubnets(&elb.AttachLoadBalancerToSubnetsInput{
-			Subnets: aws.StringSlice(spec.SubnetIDs),
+			LoadBalancerName: &apiELB.Name,
+			Subnets:          aws.StringSlice(spec.SubnetIDs),
 		})
 		if err != nil {
 			return errors.Wrapf(err, "failed to attach apiserver load balancer %q to subnets", apiELB.Name)
+		}
+	}
+
+	// Reconcile the security groups from the spec and the ones currently attached to the load balancer
+	if !sets.NewString(apiELB.SecurityGroupIDs...).Equal(sets.NewString(spec.SecurityGroupIDs...)) {
+		_, err := s.scope.ELB.ApplySecurityGroupsToLoadBalancer(&elb.ApplySecurityGroupsToLoadBalancerInput{
+			LoadBalancerName: &apiELB.Name,
+			SecurityGroups:   aws.StringSlice(spec.SecurityGroupIDs),
+		})
+		if err != nil {
+			return errors.Wrapf(err, "failed to apply security groups to load balancer %q", apiELB.Name)
 		}
 	}
 
@@ -85,7 +107,11 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 // GetAPIServerDNSName returns the DNS name endpoint for the API server
 func (s *Service) GetAPIServerDNSName() (string, error) {
-	apiELB, err := s.describeClassicELB(GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue))
+	elbName, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return "", err
+	}
+	apiELB, err := s.describeClassicELB(elbName)
 	if err != nil {
 		return "", err
 	}
@@ -138,14 +164,21 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 
 // RegisterInstanceWithAPIServerELB registers an instance with a classic ELB
 func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
-	name := GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue)
+	name, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return err
+	}
 	out, err := s.describeClassicELB(name)
 	if err != nil {
 		return err
 	}
 
 	// Validate that the subnets associated with the load balancer has the instance AZ.
-	instanceAZ := s.scope.Subnets().FindByID(i.SubnetID).AvailabilityZone
+	subnet := s.scope.Subnets().FindByID(i.SubnetID)
+	if subnet == nil {
+		return errors.Errorf("failed to attach load balancer subnets, could not find subnet %q description in AWSCluster", i.SubnetID)
+	}
+	instanceAZ := subnet.AvailabilityZone
 	found := false
 	for _, subnetID := range out.SubnetIDs {
 		if subnet := s.scope.Subnets().FindByID(subnetID); subnet != nil && instanceAZ == subnet.AvailabilityZone {
@@ -170,14 +203,49 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 	return nil
 }
 
-// GenerateELBName generates a formatted ELB name
-func GenerateELBName(clusterName string, elbName string) string {
-	return fmt.Sprintf("%s-%s", clusterName, elbName)
+// GenerateELBName generates a formatted ELB name via either
+// concatenating the cluster name to the "-apiserver" suffix
+// or computing a hash for clusters with names above 32 characters.
+func GenerateELBName(clusterName string) (string, error) {
+	standardELBName := generateStandardELBName(clusterName)
+	if len(standardELBName) <= 32 {
+		return standardELBName, nil
+	}
+
+	elbName, err := generateHashedELBName(clusterName)
+	if err != nil {
+		return "", err
+	}
+
+	return elbName, nil
 }
 
-func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
+// generateStandardELBName generates a formatted ELB name based on cluster
+// and ELB name
+func generateStandardELBName(clusterName string) string {
+	elbCompatibleClusterName := strings.Replace(clusterName, ".", "-", -1)
+	return fmt.Sprintf("%s-%s", elbCompatibleClusterName, infrav1.APIServerRoleTagValue)
+}
+
+// generateHashedELBName generates a 32-character hashed name based on cluster
+// and ELB name
+func generateHashedELBName(clusterName string) (string, error) {
+	// hashSize = 32 - length of "k8s" - length of "-" = 28
+	shortName, err := hash.Base36TruncatedHash(clusterName, 28)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to create ELB name")
+	}
+
+	return fmt.Sprintf("%s-%s", shortName, "k8s"), nil
+}
+
+func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
+	elbName, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return nil, err
+	}
 	res := &infrav1.ClassicELB{
-		Name:   GenerateELBName(s.scope.Name(), infrav1.APIServerRoleTagValue),
+		Name:   elbName,
 		Scheme: s.scope.ControlPlaneLoadBalancerScheme(),
 		Listeners: []*infrav1.ClassicELBListener{
 			{
@@ -194,7 +262,7 @@ func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
 			HealthyThreshold:   5,
 			UnhealthyThreshold: 3,
 		},
-		SecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID},
+		SecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID},
 		Attributes: infrav1.ClassicELBAttributes{
 			IdleTimeout: 10 * time.Minute,
 		},
@@ -216,7 +284,7 @@ func (s *Service) getAPIServerClassicELBSpec() *infrav1.ClassicELB {
 		}
 	}
 
-	return res
+	return res, nil
 }
 
 func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicELB, error) {
@@ -399,6 +467,57 @@ func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 	}
 
 	return fromSDKTypeToClassicELB(out.LoadBalancerDescriptions[0], outAtt.LoadBalancerAttributes), nil
+}
+
+func (s *Service) reconcileELBTags(name string, desiredTags map[string]string) error {
+	tags, err := s.scope.ELB.DescribeTags(&elb.DescribeTagsInput{
+		LoadBalancerNames: []*string{aws.String(name)},
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(tags.TagDescriptions) == 0 {
+		return errors.Errorf("no tag information returned for load balancer %q", name)
+	}
+
+	currentTags := converters.ELBTagsToMap(tags.TagDescriptions[0].Tags)
+
+	addTagsInput := &elb.AddTagsInput{
+		LoadBalancerNames: []*string{aws.String(name)},
+	}
+
+	removeTagsInput := &elb.RemoveTagsInput{
+		LoadBalancerNames: []*string{aws.String(name)},
+	}
+
+	for k, v := range desiredTags {
+		if val, ok := currentTags[k]; !ok || val != v {
+			s.scope.V(4).Info("adding tag to load balancer", "elb-name", name, "key", k, "value", v)
+			addTagsInput.Tags = append(addTagsInput.Tags, &elb.Tag{Key: aws.String(k), Value: aws.String(v)})
+		}
+	}
+
+	for k := range currentTags {
+		if _, ok := desiredTags[k]; !ok {
+			s.scope.V(4).Info("removing tag from load balancer", "elb-name", name, "key", k)
+			removeTagsInput.Tags = append(removeTagsInput.Tags, &elb.TagKeyOnly{Key: aws.String(k)})
+		}
+	}
+
+	if len(addTagsInput.Tags) > 0 {
+		if _, err := s.scope.ELB.AddTags(addTagsInput); err != nil {
+			return err
+		}
+	}
+
+	if len(removeTagsInput.Tags) > 0 {
+		if _, err := s.scope.ELB.RemoveTags(removeTagsInput); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBalancerAttributes) *infrav1.ClassicELB {

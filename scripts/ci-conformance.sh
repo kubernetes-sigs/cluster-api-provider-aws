@@ -15,8 +15,8 @@
 # limitations under the License.
 
 ################################################################################
-# usage: e2e.sh
-#  This program runs the e2e tests.
+# usage: ci-conformance.sh
+#  This program runs the e2e conformance test suite.
 #
 # ENVIRONMENT VARIABLES
 #  JANITOR_ENABLED
@@ -28,6 +28,13 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
+
+# our exit handler (trap)
+cleanup() {
+  # stop boskos heartbeat
+  [[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
+}
+trap cleanup EXIT
 
 # shellcheck source=../hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
@@ -60,7 +67,11 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
     exit "${checkout_account_status}"
   fi
 
-  python -u hack/heartbeat_account.py >> $ARTIFACTS/boskos.log 2>&1 &
+  # run the heart beat process to tell boskos that we are still
+  # using the checked out account periodically
+  ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
+  mkdir -p "$ARTIFACTS/logs/"
+  python -u hack/heartbeat_account.py >> "$ARTIFACTS/logs/boskos.log" 2>&1 &
   HEART_BEAT_PID=$(echo $!)
 fi
 
@@ -72,12 +83,12 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
   exit 1
 fi
 
-make test-e2e
+# TODO(dims): remove "SKIP_INIT_IMAGE" once we fix problem building images in CI
+hack/ci/e2e-conformance.sh --verbose --skip-init-image $*
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
 [ -z "${BOSKOS_HOST:-}" ] || hack/checkin_account.py
-[[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
 
 # The janitor is typically not run as part of the e2e process, but rather
 # in a parallel process via a service on the same cluster that runs Prow and

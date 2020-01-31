@@ -675,6 +675,13 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.RootDeviceTags != nil {
+		in, out := &in.RootDeviceTags, &out.RootDeviceTags
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.NetworkInterfaces != nil {
 		in, out := &in.NetworkInterfaces, &out.NetworkInterfaces
 		*out = make([]string, len(*in))
