@@ -256,11 +256,6 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.AvailabilityZone != nil {
-		in, out := &in.AvailabilityZone, &out.AvailabilityZone
-		*out = new(string)
-		**out = **in
-	}
 	if in.Subnet != nil {
 		in, out := &in.Subnet, &out.Subnet
 		*out = new(AWSResourceReference)

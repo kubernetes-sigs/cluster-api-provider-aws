@@ -391,8 +391,8 @@ func TestCreateInstance(t *testing.T) {
 				AMI: infrav1.AWSResourceReference{
 					ID: aws.String("abc"),
 				},
-				InstanceType:     "m5.2xlarge",
-				AvailabilityZone: aws.String("us-east-1c"),
+				InstanceType:  "m5.2xlarge",
+				FailureDomain: aws.String("us-east-1c"),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{

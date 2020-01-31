@@ -25,7 +25,11 @@ import (
 // ConvertTo converts this AWSMachine to the Hub version (v1alpha3).
 func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1alpha3.AWSMachine)
-	return Convert_v1alpha2_AWSMachine_To_v1alpha3_AWSMachine(src, dst, nil)
+	if err := Convert_v1alpha2_AWSMachine_To_v1alpha3_AWSMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
@@ -54,9 +58,7 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 	}
 
 	// Manually convert FailureDomain to AvailabilityZone.
-	if in.FailureDomain != nil && out.AvailabilityZone == nil {
-		out.AvailabilityZone = in.FailureDomain
-	}
+	out.AvailabilityZone = in.FailureDomain
 
 	// Discards ImageLookupBaseOS
 
@@ -85,6 +87,17 @@ func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1a
 	// Manually convert the Failure fields to the Error fields
 	out.ErrorMessage = in.FailureMessage
 	out.ErrorReason = in.FailureReason
+
+	return nil
+}
+
+func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSpec, out *infrav1alpha3.AWSMachineSpec, s apiconversion.Scope) error { // nolint
+	if err := autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert dst.Spec.FailureDomain.
+	in.AvailabilityZone = out.FailureDomain
 
 	return nil
 }
