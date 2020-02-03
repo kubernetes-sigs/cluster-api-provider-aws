@@ -267,7 +267,8 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 		},
 		SecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID},
 		Attributes: infrav1.ClassicELBAttributes{
-			IdleTimeout: 10 * time.Minute,
+			IdleTimeout:            10 * time.Minute,
+			CrossZoneLoadBalancing: s.scope.AWSCluster.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing,
 		},
 	}
 
@@ -352,8 +353,12 @@ func (s *Service) createClassicELB(spec *infrav1.ClassicELB) (*infrav1.ClassicEL
 
 func (s *Service) configureAttributes(name string, attributes infrav1.ClassicELBAttributes) error {
 	attrs := &elb.ModifyLoadBalancerAttributesInput{
-		LoadBalancerName:       aws.String(name),
-		LoadBalancerAttributes: &elb.LoadBalancerAttributes{},
+		LoadBalancerName: aws.String(name),
+		LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+			CrossZoneLoadBalancing: &elb.CrossZoneLoadBalancing{
+				Enabled: aws.Bool(attributes.CrossZoneLoadBalancing),
+			},
+		},
 	}
 
 	if attributes.IdleTimeout > 0 {
@@ -544,6 +549,8 @@ func fromSDKTypeToClassicELB(v *elb.LoadBalancerDescription, attrs *elb.LoadBala
 	if attrs.ConnectionSettings != nil && attrs.ConnectionSettings.IdleTimeout != nil {
 		res.Attributes.IdleTimeout = time.Duration(*attrs.ConnectionSettings.IdleTimeout) * time.Second
 	}
+
+	res.Attributes.CrossZoneLoadBalancing = aws.BoolValue(attrs.CrossZoneLoadBalancing.Enabled)
 
 	return res
 }
