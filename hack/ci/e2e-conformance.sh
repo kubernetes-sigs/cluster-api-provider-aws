@@ -272,7 +272,8 @@ create_stack() {
 
 # fix manifests to use k/k from CI
 fix_manifests() {
-  CI_VERSION=${CI_VERSION:-$(curl -sSL https://dl.k8s.io/ci/latest-green.txt)}
+  # TODO: revert to https://dl.k8s.io/ci/latest-green.txt once https://github.com/kubernetes/release/issues/897 is fixed.
+  CI_VERSION=${CI_VERSION:-$(curl -sSL https://dl.k8s.io/ci/k8s-master.txt)}
   echo "Overriding Kubernetes version to : ${CI_VERSION}"
   sed -i 's|kubernetesVersion: .*|kubernetesVersion: "ci/'${CI_VERSION}'"|' examples/_out/controlplane.yaml
   sed -i 's|CI_VERSION=.*|CI_VERSION='$CI_VERSION'|' examples/_out/controlplane.yaml
