@@ -442,6 +442,17 @@ var _ = Describe("functional tests", func() {
 			deleteCluster(setup.namespace, setup.clusterName)
 		})
 	})
+
+	Describe("Create cluster with name having '.'", func() {
+		It("Cluster should be provisioned and deleted", func() {
+			By("Creating a workload cluster with single control plane")
+			setup.clusterName = "test." + util.RandomString(6)
+			makeSingleControlPlaneCluster(setup)
+
+			By("Deleting the Cluster")
+			deleteCluster(setup.namespace, setup.clusterName)
+		})
+	})
 })
 
 func updateMachineDeploymentInfra(setup testSetup) {
