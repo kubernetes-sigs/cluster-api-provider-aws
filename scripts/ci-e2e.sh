@@ -38,6 +38,13 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=../hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
+# our exit handler (trap)
+cleanup() {
+  # stop boskos heartbeat
+  [[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
+}
+trap cleanup EXIT
+
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then
   # Check out the account from Boskos and store the produced environment
@@ -77,7 +84,6 @@ test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
 [ -z "${BOSKOS_HOST:-}" ] || hack/checkin_account.py
-[[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
 
 # The janitor is typically not run as part of the e2e process, but rather
 # in a parallel process via a service on the same cluster that runs Prow and
