@@ -54,7 +54,7 @@ var _ = Describe("conformance tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		setup.namespace = "conformance-" + util.RandomString(6)
-		createNamespace(setup.namespace)
+		createNamespace(setup.namespace, kindClient)
 
 		setup.clusterName = "conformance-" + util.RandomString(6)
 		setup.awsClusterName = "conformance-infra-" + util.RandomString(6)
