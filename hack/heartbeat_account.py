@@ -26,9 +26,7 @@ BOSKOS_RESOURCE_NAME=os.environ['BOSKOS_RESOURCE_NAME']
 USER = "cluster-api-provider-aws"
 
 if __name__ == "__main__":
-    count = 0
-    # keep sending heart beat for 3 hours
-    while count < 180:
+    while True:
         conn = httplib.HTTPConnection(BOSKOS_HOST)
         print "POST-ing heartbeat for resource %s to %s" % (BOSKOS_RESOURCE_NAME, BOSKOS_HOST)
         conn.request("POST", "/update?%s" % urllib.urlencode({
@@ -44,4 +42,3 @@ if __name__ == "__main__":
         conn.close()
         # sleep for a minute
         time.sleep(60)
-        count = count + 1
