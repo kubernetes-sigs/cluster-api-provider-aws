@@ -380,10 +380,12 @@ verify-boilerplate:
 .PHONY: verify-modules
 verify-modules: modules
 	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
+		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
 
 verify-gen: generate
 	@if !(git diff --quiet HEAD); then \
+		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
