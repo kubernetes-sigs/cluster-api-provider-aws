@@ -938,7 +938,7 @@ func TestCreateInstance(t *testing.T) {
 			}
 
 			s := NewService(clusterScope)
-			instance, err := s.CreateInstance(machineScope)
+			instance, err := s.CreateInstance(machineScope, []byte("userData"))
 			tc.check(instance, err)
 		})
 	}

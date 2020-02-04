@@ -22,6 +22,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -474,6 +475,23 @@ var (
 	// InstanceStateStopped is the string representing an instance
 	// that has been stopped and can be restarted
 	InstanceStateStopped = InstanceState("stopped")
+
+	// InstanceOperationalStates defines the set of states in which an EC2 instance is
+	// or can return to running, and supports all EC2 operations
+	InstanceOperationalStates = sets.NewString(
+		string(InstanceStatePending),
+		string(InstanceStateRunning),
+		string(InstanceStateStopping),
+		string(InstanceStateStopped),
+	)
+
+	// InstanceKnownStates represents all known EC2 instance states
+	InstanceKnownStates = InstanceOperationalStates.Union(
+		sets.NewString(
+			string(InstanceStateShuttingDown),
+			string(InstanceStateTerminated),
+		),
+	)
 )
 
 // Instance describes an AWS instance.

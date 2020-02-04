@@ -17,9 +17,13 @@ limitations under the License.
 package userdata
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/base64"
 	"strings"
 	"text/template"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -37,4 +41,19 @@ func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")
 	ident := "\n" + strings.Repeat(" ", i)
 	return strings.Repeat(" ", i) + strings.Join(split, ident)
+}
+
+// GzipBytes will gzip a byte array
+func GzipBytes(dat []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	if _, err := gz.Write(dat); err != nil {
+		return []byte{}, errors.Wrap(err, "failed to gzip bytes")
+	}
+
+	if err := gz.Close(); err != nil {
+		return []byte{}, errors.Wrap(err, "failed to gzip bytes")
+	}
+
+	return buf.Bytes(), nil
 }

@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -37,7 +38,18 @@ var _ webhook.Validator = &AWSMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachineTemplate) ValidateCreate() error {
-	return nil
+	var allErrs field.ErrorList
+	spec := r.Spec.Template.Spec
+
+	if spec.CloudInit.SecretARN != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secretARN"), "cannot be set in templates"))
+	}
+
+	if spec.ProviderID != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "providerID"), "cannot be set in templates"))
+	}
+
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type

@@ -19,23 +19,52 @@ package v1alpha2
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this AWSMachine to the Hub version (v1alpha3).
 func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1alpha3.AWSMachine)
+
 	if err := Convert_v1alpha2_AWSMachine_To_v1alpha3_AWSMachine(src, dst, nil); err != nil {
 		return err
 	}
 
+	// Manually restore data from annotations
+	restored := &infrav1alpha3.AWSMachine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	restoreAWSMachineSpec(&restored.Spec, &dst.Spec)
+
 	return nil
+}
+
+func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1alpha3.AWSMachineSpec) {
+	dst.ImageLookupBaseOS = restored.ImageLookupBaseOS
+	// Conversion for route: v1alpha3 --> management cluster running v1alpha2 on <= v0.4.8 --> v1alpha3
+	if !dst.CloudInit.InsecureSkipSecretsManager && dst.CloudInit.SecretARN == "" {
+		dst.CloudInit.InsecureSkipSecretsManager = restored.CloudInit.InsecureSkipSecretsManager
+		dst.CloudInit.SecretARN = restored.CloudInit.SecretARN
+	}
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
 func (dst *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1alpha3.AWSMachine)
-	return Convert_v1alpha3_AWSMachine_To_v1alpha2_AWSMachine(src, dst, nil)
+
+	if err := Convert_v1alpha3_AWSMachine_To_v1alpha2_AWSMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts this AWSMachineList to the Hub version (v1alpha3).
@@ -99,5 +128,17 @@ func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSp
 	// Manually convert dst.Spec.FailureDomain.
 	in.AvailabilityZone = out.FailureDomain
 
+	return nil
+}
+
+func Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in *CloudInit, out *infrav1alpha3.CloudInit, s apiconversion.Scope) error { // nolint
+	out.SecretARN = in.SecretARN
+	out.InsecureSkipSecretsManager = !in.EnableSecureSecretsManager
+	return nil
+}
+
+func Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in *infrav1alpha3.CloudInit, out *CloudInit, s apiconversion.Scope) error { // nolint
+	out.SecretARN = in.SecretARN
+	out.EnableSecureSecretsManager = !in.InsecureSkipSecretsManager
 	return nil
 }

@@ -180,29 +180,62 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 	m.AWSMachine.Annotations[key] = value
 }
 
+// UseSecretsManager returns the computed value of whether or not
+// userdata should be stored using AWS Secrets Manager.
+func (m *MachineScope) UseSecretsManager() bool {
+	return !m.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager
+}
+
+// GetSecretARN returns the Amazon Resource Name for the secret belonging
+// to the AWSMachine in AWS Secrets Manager
+func (m *MachineScope) GetSecretARN() string {
+	return m.AWSMachine.Spec.CloudInit.SecretARN
+}
+
+// SetSecretARN sets the Amazon Resource Name for the secret belonging
+// to the AWSMachine in AWS Secrets Manager
+func (m *MachineScope) SetSecretARN(value string) {
+	m.AWSMachine.Spec.CloudInit.SecretARN = value
+}
+
+// DeleteSecretARN deletes the AMazon Resource Name for the secret belonging
+// to the AWSMachine in AWS Secrets Manager
+func (m *MachineScope) DeleteSecretARN() {
+	m.AWSMachine.Spec.CloudInit.SecretARN = ""
+}
+
 // SetAddresses sets the AWSMachine address status.
 func (m *MachineScope) SetAddresses(addrs []corev1.NodeAddress) {
 	m.AWSMachine.Status.Addresses = addrs
 }
 
-// GetBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
+// GetBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName as base64.
 func (m *MachineScope) GetBootstrapData() (string, error) {
+	value, err := m.GetRawBootstrapData()
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(value), nil
+}
+
+// GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
+func (m *MachineScope) GetRawBootstrapData() ([]byte, error) {
 	if m.Machine.Spec.Bootstrap.DataSecretName == nil {
-		return "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
 	}
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: m.Namespace(), Name: *m.Machine.Spec.Bootstrap.DataSecretName}
 	if err := m.client.Get(context.TODO(), key, secret); err != nil {
-		return "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
+		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSMachine %s/%s", m.Namespace(), m.Name())
 	}
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return "", errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return base64.StdEncoding.EncodeToString(value), nil
+	return value, nil
 }
 
 // PatchObject persists the machine spec and status.
@@ -226,4 +259,22 @@ func (m *MachineScope) AdditionalTags() infrav1.Tags {
 	tags.Merge(m.AWSMachine.Spec.AdditionalTags)
 
 	return tags
+}
+
+func (m *MachineScope) HasFailed() bool {
+	return m.AWSMachine.Status.FailureReason != nil || m.AWSMachine.Status.FailureMessage != nil
+}
+
+func (m *MachineScope) InstanceIsOperational() bool {
+	state := m.GetInstanceState()
+	return state != nil && infrav1.InstanceOperationalStates.Has(string(*state))
+}
+
+func (m *MachineScope) InstanceIsInKnownState() bool {
+	state := m.GetInstanceState()
+	return state != nil && infrav1.InstanceKnownStates.Has(string(*state))
+}
+
+func (m *MachineScope) AWSMachineIsDeleted() bool {
+	return !m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()
 }

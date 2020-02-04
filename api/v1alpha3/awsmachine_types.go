@@ -92,6 +92,27 @@ type AWSMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=2
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
+
+	// CloudInit defines options related to the bootstrapping systems where
+	// CloudInit is used.
+	// +optional
+	CloudInit CloudInit `json:"cloudInit,omitempty"`
+}
+
+// CloudInit defines options related to the bootstrapping systems where
+// CloudInit is used.
+type CloudInit struct {
+	// InsecureSkipSecretsManager, when set to true will not use AWS Secrets Manager
+	// to ensure privacy of userdata.
+	// By default, a cloud-init boothook shell script is prepended to download
+	// the userdata from Secrets Manager and additionally delete the secret.
+	InsecureSkipSecretsManager bool `json:"insecureSkipSecretsManager,omitempty"`
+
+	// SecretARN is the Amazon Resource Name of the secret. This is stored
+	// temporarily, and deleted when the machine registers as a node against
+	// the workload cluster.
+	// +optional
+	SecretARN string `json:"secretARN,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine
