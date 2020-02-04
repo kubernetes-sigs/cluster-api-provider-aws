@@ -267,9 +267,12 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 		},
 		SecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupAPIServerLB].ID},
 		Attributes: infrav1.ClassicELBAttributes{
-			IdleTimeout:            10 * time.Minute,
-			CrossZoneLoadBalancing: s.scope.AWSCluster.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing,
+			IdleTimeout: 10 * time.Minute,
 		},
+	}
+
+	if s.scope.AWSCluster.Spec.ControlPlaneLoadBalancer != nil {
+		res.Attributes.CrossZoneLoadBalancing = s.scope.AWSCluster.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing
 	}
 
 	res.Tags = infrav1.Build(infrav1.BuildParams{

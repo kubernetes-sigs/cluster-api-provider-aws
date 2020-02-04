@@ -18,6 +18,11 @@ package elb
 
 import (
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func TestGenerateELBName(t *testing.T) {
@@ -65,4 +70,60 @@ func TestGenerateELBName(t *testing.T) {
 
 		})
 	}
+}
+
+func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
+	tests := []struct {
+		name            string
+		lb              *infrav1.AWSLoadBalancerSpec
+		expectCrossZone bool
+	}{
+		{
+			name:            "nil load balancer config",
+			lb:              nil,
+			expectCrossZone: false,
+		},
+		{
+			name: "load balancer config with cross zone enabled",
+			lb: &infrav1.AWSLoadBalancerSpec{
+				CrossZoneLoadBalancing: true,
+			},
+			expectCrossZone: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "bar",
+					},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						ControlPlaneLoadBalancer: tc.lb,
+					},
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			s := &Service{
+				scope: clusterScope,
+			}
+
+			spec, err := s.getAPIServerClassicELBSpec()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if e, a := tc.expectCrossZone, spec.Attributes.CrossZoneLoadBalancing; e != a {
+				t.Errorf("cross zone: expected %t, got %t", e, a)
+			}
+		})
+	}
+
 }
