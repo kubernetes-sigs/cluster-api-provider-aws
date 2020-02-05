@@ -6,7 +6,6 @@ require (
 	github.com/aws/aws-sdk-go v1.15.66
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/mock v1.2.0
 	github.com/google/go-cmp v0.3.1 // indirect
 
