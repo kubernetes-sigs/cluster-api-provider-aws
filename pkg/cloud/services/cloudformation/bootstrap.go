@@ -239,6 +239,7 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 				Action: iam.Actions{
 					"secretsmanager:CreateSecret",
 					"secretsmanager:DeleteSecret",
+					"secretsmanager:TagResource",
 				},
 			},
 		},
