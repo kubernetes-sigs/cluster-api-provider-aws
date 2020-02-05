@@ -24,10 +24,21 @@ import (
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
 type EC2MachineInterface interface {
-	InstanceIfExists(id *string) (*infrav1.Instance, error)
-	TerminateInstance(id string) error
+	CreateInstance(scope *scope.MachineScope, userData []byte) (*infrav1.Instance, error)
+	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error
 	GetCoreSecurityGroups(machine *scope.MachineScope) ([]string, error)
 	GetInstanceSecurityGroups(id string) (map[string][]string, error)
+	GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error)
+	InstanceIfExists(id *string) (*infrav1.Instance, error)
+	TerminateInstance(id string) error
+	TerminateInstanceAndWait(instanceID string) error
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
+}
+
+// SecretsManagerInterface encapsulated the methods exposed to the
+// machine actuator
+type SecretsManagerInterface interface {
+	Delete(m *scope.MachineScope) error
+	Create(m *scope.MachineScope, data []byte) (string, error)
 }

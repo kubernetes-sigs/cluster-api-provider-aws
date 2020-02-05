@@ -121,6 +121,22 @@ spec:
                 to use for this instance. If multiple subnets are matched for the
                 availability zone, the first one return is picked.
               type: string
+            cloudInit:
+              description: CloudInit defines options related to the bootstrapping
+                systems where CloudInit is used.
+              properties:
+                enableSecureSecretsManager:
+                  description: enableSecureSecretsManager, when set to true will use
+                    AWS Secrets Manager to ensure userdata privacy. A cloud-init boothook
+                    shell script is prepended to download the userdata from Secrets
+                    Manager and additionally delete the secret.
+                  type: boolean
+                secretARN:
+                  description: SecretARN is the Amazon Resource Name of the secret.
+                    This is stored temporarily, and deleted when the machine registers
+                    as a node against the workload cluster.
+                  type: string
+              type: object
             iamInstanceProfile:
               description: IAMInstanceProfile is a name of an IAM instance profile
                 to assign to the instance

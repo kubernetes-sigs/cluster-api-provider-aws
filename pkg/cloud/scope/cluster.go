@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -80,6 +81,12 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		resourceTagging := resourcegroupstaggingapi.New(session)
 		resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.ResourceTagging = resourceTagging
+	}
+
+	if params.AWSClients.SecretsManager == nil {
+		sClient := secretsmanager.New(session)
+		sClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
+		params.AWSClients.SecretsManager = sClient
 	}
 
 	helper, err := patch.NewHelper(params.AWSCluster, params.Client)

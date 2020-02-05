@@ -17,8 +17,6 @@ limitations under the License.
 package ec2
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"strings"
@@ -29,11 +27,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -100,7 +100,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, error) {
+func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*infrav1.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
@@ -166,8 +166,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope) (*infrav1.Instance, 
 		)
 	}
 
-	// Set userdata.
-	input.UserData = aws.String(*scope.Machine.Spec.Bootstrap.Data)
+	compressedUserData, err := userdata.GzipBytes(userData)
+	if err != nil {
+		return nil, errors.New("failed to gzip userdata")
+	}
+
+	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(compressedUserData))
 
 	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)
@@ -280,29 +284,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		EbsOptimized: i.EBSOptimized,
 		MaxCount:     aws.Int64(1),
 		MinCount:     aws.Int64(1),
+		UserData:     i.UserData,
 	}
 
-	if i.UserData != nil {
-		var buf bytes.Buffer
-
-		decoded, err := base64.StdEncoding.DecodeString(*i.UserData)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to decode bootstrapData")
-		}
-
-		gz := gzip.NewWriter(&buf)
-		if _, err := gz.Write(decoded); err != nil {
-			return nil, errors.Wrap(err, "failed to gzip userdata")
-		}
-
-		if err := gz.Close(); err != nil {
-			return nil, errors.Wrap(err, "failed to gzip userdata")
-		}
-
-		s.scope.V(2).Info("userData size", "bytes", buf.Len(), "role", role)
-
-		input.UserData = aws.String(base64.StdEncoding.EncodeToString(buf.Bytes()))
-	}
+	s.scope.V(2).Info("userData size", "bytes", len(*i.UserData), "role", role)
 
 	if len(i.NetworkInterfaces) > 0 {
 		instances := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
