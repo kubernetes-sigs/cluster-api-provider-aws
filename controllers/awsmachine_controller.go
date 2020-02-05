@@ -289,11 +289,14 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// If the AWSMachine is in an error state, return early.
 	if machineScope.HasFailed() {
+		machineScope.Info("Error state detected, skipping reconciliation")
+
 		// If we are in a failed state, delete the secret regardless of instance state
 		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, secretSvc); err != nil {
 			return reconcile.Result{}, err
 		}
-		machineScope.Info("Error state detected, skipping reconciliation")
+
+		return reconcile.Result{}, nil
 	}
 
 	// If the AWSMachine doesn't have our finalizer, add it.
