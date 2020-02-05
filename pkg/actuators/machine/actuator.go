@@ -23,7 +23,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/golang/glog"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
@@ -97,22 +96,22 @@ func (a *Actuator) handleMachineError(machine *machinev1.Machine, err error, eve
 		a.eventRecorder.Eventf(machine, corev1.EventTypeWarning, "Failed"+eventAction, "%v", err)
 	}
 
-	glog.Errorf("%s: Machine error: %v", machine.Name, err)
+	klog.Errorf("%s: Machine error: %v", machine.Name, err)
 	return err
 }
 
 // Create runs a new EC2 instance
 func (a *Actuator) Create(context context.Context, machine *machinev1.Machine) error {
-	glog.Infof("%s: creating machine", machine.Name)
+	klog.Infof("%s: creating machine", machine.Name)
 
 	machineToBePatched := client.MergeFrom(machine.DeepCopy())
 
 	instance, err := a.CreateMachine(machine)
 	if err != nil {
-		glog.Errorf("%s: error creating machine: %v", machine.Name, err)
+		klog.Errorf("%s: error creating machine: %v", machine.Name, err)
 		updateConditionError := a.setMachineProviderConditions(machine, providerconfigv1.MachineCreation, MachineCreationFailed, err.Error())
 		if updateConditionError != nil {
-			glog.Errorf("%s: error updating machine conditions: %v", machine.Name, updateConditionError)
+			klog.Errorf("%s: error updating machine conditions: %v", machine.Name, updateConditionError)
 		}
 		patchErr := a.patchMachine(context, machine, machineToBePatched)
 		if patchErr != nil {
@@ -195,18 +194,18 @@ func (a *Actuator) setProviderID(machine *machinev1.Machine, instance *ec2.Insta
 	providerID := fmt.Sprintf("aws:///%s/%s", availabilityZone, aws.StringValue(instance.InstanceId))
 
 	if existingProviderID != nil && *existingProviderID == providerID {
-		glog.Infof("%s: ProviderID already set in the machine Spec with value:%s", machine.Name, *existingProviderID)
+		klog.Infof("%s: ProviderID already set in the machine Spec with value:%s", machine.Name, *existingProviderID)
 		return nil
 	}
 	machine.Spec.ProviderID = &providerID
-	glog.Infof("%s: ProviderID set at machine spec: %s", machine.Name, providerID)
+	klog.Infof("%s: ProviderID set at machine spec: %s", machine.Name, providerID)
 	return nil
 }
 
 func (a *Actuator) setMachineStatus(machine *machinev1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, networkAddresses []corev1.NodeAddress) error {
 	awsStatusRaw, err := a.codec.EncodeProviderStatus(awsStatus)
 	if err != nil {
-		glog.Errorf("%s: error encoding AWS provider status: %v", machine.Name, err)
+		klog.Errorf("%s: error encoding AWS provider status: %v", machine.Name, err)
 		return err
 	}
 
@@ -220,11 +219,11 @@ func (a *Actuator) setMachineStatus(machine *machinev1.Machine, awsStatus *provi
 
 // updateMachineProviderConditions updates conditions set within machine provider status.
 func (a *Actuator) setMachineProviderConditions(machine *machinev1.Machine, conditionType providerconfigv1.AWSMachineProviderConditionType, reason string, msg string) error {
-	glog.Infof("%s: updating machine conditions", machine.Name)
+	klog.Infof("%s: updating machine conditions", machine.Name)
 
 	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
 	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, awsStatus); err != nil {
-		glog.Errorf("%s: error decoding machine provider status: %v", machine.Name, err)
+		klog.Errorf("%s: error decoding machine provider status: %v", machine.Name, err)
 		return err
 	}
 
@@ -312,22 +311,12 @@ func (a *Actuator) getUserData(machine *machinev1.Machine, machineProviderConfig
 
 // Delete deletes a machine and updates its finalizer
 func (a *Actuator) Delete(context context.Context, machine *machinev1.Machine) error {
-	glog.Infof("%s: deleting machine", machine.Name)
+	klog.Infof("%s: deleting machine", machine.Name)
 	if err := a.DeleteMachine(machine); err != nil {
-		glog.Errorf("%s: error deleting machine: %v", machine.Name, err)
+		klog.Errorf("%s: error deleting machine: %v", machine.Name, err)
 		return err
 	}
 	return nil
-}
-
-type glogLogger struct{}
-
-func (gl *glogLogger) Log(v ...interface{}) {
-	glog.Info(v...)
-}
-
-func (gl *glogLogger) Logf(format string, v ...interface{}) {
-	glog.Infof(format, v...)
 }
 
 // DeleteMachine deletes an AWS instance
@@ -350,13 +339,13 @@ func (a *Actuator) DeleteMachine(machine *machinev1.Machine) error {
 	// Get all instances not terminated.
 	existingInstances, err := a.getMachineInstances(machine)
 	if err != nil {
-		glog.Errorf("%s: error getting existing instances: %v", machine.Name, err)
+		klog.Errorf("%s: error getting existing instances: %v", machine.Name, err)
 		return err
 	}
 	existingLen := len(existingInstances)
-	glog.Infof("%s: found %d existing instances for machine", machine.Name, existingLen)
+	klog.Infof("%s: found %d existing instances for machine", machine.Name, existingLen)
 	if existingLen == 0 {
-		glog.Warningf("%s: no instances found to delete for machine", machine.Name)
+		klog.Warningf("%s: no instances found to delete for machine", machine.Name)
 		return nil
 	}
 
@@ -382,7 +371,7 @@ func (a *Actuator) DeleteMachine(machine *machinev1.Machine) error {
 // for details that may have changed. (IPs and hostnames) We do not currently support making any
 // changes to actual machines in AWS. Instead these will be replaced via MachineDeployments.
 func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) error {
-	glog.Infof("%s: updating machine", machine.Name)
+	klog.Infof("%s: updating machine", machine.Name)
 
 	machineToBePatched := client.MergeFrom(machine.DeepCopy())
 
@@ -392,7 +381,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 	}
 
 	region := machineProviderConfig.Placement.Region
-	glog.Infof("%s: obtaining EC2 client for region", machine.Name)
+	klog.Infof("%s: obtaining EC2 client for region", machine.Name)
 	credentialsSecretName := ""
 	if machineProviderConfig.CredentialsSecret != nil {
 		credentialsSecretName = machineProviderConfig.CredentialsSecret.Name
@@ -404,21 +393,21 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 	// Get all instances not terminated.
 	existingInstances, err := a.getMachineInstances(machine)
 	if err != nil {
-		glog.Errorf("%s: error getting existing instances: %v", machine.Name, err)
+		klog.Errorf("%s: error getting existing instances: %v", machine.Name, err)
 		return err
 	}
 	existingLen := len(existingInstances)
-	glog.Infof("%s: found %d existing instances for machine", machine.Name, existingLen)
+	klog.Infof("%s: found %d existing instances for machine", machine.Name, existingLen)
 
 	// Parent controller should prevent this from ever happening by calling Exists and then Create,
 	// but instance could be deleted between the two calls.
 	if existingLen == 0 {
 		if machine.Spec.ProviderID != nil && *machine.Spec.ProviderID != "" && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
-			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
+			klog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
 			return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
 
-		glog.Warningf("%s: attempted to update machine but no instances found", machine.Name)
+		klog.Warningf("%s: attempted to update machine but no instances found", machine.Name)
 
 		a.handleMachineError(machine, mapierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
 
@@ -437,7 +426,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 	if runningLen > 0 {
 		// It would be very unusual to have more than one here, but it is
 		// possible if someone manually provisions a machine with same tag name.
-		glog.Infof("%s: found %d running instances for machine", machine.Name, runningLen)
+		klog.Infof("%s: found %d running instances for machine", machine.Name, runningLen)
 		newestInstance = runningInstances[0]
 
 		err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance, machine.Name)
@@ -486,20 +475,20 @@ func (a *Actuator) Exists(context context.Context, machine *machinev1.Machine) (
 
 // Describe provides information about machine's instance(s)
 func (a *Actuator) Describe(machine *machinev1.Machine) (*ec2.Instance, error) {
-	glog.Infof("%s: Checking if machine exists", machine.Name)
+	klog.Infof("%s: Checking if machine exists", machine.Name)
 
 	instances, err := a.getMachineInstances(machine)
 	if err != nil {
-		glog.Errorf("%s: Error getting existing instances: %v", machine.Name, err)
+		klog.Errorf("%s: Error getting existing instances: %v", machine.Name, err)
 		return nil, err
 	}
 	if len(instances) == 0 {
 		if machine.Spec.ProviderID != nil && *machine.Spec.ProviderID != "" && (machine.Status.LastUpdated == nil || machine.Status.LastUpdated.Add(requeueAfterSeconds*time.Second).After(time.Now())) {
-			glog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
+			klog.Infof("%s: Possible eventual-consistency discrepancy; returning an error to requeue", machine.Name)
 			return nil, &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 		}
 
-		glog.Infof("%s: Instance does not exist", machine.Name)
+		klog.Infof("%s: Instance does not exist", machine.Name)
 		return nil, nil
 	}
 
@@ -509,7 +498,7 @@ func (a *Actuator) Describe(machine *machinev1.Machine) (*ec2.Instance, error) {
 func (a *Actuator) getMachineInstances(machine *machinev1.Machine) ([]*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		glog.Errorf("%s: Error decoding MachineProviderConfig: %v", machine.Name, err)
+		klog.Errorf("%s: Error decoding MachineProviderConfig: %v", machine.Name, err)
 		return nil, err
 	}
 
@@ -520,7 +509,7 @@ func (a *Actuator) getMachineInstances(machine *machinev1.Machine) ([]*ec2.Insta
 	}
 	client, err := a.awsClientBuilder(a.client, credentialsSecretName, machine.Namespace, region)
 	if err != nil {
-		glog.Errorf("%s: Error getting EC2 client: %v", machine.Name, err)
+		klog.Errorf("%s: Error getting EC2 client: %v", machine.Name, err)
 		return nil, err
 	}
 
@@ -532,10 +521,10 @@ func (a *Actuator) getMachineInstances(machine *machinev1.Machine) ([]*ec2.Insta
 	if err == nil && status.InstanceID != nil && *status.InstanceID != "" {
 		i, err := getExistingInstanceByID(*status.InstanceID, client)
 		if err != nil {
-			glog.Warningf("%s: Failed to find existing instance by id %s: %v",
+			klog.Warningf("%s: Failed to find existing instance by id %s: %v",
 				machine.Name, *status.InstanceID, err)
 		} else {
-			glog.Infof("%s: Found instance by id: %s", machine.Name, *status.InstanceID)
+			klog.Infof("%s: Found instance by id: %s", machine.Name, *status.InstanceID)
 			return []*ec2.Instance{i}, nil
 		}
 	}
@@ -546,7 +535,7 @@ func (a *Actuator) getMachineInstances(machine *machinev1.Machine) ([]*ec2.Insta
 // updateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
 func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance, machineName string) error {
 	if len(providerConfig.LoadBalancers) == 0 {
-		glog.V(4).Infof("%s: Instance %q has no load balancers configured. Skipping", machineName, *instance.InstanceId)
+		klog.V(4).Infof("%s: Instance %q has no load balancers configured. Skipping", machineName, *instance.InstanceId)
 		return nil
 	}
 	errs := []error{}
@@ -565,14 +554,14 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 	if len(classicLoadBalancerNames) > 0 {
 		err := registerWithClassicLoadBalancers(client, classicLoadBalancerNames, instance)
 		if err != nil {
-			glog.Errorf("%s: Failed to register classic load balancers: %v", machineName, err)
+			klog.Errorf("%s: Failed to register classic load balancers: %v", machineName, err)
 			errs = append(errs, err)
 		}
 	}
 	if len(networkLoadBalancerNames) > 0 {
 		err = registerWithNetworkLoadBalancers(client, networkLoadBalancerNames, instance)
 		if err != nil {
-			glog.Errorf("%s: Failed to register network load balancers: %v", machineName, err)
+			klog.Errorf("%s: Failed to register network load balancers: %v", machineName, err)
 			errs = append(errs, err)
 		}
 	}
@@ -584,12 +573,12 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 
 // setStatus calculates the new machine status, checks if anything has changed, and updates if so.
 func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance) error {
-	glog.Infof("%s: Updating status", machine.Name)
+	klog.Infof("%s: Updating status", machine.Name)
 
 	// Starting with a fresh status as we assume full control of it here.
 	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
 	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, awsStatus); err != nil {
-		glog.Errorf("%s: Error decoding machine provider status: %v", machine.Name, err)
+		klog.Errorf("%s: Error decoding machine provider status: %v", machine.Name, err)
 		return err
 	}
 
@@ -606,13 +595,13 @@ func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance)
 
 		addresses, err := extractNodeAddresses(instance)
 		if err != nil {
-			glog.Errorf("%s: Error extracting instance IP addresses: %v", machine.Name, err)
+			klog.Errorf("%s: Error extracting instance IP addresses: %v", machine.Name, err)
 			return err
 		}
 
 		networkAddresses = append(networkAddresses, addresses...)
 	}
-	glog.Infof("%s: finished calculating AWS status", machine.Name)
+	klog.Infof("%s: finished calculating AWS status", machine.Name)
 
 	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", updateConditionIfReasonOrMessageChange)
 	if err := a.setMachineStatus(machine, awsStatus, networkAddresses); err != nil {
@@ -655,7 +644,7 @@ func (a *Actuator) requeueIfInstancePending(machineName string, instance *ec2.In
 	// attempting to update status until it hits a more permanent state. This will ensure
 	// we get a public IP populated more quickly.
 	if instance.State != nil && *instance.State.Name == ec2.InstanceStateNamePending {
-		glog.Infof("%s: Instance state still pending, returning an error to requeue", machineName)
+		klog.Infof("%s: Instance state still pending, returning an error to requeue", machineName)
 		return &machinecontroller.RequeueAfterError{RequeueAfter: requeueAfterSeconds * time.Second}
 	}
 

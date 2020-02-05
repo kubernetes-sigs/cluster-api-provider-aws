@@ -21,8 +21,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/golang/glog"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -31,6 +29,7 @@ import (
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
@@ -162,7 +161,7 @@ func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceS
 		for _, instance := range reservation.Instances {
 			err := instanceHasAllowedState(instance, instanceStateFilter)
 			if err != nil {
-				glog.Errorf("Excluding instance matching %s: %v", machine.Name, err)
+				klog.Errorf("Excluding instance matching %s: %v", machine.Name, err)
 			} else {
 				instances = append(instances, instance)
 			}
@@ -193,11 +192,11 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) ([]*
 	instanceIDs := []*string{}
 	// Cleanup all older instances:
 	for _, instance := range instances {
-		glog.Infof("Cleaning up extraneous instance for machine: %v, state: %v, launchTime: %v", *instance.InstanceId, *instance.State.Name, *instance.LaunchTime)
+		klog.Infof("Cleaning up extraneous instance for machine: %v, state: %v, launchTime: %v", *instance.InstanceId, *instance.State.Name, *instance.LaunchTime)
 		instanceIDs = append(instanceIDs, instance.InstanceId)
 	}
 	for _, instanceID := range instanceIDs {
-		glog.Infof("Terminating %v instance", *instanceID)
+		klog.Infof("Terminating %v instance", *instanceID)
 	}
 
 	terminateInstancesRequest := &ec2.TerminateInstancesInput{
@@ -205,7 +204,7 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) ([]*
 	}
 	output, err := client.TerminateInstances(terminateInstancesRequest)
 	if err != nil {
-		glog.Errorf("Error terminating instances: %v", err)
+		klog.Errorf("Error terminating instances: %v", err)
 		return nil, fmt.Errorf("error terminating instances: %v", err)
 	}
 
@@ -233,7 +232,7 @@ func providerConfigFromMachine(machine *machinev1.Machine, codec *providerconfig
 // isMaster returns true if the machine is part of a cluster's control plane
 func (a *Actuator) isMaster(machine *machinev1.Machine) (bool, error) {
 	if machine.Status.NodeRef == nil {
-		glog.Errorf("NodeRef not found in machine %s", machine.Name)
+		klog.Errorf("NodeRef not found in machine %s", machine.Name)
 		return false, nil
 	}
 	node := &corev1.Node{}
