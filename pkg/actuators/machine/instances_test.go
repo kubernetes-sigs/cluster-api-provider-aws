@@ -221,35 +221,6 @@ func TestRemoveStoppedMachine(t *testing.T) {
 	}
 }
 
-func TestRunningInstance(t *testing.T) {
-	machine, err := stubMachine()
-	if err != nil {
-		t.Fatalf("Unable to build test machine manifest: %v", err)
-	}
-
-	mockCtrl := gomock.NewController(t)
-	mockAWSClient := mockaws.NewMockClient(mockCtrl)
-
-	// Error describing instances
-	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(&ec2.DescribeInstancesOutput{
-		Reservations: []*ec2.Reservation{
-			{
-				Instances: []*ec2.Instance{
-					{
-						ImageId:    aws.String("ami-a9acbbd6"),
-						InstanceId: aws.String("i-02fcb933c5da7085c"),
-						State: &ec2.InstanceState{
-							Name: aws.String(ec2.InstanceStateNameRunning),
-						},
-						LaunchTime: aws.Time(time.Now()),
-					},
-				},
-			},
-		},
-	}, nil).AnyTimes()
-	getRunningInstance(machine, mockAWSClient)
-}
-
 func TestLaunchInstance(t *testing.T) {
 	machine, err := stubMachine()
 	if err != nil {
