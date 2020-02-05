@@ -347,17 +347,20 @@ func (a *Actuator) DeleteMachine(machine *machinev1.Machine) error {
 		return a.handleMachineError(machine, err, deleteEventAction)
 	}
 
-	instances, err := getRunningInstances(machine, client)
+	// Get all instances not terminated.
+	existingInstances, err := a.getMachineInstances(machine)
 	if err != nil {
-		glog.Errorf("%s: error getting running instances: %v", machine.Name, err)
+		glog.Errorf("%s: error getting existing instances: %v", machine.Name, err)
 		return err
 	}
-	if len(instances) == 0 {
+	existingLen := len(existingInstances)
+	glog.Infof("%s: found %d existing instances for machine", machine.Name, existingLen)
+	if existingLen == 0 {
 		glog.Warningf("%s: no instances found to delete for machine", machine.Name)
 		return nil
 	}
 
-	terminatingInstances, err := terminateInstances(client, instances)
+	terminatingInstances, err := terminateInstances(client, existingInstances)
 	if err != nil {
 		return a.handleMachineError(machine, mapierrors.DeleteMachine(err.Error()), noEventAction)
 	}

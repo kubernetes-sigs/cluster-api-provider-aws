@@ -139,6 +139,24 @@ func TestMachineEvents(t *testing.T) {
 			},
 			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
 		},
+		{
+			name:                    "Delete machine event succeed with pending instances",
+			machine:                 machine,
+			describeInstancesOutput: stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNamePending),
+			operation: func(actuator *Actuator, machine *machinev1.Machine) {
+				actuator.DeleteMachine(machine)
+			},
+			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
+		},
+		{
+			name:                    "Delete machine event succeed with stopped instances",
+			machine:                 machine,
+			describeInstancesOutput: stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameStopped),
+			operation: func(actuator *Actuator, machine *machinev1.Machine) {
+				actuator.DeleteMachine(machine)
+			},
+			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
+		},
 	}
 
 	for _, tc := range cases {
