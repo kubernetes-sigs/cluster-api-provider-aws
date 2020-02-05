@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 )
 
@@ -67,6 +68,22 @@ func MapToELBTags(src infrav1.Tags) []*elb.Tag {
 
 	for k, v := range src {
 		tag := &elb.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags
+}
+
+// MapToSecretsManagerTags converts a infrav1.Tags to a []*secretsmanager.Tag
+func MapToSecretsManagerTags(src infrav1.Tags) []*secretsmanager.Tag {
+	tags := make([]*secretsmanager.Tag, 0, len(src))
+
+	for k, v := range src {
+		tag := &secretsmanager.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		}

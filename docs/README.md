@@ -6,6 +6,7 @@
 - [List of AMIs](amis.md)
 - [Accessing cluster instances](accessing-instances.md)
 - [Building AMIs with Packer](https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi#make-targets)
+- [Userdata Privacy](userdata-privacy.md)
 
 ## Development
 
@@ -15,6 +16,7 @@
 
 - [Creating multinode control plane clusters](creating-multinode-controlplane-clusters.md)
 - [Reconcile Cluster-API objects in a restricted namespace](reconcile-in-custom-namespace.md)
+- [Creating clusters using cross account role assumption using KIAM](roleassumption.md)
 
 ## Project Documentation
 
