@@ -22,3 +22,5 @@ linters:
 issue:
   max-same-issues: 0
   max-per-linter: 0
+run:
+  deadline: 5m

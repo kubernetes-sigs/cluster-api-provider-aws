@@ -136,10 +136,10 @@ $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v --deadline=5m
+	$(GOLANGCI_LINT) run -v
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --fast=false --deadline=5m
+	$(GOLANGCI_LINT) run -v --fast=false
 
 ## --------------------------------------
 ## Generate
