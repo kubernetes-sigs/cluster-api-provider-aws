@@ -22,7 +22,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
@@ -208,12 +207,7 @@ func (m *MachineScope) DeleteSecretARN() {
 	m.AWSMachine.Spec.CloudInit.SecretARN = ""
 }
 
-// SetAddresses sets the AWSMachine address status.
-func (m *MachineScope) SetAddresses(addrs []corev1.NodeAddress) {
-	m.AWSMachine.Status.Addresses = addrs
-}
-
-// GetBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName as base64.
+// GetBootstrapData returns the Machine's bootstrap data, encoded as base64.
 func (m *MachineScope) GetBootstrapData() (string, error) {
 	if m.Machine.Spec.Bootstrap.Data == nil {
 		return "", errors.New("error retrieving bootstrap data: no data present")
@@ -223,7 +217,7 @@ func (m *MachineScope) GetBootstrapData() (string, error) {
 
 }
 
-// GetRawBootstrapData returns the bootstrap data from the secret in the Machine's bootstrap.dataSecretName.
+// GetRawBootstrapData returns the Machine's bootstrap data, unencoded.
 func (m *MachineScope) GetRawBootstrapData() ([]byte, error) {
 	val, err := m.GetBootstrapData()
 	if err != nil {
