@@ -47,28 +47,6 @@ func existingInstanceStates() []*string {
 	}
 }
 
-// getRunningInstance returns the AWS instance for a given machine. If multiple instances match our machine,
-// the most recently launched will be returned. If no instance exists, an error will be returned.
-func getRunningInstance(machine *machinev1.Machine, client awsclient.Client) (*ec2.Instance, error) {
-	instances, err := getRunningInstances(machine, client)
-	if err != nil {
-		return nil, err
-	}
-	if len(instances) == 0 {
-		return nil, fmt.Errorf("no instance found for machine: %s", machine.Name)
-	}
-
-	sortInstances(instances)
-	return instances[0], nil
-}
-
-// getRunningInstances returns all running instances that have a tag matching our machine name,
-// and cluster ID.
-func getRunningInstances(machine *machinev1.Machine, client awsclient.Client) ([]*ec2.Instance, error) {
-	runningInstanceStateFilter := []*string{aws.String(ec2.InstanceStateNameRunning)}
-	return getInstances(machine, client, runningInstanceStateFilter)
-}
-
 // getRunningFromInstances returns all running instances from a list of instances.
 func getRunningFromInstances(instances []*ec2.Instance) []*ec2.Instance {
 	var runningInstances []*ec2.Instance
