@@ -7,9 +7,16 @@ retrieve instance userdata from http://169.254.169.254/latest/api/token
 
 ## How Cluster API secures TLS secrets
 
-In 0.5.x/v1alpha3, by default, Cluster API Provider AWS will use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
-to store the actual userdata in encrypted form. The normal unencrypted userdata uses a boot script to download the encrypted userdata secret
-using instance profile permissions, immediately deletes it from AWS Secrets Manager, and then executes it.
+In 0.4.x/v1alpha2, it is possible to make Cluster API Provider AWS use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
+as a limited-time secret store, stored using KMS encryption at rest in AWS. This can be done with the following:
+
+``` yaml
+cloudInit:
+  enableSecureSecretsManager: true
+```
+
+The EC2 IMDS userdata will contain a boot script to download the encrypted userdata secret
+using instance profile permissions, then immediately delete it from AWS Secrets Manager, and then execute it.
 
 To avoid guessing keys in the AWS Secrets Manager key-value store and to prevent collisions, the key is an encoding the
 Kubernetes namespace, cluster name and instance name, with a random string appended, providing ~256-bits of entropy.
@@ -21,10 +28,5 @@ is terminated or failed.
 
 This method is only compatible with operating systems and distributions using
 [cloud-init](https://cloudinit.readthedocs.io/en/latest/topics/format.html#mime-multi-part-archive). If you are using a different bootstrap
-process, you will need to co-ordinate this externally and set the following in the specification of the AWSMachine types to disable the use
-of a cloud-init boothook:
+process, you will need to co-ordinate this externally.
 
-``` yaml
-cloudInit:
-  disableUserdataPrivacy: true
-```
