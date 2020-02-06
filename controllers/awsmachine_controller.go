@@ -411,23 +411,29 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 }
 
 func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, secretSvc services.SecretsManagerInterface) error {
-	// do nothing if there isn't asecret
-	if machineScope.GetSecretARN() == "" {
+	// do nothing if there isn't a secret
+	if machineScope.GetSecretPrefix() == "" {
 		return nil
+	}
+	if machineScope.GetSecretCount() == 0 {
+		return errors.New("secretPrefix present, but secretCount is not set")
 	}
 
 	// Do nothing if the AWSMachine is not in a failed state, and is operational from an EC2 perspective, but does not have a node reference
 	if !machineScope.HasFailed() && machineScope.InstanceIsOperational() && machineScope.Machine.Status.NodeRef == nil && !machineScope.AWSMachineIsDeleted() {
 		return nil
 	}
-	machineScope.Info("Deleting unneeded entry from AWS Secrets Manager", "secretARN", machineScope.GetSecretARN())
+	machineScope.Info("Deleting unneeded entry from AWS Secrets Manager", "secretPrefix", machineScope.GetSecretPrefix())
 	if err := secretSvc.Delete(machineScope); err != nil {
-		machineScope.Info("Unable to delete entry from AWS Secrets Manager containing encrypted userdata", "secretARN", machineScope.GetSecretARN())
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDeleteEncryptedBootstrapDataSecret", "AWS Secret Manager entry containing userdata not deleted")
+		machineScope.Info("Unable to delete entries from AWS Secrets Manager containing encrypted userdata", "secretPrefix", machineScope.GetSecretPrefix())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDeleteEncryptedBootstrapDataSecrets", "AWS Secret Manager entries containing userdata not deleted")
 		return err
 	}
-	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDeleteEncryptedBootstrapDataSecret", "AWS Secret Manager entry containing userdata deleted")
-	machineScope.DeleteSecretARN()
+	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDeleteEncryptedBootstrapDataSecrets", "AWS Secret Manager entries containing userdata deleted")
+
+	machineScope.DeleteSecretPrefix()
+	machineScope.SetSecretCount(0)
+
 	return nil
 }
 
@@ -453,19 +459,26 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc ser
 				return nil, err
 			}
 			// Do an initial check in case manager was terminated prematurely
-			if scope.GetSecretARN() == "" {
-				newSecretARN, err := secretSvc.Create(scope, compressedUserData)
+			if scope.GetSecretPrefix() == "" {
+				prefix, chunks, err := secretSvc.Create(scope, compressedUserData)
+				scope.SetSecretPrefix(prefix)
+				scope.SetSecretCount(chunks)
 				if err != nil {
-					r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecretsManagerEntry", err.Error())
+					r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecretsManagerSecrets", err.Error())
+					scope.Error(err, "Failed to create AWS Secret entry", "secretPrefix", prefix)
+					delErr := secretSvc.Delete(scope)
+					if delErr != nil {
+						scope.Error(delErr, "Failed to clean up AWS Secret entries", "secretPrefix", prefix)
+						return nil, delErr
+					}
 					return nil, err
 				}
-				scope.SetSecretARN(newSecretARN)
 			}
 			// Register the Secret ARN immediately to avoid orphaning AWS resources on delete
 			if err := scope.PatchObject(); err != nil {
 				return nil, err
 			}
-			encryptedCloudInit, err := secretsmanager.GenerateCloudInitMIMEDocument(scope.GetSecretARN(), scope.AWSCluster.Spec.Region)
+			encryptedCloudInit, err := secretsmanager.GenerateCloudInitMIMEDocument(scope.GetSecretPrefix(), scope.GetSecretCount(), scope.AWSCluster.Spec.Region)
 			if err != nil {
 				r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsManagerCloudInit", err.Error())
 				return nil, err

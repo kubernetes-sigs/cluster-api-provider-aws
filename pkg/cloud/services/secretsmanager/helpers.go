@@ -16,18 +16,15 @@ limitations under the License.
 
 package secretsmanager
 
-import (
-	"bytes"
-	"net/mail"
-	"testing"
-)
+import "bytes"
 
-func TestGenerateCloudInitMIMEDocument(t *testing.T) {
-	secretARN := "secretARN"
-	doc, _ := GenerateCloudInitMIMEDocument(secretARN, 1, "eu-west-1")
-
-	_, err := mail.ReadMessage(bytes.NewBuffer(doc))
-	if err != nil {
-		t.Fatalf("Cannot parse MIME doc: %+v\n%s", err, string(doc))
+func splitBytes(data []byte, maxSize int, iterFunc func([]byte)) {
+	buff := bytes.NewBuffer(data)
+	for {
+		chunk := buff.Next(maxSize)
+		if len(chunk) == 0 {
+			return
+		}
+		iterFunc(chunk)
 	}
 }

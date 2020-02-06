@@ -186,22 +186,34 @@ func (m *MachineScope) UseSecretsManager() bool {
 	return !m.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager
 }
 
-// GetSecretARN returns the Amazon Resource Name for the secret belonging
+// GetSecretPrefix returns the prefix for the secrets belonging
 // to the AWSMachine in AWS Secrets Manager
-func (m *MachineScope) GetSecretARN() string {
-	return m.AWSMachine.Spec.CloudInit.SecretARN
+func (m *MachineScope) GetSecretPrefix() string {
+	return m.AWSMachine.Spec.CloudInit.SecretPrefix
 }
 
-// SetSecretARN sets the Amazon Resource Name for the secret belonging
+// SetSecretPrefix sets the prefix for the secrets belonging
 // to the AWSMachine in AWS Secrets Manager
-func (m *MachineScope) SetSecretARN(value string) {
-	m.AWSMachine.Spec.CloudInit.SecretARN = value
+func (m *MachineScope) SetSecretPrefix(value string) {
+	m.AWSMachine.Spec.CloudInit.SecretPrefix = value
 }
 
-// DeleteSecretARN deletes the AMazon Resource Name for the secret belonging
+// DeleteSecretPrefix deletes the prefix for the secret belonging
 // to the AWSMachine in AWS Secrets Manager
-func (m *MachineScope) DeleteSecretARN() {
-	m.AWSMachine.Spec.CloudInit.SecretARN = ""
+func (m *MachineScope) DeleteSecretPrefix() {
+	m.AWSMachine.Spec.CloudInit.SecretPrefix = ""
+}
+
+// GetSecretCount returns the number of AWS Secret Manager entries making up
+// the complete userdata
+func (m *MachineScope) GetSecretCount() int32 {
+	return m.AWSMachine.Spec.CloudInit.SecretCount
+}
+
+// SetSecretCount sets the number of AWS Secret Manager entries making up
+// the complete userdata
+func (m *MachineScope) SetSecretCount(i int32) {
+	m.AWSMachine.Spec.CloudInit.SecretCount = i
 }
 
 // SetAddresses sets the AWSMachine address status.

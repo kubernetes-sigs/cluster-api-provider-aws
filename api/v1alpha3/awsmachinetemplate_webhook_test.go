@@ -51,7 +51,7 @@ func TestAWSMachineTemplateInvalid(t *testing.T) {
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
 							CloudInit: CloudInit{
-								SecretARN: "something",
+								SecretPrefix: "something",
 							},
 						},
 					},

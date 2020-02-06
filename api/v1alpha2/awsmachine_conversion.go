@@ -43,11 +43,6 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 
 func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1alpha3.AWSMachineSpec) {
 	dst.ImageLookupBaseOS = restored.ImageLookupBaseOS
-	// Conversion for route: v1alpha3 --> management cluster running v1alpha2 on <= v0.4.8 --> v1alpha3
-	if !dst.CloudInit.InsecureSkipSecretsManager && dst.CloudInit.SecretARN == "" {
-		dst.CloudInit.InsecureSkipSecretsManager = restored.CloudInit.InsecureSkipSecretsManager
-		dst.CloudInit.SecretARN = restored.CloudInit.SecretARN
-	}
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
@@ -85,6 +80,14 @@ func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSp
 	// Manually convert dst.Spec.FailureDomain.
 	out.FailureDomain = in.AvailabilityZone
 
+	if in.CloudInit == nil {
+		out.CloudInit.InsecureSkipSecretsManager = true
+	} else {
+		if err := Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in.CloudInit, &out.CloudInit, s); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -98,7 +101,10 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 	// Manually convert FailureDomain to AvailabilityZone.
 	out.AvailabilityZone = in.FailureDomain
 
-	// Discards ImageLookupBaseOS
+	out.CloudInit = &CloudInit{}
+	if err := Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(&in.CloudInit, out.CloudInit, s); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -130,13 +136,21 @@ func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1a
 }
 
 func Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in *CloudInit, out *infrav1alpha3.CloudInit, s apiconversion.Scope) error { // nolint
-	out.SecretARN = in.SecretARN
+	if err := autoConvert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in, out, s); err != nil {
+		return err
+	}
+
 	out.InsecureSkipSecretsManager = !in.EnableSecureSecretsManager
+
 	return nil
 }
 
 func Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in *infrav1alpha3.CloudInit, out *CloudInit, s apiconversion.Scope) error { // nolint
-	out.SecretARN = in.SecretARN
+	if err := autoConvert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in, out, s); err != nil {
+		return err
+	}
+
 	out.EnableSecureSecretsManager = !in.InsecureSkipSecretsManager
+
 	return nil
 }
