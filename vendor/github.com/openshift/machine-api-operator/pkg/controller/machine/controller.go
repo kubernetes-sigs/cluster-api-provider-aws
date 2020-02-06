@@ -21,10 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-log/log/info"
 	commonerrors "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
-	kubedrain "github.com/openshift/machine-api-operator/pkg/drain"
 	"github.com/openshift/machine-api-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +32,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	"k8s.io/kubectl/pkg/drain"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -44,6 +43,7 @@ import (
 
 const (
 	NodeNameEnvVar = "NODE_NAME"
+	requeueAfter   = 30 * time.Second
 
 	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set
 	ExcludeNodeDrainingAnnotation = "machine.openshift.io/exclude-node-draining"
@@ -83,6 +83,8 @@ const (
 
 	// Machine has a deletion timestamp
 	phaseDeleting = "Deleting"
+
+	skipWaitForDeleteTimeoutSeconds = 60 * 5
 )
 
 var DefaultActuator Actuator
@@ -157,11 +159,11 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	}
 
 	// Implement controller logic here
-	name := m.Name
-	klog.Infof("Reconciling Machine %q", name)
+	machineName := m.GetName()
+	klog.Infof("%v: reconciling Machine", machineName)
 
 	if errList := m.Validate(); len(errList) > 0 {
-		err := fmt.Errorf("%q machine validation failed: %v", m.Name, errList.ToAggregate().Error())
+		err := fmt.Errorf("%v: machine validation failed: %v", machineName, errList.ToAggregate().Error())
 		klog.Error(err)
 		r.eventRecorder.Eventf(m, corev1.EventTypeWarning, "FailedValidate", err.Error())
 		return reconcile.Result{}, err
@@ -178,7 +180,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		if len(m.Finalizers) > finalizerCount {
 			if err := r.Client.Update(ctx, m); err != nil {
-				klog.Infof("Failed to add finalizers to machine %q: %v", name, err)
+				klog.Infof("%v: failed to add finalizers to machine: %v", machineName, err)
 				return reconcile.Result{}, err
 			}
 
@@ -194,11 +196,11 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 
 		// no-op if finalizer has been removed.
 		if !util.Contains(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer) {
-			klog.Infof("Reconciling machine %q causes a no-op as there is no finalizer", name)
+			klog.Infof("%v: reconciling machine causes a no-op as there is no finalizer", machineName)
 			return reconcile.Result{}, nil
 		}
 
-		klog.Infof("Reconciling machine %q triggers delete", name)
+		klog.Infof("%v: reconciling machine triggers delete", machineName)
 		// Drain node before deletion
 		// If a machine is not linked to a node, just delete the machine. Since a node
 		// can be unlinked from a machine when the node goes NotReady and is removed
@@ -206,7 +208,7 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		// deleted without a manual intervention.
 		if _, exists := m.ObjectMeta.Annotations[ExcludeNodeDrainingAnnotation]; !exists && m.Status.NodeRef != nil {
 			if err := r.drainNode(m); err != nil {
-				klog.Errorf("Failed to drain node for machine %q: %v", name, err)
+				klog.Errorf("%v: failed to drain node for machine: %v", machineName, err)
 				return delayIfRequeueAfterError(err)
 			}
 		}
@@ -219,15 +221,26 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 			// we can loose instances, e.g. right after request to create one
 			// was sent and before a list of node addresses was set.
 			if len(m.Status.Addresses) > 0 || !isInvalidMachineConfigurationError(err) {
-				klog.Errorf("Failed to delete machine %q: %v", name, err)
+				klog.Errorf("%v: failed to delete machine: %v", machineName, err)
 				return delayIfRequeueAfterError(err)
 			}
 		}
 
+		instanceExists, err := r.actuator.Exists(ctx, m)
+		if err != nil {
+			klog.Errorf("%v: failed to check if machine exists: %v", machineName, err)
+			return reconcile.Result{}, err
+		}
+
+		if instanceExists {
+			klog.V(3).Infof("%v: can't proceed deleting machine while cloud instance is being terminated, requeuing", machineName)
+			return reconcile.Result{RequeueAfter: requeueAfter}, nil
+		}
+
 		if m.Status.NodeRef != nil {
-			klog.Infof("Deleting node %q for machine %q", m.Status.NodeRef.Name, m.Name)
+			klog.Infof("%v: deleting node %q for machine", m.Status.NodeRef.Name, machineName)
 			if err := r.deleteNode(ctx, m.Status.NodeRef.Name); err != nil {
-				klog.Errorf("Error deleting node %q for machine %q", name, err)
+				klog.Errorf("%v: error deleting node %q for machine", machineName, err)
 				return reconcile.Result{}, err
 			}
 		}
@@ -235,46 +248,47 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		// Remove finalizer on successful deletion.
 		m.ObjectMeta.Finalizers = util.Filter(m.ObjectMeta.Finalizers, machinev1.MachineFinalizer)
 		if err := r.Client.Update(context.Background(), m); err != nil {
-			klog.Errorf("Failed to remove finalizer from machine %q: %v", name, err)
+			klog.Errorf("%v: failed to remove finalizer from machine: %v", machineName, err)
 			return reconcile.Result{}, err
 		}
 
-		klog.Infof("Machine %q deletion successful", name)
+		klog.Infof("%v: machine deletion successful", machineName)
 		return reconcile.Result{}, nil
 	}
 
 	if machineIsFailed(m) {
-		klog.Warningf("Machine %q has gone %q phase. It won't reconcile", name, phaseFailed)
+		klog.Warningf("%v: machine has gone %q phase. It won't reconcile", machineName, phaseFailed)
 		return reconcile.Result{}, nil
 	}
 
 	instanceExists, err := r.actuator.Exists(ctx, m)
 	if err != nil {
-		klog.Errorf("Failed to check if machine %q exists: %v", name, err)
+		klog.Errorf("%v: failed to check if machine exists: %v", machineName, err)
 		return reconcile.Result{}, err
 	}
 
 	if instanceExists {
-		klog.Infof("Reconciling machine %q triggers idempotent update", name)
+		klog.Infof("%v: reconciling machine triggers idempotent update", machineName)
 		if err := r.actuator.Update(ctx, m); err != nil {
-			klog.Errorf(`Error updating machine "%s/%s": %v`, m.Namespace, name, err)
+			klog.Errorf("%v: error updating machine: %v", machineName, err)
 			return delayIfRequeueAfterError(err)
 		}
 
 		if !machineIsProvisioned(m) {
-			klog.Errorf(`Instance for Machine "%s/%s exists but providerID or addresses has not been given to the machine yet"`, m.Namespace, name)
-			return reconcile.Result{}, err
+			klog.Errorf("%v: instance exists but providerID or addresses has not been given to the machine yet, requeuing", machineName)
+			return reconcile.Result{RequeueAfter: requeueAfter}, nil
 		}
-		if machineHasNode(m) {
-			if err := r.setPhase(m, phaseRunning, ""); err != nil {
-				return reconcile.Result{}, err
-			}
-		} else {
+
+		if !machineHasNode(m) {
+			// Requeue until we reach running phase
 			if err := r.setPhase(m, phaseProvisioned, ""); err != nil {
 				return reconcile.Result{}, err
 			}
+			klog.Infof("%v: has no node yet, requeuing", machineName)
+			return reconcile.Result{RequeueAfter: requeueAfter}, nil
 		}
-		return reconcile.Result{}, nil
+
+		return reconcile.Result{}, r.setPhase(m, phaseRunning, "")
 	}
 
 	// Instance does not exist but the machine has been given a providerID/address.
@@ -290,9 +304,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err := r.setPhase(m, phaseProvisioning, ""); err != nil {
 		return reconcile.Result{}, err
 	}
-	klog.Infof("Reconciling machine object %v triggers idempotent create.", m.ObjectMeta.Name)
+	klog.Infof("%v: reconciling machine triggers idempotent create", machineName)
 	if err := r.actuator.Create(ctx, m); err != nil {
-		klog.Warningf("Failed to create machine %q: %v", name, err)
+		klog.Warningf("%v: failed to create machine: %v", machineName, err)
 		if isInvalidMachineConfigurationError(err) {
 			if err := r.setPhase(m, phaseFailed, err.Error()); err != nil {
 				return reconcile.Result{}, err
@@ -302,7 +316,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		return delayIfRequeueAfterError(err)
 	}
 
-	return reconcile.Result{}, nil
+	klog.Infof("%v: created instance, requeuing", machineName)
+	return reconcile.Result{RequeueAfter: requeueAfter}, nil
 }
 
 func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
@@ -320,20 +335,41 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 		return fmt.Errorf("unable to get node %q: %v", machine.Status.NodeRef.Name, err)
 	}
 
-	if err := kubedrain.Drain(
-		kubeClient,
-		[]*corev1.Node{node},
-		&kubedrain.DrainOptions{
-			Force:              true,
-			IgnoreDaemonsets:   true,
-			DeleteLocalData:    true,
-			GracePeriodSeconds: -1,
-			Logger:             info.New(klog.V(0)),
-			// If a pod is not evicted in 20 second, retry the eviction next time the
-			// machine gets reconciled again (to allow other machines to be reconciled)
-			Timeout: 20 * time.Second,
+	drainer := &drain.Helper{
+		Client:              kubeClient,
+		Force:               true,
+		IgnoreAllDaemonSets: true,
+		DeleteLocalData:     true,
+		GracePeriodSeconds:  -1,
+		// If a pod is not evicted in 20 seconds, retry the eviction next time the
+		// machine gets reconciled again (to allow other machines to be reconciled).
+		Timeout: 20 * time.Second,
+		OnPodDeletedOrEvicted: func(pod *corev1.Pod, usingEviction bool) {
+			verbStr := "Deleted"
+			if usingEviction {
+				verbStr = "Evicted"
+			}
+			klog.Info(fmt.Sprintf("%s pod from Node", verbStr),
+				"pod", fmt.Sprintf("%s/%s", pod.Name, pod.Namespace))
 		},
-	); err != nil {
+		Out:    writer{klog.Info},
+		ErrOut: writer{klog.Error},
+		DryRun: false,
+	}
+
+	if nodeIsUnreachable(node) {
+		klog.Infof("%q: Node %q is unreachable, draining will wait %q seconds after pod is signalled for deletion and skip after it",
+			machine.Name, node.Name, skipWaitForDeleteTimeoutSeconds)
+		drainer.SkipWaitForDeleteTimeoutSeconds = skipWaitForDeleteTimeoutSeconds
+	}
+
+	if err := drain.RunCordonOrUncordon(drainer, node, true); err != nil {
+		// Can't cordon a node
+		klog.Warningf("cordon failed for node %q: %v", node.Name, err)
+		return &RequeueAfterError{RequeueAfter: 20 * time.Second}
+	}
+
+	if err := drain.RunNodeDrain(drainer, node.Name); err != nil {
 		// Machine still tries to terminate after drain failure
 		klog.Warningf("drain failed for machine %q: %v", machine.Name, err)
 		return &RequeueAfterError{RequeueAfter: 20 * time.Second}
@@ -380,7 +416,7 @@ func isInvalidMachineConfigurationError(err error) bool {
 
 func (r *ReconcileMachine) setPhase(machine *machinev1.Machine, phase string, errorMessage string) error {
 	if stringPointerDeref(machine.Status.Phase) != phase {
-		klog.V(3).Infof("Machine %q going into phase %q", machine.GetName(), phase)
+		klog.V(3).Infof("%v: going into phase %q", machine.GetName(), phase)
 		baseToPatch := client.MergeFrom(machine.DeepCopy())
 		machine.Status.Phase = &phase
 		machine.Status.ErrorMessage = nil
@@ -410,4 +446,25 @@ func machineIsFailed(machine *machinev1.Machine) bool {
 		return true
 	}
 	return false
+}
+
+func nodeIsUnreachable(node *corev1.Node) bool {
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionUnknown {
+			return true
+		}
+	}
+
+	return false
+}
+
+// writer implements io.Writer interface as a pass-through for klog.
+type writer struct {
+	logFunc func(args ...interface{})
+}
+
+// Write passes string(p) into writer's logFunc and always returns len(p)
+func (w writer) Write(p []byte) (n int, err error) {
+	w.logFunc(string(p))
+	return len(p), nil
 }

@@ -16,6 +16,9 @@ type RemediationStrategyType string
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=mhc;mhcs
 // +k8s:openapi-gen=true
+// +kubebuilder:printcolumn:name="MaxUnhealthy",type="string",JSONPath=".spec.maxUnhealthy",description="Maximum number of unhealthy machines allowed"
+// +kubebuilder:printcolumn:name="ExpectedMachines",type="integer",JSONPath=".status.expectedMachines",description="Number of machines currently monitored"
+// +kubebuilder:printcolumn:name="CurrentHealthy",type="integer",JSONPath=".status.currentHealthy",description="Current observed healthy machines"
 type MachineHealthCheck struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -81,9 +84,10 @@ type UnhealthyCondition struct {
 type MachineHealthCheckStatus struct {
 	// total number of machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
-	ExpectedMachines int `json:"expectedMachines"`
+	ExpectedMachines *int `json:"expectedMachines"`
 
 	// total number of machines counted by this machine health check
+	// +kubebuilder:default=0
 	// +kubebuilder:validation:Minimum=0
-	CurrentHealthy int `json:"currentHealthy" protobuf:"varint,4,opt,name=currentHealthy"`
+	CurrentHealthy *int `json:"currentHealthy" protobuf:"varint,4,opt,name=currentHealthy"`
 }
