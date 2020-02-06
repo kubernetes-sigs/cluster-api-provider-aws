@@ -8,8 +8,9 @@ retrieve instance userdata from http://169.254.169.254/latest/api/token
 ## How Cluster API secures TLS secrets
 
 In 0.5.x/v1alpha3, by default, Cluster API Provider AWS will use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
-to store the actual userdata in encrypted form. The normal unencrypted userdata uses a boot script to download the encrypted userdata secret
-using instance profile permissions, immediately deletes it from AWS Secrets Manager, and then executes it.
+as a limited-time secret store, storing the userdata using KMS encryption at rest in AWS.
+The EC2 IMDS userdata will contain a boot script to download the encrypted userdata secret
+using instance profile permissions, then immediately delete it from AWS Secrets Manager, and then execute it.
 
 To avoid guessing keys in the AWS Secrets Manager key-value store and to prevent collisions, the key is an encoding the
 Kubernetes namespace, cluster name and instance name, with a random string appended, providing ~256-bits of entropy.
@@ -26,5 +27,5 @@ of a cloud-init boothook:
 
 ``` yaml
 cloudInit:
-  disableUserdataPrivacy: true
+  insecureSkipSecretsManager: true
 ```
