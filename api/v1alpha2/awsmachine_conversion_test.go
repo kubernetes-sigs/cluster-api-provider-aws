@@ -34,7 +34,7 @@ func TestConvertAWSMachine(t *testing.T) {
 				Spec: infrav1alpha3.AWSMachineSpec{
 					CloudInit: infrav1alpha3.CloudInit{
 						InsecureSkipSecretsManager: true,
-						SecretARN:                  "something",
+						SecretPrefix:               "something/",
 					},
 				},
 			}
@@ -42,7 +42,7 @@ func TestConvertAWSMachine(t *testing.T) {
 			g.Expect(dst.ConvertFrom(src)).To(Succeed())
 			restored := &infrav1alpha3.AWSMachine{}
 			g.Expect(dst.ConvertTo(restored)).To(Succeed())
-			g.Expect(restored.Spec.CloudInit.SecretARN).To(Equal(src.Spec.CloudInit.SecretARN))
+			g.Expect(restored.Spec.CloudInit.SecretPrefix).To(Equal(src.Spec.CloudInit.SecretPrefix))
 			g.Expect(restored.Spec.CloudInit.InsecureSkipSecretsManager).To(Equal(src.Spec.CloudInit.InsecureSkipSecretsManager))
 		})
 	})
@@ -51,7 +51,7 @@ func TestConvertAWSMachine(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{},
 			Spec: infrav1alpha3.AWSMachineSpec{
 				CloudInit: infrav1alpha3.CloudInit{
-					SecretARN: "something",
+					SecretPrefix: "something/",
 				},
 			},
 		}
@@ -59,14 +59,14 @@ func TestConvertAWSMachine(t *testing.T) {
 			Spec: AWSMachineSpec{
 				CloudInit: &CloudInit{
 					EnableSecureSecretsManager: true,
-					SecretARN:                  "something-else",
+					SecretPrefix:               "something-else/",
 				},
 			},
 		}
 		g.Expect(dst.ConvertFrom(src)).To(Succeed())
 		restored := &infrav1alpha3.AWSMachine{}
 		g.Expect(dst.ConvertTo(restored)).To(Succeed())
-		g.Expect(restored.Spec.CloudInit.SecretARN).To(Equal(src.Spec.CloudInit.SecretARN))
+		g.Expect(restored.Spec.CloudInit.SecretPrefix).To(Equal(src.Spec.CloudInit.SecretPrefix))
 	})
 	t.Run("should restore ImageLookupBaseOS", func(t *testing.T) {
 		src := &infrav1alpha3.AWSMachine{

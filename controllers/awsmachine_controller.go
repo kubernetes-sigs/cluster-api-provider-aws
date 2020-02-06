@@ -420,9 +420,9 @@ func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *
 	if !machineScope.HasFailed() && machineScope.InstanceIsOperational() && machineScope.Machine.Status.NodeRef == nil && !machineScope.AWSMachineIsDeleted() {
 		return nil
 	}
-	machineScope.Info("Deleting unneeded entry from AWS Secrets Manager", "secretARN", machineScope.GetSecretARNs())
+	machineScope.Info("Deleting unneeded entry from AWS Secrets Manager", "secretPrefix", machineScope.GetSecretPrefix())
 	if err := secretSvc.Delete(machineScope); err != nil {
-		machineScope.Info("Unable to delete entry from AWS Secrets Manager containing encrypted userdata", "secretARN", machineScope.GetSecretARNs())
+		machineScope.Info("Unable to delete entry from AWS Secrets Manager containing encrypted userdata", "secretPrefix", machineScope.GetSecretPrefix())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDeleteEncryptedBootstrapDataSecret", "AWS Secret Manager entry containing userdata not deleted")
 		return err
 	}

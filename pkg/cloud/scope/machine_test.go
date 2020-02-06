@@ -183,22 +183,21 @@ func TestGetSecretARNDefaultIsNil(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if scope.GetSecretARNs() != "" {
-		t.Fatalf("GetSecretARNs should be empty string")
+	if scope.GetSecretPrefix() != "" {
+		t.Fatalf("GetSecretPrefix should be empty string")
 	}
 }
 
 func TestSetSecretARN(t *testing.T) {
-	secretARN := "secretARN"
+	prefix := "secret/"
 	scope, err := setupMachineScope()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	scope.SetSecretARNs(secretARN)
-	val := scope.GetSecretARNs()
-
-	if val != secretARN {
-		t.Fatalf("GetSecretARNs does not equal %s: %s", secretARN, val)
+	scope.SetSecretPrefix(prefix)
+	val := scope.GetSecretPrefix()
+	if val != prefix {
+		t.Fatalf("prefix does not equal %s: %s", prefix, val)
 	}
 }

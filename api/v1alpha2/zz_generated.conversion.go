@@ -172,16 +172,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudInit)(nil), (*v1alpha3.CloudInit)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(a.(*CloudInit), b.(*v1alpha3.CloudInit), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha3.CloudInit)(nil), (*CloudInit)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(a.(*v1alpha3.CloudInit), b.(*CloudInit), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Filter)(nil), (*v1alpha3.Filter)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_Filter_To_v1alpha3_Filter(a.(*Filter), b.(*v1alpha3.Filter), scope)
 	}); err != nil {
@@ -292,6 +282,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*CloudInit)(nil), (*v1alpha3.CloudInit)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(a.(*CloudInit), b.(*v1alpha3.CloudInit), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1alpha3.AWSClusterSpec)(nil), (*AWSClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(a.(*v1alpha3.AWSClusterSpec), b.(*AWSClusterSpec), scope)
 	}); err != nil {
@@ -324,6 +319,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1alpha3.ClassicELB)(nil), (*ClassicELB)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(a.(*v1alpha3.ClassicELB), b.(*ClassicELB), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1alpha3.CloudInit)(nil), (*CloudInit)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(a.(*v1alpha3.CloudInit), b.(*CloudInit), scope)
 	}); err != nil {
 		return err
 	}
@@ -451,7 +451,7 @@ func autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSC
 	if err := Convert_v1alpha2_Network_To_v1alpha3_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (./api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
 	out.Ready = in.Ready
 	// WARNING: in.APIEndpoints requires manual conversion: does not exist in peer-type
 	return nil
@@ -463,7 +463,7 @@ func autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *v1al
 		return err
 	}
 	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs ./api/v1alpha2.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance)
 	return nil
 }
 
@@ -573,7 +573,7 @@ func autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachi
 	out.SSHKeyName = in.SSHKeyName
 	out.RootDeviceSize = in.RootDeviceSize
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*./api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
 	return nil
 }
 
@@ -594,7 +594,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 	out.SSHKeyName = in.SSHKeyName
 	out.RootDeviceSize = in.RootDeviceSize
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *./api/v1alpha2.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit)
 	return nil
 }
 

@@ -82,11 +82,11 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 
 	// allow changes to secretARN
 	if cloudInit, ok := oldAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
-		delete(cloudInit, "secretARN")
+		delete(cloudInit, "secretPrefix")
 	}
 
 	if cloudInit, ok := newAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
-		delete(cloudInit, "secretARN")
+		delete(cloudInit, "secretPrefix")
 	}
 
 	if !reflect.DeepEqual(oldAWSMachineSpec, newAWSMachineSpec) {

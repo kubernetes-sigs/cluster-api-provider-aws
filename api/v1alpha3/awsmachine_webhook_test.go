@@ -50,7 +50,7 @@ func TestAWSMachine_ValidateUpdate(t *testing.T) {
 						},
 					},
 					CloudInit: CloudInit{
-						SecretARN: "test",
+						SecretPrefix: "test/",
 					},
 				},
 			},
