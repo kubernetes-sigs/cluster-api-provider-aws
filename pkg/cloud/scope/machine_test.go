@@ -183,8 +183,8 @@ func TestGetSecretARNDefaultIsNil(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if scope.GetSecretARN() != "" {
-		t.Fatalf("GetSecretARN should be empty string")
+	if scope.GetSecretARNs() != "" {
+		t.Fatalf("GetSecretARNs should be empty string")
 	}
 }
 
@@ -195,10 +195,10 @@ func TestSetSecretARN(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scope.SetSecretARN(secretARN)
-	val := scope.GetSecretARN()
+	scope.SetSecretARNs(secretARN)
+	val := scope.GetSecretARNs()
 
 	if val != secretARN {
-		t.Fatalf("GetSecretARN does not equal %s: %s", secretARN, val)
+		t.Fatalf("GetSecretARNs does not equal %s: %s", secretARN, val)
 	}
 }

@@ -99,8 +99,8 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.CloudInit.SecretARN != "" && r.Spec.CloudInit.InsecureSkipSecretsManager {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretARN"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
+	if r.Spec.CloudInit.SecretPrefix != "" && r.Spec.CloudInit.InsecureSkipSecretsManager {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretPrefix"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
 	}
 
 	return allErrs

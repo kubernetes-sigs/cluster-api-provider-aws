@@ -17,10 +17,13 @@ limitations under the License.
 package secretsmanager
 
 import (
+	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -33,10 +36,15 @@ const (
 	namespacesPrefix = "namespaces"
 	clustersPrefix   = "clusters"
 	instancesPrefix  = "instances"
+
+	// we set the max secret size to well below the 10240 byte limit, because this is limit after base64 encoding,
+	// but the aws sdk handles encoding for us, so we can't send a full 10240.
+	maxSecretSizeBytes = 7000
 )
 
-// Create stores a secret in AWS Secrets Manager for a given machine
-func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
+// Create stores data in AWS Secrets Manager for a given machine, chunking at 10kb per secret. The prefix of the secret
+// ARN and the number of chunks are returned.
+func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, error) {
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
 	additionalTags := m.AdditionalTags()
 	// Set the cloud provider tag
@@ -50,40 +58,56 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 		Additional:  additionalTags,
 	})
 
-	name := s.secretName(m)
-
-	resp, err := s.scope.SecretsManager.CreateSecret(&secretsmanager.CreateSecretInput{
-		Name:         aws.String(name),
-		SecretBinary: data,
-		Tags:         converters.MapToSecretsManagerTags(tags),
-	})
-
-	if err != nil {
-		return "", err
+	chunks := len(data) / maxSecretSizeBytes
+	remainder := chunks % maxSecretSizeBytes
+	if remainder != 0 {
+		chunks++
 	}
 
-	return aws.StringValue(resp.ARN), nil
+	buf := bytes.NewBuffer(data)
+	prefix := s.secretNamePrefix(m)
+
+	for i := 0; i < chunks; i++ {
+		name := fmt.Sprintf("%s-%d", prefix, i)
+
+		chunk := buf.Next(maxSecretSizeBytes)
+
+		_, err := s.scope.SecretsManager.CreateSecret(&secretsmanager.CreateSecretInput{
+			Name:         aws.String(name),
+			SecretBinary: chunk,
+			Tags:         converters.MapToSecretsManagerTags(tags),
+		})
+
+		if err != nil {
+			return "", 0, err
+		}
+	}
+
+	return prefix, int32(chunks), nil
 }
 
 // Delete the secret belonging to a machine from AWS Secrets Manager
 func (s *Service) Delete(m *scope.MachineScope) error {
-	secretArn := m.AWSMachine.Spec.CloudInit.SecretARN
-	if secretArn == "" {
-		return nil
-	}
-	_, err := s.scope.SecretsManager.DeleteSecret(&secretsmanager.DeleteSecretInput{
-		SecretId:                   aws.String(secretArn),
-		ForceDeleteWithoutRecovery: aws.Bool(true),
-	})
+	var errors []error
 
-	if awserrors.IsNotFound(err) {
-		return nil
+	for i := int32(0); i < m.GetSecretCount(); i++ {
+		_, err := s.scope.SecretsManager.DeleteSecret(&secretsmanager.DeleteSecretInput{
+			SecretId:                   aws.String(fmt.Sprintf("%s-%d", m.GetSecretPrefix(), i)),
+			ForceDeleteWithoutRecovery: aws.Bool(true),
+		})
+
+		if awserrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			errors = append(errors, err)
+		}
 	}
 
-	return err
+	return kerrors.NewAggregate(errors)
 }
 
-func (s *Service) secretName(m *scope.MachineScope) string {
+func (s *Service) secretNamePrefix(m *scope.MachineScope) string {
 	prefix := strings.Join(
 		[]string{
 			parameterPrefix,
