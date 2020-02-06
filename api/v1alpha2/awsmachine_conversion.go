@@ -36,7 +36,6 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-
 	restoreAWSMachineSpec(&restored.Spec, &dst.Spec)
 
 	return nil
@@ -54,7 +53,6 @@ func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1a
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
 func (dst *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1alpha3.AWSMachine)
-
 	if err := Convert_v1alpha3_AWSMachine_To_v1alpha2_AWSMachine(src, dst, nil); err != nil {
 		return err
 	}
@@ -77,6 +75,17 @@ func (src *AWSMachineList) ConvertTo(dstRaw conversion.Hub) error { // nolint
 func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1alpha3.AWSMachineList)
 	return Convert_v1alpha3_AWSMachineList_To_v1alpha2_AWSMachineList(src, dst, nil)
+}
+
+func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSpec, out *infrav1alpha3.AWSMachineSpec, s apiconversion.Scope) error { // nolint
+	if err := autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert dst.Spec.FailureDomain.
+	out.FailureDomain = in.AvailabilityZone
+
+	return nil
 }
 
 // Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec converts from the Hub version (v1alpha3) of the AWSMachineSpec to this version.
@@ -116,17 +125,6 @@ func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1a
 	// Manually convert the Failure fields to the Error fields
 	out.ErrorMessage = in.FailureMessage
 	out.ErrorReason = in.FailureReason
-
-	return nil
-}
-
-func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSpec, out *infrav1alpha3.AWSMachineSpec, s apiconversion.Scope) error { // nolint
-	if err := autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s); err != nil {
-		return err
-	}
-
-	// Manually convert dst.Spec.FailureDomain.
-	in.AvailabilityZone = out.FailureDomain
 
 	return nil
 }

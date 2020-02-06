@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"reflect"
+
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -44,8 +46,15 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
-	dst.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing = restored.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing
+	dst.Spec.ImageLookupBaseOS = restored.Spec.ImageLookupBaseOS
+	if restored.Spec.ControlPlaneLoadBalancer != nil {
+		dst.Spec.ControlPlaneLoadBalancer = restored.Spec.ControlPlaneLoadBalancer
+	}
+	dst.Status.FailureDomains = restored.Status.FailureDomains
+	dst.Status.Network.APIServerELB.AvailabilityZones = restored.Status.Network.APIServerELB.AvailabilityZones
+	dst.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing = restored.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing
 
 	return nil
 }
@@ -90,7 +99,19 @@ func (dst *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 
 // Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus converts AWSCluster.Status from v1alpha2 to v1alpha3.
 func Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSClusterStatus, out *v1alpha3.AWSClusterStatus, s apiconversion.Scope) error { // nolint
-	return autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in, out, s)
+	if err := autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert Status.Bastion.
+	if !reflect.DeepEqual(in.Bastion, Instance{}) {
+		out.Bastion = &v1alpha3.Instance{}
+		if err := autoConvert_v1alpha2_Instance_To_v1alpha3_Instance(&in.Bastion, out.Bastion, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec.
@@ -120,7 +141,18 @@ func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha
 
 // Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus.
 func Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *infrav1alpha3.AWSClusterStatus, out *AWSClusterStatus, s apiconversion.Scope) error { //nolint
-	return autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in, out, s)
+	if err := autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in, out, s); err != nil {
+		return err
+	}
+
+	// Manually convert Status.Bastion.
+	if in.Bastion != nil {
+		if err := autoConvert_v1alpha3_Instance_To_v1alpha2_Instance(in.Bastion, &out.Bastion, s); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB.

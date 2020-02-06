@@ -18,19 +18,40 @@ package v1alpha2
 
 import (
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts this AWSMachineTemplate to the Hub version (v1alpha3).
 func (src *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*infrav1alpha3.AWSMachineTemplate)
-	return Convert_v1alpha2_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(src, dst, nil)
+	if err := Convert_v1alpha2_AWSMachineTemplate_To_v1alpha3_AWSMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data from annotations
+	restored := &infrav1alpha3.AWSMachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	restoreAWSMachineSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
+
+	return nil
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
 func (dst *AWSMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*infrav1alpha3.AWSMachineTemplate)
-	return Convert_v1alpha3_AWSMachineTemplate_To_v1alpha2_AWSMachineTemplate(src, dst, nil)
+	if err := Convert_v1alpha3_AWSMachineTemplate_To_v1alpha2_AWSMachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion.
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ConvertTo converts this AWSMachineTemplateList to the Hub version (v1alpha3).
