@@ -37,10 +37,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-REGION="{{.Region}}"
-SECRET_PREFIX="{{.SecretPrefix}}"
-CHUNKS="{{.Chunks}}"
-FILE="/etc/secret-userdata.txt"
+umask 006
 
 # Log an error and exit.
 # Args:
@@ -108,30 +105,33 @@ check_aws_command() {
     ;;
   esac
 }
-
 delete_secret_value() {
   local id="${SECRET_PREFIX}-${1}"
   local out
   log::info "deleting secret from AWS Secrets Manager"
+  set +o errexit
+  set +o nounset
+  set +o pipefail
   out=$(
-    set +e
     aws secretsmanager --region ${REGION} delete-secret --force-delete-without-recovery --secret-id "${id}" 2>&1
   )
   local delete_return=$?
+  set -o errexit
+  set -o nounset
+  set -o pipefail
   check_aws_command "SecretsManager::DeleteSecret" "${delete_return}" "${out}"
   if [ ${delete_return} -ne 0 ]; then
     log::error_exit "Could not delete secret value" 2
   fi
 }
 
-log::info "aws.cluster.x-k8s.io encrypted cloud-init script $0 started"
-umask 006
-if test -f "${FILE}"; then
-  log::info "encrypted userdata already written to disk"
-  log::success_exit
-fi
+delete_secrets() {
+  for i in $(seq 0 ${CHUNKS}); do
+    delete_secret_value "$i"
+    true
+  done
+}
 
-BINARY_DATA=""
 get_secret_value() {
   local chunk=$1
   local id="${SECRET_PREFIX}-${chunk}"
@@ -140,35 +140,48 @@ get_secret_value() {
   log::info "getting secret value from AWS Secrets Manager"
 
   local data
+  set +o errexit
+  set +o nounset
+  set +o pipefail
   data=$(
     set +e
+    set +o pipefail
     aws secretsmanager --region ${REGION} get-secret-value --output text --query 'SecretBinary' --secret-id "${id}" 2>&1
   )
   local get_return=$?
   check_aws_command "SecretsManager::GetSecretValue" "${get_return}" "${data}"
+  set -o errexit
+  set -o nounset
+  set -o pipefail
   if [ ${get_return} -ne 0 ]; then
     log::error "could not get secret value, deleting secret"
-    delete_secret_value "$chunk"
+    delete_secrets
     log::error_exit "could not get secret value, but secret was deleted" 1
   fi
-
-  local data_decoded
-  data_decoded="$(echo "${data}" | base64 -d)"
-  BINARY_DATA+="${data_decoded}"
+  log::info "appending data to temporary file /tmp/cloud-init.gz"
+  echo "${data}" | base64 -d >>/tmp/cloud-init.gz
 }
 
+log::info "aws.cluster.x-k8s.io encrypted cloud-init script $0 started"
+log::info "secret prefix: ${SECRET_PREFIX}"
+log::info "secret count: ${CHUNKS}"
+
+if test -f "${FILE}"; then
+  log::info "encrypted userdata already written to disk"
+  log::success_exit
+fi
 
 for i in $(seq 0 ${CHUNKS}); do
-    get_secret_value "$i"
+  get_secret_value "$i"
 done
 
-for i in $(seq 0 ${CHUNKS}); do
-  delete_secret_value "$i"
-done
+delete_secrets
 
 log::info "decoding and decompressing userdata"
-UNZIPPED=$(echo "${BINARY_DATA}" | gunzip)
+UNZIPPED=$(gunzip -c /tmp/cloud-init.gz)
 GUNZIP_RETURN=$?
+log::info "deleting temporary gzip file"
+rm /tmp/cloud-init.gz
 if [ ${GUNZIP_RETURN} -ne 0 ]; then
   log::error_exit "could not get unzip data" 4
 fi
