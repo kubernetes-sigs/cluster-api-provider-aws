@@ -131,9 +131,14 @@ spec:
                     shell script is prepended to download the userdata from Secrets
                     Manager and additionally delete the secret.
                   type: boolean
-                secretARN:
-                  description: SecretARN is the Amazon Resource Name of the secret.
-                    This is stored temporarily, and deleted when the machine registers
+                secretCount:
+                  description: SecretCount is the number of secrets used to form the
+                    complete secret
+                  format: int32
+                  type: integer
+                secretPrefix:
+                  description: SecretPrefix is the prefix for the secret name. This
+                    is stored temporarily, and deleted when the machine registers
                     as a node against the workload cluster.
                   type: string
               type: object

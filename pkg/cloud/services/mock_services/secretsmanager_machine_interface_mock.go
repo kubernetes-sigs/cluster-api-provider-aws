@@ -50,12 +50,13 @@ func (m *MockSecretsManagerInterface) EXPECT() *MockSecretsManagerInterfaceMockR
 }
 
 // Create mocks base method
-func (m *MockSecretsManagerInterface) Create(arg0 *scope.MachineScope, arg1 []byte) (string, error) {
+func (m *MockSecretsManagerInterface) Create(arg0 *scope.MachineScope, arg1 []byte) (string, int32, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", arg0, arg1)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(int32)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // Create indicates an expected call of Create

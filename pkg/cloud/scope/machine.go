@@ -176,35 +176,52 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 // UseSecretsManager returns the computed value of whether or not
 // userdata should be stored using AWS Secrets Manager.
 func (m *MachineScope) UseSecretsManager() bool {
-	if m.AWSMachine.Spec.CloudInit == nil {
-		return false
-	}
-	return m.AWSMachine.Spec.CloudInit.EnableSecureSecretsManager
+	return m.AWSMachine.Spec.CloudInit != nil && m.AWSMachine.Spec.CloudInit.EnableSecureSecretsManager
 }
 
-// GetSecretARN returns the Amazon Resource Name for the secret belonging
+// GetSecretPrefix returns the prefix for the secrets belonging
 // to the AWSMachine in AWS Secrets Manager
-func (m *MachineScope) GetSecretARN() string {
+func (m *MachineScope) GetSecretPrefix() string {
 	if m.AWSMachine.Spec.CloudInit == nil {
 		return ""
 	}
-	return m.AWSMachine.Spec.CloudInit.SecretARN
+	return m.AWSMachine.Spec.CloudInit.SecretPrefix
 }
 
-// SetSecretARN sets the Amazon Resource Name for the secret belonging
+// SetSecretPrefix sets the prefix for the secrets belonging
 // to the AWSMachine in AWS Secrets Manager
-func (m *MachineScope) SetSecretARN(value string) error {
+func (m *MachineScope) SetSecretPrefix(value string) error {
 	if m.AWSMachine.Spec.CloudInit == nil || !m.AWSMachine.Spec.CloudInit.EnableSecureSecretsManager {
-		return errors.New("cannot set secret without .Spec.CloudInit.EnableSecureSecretsManager == true")
+		return errors.New("cannot set secret prefix if .spec.cloudInit.enableSecureSecretsManager is not enabled")
 	}
-	m.AWSMachine.Spec.CloudInit.SecretARN = value
+	m.AWSMachine.Spec.CloudInit.SecretPrefix = value
 	return nil
 }
 
-// DeleteSecretARN deletes the AMazon Resource Name for the secret belonging
+// DeleteSecretPrefix deletes the prefix for the secret belonging
 // to the AWSMachine in AWS Secrets Manager
-func (m *MachineScope) DeleteSecretARN() {
-	m.AWSMachine.Spec.CloudInit.SecretARN = ""
+func (m *MachineScope) DeleteSecretPrefix() error {
+	if m.AWSMachine.Spec.CloudInit == nil || !m.AWSMachine.Spec.CloudInit.EnableSecureSecretsManager {
+		return errors.New("cannot delete secret prefix if .spec.cloudInit.enableSecureSecretsManager is not enabled")
+	}
+	m.AWSMachine.Spec.CloudInit.SecretPrefix = ""
+	return nil
+}
+
+// GetSecretCount returns the number of AWS Secret Manager entries making up
+// the complete userdata
+func (m *MachineScope) GetSecretCount() int32 {
+	return m.AWSMachine.Spec.CloudInit.SecretCount
+}
+
+// SetSecretCount sets the number of AWS Secret Manager entries making up
+// the complete userdata
+func (m *MachineScope) SetSecretCount(i int32) error {
+	if m.AWSMachine.Spec.CloudInit == nil || !m.AWSMachine.Spec.CloudInit.EnableSecureSecretsManager {
+		return errors.New("cannot delete secret count if .spec.cloudInit.enableSecureSecretsManager is not enabled")
+	}
+	m.AWSMachine.Spec.CloudInit.SecretCount = i
+	return nil
 }
 
 // GetBootstrapData returns the Machine's bootstrap data, encoded as base64.

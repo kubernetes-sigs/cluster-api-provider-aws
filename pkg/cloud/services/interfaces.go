@@ -40,5 +40,5 @@ type EC2MachineInterface interface {
 // machine actuator
 type SecretsManagerInterface interface {
 	Delete(m *scope.MachineScope) error
-	Create(m *scope.MachineScope, data []byte) (string, error)
+	Create(m *scope.MachineScope, data []byte) (string, int32, error)
 }

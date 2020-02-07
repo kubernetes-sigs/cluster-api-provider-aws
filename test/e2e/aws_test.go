@@ -42,6 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/tools/clientcmd"
 	bootstrapv1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/api/v1alpha2"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm/kubeadm/v1beta1"
@@ -1168,6 +1169,12 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) {
 						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 							Name:             "{{ ds.meta_data.hostname }}",
 							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
+						},
+					},
+					Files: []bootstrapv1.File{
+						{
+							Path:    "/tmp/userdata-length-test.txt",
+							Content: apirand.String(20000),
 						},
 					},
 				},
