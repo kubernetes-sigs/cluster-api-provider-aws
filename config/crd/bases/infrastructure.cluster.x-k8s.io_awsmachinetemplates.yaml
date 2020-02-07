@@ -151,7 +151,8 @@ spec:
                               the secret.
                             type: boolean
                           secretCount:
-                            description: TODO
+                            description: SecretCount is the number of secrets used
+                              to form the complete secret
                             format: int32
                             type: integer
                           secretPrefix:
@@ -369,7 +370,8 @@ spec:
                               and additionally delete the secret.
                             type: boolean
                           secretCount:
-                            description: TODO
+                            description: SecretCount is the number of secrets used
+                              to form the complete secret
                             format: int32
                             type: integer
                           secretPrefix:

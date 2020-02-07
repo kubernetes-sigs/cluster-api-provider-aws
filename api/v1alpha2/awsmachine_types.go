@@ -104,15 +104,15 @@ type CloudInit struct {
 	// +optional
 	EnableSecureSecretsManager bool `json:"enableSecureSecretsManager,omitempty"`
 
+	// SecretCount is the number of secrets used to form the complete secret
+	// +optional
+	SecretCount int32 `json:"secretCount,omitempty"`
+
 	// SecretPrefix is the prefix for the secret name. This is stored
 	// temporarily, and deleted when the machine registers as a node against
 	// the workload cluster.
 	// +optional
 	SecretPrefix string `json:"secretPrefix,omitempty"`
-
-	// TODO
-	// +optional
-	SecretCount int32 `json:"secretCount,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine

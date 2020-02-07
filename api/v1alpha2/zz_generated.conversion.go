@@ -894,15 +894,15 @@ func Convert_v1alpha3_ClassicELBListener_To_v1alpha2_ClassicELBListener(in *v1al
 
 func autoConvert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in *CloudInit, out *v1alpha3.CloudInit, s conversion.Scope) error {
 	// WARNING: in.EnableSecureSecretsManager requires manual conversion: does not exist in peer-type
-	out.SecretPrefix = in.SecretPrefix
 	out.SecretCount = in.SecretCount
+	out.SecretPrefix = in.SecretPrefix
 	return nil
 }
 
 func autoConvert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in *v1alpha3.CloudInit, out *CloudInit, s conversion.Scope) error {
 	// WARNING: in.InsecureSkipSecretsManager requires manual conversion: does not exist in peer-type
-	out.SecretPrefix = in.SecretPrefix
 	out.SecretCount = in.SecretCount
+	out.SecretPrefix = in.SecretPrefix
 	return nil
 }
 
