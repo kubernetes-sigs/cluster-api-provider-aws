@@ -67,7 +67,7 @@ func GenerateCloudInitMIMEDocument(secretPrefix string, chunks int32, region str
 
 	scriptVariables := scriptVariables{
 		SecretPrefix: secretPrefix,
-		Chunks:       chunks - 1,
+		Chunks:       chunks,
 		Region:       region,
 	}
 

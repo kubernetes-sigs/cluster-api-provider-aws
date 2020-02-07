@@ -39,6 +39,12 @@ set -o pipefail
 
 umask 006
 
+REGION="{{.Region}}"
+SECRET_PREFIX="{{.SecretPrefix}}"
+CHUNKS="{{.Chunks}}"
+FILE="/etc/secret-userdata.txt"
+FINAL_INDEX=$((CHUNKS - 1))
+
 # Log an error and exit.
 # Args:
 #   $1 Message to log with the error
@@ -126,7 +132,7 @@ delete_secret_value() {
 }
 
 delete_secrets() {
-  for i in $(seq 0 ${CHUNKS}); do
+  for i in $(seq 0 ${FINAL_INDEX}); do
     delete_secret_value "$i"
     true
   done
@@ -158,8 +164,8 @@ get_secret_value() {
     delete_secrets
     log::error_exit "could not get secret value, but secret was deleted" 1
   fi
-  log::info "appending data to temporary file /tmp/cloud-init.gz"
-  echo "${data}" | base64 -d >>/tmp/cloud-init.gz
+  log::info "appending data to temporary file ${FILE}.gz"
+  echo "${data}" | base64 -d >>${FILE}.gz
 }
 
 log::info "aws.cluster.x-k8s.io encrypted cloud-init script $0 started"
@@ -171,23 +177,19 @@ if test -f "${FILE}"; then
   log::success_exit
 fi
 
-for i in $(seq 0 ${CHUNKS}); do
+for i in $(seq 0 "${FINAL_INDEX}"); do
   get_secret_value "$i"
 done
 
 delete_secrets
 
-log::info "decoding and decompressing userdata"
-UNZIPPED=$(gunzip -c /tmp/cloud-init.gz)
+log::info "decompressing userdata to ${FILE}"
+gunzip "${FILE}.gz"
 GUNZIP_RETURN=$?
-log::info "deleting temporary gzip file"
-rm /tmp/cloud-init.gz
 if [ ${GUNZIP_RETURN} -ne 0 ]; then
-  log::error_exit "could not get unzip data" 4
+  log::error_exit "could not unzip data" 4
 fi
 
-log::info "writing userdata to ${FILE}"
-echo -n "${UNZIPPED}" >${FILE}
 log::info "restarting cloud-init"
 systemctl restart cloud-init
 log::success_exit
