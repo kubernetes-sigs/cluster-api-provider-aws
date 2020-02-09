@@ -18,7 +18,6 @@ linters:
     - errcheck
     - scopelint
     - gocritic
-    - unparam
   # Run with --fast=false for more extensive checks
   fast: true
 issues:
