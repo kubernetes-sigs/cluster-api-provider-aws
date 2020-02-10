@@ -80,13 +80,15 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 	delete(oldAWSMachineSpec, "additionalSecurityGroups")
 	delete(newAWSMachineSpec, "additionalSecurityGroups")
 
-	// allow changes to secretARN
+	// allow changes to secretPrefix & secretCount
 	if cloudInit, ok := oldAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
-		delete(cloudInit, "secretARN")
+		delete(cloudInit, "secretPrefix")
+		delete(cloudInit, "secretCount")
 	}
 
 	if cloudInit, ok := newAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
-		delete(cloudInit, "secretARN")
+		delete(cloudInit, "secretPrefix")
+		delete(cloudInit, "secretCount")
 	}
 
 	if !reflect.DeepEqual(oldAWSMachineSpec, newAWSMachineSpec) {
@@ -99,8 +101,17 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.CloudInit.SecretARN != "" && r.Spec.CloudInit.InsecureSkipSecretsManager {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretARN"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
+	if r.Spec.CloudInit.InsecureSkipSecretsManager {
+		if r.Spec.CloudInit.SecretPrefix != "" {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretPrefix"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
+		}
+		if r.Spec.CloudInit.SecretCount != 0 {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretCount"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
+		}
+	}
+
+	if (r.Spec.CloudInit.SecretPrefix != "") != (r.Spec.CloudInit.SecretCount != 0) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretCount"), "must be set together with spec.CloudInit.SecretPrefix"))
 	}
 
 	return allErrs

@@ -205,7 +205,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 			It("should try to create a new machine if none exists", func() {
 				expectedErr := errors.New("Invalid instance")
 				ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
-				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("testARN", nil).Times(1)
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
@@ -222,7 +222,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				instance.State = infrav1.InstanceStatePending
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
-				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("testARN", nil).Times(1)
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil)
 			})
 
@@ -385,11 +385,11 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 	Context("secrets management lifecycle", func() {
 		var instance *infrav1.Instance
-		arn := "testARN"
+		secretPrefix := "test/secret"
 		When("creating EC2 instances", func() {
 			BeforeEach(func() {
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
-				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(arn, nil).Times(1)
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 			})
 
@@ -398,7 +398,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					clusterv1.MachineControlPlaneLabelName: "",
 				}
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
-				Expect(ms.AWSMachine.Spec.CloudInit.SecretARN).To(Equal(arn))
+				Expect(ms.AWSMachine.Spec.CloudInit.SecretPrefix).To(Equal(secretPrefix))
 			})
 		})
 
@@ -415,7 +415,8 @@ var _ = Describe("AWSMachineReconciler", func() {
 				}
 
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{
-					SecretARN: "secret",
+					SecretPrefix: "secret",
+					SecretCount:  5,
 				}
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
@@ -456,7 +457,8 @@ var _ = Describe("AWSMachineReconciler", func() {
 					ID: "myMachine",
 				}
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{
-					SecretARN: "secret",
+					SecretPrefix: "secret",
+					SecretCount:  5,
 				}
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()

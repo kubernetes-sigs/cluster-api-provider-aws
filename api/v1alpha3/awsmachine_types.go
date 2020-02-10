@@ -108,11 +108,15 @@ type CloudInit struct {
 	// the userdata from Secrets Manager and additionally delete the secret.
 	InsecureSkipSecretsManager bool `json:"insecureSkipSecretsManager,omitempty"`
 
-	// SecretARN is the Amazon Resource Name of the secret. This is stored
+	// SecretCount is the number of secrets used to form the complete secret
+	// +optional
+	SecretCount int32 `json:"secretCount,omitempty"`
+
+	// SecretPrefix is the prefix for the secret name. This is stored
 	// temporarily, and deleted when the machine registers as a node against
 	// the workload cluster.
 	// +optional
-	SecretARN string `json:"secretARN,omitempty"`
+	SecretPrefix string `json:"secretPrefix,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine

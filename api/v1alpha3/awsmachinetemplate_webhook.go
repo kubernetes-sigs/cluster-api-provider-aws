@@ -41,8 +41,12 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 	var allErrs field.ErrorList
 	spec := r.Spec.Template.Spec
 
-	if spec.CloudInit.SecretARN != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secretARN"), "cannot be set in templates"))
+	if spec.CloudInit.SecretPrefix != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "cloudInit", "secretPrefix"), "cannot be set in templates"))
+	}
+
+	if spec.CloudInit.SecretCount != 0 {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretCount"), "cannot be set in templates"))
 	}
 
 	if spec.ProviderID != nil {
