@@ -113,7 +113,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 
 	out, err := s.scope.EC2.DescribeInstances(input)
 	if err != nil {
-		record.Eventf(s.scope.AWSCluster, "FailedDescribeBastioHost", "Failed to describe bastion host: %v", err)
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeBastionHost", "Failed to describe bastion host: %v", err)
 		return nil, errors.Wrap(err, "failed to describe bastion host")
 	}
 
