@@ -17,11 +17,13 @@ limitations under the License.
 package secretsmanager
 
 import (
-	"strings"
+	"fmt"
+	"path"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	apirand "k8s.io/apimachinery/pkg/util/rand"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -29,19 +31,19 @@ import (
 )
 
 const (
-	parameterPrefix  = "aws.cluster.x-k8s.io"
-	namespacesPrefix = "namespaces"
-	clustersPrefix   = "clusters"
-	instancesPrefix  = "instances"
+	entryPrefix = "aws.cluster.x-k8s.io"
+
+	// we set the max secret size to well below the 10240 byte limit, because this is limit after base64 encoding,
+	// but the aws sdk handles encoding for us, so we can't send a full 10240.
+	maxSecretSizeBytes = 7000
 )
 
-// Create stores a secret in AWS Secrets Manager for a given machine
-func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
-	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
+// Create stores data in AWS Secrets Manager for a given machine, chunking at 10kb per secret. The prefix of the secret
+// ARN and the number of chunks are returned.
+func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, error) {
+	// Build the tags to apply to the secret.
 	additionalTags := m.AdditionalTags()
-	// Set the cloud provider tag
 	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
-
 	tags := infrav1.Build(infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
@@ -50,55 +52,46 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 		Additional:  additionalTags,
 	})
 
-	name := s.secretName(m)
+	// Build the prefix.
+	prefix := path.Join(entryPrefix, string(uuid.NewUUID()))
 
-	resp, err := s.scope.SecretsManager.CreateSecret(&secretsmanager.CreateSecretInput{
-		Name:         aws.String(name),
-		SecretBinary: data,
-		Tags:         converters.MapToSecretsManagerTags(tags),
+	// Split the data into chunks and create the secrets on demand.
+	var err error
+	chunks := int32(0)
+	splitBytes(data, maxSecretSizeBytes, func(chunk []byte) {
+		name := fmt.Sprintf("%s-%d", prefix, chunks)
+		_, callErr := s.scope.SecretsManager.CreateSecret(&secretsmanager.CreateSecretInput{
+			Name:         aws.String(name),
+			SecretBinary: chunk,
+			Tags:         converters.MapToSecretsManagerTags(tags),
+		})
+		if callErr != nil {
+			err = kerrors.NewAggregate([]error{callErr})
+			return
+		}
+		chunks++
 	})
 
-	if err != nil {
-		return "", err
-	}
-
-	return aws.StringValue(resp.ARN), nil
+	return prefix, chunks, err
 }
 
 // Delete the secret belonging to a machine from AWS Secrets Manager
 func (s *Service) Delete(m *scope.MachineScope) error {
-	secretArn := m.AWSMachine.Spec.CloudInit.SecretARN
-	if secretArn == "" {
-		return nil
+	var errors []error
+
+	for i := int32(0); i < m.GetSecretCount(); i++ {
+		_, err := s.scope.SecretsManager.DeleteSecret(&secretsmanager.DeleteSecretInput{
+			SecretId:                   aws.String(fmt.Sprintf("%s-%d", m.GetSecretPrefix(), i)),
+			ForceDeleteWithoutRecovery: aws.Bool(true),
+		})
+
+		if awserrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			errors = append(errors, err)
+		}
 	}
-	_, err := s.scope.SecretsManager.DeleteSecret(&secretsmanager.DeleteSecretInput{
-		SecretId:                   aws.String(secretArn),
-		ForceDeleteWithoutRecovery: aws.Bool(true),
-	})
 
-	if awserrors.IsNotFound(err) {
-		return nil
-	}
-
-	return err
-}
-
-func (s *Service) secretName(m *scope.MachineScope) string {
-	prefix := strings.Join(
-		[]string{
-			parameterPrefix,
-			namespacesPrefix,
-			s.scope.Namespace(),
-			clustersPrefix,
-			s.scope.Name(),
-			instancesPrefix,
-			m.Name(),
-		},
-		"/",
-	) + "-"
-
-	// apirand uses 27 runes, 27^54 is closest to 2^256 for 256-bits of entropy.
-	randomStr := apirand.String(54)
-
-	return prefix + randomStr
+	return kerrors.NewAggregate(errors)
 }

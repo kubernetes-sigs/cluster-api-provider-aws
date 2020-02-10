@@ -163,19 +163,19 @@ func TestUseSecretsManagerFalse(t *testing.T) {
 	}
 }
 
-func TestGetSecretARNDefaultIsNil(t *testing.T) {
+func TestGetSecretPrefixDefaultIsNil(t *testing.T) {
 	scope, err := setupMachineScope()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if scope.GetSecretARN() != "" {
-		t.Fatalf("GetSecretARN should be empty string")
+	if scope.GetSecretPrefix() != "" {
+		t.Fatalf("GetSecretPrefix should be empty string")
 	}
 }
 
 func TestSetSecretARN(t *testing.T) {
-	secretARN := "secretARN"
+	prefix := "secret"
 	scope, err := setupMachineScope()
 	scope.AWSMachine.Spec.CloudInit = &infrav1.CloudInit{
 		EnableSecureSecretsManager: true,
@@ -184,10 +184,9 @@ func TestSetSecretARN(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scope.SetSecretARN(secretARN)
-	val := scope.GetSecretARN()
-
-	if val != secretARN {
-		t.Fatalf("GetSecretARN does not equal %s: %s", secretARN, val)
+	scope.SetSecretPrefix(prefix)
+	val := scope.GetSecretPrefix()
+	if val != prefix {
+		t.Fatalf("prefix does not equal %s: %s", prefix, val)
 	}
 }
