@@ -61,8 +61,7 @@ func IsNotFound(err error) bool {
 		return true
 	}
 	if code, ok := awserrors.Code(errors.Cause(err)); ok {
-		switch code {
-		case elb.ErrCodeAccessPointNotFoundException:
+		if code == elb.ErrCodeAccessPointNotFoundException {
 			return true
 		}
 	}
@@ -82,8 +81,7 @@ func IsSDKError(err error) (ok bool) {
 
 // ReasonForError returns the HTTP status for a particular error.
 func ReasonForError(err error) int {
-	switch t := errors.Cause(err).(type) {
-	case *ELBError:
+	if t, ok := errors.Cause(err).(*ELBError); ok {
 		return t.Code
 	}
 	return -1

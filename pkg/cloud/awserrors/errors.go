@@ -138,10 +138,10 @@ func IsInvalidNotFoundError(err error) bool {
 
 // ReasonForError returns the HTTP status for a particular error.
 func ReasonForError(err error) int {
-	switch t := err.(type) {
-	case *EC2Error:
+	if t, ok := err.(*EC2Error); ok {
 		return t.Code
 	}
+
 	return -1
 }
 
