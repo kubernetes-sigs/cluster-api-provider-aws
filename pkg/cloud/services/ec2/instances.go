@@ -156,9 +156,11 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	// Pick subnet from the machine configuration, or based on the availability zone specified,
 	// or default to the first private subnet available.
 	// TODO(vincepri): Move subnet picking logic to its own function/method.
-	if scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil {
+	switch {
+	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
 		input.SubnetID = *scope.AWSMachine.Spec.Subnet.ID
-	} else if scope.AWSMachine.Spec.FailureDomain != nil {
+
+	case scope.AWSMachine.Spec.FailureDomain != nil:
 		zone := scope.AWSMachine.Spec.FailureDomain
 		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*zone)
 		if len(subnets) == 0 {
@@ -176,7 +178,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 		// TODO(vincepri): Define a tag that would allow to pick a preferred subnet in an AZ when working
 		// with control plane machines.
-	} else if input.SubnetID == "" {
+
+	case input.SubnetID == "":
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
 			return nil, awserrors.NewFailedDependency(
