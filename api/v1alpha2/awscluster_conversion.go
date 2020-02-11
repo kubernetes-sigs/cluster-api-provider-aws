@@ -47,6 +47,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		return err
 	}
 
+	dst.Spec.CredentialsSecretName = restored.Spec.CredentialsSecretName
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
 	dst.Spec.ImageLookupBaseOS = restored.Spec.ImageLookupBaseOS
 	if restored.Spec.ControlPlaneLoadBalancer != nil {

@@ -514,6 +514,13 @@ spec:
                       to Internet-facing)
                     type: string
                 type: object
+              credentialsSecretName:
+                description: "CredentialSecretName is the name of the secret the controller
+                  should pull AWS credentials from. When empty, the SDK default chain
+                  is used. \n Credentials secrets can be shared across many clusters.
+                  A secret MUST contain `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+                  \n Defaults to empty."
+                type: string
               imageLookupBaseOS:
                 description: ImageLookupBaseOS is the name of the base operating system
                   used to look up machine images when a machine does not specify an

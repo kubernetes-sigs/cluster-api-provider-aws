@@ -66,6 +66,16 @@ type AWSClusterSpec struct {
 	// Bastion contains options to configure the bastion host.
 	// +optional
 	Bastion Bastion `json:"bastion"`
+
+	// CredentialSecretName is the name of the secret the controller should pull AWS credentials from.
+	// When empty, the SDK default chain is used.
+	//
+	// Credentials secrets can be shared across many clusters.
+	// A secret MUST contain `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+	//
+	// Defaults to empty.
+	// +optional
+	CredentialsSecretName string `json:"credentialsSecretName,omitempty"`
 }
 
 type Bastion struct {
