@@ -108,7 +108,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	input := &infrav1.Instance{
 		Type:              scope.AWSMachine.Spec.InstanceType,
 		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
-		RootDeviceSize:    scope.AWSMachine.Spec.RootDeviceSize,
+		RootVolume:        scope.AWSMachine.Spec.RootVolume,
 		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
 	}
 
@@ -341,19 +341,44 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		}
 	}
 
-	if i.RootDeviceSize != 0 {
+	if i.RootVolume != nil {
 		rootDeviceName, err := s.getImageRootDevice(i.ImageID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get root volume from image %q", i.ImageID)
 		}
 
+		snapshotSize, err := s.getImageSnapshotSize(i.ImageID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get root volume from image %q", i.ImageID)
+		}
+
+		if i.RootVolume.Size < *snapshotSize {
+			return nil, errors.Errorf("root volume size (%d) must be greater than or equal to snapshot size (%d)", i.RootVolume.Size, *snapshotSize)
+		}
+
+		ebsRootDevice := &ec2.EbsBlockDevice{
+			DeleteOnTermination: aws.Bool(true),
+			VolumeSize:          aws.Int64(i.RootVolume.Size),
+			Encrypted:           aws.Bool(i.RootVolume.Encrypted),
+		}
+
+		if i.RootVolume.IOPS != 0 {
+			ebsRootDevice.Iops = aws.Int64(i.RootVolume.IOPS)
+		}
+
+		if i.RootVolume.EncryptionKey != "" {
+			ebsRootDevice.Encrypted = aws.Bool(true)
+			ebsRootDevice.KmsKeyId = aws.String(i.RootVolume.EncryptionKey)
+		}
+
+		if i.RootVolume.Type != "" {
+			ebsRootDevice.VolumeType = aws.String(i.RootVolume.Type)
+		}
+
 		input.BlockDeviceMappings = []*ec2.BlockDeviceMapping{
 			{
 				DeviceName: rootDeviceName,
-				Ebs: &ec2.EbsBlockDevice{
-					DeleteOnTermination: aws.Bool(true),
-					VolumeSize:          aws.Int64(i.RootDeviceSize),
-				},
+				Ebs:        ebsRootDevice,
 			},
 		}
 	}
@@ -525,6 +550,23 @@ func (s *Service) getImageRootDevice(imageID string) (*string, error) {
 	}
 
 	return output.Images[0].RootDeviceName, nil
+}
+
+func (s *Service) getImageSnapshotSize(imageID string) (*int64, error) {
+	input := &ec2.DescribeImagesInput{
+		ImageIds: []*string{aws.String(imageID)},
+	}
+
+	output, err := s.scope.EC2.DescribeImages(input)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(output.Images) == 0 {
+		return nil, errors.Errorf("no images returned when looking up ID %q", imageID)
+	}
+
+	return output.Images[0].BlockDeviceMappings[0].Ebs.VolumeSize, nil
 }
 
 // SDKToInstance converts an AWS EC2 SDK instance to the CAPA instance type.

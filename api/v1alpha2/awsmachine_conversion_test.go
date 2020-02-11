@@ -45,7 +45,77 @@ func TestConvertAWSMachine(t *testing.T) {
 			g.Expect(restored.Spec.CloudInit.SecretPrefix).To(Equal(src.Spec.CloudInit.SecretPrefix))
 			g.Expect(restored.Spec.CloudInit.InsecureSkipSecretsManager).To(Equal(src.Spec.CloudInit.InsecureSkipSecretsManager))
 		})
+		t.Run("should convert rootVolume to rootDeviceSize", func(t *testing.T) {
+			src := &infrav1alpha3.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-1",
+				},
+				Spec: infrav1alpha3.AWSMachineSpec{
+					RootVolume: &infrav1alpha3.RootVolume{
+						Size:      10,
+						Encrypted: true,
+					},
+				},
+			}
+			dst := &AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-1",
+				},
+			}
+
+			g.Expect(dst.ConvertFrom(src)).To(Succeed())
+			g.Expect(dst.Spec.RootDeviceSize).To(Equal(int64(10)))
+		})
+		t.Run("should preserve fields", func(t *testing.T) {
+			src := &infrav1alpha3.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-1",
+					Annotations: map[string]string{},
+				},
+				Spec: infrav1alpha3.AWSMachineSpec{
+					RootVolume: &infrav1alpha3.RootVolume{
+						Size:      10,
+						Encrypted: true,
+					},
+				},
+			}
+			dst := &AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-1",
+				},
+			}
+
+			g.Expect(dst.ConvertFrom(src)).To(Succeed())
+			restored := &infrav1alpha3.AWSMachine{}
+			g.Expect(dst.ConvertTo(restored)).To(Succeed())
+
+			// Test field restored fields.
+			g.Expect(restored).To(Equal(src))
+		})
 	})
+
+	t.Run("to hub", func(t *testing.T) {
+		t.Run("should convert rootDeviceSize to RootVolume", func(t *testing.T) {
+			src := &AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-1",
+				},
+				Spec: AWSMachineSpec{
+					RootDeviceSize: 10,
+				},
+			}
+			dst := &infrav1alpha3.AWSMachine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-1",
+				},
+			}
+
+			g.Expect(src.ConvertTo(dst)).To(Succeed())
+			g.Expect(dst.Spec.RootVolume.Size).To(Equal(int64(10)))
+		})
+
+	})
+
 	t.Run("should prefer newer cloudinit data on the v1alpha2 obj", func(t *testing.T) {
 		src := &infrav1alpha3.AWSMachine{
 			ObjectMeta: metav1.ObjectMeta{},

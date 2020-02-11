@@ -56,6 +56,10 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst.Status.Network.APIServerELB.AvailabilityZones = restored.Status.Network.APIServerELB.AvailabilityZones
 	dst.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing = restored.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing
 
+	if restored.Status.Bastion != nil {
+		restored.Status.Bastion.DeepCopyInto(dst.Status.Bastion)
+	}
+
 	return nil
 }
 
@@ -106,7 +110,7 @@ func Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSClust
 	// Manually convert Status.Bastion.
 	if !reflect.DeepEqual(in.Bastion, Instance{}) {
 		out.Bastion = &v1alpha3.Instance{}
-		if err := autoConvert_v1alpha2_Instance_To_v1alpha3_Instance(&in.Bastion, out.Bastion, s); err != nil {
+		if err := Convert_v1alpha2_Instance_To_v1alpha3_Instance(&in.Bastion, out.Bastion, s); err != nil {
 			return err
 		}
 	}
@@ -147,7 +151,7 @@ func Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *infrav1a
 
 	// Manually convert Status.Bastion.
 	if in.Bastion != nil {
-		if err := autoConvert_v1alpha3_Instance_To_v1alpha2_Instance(in.Bastion, &out.Bastion, s); err != nil {
+		if err := Convert_v1alpha3_Instance_To_v1alpha2_Instance(in.Bastion, &out.Bastion, s); err != nil {
 			return err
 		}
 	}

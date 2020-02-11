@@ -22,6 +22,33 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+func TestAWSMachine_ValidateCreate(t *testing.T) {
+	tests := []struct {
+		name    string
+		machine *AWSMachine
+		wantErr bool
+	}{
+		{
+			name: "ensure IOPS exists if type equal to io1",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					RootVolume: &RootVolume{
+						Type: "io1",
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.machine.ValidateCreate(); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestAWSMachine_ValidateUpdate(t *testing.T) {
 	tests := []struct {
 		name       string
