@@ -376,18 +376,18 @@ func (s *Service) GenerateManagedIAMPolicyDocuments(policyDocDir, accountID, par
 	for _, pn := range ManagedIAMPolicyNames {
 		pd, err := getPolicyDocFromPolicyName(pn, accountID, partition)
 		if err != nil {
-			return fmt.Errorf("Error: failed to get PolicyDocument for ManagedIAMPolicy %q, %v", pn, err)
+			return fmt.Errorf("failed to get PolicyDocument for ManagedIAMPolicy %q, %v", pn, err)
 		}
 
 		pds, err := pd.JSON()
 		if err != nil {
-			return fmt.Errorf("ERROR: failed to marshal policy document for ManagedIAMPolicy %q: %v", pn, err)
+			return fmt.Errorf("failed to marshal policy document for ManagedIAMPolicy %q: %v", pn, err)
 		}
 
 		fn := path.Join(policyDocDir, fmt.Sprintf("%s.json", pn))
 		err = ioutil.WriteFile(fn, []byte(pds), 0755)
 		if err != nil {
-			return fmt.Errorf("ERROR: failed to generate policy document for ManagedIAMPolicy %q: %v", pn, err)
+			return fmt.Errorf("failed to generate policy document for ManagedIAMPolicy %q: %v", pn, err)
 		}
 	}
 	return nil
