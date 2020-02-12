@@ -89,10 +89,8 @@ func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSp
 
 	if in.CloudInit == nil {
 		out.CloudInit.InsecureSkipSecretsManager = true
-	} else {
-		if err := Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in.CloudInit, &out.CloudInit, s); err != nil {
-			return err
-		}
+	} else if err := Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in.CloudInit, &out.CloudInit, s); err != nil {
+		return err
 	}
 
 	// Manually convert RootDeviceSize. This may be overridden by restoring / upconverting from annotation.

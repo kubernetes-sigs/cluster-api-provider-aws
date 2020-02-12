@@ -43,7 +43,7 @@ func base36Truncate(bytes []byte) string {
 	var chars string
 	for _, bite := range bytes {
 		idx := int(bite) % 36
-		chars = chars + string(base36set[idx])
+		chars += string(base36set[idx])
 	}
 
 	return chars

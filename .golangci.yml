@@ -17,7 +17,6 @@ linters:
     - staticcheck
     - errcheck
     - scopelint
-    - gocritic
   # Run with --fast=false for more extensive checks
   fast: true
 issues:
