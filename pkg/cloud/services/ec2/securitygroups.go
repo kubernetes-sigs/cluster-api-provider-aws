@@ -268,10 +268,10 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 
 	if err != nil {
 		record.Warnf(s.scope.AWSCluster, "FailedCreateSecurityGroup", "Failed to create managed SecurityGroup for Role %q: %v", role, err)
-		return errors.Wrapf(err, "failed to create security group %q in vpc %q", *out.GroupId, *input.VpcId)
+		return errors.Wrapf(err, "failed to create security group %q in vpc %q", role, aws.StringValue(input.VpcId))
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %q for Role %q", *out.GroupId, role)
+	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %q for Role %q", aws.StringValue(out.GroupId), role)
 
 	// Set the group id.
 	input.GroupId = out.GroupId
@@ -286,11 +286,11 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 		}
 		return true, nil
 	}, awserrors.GroupNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagSecurityGroup", "Failed to tag managed SecurityGroup %q: %v", *out.GroupId, err)
-		return errors.Wrapf(err, "failed to tag security group %q in vpc %q", *out.GroupId, *input.VpcId)
+		record.Warnf(s.scope.AWSCluster, "FailedTagSecurityGroup", "Failed to tag managed SecurityGroup %q: %v", aws.StringValue(out.GroupId), err)
+		return errors.Wrapf(err, "failed to tag security group %q in vpc %q", aws.StringValue(out.GroupId), aws.StringValue(input.VpcId))
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulTagSecurityGroup", "Tagged managed SecurityGroup %q", *out.GroupId)
+	record.Eventf(s.scope.AWSCluster, "SuccessfulTagSecurityGroup", "Tagged managed SecurityGroup %q", aws.StringValue(out.GroupId))
 	return nil
 }
 
