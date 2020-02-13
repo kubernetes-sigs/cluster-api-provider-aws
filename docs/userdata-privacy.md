@@ -5,6 +5,15 @@ Because Kubernetes clusters are secured using TLS using multiple Certificate Aut
 Cluster API and injected into the user data. It is important to note that without the configuring of host firewalls, processes can
 retrieve instance userdata from http://169.254.169.254/latest/api/token
 
+## Requirements
+
+* An AMI that includes the AWS CLI
+* AMIs using CloudInit
+* A working `/bin/bash` shell
+* LFS directory layout (i.e. `/etc` exists and is readable by CloudInit)
+
+[Listed AMIs](amis.md) on 1.16 and up should include the AWS CLI.
+
 ## How Cluster API secures TLS secrets
 
 In 0.5.x/v1alpha3, by default, Cluster API Provider AWS will use [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
@@ -29,3 +38,20 @@ of a cloud-init boothook:
 cloudInit:
   insecureSkipSecretsManager: true
 ```
+
+## Troubleshooting
+
+### Script errors
+
+cloud-init does not print boothook script errors to the systemd journal. Logs for the script, if it errored can be found in
+`/var/log/cloud-init-output.log`
+
+### Warning messages
+
+Because cloud-init will attempt to read the final file at start, cloud-init will always print a `/etc/secret-userdata.txt cannot be found`
+message. This can be safely ignored.
+
+### Secrets manager console
+
+The AWS secrets manager console should show secrets being created and deleted, with a lifetime of around a minute. No plaintext secret
+data will appear in the console as Cluster API Provider AWS stores the userdata as fragments of a gzipped data stream.
