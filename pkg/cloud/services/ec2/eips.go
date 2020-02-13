@@ -119,6 +119,7 @@ func (s *Service) releaseAddresses() error {
 	}
 
 	for _, ip := range out.Addresses {
+		ip := ip
 		if ip.AssociationId != nil {
 			_, err := s.scope.EC2.DisassociateAddress(&ec2.DisassociateAddressInput{
 				AssociationId: ip.AssociationId,

@@ -53,6 +53,7 @@ func (s *Service) reconcileRouteTables() error {
 	for _, sn := range s.scope.Subnets() {
 		// We need to compile the minimum routes for this subnet first, so we can compare it or create them.
 		var routes []*ec2.Route
+		sn := sn
 		if sn.IsPublic {
 			if s.scope.VPC().InternetGatewayID == nil {
 				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
@@ -77,6 +78,7 @@ func (s *Service) reconcileRouteTables() error {
 				for _, specRoute := range routes {
 					// Routes destination cidr blocks must be unique within a routing table.
 					// If there is a mistmatch, we replace the routing association.
+					specRoute := specRoute
 					if *currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock &&
 						((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
 							(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
@@ -247,6 +249,7 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 	record.Eventf(s.scope.AWSCluster, "SuccessfulTagRouteTable", "Tagged managed RouteTable %q", *out.RouteTable.RouteTableId)
 
 	for _, route := range routes {
+		route := route
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.scope.EC2.CreateRoute(&ec2.CreateRouteInput{
 				RouteTableId:                out.RouteTable.RouteTableId,

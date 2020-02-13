@@ -16,7 +16,7 @@ linters:
     - gosimple
     - staticcheck
     - errcheck
-    - scopelint
+      #    - scopelint
   # Run with --fast=false for more extensive checks
   fast: true
 issues:

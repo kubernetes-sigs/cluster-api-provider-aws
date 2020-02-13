@@ -70,6 +70,7 @@ func (s *Service) reconcileSecurityGroups() error {
 
 	// First iteration makes sure that the security group are valid and fully created.
 	for _, role := range roles {
+		role := role
 		sg := s.getDefaultSecurityGroup(role)
 		existing, ok := sgs[*sg.GroupName]
 
@@ -106,6 +107,7 @@ func (s *Service) reconcileSecurityGroups() error {
 	// Second iteration creates or updates all permissions on the security group to match
 	// the specified ingress rules.
 	for role, sg := range s.scope.SecurityGroups() {
+		sg := sg
 		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) {
 			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
 			continue
@@ -161,6 +163,7 @@ func (s *Service) deleteSecurityGroups() error {
 	}
 
 	for _, sg := range s.scope.SecurityGroups() {
+		sg := sg
 		s.deleteSecurityGroup(&sg, "managed")
 	}
 
@@ -171,6 +174,7 @@ func (s *Service) deleteSecurityGroups() error {
 
 	errs := []error{}
 	for _, sg := range clusterGroups {
+		sg := sg
 		if err := s.deleteSecurityGroup(&sg, "cluster managed"); err != nil {
 			errs = append(errs, err)
 		}
