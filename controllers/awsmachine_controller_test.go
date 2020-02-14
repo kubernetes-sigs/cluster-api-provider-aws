@@ -58,10 +58,17 @@ var _ = Describe("AWSMachineReconciler", func() {
 	BeforeEach(func() {
 		// https://github.com/kubernetes/klog/issues/87#issuecomment-540153080
 		// TODO: Replace with LogToOutput when https://github.com/kubernetes/klog/pull/99 merges
-		flag.Set("logtostderr", "false")
-		flag.Set("v", "2")
-		klog.SetOutput(GinkgoWriter)
 		var err error
+
+		err = flag.Set("logtostderr", "false")
+		if err != nil {
+			_ = fmt.Errorf("Error setting logtostderr flag")
+		}
+		err = flag.Set("v", "2")
+		if err != nil {
+			_ = fmt.Errorf("Error setting v flag")
+		}
+		klog.SetOutput(GinkgoWriter)
 
 		awsMachine := &infrav1.AWSMachine{
 			ObjectMeta: metav1.ObjectMeta{
@@ -298,7 +305,10 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 				It("should not tag anything if there's not tags", func() {
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(gomock.Any(), gomock.Any()).Times(0)
-					reconciler.reconcileNormal(context.Background(), ms, cs)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
+					if err != nil {
+						_ = fmt.Errorf("reconcileNormal reutrned an error during test")
+					}
 				})
 
 				It("should tag instances from machine and cluster tags", func() {

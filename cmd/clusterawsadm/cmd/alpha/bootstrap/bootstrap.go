@@ -96,7 +96,10 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 			}
 			if !sts.ValidateAccountID(args[0]) {
 				fmt.Printf("Error: provided AWS Account ID is invalid\n\n")
-				cmd.Help()
+				err := cmd.Help()
+				if err != nil {
+					return err
+				}
 				os.Exit(201)
 			}
 			return nil
@@ -181,7 +184,10 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 			var err error
 			if !sts.ValidateAccountID(accountID) {
 				fmt.Printf("Error: provided AWS Account ID is invalid\n\n")
-				cmd.Help()
+				err := cmd.Help()
+				if err != nil {
+					return err
+				}
 				os.Exit(301)
 			}
 
@@ -189,13 +195,19 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 				err = os.Mkdir(policyDocDir, 0755)
 				if err != nil {
 					fmt.Printf("Error: failed to make directory %q, %v", policyDocDir, err)
-					cmd.Help()
+					err := cmd.Help()
+					if err != nil {
+						return err
+					}
 					os.Exit(302)
 				}
 			}
 			if err != nil {
 				fmt.Printf("Error: failed to stat directory %q, %v", policyDocDir, err)
-				cmd.Help()
+				err := cmd.Help()
+				if err != nil {
+					return err
+				}
 				os.Exit(303)
 			}
 			return nil

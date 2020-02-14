@@ -317,7 +317,10 @@ func (g git) getUserConfirmation(message string) {
 	reader := bufio.NewReader(os.Stdin)
 	g.logger.Info("Press return to confirm.")
 	// throwing away the error
-	reader.ReadString('\n')
+	_, err := reader.ReadString('\n')
+	if err != nil {
+		_ = fmt.Errorf("User confirmation error")
+	}
 }
 
 func (g git) forceUpdateTag(version string) error {
