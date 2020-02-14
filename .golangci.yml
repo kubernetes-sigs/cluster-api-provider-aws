@@ -14,7 +14,6 @@ linters:
     - unused
     - stylecheck
     - gosimple
-    - staticcheck
     - errcheck
     - scopelint
   # Run with --fast=false for more extensive checks
