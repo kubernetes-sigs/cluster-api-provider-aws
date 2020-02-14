@@ -72,7 +72,9 @@ func GenerateCloudInitMIMEDocument(secretPrefix string, chunks int32, region str
 	}
 
 	var scriptBuf bytes.Buffer
-	secretFetchTemplate.Execute(&scriptBuf, scriptVariables)
+	if err := secretFetchTemplate.Execute(&scriptBuf, scriptVariables); err != nil {
+		return []byte{}, err
+	}
 	_, err = scriptWriter.Write(scriptBuf.Bytes())
 	if err != nil {
 		return []byte{}, err

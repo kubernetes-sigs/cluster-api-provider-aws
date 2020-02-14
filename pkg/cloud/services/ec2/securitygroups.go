@@ -161,7 +161,10 @@ func (s *Service) deleteSecurityGroups() error {
 	}
 
 	for _, sg := range s.scope.SecurityGroups() {
-		s.deleteSecurityGroup(&sg, "managed")
+		err := s.deleteSecurityGroup(&sg, "managed")
+		if err != nil {
+			return err
+		}
 	}
 
 	clusterGroups, err := s.describeClusterOwnedSecurityGroups()
