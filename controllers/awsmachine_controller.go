@@ -443,53 +443,50 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc ser
 		return nil, err
 	}
 
-	if instance == nil {
-		scope.Info("Creating EC2 instance")
-		// Create a new AWSMachine instance if we couldn't find a running instance.
+	// If we find an instance, return it
+	if instance != nil {
+		return instance, nil
+	}
+	// Otherwise create a new instance
+	scope.Info("Creating EC2 instance")
 
-		userData, err := scope.GetRawBootstrapData()
+	userData, err := scope.GetRawBootstrapData()
+	if err != nil {
+		r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+		return nil, err
+	}
+
+	if scope.UseSecretsManager() {
+		compressedUserData, err := userdata.GzipBytes(userData)
 		if err != nil {
-			r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
 			return nil, err
 		}
-
-		if scope.UseSecretsManager() {
-			compressedUserData, err := userdata.GzipBytes(userData)
-			if err != nil {
-				return nil, err
-			}
-			// Do an initial check in case manager was terminated prematurely
-			if scope.GetSecretPrefix() == "" {
-				prefix, chunks, err := secretSvc.Create(scope, compressedUserData)
-				scope.SetSecretPrefix(prefix)
-				scope.SetSecretCount(chunks)
-				if err != nil {
-					r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecretsManagerSecrets", err.Error())
-					scope.Error(err, "Failed to create AWS Secret entry", "secretPrefix", prefix)
-					delErr := secretSvc.Delete(scope)
-					if delErr != nil {
-						scope.Error(delErr, "Failed to clean up AWS Secret entries", "secretPrefix", prefix)
-						return nil, delErr
-					}
-					return nil, err
-				}
-			}
-			// Register the Secret ARN immediately to avoid orphaning AWS resources on delete
-			if err := scope.PatchObject(); err != nil {
-				return nil, err
-			}
-			encryptedCloudInit, err := secretsmanager.GenerateCloudInitMIMEDocument(scope.GetSecretPrefix(), scope.GetSecretCount(), scope.AWSCluster.Spec.Region)
-			if err != nil {
-				r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsManagerCloudInit", err.Error())
-				return nil, err
-			}
-			userData = encryptedCloudInit
+		prefix, chunks, serviceErr := secretSvc.Create(scope, compressedUserData)
+		// Only persist the AWS Secrets Manager entries if there is at least one
+		if chunks > 0 {
+			scope.SetSecretPrefix(prefix)
+			scope.SetSecretCount(chunks)
 		}
-
-		instance, err = ec2svc.CreateInstance(scope, userData)
+		// Register the Secret ARN immediately to avoid orphaning whatever AWS resources have been created
+		if err := scope.PatchObject(); err != nil {
+			return nil, err
+		}
+		if serviceErr != nil {
+			r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecretsManagerSecrets", serviceErr.Error())
+			scope.Error(serviceErr, "Failed to create AWS Secret entry", "secretPrefix", prefix)
+			return nil, serviceErr
+		}
+		encryptedCloudInit, err := secretsmanager.GenerateCloudInitMIMEDocument(scope.GetSecretPrefix(), scope.GetSecretCount(), scope.AWSCluster.Spec.Region)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create EC2 instance for AWSMachine %s/%s", scope.Namespace(), scope.Name())
+			r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsManagerCloudInit", err.Error())
+			return nil, err
 		}
+		userData = encryptedCloudInit
+	}
+
+	instance, err = ec2svc.CreateInstance(scope, userData)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create AWSMachine instance")
 	}
 
 	return instance, nil

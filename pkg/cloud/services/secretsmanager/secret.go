@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 )
 
 const (
@@ -37,6 +38,13 @@ const (
 	// but the aws sdk handles encoding for us, so we can't send a full 10240.
 	maxSecretSizeBytes = 7000
 )
+
+var retryableErrors = []string{
+	// Returned when the secret is scheduled for deletion
+	secretsmanager.ErrCodeInvalidRequestException,
+	// Returned during retries of deletes prior to recreation
+	secretsmanager.ErrCodeResourceNotFoundException,
+}
 
 // Create stores data in AWS Secrets Manager for a given machine, chunking at 10kb per secret. The prefix of the secret
 // ARN and the number of chunks are returned.
@@ -52,20 +60,20 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 		Additional:  additionalTags,
 	})
 
-	prefix := path.Join(entryPrefix, string(uuid.NewUUID()))
-
+	// Build the prefix.
+	prefix := m.GetSecretPrefix()
+	if prefix == "" {
+		prefix = path.Join(entryPrefix, string(uuid.NewUUID()))
+	}
 	// Split the data into chunks and create the secrets on demand.
 	chunks := int32(0)
 	var err error
 	splitBytes(data, maxSecretSizeBytes, func(chunk []byte) {
 		name := fmt.Sprintf("%s-%d", prefix, chunks)
-		_, callErr := s.scope.SecretsManager.CreateSecret(&secretsmanager.CreateSecretInput{
-			Name:         aws.String(name),
-			SecretBinary: chunk,
-			Tags:         converters.MapToSecretsManagerTags(tags),
-		})
-		if callErr != nil {
-			err = kerrors.NewAggregate([]error{callErr})
+		retryFunc := func() (bool, error) { return s.retryableCreateSecret(name, chunk, tags) }
+		// Default timeout is 5 mins, but if Secrets Manager has got to the state where the timeout is reached,
+		// makes sense to slow down machine creation until AWS weather improves.
+		if err = wait.WaitForWithRetryable(wait.NewBackoff(), retryFunc, retryableErrors...); err != nil {
 			return
 		}
 		chunks++
@@ -74,23 +82,43 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 	return prefix, chunks, err
 }
 
+// retryableCreateSecret is a function to be passed into a waiter. In a separate function for ease of reading
+func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.Tags) (bool, error) {
+	_, err := s.scope.SecretsManager.CreateSecret(&secretsmanager.CreateSecretInput{
+		Name:         aws.String(name),
+		SecretBinary: chunk,
+		Tags:         converters.MapToSecretsManagerTags(tags),
+	})
+	// If the secret already exists, delete it, return request to retry, as deletes are eventually consistent
+	if awserrors.IsResourceExists(err) {
+		return false, s.forceDeleteSecretEntry(name)
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, err
+}
+
+// forceDeleteSecretEntry deletes a single secret, ignoring if it is absent
+func (s *Service) forceDeleteSecretEntry(name string) error {
+	_, err := s.scope.SecretsManager.DeleteSecret(&secretsmanager.DeleteSecretInput{
+		SecretId:                   aws.String(name),
+		ForceDeleteWithoutRecovery: aws.Bool(true),
+	})
+	if awserrors.IsNotFound(err) {
+		return nil
+	}
+	return err
+}
+
 // Delete the secret belonging to a machine from AWS Secrets Manager
 func (s *Service) Delete(m *scope.MachineScope) error {
-	var errors []error
-
+	var errs []error
 	for i := int32(0); i < m.GetSecretCount(); i++ {
-		_, err := s.scope.SecretsManager.DeleteSecret(&secretsmanager.DeleteSecretInput{
-			SecretId:                   aws.String(fmt.Sprintf("%s-%d", m.GetSecretPrefix(), i)),
-			ForceDeleteWithoutRecovery: aws.Bool(true),
-		})
-
-		if awserrors.IsNotFound(err) {
-			continue
-		}
-		if err != nil {
-			errors = append(errors, err)
+		if err := s.forceDeleteSecretEntry(fmt.Sprintf("%s-%d", m.GetSecretPrefix(), i)); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
-	return kerrors.NewAggregate(errors)
+	return kerrors.NewAggregate(errs)
 }
