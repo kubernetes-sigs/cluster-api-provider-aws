@@ -68,6 +68,11 @@ func (r *AWSMachineReconciler) ensureTags(svc service.EC2MachineInterface, machi
 }
 
 func (r *AWSMachineReconciler) ensureRootDeviceTags(svc service.EC2MachineInterface, instance *infrav1.Instance, additionalTags map[string]string) error {
+	// Do not attempt to tag if the root device ID is not present (e.g. EC2 instance state Pending)
+	if instance.RootDeviceID == "" {
+		return nil
+	}
+
 	input := make(map[string]interface{})
 	for k, v := range instance.RootDeviceTags {
 		input[k] = v
