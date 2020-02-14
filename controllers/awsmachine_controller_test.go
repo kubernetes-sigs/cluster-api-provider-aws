@@ -113,7 +113,8 @@ var _ = Describe("AWSMachineReconciler", func() {
 		secretSvc = mock_services.NewMockSecretsManagerInterface(mockCtrl)
 
 		// If your test hangs for 9 minutes, increase the value here to the number of events during a reconciliation loop
-		recorder = record.NewFakeRecorder(2)
+		// Should be equal or greater than the max number of events to be received in a test
+		recorder = record.NewFakeRecorder(10)
 
 		reconciler = AWSMachineReconciler{
 			ec2ServiceFactory: func(*scope.ClusterScope) services.EC2MachineInterface {
@@ -268,7 +269,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					buf := new(bytes.Buffer)
 					klog.SetOutput(buf)
 					instance.State = "NewAWSMachineState"
-					secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
 					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
@@ -360,7 +361,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				BeforeEach(func() {
 					buf = new(bytes.Buffer)
 					klog.SetOutput(buf)
-					secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				})
 
 				It("should warn if an instance is shutting-down", func() {
@@ -427,28 +428,58 @@ var _ = Describe("AWSMachineReconciler", func() {
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).
 					Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
 			})
 
 			It("should delete the secret if the instance is terminated", func() {
 				instance.State = infrav1.InstanceStateTerminated
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
 			})
 
 			It("should delete the secret if the AWSMachine is deleted", func() {
 				instance.State = infrav1.InstanceStateRunning
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				_, _ = reconciler.reconcileDelete(ms, cs)
 			})
 
 			It("should delete the secret if the AWSMachine is in a failure condition", func() {
 				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				_, _ = reconciler.reconcileDelete(ms, cs)
 			})
 
+		})
+
+		When("there is an intermittent connection issue", func() {
+			BeforeEach(func() {
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
+			})
+			It("should delete any created secrets and error", func() {
+				ms.Machine.Status.NodeRef = &corev1.ObjectReference{}
+				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{}
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(5), errors.New("connection error")).Times(1)
+				secretSvc.EXPECT().Delete(secretPrefix, int32(5)).Return(nil).Times(1)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
+				Expect(err).ToNot(BeNil())
+				Expect(ms.AWSMachine.Spec.CloudInit.SecretPrefix).To(Equal(""))
+				Expect(ms.AWSMachine.Spec.CloudInit.SecretCount).To(Equal(int32(0)))
+			})
+			It("it should succeed on the second reconciliation", func() {
+				instance = &infrav1.Instance{
+					ID: "myMachine",
+				}
+				instance.State = infrav1.InstanceStatePending
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("newPrefix", int32(10), nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
+				Expect(err).To(BeNil())
+				Expect(ms.AWSMachine.Spec.CloudInit.SecretPrefix).To(Equal("newPrefix"))
+				Expect(ms.AWSMachine.Spec.CloudInit.SecretCount).To(Equal(int32(10)))
+			})
 		})
 
 		When("there's only a secret ARN and no node ref", func() {
@@ -469,25 +500,25 @@ var _ = Describe("AWSMachineReconciler", func() {
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).
 					Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).MaxTimes(0)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).MaxTimes(0)
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
 			})
 
 			It("should delete the secret if the instance is terminated", func() {
 				instance.State = infrav1.InstanceStateTerminated
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
 			})
 
 			It("should delete the secret if the AWSMachine is deleted", func() {
 				instance.State = infrav1.InstanceStateRunning
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				_, _ = reconciler.reconcileDelete(ms, cs)
 			})
 
 			It("should delete the secret if the AWSMachine is in a failure condition", func() {
 				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
-				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+				secretSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				_, _ = reconciler.reconcileDelete(ms, cs)
 			})
 

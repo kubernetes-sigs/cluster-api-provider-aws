@@ -75,12 +75,12 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 }
 
 // Delete the secret belonging to a machine from AWS Secrets Manager
-func (s *Service) Delete(m *scope.MachineScope) error {
+func (s *Service) Delete(prefix string, chunkCount int32) error {
 	var errors []error
 
-	for i := int32(0); i < m.GetSecretCount(); i++ {
+	for i := int32(0); i < chunkCount; i++ {
 		_, err := s.scope.SecretsManager.DeleteSecret(&secretsmanager.DeleteSecretInput{
-			SecretId:                   aws.String(fmt.Sprintf("%s-%d", m.GetSecretPrefix(), i)),
+			SecretId:                   aws.String(fmt.Sprintf("%s-%d", prefix, i)),
 			ForceDeleteWithoutRecovery: aws.Bool(true),
 		})
 
