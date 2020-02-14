@@ -118,8 +118,8 @@ func (s *Service) releaseAddresses() error {
 		return errors.Wrapf(err, "failed to describe elastic IPs %q", err)
 	}
 
-	for _, ip := range out.Addresses {
-		ip := ip
+	for i := range out.Addresses {
+		ip := out.Addresses[i]
 		if ip.AssociationId != nil {
 			_, err := s.scope.EC2.DisassociateAddress(&ec2.DisassociateAddressInput{
 				AssociationId: ip.AssociationId,
