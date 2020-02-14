@@ -1,16 +1,5 @@
 # Release process
 
-## Semi-automatic
-
-1. associate a gpg key to your github account. See: https://help.github.com/en/articles/signing-commits
-2. Make sure your repo is clean by git's standards
-3. If this is a new minor release, create a new release branch and push to github, for example `release-0.2`
-4. run `go run cmd/release/main.go -version v0.1.2` but replace the version with the version you'd like.
-5. Edit the release notes and make sure the binaries uploaded return the correct version
-6. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter)
-7. Publish draft
-8. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release
-
 ## Manual
 
 1. Make sure your repo is clean by git's standards
