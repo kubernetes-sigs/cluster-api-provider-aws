@@ -60,12 +60,10 @@ var _ = Describe("AWSMachineReconciler", func() {
 		// TODO: Replace with LogToOutput when https://github.com/kubernetes/klog/pull/99 merges
 		var err error
 
-		err = flag.Set("logtostderr", "false")
-		if err != nil {
+		if err := flag.Set("logtostderr", "false"); err != nil {
 			_ = fmt.Errorf("Error setting logtostderr flag")
 		}
-		err = flag.Set("v", "2")
-		if err != nil {
+		if err := flag.Set("v", "2"); err != nil {
 			_ = fmt.Errorf("Error setting v flag")
 		}
 		klog.SetOutput(GinkgoWriter)
@@ -305,8 +303,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 				It("should not tag anything if there's not tags", func() {
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(gomock.Any(), gomock.Any()).Times(0)
-					_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
-					if err != nil {
+					if _, err := reconciler.reconcileNormal(context.Background(), ms, cs); err != nil {
 						_ = fmt.Errorf("reconcileNormal reutrned an error during test")
 					}
 				})

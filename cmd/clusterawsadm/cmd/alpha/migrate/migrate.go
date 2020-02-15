@@ -54,8 +54,7 @@ Supported versions: %v`, supportedVersions),
 			}
 			if !isValidVersion(args[0]) {
 				fmt.Printf("Error: unsupported migration target. Supported versions: %v\n\n", supportedVersions)
-				err := cmd.Help()
-				if err != nil {
+				if err := cmd.Help(); err != nil {
 					return err
 				}
 				os.Exit(201)
@@ -93,9 +92,8 @@ Supported versions: %v`, supportedVersions),
 	}
 
 	newCmd.Flags().StringVarP(&clusterName, "clusterName", "n", "", "name of existing Cluster object")
-	err := newCmd.MarkFlagRequired("clusterName")
-	if err != nil {
-		// TODO: How to handle flag making errors
+	if err := newCmd.MarkFlagRequired("clusterName"); err != nil {
+		_ = fmt.Errorf("Error makring required flag")
 	}
 
 	return newCmd

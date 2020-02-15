@@ -35,8 +35,7 @@ import (
 )
 
 func init() {
-	err := clusterv1.AddToScheme(scheme.Scheme)
-	if err != nil {
+	if err := clusterv1.AddToScheme(scheme.Scheme); err != nil {
 		_ = fmt.Errorf("Error adding clusterv1 to scheme")
 	}
 }

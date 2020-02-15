@@ -161,8 +161,7 @@ func (s *Service) deleteSecurityGroups() error {
 	}
 
 	for _, sg := range s.scope.SecurityGroups() {
-		err := s.deleteSecurityGroup(&sg, "managed")
-		if err != nil {
+		if err := s.deleteSecurityGroup(&sg, "managed"); err != nil {
 			return err
 		}
 	}
