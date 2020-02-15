@@ -37,8 +37,7 @@ func TestSplitBytes(t *testing.T) {
 	t.Run("should call 1 time if it fits", func(t *testing.T) {
 		maxSize := 100
 		input := make([]byte, 100)
-		_, err := crand.Read(input)
-		if err != nil {
+		if _, err := crand.Read(input); err != nil {
 			_ = fmt.Errorf("Could not Read byte input")
 		}
 
@@ -53,8 +52,7 @@ func TestSplitBytes(t *testing.T) {
 	t.Run("should properly split given random input and maxsize", func(t *testing.T) {
 		maxSize := 1 + rand.Intn(1024)
 		input := make([]byte, rand.Intn(24576))
-		_, err := crand.Read(input)
-		if err != nil {
+		if _, err := crand.Read(input); err != nil {
 			_ = fmt.Errorf(("Could not read byte input"))
 		}
 

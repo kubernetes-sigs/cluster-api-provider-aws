@@ -32,8 +32,7 @@ func Base36TruncatedHash(str string, len int) (string, error) {
 		return "", errors.Wrap(err, "unable to create hash function")
 	}
 
-	_, err = hasher.Write([]byte(str))
-	if err != nil {
+	if _, err := hasher.Write([]byte(str)); err != nil {
 		return "", errors.Wrap(err, "unable to write hash")
 	}
 	return base36Truncate(hasher.Sum(nil)), nil

@@ -31,8 +31,7 @@ func AlphaCmd() *cobra.Command { // nolint
 		Short: "alpha commands",
 		Long:  `Alpha commands may not be supported in future releases`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := cmd.Help()
-			if err != nil {
+			if err := cmd.Help(); err != nil {
 				_ = fmt.Errorf("Error printing Help")
 			}
 		},
