@@ -88,11 +88,11 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 LoopExisting:
-	for _, exsn := range existing {
+	for i := range existing {
+		exsn := existing[i]
 		// Check if the subnet already exists in the state, in that case reconcile it.
-		for _, sn := range subnets {
-			exsn := exsn
-			sn := sn
+		for j := range subnets {
+			sn := subnets[j]
 			// Two subnets are defined equal to each other if their id is equal
 			// or if they are in the same vpc and the cidr block is the same.
 			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.CidrBlock == exsn.CidrBlock) {
