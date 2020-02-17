@@ -22,6 +22,7 @@ package tools
 import (
 	_ "github.com/golang/mock/mockgen"                      //nolint
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint" //nolint
+	_ "github.com/onsi/ginkgo/ginkgo"                       //nolint
 	_ "k8s.io/code-generator"                               //nolint
 	_ "sigs.k8s.io/cluster-api/hack/tools/release"          //nolint
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"     //nolint

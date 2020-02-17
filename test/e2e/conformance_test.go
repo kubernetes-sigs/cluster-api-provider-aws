@@ -20,15 +20,16 @@ package e2e_test
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"text/template"
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
@@ -158,10 +159,11 @@ func runConformance(tmpDir, namespace, clusterName string) error {
 		return errors.Wrap(err, "couldn't retrieve sonobuoy results")
 	}
 	var fileName string
+	outputDir := path.Join(artifactPath, "sonobuoy")
 	eg := &errgroup.Group{}
 	eg.Go(func() error { return <-ec })
 	eg.Go(func() error {
-		filesCreated, err := client.UntarAll(reader, ".", "")
+		filesCreated, err := client.UntarAll(reader, outputDir, strconv.Itoa(config.GinkgoConfig.ParallelNode))
 		if err != nil {
 			return errors.Wrap(err, "couldn't untar sonobuoy results")
 		}
@@ -177,21 +179,15 @@ func runConformance(tmpDir, namespace, clusterName string) error {
 		return errors.Wrap(err, "error retrieving results")
 	}
 
-	_, err = exec.Command("tar", "-C", "tmp/sonobuoy", "-xf", fileName).Output()
+	_, err = exec.Command("tar", "-C", outputDir, "-xf", fileName).Output()
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "untar %s failed\n", fileName)
 	} else {
-		src, err := os.Open("tmp/sonobuoy/plugins/e2e/results/global/junit_01.xml")
-		defer src.Close()
-		if err == nil {
-			dst, err := os.Create(path.Join(artifactPath, "junit.k8s_conf.xml"))
-			defer dst.Close()
-			if err == nil {
-				_, err = io.Copy(dst, src)
-				if err != nil {
-					fmt.Fprintf(GinkgoWriter, "couldn't fetch junit.k8s_conf.xml %v", err)
-				}
-			}
+		// Move the conformance junit file to the artifact directory for prow to pick it up
+		src := path.Join(outputDir, "plugins/e2e/results/global/junit_01.xml")
+		dest := path.Join(artifactPath, "junit.k8s_conf.xml")
+		if err := os.Rename(src, dest); err != nil {
+			fmt.Fprintf(GinkgoWriter, "couldn't fetch junit.k8s_conf.xml %v", err)
 		}
 	}
 

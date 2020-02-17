@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/golang/mock v1.3.1
 	github.com/golangci/golangci-lint v1.23.3
+	github.com/onsi/ginkgo v1.11.0
 	k8s.io/code-generator v0.0.0-20190923155300-6206bfaf5c98
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20191001234507-1b49d6fb8946
 	sigs.k8s.io/controller-tools v0.2.1

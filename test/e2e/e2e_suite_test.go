@@ -28,6 +28,8 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
+	"strings"
 	"testing"
 	"text/template"
 
@@ -64,12 +66,11 @@ import (
 func TestE2e(t *testing.T) {
 	RegisterFailHandler(Fail)
 
-	// If running in prow, output the junit files to the artifacts path
-	junitPath := fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode)
-	artifactPath, exists := os.LookupEnv("ARTIFACTS")
-	if exists {
-		junitPath = path.Join(artifactPath, junitPath)
+	// If running in prow, make sure to output the junit files to the artifacts path
+	if ap, exists := os.LookupEnv("ARTIFACTS"); exists {
+		artifactPath = ap
 	}
+	junitPath := path.Join(artifactPath, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
 	junitReporter := reporters.NewJUnitReporter(junitPath)
 	RunSpecsWithDefaultAndCustomReporters(t, "e2e Suite", []Reporter{junitReporter})
 }
@@ -97,22 +98,20 @@ var (
 	k8sVersion      = capiFlag.DefineOrLookupStringFlag("k8sVersion", "v1.16.0", "kubernetes version to test on")
 	sonobuoyVersion = capiFlag.DefineOrLookupStringFlag("sonobuoyVersion", "v0.16.2", "sonobuoy version")
 
-	kindCluster  kind.Cluster
-	kindClient   crclient.Client
-	sess         client.ConfigProvider
-	accountID    string
-	accessKey    *iam.AccessKey
-	suiteTmpDir  string
-	region       string
-	artifactPath string
+	artifactPath = ".artifacts"
+
+	kindCluster       kind.Cluster
+	kindClient        crclient.Client
+	sess              client.ConfigProvider
+	accountID         string
+	accessKeyUsername string
+	accessKeyID       string
+	secretAccessKey   string
+	suiteTmpDir       string
+	region            string
 )
-
-var _ = BeforeSuite(func() {
-	fmt.Fprintf(GinkgoWriter, "Setting up kind cluster\n")
-
-	var err error
-	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
-	Expect(err).NotTo(HaveOccurred())
+var _ = SynchronizedBeforeSuite(func() []byte {
+	fmt.Fprintf(GinkgoWriter, "Setting up shared AWS prerequisites\n")
 
 	var ok bool
 	region, ok = os.LookupEnv("AWS_REGION")
@@ -133,7 +132,39 @@ var _ = BeforeSuite(func() {
 	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(out.AccessKey).NotTo(BeNil())
-	accessKey = out.AccessKey
+	return []byte(
+		strings.Join(
+			[]string{
+				aws.StringValue(out.AccessKey.UserName),
+				aws.StringValue(out.AccessKey.AccessKeyId),
+				aws.StringValue(out.AccessKey.SecretAccessKey),
+			},
+			",",
+		),
+	)
+}, func(accessKeyPair []byte) {
+	parts := strings.Split(string(accessKeyPair), ",")
+	Expect(parts).To(HaveLen(3))
+
+	accessKeyUsername = parts[0]
+	accessKeyID = parts[1]
+	secretAccessKey = parts[2]
+
+	var ok bool
+	region, ok = os.LookupEnv("AWS_REGION")
+	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
+	if !ok {
+		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
+		Expect(ok).To(BeTrue())
+	}
+
+	sess = getSession()
+
+	var err error
+	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
+	Expect(err).NotTo(HaveOccurred())
+
+	fmt.Fprintf(GinkgoWriter, "Setting up kind cluster\n")
 
 	kindCluster = kind.Cluster{
 		Name: "capa-test-" + util.RandomString(6),
@@ -167,33 +198,23 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 }, setupTimeout)
 
-var _ = AfterSuite(func() {
+var _ = SynchronizedAfterSuite(func() {
 	fmt.Fprintf(GinkgoWriter, "Tearing down kind cluster\n")
 	retrieveAllLogs()
 	kindCluster.Teardown()
-	iamc := iam.New(sess)
-	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
-	deleteIAMRoles(sess)
 	os.RemoveAll(suiteTmpDir)
+}, func() {
+	iamc := iam.New(sess)
+	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: aws.String(accessKeyUsername), AccessKeyId: aws.String(accessKeyID)})
+	deleteIAMRoles(sess)
 })
 
 func retrieveAllLogs() {
-	capiLogs := retrieveCapiLogs()
-	cabpkLogs := retrieveCabpkLogs()
-	capaLogs := retrieveCapaLogs()
-
-	// If running in prow, output the logs to the artifacts path
-	artifactPath, exists := os.LookupEnv("ARTIFACTS")
-	if exists {
-		ioutil.WriteFile(path.Join(artifactPath, "capi.log"), []byte(capiLogs), 0644)
-		ioutil.WriteFile(path.Join(artifactPath, "cabpk.log"), []byte(cabpkLogs), 0644)
-		ioutil.WriteFile(path.Join(artifactPath, "capa.log"), []byte(capaLogs), 0644)
-		return
-	}
-
-	fmt.Fprintf(GinkgoWriter, "CAPI Logs:\n%s\n", capiLogs)
-	fmt.Fprintf(GinkgoWriter, "CABPK Logs:\n%s\n", cabpkLogs)
-	fmt.Fprintf(GinkgoWriter, "CAPA Logs:\n%s\n", capaLogs)
+	outputPath := path.Join(artifactPath, strconv.Itoa(config.GinkgoConfig.ParallelNode))
+	ioutil.WriteFile(path.Join(outputPath, "capi.log"), []byte(retrieveCapiLogs()), 0644)
+	ioutil.WriteFile(path.Join(outputPath, "cabpk.log"), []byte(retrieveCabpkLogs()), 0644)
+	ioutil.WriteFile(path.Join(outputPath, "capa.log"), []byte(retrieveCapaLogs()), 0644)
+	return
 }
 
 func retrieveCapaLogs() string {
@@ -330,8 +351,8 @@ type awsCredential struct {
 func generateB64Credentials() string {
 	creds := awsCredential{
 		Region:          region,
-		AccessKeyID:     *accessKey.AccessKeyId,
-		SecretAccessKey: *accessKey.SecretAccessKey,
+		AccessKeyID:     accessKeyID,
+		SecretAccessKey: secretAccessKey,
 	}
 
 	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
