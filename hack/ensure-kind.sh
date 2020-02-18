@@ -18,8 +18,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-set -x
-
 GOPATH_BIN="$(go env GOPATH)/bin/"
 MINIMUM_KIND_VERSION=v0.6.1
 

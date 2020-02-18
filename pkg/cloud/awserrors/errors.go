@@ -97,10 +97,7 @@ func NewFailedDependency(err error) error {
 
 // IsFailedDependency checks if the error is pf http.StatusFailedDependency
 func IsFailedDependency(err error) bool {
-	if ReasonForError(err) == http.StatusFailedDependency {
-		return true
-	}
-	return false
+	return ReasonForError(err) == http.StatusFailedDependency
 }
 
 // IsNotFound returns true if the error was created by NewNotFound.

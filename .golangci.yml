@@ -12,7 +12,6 @@ linters:
     - gocognit
     - gomnd
     - stylecheck
-    - gosimple
     - scopelint
   # Run with --fast=false for more extensive checks
   fast: true
