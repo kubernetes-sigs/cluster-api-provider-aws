@@ -5,6 +5,8 @@ go 1.13
 require (
 	github.com/aws/aws-sdk-go v1.25.16
 	github.com/awslabs/goformation/v4 v4.1.0
+	github.com/coreos/bbolt v1.3.3 // indirect
+	github.com/coreos/etcd v3.3.17+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.3.1
@@ -17,12 +19,12 @@ require (
 	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
 	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
 	gopkg.in/yaml.v2 v2.2.7
-	k8s.io/api v0.16.4
-	k8s.io/apiextensions-apiserver v0.16.4 // indirect
-	k8s.io/apimachinery v0.16.4
-	k8s.io/client-go v0.16.4
+	k8s.io/api v0.17.2
+	k8s.io/apimachinery v0.17.2
+	k8s.io/client-go v0.17.2
 	k8s.io/klog v1.0.0
-	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d
+	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 	sigs.k8s.io/cluster-api v0.2.6-0.20200204220036-b2ab4c203c74
-	sigs.k8s.io/controller-runtime v0.4.0
+	sigs.k8s.io/controller-runtime v0.5.0
+	sigs.k8s.io/structured-merge-diff v1.0.1 // indirect
 )
