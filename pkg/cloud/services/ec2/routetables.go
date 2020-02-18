@@ -78,7 +78,7 @@ func (s *Service) reconcileRouteTables() error {
 				for i := range routes {
 					// Routes destination cidr blocks must be unique within a routing table.
 					// If there is a mistmatch, we replace the routing association.
-					specRoute := rt.Routes[i]
+					specRoute := routes[i]
 					if *currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock &&
 						((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
 							(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
