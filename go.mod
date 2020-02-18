@@ -17,9 +17,10 @@ require (
 	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
 	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
 	gopkg.in/yaml.v2 v2.2.7
-	k8s.io/api v0.0.0-20191121015604-11707872ac1c
-	k8s.io/apimachinery v0.0.0-20191121015412-41065c7a8c2a
-	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
+	k8s.io/api v0.16.4
+	k8s.io/apiextensions-apiserver v0.16.4 // indirect
+	k8s.io/apimachinery v0.16.4
+	k8s.io/client-go v0.16.4
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d
 	sigs.k8s.io/cluster-api v0.2.6-0.20200204220036-b2ab4c203c74
