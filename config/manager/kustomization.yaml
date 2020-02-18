@@ -1,3 +1,14 @@
 resources:
 - manager.yaml
-- credentials.yaml
+#- credentials.yaml
+secretGenerator:
+- name: manager-bootstrap-credentials
+  namespace: system
+  literals:
+    - credentials="W2RlZmF1bHRdCg=="
+  type: "opaque"
+configMapGenerator:
+- name: manager-bootstrap-credentials
+  namespace: system
+  files:
+    - credentials
