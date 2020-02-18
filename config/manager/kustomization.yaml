@@ -1,3 +1,32 @@
+commonLabels:
+  cluster.x-k8s.io/provider: "infrastructure-aws"
+
 resources:
 - manager.yaml
-- credentials.yaml
+- auth_proxy_service.yaml
+- auth_proxy_role_binding.yaml
+- auth_proxy_role.yaml
+- leader_election_role.yaml
+- leader_election_role_binding.yaml
+
+patchesStrategicMerge:
+- manager_image_patch.yaml
+- manager_pull_policy.yaml
+
+patchesJson6902:
+# Repeat this definition for each new CRD under crd/bases
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: controller-manager
+    namespace: system
+  path: patch_metrics.yaml
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: controller-manager
+    namespace: system
+  path: patch_kube_rbac_proxy.yaml
+

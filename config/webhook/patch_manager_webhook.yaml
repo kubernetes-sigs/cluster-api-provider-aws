@@ -1,0 +1,29 @@
+- op: add
+  path: "/spec/template/spec/containers/0/args/0"
+  value: "--webhook-port=9443"
+
+- op: add
+  path: "/spec/template/spec/containers/0/args/0"
+  value: "--webhook-only"
+
+- op: add
+  path: "/spec/template/spec/containers/0/ports/0"
+  value:
+    containerPort: 9443
+    name: webhook
+    protocol: TCP
+
+- op: add
+  path: "/spec/template/spec/containers/0/volumeMounts"
+  value:
+    - mountPath: /tmp/k8s-webhook-server/serving-certs
+      name: cert
+      readOnly: true
+
+- op: add
+  path: "/spec/template/spec/volumes"
+  value:
+  - name: cert
+    secret:
+      defaultMode: 420
+      secretName: capa-webhook-controller-server-cert

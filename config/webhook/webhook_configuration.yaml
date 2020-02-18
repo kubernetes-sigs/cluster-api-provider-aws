@@ -9,7 +9,7 @@ webhooks:
 - clientConfig:
     caBundle: Cg==
     service:
-      name: webhook-service
+      name: webhook
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachine
   failurePolicy: Fail
@@ -27,7 +27,7 @@ webhooks:
 - clientConfig:
     caBundle: Cg==
     service:
-      name: webhook-service
+      name: controller
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinetemplate
   failurePolicy: Fail

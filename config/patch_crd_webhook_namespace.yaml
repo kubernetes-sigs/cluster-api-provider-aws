@@ -1,0 +1,7 @@
+- op: replace
+  path: "/spec/conversion/webhookClientConfig/service/namespace"
+  value: capi-webhook-system
+
+- op: replace
+  path: "/spec/conversion/webhookClientConfig/service/name"
+  value: capa-webhook-controller

@@ -1,0 +1,15 @@
+- op: add
+  path: "/spec/template/spec/containers/0/args/0"
+  value: "--metrics-addr=127.0.0.1:8080"
+
+- op: add
+  path: "/spec/template/spec/containers/0/ports/0"
+  value:
+    containerPort: 8080
+    name: metrics
+    protocol: TCP
+
+- op: add
+  path: "/spec/template/metadata/annotations"
+  value:
+      prometheus.io/scrape: 'true'

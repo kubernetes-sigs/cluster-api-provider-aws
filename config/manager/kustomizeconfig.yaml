@@ -1,0 +1,19 @@
+varReference:
+- kind: Deployment
+  path: spec/template/serviceAccount
+
+vars:
+- name: ACCOUNT_NAMESPACE
+  objref:
+    kind: ServiceAccount
+    version: v1
+    name: default
+  fieldref:
+    fieldpath: metadata.namespace
+- name: ACCOUNT_NAME
+  objref:
+    kind: ServiceAccount
+    version: v1
+    name: default
+  fieldref:
+    fieldpath: metadata.name

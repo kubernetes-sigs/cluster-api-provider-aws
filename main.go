@@ -65,6 +65,7 @@ func main() {
 		awsMachineConcurrency   int
 		syncPeriod              time.Duration
 		webhookPort             int
+		webhookOnly             bool
 		healthAddr              string
 	)
 
@@ -123,8 +124,14 @@ func main() {
 
 	flag.IntVar(&webhookPort,
 		"webhook-port",
-		9443,
+		0,
 		"Webhook server port (set to 0 to disable)",
+	)
+
+	flag.BoolVar(&webhookOnly,
+		"webhook-only",
+		false,
+		"Only deploy webhooks",
 	)
 
 	flag.StringVar(&healthAddr,
@@ -173,21 +180,27 @@ func main() {
 	// Initialize event recorder.
 	record.InitFromRecorder(mgr.GetEventRecorderFor("aws-controller"))
 
-	if err = (&controllers.AWSMachineReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-		Recorder: mgr.GetEventRecorderFor("awsmachine-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
-		os.Exit(1)
+	if !webhookOnly {
+		if err = (&controllers.AWSMachineReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+			Recorder: mgr.GetEventRecorderFor("awsmachine-controller"),
+		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
+			os.Exit(1)
+		}
+		if err = (&controllers.AWSClusterReconciler{
+			Client:   mgr.GetClient(),
+			Log:      ctrl.Log.WithName("controllers").WithName("AWSCluster"),
+			Recorder: mgr.GetEventRecorderFor("awscluster-controller"),
+		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
+			os.Exit(1)
+		}
 	}
-	if err = (&controllers.AWSClusterReconciler{
-		Client:   mgr.GetClient(),
-		Log:      ctrl.Log.WithName("controllers").WithName("AWSCluster"),
-		Recorder: mgr.GetEventRecorderFor("awscluster-controller"),
-	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
-		os.Exit(1)
+
+	if webhookOnly && webhookPort == 0 {
+		webhookPort = 9443
 	}
 
 	if webhookPort != 0 {
