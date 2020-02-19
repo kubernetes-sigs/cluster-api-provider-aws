@@ -3,6 +3,7 @@
   "config": {
     "componentsFile": "infrastructure-components.yaml",
     "nextVersion": "v0.5.0",
-    "type": "InfrastructureProvider"
+    "type": "InfrastructureProvider",
+    "configFolder": "config/default"
   }
 }
