@@ -11,19 +11,19 @@ bases:
 patchesJson6902:
 - target:
     group: apiextensions.k8s.io
-    version: v1beta1
+    version: v1
     kind: CustomResourceDefinition
     name: awsclusters.infrastructure.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml
 - target:
     group: apiextensions.k8s.io
-    version: v1beta1
+    version: v1
     kind: CustomResourceDefinition
     name: awsmachines.infrastructure.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml
 - target:
     group: apiextensions.k8s.io
-    version: v1beta1
+    version: v1
     kind: CustomResourceDefinition
     name: awsmachinetemplates.infrastructure.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml
