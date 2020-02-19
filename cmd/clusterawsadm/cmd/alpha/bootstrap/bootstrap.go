@@ -207,7 +207,7 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 				SharedConfigState: session.SharedConfigEnable,
 			})
 			if err != nil {
-				return fmt.Errorf("Error: failed to create a session: %v", err)
+				return fmt.Errorf("failed to create a session: %v", err)
 			}
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
@@ -215,7 +215,7 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 			err = cfnSvc.GenerateManagedIAMPolicyDocuments(policyDocDir, accountID, partition)
 
 			if err != nil {
-				return fmt.Errorf("Error: failed to generate PolicyDocument for all ManagedIAMPolicies: %v", err)
+				return fmt.Errorf("failed to generate PolicyDocument for all ManagedIAMPolicies: %v", err)
 			}
 
 			fmt.Printf("PolicyDocument for all ManagedIAMPolicies successfully generated in JSON at %q\n", policyDocDir)
@@ -311,7 +311,7 @@ type awsCredential struct {
 func getEnv(key string) (string, error) {
 	val, ok := os.LookupEnv(key)
 	if !ok {
-		return "", fmt.Errorf("Environment variable %q not found", key)
+		return "", fmt.Errorf("environment variable %q not found", key)
 	}
 	return val, nil
 }

@@ -11,9 +11,7 @@ linters:
     - whitespace
     - gocognit
     - gomnd
-    - stylecheck
     - errcheck
-    - scopelint
   # Run with --fast=false for more extensive checks
   fast: true
 issues:
