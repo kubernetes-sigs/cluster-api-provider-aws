@@ -121,11 +121,11 @@ func main() {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
 	)
 
-  flag.IntVar(&webhookPort,
-    "webhook-port",
-    0,
-    "Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.",
-  )
+	flag.IntVar(&webhookPort,
+		"webhook-port",
+		0,
+		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.",
+	)
 
 	flag.StringVar(&healthAddr,
 		"health-addr",
