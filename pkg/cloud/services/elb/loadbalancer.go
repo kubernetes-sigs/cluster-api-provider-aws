@@ -132,7 +132,9 @@ func (s *Service) DeleteLoadbalancers() error {
 
 	for _, elb := range elbs {
 		s.scope.V(3).Info("deleting load balancer", "arn", elb)
-		s.deleteClassicELB(elb)
+		if err := s.deleteClassicELB(elb); err != nil {
+			return err
+		}
 	}
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
