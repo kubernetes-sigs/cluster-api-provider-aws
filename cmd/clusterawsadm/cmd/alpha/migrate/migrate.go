@@ -93,7 +93,7 @@ Supported versions: %v`, supportedVersions),
 
 	newCmd.Flags().StringVarP(&clusterName, "clusterName", "n", "", "name of existing Cluster object")
 	if err := newCmd.MarkFlagRequired("clusterName"); err != nil {
-		_ = fmt.Errorf("Error makring required flag")
+		_ = fmt.Errorf("error making required flag")
 	}
 
 	return newCmd
