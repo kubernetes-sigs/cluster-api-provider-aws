@@ -1,6 +1,5 @@
 resources:
 - manager.yaml
-- credentials.yaml
 
 patchesStrategicMerge:
 - manager_image_patch.yaml

@@ -2,6 +2,7 @@ namespace: capa-system
 
 resources:
 - namespace.yaml
+- credentials.yaml
 
 bases:
 - ../rbac
