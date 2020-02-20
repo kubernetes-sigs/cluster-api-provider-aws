@@ -10,4 +10,3 @@ bases:
 
 patchesStrategicMerge:
 - manager_credentials_patch.yaml
-- manager_role_aggregation_patch.yaml
