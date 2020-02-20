@@ -111,19 +111,19 @@ if [[ ${CAPI_BRANCH} == "stable" ]]; then
   curl -sL https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.2.5/cluster-api-components.yaml > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Downloaded ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api stable branch - v0.2.5"
 elif [[ ${CAPI_BRANCH} == "dev" ]]; then
-  kustomize build ../cluster-api/config/default > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-  kustomize build ../cluster-api/bootstrap/kubeadm/config/default > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-  kustomize build ../cluster-api/controlplane/kubeadm/config/default > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build ../cluster-api/config > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build ../cluster-api/bootstrap/kubeadm/config > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build ../cluster-api/controlplane/kubeadm/config > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
 else
-  kustomize build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-  kustomize build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
-  kustomize build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/default/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build "github.com/kubernetes-sigs/cluster-api/config/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+  kustomize build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/?ref=${CAPI_BRANCH}" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
   echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE} from cluster-api - ${CAPI_BRANCH}"
 fi
 
 # Generate AWS Infrastructure Provider components file.
-kustomize build "${SOURCE_DIR}/../config/default" | envsubst > "${COMPONENTS_AWS_GENERATED_FILE}"
+kustomize build "${SOURCE_DIR}/../config" | envsubst > "${COMPONENTS_AWS_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_AWS_GENERATED_FILE}"
 
 # Generate a single provider components file.
