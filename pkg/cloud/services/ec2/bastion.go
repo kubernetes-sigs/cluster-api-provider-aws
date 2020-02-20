@@ -139,9 +139,16 @@ func (s *Service) getDefaultBastion() *infrav1.Instance {
 	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
-	keyName := defaultSSHKeyName
-	if s.scope.AWSCluster.Spec.SSHKeyName != "" {
-		keyName = s.scope.AWSCluster.Spec.SSHKeyName
+	// If SSHKeyName WAS NOT provided (nil) then use the defaultSSHKeyName
+	// If SSHKeyName WAS provided _but is an empty string_, do not set a key pair
+	// Otherwise (SSHKeyName WAS provided and is NOT an empty string), use the provided key pair name
+	var keyName string
+	if s.scope.AWSCluster.Spec.SSHKeyName != nil {
+		if *s.scope.AWSCluster.Spec.SSHKeyName != "" {
+			keyName = *s.scope.AWSCluster.Spec.SSHKeyName
+		}
+	} else {
+		keyName = defaultSSHKeyName
 	}
 
 	i := &infrav1.Instance{

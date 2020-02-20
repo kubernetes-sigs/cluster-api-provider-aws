@@ -127,6 +127,9 @@ func Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *AWSClusterSp
 	// Manually convert Bastion.
 	out.Bastion.Enabled = !in.DisableBastionHost
 
+	// Manually convert SSHKeyName
+	out.SSHKeyName = &in.SSHKeyName
+
 	return nil
 }
 
