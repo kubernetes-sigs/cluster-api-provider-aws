@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -34,7 +35,9 @@ import (
 )
 
 func init() {
-	clusterv1.AddToScheme(scheme.Scheme)
+	if err := clusterv1.AddToScheme(scheme.Scheme); err != nil {
+		_ = fmt.Errorf("Error adding clusterv1 to scheme")
+	}
 }
 
 const (
