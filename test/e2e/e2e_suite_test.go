@@ -317,7 +317,7 @@ func deployCAPIComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CAPI manifests\n")
 
 	// Build the manifests using kustomize
-	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//config/default").Output()
+	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
@@ -337,7 +337,7 @@ func deployCABPKComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CABPK manifests\n")
 
 	// Build the manifests using kustomize
-	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config/default").Output()
+	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
@@ -357,7 +357,7 @@ func deployKCPComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating KCP manifests\n")
 
 	// Build the manifests using kustomize
-	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config/default").Output()
+	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
@@ -382,7 +382,7 @@ func deployCAPAComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CAPA manifests\n")
 
 	// Build the manifests using kustomize
-	capaManifests, err := exec.Command(*kustomizeBinary, "build", "../../config/default").Output()
+	capaManifests, err := exec.Command(*kustomizeBinary, "build", "../../config").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
