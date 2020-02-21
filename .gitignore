@@ -58,5 +58,6 @@ junit.*.xml
 .DS_Store
 
 .tiltbuild
-config/default/manager_credentials_patch.yaml
-config/manager/credentials
+
+# Ignore AWS configuration file
+config/manager/config
