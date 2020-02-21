@@ -58,3 +58,5 @@ junit.*.xml
 .DS_Store
 
 .tiltbuild
+config/default/manager_credentials_patch.yaml
+config/manager/credentials
