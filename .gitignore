@@ -58,3 +58,6 @@ junit.*.xml
 .DS_Store
 
 .tiltbuild
+
+ # Ignore AWS configuration file
+config/manager/config 
