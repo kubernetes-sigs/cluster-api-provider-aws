@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/golang/glog"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
+	"k8s.io/klog"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -39,12 +39,12 @@ func removeDuplicatedTags(tags []*ec2.Tag) []*ec2.Tag {
 func removeStoppedMachine(machine *machinev1.Machine, client awsclient.Client) error {
 	instances, err := getStoppedInstances(machine, client)
 	if err != nil {
-		glog.Errorf("Error getting stopped instances: %v", err)
+		klog.Errorf("Error getting stopped instances: %v", err)
 		return fmt.Errorf("error getting stopped instances: %v", err)
 	}
 
 	if len(instances) == 0 {
-		glog.Infof("No stopped instances found for machine %v", machine.Name)
+		klog.Infof("No stopped instances found for machine %v", machine.Name)
 		return nil
 	}
 
@@ -74,14 +74,14 @@ func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference
 		if g.ID != nil {
 			securityGroupIDs = append(securityGroupIDs, g.ID)
 		} else if g.Filters != nil {
-			glog.Info("Describing security groups based on filters")
+			klog.Info("Describing security groups based on filters")
 			// Get groups based on filters
 			describeSecurityGroupsRequest := ec2.DescribeSecurityGroupsInput{
 				Filters: buildEC2Filters(g.Filters),
 			}
 			describeSecurityGroupsResult, err := client.DescribeSecurityGroups(&describeSecurityGroupsRequest)
 			if err != nil {
-				glog.Errorf("error describing security groups: %v", err)
+				klog.Errorf("error describing security groups: %v", err)
 				return nil, fmt.Errorf("error describing security groups: %v", err)
 			}
 			for _, g := range describeSecurityGroupsResult.SecurityGroups {
@@ -92,7 +92,7 @@ func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference
 	}
 
 	if len(securityGroups) == 0 {
-		glog.Info("No security group found")
+		klog.Info("No security group found")
 	}
 
 	return securityGroupIDs, nil
@@ -113,19 +113,19 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone
 				ZoneNames: []*string{aws.String(availabilityZone)},
 			})
 			if err != nil {
-				glog.Errorf("error describing availability zones: %v", err)
+				klog.Errorf("error describing availability zones: %v", err)
 				return nil, fmt.Errorf("error describing availability zones: %v", err)
 			}
 			filters = append(filters, providerconfigv1.Filter{Name: "availabilityZone", Values: []string{availabilityZone}})
 		}
 		filters = append(filters, subnet.Filters...)
-		glog.Info("Describing subnets based on filters")
+		klog.Info("Describing subnets based on filters")
 		describeSubnetRequest := ec2.DescribeSubnetsInput{
 			Filters: buildEC2Filters(filters),
 		}
 		describeSubnetResult, err := client.DescribeSubnets(&describeSubnetRequest)
 		if err != nil {
-			glog.Errorf("error describing subnetes: %v", err)
+			klog.Errorf("error describing subnetes: %v", err)
 			return nil, fmt.Errorf("error describing subnets: %v", err)
 		}
 		for _, n := range describeSubnetResult.Subnets {
@@ -142,33 +142,33 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone
 func getAMI(AMI providerconfigv1.AWSResourceReference, client awsclient.Client) (*string, error) {
 	if AMI.ID != nil {
 		amiID := AMI.ID
-		glog.Infof("Using AMI %s", *amiID)
+		klog.Infof("Using AMI %s", *amiID)
 		return amiID, nil
 	}
 	if len(AMI.Filters) > 0 {
-		glog.Info("Describing AMI based on filters")
+		klog.Info("Describing AMI based on filters")
 		describeImagesRequest := ec2.DescribeImagesInput{
 			Filters: buildEC2Filters(AMI.Filters),
 		}
 		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 		if err != nil {
-			glog.Errorf("error describing AMI: %v", err)
+			klog.Errorf("error describing AMI: %v", err)
 			return nil, fmt.Errorf("error describing AMI: %v", err)
 		}
 		if len(describeAMIResult.Images) < 1 {
-			glog.Errorf("no image for given filters not found")
+			klog.Errorf("no image for given filters not found")
 			return nil, fmt.Errorf("no image for given filters not found")
 		}
 		latestImage := describeAMIResult.Images[0]
 		latestTime, err := time.Parse(time.RFC3339, *latestImage.CreationDate)
 		if err != nil {
-			glog.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
+			klog.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
 			return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *latestImage.ImageId, err)
 		}
 		for _, image := range describeAMIResult.Images[1:] {
 			imageTime, err := time.Parse(time.RFC3339, *image.CreationDate)
 			if err != nil {
-				glog.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
+				klog.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
 				return nil, fmt.Errorf("unable to parse time for %q AMI: %v", *image.ImageId, err)
 			}
 			if latestTime.Before(imageTime) {
@@ -192,11 +192,11 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 	}
 	describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 	if err != nil {
-		glog.Errorf("Error describing AMI: %v", err)
+		klog.Errorf("Error describing AMI: %v", err)
 		return nil, fmt.Errorf("error describing AMI: %v", err)
 	}
 	if len(describeAMIResult.Images) < 1 {
-		glog.Errorf("No image for given AMI was found")
+		klog.Errorf("No image for given AMI was found")
 		return nil, fmt.Errorf("no image for given AMI not found")
 	}
 	deviceName := describeAMIResult.Images[0].RootDeviceName
@@ -234,7 +234,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 		return nil, mapierrors.InvalidMachineConfiguration("error getting subnet IDs: %v", err)
 	}
 	if len(subnetIDs) > 1 {
-		glog.Warningf("More than one subnet id returned, only first one will be used")
+		klog.Warningf("More than one subnet id returned, only first one will be used")
 	}
 
 	// build list of networkInterfaces (just 1 for now)
@@ -254,7 +254,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 
 	clusterID, ok := getClusterID(machine)
 	if !ok {
-		glog.Errorf("Unable to get cluster ID for machine: %q", machine.Name)
+		klog.Errorf("Unable to get cluster ID for machine: %q", machine.Name)
 		return nil, mapierrors.InvalidMachineConfiguration("Unable to get cluster ID for machine: %q", machine.Name)
 	}
 	// Add tags to the created machine
@@ -318,17 +318,17 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerc
 		if _, ok := err.(awserr.Error); ok {
 			if reqErr, ok := err.(awserr.RequestFailure); ok {
 				if strings.HasPrefix(strconv.Itoa(reqErr.StatusCode()), "4") {
-					glog.Infof("Error launching instance: %v", reqErr)
+					klog.Infof("Error launching instance: %v", reqErr)
 					return nil, mapierrors.InvalidMachineConfiguration("error launching instance: %v", reqErr.Message())
 				}
 			}
 		}
-		glog.Errorf("Error creating EC2 instance: %v", err)
+		klog.Errorf("Error creating EC2 instance: %v", err)
 		return nil, mapierrors.CreateMachine("error creating EC2 instance: %v", err)
 	}
 
 	if runResult == nil || len(runResult.Instances) != 1 {
-		glog.Errorf("Unexpected reservation creating instances: %v", runResult)
+		klog.Errorf("Unexpected reservation creating instances: %v", runResult)
 		return nil, mapierrors.CreateMachine("unexpected reservation creating instance")
 	}
 

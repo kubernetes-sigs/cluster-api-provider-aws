@@ -19,7 +19,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	mapiv1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/openshift/machine-api-operator/pkg/controller/machine"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -36,10 +35,10 @@ import (
 func main() {
 	var printVersion bool
 	flag.BoolVar(&printVersion, "version", false, "print version and exit")
-	watchNamespace := flag.String("namespace", "", "Namespace that the controller watches to reconcile machine-api objects. If unspecified, the controller watches for machine-api objects across all namespaces.")
 
-	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
-	klog.InitFlags(klogFlags)
+	klog.InitFlags(nil)
+	watchNamespace := flag.String("namespace", "", "Namespace that the controller watches to reconcile machine-api objects. If unspecified, the controller watches for machine-api objects across all namespaces.")
+	flag.Set("logtostderr", "true")
 	flag.Parse()
 
 	if printVersion {
@@ -47,18 +46,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	flag.VisitAll(func(f1 *flag.Flag) {
-		f2 := klogFlags.Lookup(f1.Name)
-		if f2 != nil {
-			value := f1.Value.String()
-			f2.Value.Set(value)
-		}
-	})
-
 	// Get a config to talk to the apiserver
 	cfg, err := config.GetConfig()
 	if err != nil {
-		glog.Fatalf("Error getting configuration: %v", err)
+		klog.Fatalf("Error getting configuration: %v", err)
 	}
 
 	// Setup a Manager
@@ -75,27 +66,27 @@ func main() {
 
 	mgr, err := manager.New(cfg, opts)
 	if err != nil {
-		glog.Fatalf("Error creating manager: %v", err)
+		klog.Fatalf("Error creating manager: %v", err)
 	}
 
 	// Setup Scheme for all resources
 	if err := mapiv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
-		glog.Fatalf("Error setting up scheme: %v", err)
+		klog.Fatalf("Error setting up scheme: %v", err)
 	}
 
 	machineActuator, err := initActuator(mgr)
 	if err != nil {
-		glog.Fatalf("Error initializing actuator: %v", err)
+		klog.Fatalf("Error initializing actuator: %v", err)
 	}
 
 	if err := machine.AddWithActuator(mgr, machineActuator); err != nil {
-		glog.Fatalf("Error adding actuator: %v", err)
+		klog.Fatalf("Error adding actuator: %v", err)
 	}
 
 	// Start the Cmd
 	err = mgr.Start(signals.SetupSignalHandler())
 	if err != nil {
-		glog.Fatalf("Error starting manager: %v", err)
+		klog.Fatalf("Error starting manager: %v", err)
 	}
 }
 
