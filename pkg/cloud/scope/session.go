@@ -45,7 +45,7 @@ func sessionForRegion(region string) (*session.Session, error) {
 		},
 	
 		// Force enable Shared Config support
-		SharedConfigState: session.SharedConfigEnable,
+		SharedConfigState: session.SharedConfigEnable
 	})
 
 	if err != nil {
