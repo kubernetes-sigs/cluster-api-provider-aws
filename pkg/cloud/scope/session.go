@@ -33,12 +33,7 @@ func sessionForRegion(region string) (*session.Session, error) {
 		return s.(*session.Session), nil
 	}
 
-	//ns, err := session.NewSession(aws.NewConfig().WithRegion(region))
-
 	ns, err := session.NewSessionWithOptions(session.Options{
-		// Specify profile to load for the session's config
-		Profile: "vmware",
-	
 		// Provide SDK Config options, such as Region.
 		Config: aws.Config{
 			Region: aws.String(region),
