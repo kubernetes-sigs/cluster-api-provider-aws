@@ -27,22 +27,25 @@ In order for Cluster API to properly recognize and consume existing AWS resource
     sigs.k8s.io/cluster-api-provider-aws/cluster/<cluster-name>
     sigs.k8s.io/cluster-api-provider-aws/role
 
-The values of these tags are immaterial. For the first tag, Cluster API itself uses values of "owned" to indicate a resource that was created by Cluster API and should be destroyed by Cluster API. In the case of consuming existing infrastructure, any value other than "owned" is acceptable. Using the value "unmanaged" is not uncommon.
-
-For the second tag, Cluster API uses the value "common"; you can use that value in this use case as well. **[NEED TO VERIFY]**
-
-Additionally, for proper operation of the AWS cloud provider, your resources should also have the `kubernetes.io/cluster/<cluster-name>` tag present as well.
-
-The tags should be present on the following AWS resources:
+These two tags should be present on the following AWS resources:
 
 * VPC
-* All subnets that Cluster API
+* All subnets that Cluster API will utilize (private and public)
 * Route tables
 * Internet gateway
 * NAT gateways
 * Elastic IPs assigned to NAT gateways
 
+For the `sigs.k8s.io/cluster-api-provider-aws/cluster/<cluster-name>` tag, a value of "owned" is used by Cluster API itself to indicate resources are owned by a specific cluster, and that the lifecycle of the resource is tied to the lifecycle of the cluster. Cluster API recognizes a value of "shared" to indicate a resource may be shared between multiple clusters, and the lifecycle of said resource is not tied to any particular cluster. In this situation---where AWS infrastructure is _not_ being managed by Cluster API---the value should be something **other** than "owned". Using "shared" is acceptable.
 
+For the `sigs.k8s.io/cluster-api-provider-aws/role` tag, Cluster API uses a variety of values to indicate resources are associated with a particular role. Here are the tag values that should be used:
+
+* VPC, route tables, Internet gateway, and NAT gateways should use the value "common".
+* Public subnets should use the value "public".
+* Private subnets should use the value "private".
+* Elastic IPs (for use by the NAT gateways) should use the value "apiserver".
+
+Additionally, for proper operation of the AWS cloud provider, all subnets where Kubernetes nodes reside should also have the `kubernetes.io/cluster/<cluster-name>` tag present.
 
 ## Configuring the AWSCluster Specification
 
@@ -66,8 +69,6 @@ When you use `kubectl apply` to apply the Cluster and AWSCluster specifications 
 
 ## Configuring the AWSMachine Specification (Optional)
 
-**[NEED TO DOUBLE-CHECK THIS WHOLE SECTION]**
-
 To distribute EC2 instances across different subnets or different AZs, you can add information to the AWSMachine specification. This is optional; without it, Cluster API will deploy to the first private subnet it discovers.
 
 To specify that an EC2 instance should be placed in a specific subnet, add this to the AWSMachine specification:
@@ -89,5 +90,5 @@ These two settings are mutually exclusive. You may use only one or the other, no
 
 ## Caveats/Notes
 
-* If both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet.
+* When both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet for placing EC2 instances.
 * If you configure CAPI to use existing infrastructure as outlined above, CAPI will _not_ create an SSH bastion host. Combined with the previous bullet, this means you must make sure you have established some form of connectivity to the instances that CAPI will create.
