@@ -41,7 +41,7 @@ func sessionForRegion(region string) (*session.Session, error) {
 	
 		// Provide SDK Config options, such as Region.
 		Config: aws.Config{
-			Region: region,
+			Region: aws.String(region),
 		},
 	
 		// Force enable Shared Config support
