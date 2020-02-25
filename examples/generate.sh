@@ -37,6 +37,15 @@ export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
 
+# Check if AWS_REGION variable exists. If not, set this to some random region
+if [ -z "${AWS_REGION+x}" ]
+then
+  echo "AWS_REGION variable is empty using us-east-1 as default"
+  export AWS_REGION="us-east-1"
+else
+  echo "AWS_REGION is set to $AWS_REGION"
+fi
+
 # Outputs.
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-cluster-api.yaml
 COMPONENTS_AWS_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-aws.yaml
