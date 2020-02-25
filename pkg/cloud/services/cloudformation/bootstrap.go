@@ -263,10 +263,27 @@ func bootstrapSecretPolicy(partition string) iam.StatementEntry {
 	}
 }
 
+func sessionManagerPolicy() iam.StatementEntry {
+	return iam.StatementEntry{
+		Effect:   iam.EffectAllow,
+		Resource: iam.Resources{"*"},
+		Action: iam.Actions{
+			"ssm:UpdateInstanceInformation",
+			"ssmmessages:CreateControlChannel",
+			"ssmmessages:CreateDataChannel",
+			"ssmmessages:OpenControlChannel",
+			"ssmmessages:OpenDataChannel",
+			"s3:GetEncryptionConfiguration",
+		},
+	}
+}
+
 func nodePolicy(partition string) *iam.PolicyDocument {
 	policyDocument := cloudProviderNodeAwsPolicy()
 	policyDocument.Statement = append(
-		policyDocument.Statement, bootstrapSecretPolicy(partition),
+		policyDocument.Statement,
+		bootstrapSecretPolicy(partition),
+		sessionManagerPolicy(),
 	)
 	return policyDocument
 }
