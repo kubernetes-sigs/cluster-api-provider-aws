@@ -41,11 +41,11 @@ func sessionForRegion(region string) (*session.Session, error) {
 	
 		// Provide SDK Config options, such as Region.
 		Config: aws.Config{
-			Region: region
+			Region: region,
 		},
 	
 		// Force enable Shared Config support
-		SharedConfigState: session.SharedConfigEnable
+		SharedConfigState: session.SharedConfigEnable,
 	})
 
 	if err != nil {
