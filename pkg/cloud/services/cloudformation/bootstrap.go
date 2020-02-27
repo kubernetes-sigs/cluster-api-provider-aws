@@ -69,7 +69,7 @@ func BootstrapTemplate(accountID, partition string, extraControlPlanePolicies, e
 	template.Resources[NodePolicy] = &cfn_iam.ManagedPolicy{
 		ManagedPolicyName: iam.NewManagedName("nodes"),
 		Description:       `For the Kubernetes Cloud Provider AWS nodes`,
-		PolicyDocument:    nodePolicy(),
+		PolicyDocument:    nodePolicy(partition),
 		Roles: []string{
 			cloudformation.Ref("AWSIAMRoleControlPlane"),
 			cloudformation.Ref("AWSIAMRoleNodes"),
@@ -234,8 +234,11 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 				},
 			},
 			{
-				Effect:   iam.EffectAllow,
-				Resource: iam.Resources{"arn:aws:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*"},
+				Effect: iam.EffectAllow,
+				Resource: iam.Resources{fmt.Sprintf(
+					"arn:%s:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
+					partition,
+				)},
 				Action: iam.Actions{
 					"secretsmanager:CreateSecret",
 					"secretsmanager:DeleteSecret",
@@ -246,10 +249,13 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 	}
 }
 
-func bootstrapSecretPolicy() iam.StatementEntry {
+func bootstrapSecretPolicy(partition string) iam.StatementEntry {
 	return iam.StatementEntry{
-		Effect:   iam.EffectAllow,
-		Resource: iam.Resources{"arn:aws:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*"},
+		Effect: iam.EffectAllow,
+		Resource: iam.Resources{fmt.Sprintf(
+			"arn:%s:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
+			partition,
+		)},
 		Action: iam.Actions{
 			"secretsmanager:DeleteSecret",
 			"secretsmanager:GetSecretValue",
@@ -257,10 +263,10 @@ func bootstrapSecretPolicy() iam.StatementEntry {
 	}
 }
 
-func nodePolicy() *iam.PolicyDocument {
+func nodePolicy(partition string) *iam.PolicyDocument {
 	policyDocument := cloudProviderNodeAwsPolicy()
 	policyDocument.Statement = append(
-		policyDocument.Statement, bootstrapSecretPolicy(),
+		policyDocument.Statement, bootstrapSecretPolicy(partition),
 	)
 	return policyDocument
 }
