@@ -34,12 +34,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -47,10 +45,12 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 var (
-	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.8/manifests/calico.yaml", "URL to CNI manifests to load")
+	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.12/manifests/calico.yaml", "URL to CNI manifests to load")
 	kubectlBinary = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 )
 
@@ -122,9 +122,12 @@ var _ = Describe("functional tests", func() {
 			machineName := cpMachinePrefix + "-0"
 			createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName)
 
+			By("Waiting for workload cluster API server to be ready")
+			waitForWorkerAPIServerReady(namespace, clusterName)
+
 			By("Deploying CNI to created Cluster")
 			deployCNI(testTmpDir, namespace, clusterName, *cniManifests)
-			waitForMachineNodeReady(namespace, machineName)
+			waitForMachineNodeReady(namespace, clusterName, machineName)
 
 			By("Creating the second Control Plane Machine")
 			awsMachineName = cpAWSMachinePrefix + "-1"
@@ -195,7 +198,7 @@ func watchEvents(ctx context.Context, namespace string) {
 func scaleMachineDeployment(namespace, machineDeployment string, replicasCurrent int32, replicasProposed int32) {
 	fmt.Fprintf(GinkgoWriter, "Scaling MachineDeployment from %d to %d\n", replicasCurrent, replicasProposed)
 	deployment := &clusterv1.MachineDeployment{}
-	Expect(kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeployment}, deployment))
+	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: machineDeployment}, deployment))
 	deployment.Spec.Replicas = &replicasProposed
 	Expect(kindClient.Update(context.TODO(), deployment)).NotTo(HaveOccurred())
 	waitForMachinesCountMatch(namespace, machineDeployment, replicasCurrent, replicasProposed)
@@ -214,7 +217,7 @@ func createMachineDeployment(namespace, clusterName, machineDeploymentName, awsM
 func waitForMachinesCountMatch(namespace, machineDeploymentName string, replicasCurrent int32, replicasProposed int32) {
 	fmt.Fprintf(GinkgoWriter, "Ensuring Machine count matched to %d \n", replicasProposed)
 	machineDeployment := &clusterv1.MachineDeployment{}
-	if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
+	if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
 		return
 	}
 	scalingDown := replicasCurrent > replicasProposed
@@ -255,7 +258,7 @@ func waitForMachineDeploymentRunning(namespace, machineDeploymentName string) {
 	Eventually(
 		func() (bool, error) {
 			machineDeployment := &clusterv1.MachineDeployment{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
 				return false, err
 			}
 			return *machineDeployment.Spec.Replicas == machineDeployment.Status.ReadyReplicas, nil
@@ -360,38 +363,51 @@ func makeAWSMachineTemplate(namespace, name string) {
 }
 
 func deployCNI(tmpDir, namespace, clusterName, manifestPath string) {
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      clusterName,
-		},
-	}
-	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
+	kubeConfigData, err := kubeconfig.FromSecret(context.TODO(), kindClient, crclient.ObjectKey{Name: clusterName, Namespace: namespace})
 	Expect(err).NotTo(HaveOccurred())
 	kubeConfigPath := path.Join(tmpDir, clusterName+".kubeconfig")
 	Expect(ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0640)).To(Succeed())
 
 	Expect(exec.Command(
 		*kubectlBinary,
-		"create",
-		"--kubeconfig="+kubeConfigPath,
-		"-f", manifestPath,
+		"apply",
+		"--kubeconfig",
+		kubeConfigPath,
+		"-f",
+		manifestPath,
 	).Run()).To(Succeed())
 }
 
-func waitForMachineNodeReady(namespace, name string) {
+func waitForWorkerAPIServerReady(namespace, clusterName string) {
+	kubeConfigData, err := kubeconfig.FromSecret(context.TODO(), kindClient, crclient.ObjectKey{Name: clusterName, Namespace: namespace})
+	Expect(err).NotTo(HaveOccurred())
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigData)
+	Expect(err).NotTo(HaveOccurred())
+
+	nodeClient, err := crclient.New(restConfig, crclient.Options{})
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(
+		func() bool {
+			nodes := &corev1.NodeList{}
+			if err := nodeClient.List(context.TODO(), nodes); err != nil {
+				fmt.Fprintf(GinkgoWriter, "Error retrieving nodes: %v", err)
+				return false
+			}
+			return true
+		},
+		5*time.Minute, 15*time.Second,
+	).Should(BeTrue())
+}
+
+func waitForMachineNodeReady(namespace, clusterName, name string) {
 	machine := &clusterv1.Machine{}
-	Expect(kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine)).To(Succeed())
+	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine)).To(Succeed())
 
 	nodeName := machine.Status.NodeRef.Name
 
-	cluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      machine.Labels[clusterv1.ClusterLabelName],
-		},
-	}
-	kubeConfigData, err := kubeconfig.FromSecret(kindClient, cluster)
+	kubeConfigData, err := kubeconfig.FromSecret(context.TODO(), kindClient, crclient.ObjectKey{Name: clusterName, Namespace: namespace})
 	Expect(err).NotTo(HaveOccurred())
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigData)
@@ -403,7 +419,7 @@ func waitForMachineNodeReady(namespace, name string) {
 	Eventually(
 		func() bool {
 			node := &corev1.Node{}
-			if err := nodeClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: nodeName}, node); err != nil {
+			if err := nodeClient.Get(context.TODO(), crclient.ObjectKey{Name: nodeName}, node); err != nil {
 				fmt.Fprintf(GinkgoWriter, "Error retrieving node: %v", err)
 				return false
 			}
@@ -434,7 +450,7 @@ func createAdditionalControlPlaneMachine(namespace, clusterName, machineName, aw
 	waitForAWSMachineRunning(namespace, awsMachineName)
 	waitForAWSMachineReady(namespace, awsMachineName)
 	waitForMachineNodeRef(namespace, machineName)
-	waitForMachineNodeReady(namespace, machineName)
+	waitForMachineNodeReady(namespace, clusterName, machineName)
 }
 
 func createInitialControlPlaneMachine(namespace, clusterName, machineName, awsMachineName, bootstrapConfigName string) {
@@ -460,7 +476,7 @@ func deleteCluster(namespace, name string) {
 	Eventually(
 		func() bool {
 			cluster := &clusterv1.Cluster{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
 				if apierrors.IsNotFound(err) {
 					return true
 				}
@@ -476,7 +492,7 @@ func waitForMachineNodeRef(namespace, name string) {
 	Eventually(
 		func() *corev1.ObjectReference {
 			machine := &clusterv1.Machine{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine); err != nil {
 				return nil
 			}
 			return machine.Status.NodeRef
@@ -491,7 +507,7 @@ func waitForClusterControlPlaneInitialized(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			cluster := &clusterv1.Cluster{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
 				return false, err
 			}
 			return cluster.Status.ControlPlaneInitialized, nil
@@ -504,7 +520,7 @@ func waitForAWSMachineRunning(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			awsMachine := &infrav1.AWSMachine{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, awsMachine); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
 				return false, err
 			}
 			if awsMachine.Status.InstanceState == nil {
@@ -521,7 +537,7 @@ func waitForClusterInfrastructureReady(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			cluster := &clusterv1.Cluster{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
 				return false, err
 			}
 			return cluster.Status.InfrastructureReady, nil
@@ -535,7 +551,7 @@ func waitForMachineBootstrapReady(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			machine := &clusterv1.Machine{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine); err != nil {
 				return false, err
 			}
 			return machine.Status.BootstrapReady, nil
@@ -548,7 +564,7 @@ func waitForAWSMachineReady(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			awsMachine := &infrav1.AWSMachine{}
-			if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, awsMachine); err != nil {
+			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
 				return false, err
 			}
 			return awsMachine.Status.Ready, nil
@@ -656,9 +672,6 @@ func makeAWSMachine(namespace, name string) {
 			InstanceType:       "t3.large",
 			IAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
 			SSHKeyName:         keyPairName,
-			CloudInit: &infrav1.CloudInit{
-				EnableSecureSecretsManager: true,
-			},
 		},
 	}
 	Expect(kindClient.Create(context.TODO(), awsMachine)).To(Succeed())

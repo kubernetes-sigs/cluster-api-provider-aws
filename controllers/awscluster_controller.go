@@ -33,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -121,7 +122,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	clusterScope.AWSCluster.Finalizers = util.Filter(clusterScope.AWSCluster.Finalizers, infrav1.ClusterFinalizer)
+	controllerutil.RemoveFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -133,12 +134,10 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	awsCluster := clusterScope.AWSCluster
 
 	// If the AWSCluster doesn't have our finalizer, add it.
-	if !util.Contains(awsCluster.Finalizers, infrav1.ClusterFinalizer) {
-		awsCluster.Finalizers = append(awsCluster.Finalizers, infrav1.ClusterFinalizer)
-		// Register the finalizer immediately to avoid orphaning AWS resources on delete
-		if err := clusterScope.PatchObject(); err != nil {
-			return reconcile.Result{}, err
-		}
+	controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer)
+	// Register the finalizer immediately to avoid orphaning AWS resources on delete
+	if err := clusterScope.PatchObject(); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	ec2Service := ec2.NewService(clusterScope)
