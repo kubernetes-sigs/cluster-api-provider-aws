@@ -25,3 +25,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.3.0
 	sigs.k8s.io/yaml v1.1.0
 )
+
+replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190918200256-06eb1244587a

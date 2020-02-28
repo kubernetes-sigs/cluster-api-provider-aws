@@ -39,6 +39,7 @@ const (
 	InvalidSubnet           = "InvalidSubnet"
 	AssociationIDNotFound   = "InvalidAssociationID.NotFound"
 	InvalidInstanceID       = "InvalidInstanceID.NotFound"
+	ResourceExists          = "ResourceExistsException"
 )
 
 var _ error = &EC2Error{}
@@ -85,6 +86,13 @@ func NewConflict(err error) error {
 		err:  err,
 		Code: http.StatusConflict,
 	}
+}
+
+func IsResourceExists(err error) bool {
+	if code, ok := Code(err); ok {
+		return code == ResourceExists
+	}
+	return false
 }
 
 // NewFailedDependency returns a new error which indicates that a dependency failure status

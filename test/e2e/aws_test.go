@@ -1171,12 +1171,6 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) {
 							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
 						},
 					},
-					Files: []bootstrapv1.File{
-						{
-							Path:    "/tmp/userdata-length-test.txt",
-							Content: apirand.String(20000),
-						},
-					},
 				},
 			},
 		},
@@ -1483,6 +1477,12 @@ func makeInitBootstrapConfig(namespace, name string) {
 					KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
 				},
 			},
+			Files: []bootstrapv1.File{
+				{
+					Path:    "/tmp/userdata-length-test.txt",
+					Content: apirand.String(20000),
+				},
+			},
 		},
 	}
 	Expect(kindClient.Create(context.TODO(), config)).To(Succeed())
@@ -1499,6 +1499,9 @@ func makeAWSMachine(namespace, name, instanceType string, az, subnetId *string) 
 			InstanceType:       instanceType,
 			IAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
 			SSHKeyName:         keyPairName,
+			CloudInit: &infrav1.CloudInit{
+				EnableSecureSecretsManager: true,
+			},
 		},
 	}
 	if az != nil {
