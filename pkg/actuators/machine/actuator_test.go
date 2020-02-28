@@ -4,28 +4,32 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"k8s.io/utils/pointer"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machineapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/stretchr/testify/assert"
 	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/pointer"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 func init() {
@@ -229,14 +233,6 @@ func TestActuator(t *testing.T) {
 		t.Fatalf("unable to build codec: %v", err)
 	}
 
-	getMachineStatus := func(objectClient client.Client, machine *machinev1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
-		machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
-		if err := codec.DecodeProviderStatus(machine.Status.ProviderStatus, machineStatus); err != nil {
-			return nil, fmt.Errorf("error decoding machine provider status: %v", err)
-		}
-		return machineStatus, nil
-	}
-
 	machineInvalidProviderConfig := machine.DeepCopy()
 	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
 
@@ -266,7 +262,7 @@ func TestActuator(t *testing.T) {
 				createErr := actuator.Create(context.TODO(), machine)
 				assert.NoError(t, createErr)
 
-				machineStatus, err := getMachineStatus(objectClient, machine)
+				machineStatus, err := getMachineStatus(codec, machine)
 				if err != nil {
 					t.Fatalf("Unable to get machine status: %v", err)
 				}
@@ -306,7 +302,7 @@ func TestActuator(t *testing.T) {
 				createErr := actuator.Create(context.TODO(), machine)
 				assert.Error(t, createErr)
 
-				machineStatus, err := getMachineStatus(objectClient, machine)
+				machineStatus, err := getMachineStatus(codec, machine)
 				if err != nil {
 					t.Fatalf("Unable to get machine status: %v", err)
 				}
@@ -1280,4 +1276,216 @@ func awsClientBuilderFunc(c awsclient.Client) awsclient.AwsClientBuilderFuncType
 	return func(_ client.Client, _, _, _ string) (awsclient.Client, error) {
 		return c, nil
 	}
+}
+
+func TestPatchMachine(t *testing.T) {
+	// BEGIN: Set up test environment
+	g := NewWithT(t)
+
+	testEnv := &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
+	}
+
+	var err error
+	cfg, err := testEnv.Start()
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(cfg).ToNot(BeNil())
+	defer func() {
+		g.Expect(testEnv.Stop()).To(Succeed())
+	}()
+
+	mgr, err := manager.New(cfg, manager.Options{
+		Scheme:             scheme.Scheme,
+		MetricsBindAddress: "0",
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	actuator, err := initActuator(mgr, t)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	doneMgr := make(chan struct{})
+	go func() {
+		g.Expect(mgr.Start(doneMgr)).To(Succeed())
+	}()
+	defer close(doneMgr)
+
+	// END: setup test environment
+
+	k8sClient := mgr.GetClient()
+
+	awsCredentialsSecret := stubAwsCredentialsSecret()
+	g.Expect(k8sClient.Create(context.TODO(), awsCredentialsSecret)).To(Succeed())
+
+	userDataSecret := stubUserDataSecret()
+	g.Expect(k8sClient.Create(context.TODO(), userDataSecret)).To(Succeed())
+
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		t.Fatalf("unable to build codec: %v", err)
+	}
+
+	failedPhase := "Failed"
+
+	testCases := []struct {
+		name   string
+		mutate func(*machinev1.Machine)
+		expect func(*machinev1.Machine) error
+	}{
+		{
+			name: "Test changing labels",
+			mutate: func(m *machinev1.Machine) {
+				m.ObjectMeta.Labels["testlabel"] = "test"
+			},
+			expect: func(m *machinev1.Machine) error {
+				if m.ObjectMeta.Labels["testlabel"] != "test" {
+					return fmt.Errorf("label \"testlabel\" %q not equal expected \"test\"", m.ObjectMeta.Labels["test"])
+				}
+				return nil
+			},
+		},
+		{
+			name: "Test setting phase",
+			mutate: func(m *machinev1.Machine) {
+
+				m.Status.Phase = &failedPhase
+			},
+			expect: func(m *machinev1.Machine) error {
+				if m.Status.Phase != nil && *m.Status.Phase == failedPhase {
+					return nil
+				}
+				return fmt.Errorf("phase is nil or not equal expected \"Failed\"")
+			},
+		},
+		{
+			name: "Test setting provider status",
+			mutate: func(m *machinev1.Machine) {
+				instanceID := "123"
+				instanceState := "running"
+
+				providerStatus := &providerconfigv1.AWSMachineProviderStatus{
+					InstanceID:    &instanceID,
+					InstanceState: &instanceState,
+				}
+
+				status, err := codec.EncodeProviderStatus(providerStatus)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				m.Status.ProviderStatus = status
+			},
+			expect: func(m *machinev1.Machine) error {
+				providerStatus, err := getMachineStatus(codec, m)
+				if err != nil {
+					return fmt.Errorf("unable to get provider status: %v", err)
+				}
+
+				if providerStatus.InstanceID == nil || *providerStatus.InstanceID != "123" {
+					return fmt.Errorf("instanceID is nil or not equal expected \"123\"")
+				}
+
+				if providerStatus.InstanceState == nil || *providerStatus.InstanceState != "running" {
+					return fmt.Errorf("instanceState is nil or not equal expected \"running\"")
+				}
+
+				return nil
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			timeout := 10 * time.Second
+			gs := NewWithT(t)
+
+			machine, err := stubMachine()
+			gs.Expect(err).ToNot(HaveOccurred())
+			gs.Expect(machine).ToNot(BeNil())
+
+			ctx := context.TODO()
+
+			// Create the machine
+			gs.Expect(k8sClient.Create(ctx, machine)).To(Succeed())
+
+			defer func() {
+				gs.Expect(k8sClient.Delete(ctx, machine)).To(Succeed())
+			}()
+
+			// Ensure the machine has synced to the cache
+			getMachine := func() error {
+				machineKey := types.NamespacedName{Namespace: machine.Namespace, Name: machine.Name}
+				return k8sClient.Get(ctx, machineKey, machine)
+			}
+			gs.Eventually(getMachine, timeout).Should(Succeed())
+
+			machineToBePatched := client.MergeFrom(machine.DeepCopy())
+			tc.mutate(machine)
+
+			// Patch the machine and check the expectation from the test case
+			gs.Expect(actuator.patchMachine(ctx, machine, machineToBePatched)).To(Succeed())
+			checkExpectation := func() error {
+				if err := getMachine(); err != nil {
+					return nil
+				}
+				return tc.expect(machine)
+			}
+			gs.Eventually(checkExpectation, timeout).Should(Succeed())
+
+			// Check that resource version doesn't change if we call patchMachine() again
+			machineResourceVersion := machine.ResourceVersion
+
+			gs.Expect(actuator.patchMachine(ctx, machine, machineToBePatched)).To(Succeed())
+			gs.Eventually(getMachine, timeout).Should(Succeed())
+			gs.Expect(machine.ResourceVersion).To(Equal(machineResourceVersion))
+		})
+	}
+}
+
+func initActuator(mgr manager.Manager, t *testing.T) (*Actuator, error) {
+	codec, err := providerconfigv1.NewCodec()
+	if err != nil {
+		return nil, fmt.Errorf("unable to create codec: %v", err)
+	}
+
+	mockCtrl := gomock.NewController(t)
+	mockAWSClient := mockaws.NewMockClient(mockCtrl)
+
+	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
+	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), nil).AnyTimes()
+	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil).AnyTimes()
+	mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), nil).AnyTimes()
+	mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
+	mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
+
+	eventsChannel := make(chan string, 1)
+
+	params := ActuatorParams{
+		Client: mgr.GetClient(),
+		Config: mgr.GetConfig(),
+		AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
+			return mockAWSClient, nil
+		},
+		Codec: codec,
+		// use fake recorder and store an event into one item long buffer for subsequent check
+		EventRecorder: &record.FakeRecorder{
+			Events: eventsChannel,
+		},
+	}
+
+	actuator, err := NewActuator(params)
+	if err != nil {
+		return nil, fmt.Errorf("could not create AWS machine actuator: %v", err)
+	}
+
+	return actuator, nil
+}
+
+func getMachineStatus(codec *providerconfigv1.AWSProviderConfigCodec, machine *machinev1.Machine) (*providerconfigv1.AWSMachineProviderStatus, error) {
+	machineStatus := &providerconfigv1.AWSMachineProviderStatus{}
+	if err := codec.DecodeProviderStatus(machine.Status.ProviderStatus, machineStatus); err != nil {
+		return nil, fmt.Errorf("error decoding machine provider status: %v", err)
+	}
+
+	return machineStatus, nil
 }
