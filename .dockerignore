@@ -5,7 +5,7 @@ bin/
 config/
 hack/
 docs/
-examples/
+templates/
 scripts/
 **/.md
 tilt-provider.json

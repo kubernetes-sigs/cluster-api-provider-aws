@@ -40,6 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -206,7 +207,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		// 4. Scale controller deployment to 1
 		machineScope.V(2).Info("Unable to locate EC2 instance by ID or tags")
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
-		machineScope.AWSMachine.Finalizers = util.Filter(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
+		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 		return reconcile.Result{}, nil
 	}
 
@@ -251,7 +252,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	}
 
 	// Instance is deleted so remove the finalizer.
-	machineScope.AWSMachine.Finalizers = util.Filter(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
+	controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -300,13 +301,10 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	// If the AWSMachine doesn't have our finalizer, add it.
-	if !util.Contains(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer) {
-		machineScope.V(1).Info("Adding Cluster API Provider AWS finalizer")
-		machineScope.AWSMachine.Finalizers = append(machineScope.AWSMachine.Finalizers, infrav1.MachineFinalizer)
-		// Register the finalizer immediately to avoid orphaning AWS resources on delete
-		if err := machineScope.PatchObject(); err != nil {
-			return reconcile.Result{}, err
-		}
+	controllerutil.AddFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
+	// Register the finalizer immediately to avoid orphaning AWS resources on delete
+	if err := machineScope.PatchObject(); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	if !machineScope.Cluster.Status.InfrastructureReady {

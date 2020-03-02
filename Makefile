@@ -38,6 +38,7 @@ BIN_DIR := bin
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+ENVSUBST := $(TOOLS_BIN_DIR)/envsubst
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
@@ -115,6 +116,9 @@ $(CLUSTERCTL): go.mod ## Build clusterctl binary.
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
+$(ENVSUBST): $(TOOLS_DIR)/go.mod # Build envsubst from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/envsubst github.com/a8m/envsubst/cmd/envsubst
+
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
 
@@ -133,9 +137,6 @@ $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v
-
-lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false
 
 ## --------------------------------------
@@ -176,10 +177,6 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./controllers/... \
 		output:rbac:dir=$(RBAC_ROOT) \
 		rbac:roleName=manager-role
-
-.PHONY: generate-examples
-generate-examples: clean-examples clusterawsadm ## Generate examples configurations to run a cluster.
-	./examples/generate.sh
 
 ## --------------------------------------
 ## Docker
@@ -245,10 +242,11 @@ $(RELEASE_DIR):
 .PHONY: release
 release: clean-release  ## Builds and push container images using the latest git tag for the commit.
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
+	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
+	git checkout "${RELEASE_TAG}"
 	# Set the manifest image to the production bucket.
-	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-		$(MAKE) set-manifest-image
-	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG)
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent
 	$(MAKE) release-manifests
 	$(MAKE) release-binaries
 
@@ -270,7 +268,7 @@ release-binary: $(RELEASE_DIR)
 		-e GOARCH=$(GOARCH) \
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
-		golang:1.13.5 \
+		golang:1.13.8 \
 		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
@@ -278,7 +276,7 @@ release-binary: $(RELEASE_DIR)
 release-staging: ## Builds and push container images to the staging bucket.
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
 
-RELEASE_ALIAS_TAG=$(shell if [ "$(PULL_BASE_REF)" = "master" ]; then echo "latest"; else echo "$(PULL_BASE_REF)"; fi)
+RELEASE_ALIAS_TAG=$(PULL_BASE_REF)
 
 .PHONY: release-alias-tag
 release-alias-tag: # Adds the tag to the last build tag.
@@ -298,45 +296,44 @@ CLUSTER_NAME ?= test1
 
 # NOTE: do not add 'generate-exmaples' as a prerequisite of this target. It will break e2e conformance testing.
 .PHONY: create-cluster
-create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
-	@if [[ ! -f examples/_out/cert-manager.yaml ]]; then echo "Examples are missing. Run 'make generate-examples' first."; exit 1; fi
+create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
 	kind create cluster --name=clusterapi
 	@if [ ! -z "${LOAD_IMAGE}" ]; then \
 		echo "loading ${LOAD_IMAGE} into kind cluster ..." && \
 		kind --name="clusterapi" load docker-image "${LOAD_IMAGE}"; \
 	fi
-	# Install cert manager.
-	kubectl \
-		create -f examples/_out/cert-manager.yaml
-	# Wait for webhook servers to be ready to take requests
-	kubectl \
-		wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
-	# Apply provider-components.
-	kubectl \
-		create -f examples/_out/provider-components.yaml
-	# Wait for CAPI pod
-	kubectl \
-		wait --for=condition=Ready --timeout=5m -n capi-system pod -l control-plane=cluster-api-controller-manager
-    # Wait for CAPA pod
-	kubectl \
-		wait --for=condition=Ready --timeout=5m -n capa-system pod -l control-plane=capa-controller-manager
+	# Install cert manager and wait for availability
+	kubectl create -f https://github.com/jetstack/cert-manager/releases/download/v0.11.1/cert-manager.yaml
+	kubectl wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
+
+	# Deploy CAPI
+	kustomize build github.com/kubernetes-sigs/cluster-api//config?ref=v0.3.0-rc.2 | kubectl apply -f -
+	kustomize build github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=v0.3.0-rc.2 | kubectl apply -f -
+	kustomize build github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=v0.3.0-rc.2 | kubectl apply -f -
+
+	# Deploy CAPA
+	kustomize build config | $(ENVSUBST) | kubectl apply -f -
+
+	# Wait for CAPI pods
+	kubectl wait --for=condition=Ready --timeout=5m -n capi-system pod -l cluster.x-k8s.io/provider=cluster-api
+	kubectl wait --for=condition=Ready --timeout=5m -n capi-kubeadm-bootstrap-system pod -l cluster.x-k8s.io/provider=bootstrap-kubeadm
+	kubectl wait --for=condition=Ready --timeout=5m -n capi-kubeadm-control-plane-system pod -l cluster.x-k8s.io/provider=control-plane-kubeadm
+
+	# Wait for CAPA pods
+	kubectl wait --for=condition=Ready --timeout=5m -n capa-system pod -l cluster.x-k8s.io/provider=infrastructure-aws
+
 	# Create Cluster.
 	sleep 10
-	kubectl \
-		create -f examples/_out/cluster.yaml
-	# Create control plane machine.
-	kubectl \
-		create -f examples/_out/controlplane.yaml
+	kustomize build templates | $(ENVSUBST) | kubectl apply -f -
+
 	# Wait for the kubeconfig to become available.
 	timeout 300 bash -c "while ! kubectl get secrets | grep $(CLUSTER_NAME)-kubeconfig; do sleep 1; done"
 	# Get kubeconfig and store it locally.
 	kubectl get secrets $(CLUSTER_NAME)-kubeconfig -o json | jq -r .data.value | base64 --decode > ./kubeconfig
-	# Apply addons on the target cluster, waiting for the control-plane to become available.
 	timeout 300 bash -c "while ! kubectl --kubeconfig=./kubeconfig get nodes | grep master; do sleep 1; done"
-	kubectl --kubeconfig=./kubeconfig apply -f examples/addons.yaml
-	# Create a worker node with MachineDeployment.
-	kubectl \
-		create -f examples/_out/machinedeployment.yaml
+
+	# Deploy calico
+	kubectl --kubeconfig=./kubeconfig apply -f https://docs.projectcalico.org/v3.12/manifests/calico.yaml
 
 .PHONY: kind-reset
 kind-reset: ## Destroys the "clusterapi" kind cluster.
@@ -364,11 +361,6 @@ clean-temporary: ## Remove all temporary files and folders
 .PHONY: clean-release
 clean-release: ## Remove the release folder
 	rm -rf $(RELEASE_DIR)
-
-.PHONY: clean-examples
-clean-examples: ## Remove all the temporary files generated in the examples folder
-	rm -rf examples/_out/
-	rm -f examples/provider-components/provider-components-*.yaml
 
 .PHONY: verify
 verify: verify-boilerplate verify-modules verify-gen

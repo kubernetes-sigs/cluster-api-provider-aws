@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -671,7 +670,7 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 	copy(totalGroups, existingGroups)
 
 	for _, group := range groups {
-		if !util.Contains(existingGroups, group) {
+		if !containsGroup(existingGroups, group) {
 			totalGroups = append(totalGroups, group)
 		}
 	}
@@ -704,7 +703,7 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 
 	remainingGroups := existingGroups
 	for _, group := range groups {
-		remainingGroups = util.Filter(remainingGroups, group)
+		remainingGroups = filterGroups(remainingGroups, group)
 	}
 
 	input := &ec2.ModifyNetworkInterfaceAttributeInput{
@@ -716,4 +715,24 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
 	}
 	return nil
+}
+
+// filterGroups filters a list for a string.
+func filterGroups(list []string, strToFilter string) (newList []string) {
+	for _, item := range list {
+		if item != strToFilter {
+			newList = append(newList, item)
+		}
+	}
+	return
+}
+
+// containsGroup returns true if a list contains a string.
+func containsGroup(list []string, strToSearch string) bool {
+	for _, item := range list {
+		if item == strToSearch {
+			return true
+		}
+	}
+	return false
 }
