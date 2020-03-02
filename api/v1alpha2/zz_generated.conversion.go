@@ -451,7 +451,7 @@ func autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSC
 	if err := Convert_v1alpha2_Network_To_v1alpha3_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (./api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
 	out.Ready = in.Ready
 	// WARNING: in.APIEndpoints requires manual conversion: does not exist in peer-type
 	return nil
@@ -463,7 +463,7 @@ func autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *v1al
 		return err
 	}
 	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs ./api/v1alpha2.Instance)
 	return nil
 }
 
@@ -573,7 +573,7 @@ func autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachi
 	out.SSHKeyName = in.SSHKeyName
 	// WARNING: in.RootDeviceSize requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*./api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
 	return nil
 }
 
@@ -594,7 +594,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 	out.SSHKeyName = in.SSHKeyName
 	// WARNING: in.RootVolume requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *./api/v1alpha2.CloudInit)
 	return nil
 }
 
