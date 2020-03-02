@@ -23,11 +23,6 @@ require (
 	k8s.io/client-go v11.0.1-0.20190704100234-640d9f240853+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
-<<<<<<< HEAD
 	sigs.k8s.io/cluster-api v0.3.0-rc.2
-=======
-	sigs.k8s.io/cluster-api v0.2.6-0.20200204220036-b2ab4c203c74
-	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20200302210338-4efe0fd564ec // indirect
->>>>>>> Port E2E test automation from release-0.4 branch
 	sigs.k8s.io/controller-runtime v0.5.0
 )
