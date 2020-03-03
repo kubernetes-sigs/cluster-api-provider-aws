@@ -45,7 +45,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	ec2 "github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/iam"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	appsv1 "k8s.io/api/apps/v1"
@@ -123,6 +123,7 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 	
 
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
+	sess = getSession()
 	createKeyPair(sess)
 	createIAMRoles(sess, accountID)
 
@@ -154,8 +155,7 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 			}
 
 			var err error
-			sess = getSession()
-			accountID = getAccountID(sess)
+ 			accountID = getAccountID(sess)
 
 			suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 			Expect(err).NotTo(HaveOccurred())
