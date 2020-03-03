@@ -91,7 +91,7 @@ test-integration: ## Run integration tests
 	go test -v -tags=integration ./test/integration/...
 
 .PHONY: test-e2e
-test-e2e: ## Run e2e tests
+test-e2e: $(GINKGO) ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
 	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=4 -v -tags=e2e -focus="functional tests" ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
