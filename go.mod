@@ -20,7 +20,7 @@ require (
 	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
-	k8s.io/client-go v11.0.1-0.20190704100234-640d9f240853+incompatible
+	k8s.io/client-go v0.17.2
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
 	sigs.k8s.io/cluster-api v0.3.0-rc.2
