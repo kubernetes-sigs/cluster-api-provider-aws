@@ -64,6 +64,13 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
+endif
+
 # Set build time variables including version details
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
@@ -266,7 +273,7 @@ release-binary: $(RELEASE_DIR)
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-v "$$(pwd):/workspace" \
+		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:1.13.8 \
 		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
@@ -284,7 +291,7 @@ release-alias-tag: # Adds the tag to the last build tag.
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES)
-	$(RELEASE_NOTES)
+	$(RELEASE_NOTES) $(ARGS)
 
 ## --------------------------------------
 ## Development
