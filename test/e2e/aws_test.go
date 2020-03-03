@@ -109,7 +109,8 @@ type testSetup struct {
 	subnetId                *string
 }
 
-func setup1() testSetup {
+var lastSetup testSetup
+func setup1() (testSetup,context.CancelFunc) {
 	fmt.Println("********* call to before each - setting up `setup` ")
 	var err error
 	setup := testSetup{}
@@ -132,30 +133,27 @@ func setup1() testSetup {
 	setup.initialReplicas = 2
 	setup.instanceType = "t3.large"
 	setup.multipleAZ = false
-	return setup
+	lastSetup = setup // so that before each has a chance in hell of watching the right setup.  not sure this works 100%.
+
+	// watch this namespace for events ...
+	ctx, cancelWatches := context.WithCancel(context.Background())
+	go func() {
+		defer GinkgoRecover()
+		watchEvents(ctx, lastSetup.namespace)
+	}()
+	return setup, cancelWatches
 }
 
 var _ = Describe("functional tests", func() {
 	var (
-		setup         testSetup
-		cancelWatches context.CancelFunc
-	)
-	BeforeEach(func() {
-		var ctx context.Context
-		ctx, cancelWatches = context.WithCancel(context.Background())
-		go func() {
-			defer GinkgoRecover()
-			watchEvents(ctx, setup.namespace)
-		}()
-	})
 
-	AfterEach(func() {
-		defer cancelWatches()
-	})
+	)
 
 	Describe("workload cluster lifecycle", func() {
 		It("It should be creatable and deletable", func() {
-			setup := setup1()
+			time.Sleep(5*time.Second)
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
 
@@ -191,7 +189,10 @@ var _ = Describe("functional tests", func() {
 	Describe("Provisioning LoadBalancer dynamically and deleting on cluster deletion", func() {
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		It("It should create and delete Load Balancer", func() {
-			setup := setup1()
+			time.Sleep(1*time.Second)
+
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 
 			By("Creating a cluster with single control plane")
 			clusterK8sClient := makeSingleControlPlaneCluster(setup)
@@ -230,7 +231,8 @@ var _ = Describe("functional tests", func() {
 		}
 
 		It("It should create volumes and volumes should not be deleted along with cluster infra", func() {
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a cluster with single control plane")
 			clusterK8sClient := makeSingleControlPlaneCluster(setup)
 
@@ -250,12 +252,17 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting retained dynamically provisioned volumes")
 			deleteRetainedVolumes(awsVolIds)
+			By("PASSED!")
+
 		})
 	})
 
 	Describe("MachineDeployment with invalid subnet ID and AZ", func() {
 		It("It should be creatable and deletable", func() {
-			setup := setup1()
+			time.Sleep(1*time.Second)
+
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			deployment1 := setup.machineDeploymentName + "-1"
 			deployment2 := setup.machineDeploymentName + "-2"
 			template1 := setup.awsMachineTemplateName + "-1"
@@ -300,6 +307,7 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
@@ -308,56 +316,70 @@ var _ = Describe("functional tests", func() {
 			var ns1, clName1, ns2, clName2 string
 			var setup11 testSetup
 			var setup22 testSetup
-
+			var cf1,cf2 context.CancelFunc
 			It("should setup namespaces correctly for the two clusters...", func() {
-				setup11 = setup1()
-				setup22 = setup1()
-			})
-			It("should create first cluster, then a second cluster, then delete stuff...", func() {
+				time.Sleep(1*time.Second)
+
+				setup11, cf1 = setup1()
+				setup22, cf2 = setup1()
+
+				defer cf1()
+				defer cf2()
+
 				ns1 = setup11.namespace
 				clName1 = setup11.clusterName
-				By("Creating first cluster with single control plane")
-				makeSingleControlPlaneCluster(setup11)
-			})
-			It("should create second cluster in a different namespace", func() {
+
 				ns2 = setup22.namespace
 				clName2 = setup22.clusterName
-				By("Creating second cluster with single control plane")
-				makeSingleControlPlaneCluster(setup22)
-			})
 
-			It("should delete both clusters", func() {
+				By("Creating first cluster with single control plane")
+				time.Sleep(1*time.Second)
+				makeSingleControlPlaneCluster(setup11)
+				
+
+				By("Creating second cluster with single control plane")
+				time.Sleep(1*time.Second)
+				makeSingleControlPlaneCluster(setup22)
+				
+				
 				By("Deleting the Clusters")
 				deleteCluster(ns1, clName1)
 				deleteCluster(ns2, clName2)
+				By("PASSED!")
 			})
 		})
 
 		Context("in same namespace", func() {
  			var setup11 testSetup
 			var setup22 testSetup
+			var cf1,cf2 context.CancelFunc
+
 			It("should create first cluster", func() {
-				setup11 = setup1()
-				setup22 = setup1()
+				setup11, cf1 = setup1()
+				setup22, cf2 = setup1()
+				defer cf1()
+				defer cf2()
+
 				By("Creating first cluster with single control plane")
 				makeSingleControlPlaneCluster(setup11)
-			})
-			It("should create second cluster in the same namespace", func() {
+
  				setup22.namespace = setup11.namespace
 				By("Creating second cluster with single control plane")
 				makeSingleControlPlaneCluster(setup22)
-			})
-			It("should delete both clusters", func() {
+
 				By("Deleting the Clusters")
 				deleteCluster(setup11.namespace, setup11.clusterName)
 				deleteCluster(setup22.namespace, setup22.clusterName)
+				By("PASSED!")
 			})
 		})
 	})
 
 	Describe("MachineDeployment will replace a deleted Machine", func() {
 		It("It should reconcile the deleted machine", func() {
-			setup := setup1()
+
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
 
@@ -372,13 +394,15 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
 	Describe("Workload cluster in multiple AZs", func() {
 		It("It should be creatable and deletable", func() {
-			setup := setup1()
-			By("Creating a workload cluster with single control plane")
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
+			By("Creating a workload cluster with single control plane with multipleAZ=true")
 			setup.multipleAZ = true
 			makeSingleControlPlaneCluster(setup)
 
@@ -420,12 +444,15 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
+
 		})
 	})
 
 	Describe("Creating cluster after reaching vpc maximum limit", func() {
 		It("Cluster created after reaching vpc limit should be in provisioning", func() {
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Create clusters till vpc limit")
 			sess = getSession()
 			limit := getElasticIPsLimit()
@@ -440,18 +467,22 @@ var _ = Describe("functional tests", func() {
 
 			By("Checking cluster gets provisioned when resources available")
 			if len(vpcsCreated) > 0 {
+				By("Deleting VPCs")
 				deleteVPCs(vpcsCreated)
+				By("Creating the cluster after VPCs were deleted")
 				Expect(waitForClusterInfrastructureReady(setup.namespace, setup.clusterName)).Should(BeTrue())
 			}
 
 			By("Deleting the cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
 	Describe("Delete infra node directly from infra provider", func() {
 		It("Machine referencing deleted infra node should come to failed state", func() {
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
 
@@ -469,28 +500,37 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
 	Describe("Create cluster with name having more than 22 characters", func() {
 		It("Cluster should be provisioned and deleted", func() {
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			setup.clusterName = "test-" + util.RandomString(20)
 			makeSingleControlPlaneCluster(setup)
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
 	Describe("Create cluster with name having '.'", func() {
 		It("Cluster should be provisioned and deleted", func() {
+
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			setup.clusterName = "test." + util.RandomString(6)
 			makeSingleControlPlaneCluster(setup)
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
+
 		})
 	})
 })
@@ -944,6 +984,9 @@ func verfiyInstancesInSubnet(numOfInstances int32, subnetId *string) {
 }
 
 func getAvailabilityZone() []*ec2.AvailabilityZone {
+	if sess == nil {
+		panic ("session is nil, cant get availability zones.")
+	}
 	ec2c := ec2.New(sess)
 	azs, err := ec2c.DescribeAvailabilityZones(nil)
 	Expect(err).NotTo(HaveOccurred())
@@ -962,7 +1005,9 @@ func createCluster(namespace, clusterName, awsClusterName string, multiAZ bool) 
 }
 
 func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
-
+	if setup.namespace == "" && setup.clusterName == "" && setup.awsClusterName == "" {
+		panic(" setup looks effectively nil /  uninitialized... ")
+	}
 	Expect(createCluster(setup.namespace, setup.clusterName, setup.awsClusterName, setup.multipleAZ)).Should(BeTrue())
 
 	By("Creating the initial Control Plane Machine")
@@ -1252,7 +1297,7 @@ func waitForWorkerAPIServerReady(namespace, clusterName string) {
 		func() bool {
 			nodes := &corev1.NodeList{}
 			if err := nodeClient.List(context.TODO(), nodes); err != nil {
-				fmt.Fprintf(GinkgoWriter, "Error retrieving nodes: %v", err)
+				fmt.Fprintf(GinkgoWriter, "(waitForWorkerAPIServerReady) Error retrieving nodes: %v", err)
 				return false
 			}
 			return true
@@ -1285,10 +1330,9 @@ func waitForMachineNodeReady(namespace, name string) {
 		func() bool {
 			node := &corev1.Node{}
 			if err := nodeClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: nodeName}, node); err != nil {
-				fmt.Fprintf(GinkgoWriter, "Error retrieving node: %v", err)
+				fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Error retrieving node: %v \n", err)
 				return false
 			}
-
 			conditionMap := make(map[corev1.NodeConditionType]*corev1.NodeCondition)
 			for i, condition := range node.Status.Conditions {
 				if condition.Type == corev1.NodeReady {
@@ -1298,9 +1342,12 @@ func waitForMachineNodeReady(namespace, name string) {
 
 			if condition, ok := conditionMap[corev1.NodeReady]; ok {
 				if condition.Status == corev1.ConditionTrue {
+					fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Success retrieving node: NodeReady %v \n", err)
 					return true
 				}
 			}
+			fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) machine still not ready: %v \n", err)
+
 			return false
 		},
 		2*time.Minute, 15*time.Second,
@@ -1341,7 +1388,10 @@ func deleteCluster(namespace, name string) {
 	Eventually(
 		func() bool {
 			cluster := &clusterv1.Cluster{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); 
+			fmt.Fprintf(GinkgoWriter, "Eventually (deleteCluster) --> %s/%s : Status = %v \n", namespace, name, err)
+			// non nil error ==> cluster is gone, which means delete worked.
+			if err != nil {
 				if apierrors.IsNotFound(err) {
 					return true
 				}
@@ -1357,11 +1407,13 @@ func waitForMachineNodeRef(namespace, name string) {
 	Eventually(
 		func() *corev1.ObjectReference {
 			machine := &clusterv1.Machine{}
+			defer func() {
+				fmt.Fprintf(GinkgoWriter, "Eventually (waitForMachineNodeRef) --> %s/%s : Status = %v \n", namespace, name, machine.Status)
+			}()
 			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine); err != nil {
 				return nil
 			}
 			return machine.Status.NodeRef
-
 		},
 		10*time.Minute, 15*time.Second,
 	).ShouldNot(BeNil())
@@ -1372,6 +1424,10 @@ func waitForClusterControlPlaneInitialized(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			cluster := &clusterv1.Cluster{}
+			defer func() {
+				fmt.Fprintf(GinkgoWriter, "Eventually (waitForClusterControlPlaneInitialized) --> %s/%s : Status = %v \n", namespace, name, cluster)
+			}()
+
 			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
 				return false, err
 			}
@@ -1384,8 +1440,12 @@ func waitForClusterControlPlaneInitialized(namespace, name string) {
 func waitForAWSMachineRunning(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
+			var err error
 			awsMachine := &infrav1.AWSMachine{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
+			defer func() {
+				fmt.Fprintf(GinkgoWriter, "Eventually (waitForAWSMachineRunning) --> %s/%s : Status = %v \n", namespace, name, awsMachine)
+			}()
+			if err = kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
 				return false, err
 			}
 			if awsMachine.Status.InstanceState == nil {
@@ -1399,28 +1459,45 @@ func waitForAWSMachineRunning(namespace, name string) {
 
 func waitForClusterInfrastructureReady(namespace, name string) bool {
 	fmt.Fprintf(GinkgoWriter, "Ensuring infrastructure is ready for cluster %s/%s\n", namespace, name)
+	polls := 0
+	polls0 := 0
+	var err error
 	endTime := time.Now().Add(20 * time.Minute)
 	for time.Now().Before(endTime) {
+		polls0 = polls + 1
 		cluster := &clusterv1.Cluster{}
-		if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {
+
+		logit := func() {
+			fmt.Fprintf(GinkgoWriter, "POLLING ( # %v ) (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v , Err = %v \n", polls0, namespace, name, cluster.Status, err)
+		}
+
+		if err = kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {
 			if cluster.Status.InfrastructureReady {
+				logit()
 				return true
 			}
 		}
+		if polls0 == 1 || polls0 % 5 == 0 {
+			logit()
+		}
 		time.Sleep(15 * time.Second)
 	}
+	fmt.Fprintf(GinkgoWriter, "Ensuring infrastructure is ready for cluster <<<< GIVING UP, TIME EXPIRED >>>> %v %v %v n", namespace, name, err)
+
 	return false
 }
 
 func waitForMachineBootstrapReady(namespace, name string) {
-	fmt.Fprintf(GinkgoWriter, "Ensuring Machine %s/%s has bootstrapReady\n", namespace, name)
 	Eventually(
 		func() (bool, error) {
 			machine := &clusterv1.Machine{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine); err != nil {
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine)
+			fmt.Fprintf(GinkgoWriter, "Eventually (waitForMachineBootstrapReady) -> Ensuring Machine %s/%s has bootstrapReady... error = %v \n", namespace, name, err)
+			if err != nil {
 				return false, err
+			} else {
+				return machine.Status.BootstrapReady, nil
 			}
-			return machine.Status.BootstrapReady, nil
 		},
 		5*time.Minute, 15*time.Second,
 	).Should(BeTrue())
@@ -1430,10 +1507,13 @@ func waitForAWSMachineReady(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			awsMachine := &infrav1.AWSMachine{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); 
+			fmt.Fprintf(GinkgoWriter, "Eventually (waitForAWSMachineReady) -> Ensuring Machine %s/%s has bootstrapReady... error = %v \n", namespace, name, err)
+			if err != nil {
 				return false, err
+			} else {
+				return awsMachine.Status.Ready, nil
 			}
-			return awsMachine.Status.Ready, nil
 		},
 		2*time.Minute, 15*time.Second,
 	).Should(BeTrue())
@@ -1573,7 +1653,7 @@ func makeCluster(namespace, name, awsClusterName string) {
 }
 
 func makeAWSCluster(namespace, name string, multipleAZ bool) {
-	fmt.Fprintf(GinkgoWriter, "Creating AWSCluster %s/%s\n", namespace, name)
+	fmt.Fprintf(GinkgoWriter, "Creating AWSCluster %s/%s multi %v \n", namespace, name, multipleAZ)
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -1585,6 +1665,7 @@ func makeAWSCluster(namespace, name string, multipleAZ bool) {
 		},
 	}
 	if multipleAZ {
+		// This call can panic ... 
 		azs := getAvailabilityZone()
 		availabilityZones = append(availabilityZones, azs[0].ZoneName, azs[1].ZoneName, azs[2].ZoneName)
 		subnets := []*infrav1.SubnetSpec{

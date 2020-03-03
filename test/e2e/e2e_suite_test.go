@@ -29,9 +29,9 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"text/template"
+	"strings"
 
 	"github.com/onsi/ginkgo/reporters"
 
@@ -44,7 +44,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	ec2 "github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/iam"
 	awssts "github.com/aws/aws-sdk-go/service/sts"
 	appsv1 "k8s.io/api/apps/v1"
@@ -55,7 +55,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
+	sts "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	common "sigs.k8s.io/cluster-api/test/helpers/components"
 	capiFlag "sigs.k8s.io/cluster-api/test/helpers/flag"
@@ -112,28 +112,15 @@ var (
 	logPath      string
 )
 
-var _ = SynchronizedBeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func()  []byte {
 	artifactPath, _ = os.LookupEnv("ARTIFACTS")
 	logPath = path.Join(artifactPath, "logs")
 	Expect(os.MkdirAll(filepath.Dir(logPath), 0755)).To(Succeed())
 
 	fmt.Fprintf(GinkgoWriter, "Setting up kind cluster\n")
 
-	var err error
-	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
-	Expect(err).NotTo(HaveOccurred())
-
-	var ok bool
-	region, ok = os.LookupEnv("AWS_REGION")
-	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
-	if !ok {
-		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
-		Expect(ok).To(BeTrue())
-	}
-
-	sess = getSession()
-
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
+	sess = getSession()
 	accountID = getAccountID(sess)
 	createKeyPair(sess)
 	createIAMRoles(sess, accountID)
@@ -142,55 +129,89 @@ var _ = SynchronizedBeforeSuite(func() {
 	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(out.AccessKey).NotTo(BeNil())
-	accessKey = out.AccessKey
+	return []byte(
+		strings.Join(
+			[]string{
+				aws.StringValue(out.AccessKey.UserName),
+				aws.StringValue(out.AccessKey.AccessKeyId),
+				aws.StringValue(out.AccessKey.SecretAccessKey),
+			},
+			",",
+		),
+	)}, func(accessKeyPair []byte) {
+			parts := strings.Split(string(accessKeyPair), ",")
+			Expect(parts).To(HaveLen(3))
 
-	kindCluster = kind.Cluster{
-		Name: "capa-test-" + util.RandomString(6),
-	}
-	kindCluster.Setup()
-	loadManagerImage(kindCluster)
+			accessKeyUsername := parts[0]
+			accessKeyID := parts[1]
+			secretAccessKey := parts[2]
 
-	// create the management cluster clients we'll need
-	restConfig := kindCluster.RestConfig()
-	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, apiutil.WithLazyDiscovery)
-	Expect(err).NotTo(HaveOccurred())
-	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme(), Mapper: mapper})
-	Expect(err).NotTo(HaveOccurred())
-	clientSet, err = kubernetes.NewForConfig(kindCluster.RestConfig())
-	Expect(err).NotTo(HaveOccurred())
+			accessKey = &iam.AccessKey{
+				AccessKeyId: &accessKeyID,
+				SecretAccessKey: &secretAccessKey,
+				UserName: &accessKeyUsername,
+			}
+			fmt.Fprintf(GinkgoWriter, "GETTING SESSION")
+			sess = getSession()
+			fmt.Fprintf(GinkgoWriter, "... DONE GETTING SESSION")
 
-	// Deploy CertManager
-	certmanagerYaml := "https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
-	applyManifests(kindCluster, &certmanagerYaml)
+			var err error
 
-	// Wait for CertManager to be available before continuing
-	common.WaitDeployment(kindClient, "cert-manager", "cert-manager-webhook")
+			suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
+			Expect(err).NotTo(HaveOccurred())
 
-	// Deploy the CAPI, CABPK, and KCP components from Cluster API repository,
-	// workaround since there isn't a v1alpha3 capi release yet
-	deployCAPIComponents(kindCluster)
-	deployCABPKComponents(kindCluster)
-	deployKCPComponents(kindCluster)
+			var ok bool
+			region, ok = os.LookupEnv("AWS_REGION")
+			fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
+			if !ok {
+				fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
+				Expect(ok).To(BeTrue())
+			}
+			kindCluster = kind.Cluster{
+				Name: "capa-test-" + util.RandomString(6),
+			}
+			kindCluster.Setup()
+			loadManagerImage(kindCluster)
 
-	// Deploy the CAPA components
-	deployCAPAComponents(kindCluster)
+			// create the management cluster clients we'll need
+			restConfig := kindCluster.RestConfig()
+			mapper, err := apiutil.NewDynamicRESTMapper(restConfig, apiutil.WithLazyDiscovery)
+			Expect(err).NotTo(HaveOccurred())
+			kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme(), Mapper: mapper})
+			Expect(err).NotTo(HaveOccurred())
+			clientSet, err = kubernetes.NewForConfig(kindCluster.RestConfig())
+			Expect(err).NotTo(HaveOccurred())
 
-	// Verify capi components are deployed
-	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
-	watchLogs(capiNamespace, capiDeploymentName, logPath)
+			// Deploy CertManager
+			certmanagerYaml := "https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
+			applyManifests(kindCluster, &certmanagerYaml)
 
-	// Verify cabpk components are deployed
-	common.WaitDeployment(kindClient, cabpkNamespace, cabpkDeploymentName)
-	watchLogs(cabpkNamespace, cabpkDeploymentName, logPath)
+			// Wait for CertManager to be available before continuing
+			common.WaitDeployment(kindClient, "cert-manager", "cert-manager-webhook")
 
-	// Verify kcp components are deployed
-	common.WaitDeployment(kindClient, kcpNamespace, kcpDeploymentName)
-	watchLogs(kcpNamespace, kcpDeploymentName, logPath)
+			// Deploy the CAPI, CABPK, and KCP components from Cluster API repository,
+			// workaround since there isn't a v1alpha3 capi release yet
+			capiYAMLssss := "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.0-rc.3/cluster-api-components.yaml"
+			applyManifests(kindCluster, &capiYAMLssss)
 
-	// Verify capa components are deployed
-	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
-	watchLogs(capaNamespace, capaDeploymentName, logPath)
+			// Deploy the CAPA components
+			deployCAPAComponents(kindCluster)
 
+			// Verify capi components are deployed
+			common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
+			watchLogs(capiNamespace, capiDeploymentName, logPath)
+
+			// Verify cabpk components are deployed
+			common.WaitDeployment(kindClient, cabpkNamespace, cabpkDeploymentName)
+			watchLogs(cabpkNamespace, cabpkDeploymentName, logPath)
+
+			// Verify kcp components are deployed
+			common.WaitDeployment(kindClient, kcpNamespace, kcpDeploymentName)
+			watchLogs(kcpNamespace, kcpDeploymentName, logPath)
+
+			// Verify capa components are deployed
+			common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
+			watchLogs(capaNamespace, capaDeploymentName, logPath)
 }, setupTimeout)
 
 var _ = SynchronizedAfterSuite(func() {
@@ -199,21 +220,14 @@ var _ = SynchronizedAfterSuite(func() {
 	if kindCluster.Name != "" {
 		kindCluster.Teardown()
 	}
-
-	if reflect.TypeOf(sess) != nil {
-		if accessKey != nil {
-			iamc := iam.New(sess)
-			iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
-		}
-		deleteIAMRoles(sess)
-	}
-
 	if suiteTmpDir != "" {
 		os.RemoveAll(suiteTmpDir)
 	}
 }, func() {
+	// This is intentionally done per node 
 	iamc := iam.New(sess)
 	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
+	deleteIAMRoles(sess)
 })
 
 // watchLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
@@ -279,6 +293,9 @@ func getSession() client.ConfigProvider {
 }
 
 func getAccountID(prov client.ConfigProvider) string {
+	if prov == nil {
+		panic("The client configuration provider for AWS Cannot be nil !!!")
+	}
 	stsSvc := sts.NewService(awssts.New(prov))
 	accountID, err := stsSvc.AccountID()
 	Expect(err).NotTo(HaveOccurred())
@@ -318,66 +335,6 @@ func applyManifests(kindCluster kind.Cluster, manifests *string) {
 	fmt.Fprintf(GinkgoWriter, "Applying manifests for %s\n", *manifests)
 	Expect(*manifests).ToNot(BeEmpty())
 	kindCluster.ApplyYAML(*manifests)
-}
-
-func deployCAPIComponents(kindCluster kind.Cluster) {
-	fmt.Fprintf(GinkgoWriter, "Generating CAPI manifests\n")
-
-	// Build the manifests using kustomize
-	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/config").Output()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
-		}
-	}
-	Expect(err).NotTo(HaveOccurred())
-
-	// write out the manifests
-	manifestFile := path.Join(suiteTmpDir, "cluster-api-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, capiManifests, 0644)).To(Succeed())
-
-	// apply generated manifests
-	applyManifests(kindCluster, &manifestFile)
-}
-
-func deployCABPKComponents(kindCluster kind.Cluster) {
-	fmt.Fprintf(GinkgoWriter, "Generating CABPK manifests\n")
-
-	// Build the manifests using kustomize
-	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config").Output()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
-		}
-	}
-	Expect(err).NotTo(HaveOccurred())
-
-	// write out the manifests
-	manifestFile := path.Join(suiteTmpDir, "bootstrap-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, cabpkManifests, 0644)).To(Succeed())
-
-	// apply generated manifests
-	applyManifests(kindCluster, &manifestFile)
-}
-
-func deployKCPComponents(kindCluster kind.Cluster) {
-	fmt.Fprintf(GinkgoWriter, "Generating KCP manifests\n")
-
-	// Build the manifests using kustomize
-	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config").Output()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
-		}
-	}
-	Expect(err).NotTo(HaveOccurred())
-
-	// write out the manifests
-	manifestFile := path.Join(suiteTmpDir, "control-plane-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, kcpManifests, 0644)).To(Succeed())
-
-	// apply generated manifests
-	applyManifests(kindCluster, &manifestFile)
 }
 
 func deployCAPAComponents(kindCluster kind.Cluster) {
