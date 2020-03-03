@@ -56,7 +56,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
+	sts "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	common "sigs.k8s.io/cluster-api/test/helpers/components"
 	capiFlag "sigs.k8s.io/cluster-api/test/helpers/flag"
@@ -123,7 +123,6 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 	
 
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
-	accountID = getAccountID(sess)
 	createKeyPair(sess)
 	createIAMRoles(sess, accountID)
 
@@ -156,6 +155,8 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 
 			var err error
 			sess = getSession()
+			accountID = getAccountID(sess)
+
 			suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 			Expect(err).NotTo(HaveOccurred())
 
