@@ -16,6 +16,7 @@ spec:
     listKind: AWSMachineList
     plural: awsmachines
     singular: awsmachine
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}

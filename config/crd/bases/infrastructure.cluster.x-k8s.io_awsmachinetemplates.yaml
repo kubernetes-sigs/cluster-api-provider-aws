@@ -16,6 +16,7 @@ spec:
     listKind: AWSMachineTemplateList
     plural: awsmachinetemplates
     singular: awsmachinetemplate
+  preserveUnknownFields: false
   scope: Namespaced
   validation:
     openAPIV3Schema:

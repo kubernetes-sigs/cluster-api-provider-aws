@@ -16,6 +16,7 @@ spec:
     listKind: AWSClusterList
     plural: awsclusters
     singular: awscluster
+  preserveUnknownFields: false
   scope: Namespaced
   subresources:
     status: {}
