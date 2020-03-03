@@ -124,8 +124,10 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
 	sess = getSession()
+	accountID = getAccountID(sess)
 	createKeyPair(sess)
 	createIAMRoles(sess, accountID)
+
 
 	iamc := iam.New(sess)
 	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
@@ -155,7 +157,6 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 			}
 
 			var err error
- 			accountID = getAccountID(sess)
 
 			suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 			Expect(err).NotTo(HaveOccurred())
@@ -301,6 +302,9 @@ func getSession() client.ConfigProvider {
 }
 
 func getAccountID(prov client.ConfigProvider) string {
+	if prov == nil {
+		panic("provider can't be nil !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+	}
 	stsSvc := sts.NewService(awssts.New(prov))
 	accountID, err := stsSvc.AccountID()
 	Expect(err).NotTo(HaveOccurred())
