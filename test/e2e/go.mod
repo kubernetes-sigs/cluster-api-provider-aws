@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.25.16
-	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
 	github.com/pkg/errors v0.9.0
 	github.com/vmware-tanzu/sonobuoy v0.16.4

@@ -33,6 +33,8 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/onsi/ginkgo/reporters"
+
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
@@ -70,7 +72,10 @@ func TestE2e(t *testing.T) {
 	if ap, exists := os.LookupEnv("ARTIFACTS"); exists {
 		artifactPath = ap
 	}
+
 	junitPath := path.Join(artifactPath, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(junitPath)
+
 	RunSpecsWithDefaultAndCustomReporters(t, "e2e Suite", []Reporter{junitReporter})
 }
 
@@ -206,6 +211,9 @@ var _ = SynchronizedAfterSuite(func() {
 	if suiteTmpDir != "" {
 		os.RemoveAll(suiteTmpDir)
 	}
+}, func() {
+	iamc := iam.New(sess)
+	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
 })
 
 // watchLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed

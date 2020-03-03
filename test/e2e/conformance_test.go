@@ -21,14 +21,14 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
+ 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"text/template"
 	"time"
-
+	"strconv"
+"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -181,18 +181,19 @@ func runConformance(tmpDir, namespace, clusterName string) error {
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "untar %s failed\n", fileName)
 	} else {
-		// Move the conformance junit file to the artifact directory for prow to pick it up
-		defer src.Close()			
+		// Move the conformance junit file to the artifact directory for prow to pick it up			
 		src := path.Join(outputDir, "plugins/e2e/results/global/junit_01.xml")
-		if err == nil {			
-			dest := path.Join(artifactPath, "junit.k8s_conf.xml")
-			dst, err := os.Create(path.Join(artifactPath, "junit.k8s_conf.xml"))
-			if err := os.Rename(src, dest); err != nil {
-			defer dst.Close()
-			fmt.Fprintf(GinkgoWriter, "couldn't fetch junit.k8s_conf.xml %v", err)
+		dest := path.Join(artifactPath, "junit.k8s_conf.xml")
+		dst, err := os.Create(dest)
+		if err != nil {
+			return errors.Wrap(err, "couldnt make output dirs for tests?")
+		}
+		if err := os.Rename(src, dest); err != nil {
+		defer dst.Close()
+		fmt.Fprintf(GinkgoWriter, "couldn't fetch junit.k8s_conf.xml %v", err)
 		}
 	}
-
+	
 	err = sonobuoyClient.Delete(&client.DeleteConfig{
 		Namespace:  "sonobuoy",
 		EnableRBAC: true,

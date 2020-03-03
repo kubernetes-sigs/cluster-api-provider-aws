@@ -30,6 +30,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -60,17 +61,12 @@ import (
 )
 
 var (
-<<<<<<< HEAD
-	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.12/manifests/calico.yaml", "URL to CNI manifests to load")
-	kubectlBinary = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
-=======
-	cniManifests      = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.9/manifests/calico.yaml", "URL to CNI manifests to load")
+	cniManifests      = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.12/manifests/calico.yaml", "URL to CNI manifests to load")
 	kubectlBinary     = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 	availabilityZones []*string
 	privateCIDRs      = [3]string{"10.0.0.0/24", "10.0.2.0/24", "10.0.4.0/24"}
 	publicCIDRs       = [3]string{"10.0.1.0/24", "10.0.3.0/24", "10.0.5.0/24"}
 	tries             = 0
->>>>>>> Port E2E test automation from release-0.4 branch
 )
 
 const (
@@ -123,7 +119,7 @@ func setup1() testSetup {
 	}
 	setup.namespace = "test-" + util.RandomString(6)
 	fmt.Println("*********", setup.namespace)
-	createNamespace(setup.namespace, kindClient)
+	createNamespace(setup.namespace)
 
 	setup.clusterName = "test-" + util.RandomString(6)
 	setup.awsClusterName = "test-infra-" + util.RandomString(6)
@@ -312,7 +308,7 @@ var _ = Describe("functional tests", func() {
 			var setup11 testSetup
 			var setup22 testSetup
 
-			It("should setup namespaces correctly for the two clusters..."), func() {
+			It("should setup namespaces correctly for the two clusters...", func() {
 				setup11 = setup1()
 				setup22 = setup1()
 			})
@@ -337,8 +333,7 @@ var _ = Describe("functional tests", func() {
 		})
 
 		Context("in same namespace", func() {
-			var ns, clName1, clName2 string
-			var setup11 testSetup
+ 			var setup11 testSetup
 			var setup22 testSetup
 			It("should create first cluster", func() {
 				setup11 = setup1()
@@ -347,12 +342,10 @@ var _ = Describe("functional tests", func() {
 				makeSingleControlPlaneCluster(setup11)
 			})
 			It("should create second cluster in the same namespace", func() {
-				clName2 = setup22.clusterName
-				setup22.namespace = setup11.namespace
+ 				setup22.namespace = setup11.namespace
 				By("Creating second cluster with single control plane")
 				makeSingleControlPlaneCluster(setup22)
 			})
-
 			It("should delete both clusters", func() {
 				By("Deleting the Clusters")
 				deleteCluster(setup11.namespace, setup11.clusterName)
@@ -371,7 +364,7 @@ var _ = Describe("functional tests", func() {
 			createMachineDeployment(setup)
 
 			By("Deleting a worker node machine")
-			deleteMachineFromDeployment(setup.namespace, setup.machineDeploymentName)
+			deleteMachine(setup.namespace, setup.machineDeploymentName)
 			time.Sleep(10 * time.Second)
 
 			waitForMachineDeploymentRunning(setup.namespace, setup.machineDeploymentName)
@@ -1267,9 +1260,9 @@ func waitForWorkerAPIServerReady(namespace, clusterName string) {
 	).Should(BeTrue())
 }
 
-func waitForMachineNodeReady(namespace, clusterName, name string) {
+func waitForMachineNodeReady(namespace, name string) {
 	machine := &clusterv1.Machine{}
-	Expect(kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine)).To(Succeed())
+	Expect(kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, machine)).To(Succeed())
 
 	nodeName := machine.Status.NodeRef.Name
 
@@ -1290,7 +1283,7 @@ func waitForMachineNodeReady(namespace, clusterName, name string) {
 	Eventually(
 		func() bool {
 			node := &corev1.Node{}
-			if err := nodeClient.Get(context.TODO(), crclient.ObjectKey{Name: nodeName}, node); err != nil {
+			if err := nodeClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: nodeName}, node); err != nil {
 				fmt.Fprintf(GinkgoWriter, "Error retrieving node: %v", err)
 				return false
 			}
