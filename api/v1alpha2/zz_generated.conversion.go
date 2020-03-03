@@ -116,16 +116,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Instance)(nil), (*v1alpha1.Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha2_Instance_To_v1alpha1_Instance(a.(*Instance), b.(*v1alpha1.Instance), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1alpha1.Instance)(nil), (*Instance)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha1_Instance_To_v1alpha2_Instance(a.(*v1alpha1.Instance), b.(*Instance), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Network)(nil), (*v1alpha1.Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha2_Network_To_v1alpha1_Network(a.(*Network), b.(*v1alpha1.Network), scope)
 	}); err != nil {
