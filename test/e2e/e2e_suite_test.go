@@ -32,6 +32,7 @@ import (
 	"reflect"
 	"testing"
 	"text/template"
+	"strings"
 
 	"github.com/onsi/ginkgo/reporters"
 
@@ -112,26 +113,14 @@ var (
 	logPath      string
 )
 
-var _ = SynchronizedBeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func()  []byte {
 	artifactPath, _ = os.LookupEnv("ARTIFACTS")
 	logPath = path.Join(artifactPath, "logs")
 	Expect(os.MkdirAll(filepath.Dir(logPath), 0755)).To(Succeed())
 
 	fmt.Fprintf(GinkgoWriter, "Setting up kind cluster\n")
 
-	var err error
-	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
-	Expect(err).NotTo(HaveOccurred())
-
-	var ok bool
-	region, ok = os.LookupEnv("AWS_REGION")
-	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
-	if !ok {
-		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
-		Expect(ok).To(BeTrue())
-	}
-
-	sess = getSession()
+	
 
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
 	accountID = getAccountID(sess)
@@ -142,55 +131,87 @@ var _ = SynchronizedBeforeSuite(func() {
 	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(out.AccessKey).NotTo(BeNil())
-	accessKey = out.AccessKey
+	return []byte(
+		strings.Join(
+			[]string{
+				aws.StringValue(out.AccessKey.UserName),
+				aws.StringValue(out.AccessKey.AccessKeyId),
+				aws.StringValue(out.AccessKey.SecretAccessKey),
+			},
+			",",
+		),
+	)}, func(accessKeyPair []byte) {
+			parts := strings.Split(string(accessKeyPair), ",")
+			Expect(parts).To(HaveLen(3))
 
-	kindCluster = kind.Cluster{
-		Name: "capa-test-" + util.RandomString(6),
-	}
-	kindCluster.Setup()
-	loadManagerImage(kindCluster)
+			accessKeyUsername := parts[0]
+			accessKeyID := parts[1]
+			secretAccessKey := parts[2]
 
-	// create the management cluster clients we'll need
-	restConfig := kindCluster.RestConfig()
-	mapper, err := apiutil.NewDynamicRESTMapper(restConfig, apiutil.WithLazyDiscovery)
-	Expect(err).NotTo(HaveOccurred())
-	kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme(), Mapper: mapper})
-	Expect(err).NotTo(HaveOccurred())
-	clientSet, err = kubernetes.NewForConfig(kindCluster.RestConfig())
-	Expect(err).NotTo(HaveOccurred())
+			accessKey = &iam.AccessKey{
+				AccessKeyId: &accessKeyID,
+				SecretAccessKey: &secretAccessKey,
+				UserName: &accessKeyUsername,
+			}
 
-	// Deploy CertManager
-	certmanagerYaml := "https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
-	applyManifests(kindCluster, &certmanagerYaml)
+			var err error
+			sess = getSession()
+			suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
+			Expect(err).NotTo(HaveOccurred())
 
-	// Wait for CertManager to be available before continuing
-	common.WaitDeployment(kindClient, "cert-manager", "cert-manager-webhook")
+			var ok bool
+			region, ok = os.LookupEnv("AWS_REGION")
+			fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
+			if !ok {
+				fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
+				Expect(ok).To(BeTrue())
+			}
+			kindCluster = kind.Cluster{
+				Name: "capa-test-" + util.RandomString(6),
+			}
+			kindCluster.Setup()
+			loadManagerImage(kindCluster)
 
-	// Deploy the CAPI, CABPK, and KCP components from Cluster API repository,
-	// workaround since there isn't a v1alpha3 capi release yet
-	deployCAPIComponents(kindCluster)
-	deployCABPKComponents(kindCluster)
-	deployKCPComponents(kindCluster)
+			// create the management cluster clients we'll need
+			restConfig := kindCluster.RestConfig()
+			mapper, err := apiutil.NewDynamicRESTMapper(restConfig, apiutil.WithLazyDiscovery)
+			Expect(err).NotTo(HaveOccurred())
+			kindClient, err = crclient.New(kindCluster.RestConfig(), crclient.Options{Scheme: setupScheme(), Mapper: mapper})
+			Expect(err).NotTo(HaveOccurred())
+			clientSet, err = kubernetes.NewForConfig(kindCluster.RestConfig())
+			Expect(err).NotTo(HaveOccurred())
 
-	// Deploy the CAPA components
-	deployCAPAComponents(kindCluster)
+			// Deploy CertManager
+			certmanagerYaml := "https://github.com/jetstack/cert-manager/releases/download/v0.11.0/cert-manager.yaml"
+			applyManifests(kindCluster, &certmanagerYaml)
 
-	// Verify capi components are deployed
-	common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
-	watchLogs(capiNamespace, capiDeploymentName, logPath)
+			// Wait for CertManager to be available before continuing
+			common.WaitDeployment(kindClient, "cert-manager", "cert-manager-webhook")
 
-	// Verify cabpk components are deployed
-	common.WaitDeployment(kindClient, cabpkNamespace, cabpkDeploymentName)
-	watchLogs(cabpkNamespace, cabpkDeploymentName, logPath)
+			// Deploy the CAPI, CABPK, and KCP components from Cluster API repository,
+			// workaround since there isn't a v1alpha3 capi release yet
+			deployCAPIComponents(kindCluster)
+			deployCABPKComponents(kindCluster)
+			deployKCPComponents(kindCluster)
 
-	// Verify kcp components are deployed
-	common.WaitDeployment(kindClient, kcpNamespace, kcpDeploymentName)
-	watchLogs(kcpNamespace, kcpDeploymentName, logPath)
+			// Deploy the CAPA components
+			deployCAPAComponents(kindCluster)
 
-	// Verify capa components are deployed
-	common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
-	watchLogs(capaNamespace, capaDeploymentName, logPath)
+			// Verify capi components are deployed
+			common.WaitDeployment(kindClient, capiNamespace, capiDeploymentName)
+			watchLogs(capiNamespace, capiDeploymentName, logPath)
 
+			// Verify cabpk components are deployed
+			common.WaitDeployment(kindClient, cabpkNamespace, cabpkDeploymentName)
+			watchLogs(cabpkNamespace, cabpkDeploymentName, logPath)
+
+			// Verify kcp components are deployed
+			common.WaitDeployment(kindClient, kcpNamespace, kcpDeploymentName)
+			watchLogs(kcpNamespace, kcpDeploymentName, logPath)
+
+			// Verify capa components are deployed
+			common.WaitDeployment(kindClient, capaNamespace, capaDeploymentName)
+			watchLogs(capaNamespace, capaDeploymentName, logPath)
 }, setupTimeout)
 
 var _ = SynchronizedAfterSuite(func() {
