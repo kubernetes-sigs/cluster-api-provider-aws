@@ -11,7 +11,7 @@ require (
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
-	k8s.io/client-go v11.0.1-0.20190704100234-640d9f240853+incompatible
+	k8s.io/client-go v0.17.2
 	sigs.k8s.io/cluster-api v0.3.0-rc.1
 	sigs.k8s.io/cluster-api-provider-aws v0.4.8
 	sigs.k8s.io/controller-runtime v0.5.0

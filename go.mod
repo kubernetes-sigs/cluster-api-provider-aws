@@ -8,7 +8,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.3.1
-	github.com/golangci/golangci-lint v1.23.7 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
 	github.com/pkg/errors v0.9.0
@@ -17,7 +16,8 @@ require (
 	github.com/vmware-tanzu/sonobuoy v0.17.2 // indirect
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/net v0.0.0-20191021144547-ec77196f6094
-	gopkg.in/yaml.v2 v2.2.8
+	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
+	gopkg.in/yaml.v2 v2.2.7
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v11.0.1-0.20190704100234-640d9f240853+incompatible
