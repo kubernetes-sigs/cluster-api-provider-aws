@@ -280,11 +280,7 @@ release-binary: $(RELEASE_DIR)
 		-e GOARCH=$(GOARCH) \
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
-<<<<<<< HEAD
-		golang:1.13.8 \
-=======
 		golang:$(GOLANG_VERSION) \
->>>>>>> Port E2E test automation from release-0.4 branch
 		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
