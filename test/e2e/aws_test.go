@@ -189,9 +189,10 @@ var _ = Describe("functional tests", func() {
 	})
 
 	Describe("Provisioning LoadBalancer dynamically and deleting on cluster deletion", func() {
-		setup := setup1()
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		It("It should create and delete Load Balancer", func() {
+			setup := setup1()
+
 			By("Creating a cluster with single control plane")
 			clusterK8sClient := makeSingleControlPlaneCluster(setup)
 
