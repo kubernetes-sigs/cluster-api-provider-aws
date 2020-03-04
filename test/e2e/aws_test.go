@@ -988,9 +988,9 @@ func createCluster(namespace, clusterName, awsClusterName string, multiAZ bool) 
 	return waitForClusterInfrastructureReady(namespace, clusterName)
 }
 
-func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
-	if setup == nil {
-		panic(" setup cant be nil ")
+func makeSingleControlPlaneCluster(setup *testSetup) crclient.Client {
+	if setup.namespace == "" && setup.clusterName == "" && setup.awsClusterName == "" {
+		panic(" setup looks effectively nil /  uninitialized... ")
 	}
 	Expect(createCluster(setup.namespace, setup.clusterName, setup.awsClusterName, setup.multipleAZ)).Should(BeTrue())
 
