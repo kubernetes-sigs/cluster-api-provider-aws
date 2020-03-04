@@ -155,6 +155,7 @@ var _ = Describe("functional tests", func() {
 
 	Describe("workload cluster lifecycle", func() {
 		It("It should be creatable and deletable", func() {
+			time.Sleep(5*time.Second)
 			setup := setup1()
 			By("Creating a cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
@@ -191,6 +192,9 @@ var _ = Describe("functional tests", func() {
 	Describe("Provisioning LoadBalancer dynamically and deleting on cluster deletion", func() {
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		It("It should create and delete Load Balancer", func() {
+			Skip("debugging")
+			time.Sleep(1*time.Second)
+
 			setup := setup1()
 
 			By("Creating a cluster with single control plane")
@@ -230,6 +234,8 @@ var _ = Describe("functional tests", func() {
 		}
 
 		It("It should create volumes and volumes should not be deleted along with cluster infra", func() {
+			Skip("debugging")
+
 			setup := setup1()
 			By("Creating a cluster with single control plane")
 			clusterK8sClient := makeSingleControlPlaneCluster(setup)
@@ -255,6 +261,10 @@ var _ = Describe("functional tests", func() {
 
 	Describe("MachineDeployment with invalid subnet ID and AZ", func() {
 		It("It should be creatable and deletable", func() {
+			Skip("debugging")
+
+			time.Sleep(1*time.Second)
+
 			setup := setup1()
 			deployment1 := setup.machineDeploymentName + "-1"
 			deployment2 := setup.machineDeploymentName + "-2"
@@ -310,23 +320,26 @@ var _ = Describe("functional tests", func() {
 			var setup22 testSetup
 
 			It("should setup namespaces correctly for the two clusters...", func() {
+				Skip("debugging")
+
+				time.Sleep(1*time.Second)
+
 				setup11 = setup1()
 				setup22 = setup1()
-			})
-			It("should create first cluster, then a second cluster, then delete stuff...", func() {
+				time.Sleep(1*time.Second)
 				ns1 = setup11.namespace
 				clName1 = setup11.clusterName
+
 				By("Creating first cluster with single control plane")
 				makeSingleControlPlaneCluster(setup11)
-			})
-			It("should create second cluster in a different namespace", func() {
+				time.Sleep(1*time.Second)
 				ns2 = setup22.namespace
 				clName2 = setup22.clusterName
+
 				By("Creating second cluster with single control plane")
 				makeSingleControlPlaneCluster(setup22)
-			})
+				time.Sleep(1*time.Second)
 
-			It("should delete both clusters", func() {
 				By("Deleting the Clusters")
 				deleteCluster(ns1, clName1)
 				deleteCluster(ns2, clName2)
@@ -337,17 +350,18 @@ var _ = Describe("functional tests", func() {
  			var setup11 testSetup
 			var setup22 testSetup
 			It("should create first cluster", func() {
+				Skip("debugging")
+
 				setup11 = setup1()
 				setup22 = setup1()
+
 				By("Creating first cluster with single control plane")
 				makeSingleControlPlaneCluster(setup11)
-			})
-			It("should create second cluster in the same namespace", func() {
+
  				setup22.namespace = setup11.namespace
 				By("Creating second cluster with single control plane")
 				makeSingleControlPlaneCluster(setup22)
-			})
-			It("should delete both clusters", func() {
+
 				By("Deleting the Clusters")
 				deleteCluster(setup11.namespace, setup11.clusterName)
 				deleteCluster(setup22.namespace, setup22.clusterName)
@@ -357,6 +371,8 @@ var _ = Describe("functional tests", func() {
 
 	Describe("MachineDeployment will replace a deleted Machine", func() {
 		It("It should reconcile the deleted machine", func() {
+			Skip("debugging")
+
 			setup := setup1()
 			By("Creating a workload cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
@@ -377,6 +393,8 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Workload cluster in multiple AZs", func() {
 		It("It should be creatable and deletable", func() {
+			Skip("debugging")
+
 			setup := setup1()
 			By("Creating a workload cluster with single control plane")
 			setup.multipleAZ = true
@@ -425,6 +443,8 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Creating cluster after reaching vpc maximum limit", func() {
 		It("Cluster created after reaching vpc limit should be in provisioning", func() {
+			Skip("debugging")
+
 			setup := setup1()
 			By("Create clusters till vpc limit")
 			sess = getSession()
@@ -451,6 +471,8 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Delete infra node directly from infra provider", func() {
 		It("Machine referencing deleted infra node should come to failed state", func() {
+			Skip("debugging")
+
 			setup := setup1()
 			By("Creating a workload cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
@@ -474,6 +496,8 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Create cluster with name having more than 22 characters", func() {
 		It("Cluster should be provisioned and deleted", func() {
+			Skip("debugging")
+
 			By("Creating a workload cluster with single control plane")
 			setup.clusterName = "test-" + util.RandomString(20)
 			makeSingleControlPlaneCluster(setup)
@@ -944,6 +968,9 @@ func verfiyInstancesInSubnet(numOfInstances int32, subnetId *string) {
 }
 
 func getAvailabilityZone() []*ec2.AvailabilityZone {
+	if sess == nil {
+		panic ("session is nil, cant get availability zones.")
+	}
 	ec2c := ec2.New(sess)
 	azs, err := ec2c.DescribeAvailabilityZones(nil)
 	Expect(err).NotTo(HaveOccurred())
@@ -962,7 +989,9 @@ func createCluster(namespace, clusterName, awsClusterName string, multiAZ bool) 
 }
 
 func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
-
+	if setup == nil {
+		panic("Setup was nil")
+	}
 	Expect(createCluster(setup.namespace, setup.clusterName, setup.awsClusterName, setup.multipleAZ)).Should(BeTrue())
 
 	By("Creating the initial Control Plane Machine")
@@ -1573,7 +1602,7 @@ func makeCluster(namespace, name, awsClusterName string) {
 }
 
 func makeAWSCluster(namespace, name string, multipleAZ bool) {
-	fmt.Fprintf(GinkgoWriter, "Creating AWSCluster %s/%s\n", namespace, name)
+	fmt.Fprintf(GinkgoWriter, "Creating AWSCluster %s/%s multi %s \n", namespace, name, multipleAZ)
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -1585,6 +1614,7 @@ func makeAWSCluster(namespace, name string, multipleAZ bool) {
 		},
 	}
 	if multipleAZ {
+		// This call can panic ... 
 		azs := getAvailabilityZone()
 		availabilityZones = append(availabilityZones, azs[0].ZoneName, azs[1].ZoneName, azs[2].ZoneName)
 		subnets := []*infrav1.SubnetSpec{
