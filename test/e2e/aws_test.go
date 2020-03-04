@@ -109,7 +109,8 @@ type testSetup struct {
 	subnetId                *string
 }
 
-func setup1() testSetup {
+var lastSetup testSetup
+func setup1() (testSetup,context.CancelFunc) {
 	fmt.Println("********* call to before each - setting up `setup` ")
 	var err error
 	setup := testSetup{}
@@ -132,31 +133,27 @@ func setup1() testSetup {
 	setup.initialReplicas = 2
 	setup.instanceType = "t3.large"
 	setup.multipleAZ = false
-	return setup
+	lastSetup = setup // so that before each has a chance in hell of watching the right setup.  not sure this works 100%.
+
+	// watch this namespace for events ...
+	ctx, cancelWatches := context.WithCancel(context.Background())
+	go func() {
+		defer GinkgoRecover()
+		watchEvents(ctx, lastSetup.namespace)
+	}()
+	return setup, cancelWatches
 }
 
 var _ = Describe("functional tests", func() {
 	var (
-		setup         testSetup
-		cancelWatches context.CancelFunc
-	)
-	BeforeEach(func() {
-		var ctx context.Context
-		ctx, cancelWatches = context.WithCancel(context.Background())
-		go func() {
-			defer GinkgoRecover()
-			watchEvents(ctx, setup.namespace)
-		}()
-	})
 
-	AfterEach(func() {
-		defer cancelWatches()
-	})
+	)
 
 	Describe("workload cluster lifecycle", func() {
 		It("It should be creatable and deletable", func() {
 			time.Sleep(5*time.Second)
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
 
@@ -195,7 +192,8 @@ var _ = Describe("functional tests", func() {
 			Skip("debugging")
 			time.Sleep(1*time.Second)
 
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 
 			By("Creating a cluster with single control plane")
 			clusterK8sClient := makeSingleControlPlaneCluster(setup)
@@ -236,7 +234,8 @@ var _ = Describe("functional tests", func() {
 		It("It should create volumes and volumes should not be deleted along with cluster infra", func() {
 			Skip("debugging")
 
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a cluster with single control plane")
 			clusterK8sClient := makeSingleControlPlaneCluster(setup)
 
@@ -265,7 +264,8 @@ var _ = Describe("functional tests", func() {
 
 			time.Sleep(1*time.Second)
 
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			deployment1 := setup.machineDeploymentName + "-1"
 			deployment2 := setup.machineDeploymentName + "-2"
 			template1 := setup.awsMachineTemplateName + "-1"
@@ -318,14 +318,18 @@ var _ = Describe("functional tests", func() {
 			var ns1, clName1, ns2, clName2 string
 			var setup11 testSetup
 			var setup22 testSetup
-
+			var cf1,cf2 context.CancelFunc
 			It("should setup namespaces correctly for the two clusters...", func() {
 				Skip("debugging")
 
 				time.Sleep(1*time.Second)
 
-				setup11 = setup1()
-				setup22 = setup1()
+				setup11, cf1 = setup1()
+				setup22, cf2 = setup1()
+
+				defer cf1()
+				defer cf2()
+
 				time.Sleep(1*time.Second)
 				ns1 = setup11.namespace
 				clName1 = setup11.clusterName
@@ -349,11 +353,15 @@ var _ = Describe("functional tests", func() {
 		Context("in same namespace", func() {
  			var setup11 testSetup
 			var setup22 testSetup
+			var cf1,cf2 context.CancelFunc
+
 			It("should create first cluster", func() {
 				Skip("debugging")
 
-				setup11 = setup1()
-				setup22 = setup1()
+				setup11, cf1 = setup1()
+				setup22, cf2 = setup1()
+				defer cf1()
+				defer cf2()
 
 				By("Creating first cluster with single control plane")
 				makeSingleControlPlaneCluster(setup11)
@@ -373,7 +381,8 @@ var _ = Describe("functional tests", func() {
 		It("It should reconcile the deleted machine", func() {
 			Skip("debugging")
 
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
 
@@ -395,7 +404,8 @@ var _ = Describe("functional tests", func() {
 		It("It should be creatable and deletable", func() {
 			Skip("debugging")
 
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			setup.multipleAZ = true
 			makeSingleControlPlaneCluster(setup)
@@ -445,7 +455,8 @@ var _ = Describe("functional tests", func() {
 		It("Cluster created after reaching vpc limit should be in provisioning", func() {
 			Skip("debugging")
 
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Create clusters till vpc limit")
 			sess = getSession()
 			limit := getElasticIPsLimit()
@@ -473,7 +484,8 @@ var _ = Describe("functional tests", func() {
 		It("Machine referencing deleted infra node should come to failed state", func() {
 			Skip("debugging")
 
-			setup := setup1()
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			makeSingleControlPlaneCluster(setup)
 
@@ -496,6 +508,8 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Create cluster with name having more than 22 characters", func() {
 		It("Cluster should be provisioned and deleted", func() {
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			Skip("debugging")
 
 			By("Creating a workload cluster with single control plane")
@@ -509,6 +523,9 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Create cluster with name having '.'", func() {
 		It("Cluster should be provisioned and deleted", func() {
+
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
 			setup.clusterName = "test." + util.RandomString(6)
 			makeSingleControlPlaneCluster(setup)
