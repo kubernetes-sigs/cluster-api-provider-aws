@@ -988,7 +988,7 @@ func createCluster(namespace, clusterName, awsClusterName string, multiAZ bool) 
 	return waitForClusterInfrastructureReady(namespace, clusterName)
 }
 
-func makeSingleControlPlaneCluster(setup *testSetup) crclient.Client {
+func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
 	if setup.namespace == "" && setup.clusterName == "" && setup.awsClusterName == "" {
 		panic(" setup looks effectively nil /  uninitialized... ")
 	}
@@ -1602,7 +1602,7 @@ func makeCluster(namespace, name, awsClusterName string) {
 }
 
 func makeAWSCluster(namespace, name string, multipleAZ bool) {
-	fmt.Fprintf(GinkgoWriter, "Creating AWSCluster %s/%s multi %s \n", namespace, name, multipleAZ)
+	fmt.Fprintf(GinkgoWriter, "Creating AWSCluster %s/%s multi %v \n", namespace, name, multipleAZ)
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
