@@ -29,7 +29,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"text/template"
 	"strings"
