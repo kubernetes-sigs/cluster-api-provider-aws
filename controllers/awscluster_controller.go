@@ -67,6 +67,12 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	if isPaused(cluster, awsCluster) {
+		log.Info("AWSCluster or linked Cluster is marked as paused. Won't reconcile")
+		return reconcile.Result{}, nil
+	}
+
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")
 		return reconcile.Result{}, nil
@@ -187,5 +193,6 @@ func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
+		WithEventFilter(pausePredicates).
 		Complete(r)
 }

@@ -87,11 +87,11 @@ help:  ## Display this help
 
 .PHONY: test
 test: ## Run tests
-	go test -v ./...
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
-	go test -v -tags=integration ./test/integration/...
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
