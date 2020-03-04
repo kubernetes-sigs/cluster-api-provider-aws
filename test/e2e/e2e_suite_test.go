@@ -120,14 +120,11 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 
 	fmt.Fprintf(GinkgoWriter, "Setting up kind cluster\n")
 
-	
-
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
 	sess = getSession()
 	accountID = getAccountID(sess)
 	createKeyPair(sess)
 	createIAMRoles(sess, accountID)
-
 
 	iamc := iam.New(sess)
 	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
@@ -155,6 +152,9 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 				SecretAccessKey: &secretAccessKey,
 				UserName: &accessKeyUsername,
 			}
+			fmt.Fprintf(GinkgoWriter, "GETTING SESSION")
+			sess = getSession()
+			fmt.Fprintf(GinkgoWriter, ".... GETTING SESSION %s", sess)
 
 			var err error
 
