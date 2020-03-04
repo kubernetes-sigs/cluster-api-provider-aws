@@ -1436,6 +1436,7 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 				return true
 			}
 		}
+		fmt.Fprintf(GinkgoWriter, "POLLING --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v \n", namespace, name, cluster.Status)
 		time.Sleep(15 * time.Second)
 	}
 	return false

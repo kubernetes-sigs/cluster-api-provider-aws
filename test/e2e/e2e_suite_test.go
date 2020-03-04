@@ -154,7 +154,7 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 			}
 			fmt.Fprintf(GinkgoWriter, "GETTING SESSION")
 			sess = getSession()
-			fmt.Fprintf(GinkgoWriter, ".... GETTING SESSION %s", sess)
+			fmt.Fprintf(GinkgoWriter, "... DONE GETTING SESSION")
 
 			var err error
 
