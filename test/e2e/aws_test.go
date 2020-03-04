@@ -990,7 +990,7 @@ func createCluster(namespace, clusterName, awsClusterName string, multiAZ bool) 
 
 func makeSingleControlPlaneCluster(setup testSetup) crclient.Client {
 	if setup == nil {
-		panic("Setup was nil")
+		panic(" setup cant be nil ")
 	}
 	Expect(createCluster(setup.namespace, setup.clusterName, setup.awsClusterName, setup.multipleAZ)).Should(BeTrue())
 
