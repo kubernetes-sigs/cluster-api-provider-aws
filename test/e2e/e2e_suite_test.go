@@ -222,14 +222,13 @@ var _ = SynchronizedAfterSuite(func() {
 	if kindCluster.Name != "" {
 		kindCluster.Teardown()
 	}
-
-	if reflect.TypeOf(sess) != nil {
-		if accessKey != nil {
-			iamc := iam.New(sess)
-			iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
-		}
-		deleteIAMRoles(sess)
-	}
+	//if reflect.TypeOf(sess) != nil {
+	//	if accessKey != nil {
+	//			iamc := iam.New(sess)
+ 	//			iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
+	//		}
+ 	//		deleteIAMRoles(sess)
+ 	//	}
 
 	if suiteTmpDir != "" {
 		os.RemoveAll(suiteTmpDir)
@@ -237,6 +236,7 @@ var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	iamc := iam.New(sess)
 	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
+	deleteIAMRoles(sess)
 })
 
 // watchLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
