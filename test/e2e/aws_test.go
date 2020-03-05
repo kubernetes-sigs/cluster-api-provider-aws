@@ -252,6 +252,8 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting retained dynamically provisioned volumes")
 			deleteRetainedVolumes(awsVolIds)
+			By("PASSED!")
+
 		})
 	})
 
@@ -305,6 +307,7 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
@@ -315,8 +318,6 @@ var _ = Describe("functional tests", func() {
 			var setup22 testSetup
 			var cf1,cf2 context.CancelFunc
 			It("should setup namespaces correctly for the two clusters...", func() {
-				Skip("debugging")
-
 				time.Sleep(1*time.Second)
 
 				setup11, cf1 = setup1()
@@ -342,6 +343,7 @@ var _ = Describe("functional tests", func() {
 				By("Deleting the Clusters")
 				deleteCluster(ns1, clName1)
 				deleteCluster(ns2, clName2)
+				By("PASSED!")
 			})
 		})
 
@@ -351,8 +353,6 @@ var _ = Describe("functional tests", func() {
 			var cf1,cf2 context.CancelFunc
 
 			It("should create first cluster", func() {
-				Skip("debugging")
-
 				setup11, cf1 = setup1()
 				setup22, cf2 = setup1()
 				defer cf1()
@@ -368,6 +368,7 @@ var _ = Describe("functional tests", func() {
 				By("Deleting the Clusters")
 				deleteCluster(setup11.namespace, setup11.clusterName)
 				deleteCluster(setup22.namespace, setup22.clusterName)
+				By("PASSED!")
 			})
 		})
 	})
@@ -391,6 +392,7 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
@@ -440,6 +442,8 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
+
 		})
 	})
 
@@ -461,12 +465,15 @@ var _ = Describe("functional tests", func() {
 
 			By("Checking cluster gets provisioned when resources available")
 			if len(vpcsCreated) > 0 {
+				By("Deleting VPCs")
 				deleteVPCs(vpcsCreated)
+				By("Creating the cluster after VPCs were deleted")
 				Expect(waitForClusterInfrastructureReady(setup.namespace, setup.clusterName)).Should(BeTrue())
 			}
 
 			By("Deleting the cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
@@ -491,6 +498,7 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
@@ -504,6 +512,7 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
 		})
 	})
 
@@ -518,6 +527,8 @@ var _ = Describe("functional tests", func() {
 
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
+
 		})
 	})
 })
@@ -1440,6 +1451,7 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 			}
 		}
 		fmt.Fprintf(GinkgoWriter, "POLLING --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v \n", namespace, name, cluster.Status)
+
 		time.Sleep(15 * time.Second)
 	}
 	return false
