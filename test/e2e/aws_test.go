@@ -1295,7 +1295,7 @@ func waitForWorkerAPIServerReady(namespace, clusterName string) {
 		func() bool {
 			nodes := &corev1.NodeList{}
 			if err := nodeClient.List(context.TODO(), nodes); err != nil {
-				fmt.Fprintf(GinkgoWriter, "Error retrieving nodes: %v", err)
+				fmt.Fprintf(GinkgoWriter, "(waitForWorkerAPIServerReady) Error retrieving nodes: %v", err)
 				return false
 			}
 			return true
@@ -1328,10 +1328,9 @@ func waitForMachineNodeReady(namespace, name string) {
 		func() bool {
 			node := &corev1.Node{}
 			if err := nodeClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: nodeName}, node); err != nil {
-				fmt.Fprintf(GinkgoWriter, "Error retrieving node: %v", err)
+				fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Error retrieving node: %v", err)
 				return false
 			}
-
 			conditionMap := make(map[corev1.NodeConditionType]*corev1.NodeCondition)
 			for i, condition := range node.Status.Conditions {
 				if condition.Type == corev1.NodeReady {
@@ -1341,9 +1340,12 @@ func waitForMachineNodeReady(namespace, name string) {
 
 			if condition, ok := conditionMap[corev1.NodeReady]; ok {
 				if condition.Status == corev1.ConditionTrue {
+					fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Success retrieving node: NodeReady %v", err)
 					return true
 				}
 			}
+			fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) machine still not ready: %v", err)
+
 			return false
 		},
 		2*time.Minute, 15*time.Second,
@@ -1384,7 +1386,10 @@ func deleteCluster(namespace, name string) {
 	Eventually(
 		func() bool {
 			cluster := &clusterv1.Cluster{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); 
+			fmt.Fprintf(GinkgoWriter, "Eventually (deleteCluster) --> %s/%s : Status = %v \n", namespace, name, err)
+			// non nil error ==> cluster is gone, which means delete worked.
+			if err != nil {
 				if apierrors.IsNotFound(err) {
 					return true
 				}
@@ -1400,11 +1405,13 @@ func waitForMachineNodeRef(namespace, name string) {
 	Eventually(
 		func() *corev1.ObjectReference {
 			machine := &clusterv1.Machine{}
+			defer func() {
+				fmt.Fprintf(GinkgoWriter, "Eventually (waitForMachineNodeRef) --> %s/%s : Status = %v \n", namespace, name, machine.Status)
+			}()
 			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine); err != nil {
 				return nil
 			}
 			return machine.Status.NodeRef
-
 		},
 		10*time.Minute, 15*time.Second,
 	).ShouldNot(BeNil())
@@ -1415,6 +1422,10 @@ func waitForClusterControlPlaneInitialized(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			cluster := &clusterv1.Cluster{}
+			defer func() {
+				fmt.Fprintf(GinkgoWriter, "Eventually (waitForClusterControlPlaneInitialized) --> %s/%s : Status = %v \n", namespace, name, cluster)
+			}()
+
 			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); err != nil {
 				return false, err
 			}
@@ -1427,8 +1438,12 @@ func waitForClusterControlPlaneInitialized(namespace, name string) {
 func waitForAWSMachineRunning(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
+			var err error
 			awsMachine := &infrav1.AWSMachine{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
+			defer func() {
+				fmt.Fprintf(GinkgoWriter, "Eventually (waitForAWSMachineRunning) --> %s/%s : Status = %v \n", namespace, name, awsMachine)
+			}()
+			if err = kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
 				return false, err
 			}
 			if awsMachine.Status.InstanceState == nil {
@@ -1445,12 +1460,12 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 	endTime := time.Now().Add(20 * time.Minute)
 	for time.Now().Before(endTime) {
 		cluster := &clusterv1.Cluster{}
+		fmt.Fprintf(GinkgoWriter, "POLLING (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v \n", namespace, name, cluster.Status)
 		if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {
 			if cluster.Status.InfrastructureReady {
 				return true
 			}
 		}
-		fmt.Fprintf(GinkgoWriter, "POLLING --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v \n", namespace, name, cluster.Status)
 
 		time.Sleep(15 * time.Second)
 	}
@@ -1458,14 +1473,16 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 }
 
 func waitForMachineBootstrapReady(namespace, name string) {
-	fmt.Fprintf(GinkgoWriter, "Ensuring Machine %s/%s has bootstrapReady\n", namespace, name)
 	Eventually(
 		func() (bool, error) {
 			machine := &clusterv1.Machine{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine); err != nil {
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, machine)
+			fmt.Fprintf(GinkgoWriter, "Eventually (waitForMachineBootstrapReady) -> Ensuring Machine %s/%s has bootstrapReady... error = %v \n", namespace, name, err)
+			if err != nil {
 				return false, err
+			} else {
+				return machine.Status.BootstrapReady, nil
 			}
-			return machine.Status.BootstrapReady, nil
 		},
 		5*time.Minute, 15*time.Second,
 	).Should(BeTrue())
@@ -1475,10 +1492,13 @@ func waitForAWSMachineReady(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			awsMachine := &infrav1.AWSMachine{}
-			if err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); err != nil {
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); 
+			fmt.Fprintf(GinkgoWriter, "Eventually (waitForAWSMachineReady) -> Ensuring Machine %s/%s has bootstrapReady... error = %v \n", namespace, name, err)
+			if err != nil {
 				return false, err
+			} else {
+				return awsMachine.Status.Ready, nil
 			}
-			return awsMachine.Status.Ready, nil
 		},
 		2*time.Minute, 15*time.Second,
 	).Should(BeTrue())
