@@ -374,7 +374,6 @@ var _ = Describe("functional tests", func() {
 
 	Describe("MachineDeployment will replace a deleted Machine", func() {
 		It("It should reconcile the deleted machine", func() {
-			Skip("debugging")
 
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
@@ -397,8 +396,6 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Workload cluster in multiple AZs", func() {
 		It("It should be creatable and deletable", func() {
-			Skip("debugging")
-
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
@@ -448,8 +445,6 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Creating cluster after reaching vpc maximum limit", func() {
 		It("Cluster created after reaching vpc limit should be in provisioning", func() {
-			Skip("debugging")
-
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
 			By("Create clusters till vpc limit")
@@ -477,8 +472,6 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Delete infra node directly from infra provider", func() {
 		It("Machine referencing deleted infra node should come to failed state", func() {
-			Skip("debugging")
-
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
@@ -505,8 +498,6 @@ var _ = Describe("functional tests", func() {
 		It("Cluster should be provisioned and deleted", func() {
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
-			Skip("debugging")
-
 			By("Creating a workload cluster with single control plane")
 			setup.clusterName = "test-" + util.RandomString(20)
 			makeSingleControlPlaneCluster(setup)
