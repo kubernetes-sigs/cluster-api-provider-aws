@@ -189,7 +189,6 @@ var _ = Describe("functional tests", func() {
 	Describe("Provisioning LoadBalancer dynamically and deleting on cluster deletion", func() {
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		It("It should create and delete Load Balancer", func() {
-			Skip("debugging")
 			time.Sleep(1*time.Second)
 
 			setup, cancelFunc := setup1()
@@ -232,8 +231,6 @@ var _ = Describe("functional tests", func() {
 		}
 
 		It("It should create volumes and volumes should not be deleted along with cluster infra", func() {
-			Skip("debugging")
-
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
 			By("Creating a cluster with single control plane")
@@ -260,8 +257,6 @@ var _ = Describe("functional tests", func() {
 
 	Describe("MachineDeployment with invalid subnet ID and AZ", func() {
 		It("It should be creatable and deletable", func() {
-			Skip("debugging")
-
 			time.Sleep(1*time.Second)
 
 			setup, cancelFunc := setup1()
