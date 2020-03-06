@@ -326,20 +326,22 @@ var _ = Describe("functional tests", func() {
 				defer cf1()
 				defer cf2()
 
-				time.Sleep(1*time.Second)
 				ns1 = setup11.namespace
 				clName1 = setup11.clusterName
 
-				By("Creating first cluster with single control plane")
-				makeSingleControlPlaneCluster(setup11)
-				time.Sleep(1*time.Second)
 				ns2 = setup22.namespace
 				clName2 = setup22.clusterName
 
-				By("Creating second cluster with single control plane")
-				makeSingleControlPlaneCluster(setup22)
+				By("Creating first cluster with single control plane")
 				time.Sleep(1*time.Second)
+				makeSingleControlPlaneCluster(setup11)
+				
 
+				By("Creating second cluster with single control plane")
+				time.Sleep(1*time.Second)
+				makeSingleControlPlaneCluster(setup22)
+				
+				
 				By("Deleting the Clusters")
 				deleteCluster(ns1, clName1)
 				deleteCluster(ns2, clName2)
@@ -353,6 +355,7 @@ var _ = Describe("functional tests", func() {
 			var cf1,cf2 context.CancelFunc
 
 			It("should create first cluster", func() {
+				Skip("maybe this is concurrently interfering with the above (((should setup namespaces correctly for the two clusters...))) test???")
 				setup11, cf1 = setup1()
 				setup22, cf2 = setup1()
 				defer cf1()
@@ -400,7 +403,7 @@ var _ = Describe("functional tests", func() {
 		It("It should be creatable and deletable", func() {
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
-			By("Creating a workload cluster with single control plane")
+			By("Creating a workload cluster with single control plane with multipleAZ=true")
 			setup.multipleAZ = true
 			makeSingleControlPlaneCluster(setup)
 
@@ -1457,16 +1460,27 @@ func waitForAWSMachineRunning(namespace, name string) {
 
 func waitForClusterInfrastructureReady(namespace, name string) bool {
 	fmt.Fprintf(GinkgoWriter, "Ensuring infrastructure is ready for cluster %s/%s\n", namespace, name)
+	polls := 0
+	polls0 := 0
+	var err error
 	endTime := time.Now().Add(20 * time.Minute)
 	for time.Now().Before(endTime) {
+		polls0 = polls + 1
 		cluster := &clusterv1.Cluster{}
-		fmt.Fprintf(GinkgoWriter, "POLLING (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v \n", namespace, name, cluster.Status)
-		if err := kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {
+
+		logit := func() {
+			fmt.Fprintf(GinkgoWriter, "POLLING ( # %v ) (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v , Err = %v \n", polls0, namespace, name, cluster.Status, err)
+		}
+
+		if err = kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {
 			if cluster.Status.InfrastructureReady {
+				logit()
 				return true
 			}
 		}
-
+		if polls0 % 5 == 0 {
+			logit()
+		}
 		time.Sleep(15 * time.Second)
 	}
 	return false
