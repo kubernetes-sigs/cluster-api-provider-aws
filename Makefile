@@ -314,9 +314,7 @@ create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes clu
 	kubectl wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
 
 	# Deploy CAPI
-	kustomize build github.com/kubernetes-sigs/cluster-api//config?ref=v0.3.0-rc.3 | kubectl apply -f -
-	kustomize build github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=v0.3.0-rc.3 | kubectl apply -f -
-	kustomize build github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=v0.3.0-rc.3 | kubectl apply -f -
+	kubectl apply -f https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.0-rc.3/cluster-api-components.yaml
 
 	# Deploy CAPA
 	kustomize build config | $(ENVSUBST) | kubectl apply -f -
