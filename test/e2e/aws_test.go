@@ -50,7 +50,7 @@ import (
 )
 
 var (
-	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.12/manifests/calico.yaml", "URL to CNI manifests to load")
+	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/manifests/calico.yaml", "URL to CNI manifests to load")
 	kubectlBinary = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 )
 
