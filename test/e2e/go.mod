@@ -3,7 +3,7 @@ module sigs.k8s.io/cluster-api-provider-aws/test/e2e
 go 1.13
 
 require (
-	github.com/aws/aws-sdk-go v1.25.16
+	github.com/aws/aws-sdk-go v1.28.2
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
 	github.com/pkg/errors v0.9.0
