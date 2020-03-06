@@ -1331,7 +1331,7 @@ func waitForMachineNodeReady(namespace, name string) {
 		func() bool {
 			node := &corev1.Node{}
 			if err := nodeClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Name: nodeName}, node); err != nil {
-				fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Error retrieving node: %v", err)
+				fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Error retrieving node: %v \n", err)
 				return false
 			}
 			conditionMap := make(map[corev1.NodeConditionType]*corev1.NodeCondition)
@@ -1343,11 +1343,11 @@ func waitForMachineNodeReady(namespace, name string) {
 
 			if condition, ok := conditionMap[corev1.NodeReady]; ok {
 				if condition.Status == corev1.ConditionTrue {
-					fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Success retrieving node: NodeReady %v", err)
+					fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) Success retrieving node: NodeReady %v \n", err)
 					return true
 				}
 			}
-			fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) machine still not ready: %v", err)
+			fmt.Fprintf(GinkgoWriter, "(waitForMachineNodeReady) machine still not ready: %v \n", err)
 
 			return false
 		},
@@ -1478,11 +1478,13 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 				return true
 			}
 		}
-		if polls0 % 5 == 0 {
+		if polls0 == 1 || polls0 % 5 == 0 {
 			logit()
 		}
 		time.Sleep(15 * time.Second)
 	}
+	fmt.Fprintf(GinkgoWriter, "Ensuring infrastructure is ready for cluster <<<< GIVING UP, TIME EXPIRED >>>> %v %v %v n", namespace, name, err)
+
 	return false
 }
 

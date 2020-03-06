@@ -78,6 +78,9 @@ LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
 GOLANG_VERSION := 1.13.8
 
+# DEBUG_TEST := "functional tests"
+DEBUG_TEST := "should setup namespaces correctly for the two cluster"
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -100,7 +103,7 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: $(GINKGO) ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=4 -v -tags=e2e -focus="functional tests" ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=4 -v -tags=e2e -focus=$(DEBUG_TEST) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: test-conformance
 test-conformance: ## Run conformance test on workload cluster
