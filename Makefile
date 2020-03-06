@@ -66,6 +66,13 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
+endif
+
 # Set build time variables including version details
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
@@ -278,7 +285,7 @@ release-binary: $(RELEASE_DIR)
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
-		-v "$$(pwd):/workspace" \
+		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GOLANG_VERSION) \
 		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
@@ -296,7 +303,7 @@ release-alias-tag: # Adds the tag to the last build tag.
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES)
-	$(RELEASE_NOTES)
+	$(RELEASE_NOTES) $(ARGS)
 
 ## --------------------------------------
 ## Development
@@ -319,9 +326,9 @@ create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes clu
 	kubectl wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
 
 	# Deploy CAPI
-	kustomize build github.com/kubernetes-sigs/cluster-api//config?ref=v0.3.0-rc.2 | kubectl apply -f -
-	kustomize build github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=v0.3.0-rc.2 | kubectl apply -f -
-	kustomize build github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=v0.3.0-rc.2 | kubectl apply -f -
+	kustomize build github.com/kubernetes-sigs/cluster-api//config?ref=v0.3.0-rc.3 | kubectl apply -f -
+	kustomize build github.com/kubernetes-sigs/cluster-api//bootstrap/kubeadm/config?ref=v0.3.0-rc.3 | kubectl apply -f -
+	kustomize build github.com/kubernetes-sigs/cluster-api//controlplane/kubeadm/config?ref=v0.3.0-rc.3 | kubectl apply -f -
 
 	# Deploy CAPA
 	kustomize build config | $(ENVSUBST) | kubectl apply -f -
@@ -345,7 +352,7 @@ create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes clu
 	timeout 300 bash -c "while ! kubectl --kubeconfig=./kubeconfig get nodes | grep master; do sleep 1; done"
 
 	# Deploy calico
-	kubectl --kubeconfig=./kubeconfig apply -f https://docs.projectcalico.org/v3.12/manifests/calico.yaml
+	kubectl --kubeconfig=./kubeconfig apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
 .PHONY: kind-reset
 kind-reset: ## Destroys the "clusterapi" kind cluster.

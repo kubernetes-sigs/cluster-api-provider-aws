@@ -61,12 +61,13 @@ import (
 )
 
 var (
-	cniManifests      = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/v3.12/manifests/calico.yaml", "URL to CNI manifests to load")
 	kubectlBinary     = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 	availabilityZones []*string
 	privateCIDRs      = [3]string{"10.0.0.0/24", "10.0.2.0/24", "10.0.4.0/24"}
 	publicCIDRs       = [3]string{"10.0.1.0/24", "10.0.3.0/24", "10.0.5.0/24"}
 	tries             = 0
+	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/manifests/calico.yaml", "URL to CNI manifests to load")
+	kubectlBinary = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 )
 
 const (

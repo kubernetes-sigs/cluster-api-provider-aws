@@ -3,7 +3,7 @@ module sigs.k8s.io/cluster-api-provider-aws
 go 1.13
 
 require (
-	github.com/aws/aws-sdk-go v1.25.16
+	github.com/aws/aws-sdk-go v1.28.2
 	github.com/awslabs/goformation/v4 v4.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-logr/logr v0.1.0
@@ -23,6 +23,6 @@ require (
 	k8s.io/client-go v0.17.2
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20191114184206-e782cd3c129f
-	sigs.k8s.io/cluster-api v0.3.0-rc.2
+	sigs.k8s.io/cluster-api v0.3.0-rc.3
 	sigs.k8s.io/controller-runtime v0.5.0
 )
