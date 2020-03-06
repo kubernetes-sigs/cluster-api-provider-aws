@@ -340,7 +340,7 @@ create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes clu
 	timeout 300 bash -c "while ! kubectl --kubeconfig=./kubeconfig get nodes | grep master; do sleep 1; done"
 
 	# Deploy calico
-	kubectl --kubeconfig=./kubeconfig apply -f https://docs.projectcalico.org/v3.12/manifests/calico.yaml
+	kubectl --kubeconfig=./kubeconfig apply -f https://docs.projectcalico.org/manifests/calico.yaml
 
 .PHONY: kind-reset
 kind-reset: ## Destroys the "clusterapi" kind cluster.
