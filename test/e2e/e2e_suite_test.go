@@ -191,9 +191,8 @@ var _ = SynchronizedBeforeSuite(func()  []byte {
 
 			// Deploy the CAPI, CABPK, and KCP components from Cluster API repository,
 			// workaround since there isn't a v1alpha3 capi release yet
-			deployCAPIComponents(kindCluster)
-			deployCABPKComponents(kindCluster)
-			deployKCPComponents(kindCluster)
+			capiYAMLssss := "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.0-rc.3/cluster-api-components.yaml"
+			applyManifests(kindCluster, &capiYAMLssss)
 
 			// Deploy the CAPA components
 			deployCAPAComponents(kindCluster)
