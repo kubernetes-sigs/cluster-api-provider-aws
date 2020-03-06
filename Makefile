@@ -80,7 +80,8 @@ GOLANG_VERSION := 1.13.8
 
 # DEBUG_TEST := "functional tests"
 # DEBUG_TEST := "should setup namespaces correctly for the two cluster"
-DEBUG_TEST := "22 characters"
+# DEBUG_TEST := "22 characters"
+DEBUG_TEST := "reconcile the deleted"
 
 ## --------------------------------------
 ## Help
