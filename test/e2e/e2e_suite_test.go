@@ -369,7 +369,7 @@ func deployCABPKComponents(kindCluster kind.Cluster) {
 	fmt.Fprintf(GinkgoWriter, "Generating CABPK manifests\n")
 
 	// Build the manifests using kustomize
-	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config").Output()
+	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config?ref=v0.5.0-rc.3").Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
