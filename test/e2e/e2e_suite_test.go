@@ -220,18 +220,11 @@ var _ = SynchronizedAfterSuite(func() {
 	if kindCluster.Name != "" {
 		kindCluster.Teardown()
 	}
-	//if reflect.TypeOf(sess) != nil {
-	//	if accessKey != nil {
-	//			iamc := iam.New(sess)
- 	//			iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
-	//		}
- 	//		deleteIAMRoles(sess)
- 	//	}
-
 	if suiteTmpDir != "" {
 		os.RemoveAll(suiteTmpDir)
 	}
 }, func() {
+	// This is intentionally done per node 
 	iamc := iam.New(sess)
 	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
 	deleteIAMRoles(sess)
