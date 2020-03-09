@@ -301,7 +301,7 @@ func getSession() client.ConfigProvider {
 
 func getAccountID(prov client.ConfigProvider) string {
 	if prov == nil {
-		panic("provider can't be nil !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		panic("The client configuration provider for AWS Cannot be nil !!!")
 	}
 	stsSvc := sts.NewService(awssts.New(prov))
 	accountID, err := stsSvc.AccountID()
