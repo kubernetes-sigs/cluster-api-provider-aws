@@ -355,7 +355,6 @@ var _ = Describe("functional tests", func() {
 			var cf1,cf2 context.CancelFunc
 
 			It("should create first cluster", func() {
-				Skip("maybe this is concurrently interfering with the above (((should setup namespaces correctly for the two clusters...))) test???")
 				setup11, cf1 = setup1()
 				setup22, cf2 = setup1()
 				defer cf1()
