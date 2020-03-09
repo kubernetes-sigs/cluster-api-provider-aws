@@ -78,11 +78,10 @@ LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
 GOLANG_VERSION := 1.13.8
 
-DEBUG_TEST := "functional tests"
-# DEBUG_TEST := "should setup namespaces correctly for the two cluster"
-# DEBUG_TEST := "22 characters"
-# DEBUG_TEST := " reconcile the deleted"
-
+# 'functional tests' as the ginkgo filter will run ALL tests ~ 2 hours @ 3 node concurrency.
+E2E_FOCUS := "functional tests"
+# Instead, you can run a quick smoke test, it should run fast (9 minutes)... 
+# E2E_FOCUS := "Create cluster with name having"
 
 ## --------------------------------------
 ## Help
@@ -106,7 +105,7 @@ test-integration: ## Run integration tests
 .PHONY: test-e2e
 test-e2e: $(GINKGO) ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=2 -v -tags=e2e -focus=$(DEBUG_TEST) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=2 -v -tags=e2e -focus=$(E2E_FOCUS) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: test-conformance
 test-conformance: ## Run conformance test on workload cluster
