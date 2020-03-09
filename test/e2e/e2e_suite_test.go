@@ -344,66 +344,6 @@ func applyManifests(kindCluster kind.Cluster, manifests *string) {
 	kindCluster.ApplyYAML(*manifests)
 }
 
-func deployCAPIComponents(kindCluster kind.Cluster) {
-	fmt.Fprintf(GinkgoWriter, "Generating CAPI manifests\n")
-
-	// Build the manifests using kustomize
-	capiManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/config?ref=v0.3.0-rc.3").Output()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
-		}
-	}
-	Expect(err).NotTo(HaveOccurred())
-
-	// write out the manifests
-	manifestFile := path.Join(suiteTmpDir, "cluster-api-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, capiManifests, 0644)).To(Succeed())
-
-	// apply generated manifests
-	applyManifests(kindCluster, &manifestFile)
-}
-
-func deployCABPKComponents(kindCluster kind.Cluster) {
-	fmt.Fprintf(GinkgoWriter, "Generating CABPK manifests\n")
-
-	// Build the manifests using kustomize
-	cabpkManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config?ref=v0.3.0-rc.3").Output()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
-		}
-	}
-	Expect(err).NotTo(HaveOccurred())
-
-	// write out the manifests
-	manifestFile := path.Join(suiteTmpDir, "bootstrap-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, cabpkManifests, 0644)).To(Succeed())
-
-	// apply generated manifests
-	applyManifests(kindCluster, &manifestFile)
-}
-
-func deployKCPComponents(kindCluster kind.Cluster) {
-	fmt.Fprintf(GinkgoWriter, "Generating KCP manifests\n")
-
-	// Build the manifests using kustomize
-	kcpManifests, err := exec.Command(*kustomizeBinary, "build", "https://github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config?ref=v0.3.0-rc.3").Output()
-	if err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			fmt.Fprintf(GinkgoWriter, "Error: %s\n", string(exitError.Stderr))
-		}
-	}
-	Expect(err).NotTo(HaveOccurred())
-
-	// write out the manifests
-	manifestFile := path.Join(suiteTmpDir, "control-plane-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, kcpManifests, 0644)).To(Succeed())
-
-	// apply generated manifests
-	applyManifests(kindCluster, &manifestFile)
-}
-
 func deployCAPAComponents(kindCluster kind.Cluster) {
 	if capaComponents != nil && *capaComponents != "" {
 		applyManifests(kindCluster, capaComponents)
