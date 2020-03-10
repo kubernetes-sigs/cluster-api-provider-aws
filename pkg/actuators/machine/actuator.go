@@ -633,7 +633,7 @@ func (a *Actuator) patchMachine(ctx context.Context, machine *machinev1.Machine,
 
 	//Patch status
 	if err := a.client.Status().Patch(ctx, machine, machineToBePatched); err != nil {
-		klog.Errorf("Failed to update machine %q: %v", machine.GetName(), err)
+		klog.Errorf("Failed to update machine status %q: %v", machine.GetName(), err)
 		return err
 	}
 	return nil

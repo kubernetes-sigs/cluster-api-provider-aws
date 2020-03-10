@@ -14,7 +14,7 @@
 
 GO111MODULE = on
 export GO111MODULE
-GOFLAGS += -mod=vendor
+GOFLAGS ?= -mod=vendor
 export GOFLAGS
 GOPROXY ?=
 export GOPROXY
@@ -56,7 +56,9 @@ generate:
 	hack/goimports.sh .
 
 .PHONY: test
-test: unit
+test: ## Run tests
+	@echo -e "\033[32mTesting...\033[0m"
+	$(DOCKER_CMD) hack/ci-test.sh
 
 bin:
 	@mkdir $@
@@ -67,7 +69,6 @@ build: ## build binaries
                -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' \
                "$(REPO_PATH)/vendor/github.com/openshift/machine-api-operator/cmd/machineset"
-
 
 aws-actuator:
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
@@ -95,7 +96,6 @@ unit: # Run unit test
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
 	hack/e2e.sh
-
 
 .PHONY: lint
 lint: ## Go lint your code
