@@ -152,6 +152,13 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		}
 	}
 
+	// Prefer AWSMachine.Spec.FailureDomain for now while migrating to the use of
+	// Machine.Spec.FailureDomain. The MachineController will handle migrating the value for us.
+	failureDomain := scope.AWSMachine.Spec.FailureDomain
+	if failureDomain == nil {
+		failureDomain = scope.Machine.Spec.FailureDomain
+	}
+
 	// Pick subnet from the machine configuration, or based on the availability zone specified,
 	// or default to the first private subnet available.
 	// TODO(vincepri): Move subnet picking logic to its own function/method.
@@ -159,17 +166,16 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
 		input.SubnetID = *scope.AWSMachine.Spec.Subnet.ID
 
-	case scope.AWSMachine.Spec.FailureDomain != nil:
-		zone := scope.AWSMachine.Spec.FailureDomain
-		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*zone)
+	case failureDomain != nil:
+		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
 		if len(subnets) == 0 {
 			record.Warnf(scope.AWSMachine, "FailedCreate",
-				"Failed to create instance: no subnets available in availability zone %q", *zone)
+				"Failed to create instance: no subnets available in availability zone %q", *failureDomain)
 
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available in availability zone %q",
 					scope.Name(),
-					*zone,
+					*failureDomain,
 				),
 			)
 		}
