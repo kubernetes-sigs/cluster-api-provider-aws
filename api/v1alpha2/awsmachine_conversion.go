@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/pointer"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -47,6 +48,11 @@ func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1a
 	// Note this may override the manual conversion in Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec.
 	if restored.RootVolume != nil {
 		restored.RootVolume.DeepCopyInto(dst.RootVolume)
+	}
+
+	// override the SSHKeyName conversion if we are roundtripping from v1alpha3 and the v1alpha3 value is nil
+	if dst.SSHKeyName != nil && *dst.SSHKeyName == "" && restored.SSHKeyName == nil {
+		dst.SSHKeyName = nil
 	}
 }
 
@@ -87,6 +93,9 @@ func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSp
 	// Manually convert dst.Spec.FailureDomain.
 	out.FailureDomain = in.AvailabilityZone
 
+	// Manually convert SSHKeyName
+	out.SSHKeyName = pointer.StringPtr(in.SSHKeyName)
+
 	if in.CloudInit == nil {
 		out.CloudInit.InsecureSkipSecretsManager = true
 	} else if err := Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in.CloudInit, &out.CloudInit, s); err != nil {
@@ -113,6 +122,11 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 	// Manually convert FailureDomain to AvailabilityZone.
 	out.AvailabilityZone = in.FailureDomain
 
+	// Manually convert SSHKeyName
+	if in.SSHKeyName != nil {
+		out.SSHKeyName = *in.SSHKeyName
+
+	}
 	out.CloudInit = &CloudInit{}
 	if err := Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(&in.CloudInit, out.CloudInit, s); err != nil {
 		return err

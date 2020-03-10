@@ -24,7 +24,8 @@ import (
 	time "time"
 	unsafe "unsafe"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -409,7 +410,9 @@ func autoConvert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *AWSClust
 		return err
 	}
 	out.Region = in.Region
-	out.SSHKeyName = in.SSHKeyName
+	if err := v1.Convert_string_To_Pointer_string(&in.SSHKeyName, &out.SSHKeyName, s); err != nil {
+		return err
+	}
 	out.AdditionalTags = *(*v1alpha3.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	if in.ControlPlaneLoadBalancer != nil {
 		in, out := &in.ControlPlaneLoadBalancer, &out.ControlPlaneLoadBalancer
@@ -429,7 +432,9 @@ func autoConvert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *v1alpha3
 		return err
 	}
 	out.Region = in.Region
-	out.SSHKeyName = in.SSHKeyName
+	if err := v1.Convert_Pointer_string_To_string(&in.SSHKeyName, &out.SSHKeyName, s); err != nil {
+		return err
+	}
 	// WARNING: in.ControlPlaneEndpoint requires manual conversion: does not exist in peer-type
 	out.AdditionalTags = *(*Tags)(unsafe.Pointer(&in.AdditionalTags))
 	if in.ControlPlaneLoadBalancer != nil {
@@ -570,7 +575,9 @@ func autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachi
 	out.AdditionalSecurityGroups = *(*[]v1alpha3.AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	// WARNING: in.AvailabilityZone requires manual conversion: does not exist in peer-type
 	out.Subnet = (*v1alpha3.AWSResourceReference)(unsafe.Pointer(in.Subnet))
-	out.SSHKeyName = in.SSHKeyName
+	if err := v1.Convert_string_To_Pointer_string(&in.SSHKeyName, &out.SSHKeyName, s); err != nil {
+		return err
+	}
 	// WARNING: in.RootDeviceSize requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
@@ -591,7 +598,9 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 	out.AdditionalSecurityGroups = *(*[]AWSResourceReference)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Subnet = (*AWSResourceReference)(unsafe.Pointer(in.Subnet))
-	out.SSHKeyName = in.SSHKeyName
+	if err := v1.Convert_Pointer_string_To_string(&in.SSHKeyName, &out.SSHKeyName, s); err != nil {
+		return err
+	}
 	// WARNING: in.RootVolume requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit)
@@ -600,7 +609,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 
 func autoConvert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSMachineStatus, out *v1alpha3.AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*v1alpha3.InstanceState)(unsafe.Pointer(in.InstanceState))
 	// WARNING: in.ErrorReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.ErrorMessage requires manual conversion: does not exist in peer-type
@@ -609,7 +618,7 @@ func autoConvert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSM
 
 func autoConvert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *v1alpha3.AWSMachineStatus, out *AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*InstanceState)(unsafe.Pointer(in.InstanceState))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
@@ -968,7 +977,7 @@ func autoConvert_v1alpha2_Instance_To_v1alpha3_Instance(in *Instance, out *v1alp
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.UserData = (*string)(unsafe.Pointer(in.UserData))
 	out.IAMProfile = in.IAMProfile
-	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.PrivateIP = (*string)(unsafe.Pointer(in.PrivateIP))
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
@@ -989,7 +998,7 @@ func autoConvert_v1alpha3_Instance_To_v1alpha2_Instance(in *v1alpha3.Instance, o
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.UserData = (*string)(unsafe.Pointer(in.UserData))
 	out.IAMProfile = in.IAMProfile
-	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.PrivateIP = (*string)(unsafe.Pointer(in.PrivateIP))
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))

@@ -20,6 +20,7 @@ import (
 	"reflect"
 
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/utils/pointer"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -45,6 +46,11 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	restored := &infrav1alpha3.AWSCluster{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
+	}
+
+	// override the SSHKeyName conversion if we are roundtripping from v1alpha3 and the v1alpha3 value is nil
+	if src.Spec.SSHKeyName == "" && restored.Spec.SSHKeyName == nil {
+		dst.Spec.SSHKeyName = nil
 	}
 
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
@@ -127,6 +133,9 @@ func Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *AWSClusterSp
 	// Manually convert Bastion.
 	out.Bastion.Enabled = !in.DisableBastionHost
 
+	// Manually convert SSHKeyName
+	out.SSHKeyName = pointer.StringPtr(in.SSHKeyName)
+
 	return nil
 }
 
@@ -139,6 +148,11 @@ func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha
 
 	// Manually convert DisableBastionHost.
 	out.DisableBastionHost = !in.Bastion.Enabled
+
+	// Manually convert SSHKeyName
+	if in.SSHKeyName != nil {
+		out.SSHKeyName = *in.SSHKeyName
+	}
 
 	return nil
 }

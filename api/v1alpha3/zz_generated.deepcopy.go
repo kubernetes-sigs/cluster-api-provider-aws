@@ -90,6 +90,11 @@ func (in *AWSClusterList) DeepCopyObject() runtime.Object {
 func (in *AWSClusterSpec) DeepCopyInto(out *AWSClusterSpec) {
 	*out = *in
 	in.NetworkSpec.DeepCopyInto(&out.NetworkSpec)
+	if in.SSHKeyName != nil {
+		in, out := &in.SSHKeyName, &out.SSHKeyName
+		*out = new(string)
+		**out = **in
+	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	if in.AdditionalTags != nil {
 		in, out := &in.AdditionalTags, &out.AdditionalTags
@@ -260,6 +265,11 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		in, out := &in.Subnet, &out.Subnet
 		*out = new(AWSResourceReference)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.SSHKeyName != nil {
+		in, out := &in.SSHKeyName, &out.SSHKeyName
+		*out = new(string)
+		**out = **in
 	}
 	if in.RootVolume != nil {
 		in, out := &in.RootVolume, &out.RootVolume

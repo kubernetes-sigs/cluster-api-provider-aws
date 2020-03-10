@@ -35,8 +35,9 @@ type AWSClusterSpec struct {
 	// The AWS Region the cluster lives in.
 	Region string `json:"region,omitempty"`
 
-	// SSHKeyName is the name of the ssh key to attach to the bastion host.
-	SSHKeyName string `json:"sshKeyName,omitempty"`
+	// SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
+	// +optional
+	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
