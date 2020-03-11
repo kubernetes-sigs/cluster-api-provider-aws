@@ -306,8 +306,8 @@ create_cluster() {
   KUBERNETES_VERSION=$KUBERNETES_VERSION \
   IMAGE_ID=$image_id \
   AWS_SSH_KEY_NAME=$AWS_SSH_KEY_NAME \
-  CONTROL_PLANE_MACHINE_TYPE=m5.large \
-  NODE_MACHINE_TYPE=m5.large \
+  AWS_CONTROL_PLANE_MACHINE_TYPE=m5.large \
+  AWS_NODE_MACHINE_TYPE=m5.large \
   AWS_B64ENCODED_CREDENTIALS=$("${REPO_ROOT}"/bin/clusterawsadm alpha bootstrap encode-aws-credentials) \
   LOAD_IMAGE="${REGISTRY}/cluster-api-aws-controller-amd64:dev" CLUSTER_NAME="${CLUSTER_NAME}" \
     make create-cluster)
