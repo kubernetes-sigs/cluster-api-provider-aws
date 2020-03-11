@@ -44,7 +44,7 @@ var _ = Describe("MachineSetReconciler", func() {
 		mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
 		Expect(err).ToNot(HaveOccurred())
 
-		r := MachineSetReconciler{
+		r := Reconciler{
 			Client: mgr.GetClient(),
 			Log:    log.Log,
 		}
@@ -180,7 +180,7 @@ func deleteMachineSets(c client.Client, namespaceName string) error {
 			return err
 		}
 		if len(machineSets.Items) > 0 {
-			return fmt.Errorf("MachineSets not deleted")
+			return fmt.Errorf("machineSets not deleted")
 		}
 		return nil
 	}, timeout).Should(Succeed())
