@@ -30,7 +30,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -61,7 +63,7 @@ import (
 )
 
 var (
-	cniManifests  = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/manifests/calico.yaml", "URL to CNI manifests to load")
+	cniManifests      = capiFlag.DefineOrLookupStringFlag("cniManifests", "https://docs.projectcalico.org/manifests/calico.yaml", "URL to CNI manifests to load")
 	kubectlBinary     = capiFlag.DefineOrLookupStringFlag("kubectlBinary", "kubectl", "path to the kubectl binary")
 	availabilityZones []*string
 	privateCIDRs      = [3]string{"10.0.0.0/24", "10.0.2.0/24", "10.0.4.0/24"}
@@ -110,7 +112,8 @@ type testSetup struct {
 }
 
 var lastSetup testSetup
-func setup1() (testSetup,context.CancelFunc) {
+
+func setup1() (testSetup, context.CancelFunc) {
 	fmt.Println("********* call to before each - setting up `setup` ")
 	var err error
 	setup := testSetup{}
@@ -145,13 +148,11 @@ func setup1() (testSetup,context.CancelFunc) {
 }
 
 var _ = Describe("functional tests", func() {
-	var (
-
-	)
+	var ()
 
 	Describe("workload cluster lifecycle", func() {
 		It("It should be creatable and deletable", func() {
-			time.Sleep(5*time.Second)
+			time.Sleep(5 * time.Second)
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
 			By("Creating a cluster with single control plane")
@@ -189,7 +190,7 @@ var _ = Describe("functional tests", func() {
 	Describe("Provisioning LoadBalancer dynamically and deleting on cluster deletion", func() {
 		lbServiceName := "test-svc-" + util.RandomString(6)
 		It("It should create and delete Load Balancer", func() {
-			time.Sleep(1*time.Second)
+			time.Sleep(1 * time.Second)
 
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
@@ -259,7 +260,7 @@ var _ = Describe("functional tests", func() {
 
 	Describe("MachineDeployment with invalid subnet ID and AZ", func() {
 		It("It should be creatable and deletable", func() {
-			time.Sleep(1*time.Second)
+			time.Sleep(1 * time.Second)
 
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
@@ -316,9 +317,9 @@ var _ = Describe("functional tests", func() {
 			var ns1, clName1, ns2, clName2 string
 			var setup11 testSetup
 			var setup22 testSetup
-			var cf1,cf2 context.CancelFunc
+			var cf1, cf2 context.CancelFunc
 			It("should setup namespaces correctly for the two clusters...", func() {
-				time.Sleep(1*time.Second)
+				time.Sleep(1 * time.Second)
 
 				setup11, cf1 = setup1()
 				setup22, cf2 = setup1()
@@ -333,15 +334,13 @@ var _ = Describe("functional tests", func() {
 				clName2 = setup22.clusterName
 
 				By("Creating first cluster with single control plane")
-				time.Sleep(1*time.Second)
+				time.Sleep(1 * time.Second)
 				makeSingleControlPlaneCluster(setup11)
-				
 
 				By("Creating second cluster with single control plane")
-				time.Sleep(1*time.Second)
+				time.Sleep(1 * time.Second)
 				makeSingleControlPlaneCluster(setup22)
-				
-				
+
 				By("Deleting the Clusters")
 				deleteCluster(ns1, clName1)
 				deleteCluster(ns2, clName2)
@@ -350,9 +349,9 @@ var _ = Describe("functional tests", func() {
 		})
 
 		Context("in same namespace", func() {
- 			var setup11 testSetup
+			var setup11 testSetup
 			var setup22 testSetup
-			var cf1,cf2 context.CancelFunc
+			var cf1, cf2 context.CancelFunc
 
 			It("should create first cluster", func() {
 				setup11, cf1 = setup1()
@@ -363,7 +362,7 @@ var _ = Describe("functional tests", func() {
 				By("Creating first cluster with single control plane")
 				makeSingleControlPlaneCluster(setup11)
 
- 				setup22.namespace = setup11.namespace
+				setup22.namespace = setup11.namespace
 				By("Creating second cluster with single control plane")
 				makeSingleControlPlaneCluster(setup22)
 
@@ -985,7 +984,7 @@ func verfiyInstancesInSubnet(numOfInstances int32, subnetId *string) {
 
 func getAvailabilityZone() []*ec2.AvailabilityZone {
 	if sess == nil {
-		panic ("session is nil, cant get availability zones.")
+		panic("session is nil, cant get availability zones.")
 	}
 	ec2c := ec2.New(sess)
 	azs, err := ec2c.DescribeAvailabilityZones(nil)
@@ -1254,7 +1253,7 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetId *
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType:       instanceType,
 					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
-					SSHKeyName:         keyPairName,
+					SSHKeyName:         pointer.StringPtr(keyPairName),
 				},
 			},
 		},
@@ -1388,7 +1387,7 @@ func deleteCluster(namespace, name string) {
 	Eventually(
 		func() bool {
 			cluster := &clusterv1.Cluster{}
-			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster); 
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, cluster)
 			fmt.Fprintf(GinkgoWriter, "Eventually (deleteCluster) --> %s/%s : Status = %v \n", namespace, name, err)
 			// non nil error ==> cluster is gone, which means delete worked.
 			if err != nil {
@@ -1477,7 +1476,7 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 				return true
 			}
 		}
-		if polls0 == 1 || polls0 % 5 == 0 {
+		if polls0 == 1 || polls0%5 == 0 {
 			logit()
 		}
 		time.Sleep(15 * time.Second)
@@ -1507,7 +1506,7 @@ func waitForAWSMachineReady(namespace, name string) {
 	Eventually(
 		func() (bool, error) {
 			awsMachine := &infrav1.AWSMachine{}
-			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine); 
+			err := kindClient.Get(context.TODO(), crclient.ObjectKey{Namespace: namespace, Name: name}, awsMachine)
 			fmt.Fprintf(GinkgoWriter, "Eventually (waitForAWSMachineReady) -> Ensuring Machine %s/%s has bootstrapReady... error = %v \n", namespace, name, err)
 			if err != nil {
 				return false, err
@@ -1616,7 +1615,7 @@ func makeAWSMachine(namespace, name, instanceType string, az, subnetId *string) 
 		Spec: infrav1.AWSMachineSpec{
 			InstanceType:       instanceType,
 			IAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
-			SSHKeyName:         keyPairName,
+			SSHKeyName:         pointer.StringPtr(keyPairName),
 		},
 	}
 	if az != nil {
@@ -1661,11 +1660,11 @@ func makeAWSCluster(namespace, name string, multipleAZ bool) {
 		},
 		Spec: infrav1.AWSClusterSpec{
 			Region:     region,
-			SSHKeyName: keyPairName,
+			SSHKeyName: pointer.StringPtr(keyPairName),
 		},
 	}
 	if multipleAZ {
-		// This call can panic ... 
+		// This call can panic ...
 		azs := getAvailabilityZone()
 		availabilityZones = append(availabilityZones, azs[0].ZoneName, azs[1].ZoneName, azs[2].ZoneName)
 		subnets := []*infrav1.SubnetSpec{
