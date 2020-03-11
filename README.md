@@ -42,11 +42,12 @@ cluster on AWS.
 
 This provider's versions are compatible with the following versions of Cluster API:
 
-||Cluster API v1alpha1 (v0.1)|Cluster API v1alpha2 (v0.2)|
-|-|-|-|
-|AWS Provider v1alpha1 (v0.2)|✓||
-|AWS Provider v1alpha1 (v0.3)|✓||
-|AWS Provider v1alpha2 (v0.4)||✓|
+||Cluster API v1alpha1 (v0.1)|Cluster API v1alpha2 (v0.2)|Cluster API v1alpha3 (v0.3)|
+|-|-|-|-|
+|AWS Provider v1alpha1 (v0.2)|✓|||
+|AWS Provider v1alpha1 (v0.3)|✓|||
+|AWS Provider v1alpha2 (v0.4)||✓||
+|AWS Provider v1alpha3 (v0.5)|||✓|
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
@@ -55,6 +56,7 @@ This provider's versions are able to install and manage the following versions o
 |AWS Provider v1alpha1 (v0.2)|✓|✓|✓|||
 |AWS Provider v1alpha1 (v0.3)|✓|✓|✓|||
 |AWS Provider v1alpha2 (v0.4)||✓|✓|✓|✓|
+|AWS Provider v1alpha3 (v0.5)|||✓|✓|✓|
 
 Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.2`
 may support Kubernetes 1.13 and Kubernetes 1.14.
@@ -70,20 +72,6 @@ Note: These AMIs are not updated for security fixes and it is recommended to alw
 
 | Kubernetes minor version | Kubernetes full version |
 |-|-|
-| v1.13                    | v1.13.3                 |
-|                          | v1.13.5                 |
-|                          | v1.13.6                 |
-|                          | v1.13.7                 |
-|                          | v1.13.8                 |
-| v1.14                    | v1.14.0                 |
-|                          | v1.14.1                 |
-|                          | v1.14.2                 |
-|                          | v1.14.3                 |
-|                          | v1.14.4                 |
-|                          | v1.14.5                 |
-|                          | v1.14.6                 |
-|                          | v1.14.7                 |
-|                          | v1.14.8                 |
 | v1.15                    | v1.15.0                 |
 |                          | v1.15.1                 |
 |                          | v1.15.2                 |
@@ -104,6 +92,7 @@ Note: These AMIs are not updated for security fixes and it is recommended to alw
 | v1.17                    | v1.17.0                 |
 |                          | v1.17.1                 |
 |                          | v1.17.2                 |
+|                          | v1.17.3                 |
 
 ------
 
