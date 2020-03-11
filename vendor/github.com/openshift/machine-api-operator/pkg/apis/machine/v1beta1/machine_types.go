@@ -168,7 +168,7 @@ type MachineStatus struct {
 	LastOperation *LastOperation `json:"lastOperation,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
-	// One of: Failed, Provisioning, Provisioned, Running, Deleting
+	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase *string `json:"phase,omitempty"`
 }

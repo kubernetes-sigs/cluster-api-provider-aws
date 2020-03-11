@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // processGolistOverlay provides rudimentary support for adding
@@ -16,7 +18,7 @@ import (
 // sometimes incorrect.
 // TODO(matloob): Handle unsupported cases, including the following:
 // - determining the correct package to add given a new import path
-func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func() *goInfo) (modifiedPkgs, needPkgs []string, err error) {
+func processGolistOverlay(cfg *Config, response *responseDeduper) (modifiedPkgs, needPkgs []string, err error) {
 	havePkgs := make(map[string]string) // importPath -> non-test package ID
 	needPkgsSet := make(map[string]bool)
 	modifiedPkgsSet := make(map[string]bool)
@@ -27,20 +29,16 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 		havePkgs[pkg.PkgPath] = pkg.ID
 	}
 
-	// If no new imports are added, it is safe to avoid loading any needPkgs.
-	// Otherwise, it's hard to tell which package is actually being loaded
-	// (due to vendoring) and whether any modified package will show up
-	// in the transitive set of dependencies (because new imports are added,
-	// potentially modifying the transitive set of dependencies).
-	var overlayAddsImports bool
+	var rootDirs map[string]string
+	var onceGetRootDirs sync.Once
 
 	for opath, contents := range cfg.Overlay {
 		base := filepath.Base(opath)
 		dir := filepath.Dir(opath)
-		var pkg *Package           // if opath belongs to both a package and its test variant, this will be the test variant
+		var pkg *Package
 		var testVariantOf *Package // if opath is a test file, this is the package it is testing
 		var fileExists bool
-		isTestFile := strings.HasSuffix(opath, "_test.go")
+		isTest := strings.HasSuffix(opath, "_test.go")
 		pkgName, ok := extractPackageName(opath, contents)
 		if !ok {
 			// Don't bother adding a file that doesn't even have a parsable package statement
@@ -49,32 +47,19 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 		}
 	nextPackage:
 		for _, p := range response.dr.Packages {
-			if pkgName != p.Name && p.ID != "command-line-arguments" {
+			if pkgName != p.Name {
 				continue
 			}
 			for _, f := range p.GoFiles {
 				if !sameFile(filepath.Dir(f), dir) {
 					continue
 				}
-				// Make sure to capture information on the package's test variant, if needed.
-				if isTestFile && !hasTestFiles(p) {
+				if isTest && !hasTestFiles(p) {
 					// TODO(matloob): Are there packages other than the 'production' variant
 					// of a package that this can match? This shouldn't match the test main package
 					// because the file is generated in another directory.
 					testVariantOf = p
 					continue nextPackage
-				}
-				if pkg != nil && p != pkg && pkg.PkgPath == p.PkgPath {
-					// If we've already seen the test variant,
-					// make sure to label which package it is a test variant of.
-					if hasTestFiles(pkg) {
-						testVariantOf = p
-						continue nextPackage
-					}
-					// If we have already seen the package of which this is a test variant.
-					if hasTestFiles(p) {
-						testVariantOf = pkg
-					}
 				}
 				pkg = p
 				if filepath.Base(f) == base {
@@ -84,18 +69,37 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 		}
 		// The overlay could have included an entirely new package.
 		if pkg == nil {
+			onceGetRootDirs.Do(func() {
+				rootDirs = determineRootDirs(cfg)
+			})
 			// Try to find the module or gopath dir the file is contained in.
 			// Then for modules, add the module opath to the beginning.
-			pkgPath, ok := getPkgPath(cfg, dir, rootDirs)
-			if !ok {
+			var pkgPath string
+			for rdir, rpath := range rootDirs {
+				// TODO(matloob): This doesn't properly handle symlinks.
+				r, err := filepath.Rel(rdir, dir)
+				if err != nil {
+					continue
+				}
+				pkgPath = filepath.ToSlash(r)
+				if rpath != "" {
+					pkgPath = path.Join(rpath, pkgPath)
+				}
+				// We only create one new package even it can belong in multiple modules or GOPATH entries.
+				// This is okay because tools (such as the LSP) that use overlays will recompute the overlay
+				// once the file is saved, and golist will do the right thing.
+				// TODO(matloob): Implement module tiebreaking?
 				break
+			}
+			if pkgPath == "" {
+				continue
 			}
 			isXTest := strings.HasSuffix(pkgName, "_test")
 			if isXTest {
 				pkgPath += "_test"
 			}
 			id := pkgPath
-			if isTestFile && !isXTest {
+			if isTest && !isXTest {
 				id = fmt.Sprintf("%s [%s.test]", pkgPath, pkgPath)
 			}
 			// Try to reclaim a package with the same id if it exists in the response.
@@ -111,7 +115,7 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 				response.addPackage(pkg)
 				havePkgs[pkg.PkgPath] = id
 				// Add the production package's sources for a test variant.
-				if isTestFile && !isXTest && testVariantOf != nil {
+				if isTest && !isXTest && testVariantOf != nil {
 					pkg.GoFiles = append(pkg.GoFiles, testVariantOf.GoFiles...)
 					pkg.CompiledGoFiles = append(pkg.CompiledGoFiles, testVariantOf.CompiledGoFiles...)
 				}
@@ -132,18 +136,13 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 		for _, imp := range imports {
 			_, found := pkg.Imports[imp]
 			if !found {
-				overlayAddsImports = true
 				// TODO(matloob): Handle cases when the following block isn't correct.
-				// These include imports of vendored packages, etc.
+				// These include imports of test variants, imports of vendored packages, etc.
 				id, ok := havePkgs[imp]
 				if !ok {
 					id = imp
 				}
 				pkg.Imports[imp] = &Package{ID: id}
-				// Add dependencies to the non-test variant version of this package as wel.
-				if testVariantOf != nil {
-					testVariantOf.Imports[imp] = &Package{ID: id}
-				}
 			}
 		}
 		continue
@@ -172,11 +171,9 @@ func processGolistOverlay(cfg *Config, response *responseDeduper, rootDirs func(
 		}
 	}
 
-	if overlayAddsImports {
-		needPkgs = make([]string, 0, len(needPkgsSet))
-		for pkg := range needPkgsSet {
-			needPkgs = append(needPkgs, pkg)
-		}
+	needPkgs = make([]string, 0, len(needPkgsSet))
+	for pkg := range needPkgsSet {
+		needPkgs = append(needPkgs, pkg)
 	}
 	modifiedPkgs = make([]string, 0, len(modifiedPkgsSet))
 	for pkg := range modifiedPkgsSet {

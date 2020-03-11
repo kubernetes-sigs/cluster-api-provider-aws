@@ -252,7 +252,7 @@ func ConfigureServer(s *http.Server, conf *Server) error {
 			}
 		}
 		if !haveRequired {
-			return fmt.Errorf("http2: TLSConfig.CipherSuites is missing an HTTP/2-required AES_128_GCM_SHA256 cipher (need at least one of TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 or TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256).")
+			return fmt.Errorf("http2: TLSConfig.CipherSuites is missing an HTTP/2-required AES_128_GCM_SHA256 cipher.")
 		}
 	}
 
@@ -283,20 +283,7 @@ func ConfigureServer(s *http.Server, conf *Server) error {
 		if testHookOnConn != nil {
 			testHookOnConn()
 		}
-		// The TLSNextProto interface predates contexts, so
-		// the net/http package passes down its per-connection
-		// base context via an exported but unadvertised
-		// method on the Handler. This is for internal
-		// net/http<=>http2 use only.
-		var ctx context.Context
-		type baseContexter interface {
-			BaseContext() context.Context
-		}
-		if bc, ok := h.(baseContexter); ok {
-			ctx = bc.BaseContext()
-		}
 		conf.ServeConn(c, &ServeConnOpts{
-			Context:    ctx,
 			Handler:    h,
 			BaseConfig: hs,
 		})
@@ -307,10 +294,6 @@ func ConfigureServer(s *http.Server, conf *Server) error {
 
 // ServeConnOpts are options for the Server.ServeConn method.
 type ServeConnOpts struct {
-	// Context is the base context to use.
-	// If nil, context.Background is used.
-	Context context.Context
-
 	// BaseConfig optionally sets the base configuration
 	// for values. If nil, defaults are used.
 	BaseConfig *http.Server
@@ -319,13 +302,6 @@ type ServeConnOpts struct {
 	// requests. If nil, BaseConfig.Handler is used. If BaseConfig
 	// or BaseConfig.Handler is nil, http.DefaultServeMux is used.
 	Handler http.Handler
-}
-
-func (o *ServeConnOpts) context() context.Context {
-	if o != nil && o.Context != nil {
-		return o.Context
-	}
-	return context.Background()
 }
 
 func (o *ServeConnOpts) baseConfig() *http.Server {
@@ -473,7 +449,7 @@ func (s *Server) ServeConn(c net.Conn, opts *ServeConnOpts) {
 }
 
 func serverConnBaseContext(c net.Conn, opts *ServeConnOpts) (ctx context.Context, cancel func()) {
-	ctx, cancel = context.WithCancel(opts.context())
+	ctx, cancel = context.WithCancel(context.Background())
 	ctx = context.WithValue(ctx, http.LocalAddrContextKey, c.LocalAddr())
 	if hs := opts.baseConfig(); hs != nil {
 		ctx = context.WithValue(ctx, http.ServerContextKey, hs)
@@ -2361,16 +2337,7 @@ type chunkWriter struct{ rws *responseWriterState }
 
 func (cw chunkWriter) Write(p []byte) (n int, err error) { return cw.rws.writeChunk(p) }
 
-func (rws *responseWriterState) hasTrailers() bool { return len(rws.trailers) > 0 }
-
-func (rws *responseWriterState) hasNonemptyTrailers() bool {
-	for _, trailer := range rws.trailers {
-		if _, ok := rws.handlerHeader[trailer]; ok {
-			return true
-		}
-	}
-	return false
-}
+func (rws *responseWriterState) hasTrailers() bool { return len(rws.trailers) != 0 }
 
 // declareTrailer is called for each Trailer header when the
 // response header is written. It notes that a header will need to be
@@ -2415,11 +2382,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 			clen = strconv.Itoa(len(p))
 		}
 		_, hasContentType := rws.snapHeader["Content-Type"]
-		// If the Content-Encoding is non-blank, we shouldn't
-		// sniff the body. See Issue golang.org/issue/31753.
-		ce := rws.snapHeader.Get("Content-Encoding")
-		hasCE := len(ce) > 0
-		if !hasCE && !hasContentType && bodyAllowedForStatus(rws.status) && len(p) > 0 {
+		if !hasContentType && bodyAllowedForStatus(rws.status) && len(p) > 0 {
 			ctype = http.DetectContentType(p)
 		}
 		var date string
@@ -2474,10 +2437,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 		rws.promoteUndeclaredTrailers()
 	}
 
-	// only send trailers if they have actually been defined by the
-	// server handler.
-	hasNonemptyTrailers := rws.hasNonemptyTrailers()
-	endStream := rws.handlerDone && !hasNonemptyTrailers
+	endStream := rws.handlerDone && !rws.hasTrailers()
 	if len(p) > 0 || endStream {
 		// only send a 0 byte DATA frame if we're ending the stream.
 		if err := rws.conn.writeDataFromHandler(rws.stream, p, endStream); err != nil {
@@ -2486,7 +2446,7 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 		}
 	}
 
-	if rws.handlerDone && hasNonemptyTrailers {
+	if rws.handlerDone && rws.hasTrailers() {
 		err = rws.conn.writeHeaders(rws.stream, &writeResHeaders{
 			streamID:  rws.stream.id,
 			h:         rws.handlerHeader,
@@ -2528,7 +2488,7 @@ const TrailerPrefix = "Trailer:"
 // trailers. That worked for a while, until we found the first major
 // user of Trailers in the wild: gRPC (using them only over http2),
 // and gRPC libraries permit setting trailers mid-stream without
-// predeclaring them. So: change of plans. We still permit the old
+// predeclarnig them. So: change of plans. We still permit the old
 // way, but we also permit this hack: if a Header() key begins with
 // "Trailer:", the suffix of that key is a Trailer. Because ':' is an
 // invalid token byte anyway, there is no ambiguity. (And it's already
@@ -2828,7 +2788,7 @@ func (sc *serverConn) startPush(msg *startPushRequest) {
 	// PUSH_PROMISE frames MUST only be sent on a peer-initiated stream that
 	// is in either the "open" or "half-closed (remote)" state.
 	if msg.parent.state != stateOpen && msg.parent.state != stateHalfClosedRemote {
-		// responseWriter.Push checks that the stream is peer-initiated.
+		// responseWriter.Push checks that the stream is peer-initiaed.
 		msg.done <- errStreamClosed
 		return
 	}
