@@ -22,7 +22,7 @@ REGISTRY=${REGISTRY:-"gcr.io/"$(gcloud config get-value project)}
 AWS_REGION=${AWS_REGION:-"us-east-1"}
 CLUSTER_NAME=${CLUSTER_NAME:-"test-$(date +%s)"}
 AWS_SSH_KEY_NAME=${AWS_SSH_KEY_NAME:-"${CLUSTER_NAME}-key"}
-KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.16.1"}
+KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.17.3"}
 
 ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
