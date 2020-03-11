@@ -16,10 +16,10 @@ This roadmap is a constant work in progress, subject to frequent revision. Dates
 - [Encrypted user-data](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1387)
 - [Support for cross-zone load balancing](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1416)
 - [Private API-server load balancer](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/873)
-- Consume Cluster API e2e testing framework
 
 ## v0.6 (v1alpha4) ~ July 2020
 
+- Consume Cluster API e2e testing framework
 - [Supporting multiple AWS accounts as Kubernetes objects](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1552)
 - [Multiple topologies](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1484)
 - [Bootstrap failure detection](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/972)
