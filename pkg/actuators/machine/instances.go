@@ -212,6 +212,13 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 			Encrypted:  blockDeviceMappings[0].EBS.Encrypted,
 		},
 	}
+
+	if aws.StringValue(blockDeviceMappings[0].EBS.KMSKey.ID) != "" {
+		blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappings[0].EBS.KMSKey.ID
+	} else if aws.StringValue(blockDeviceMappings[0].EBS.KMSKey.ARN) != "" {
+		blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappings[0].EBS.KMSKey.ARN
+	}
+
 	if *volumeType == "io1" {
 		blockDeviceMapping.Ebs.Iops = blockDeviceMappings[0].EBS.Iops
 	}
