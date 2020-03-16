@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -87,17 +88,32 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, fmt.Errorf("failed to patch machineSet: %v", err)
 	}
 
+	if isInvalidConfigurationError(err) {
+		// For situations where requeuing won't help we don't return error.
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/617
+		return result, nil
+	}
 	return result, err
+}
+
+func isInvalidConfigurationError(err error) bool {
+	switch t := err.(type) {
+	case *mapierrors.MachineError:
+		if t.Reason == machinev1.InvalidConfigurationMachineError {
+			return true
+		}
+	}
+	return false
 }
 
 func reconcile(machineSet *machinev1.MachineSet) (ctrl.Result, error) {
 	providerConfig, err := getProviderConfig(*machineSet)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to get providerConfig: %v", err)
+		return ctrl.Result{}, mapierrors.InvalidMachineConfiguration("failed to get providerConfig: %v", err)
 	}
 	instanceType, ok := InstanceTypes[providerConfig.InstanceType]
 	if !ok {
-		return ctrl.Result{}, fmt.Errorf("unknown instance type: %s", providerConfig.InstanceType)
+		return ctrl.Result{}, mapierrors.InvalidMachineConfiguration("unknown instance type: %s", providerConfig.InstanceType)
 	}
 
 	if machineSet.Annotations == nil {
