@@ -21,17 +21,17 @@ package e2e_test
 import (
 	"context"
 	"fmt"
- 	"io/ioutil"
+	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"text/template"
 	"time"
-	"strconv"
-"github.com/onsi/ginkgo/config"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 
 	"github.com/vmware-tanzu/sonobuoy/pkg/client"
 	sonodynamic "github.com/vmware-tanzu/sonobuoy/pkg/dynamic"
@@ -181,7 +181,7 @@ func runConformance(tmpDir, namespace, clusterName string) error {
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "untar %s failed\n", fileName)
 	} else {
-		// Move the conformance junit file to the artifact directory for prow to pick it up			
+		// Move the conformance junit file to the artifact directory for prow to pick it up
 		src := path.Join(outputDir, "plugins/e2e/results/global/junit_01.xml")
 		dest := path.Join(artifactPath, "junit.k8s_conf.xml")
 		dst, err := os.Create(dest)
@@ -189,11 +189,11 @@ func runConformance(tmpDir, namespace, clusterName string) error {
 			return errors.Wrap(err, "couldnt make output dirs for tests?")
 		}
 		if err := os.Rename(src, dest); err != nil {
-		defer dst.Close()
-		fmt.Fprintf(GinkgoWriter, "couldn't fetch junit.k8s_conf.xml %v", err)
+			defer dst.Close()
+			fmt.Fprintf(GinkgoWriter, "couldn't fetch junit.k8s_conf.xml %v", err)
 		}
 	}
-	
+
 	err = sonobuoyClient.Delete(&client.DeleteConfig{
 		Namespace:  "sonobuoy",
 		EnableRBAC: true,

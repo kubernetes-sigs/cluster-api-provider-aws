@@ -281,6 +281,11 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.UncompressedUserData != nil {
+		in, out := &in.UncompressedUserData, &out.UncompressedUserData
+		*out = new(bool)
+		**out = **in
+	}
 	out.CloudInit = in.CloudInit
 }
 

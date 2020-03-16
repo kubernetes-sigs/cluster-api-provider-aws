@@ -94,6 +94,13 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:MaxItems=2
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
 
+	// UncompressedUserData specify whether the user data is gzip-compressed before it is sent to ec2 instance.
+	// cloud-init has built-in support for gzip-compressed user data
+	// user data stored in aws secret manager is always gzip-compressed.
+	//
+	// +optional
+	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
+
 	// CloudInit defines options related to the bootstrapping systems where
 	// CloudInit is used.
 	// +optional

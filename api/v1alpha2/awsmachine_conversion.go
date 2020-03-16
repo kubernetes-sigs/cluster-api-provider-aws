@@ -54,6 +54,9 @@ func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1a
 	if dst.SSHKeyName != nil && *dst.SSHKeyName == "" && restored.SSHKeyName == nil {
 		dst.SSHKeyName = nil
 	}
+
+	// manual conversion for UncompressedUserData
+	dst.UncompressedUserData = restored.UncompressedUserData
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
