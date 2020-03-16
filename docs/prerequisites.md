@@ -81,7 +81,7 @@ aws ssm put-parameter --name "/sigs.k8s.io/cluster-api-provider-aws/ssh-key" \
 # Replace with your own public key
 aws ec2 import-key-pair \
   --key-name default \
-  --public-key-material "$(cat ~/.ssh/id_rsa.pub)"
+  --public-key-material "$(cat ~/.ssh/id_rsa.pub | base64)"
 ```
 
 > **NB**: Only RSA keys are supported by AWS.
