@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"net"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -163,6 +164,11 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
 		clusterScope.Info("Waiting on API server ELB DNS name")
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
+	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
+		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
 		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
