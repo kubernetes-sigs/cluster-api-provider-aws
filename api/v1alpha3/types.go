@@ -201,7 +201,7 @@ type NetworkSpec struct {
 
 	// SecurityGroupOverrides is an optional set of security groups to use for cluster instances
 	// +optional
-	SecurityGroupOverrides map[SecurityGroupRole]AWSResourceReference `json:"securityGroupOverrides,omitempty"`
+	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
 }
 
 // VPCSpec configures an AWS VPC.

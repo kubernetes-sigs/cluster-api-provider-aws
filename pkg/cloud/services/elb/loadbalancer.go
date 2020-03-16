@@ -267,7 +267,7 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 	controlPlaneLoadBalancer := s.scope.ControlPlaneLoadBalancer()
 	if controlPlaneLoadBalancer != nil && len(controlPlaneLoadBalancer.SecurityGroups) != 0 {
 		for _, sg := range controlPlaneLoadBalancer.SecurityGroups {
-			securityGroupIDs = append(securityGroupIDs, sg.ID)
+			securityGroupIDs = append(securityGroupIDs, sg)
 		}
 	} else {
 		securityGroupIDs = append(securityGroupIDs, s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID)

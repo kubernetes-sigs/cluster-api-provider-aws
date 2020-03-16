@@ -158,10 +158,8 @@ func (in *AWSLoadBalancerSpec) DeepCopyInto(out *AWSLoadBalancerSpec) {
 	}
 	if in.SecurityGroups != nil {
 		in, out := &in.SecurityGroups, &out.SecurityGroups
-		*out = make([]SecurityGroup, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 }
 
@@ -881,9 +879,9 @@ func (in *NetworkSpec) DeepCopyInto(out *NetworkSpec) {
 	}
 	if in.SecurityGroupOverrides != nil {
 		in, out := &in.SecurityGroupOverrides, &out.SecurityGroupOverrides
-		*out = make(map[SecurityGroupRole]AWSResourceReference, len(*in))
+		*out = make(map[SecurityGroupRole]string, len(*in))
 		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+			(*out)[key] = val
 		}
 	}
 }

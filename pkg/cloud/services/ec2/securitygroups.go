@@ -190,8 +190,8 @@ func (s *Service) reconcileSecurityGroups() error {
 }
 
 func (s *Service) securityGroupIsOverridden(securityGroupId string) bool {
-	for _, sg := range s.scope.SecurityGroupOverrides() {
-		if *sg.ID == securityGroupId {
+	for _, securityGroupId := range s.scope.SecurityGroupOverrides() {
+		if securityGroupId == securityGroupId {
 			return true
 		}
 	}
@@ -211,12 +211,12 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 
 	if len(overrides) > 0 {
 		for _, role := range roles {
-			sg, ok := s.scope.SecurityGroupOverrides()[role]
+			securityGroupId, ok := s.scope.SecurityGroupOverrides()[role]
 			if !ok {
 				return nil, fmt.Errorf("Security group overrides have been provided for some but not all roles - missing security group for role %s", role)
 			}
-			securityGroupIds[role] = sg.ID
-			input.GroupIds = append(input.GroupIds, sg.ID)
+			securityGroupIds[role] = aws.String(securityGroupId)
+			input.GroupIds = append(input.GroupIds, aws.String(securityGroupId))
 		}
 	}
 
