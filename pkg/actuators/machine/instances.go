@@ -214,8 +214,10 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 	}
 
 	if aws.StringValue(blockDeviceMappings[0].EBS.KMSKey.ID) != "" {
+		klog.V(3).Infof("Using KMS key ID %q for encrypting EBS volume", *blockDeviceMappings[0].EBS.KMSKey.ID)
 		blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappings[0].EBS.KMSKey.ID
 	} else if aws.StringValue(blockDeviceMappings[0].EBS.KMSKey.ARN) != "" {
+		klog.V(3).Info("Using KMS key ARN for encrypting EBS volume") // ARN usually have account ids, therefore are sensitive data so shouldn't log the value
 		blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappings[0].EBS.KMSKey.ARN
 	}
 
