@@ -167,14 +167,6 @@ func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.Se
 	return s.AWSCluster.Status.Network.SecurityGroups
 }
 
-// TagSecurityGroups returns whether security groups should be tagged during reconciliation
-func (s *ClusterScope) TagSecurityGroups() bool {
-	if s.AWSCluster.Spec.NetworkSpec.TagSecurityGroups != nil {
-		return *s.AWSCluster.Spec.NetworkSpec.TagSecurityGroups
-	}
-	return true
-}
-
 // Name returns the cluster name.
 func (s *ClusterScope) Name() string {
 	return s.Cluster.Name

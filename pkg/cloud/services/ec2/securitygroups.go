@@ -115,7 +115,7 @@ func (s *Service) reconcileSecurityGroups() error {
 		s.scope.SecurityGroups()[role] = existing
 
 		// Make sure tags are up to date.
-		if s.scope.TagSecurityGroups() {
+		if ! s.securityGroupIsOverridden(*sg.GroupId) {
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				if err := tags.Ensure(existing.Tags, &tags.ApplyParams{
 					EC2Client:   s.scope.EC2,
