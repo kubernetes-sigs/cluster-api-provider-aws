@@ -267,7 +267,7 @@ func TestActuator(t *testing.T) {
 					t.Fatalf("Unable to get machine status: %v", err)
 				}
 
-				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationSucceeded)
+				assert.Equal(t, machineStatus.Conditions[0].Reason, providerconfigv1.MachineCreationSucceeded)
 
 				// Get the machine
 				if exists, err := actuator.Exists(context.TODO(), machine); err != nil || !exists {
@@ -307,7 +307,7 @@ func TestActuator(t *testing.T) {
 					t.Fatalf("Unable to get machine status: %v", err)
 				}
 
-				assert.Equal(t, machineStatus.Conditions[0].Reason, MachineCreationFailed)
+				assert.Equal(t, machineStatus.Conditions[0].Reason, providerconfigv1.MachineCreationFailed)
 			},
 		},
 		{

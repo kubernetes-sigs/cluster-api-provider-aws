@@ -171,22 +171,6 @@ func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceS
 	return instances, nil
 }
 
-func getVolume(client awsclient.Client, volumeID string) (*ec2.Volume, error) {
-	request := &ec2.DescribeVolumesInput{
-		VolumeIds: []*string{&volumeID},
-	}
-	result, err := client.DescribeVolumes(request)
-	if err != nil {
-		return &ec2.Volume{}, err
-	}
-
-	if len(result.Volumes) != 1 {
-		return &ec2.Volume{}, fmt.Errorf("unable to get volume ID: %q", volumeID)
-	}
-
-	return result.Volumes[0], nil
-}
-
 // terminateInstances terminates all provided instances with a single EC2 request.
 func terminateInstances(client awsclient.Client, instances []*ec2.Instance) ([]*ec2.InstanceStateChange, error) {
 	instanceIDs := []*string{}
@@ -252,40 +236,6 @@ func (a *Actuator) isMaster(machine *machinev1.Machine) (bool, error) {
 	return false, nil
 }
 
-// updateConditionCheck tests whether a condition should be updated from the
-// old condition to the new condition. Returns true if the condition should
-// be updated.
-type updateConditionCheck func(oldReason, oldMessage, newReason, newMessage string) bool
-
-// updateConditionAlways returns true. The condition will always be updated.
-func updateConditionAlways(_, _, _, _ string) bool {
-	return true
-}
-
-// updateConditionNever return false. The condition will never be updated,
-// unless there is a change in the status of the condition.
-func updateConditionNever(_, _, _, _ string) bool {
-	return false
-}
-
-// updateConditionIfReasonOrMessageChange returns true if there is a change
-// in the reason or the message of the condition.
-func updateConditionIfReasonOrMessageChange(oldReason, oldMessage, newReason, newMessage string) bool {
-	return oldReason != newReason ||
-		oldMessage != newMessage
-}
-
-func shouldUpdateCondition(
-	oldStatus corev1.ConditionStatus, oldReason, oldMessage string,
-	newStatus corev1.ConditionStatus, newReason, newMessage string,
-	updateConditionCheck updateConditionCheck,
-) bool {
-	if oldStatus != newStatus {
-		return true
-	}
-	return updateConditionCheck(oldReason, oldMessage, newReason, newMessage)
-}
-
 // setAWSMachineProviderCondition sets the condition for the machine and
 // returns the new slice of conditions.
 // If the machine does not already have a condition with the specified type,
@@ -293,59 +243,47 @@ func shouldUpdateCondition(
 // status is True.
 // If the machine does already have a condition with the specified type,
 // the condition will be updated if either of the following are true.
-// 1) Requested status is different than existing status.
-// 2) The updateConditionCheck function returns true.
-func setAWSMachineProviderCondition(
-	conditions []providerconfigv1.AWSMachineProviderCondition,
-	conditionType providerconfigv1.AWSMachineProviderConditionType,
-	status corev1.ConditionStatus,
-	reason string,
-	message string,
-	updateConditionCheck updateConditionCheck,
-) []providerconfigv1.AWSMachineProviderCondition {
+func setAWSMachineProviderCondition(condition providerconfigv1.AWSMachineProviderCondition, conditions []providerconfigv1.AWSMachineProviderCondition) []providerconfigv1.AWSMachineProviderCondition {
 	now := metav1.Now()
-	existingCondition := findAWSMachineProviderCondition(conditions, conditionType)
-	if existingCondition == nil {
-		if status == corev1.ConditionTrue {
-			conditions = append(
-				conditions,
-				providerconfigv1.AWSMachineProviderCondition{
-					Type:               conditionType,
-					Status:             status,
-					Reason:             reason,
-					Message:            message,
-					LastTransitionTime: now,
-					LastProbeTime:      now,
-				},
-			)
+
+	if existingCondition := findProviderCondition(conditions, condition.Type); existingCondition == nil {
+		if condition.Status == corev1.ConditionTrue {
+			condition.LastProbeTime = now
+			condition.LastTransitionTime = now
+			conditions = append(conditions, condition)
 		}
 	} else {
-		if shouldUpdateCondition(
-			existingCondition.Status, existingCondition.Reason, existingCondition.Message,
-			status, reason, message,
-			updateConditionCheck,
-		) {
-			if existingCondition.Status != status {
-				existingCondition.LastTransitionTime = now
-			}
-			existingCondition.Status = status
-			existingCondition.Reason = reason
-			existingCondition.Message = message
-			existingCondition.LastProbeTime = now
-		}
+		updateExistingCondition(&condition, existingCondition)
 	}
+
 	return conditions
 }
 
-// findAWSMachineProviderCondition finds in the machine the condition that has the
-// specified condition type. If none exists, then returns nil.
-func findAWSMachineProviderCondition(conditions []providerconfigv1.AWSMachineProviderCondition, conditionType providerconfigv1.AWSMachineProviderConditionType) *providerconfigv1.AWSMachineProviderCondition {
-	for i, condition := range conditions {
-		if condition.Type == conditionType {
+func findProviderCondition(conditions []providerconfigv1.AWSMachineProviderCondition, conditionType providerconfigv1.AWSMachineProviderConditionType) *providerconfigv1.AWSMachineProviderCondition {
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
 			return &conditions[i]
 		}
 	}
 	return nil
+}
+
+func updateExistingCondition(newCondition, existingCondition *providerconfigv1.AWSMachineProviderCondition) {
+	if !shouldUpdateCondition(newCondition, existingCondition) {
+		return
+	}
+
+	if existingCondition.Status != newCondition.Status {
+		existingCondition.LastTransitionTime = metav1.Now()
+	}
+	existingCondition.Status = newCondition.Status
+	existingCondition.Reason = newCondition.Reason
+	existingCondition.Message = newCondition.Message
+	existingCondition.LastProbeTime = newCondition.LastProbeTime
+}
+
+func shouldUpdateCondition(newCondition, existingCondition *providerconfigv1.AWSMachineProviderCondition) bool {
+	return newCondition.Reason != existingCondition.Reason || newCondition.Message != existingCondition.Message
 }
 
 // extractNodeAddresses maps the instance information from EC2 to an array of NodeAddresses
@@ -412,4 +350,21 @@ func extractNodeAddresses(instance *ec2.Instance) ([]corev1.NodeAddress, error) 
 	}
 
 	return addresses, nil
+}
+
+func conditionSuccess() providerconfigv1.AWSMachineProviderCondition {
+	return providerconfigv1.AWSMachineProviderCondition{
+		Type:    providerconfigv1.MachineCreation,
+		Status:  corev1.ConditionTrue,
+		Reason:  providerconfigv1.MachineCreationSucceeded,
+		Message: "Machine successfully created",
+	}
+}
+
+func conditionFailed() providerconfigv1.AWSMachineProviderCondition {
+	return providerconfigv1.AWSMachineProviderCondition{
+		Type:   providerconfigv1.MachineCreation,
+		Status: corev1.ConditionTrue,
+		Reason: providerconfigv1.MachineCreationFailed,
+	}
 }

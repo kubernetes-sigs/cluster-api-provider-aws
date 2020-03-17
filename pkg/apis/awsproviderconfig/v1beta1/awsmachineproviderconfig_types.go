@@ -60,6 +60,16 @@ const (
 	MachineCreation AWSMachineProviderConditionType = "MachineCreation"
 )
 
+// AWSMachineProviderConditionReason is reason for the condition's last transition
+type AWSMachineProviderConditionReason string
+
+const (
+	// MachineCreationSucceeded indicates machine creation success
+	MachineCreationSucceeded AWSMachineProviderConditionReason = "MachineCreationSucceeded"
+	// MachineCreationFailed indicates machine creation fail
+	MachineCreationFailed AWSMachineProviderConditionReason = "MachineCreationFailed"
+)
+
 // AWSMachineProviderCondition is a condition in a AWSMachineProviderStatus
 type AWSMachineProviderCondition struct {
 	// Type is the type of the condition.
@@ -74,7 +84,7 @@ type AWSMachineProviderCondition struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	Reason AWSMachineProviderConditionReason `json:"reason,omitempty"`
 	// Message is a human-readable message indicating details about last transition.
 	// +optional
 	Message string `json:"message,omitempty"`

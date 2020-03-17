@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,12 +44,6 @@ const (
 	ec2InstanceIDNotFoundCode = "InvalidInstanceID.NotFound"
 	requeueAfterSeconds       = 20
 	requeueAfterFatalSeconds  = 180
-
-	// MachineCreationSucceeded indicates success for machine creation
-	MachineCreationSucceeded = "MachineCreationSucceeded"
-
-	// MachineCreationFailed indicates that machine creation failed
-	MachineCreationFailed = "MachineCreationFailed"
 )
 
 // Actuator is the AWS-specific actuator for the Cluster API machine controller
@@ -109,7 +104,9 @@ func (a *Actuator) Create(context context.Context, machine *machinev1.Machine) e
 	instance, err := a.CreateMachine(machine)
 	if err != nil {
 		klog.Errorf("%s: error creating machine: %v", machine.Name, err)
-		updateConditionError := a.setMachineProviderConditions(machine, providerconfigv1.MachineCreation, MachineCreationFailed, err.Error())
+		conditionFailed := conditionFailed()
+		conditionFailed.Message = err.Error()
+		updateConditionError := a.setMachineProviderConditions(machine, conditionFailed)
 		if updateConditionError != nil {
 			klog.Errorf("%s: error updating machine conditions: %v", machine.Name, updateConditionError)
 		}
@@ -130,7 +127,7 @@ func (a *Actuator) Create(context context.Context, machine *machinev1.Machine) e
 		return a.handleMachineError(machine, errors.Wrap(err, "failed to set machine cloud provider specifics"), createEventAction)
 	}
 
-	err = a.setStatus(machine, instance)
+	err = a.setStatus(machine, instance, conditionSuccess())
 	if err != nil {
 		return a.handleMachineError(machine, errors.Wrap(err, "failed to set machine status"), createEventAction)
 
@@ -218,7 +215,7 @@ func (a *Actuator) setMachineStatus(machine *machinev1.Machine, awsStatus *provi
 }
 
 // updateMachineProviderConditions updates conditions set within machine provider status.
-func (a *Actuator) setMachineProviderConditions(machine *machinev1.Machine, conditionType providerconfigv1.AWSMachineProviderConditionType, reason string, msg string) error {
+func (a *Actuator) setMachineProviderConditions(machine *machinev1.Machine, condition providerconfigv1.AWSMachineProviderCondition) error {
 	klog.Infof("%s: updating machine conditions", machine.Name)
 
 	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
@@ -227,7 +224,7 @@ func (a *Actuator) setMachineProviderConditions(machine *machinev1.Machine, cond
 		return err
 	}
 
-	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, conditionType, corev1.ConditionTrue, reason, msg, updateConditionIfReasonOrMessageChange)
+	awsStatus.Conditions = setAWSMachineProviderCondition(condition, awsStatus.Conditions)
 
 	if err := a.setMachineStatus(machine, awsStatus, nil); err != nil {
 		return err
@@ -412,7 +409,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 		a.handleMachineError(machine, mapierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
 
 		// Update status to clear out machine details.
-		if err := a.setStatus(machine, nil); err != nil {
+		if err := a.setStatus(machine, nil, conditionSuccess()); err != nil {
 			return err
 		}
 		// This is an unrecoverable error condition.  We should delay to
@@ -453,7 +450,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 	}
 
 	// We do not support making changes to pre-existing instances, just update status.
-	err = a.setStatus(machine, newestInstance)
+	err = a.setStatus(machine, newestInstance, conditionSuccess())
 	if err != nil {
 		return a.handleMachineError(machine, errors.Wrap(err, "failed to set machine status"), updateEventAction)
 	}
@@ -572,7 +569,7 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 }
 
 // setStatus calculates the new machine status, checks if anything has changed, and updates if so.
-func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance) error {
+func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance, condition v1beta1.AWSMachineProviderCondition) error {
 	klog.Infof("%s: Updating status", machine.Name)
 
 	// Starting with a fresh status as we assume full control of it here.
@@ -603,7 +600,7 @@ func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance)
 	}
 	klog.Infof("%s: finished calculating AWS status", machine.Name)
 
-	awsStatus.Conditions = setAWSMachineProviderCondition(awsStatus.Conditions, providerconfigv1.MachineCreation, corev1.ConditionTrue, MachineCreationSucceeded, "machine successfully created", updateConditionIfReasonOrMessageChange)
+	awsStatus.Conditions = setAWSMachineProviderCondition(condition, awsStatus.Conditions)
 	if err := a.setMachineStatus(machine, awsStatus, networkAddresses); err != nil {
 		return err
 	}
