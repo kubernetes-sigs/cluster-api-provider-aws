@@ -148,6 +148,10 @@ func (a *Actuator) setMachineCloudProviderSpecifics(machine *machinev1.Machine, 
 		machine.Labels = make(map[string]string)
 	}
 
+	if machine.Spec.Labels == nil {
+		machine.Spec.Labels = make(map[string]string)
+	}
+
 	if machine.Annotations == nil {
 		machine.Annotations = make(map[string]string)
 	}
@@ -171,6 +175,11 @@ func (a *Actuator) setMachineCloudProviderSpecifics(machine *machinev1.Machine, 
 
 	if instance.State != nil && instance.State.Name != nil {
 		machine.Annotations[machinecontroller.MachineInstanceStateAnnotationName] = aws.StringValue(instance.State.Name)
+	}
+
+	if instance.InstanceLifecycle != nil && *instance.InstanceLifecycle == ec2.InstanceLifecycleTypeSpot {
+		// Label on the Spec so that it is propogated to the Node
+		machine.Spec.Labels[machinecontroller.MachineInterruptibleInstanceLabelName] = ""
 	}
 
 	return nil
