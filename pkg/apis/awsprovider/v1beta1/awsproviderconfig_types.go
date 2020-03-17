@@ -91,6 +91,9 @@ type AWSMachineProviderConfig struct {
 	// BlockDevices is the set of block device mapping associated to this instance
 	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html
 	BlockDevices []BlockDeviceMappingSpec `json:"blockDevices,omitempty"`
+
+	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
+	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
 // BlockDeviceMappingSpec describes a block device mapping
@@ -165,6 +168,15 @@ type EBSBlockDeviceSpec struct {
 	// The volume type: gp2, io1, st1, sc1, or standard.
 	// Default: standard
 	VolumeType *string `json:"volumeType,omitempty"`
+}
+
+// SpotMarketOptions defines the options available to a user when configuring
+// Machines to run on Spot instances.
+// Most users should provide an empty struct.
+type SpotMarketOptions struct {
+	// The maximum price the user is willing to pay for their instances
+	// Default: On-Demand price
+	MaxPrice *string `json:"maxPrice,omitempty"`
 }
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
