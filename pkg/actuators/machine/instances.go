@@ -305,14 +305,15 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 		ImageId:      amiID,
 		InstanceType: aws.String(machineProviderConfig.InstanceType),
 		// Only a single instance of the AWS instance allowed
-		MinCount:           aws.Int64(1),
-		MaxCount:           aws.Int64(1),
-		KeyName:            machineProviderConfig.KeyName,
-		IamInstanceProfile: iamInstanceProfile,
-		TagSpecifications:  []*ec2.TagSpecification{tagInstance, tagVolume},
-		NetworkInterfaces:  networkInterfaces,
-		UserData:           &userDataEnc,
-		Placement:          placement,
+		MinCount:              aws.Int64(1),
+		MaxCount:              aws.Int64(1),
+		KeyName:               machineProviderConfig.KeyName,
+		IamInstanceProfile:    iamInstanceProfile,
+		TagSpecifications:     []*ec2.TagSpecification{tagInstance, tagVolume},
+		NetworkInterfaces:     networkInterfaces,
+		UserData:              &userDataEnc,
+		Placement:             placement,
+		InstanceMarketOptions: getInstanceMarketOptionsRequest(machineProviderConfig),
 	}
 
 	if len(blockDeviceMappings) > 0 {
@@ -373,4 +374,34 @@ func (il instanceList) Less(i, j int) bool {
 // terminated.
 func sortInstances(instances []*ec2.Instance) {
 	sort.Sort(instanceList(instances))
+}
+
+func getInstanceMarketOptionsRequest(providerConfig *awsproviderv1.AWSMachineProviderConfig) *ec2.InstanceMarketOptionsRequest {
+	if providerConfig.SpotMarketOptions == nil {
+		// Instance is not a Spot instance
+		return nil
+	}
+
+	// Set required values for Spot instances
+	spotOptions := &ec2.SpotMarketOptions{}
+	// The following two options ensure that:
+	// - If an instance is interrupted, it is terminated rather than hibernating or stopping
+	// - No replacement instance will be created if the instance is interrupted
+	// - If the spot request cannot immediately be fulfilled, it will not be created
+	// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
+	// assumed by the machine API.
+	spotOptions.SetInstanceInterruptionBehavior(ec2.InstanceInterruptionBehaviorTerminate)
+	spotOptions.SetSpotInstanceType(ec2.SpotInstanceTypeOneTime)
+
+	// Set the MaxPrice if specified by the providerConfig
+	maxPrice := providerConfig.SpotMarketOptions.MaxPrice
+	if maxPrice != nil && *maxPrice != "" {
+		spotOptions.SetMaxPrice(*maxPrice)
+	}
+
+	instanceMarketOptionsRequest := &ec2.InstanceMarketOptionsRequest{}
+	instanceMarketOptionsRequest.SetMarketType(ec2.MarketTypeSpot)
+	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
+
+	return instanceMarketOptionsRequest
 }
