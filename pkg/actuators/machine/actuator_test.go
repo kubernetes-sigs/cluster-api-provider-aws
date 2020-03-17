@@ -16,7 +16,6 @@ import (
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machineapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/stretchr/testify/assert"
-	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -724,11 +723,11 @@ func TestGetUserData(t *testing.T) {
 	}
 
 	testCases := []struct {
-		secret *apiv1.Secret
+		secret *corev1.Secret
 		error  error
 	}{
 		{
-			secret: &apiv1.Secret{
+			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      userDataSecretName,
 					Namespace: defaultNamespace,
@@ -740,7 +739,7 @@ func TestGetUserData(t *testing.T) {
 			error: nil,
 		},
 		{
-			secret: &apiv1.Secret{
+			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "notFound",
 					Namespace: defaultNamespace,
@@ -752,7 +751,7 @@ func TestGetUserData(t *testing.T) {
 			error: &machineapierrors.MachineError{},
 		},
 		{
-			secret: &apiv1.Secret{
+			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      userDataSecretName,
 					Namespace: defaultNamespace,
@@ -933,7 +932,7 @@ func TestCreate(t *testing.T) {
 					},
 				},
 			},
-			userDataSecret: &apiv1.Secret{
+			userDataSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      userDataSecretName,
 					Namespace: defaultNamespace,

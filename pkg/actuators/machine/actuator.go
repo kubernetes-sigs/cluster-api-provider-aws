@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
-	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,7 +32,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -237,7 +235,7 @@ func (a *Actuator) setMachineProviderConditions(machine *machinev1.Machine, cond
 func (a *Actuator) CreateMachine(machine *machinev1.Machine) (*ec2.Instance, error) {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		return nil, a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
+		return nil, a.handleMachineError(machine, machinecontroller.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), createEventAction)
 	}
 
 	credentialsSecretName := ""
@@ -295,13 +293,13 @@ func (a *Actuator) getUserData(machine *machinev1.Machine, machineProviderConfig
 	err := a.client.Get(context.Background(), client.ObjectKey{Namespace: machine.Namespace, Name: machineProviderConfig.UserDataSecret.Name}, &userDataSecret)
 	if err != nil {
 		if apimachineryerrors.IsNotFound(err) {
-			return nil, a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("user data secret %s: %v not found", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
+			return nil, a.handleMachineError(machine, machinecontroller.InvalidMachineConfiguration("user data secret %s: %v not found", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
 		}
-		return nil, a.handleMachineError(machine, mapierrors.CreateMachine("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
+		return nil, a.handleMachineError(machine, machinecontroller.CreateMachine("error getting user data secret %s: %v", machineProviderConfig.UserDataSecret.Name, err), createEventAction)
 	}
 	userData, exists := userDataSecret.Data[userDataSecretKey]
 	if !exists {
-		return nil, a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("%s: Secret %v/%v does not have %q field set. Thus, no user data applied when creating an instance.", machine.Name, machine.Namespace, machineProviderConfig.UserDataSecret.Name, userDataSecretKey), createEventAction)
+		return nil, a.handleMachineError(machine, machinecontroller.InvalidMachineConfiguration("%s: Secret %v/%v does not have %q field set. Thus, no user data applied when creating an instance.", machine.Name, machine.Namespace, machineProviderConfig.UserDataSecret.Name, userDataSecretKey), createEventAction)
 	}
 	return userData, nil
 }
@@ -320,7 +318,7 @@ func (a *Actuator) Delete(context context.Context, machine *machinev1.Machine) e
 func (a *Actuator) DeleteMachine(machine *machinev1.Machine) error {
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		return a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
+		return a.handleMachineError(machine, machinecontroller.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), deleteEventAction)
 	}
 
 	region := machineProviderConfig.Placement.Region
@@ -348,7 +346,7 @@ func (a *Actuator) DeleteMachine(machine *machinev1.Machine) error {
 
 	terminatingInstances, err := terminateInstances(client, existingInstances)
 	if err != nil {
-		return a.handleMachineError(machine, mapierrors.DeleteMachine(err.Error()), noEventAction)
+		return a.handleMachineError(machine, machinecontroller.DeleteMachine(err.Error()), noEventAction)
 	}
 
 	if len(terminatingInstances) == 1 {
@@ -374,7 +372,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 
 	machineProviderConfig, err := providerConfigFromMachine(machine, a.codec)
 	if err != nil {
-		return a.handleMachineError(machine, mapierrors.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), updateEventAction)
+		return a.handleMachineError(machine, machinecontroller.InvalidMachineConfiguration("error decoding MachineProviderConfig: %v", err), updateEventAction)
 	}
 
 	region := machineProviderConfig.Placement.Region
@@ -406,7 +404,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 
 		klog.Warningf("%s: attempted to update machine but no instances found", machine.Name)
 
-		a.handleMachineError(machine, mapierrors.UpdateMachine("no instance found, reason unknown"), updateEventAction)
+		a.handleMachineError(machine, machinecontroller.UpdateMachine("no instance found, reason unknown"), updateEventAction)
 
 		// Update status to clear out machine details.
 		if err := a.setStatus(machine, nil, conditionSuccess()); err != nil {
@@ -428,7 +426,7 @@ func (a *Actuator) Update(context context.Context, machine *machinev1.Machine) e
 
 		err = a.updateLoadBalancers(client, machineProviderConfig, newestInstance, machine.Name)
 		if err != nil {
-			a.handleMachineError(machine, mapierrors.CreateMachine("Error updating load balancers: %v", err), updateEventAction)
+			a.handleMachineError(machine, machinecontroller.CreateMachine("Error updating load balancers: %v", err), updateEventAction)
 			return err
 		}
 	} else {
@@ -569,7 +567,7 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 }
 
 // setStatus calculates the new machine status, checks if anything has changed, and updates if so.
-func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance, condition v1beta1.AWSMachineProviderCondition) error {
+func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance, condition providerconfigv1.AWSMachineProviderCondition) error {
 	klog.Infof("%s: Updating status", machine.Name)
 
 	// Starting with a fresh status as we assume full control of it here.

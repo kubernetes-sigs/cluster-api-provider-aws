@@ -239,19 +239,16 @@ func (a *Actuator) isMaster(machine *machinev1.Machine) (bool, error) {
 // setAWSMachineProviderCondition sets the condition for the machine and
 // returns the new slice of conditions.
 // If the machine does not already have a condition with the specified type,
-// a condition will be added to the slice if and only if the specified
-// status is True.
+// a condition will be added to the slice
 // If the machine does already have a condition with the specified type,
 // the condition will be updated if either of the following are true.
 func setAWSMachineProviderCondition(condition providerconfigv1.AWSMachineProviderCondition, conditions []providerconfigv1.AWSMachineProviderCondition) []providerconfigv1.AWSMachineProviderCondition {
 	now := metav1.Now()
 
 	if existingCondition := findProviderCondition(conditions, condition.Type); existingCondition == nil {
-		if condition.Status == corev1.ConditionTrue {
-			condition.LastProbeTime = now
-			condition.LastTransitionTime = now
-			conditions = append(conditions, condition)
-		}
+		condition.LastProbeTime = now
+		condition.LastTransitionTime = now
+		conditions = append(conditions, condition)
 	} else {
 		updateExistingCondition(&condition, existingCondition)
 	}
@@ -364,7 +361,7 @@ func conditionSuccess() providerconfigv1.AWSMachineProviderCondition {
 func conditionFailed() providerconfigv1.AWSMachineProviderCondition {
 	return providerconfigv1.AWSMachineProviderCondition{
 		Type:   providerconfigv1.MachineCreation,
-		Status: corev1.ConditionTrue,
+		Status: corev1.ConditionFalse,
 		Reason: providerconfigv1.MachineCreationFailed,
 	}
 }

@@ -53,24 +53,24 @@ type AWSMachineProviderStatus struct {
 // AWSMachineProviderConditionType is a valid value for AWSMachineProviderCondition.Type
 type AWSMachineProviderConditionType string
 
-// Valid conditions for an AWS machine instance
+// Valid conditions for an AWS machine instance.
 const (
 	// MachineCreation indicates whether the machine has been created or not. If not,
 	// it should include a reason and message for the failure.
 	MachineCreation AWSMachineProviderConditionType = "MachineCreation"
 )
 
-// AWSMachineProviderConditionReason is reason for the condition's last transition
+// AWSMachineProviderConditionReason is reason for the condition's last transition.
 type AWSMachineProviderConditionReason string
 
 const (
-	// MachineCreationSucceeded indicates machine creation success
+	// MachineCreationSucceeded indicates machine creation success.
 	MachineCreationSucceeded AWSMachineProviderConditionReason = "MachineCreationSucceeded"
-	// MachineCreationFailed indicates machine creation fail
+	// MachineCreationFailed indicates machine creation failure.
 	MachineCreationFailed AWSMachineProviderConditionReason = "MachineCreationFailed"
 )
 
-// AWSMachineProviderCondition is a condition in a AWSMachineProviderStatus
+// AWSMachineProviderCondition is a condition in a AWSMachineProviderStatus.
 type AWSMachineProviderCondition struct {
 	// Type is the type of the condition.
 	Type AWSMachineProviderConditionType `json:"type"`
