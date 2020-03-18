@@ -38,6 +38,7 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 
 // DescribeImages mocks base method
 func (m *MockClient) DescribeImages(arg0 *ec2.DescribeImagesInput) (*ec2.DescribeImagesOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeImages", arg0)
 	ret0, _ := ret[0].(*ec2.DescribeImagesOutput)
 	ret1, _ := ret[1].(error)
@@ -46,11 +47,13 @@ func (m *MockClient) DescribeImages(arg0 *ec2.DescribeImagesInput) (*ec2.Describ
 
 // DescribeImages indicates an expected call of DescribeImages
 func (mr *MockClientMockRecorder) DescribeImages(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeImages", reflect.TypeOf((*MockClient)(nil).DescribeImages), arg0)
 }
 
 // DescribeVpcs mocks base method
 func (m *MockClient) DescribeVpcs(arg0 *ec2.DescribeVpcsInput) (*ec2.DescribeVpcsOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeVpcs", arg0)
 	ret0, _ := ret[0].(*ec2.DescribeVpcsOutput)
 	ret1, _ := ret[1].(error)
@@ -59,11 +62,13 @@ func (m *MockClient) DescribeVpcs(arg0 *ec2.DescribeVpcsInput) (*ec2.DescribeVpc
 
 // DescribeVpcs indicates an expected call of DescribeVpcs
 func (mr *MockClientMockRecorder) DescribeVpcs(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVpcs", reflect.TypeOf((*MockClient)(nil).DescribeVpcs), arg0)
 }
 
 // DescribeSubnets mocks base method
 func (m *MockClient) DescribeSubnets(arg0 *ec2.DescribeSubnetsInput) (*ec2.DescribeSubnetsOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeSubnets", arg0)
 	ret0, _ := ret[0].(*ec2.DescribeSubnetsOutput)
 	ret1, _ := ret[1].(error)
@@ -72,11 +77,13 @@ func (m *MockClient) DescribeSubnets(arg0 *ec2.DescribeSubnetsInput) (*ec2.Descr
 
 // DescribeSubnets indicates an expected call of DescribeSubnets
 func (mr *MockClientMockRecorder) DescribeSubnets(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSubnets", reflect.TypeOf((*MockClient)(nil).DescribeSubnets), arg0)
 }
 
 // DescribeAvailabilityZones mocks base method
 func (m *MockClient) DescribeAvailabilityZones(arg0 *ec2.DescribeAvailabilityZonesInput) (*ec2.DescribeAvailabilityZonesOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeAvailabilityZones", arg0)
 	ret0, _ := ret[0].(*ec2.DescribeAvailabilityZonesOutput)
 	ret1, _ := ret[1].(error)
@@ -85,11 +92,13 @@ func (m *MockClient) DescribeAvailabilityZones(arg0 *ec2.DescribeAvailabilityZon
 
 // DescribeAvailabilityZones indicates an expected call of DescribeAvailabilityZones
 func (mr *MockClientMockRecorder) DescribeAvailabilityZones(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAvailabilityZones", reflect.TypeOf((*MockClient)(nil).DescribeAvailabilityZones), arg0)
 }
 
 // DescribeSecurityGroups mocks base method
 func (m *MockClient) DescribeSecurityGroups(arg0 *ec2.DescribeSecurityGroupsInput) (*ec2.DescribeSecurityGroupsOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeSecurityGroups", arg0)
 	ret0, _ := ret[0].(*ec2.DescribeSecurityGroupsOutput)
 	ret1, _ := ret[1].(error)
@@ -98,11 +107,13 @@ func (m *MockClient) DescribeSecurityGroups(arg0 *ec2.DescribeSecurityGroupsInpu
 
 // DescribeSecurityGroups indicates an expected call of DescribeSecurityGroups
 func (mr *MockClientMockRecorder) DescribeSecurityGroups(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeSecurityGroups", reflect.TypeOf((*MockClient)(nil).DescribeSecurityGroups), arg0)
 }
 
 // RunInstances mocks base method
 func (m *MockClient) RunInstances(arg0 *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RunInstances", arg0)
 	ret0, _ := ret[0].(*ec2.Reservation)
 	ret1, _ := ret[1].(error)
@@ -111,11 +122,13 @@ func (m *MockClient) RunInstances(arg0 *ec2.RunInstancesInput) (*ec2.Reservation
 
 // RunInstances indicates an expected call of RunInstances
 func (mr *MockClientMockRecorder) RunInstances(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunInstances", reflect.TypeOf((*MockClient)(nil).RunInstances), arg0)
 }
 
 // DescribeInstances mocks base method
 func (m *MockClient) DescribeInstances(arg0 *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeInstances", arg0)
 	ret0, _ := ret[0].(*ec2.DescribeInstancesOutput)
 	ret1, _ := ret[1].(error)
@@ -124,11 +137,13 @@ func (m *MockClient) DescribeInstances(arg0 *ec2.DescribeInstancesInput) (*ec2.D
 
 // DescribeInstances indicates an expected call of DescribeInstances
 func (mr *MockClientMockRecorder) DescribeInstances(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstances", reflect.TypeOf((*MockClient)(nil).DescribeInstances), arg0)
 }
 
 // TerminateInstances mocks base method
 func (m *MockClient) TerminateInstances(arg0 *ec2.TerminateInstancesInput) (*ec2.TerminateInstancesOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TerminateInstances", arg0)
 	ret0, _ := ret[0].(*ec2.TerminateInstancesOutput)
 	ret1, _ := ret[1].(error)
@@ -137,11 +152,13 @@ func (m *MockClient) TerminateInstances(arg0 *ec2.TerminateInstancesInput) (*ec2
 
 // TerminateInstances indicates an expected call of TerminateInstances
 func (mr *MockClientMockRecorder) TerminateInstances(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateInstances", reflect.TypeOf((*MockClient)(nil).TerminateInstances), arg0)
 }
 
 // DescribeVolumes mocks base method
 func (m *MockClient) DescribeVolumes(arg0 *ec2.DescribeVolumesInput) (*ec2.DescribeVolumesOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DescribeVolumes", arg0)
 	ret0, _ := ret[0].(*ec2.DescribeVolumesOutput)
 	ret1, _ := ret[1].(error)
@@ -150,11 +167,13 @@ func (m *MockClient) DescribeVolumes(arg0 *ec2.DescribeVolumesInput) (*ec2.Descr
 
 // DescribeVolumes indicates an expected call of DescribeVolumes
 func (mr *MockClientMockRecorder) DescribeVolumes(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeVolumes", reflect.TypeOf((*MockClient)(nil).DescribeVolumes), arg0)
 }
 
 // RegisterInstancesWithLoadBalancer mocks base method
 func (m *MockClient) RegisterInstancesWithLoadBalancer(arg0 *elb.RegisterInstancesWithLoadBalancerInput) (*elb.RegisterInstancesWithLoadBalancerOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterInstancesWithLoadBalancer", arg0)
 	ret0, _ := ret[0].(*elb.RegisterInstancesWithLoadBalancerOutput)
 	ret1, _ := ret[1].(error)
@@ -163,11 +182,13 @@ func (m *MockClient) RegisterInstancesWithLoadBalancer(arg0 *elb.RegisterInstanc
 
 // RegisterInstancesWithLoadBalancer indicates an expected call of RegisterInstancesWithLoadBalancer
 func (mr *MockClientMockRecorder) RegisterInstancesWithLoadBalancer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInstancesWithLoadBalancer", reflect.TypeOf((*MockClient)(nil).RegisterInstancesWithLoadBalancer), arg0)
 }
 
 // ELBv2DescribeLoadBalancers mocks base method
 func (m *MockClient) ELBv2DescribeLoadBalancers(arg0 *elbv2.DescribeLoadBalancersInput) (*elbv2.DescribeLoadBalancersOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ELBv2DescribeLoadBalancers", arg0)
 	ret0, _ := ret[0].(*elbv2.DescribeLoadBalancersOutput)
 	ret1, _ := ret[1].(error)
@@ -176,11 +197,13 @@ func (m *MockClient) ELBv2DescribeLoadBalancers(arg0 *elbv2.DescribeLoadBalancer
 
 // ELBv2DescribeLoadBalancers indicates an expected call of ELBv2DescribeLoadBalancers
 func (mr *MockClientMockRecorder) ELBv2DescribeLoadBalancers(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ELBv2DescribeLoadBalancers", reflect.TypeOf((*MockClient)(nil).ELBv2DescribeLoadBalancers), arg0)
 }
 
 // ELBv2DescribeTargetGroups mocks base method
 func (m *MockClient) ELBv2DescribeTargetGroups(arg0 *elbv2.DescribeTargetGroupsInput) (*elbv2.DescribeTargetGroupsOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ELBv2DescribeTargetGroups", arg0)
 	ret0, _ := ret[0].(*elbv2.DescribeTargetGroupsOutput)
 	ret1, _ := ret[1].(error)
@@ -189,11 +212,13 @@ func (m *MockClient) ELBv2DescribeTargetGroups(arg0 *elbv2.DescribeTargetGroupsI
 
 // ELBv2DescribeTargetGroups indicates an expected call of ELBv2DescribeTargetGroups
 func (mr *MockClientMockRecorder) ELBv2DescribeTargetGroups(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ELBv2DescribeTargetGroups", reflect.TypeOf((*MockClient)(nil).ELBv2DescribeTargetGroups), arg0)
 }
 
 // ELBv2RegisterTargets mocks base method
 func (m *MockClient) ELBv2RegisterTargets(arg0 *elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error) {
+	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ELBv2RegisterTargets", arg0)
 	ret0, _ := ret[0].(*elbv2.RegisterTargetsOutput)
 	ret1, _ := ret[1].(error)
@@ -202,5 +227,6 @@ func (m *MockClient) ELBv2RegisterTargets(arg0 *elbv2.RegisterTargetsInput) (*el
 
 // ELBv2RegisterTargets indicates an expected call of ELBv2RegisterTargets
 func (mr *MockClientMockRecorder) ELBv2RegisterTargets(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ELBv2RegisterTargets", reflect.TypeOf((*MockClient)(nil).ELBv2RegisterTargets), arg0)
 }

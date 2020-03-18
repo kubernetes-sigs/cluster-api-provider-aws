@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	machineproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -277,7 +277,7 @@ func newTestMachineSet(namespace string, instanceType string, existingAnnotation
 		annotations[k] = v
 	}
 
-	machineProviderSpec := &machineproviderv1.AWSMachineProviderConfig{
+	machineProviderSpec := &awsproviderv1.AWSMachineProviderConfig{
 		InstanceType: instanceType,
 	}
 	providerSpec, err := providerSpecFromMachine(machineProviderSpec)
@@ -301,7 +301,7 @@ func newTestMachineSet(namespace string, instanceType string, existingAnnotation
 	}, nil
 }
 
-func providerSpecFromMachine(in *machineproviderv1.AWSMachineProviderConfig) (machinev1.ProviderSpec, error) {
+func providerSpecFromMachine(in *awsproviderv1.AWSMachineProviderConfig) (machinev1.ProviderSpec, error) {
 	bytes, err := json.Marshal(in)
 	if err != nil {
 		return machinev1.ProviderSpec{}, err

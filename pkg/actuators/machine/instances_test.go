@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 
 	"github.com/golang/mock/gomock"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
@@ -62,7 +62,7 @@ func TestBuildEC2Filters(t *testing.T) {
 	value2 := "B"
 	value3 := "C"
 
-	inputFilters := []providerconfigv1.Filter{
+	inputFilters := []awsproviderv1.Filter{
 		{
 			Name:   filter1,
 			Values: []string{value1, value2},
@@ -108,20 +108,20 @@ func TestGetBlockDeviceMappings(t *testing.T) {
 
 	testCases := []struct {
 		description  string
-		blockDevices []providerconfigv1.BlockDeviceMappingSpec
+		blockDevices []awsproviderv1.BlockDeviceMappingSpec
 		expected     []*ec2.BlockDeviceMapping
 	}{
 		{
 			description:  "When it gets an empty blockDevices list",
-			blockDevices: []providerconfigv1.BlockDeviceMappingSpec{},
+			blockDevices: []awsproviderv1.BlockDeviceMappingSpec{},
 			expected:     []*ec2.BlockDeviceMapping{},
 		},
 		{
 			description: "When it gets one blockDevice",
-			blockDevices: []providerconfigv1.BlockDeviceMappingSpec{
+			blockDevices: []awsproviderv1.BlockDeviceMappingSpec{
 				{
 					DeviceName: &rootDeviceName,
-					EBS: &providerconfigv1.EBSBlockDeviceSpec{
+					EBS: &awsproviderv1.EBSBlockDeviceSpec{
 						VolumeSize: &volumeSize,
 						VolumeType: &volumeType,
 					},
@@ -229,7 +229,7 @@ func TestLaunchInstance(t *testing.T) {
 
 	cases := []struct {
 		name                string
-		providerConfig      *providerconfigv1.AWSMachineProviderConfig
+		providerConfig      *awsproviderv1.AWSMachineProviderConfig
 		securityGroupOutput *ec2.DescribeSecurityGroupsOutput
 		securityGroupErr    error
 		subnetOutput        *ec2.DescribeSubnetsOutput
@@ -244,9 +244,9 @@ func TestLaunchInstance(t *testing.T) {
 		{
 			name: "Security groups with filters",
 			providerConfig: stubPCSecurityGroups(
-				[]providerconfigv1.AWSResourceReference{
+				[]awsproviderv1.AWSResourceReference{
 					{
-						Filters: []providerconfigv1.Filter{},
+						Filters: []awsproviderv1.Filter{},
 					},
 				},
 			),
@@ -263,9 +263,9 @@ func TestLaunchInstance(t *testing.T) {
 		{
 			name: "Security groups with filters with error",
 			providerConfig: stubPCSecurityGroups(
-				[]providerconfigv1.AWSResourceReference{
+				[]awsproviderv1.AWSResourceReference{
 					{
-						Filters: []providerconfigv1.Filter{},
+						Filters: []awsproviderv1.Filter{},
 					},
 				},
 			),
@@ -274,9 +274,9 @@ func TestLaunchInstance(t *testing.T) {
 		{
 			name: "No security group",
 			providerConfig: stubPCSecurityGroups(
-				[]providerconfigv1.AWSResourceReference{
+				[]awsproviderv1.AWSResourceReference{
 					{
-						Filters: []providerconfigv1.Filter{},
+						Filters: []awsproviderv1.Filter{},
 					},
 				},
 			),
@@ -286,8 +286,8 @@ func TestLaunchInstance(t *testing.T) {
 		},
 		{
 			name: "Subnet with filters",
-			providerConfig: stubPCSubnet(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{},
+			providerConfig: stubPCSubnet(awsproviderv1.AWSResourceReference{
+				Filters: []awsproviderv1.Filter{},
 			}),
 			subnetOutput: &ec2.DescribeSubnetsOutput{
 				Subnets: []*ec2.Subnet{
@@ -301,22 +301,22 @@ func TestLaunchInstance(t *testing.T) {
 		},
 		{
 			name: "Subnet with filters with error",
-			providerConfig: stubPCSubnet(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{},
+			providerConfig: stubPCSubnet(awsproviderv1.AWSResourceReference{
+				Filters: []awsproviderv1.Filter{},
 			}),
 			subnetErr: fmt.Errorf("error"),
 		},
 		{
 			name: "Subnet with availability zone with error",
-			providerConfig: stubPCSubnet(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{},
+			providerConfig: stubPCSubnet(awsproviderv1.AWSResourceReference{
+				Filters: []awsproviderv1.Filter{},
 			}),
 			azErr: fmt.Errorf("error"),
 		},
 		{
 			name: "AMI with filters",
-			providerConfig: stubPCAMI(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{
+			providerConfig: stubPCAMI(awsproviderv1.AWSResourceReference{
+				Filters: []awsproviderv1.Filter{
 					{
 						Name:   "foo",
 						Values: []string{"bar"},
@@ -336,15 +336,15 @@ func TestLaunchInstance(t *testing.T) {
 		},
 		{
 			name: "AMI with filters with error",
-			providerConfig: stubPCAMI(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{},
+			providerConfig: stubPCAMI(awsproviderv1.AWSResourceReference{
+				Filters: []awsproviderv1.Filter{},
 			}),
 			imageErr: fmt.Errorf("error"),
 		},
 		{
 			name: "AMI with filters with no image",
-			providerConfig: stubPCAMI(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{
+			providerConfig: stubPCAMI(awsproviderv1.AWSResourceReference{
+				Filters: []awsproviderv1.Filter{
 					{
 						Name:   "image_stage",
 						Values: []string{"base"},
@@ -357,8 +357,8 @@ func TestLaunchInstance(t *testing.T) {
 		},
 		{
 			name: "AMI with filters with two images",
-			providerConfig: stubPCAMI(providerconfigv1.AWSResourceReference{
-				Filters: []providerconfigv1.Filter{
+			providerConfig: stubPCAMI(awsproviderv1.AWSResourceReference{
+				Filters: []awsproviderv1.Filter{
 					{
 						Name:   "image_stage",
 						Values: []string{"base"},
@@ -382,7 +382,7 @@ func TestLaunchInstance(t *testing.T) {
 		},
 		{
 			name:           "AMI not specified",
-			providerConfig: stubPCAMI(providerconfigv1.AWSResourceReference{}),
+			providerConfig: stubPCAMI(awsproviderv1.AWSResourceReference{}),
 		},
 	}
 	for _, tc := range cases {

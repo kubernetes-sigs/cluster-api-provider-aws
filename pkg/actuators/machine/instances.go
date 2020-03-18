@@ -12,7 +12,7 @@ import (
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"k8s.io/klog"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -52,7 +52,7 @@ func removeStoppedMachine(machine *machinev1.Machine, client awsclient.Client) e
 	return err
 }
 
-func buildEC2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {
+func buildEC2Filters(inputFilters []awsproviderv1.Filter) []*ec2.Filter {
 	filters := make([]*ec2.Filter, len(inputFilters))
 	for i, f := range inputFilters {
 		values := make([]*string, len(f.Values))
@@ -67,7 +67,7 @@ func buildEC2Filters(inputFilters []providerconfigv1.Filter) []*ec2.Filter {
 	return filters
 }
 
-func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference, client awsclient.Client) ([]*string, error) {
+func getSecurityGroupsIDs(securityGroups []awsproviderv1.AWSResourceReference, client awsclient.Client) ([]*string, error) {
 	var securityGroupIDs []*string
 	for _, g := range securityGroups {
 		// ID has priority
@@ -98,13 +98,13 @@ func getSecurityGroupsIDs(securityGroups []providerconfigv1.AWSResourceReference
 	return securityGroupIDs, nil
 }
 
-func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone string, client awsclient.Client) ([]*string, error) {
+func getSubnetIDs(subnet awsproviderv1.AWSResourceReference, availabilityZone string, client awsclient.Client) ([]*string, error) {
 	var subnetIDs []*string
 	// ID has priority
 	if subnet.ID != nil {
 		subnetIDs = append(subnetIDs, subnet.ID)
 	} else {
-		var filters []providerconfigv1.Filter
+		var filters []awsproviderv1.Filter
 		if availabilityZone != "" {
 			// Improve error logging for better user experience.
 			// Otherwise, during the process of minimizing API calls, this is a good
@@ -116,7 +116,7 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone
 				klog.Errorf("error describing availability zones: %v", err)
 				return nil, fmt.Errorf("error describing availability zones: %v", err)
 			}
-			filters = append(filters, providerconfigv1.Filter{Name: "availabilityZone", Values: []string{availabilityZone}})
+			filters = append(filters, awsproviderv1.Filter{Name: "availabilityZone", Values: []string{availabilityZone}})
 		}
 		filters = append(filters, subnet.Filters...)
 		klog.Info("Describing subnets based on filters")
@@ -139,7 +139,7 @@ func getSubnetIDs(subnet providerconfigv1.AWSResourceReference, availabilityZone
 	return subnetIDs, nil
 }
 
-func getAMI(AMI providerconfigv1.AWSResourceReference, client awsclient.Client) (*string, error) {
+func getAMI(AMI awsproviderv1.AWSResourceReference, client awsclient.Client) (*string, error) {
 	if AMI.ID != nil {
 		amiID := AMI.ID
 		klog.Infof("Using AMI %s", *amiID)
@@ -181,7 +181,7 @@ func getAMI(AMI providerconfigv1.AWSResourceReference, client awsclient.Client) 
 	return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
 }
 
-func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
+func getBlockDeviceMappings(blockDeviceMappings []awsproviderv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
 	if len(blockDeviceMappings) == 0 || blockDeviceMappings[0].EBS == nil {
 		return []*ec2.BlockDeviceMapping{}, nil
 	}
@@ -228,7 +228,7 @@ func getBlockDeviceMappings(blockDeviceMappings []providerconfigv1.BlockDeviceMa
 	return []*ec2.BlockDeviceMapping{&blockDeviceMapping}, nil
 }
 
-func launchInstance(machine *machinev1.Machine, machineProviderConfig *providerconfigv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
+func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsproviderv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
 	amiID, err := getAMI(machineProviderConfig.AMI, client)
 	if err != nil {
 		return nil, mapierrors.InvalidMachineConfiguration("error getting AMI: %v", err)

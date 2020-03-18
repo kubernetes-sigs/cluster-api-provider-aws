@@ -32,7 +32,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -50,7 +50,7 @@ type Actuator struct {
 	client           client.Client
 	config           *rest.Config
 
-	codec         *providerconfigv1.AWSProviderConfigCodec
+	codec         *awsproviderv1.AWSProviderConfigCodec
 	eventRecorder record.EventRecorder
 }
 
@@ -59,7 +59,7 @@ type ActuatorParams struct {
 	Client           client.Client
 	Config           *rest.Config
 	AwsClientBuilder awsclient.AwsClientBuilderFuncType
-	Codec            *providerconfigv1.AWSProviderConfigCodec
+	Codec            *awsproviderv1.AWSProviderConfigCodec
 	EventRecorder    record.EventRecorder
 }
 
@@ -197,7 +197,7 @@ func (a *Actuator) setProviderID(machine *machinev1.Machine, instance *ec2.Insta
 	return nil
 }
 
-func (a *Actuator) setMachineStatus(machine *machinev1.Machine, awsStatus *providerconfigv1.AWSMachineProviderStatus, networkAddresses []corev1.NodeAddress) error {
+func (a *Actuator) setMachineStatus(machine *machinev1.Machine, awsStatus *awsproviderv1.AWSMachineProviderStatus, networkAddresses []corev1.NodeAddress) error {
 	awsStatusRaw, err := a.codec.EncodeProviderStatus(awsStatus)
 	if err != nil {
 		klog.Errorf("%s: error encoding AWS provider status: %v", machine.Name, err)
@@ -213,10 +213,10 @@ func (a *Actuator) setMachineStatus(machine *machinev1.Machine, awsStatus *provi
 }
 
 // updateMachineProviderConditions updates conditions set within machine provider status.
-func (a *Actuator) setMachineProviderConditions(machine *machinev1.Machine, condition providerconfigv1.AWSMachineProviderCondition) error {
+func (a *Actuator) setMachineProviderConditions(machine *machinev1.Machine, condition awsproviderv1.AWSMachineProviderCondition) error {
 	klog.Infof("%s: updating machine conditions", machine.Name)
 
-	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
+	awsStatus := &awsproviderv1.AWSMachineProviderStatus{}
 	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, awsStatus); err != nil {
 		klog.Errorf("%s: error decoding machine provider status: %v", machine.Name, err)
 		return err
@@ -284,7 +284,7 @@ func (a *Actuator) CreateMachine(machine *machinev1.Machine) (*ec2.Instance, err
 	return instance, nil
 }
 
-func (a *Actuator) getUserData(machine *machinev1.Machine, machineProviderConfig *providerconfigv1.AWSMachineProviderConfig) ([]byte, error) {
+func (a *Actuator) getUserData(machine *machinev1.Machine, machineProviderConfig *awsproviderv1.AWSMachineProviderConfig) ([]byte, error) {
 	if machineProviderConfig.UserDataSecret == nil {
 		return []byte{}, nil
 	}
@@ -508,7 +508,7 @@ func (a *Actuator) getMachineInstances(machine *machinev1.Machine) ([]*ec2.Insta
 		return nil, err
 	}
 
-	status := &providerconfigv1.AWSMachineProviderStatus{}
+	status := &awsproviderv1.AWSMachineProviderStatus{}
 	err = a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, status)
 
 	// If the status was decoded successfully, and there is a non-empty instance
@@ -528,7 +528,7 @@ func (a *Actuator) getMachineInstances(machine *machinev1.Machine) ([]*ec2.Insta
 }
 
 // updateLoadBalancers adds a given machine instance to the load balancers specified in its provider config
-func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *providerconfigv1.AWSMachineProviderConfig, instance *ec2.Instance, machineName string) error {
+func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *awsproviderv1.AWSMachineProviderConfig, instance *ec2.Instance, machineName string) error {
 	if len(providerConfig.LoadBalancers) == 0 {
 		klog.V(4).Infof("%s: Instance %q has no load balancers configured. Skipping", machineName, *instance.InstanceId)
 		return nil
@@ -538,9 +538,9 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 	networkLoadBalancerNames := []string{}
 	for _, loadBalancerRef := range providerConfig.LoadBalancers {
 		switch loadBalancerRef.Type {
-		case providerconfigv1.NetworkLoadBalancerType:
+		case awsproviderv1.NetworkLoadBalancerType:
 			networkLoadBalancerNames = append(networkLoadBalancerNames, loadBalancerRef.Name)
-		case providerconfigv1.ClassicLoadBalancerType:
+		case awsproviderv1.ClassicLoadBalancerType:
 			classicLoadBalancerNames = append(classicLoadBalancerNames, loadBalancerRef.Name)
 		}
 	}
@@ -567,11 +567,11 @@ func (a *Actuator) updateLoadBalancers(client awsclient.Client, providerConfig *
 }
 
 // setStatus calculates the new machine status, checks if anything has changed, and updates if so.
-func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance, condition providerconfigv1.AWSMachineProviderCondition) error {
+func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance, condition awsproviderv1.AWSMachineProviderCondition) error {
 	klog.Infof("%s: Updating status", machine.Name)
 
 	// Starting with a fresh status as we assume full control of it here.
-	awsStatus := &providerconfigv1.AWSMachineProviderStatus{}
+	awsStatus := &awsproviderv1.AWSMachineProviderStatus{}
 	if err := a.codec.DecodeProviderStatus(machine.Status.ProviderStatus, awsStatus); err != nil {
 		klog.Errorf("%s: Error decoding machine provider status: %v", machine.Name, err)
 		return err
@@ -607,7 +607,7 @@ func (a *Actuator) setStatus(machine *machinev1.Machine, instance *ec2.Instance,
 }
 
 func getClusterID(machine *machinev1.Machine) (string, bool) {
-	clusterID, ok := machine.Labels[providerconfigv1.ClusterIDLabel]
+	clusterID, ok := machine.Labels[awsproviderv1.ClusterIDLabel]
 	// NOTE: This block can be removed after the label renaming transition to machine.openshift.io
 	if !ok {
 		clusterID, ok = machine.Labels["sigs.k8s.io/cluster-api-cluster"]

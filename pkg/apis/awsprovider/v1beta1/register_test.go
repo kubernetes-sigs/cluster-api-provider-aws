@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 
-	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -99,7 +98,7 @@ func TestEncodeAndDecodeProviderSpec(t *testing.T) {
 			},
 			ID: &amiID,
 		},
-		CredentialsSecret: &apiv1.LocalObjectReference{
+		CredentialsSecret: &corev1.LocalObjectReference{
 			Name: awsCredentialsSecretName,
 		},
 		InstanceType: "m4.xlarge",

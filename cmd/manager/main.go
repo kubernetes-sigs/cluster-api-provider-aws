@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog/klogr"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	machinesetcontroller "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machineset"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -103,7 +103,7 @@ func main() {
 }
 
 func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
-	codec, err := v1beta1.NewCodec()
+	codec, err := awsproviderv1.NewCodec()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create codec: %v", err)
 	}

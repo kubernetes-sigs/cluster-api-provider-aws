@@ -31,65 +31,6 @@ const (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// AWSMachineProviderStatus is the type that will be embedded in a Machine.Status.ProviderStatus field.
-// It contains AWS-specific status information.
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type AWSMachineProviderStatus struct {
-	metav1.TypeMeta `json:",inline"`
-
-	// InstanceID is the instance ID of the machine created in AWS
-	// +optional
-	InstanceID *string `json:"instanceId,omitempty"`
-
-	// InstanceState is the state of the AWS instance for this machine
-	// +optional
-	InstanceState *string `json:"instanceState,omitempty"`
-
-	// Conditions is a set of conditions associated with the Machine to indicate
-	// errors or other status
-	Conditions []AWSMachineProviderCondition `json:"conditions,omitempty"`
-}
-
-// AWSMachineProviderConditionType is a valid value for AWSMachineProviderCondition.Type
-type AWSMachineProviderConditionType string
-
-// Valid conditions for an AWS machine instance.
-const (
-	// MachineCreation indicates whether the machine has been created or not. If not,
-	// it should include a reason and message for the failure.
-	MachineCreation AWSMachineProviderConditionType = "MachineCreation"
-)
-
-// AWSMachineProviderConditionReason is reason for the condition's last transition.
-type AWSMachineProviderConditionReason string
-
-const (
-	// MachineCreationSucceeded indicates machine creation success.
-	MachineCreationSucceeded AWSMachineProviderConditionReason = "MachineCreationSucceeded"
-	// MachineCreationFailed indicates machine creation failure.
-	MachineCreationFailed AWSMachineProviderConditionReason = "MachineCreationFailed"
-)
-
-// AWSMachineProviderCondition is a condition in a AWSMachineProviderStatus.
-type AWSMachineProviderCondition struct {
-	// Type is the type of the condition.
-	Type AWSMachineProviderConditionType `json:"type"`
-	// Status is the status of the condition.
-	Status corev1.ConditionStatus `json:"status"`
-	// LastProbeTime is the last time we probed the condition.
-	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
-	// LastTransitionTime is the last time the condition transitioned from one status to another.
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
-	// +optional
-	Reason AWSMachineProviderConditionReason `json:"reason,omitempty"`
-	// Message is a human-readable message indicating details about last transition.
-	// +optional
-	Message string `json:"message,omitempty"`
-}
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
