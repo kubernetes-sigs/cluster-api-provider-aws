@@ -10,10 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
-	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
@@ -39,35 +38,35 @@ runcmd:
 - [ cat, /root/node_bootstrap/node_settings.yaml]
 `
 
-func stubProviderConfig() *providerconfigv1.AWSMachineProviderConfig {
-	return &providerconfigv1.AWSMachineProviderConfig{
-		AMI: providerconfigv1.AWSResourceReference{
+func stubProviderConfig() *awsproviderv1.AWSMachineProviderConfig {
+	return &awsproviderv1.AWSMachineProviderConfig{
+		AMI: awsproviderv1.AWSResourceReference{
 			ID: aws.String("ami-a9acbbd6"),
 		},
 		CredentialsSecret: &corev1.LocalObjectReference{
 			Name: awsCredentialsSecretName,
 		},
 		InstanceType: "m4.xlarge",
-		Placement: providerconfigv1.Placement{
+		Placement: awsproviderv1.Placement{
 			Region:           region,
 			AvailabilityZone: defaultAvailabilityZone,
 		},
-		Subnet: providerconfigv1.AWSResourceReference{
+		Subnet: awsproviderv1.AWSResourceReference{
 			ID: aws.String("subnet-0e56b13a64ff8a941"),
 		},
-		IAMInstanceProfile: &providerconfigv1.AWSResourceReference{
+		IAMInstanceProfile: &awsproviderv1.AWSResourceReference{
 			ID: aws.String("openshift_master_launch_instances"),
 		},
 		KeyName: aws.String(keyName),
 		UserDataSecret: &corev1.LocalObjectReference{
 			Name: userDataSecretName,
 		},
-		Tags: []providerconfigv1.TagSpecification{
+		Tags: []awsproviderv1.TagSpecification{
 			{Name: "openshift-node-group-config", Value: "node-config-master"},
 			{Name: "host-type", Value: "master"},
 			{Name: "sub-host-type", Value: "default"},
 		},
-		SecurityGroups: []providerconfigv1.AWSResourceReference{
+		SecurityGroups: []awsproviderv1.AWSResourceReference{
 			{ID: aws.String("sg-00868b02fbe29de17")},
 			{ID: aws.String("sg-0a4658991dc5eb40a")},
 			{ID: aws.String("sg-009a70e28fa4ba84e")},
@@ -75,22 +74,22 @@ func stubProviderConfig() *providerconfigv1.AWSMachineProviderConfig {
 			{ID: aws.String("sg-08b1ffd32874d59a2")},
 		},
 		PublicIP: aws.Bool(true),
-		LoadBalancers: []providerconfigv1.LoadBalancerReference{
+		LoadBalancers: []awsproviderv1.LoadBalancerReference{
 			{
 				Name: "cluster-con",
-				Type: providerconfigv1.ClassicLoadBalancerType,
+				Type: awsproviderv1.ClassicLoadBalancerType,
 			},
 			{
 				Name: "cluster-ext",
-				Type: providerconfigv1.ClassicLoadBalancerType,
+				Type: awsproviderv1.ClassicLoadBalancerType,
 			},
 			{
 				Name: "cluster-int",
-				Type: providerconfigv1.ClassicLoadBalancerType,
+				Type: awsproviderv1.ClassicLoadBalancerType,
 			},
 			{
 				Name: "cluster-net-lb",
-				Type: providerconfigv1.NetworkLoadBalancerType,
+				Type: awsproviderv1.NetworkLoadBalancerType,
 			},
 		},
 	}
@@ -99,7 +98,7 @@ func stubProviderConfig() *providerconfigv1.AWSMachineProviderConfig {
 func stubMachine() (*machinev1.Machine, error) {
 	machinePc := stubProviderConfig()
 
-	codec, err := providerconfigv1.NewCodec()
+	codec, err := awsproviderv1.NewCodec()
 	if err != nil {
 		return nil, fmt.Errorf("failed creating codec: %v", err)
 	}
@@ -113,7 +112,7 @@ func stubMachine() (*machinev1.Machine, error) {
 			Name:      "aws-actuator-testing-machine",
 			Namespace: defaultNamespace,
 			Labels: map[string]string{
-				providerconfigv1.ClusterIDLabel: clusterID,
+				awsproviderv1.ClusterIDLabel: clusterID,
 			},
 			Annotations: map[string]string{
 				// skip node draining since it's not mocked
@@ -136,7 +135,7 @@ func stubMachine() (*machinev1.Machine, error) {
 }
 
 func stubUserDataSecret() *corev1.Secret {
-	return &apiv1.Secret{
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      userDataSecretName,
 			Namespace: defaultNamespace,
@@ -152,8 +151,8 @@ func stubAwsCredentialsSecret() *corev1.Secret {
 }
 
 // GenerateAwsCredentialsSecretFromEnv generates secret with AWS credentials
-func GenerateAwsCredentialsSecretFromEnv(secretName, namespace string) *apiv1.Secret {
-	return &apiv1.Secret{
+func GenerateAwsCredentialsSecretFromEnv(secretName, namespace string) *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
 			Namespace: namespace,
@@ -199,19 +198,19 @@ func stubInstance(imageID, instanceID string) *ec2.Instance {
 	}
 }
 
-func stubPCSecurityGroups(groups []providerconfigv1.AWSResourceReference) *providerconfigv1.AWSMachineProviderConfig {
+func stubPCSecurityGroups(groups []awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
 	pc.SecurityGroups = groups
 	return pc
 }
 
-func stubPCSubnet(subnet providerconfigv1.AWSResourceReference) *providerconfigv1.AWSMachineProviderConfig {
+func stubPCSubnet(subnet awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
 	pc.Subnet = subnet
 	return pc
 }
 
-func stubPCAMI(ami providerconfigv1.AWSResourceReference) *providerconfigv1.AWSMachineProviderConfig {
+func stubPCAMI(ami awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
 	pc.AMI = ami
 	return pc

@@ -13,7 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -128,13 +128,13 @@ func reconcile(machineSet *machinev1.MachineSet) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func getProviderConfig(machineSet machinev1.MachineSet) (*providerconfigv1.AWSMachineProviderConfig, error) {
-	codec, err := providerconfigv1.NewCodec()
+func getProviderConfig(machineSet machinev1.MachineSet) (*awsproviderv1.AWSMachineProviderConfig, error) {
+	codec, err := awsproviderv1.NewCodec()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create codec: %v", err)
 	}
 
-	var providerConfig providerconfigv1.AWSMachineProviderConfig
+	var providerConfig awsproviderv1.AWSMachineProviderConfig
 	if err := codec.DecodeProviderSpec(&machineSet.Spec.Template.Spec.ProviderSpec, &providerConfig); err != nil {
 		return nil, fmt.Errorf("failed to decode machineSet provider config: %v", err)
 	}

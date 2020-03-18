@@ -30,7 +30,7 @@ import (
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	providerconfigv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsproviderconfig/v1beta1"
+	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
@@ -201,12 +201,12 @@ func terminateInstances(client awsclient.Client, instances []*ec2.Instance) ([]*
 
 // providerConfigFromMachine gets the machine provider config MachineSetSpec from the
 // specified cluster-api MachineSpec.
-func providerConfigFromMachine(machine *machinev1.Machine, codec *providerconfigv1.AWSProviderConfigCodec) (*providerconfigv1.AWSMachineProviderConfig, error) {
+func providerConfigFromMachine(machine *machinev1.Machine, codec *awsproviderv1.AWSProviderConfigCodec) (*awsproviderv1.AWSMachineProviderConfig, error) {
 	if machine.Spec.ProviderSpec.Value == nil {
 		return nil, fmt.Errorf("unable to find machine provider config: Spec.ProviderSpec.Value is not set")
 	}
 
-	var config providerconfigv1.AWSMachineProviderConfig
+	var config awsproviderv1.AWSMachineProviderConfig
 	if err := codec.DecodeProviderSpec(&machine.Spec.ProviderSpec, &config); err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func (a *Actuator) isMaster(machine *machinev1.Machine) (bool, error) {
 // a condition will be added to the slice
 // If the machine does already have a condition with the specified type,
 // the condition will be updated if either of the following are true.
-func setAWSMachineProviderCondition(condition providerconfigv1.AWSMachineProviderCondition, conditions []providerconfigv1.AWSMachineProviderCondition) []providerconfigv1.AWSMachineProviderCondition {
+func setAWSMachineProviderCondition(condition awsproviderv1.AWSMachineProviderCondition, conditions []awsproviderv1.AWSMachineProviderCondition) []awsproviderv1.AWSMachineProviderCondition {
 	now := metav1.Now()
 
 	if existingCondition := findProviderCondition(conditions, condition.Type); existingCondition == nil {
@@ -256,7 +256,7 @@ func setAWSMachineProviderCondition(condition providerconfigv1.AWSMachineProvide
 	return conditions
 }
 
-func findProviderCondition(conditions []providerconfigv1.AWSMachineProviderCondition, conditionType providerconfigv1.AWSMachineProviderConditionType) *providerconfigv1.AWSMachineProviderCondition {
+func findProviderCondition(conditions []awsproviderv1.AWSMachineProviderCondition, conditionType awsproviderv1.AWSMachineProviderConditionType) *awsproviderv1.AWSMachineProviderCondition {
 	for i := range conditions {
 		if conditions[i].Type == conditionType {
 			return &conditions[i]
@@ -265,7 +265,7 @@ func findProviderCondition(conditions []providerconfigv1.AWSMachineProviderCondi
 	return nil
 }
 
-func updateExistingCondition(newCondition, existingCondition *providerconfigv1.AWSMachineProviderCondition) {
+func updateExistingCondition(newCondition, existingCondition *awsproviderv1.AWSMachineProviderCondition) {
 	if !shouldUpdateCondition(newCondition, existingCondition) {
 		return
 	}
@@ -279,7 +279,7 @@ func updateExistingCondition(newCondition, existingCondition *providerconfigv1.A
 	existingCondition.LastProbeTime = newCondition.LastProbeTime
 }
 
-func shouldUpdateCondition(newCondition, existingCondition *providerconfigv1.AWSMachineProviderCondition) bool {
+func shouldUpdateCondition(newCondition, existingCondition *awsproviderv1.AWSMachineProviderCondition) bool {
 	return newCondition.Reason != existingCondition.Reason || newCondition.Message != existingCondition.Message
 }
 
@@ -349,19 +349,19 @@ func extractNodeAddresses(instance *ec2.Instance) ([]corev1.NodeAddress, error) 
 	return addresses, nil
 }
 
-func conditionSuccess() providerconfigv1.AWSMachineProviderCondition {
-	return providerconfigv1.AWSMachineProviderCondition{
-		Type:    providerconfigv1.MachineCreation,
+func conditionSuccess() awsproviderv1.AWSMachineProviderCondition {
+	return awsproviderv1.AWSMachineProviderCondition{
+		Type:    awsproviderv1.MachineCreation,
 		Status:  corev1.ConditionTrue,
-		Reason:  providerconfigv1.MachineCreationSucceeded,
+		Reason:  awsproviderv1.MachineCreationSucceeded,
 		Message: "Machine successfully created",
 	}
 }
 
-func conditionFailed() providerconfigv1.AWSMachineProviderCondition {
-	return providerconfigv1.AWSMachineProviderCondition{
-		Type:   providerconfigv1.MachineCreation,
+func conditionFailed() awsproviderv1.AWSMachineProviderCondition {
+	return awsproviderv1.AWSMachineProviderCondition{
+		Type:   awsproviderv1.MachineCreation,
 		Status: corev1.ConditionFalse,
-		Reason: providerconfigv1.MachineCreationFailed,
+		Reason: awsproviderv1.MachineCreationFailed,
 	}
 }
