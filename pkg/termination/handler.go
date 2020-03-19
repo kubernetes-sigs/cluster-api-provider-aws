@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-logr/logr"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -25,7 +26,8 @@ type Handler interface {
 
 // NewHandler constructs a new Handler
 func NewHandler(logger logr.Logger, cfg *rest.Config, pollInterval time.Duration, nodeName string) (Handler, error) {
-	c, err := client.New(cfg, client.Options{})
+	machinev1.AddToScheme(scheme.Scheme)
+	c, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
@@ -96,5 +98,17 @@ func (h *handler) run(ctx context.Context, wg *sync.WaitGroup) error {
 
 // getMachineForNodeName finds the Machine associated with the Node name given
 func (h *handler) getMachineForNode(ctx context.Context) (*machinev1.Machine, error) {
+	machineList := &machinev1.MachineList{}
+	err := h.client.List(ctx, machineList)
+	if err != nil {
+		return nil, fmt.Errorf("error listing machines: %v", err)
+	}
+
+	for _, machine := range machineList.Items {
+		if machine.Status.NodeRef != nil && machine.Status.NodeRef.Name == h.nodeName {
+			return &machine, nil
+		}
+	}
+
 	return nil, fmt.Errorf("machine not found for node %q", h.nodeName)
 }
