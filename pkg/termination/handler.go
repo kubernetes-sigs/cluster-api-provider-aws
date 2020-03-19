@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -34,6 +35,8 @@ func NewHandler(logger logr.Logger, cfg *rest.Config, pollInterval time.Duration
 		// This should never happen
 		panic(err)
 	}
+
+	logger = logger.WithValues("node", nodeName)
 
 	return &handler{
 		client:       c,
@@ -80,5 +83,18 @@ func (h *handler) Run(stop <-chan struct{}) error {
 func (h *handler) run(ctx context.Context, wg *sync.WaitGroup) error {
 	defer wg.Done()
 
+	machine, err := h.getMachineForNode(ctx)
+	if err != nil {
+		return fmt.Errorf("error fetching machine for node (%q): %v", h.nodeName, err)
+	}
+
+	logger := h.log.WithValues("namespace", machine.Namespace, "machine", machine.Name)
+	logger.V(1).Info("Monitoring node for machine")
+
 	return fmt.Errorf("not implemented")
+}
+
+// getMachineForNodeName finds the Machine associated with the Node name given
+func (h *handler) getMachineForNode(ctx context.Context) (*machinev1.Machine, error) {
+	return nil, fmt.Errorf("machine not found for node %q", h.nodeName)
 }
