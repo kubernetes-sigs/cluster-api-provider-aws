@@ -14,3 +14,4 @@ RUN INSTALL_PKGS=" \
     yum clean all
 COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/bin/manager /
 COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/bin/machine-controller-manager /
+COPY --from=builder /go/src/sigs.k8s.io/cluster-api-provider-aws/bin/termination-handler /
