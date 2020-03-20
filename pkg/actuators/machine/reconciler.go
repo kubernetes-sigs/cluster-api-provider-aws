@@ -307,6 +307,10 @@ func (r *Reconciler) setMachineCloudProviderSpecifics(instance *ec2.Instance) er
 		r.machine.Labels = make(map[string]string)
 	}
 
+	if r.machine.Spec.Labels == nil {
+		r.machine.Spec.Labels = make(map[string]string)
+	}
+
 	if r.machine.Annotations == nil {
 		r.machine.Annotations = make(map[string]string)
 	}
@@ -330,6 +334,11 @@ func (r *Reconciler) setMachineCloudProviderSpecifics(instance *ec2.Instance) er
 
 	if instance.State != nil && instance.State.Name != nil {
 		r.machine.Annotations[machinecontroller.MachineInstanceStateAnnotationName] = aws.StringValue(instance.State.Name)
+	}
+
+	if instance.InstanceLifecycle != nil && *instance.InstanceLifecycle == ec2.InstanceLifecycleTypeSpot {
+		// Label on the Spec so that it is propogated to the Node
+		r.machine.Spec.Labels[machinecontroller.MachineInterruptibleInstanceLabelName] = ""
 	}
 
 	return nil
