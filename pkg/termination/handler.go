@@ -3,12 +3,14 @@ package termination
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -93,7 +95,34 @@ func (h *handler) run(ctx context.Context, wg *sync.WaitGroup) error {
 	logger := h.log.WithValues("namespace", machine.Namespace, "machine", machine.Name)
 	logger.V(1).Info("Monitoring node for machine")
 
-	return fmt.Errorf("not implemented")
+	if err := wait.PollImmediateUntil(h.pollInterval, func() (bool, error) {
+		resp, err := http.Get(h.pollURL.String())
+		if err != nil {
+			return false, fmt.Errorf("could not get URL %q: %v", h.pollURL.String(), err)
+		}
+		switch resp.StatusCode {
+		case http.StatusNotFound:
+			// Instance not terminated yet
+			logger.V(2).Info("Instance not marked for termination")
+			return false, nil
+		case http.StatusOK:
+			// Instance marked for termination
+			return true, nil
+		default:
+			// Unknown case, return an error
+			return false, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		}
+	}, ctx.Done()); err != nil {
+		return fmt.Errorf("error polling termination endpoint: %v", err)
+	}
+
+	// Will only get here if the termination endpoint returned 200
+	logger.V(1).Info("Instance marked for termination, deleting Machine")
+	if err := h.client.Delete(ctx, machine); err != nil {
+		return fmt.Errorf("error deleting machine: %v", err)
+	}
+
+	return nil
 }
 
 // getMachineForNodeName finds the Machine associated with the Node name given
