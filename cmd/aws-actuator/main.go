@@ -106,11 +106,11 @@ func createCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to create actuator: %v", err)
 			}
-			result, err := actuator.CreateMachine(machine)
+			err = actuator.Create(context.TODO(), machine)
 			if err != nil {
 				return fmt.Errorf("unable to create machine: %v", err)
 			}
-			fmt.Printf("Machine creation was successful! InstanceID: %s\n", *result.InstanceId)
+			fmt.Print("Machine creation was successful! InstanceID\n")
 			return nil
 		},
 	}
@@ -144,7 +144,7 @@ func deleteCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("unable to create actuator: %v", err)
 			}
-			if err = actuator.DeleteMachine(machine); err != nil {
+			if err = actuator.Delete(context.TODO(), machine); err != nil {
 				return fmt.Errorf("unable to delete machine: %v", err)
 			}
 

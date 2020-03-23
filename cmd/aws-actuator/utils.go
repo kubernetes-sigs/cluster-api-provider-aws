@@ -11,13 +11,10 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
-	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
 type manifestParams struct {
@@ -94,24 +91,12 @@ func createActuator(machine *machinev1.Machine, awsCredentials, userData *apiv1.
 	}
 	fakeClient := fake.NewFakeClient(objList...)
 
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		return nil, err
-	}
+	// Initialize machine actuator.
+	machineActuator := machineactuator.NewActuator(machineactuator.ActuatorParams{
+		Client: fakeClient,
+	})
 
-	params := machineactuator.ActuatorParams{
-		Client:           fakeClient,
-		AwsClientBuilder: awsclient.NewClient,
-		Codec:            codec,
-		// use empty recorder dropping any event recorded
-		EventRecorder: &record.FakeRecorder{},
-	}
-
-	actuator, err := machineactuator.NewActuator(params)
-	if err != nil {
-		return nil, err
-	}
-	return actuator, nil
+	return machineActuator, nil
 }
 
 func cmdRun(binaryPath string, args ...string) ([]byte, error) {
