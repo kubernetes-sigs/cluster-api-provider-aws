@@ -528,6 +528,11 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		return nil
 	}
 
+	if clusterScope.Cluster.Status.ControlPlaneInitialized && machineScope.Machine.Status.NodeRef == nil {
+		r.Log.Info("Control plane machine not registered as node, skipping ELB registration")
+		return nil
+	}
+
 	elbsvc := elb.NewService(clusterScope)
 	if err := elbsvc.RegisterInstanceWithAPIServerELB(i); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
