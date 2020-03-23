@@ -1,7 +1,6 @@
 package machine
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,85 +8,12 @@ import (
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 )
 
 func init() {
 	// Add types to scheme
 	machinev1.AddToScheme(scheme.Scheme)
-}
-
-func TestProviderConfigFromMachine(t *testing.T) {
-
-	providerConfig := &awsproviderv1.AWSMachineProviderConfig{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "awsproviderconfig.openshift.io/v1beta1",
-			Kind:       "AWSMachineProviderConfig",
-		},
-		InstanceType: "testInstance",
-		AMI:          awsproviderv1.AWSResourceReference{ID: nil},
-		Tags: []awsproviderv1.TagSpecification{
-			{Name: "", Value: ""},
-		},
-		IAMInstanceProfile: &awsproviderv1.AWSResourceReference{ID: nil},
-		UserDataSecret:     &corev1.LocalObjectReference{Name: ""},
-		Subnet: awsproviderv1.AWSResourceReference{
-			Filters: []awsproviderv1.Filter{{
-				Name:   "tag:Name",
-				Values: []string{""},
-			}},
-		},
-		Placement: awsproviderv1.Placement{Region: "", AvailabilityZone: ""},
-		SecurityGroups: []awsproviderv1.AWSResourceReference{{
-			Filters: []awsproviderv1.Filter{{
-				Name:   "tag:Name",
-				Values: []string{""},
-			}},
-		}},
-	}
-
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		t.Error(err)
-	}
-	encodedProviderSpec, err := codec.EncodeProviderSpec(providerConfig)
-	if err != nil {
-		t.Error(err)
-	}
-
-	testCases := []struct {
-		machine *machinev1.Machine
-	}{
-		{
-			machine: &machinev1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "configFromSpecProviderConfigValue",
-					Namespace: "",
-					Labels: map[string]string{
-						"foo": "a",
-					},
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "Machine",
-				},
-				Spec: machinev1.MachineSpec{
-					ProviderSpec: *encodedProviderSpec,
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		decodedProviderConfig, err := providerConfigFromMachine(tc.machine, codec)
-		if err != nil {
-			t.Error(err)
-		}
-		if !reflect.DeepEqual(decodedProviderConfig, providerConfig) {
-			t.Errorf("Test case %s. Expected: %v, got: %v", tc.machine.Name, providerConfig, decodedProviderConfig)
-		}
-	}
 }
 
 func TestExtractNodeAddresses(t *testing.T) {

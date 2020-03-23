@@ -108,7 +108,7 @@ func stubMachine() (*machinev1.Machine, error) {
 			Name:      "aws-actuator-testing-machine",
 			Namespace: defaultNamespace,
 			Labels: map[string]string{
-				awsproviderv1.ClusterIDLabel: clusterID,
+				machinev1.MachineClusterIDLabel: clusterID,
 			},
 			Annotations: map[string]string{
 				// skip node draining since it's not mocked
