@@ -39,6 +39,7 @@ func main() {
 
 	pollIntervalSeconds := flag.Int64("poll-interval-seconds", 5, "interval in seconds at which termination notice endpoint should be checked (Default: 5)")
 	nodeName := flag.String("node-name", "", "name of the node that the termination handler is running on")
+	namespace := flag.String("namespace", "", "namespace that the machine for the node should live in. If unspecified, the look for machines across all namespaces.")
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 
@@ -58,7 +59,7 @@ func main() {
 	pollInterval := time.Duration(*pollIntervalSeconds) * time.Second
 
 	// Construct a termination handler
-	handler, err := termination.NewHandler(logger, cfg, pollInterval, *nodeName)
+	handler, err := termination.NewHandler(logger, cfg, pollInterval, *namespace, *nodeName)
 	if err != nil {
 		logger.Error(err, "Error constructing termination handler")
 		return

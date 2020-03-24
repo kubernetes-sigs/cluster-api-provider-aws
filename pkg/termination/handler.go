@@ -27,7 +27,7 @@ type Handler interface {
 }
 
 // NewHandler constructs a new Handler
-func NewHandler(logger logr.Logger, cfg *rest.Config, pollInterval time.Duration, nodeName string) (Handler, error) {
+func NewHandler(logger logr.Logger, cfg *rest.Config, pollInterval time.Duration, namespace, nodeName string) (Handler, error) {
 	machinev1.AddToScheme(scheme.Scheme)
 	c, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
@@ -40,13 +40,14 @@ func NewHandler(logger logr.Logger, cfg *rest.Config, pollInterval time.Duration
 		panic(err)
 	}
 
-	logger = logger.WithValues("node", nodeName)
+	logger = logger.WithValues("node", nodeName, "namespace", namespace)
 
 	return &handler{
 		client:       c,
 		pollURL:      pollURL,
 		pollInterval: pollInterval,
 		nodeName:     nodeName,
+		namespace:    namespace,
 		log:          logger,
 	}, nil
 }
@@ -58,6 +59,7 @@ type handler struct {
 	pollURL      *url.URL
 	pollInterval time.Duration
 	nodeName     string
+	namespace    string
 	log          logr.Logger
 }
 
@@ -92,7 +94,7 @@ func (h *handler) run(ctx context.Context, wg *sync.WaitGroup) error {
 		return fmt.Errorf("error fetching machine for node (%q): %v", h.nodeName, err)
 	}
 
-	logger := h.log.WithValues("namespace", machine.Namespace, "machine", machine.Name)
+	logger := h.log.WithValues("machine", machine.Name)
 	logger.V(1).Info("Monitoring node for machine")
 
 	if err := wait.PollImmediateUntil(h.pollInterval, func() (bool, error) {
@@ -128,7 +130,7 @@ func (h *handler) run(ctx context.Context, wg *sync.WaitGroup) error {
 // getMachineForNodeName finds the Machine associated with the Node name given
 func (h *handler) getMachineForNode(ctx context.Context) (*machinev1.Machine, error) {
 	machineList := &machinev1.MachineList{}
-	err := h.client.List(ctx, machineList)
+	err := h.client.List(ctx, machineList, client.InNamespace(h.namespace))
 	if err != nil {
 		return nil, fmt.Errorf("error listing machines: %v", err)
 	}
