@@ -528,6 +528,12 @@ spec:
                     description: ID of resource
                     type: string
                 type: object
+              uncompressedUserData:
+                description: UncompressedUserData specify whether the user data is
+                  gzip-compressed before it is sent to ec2 instance. cloud-init has
+                  built-in support for gzip-compressed user data user data stored
+                  in aws secret manager is always gzip-compressed.
+                type: boolean
             type: object
           status:
             description: AWSMachineStatus defines the observed state of AWSMachine

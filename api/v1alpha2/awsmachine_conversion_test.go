@@ -151,4 +151,18 @@ func TestConvertAWSMachine(t *testing.T) {
 		g.Expect(dst.ConvertTo(restored)).To(Succeed())
 		g.Expect(restored.Spec.ImageLookupBaseOS).To(Equal(src.Spec.ImageLookupBaseOS))
 	})
+	t.Run("should restore UncompressedUserData", func(t *testing.T) {
+		flag := true
+		src := &infrav1alpha3.AWSMachine{
+			ObjectMeta: metav1.ObjectMeta{},
+			Spec: infrav1alpha3.AWSMachineSpec{
+				UncompressedUserData: &flag,
+			},
+		}
+		dst := &AWSMachine{}
+		g.Expect(dst.ConvertFrom(src)).To(Succeed())
+		restored := &infrav1alpha3.AWSMachine{}
+		g.Expect(dst.ConvertTo(restored)).To(Succeed())
+		g.Expect(restored.Spec.UncompressedUserData).To(Equal(src.Spec.UncompressedUserData))
+	})
 }

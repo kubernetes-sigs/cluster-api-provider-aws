@@ -199,13 +199,14 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 			errors.New("failed to run controlplane, APIServer ELB not available"),
 		)
 	}
-
-	compressedUserData, err := userdata.GzipBytes(userData)
-	if err != nil {
-		return nil, errors.New("failed to gzip userdata")
+	if !scope.UserDataIsUncompressed() {
+		userData, err = userdata.GzipBytes(userData)
+		if err != nil {
+			return nil, errors.New("failed to gzip userdata")
+		}
 	}
 
-	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(compressedUserData))
+	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(userData))
 
 	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)
