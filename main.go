@@ -135,6 +135,8 @@ func main() {
 
 	flag.Parse()
 
+	ctrl.SetLogger(klogr.New())
+
 	if watchNamespace != "" {
 		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", watchNamespace)
 	}
@@ -146,7 +148,6 @@ func main() {
 		}()
 	}
 
-	ctrl.SetLogger(klogr.New())
 	// Machine and cluster operations can create enough events to trigger the event recorder spam filter
 	// Setting the burst size higher ensures all events will be recorded and submitted to the API
 	broadcaster := cgrecord.NewBroadcasterWithCorrelatorOptions(cgrecord.CorrelatorOptions{
