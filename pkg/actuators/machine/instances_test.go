@@ -428,3 +428,68 @@ func TestSortInstances(t *testing.T) {
 	}
 	sortInstances(instances)
 }
+
+func TestGetInstanceMarketOptionsRequest(t *testing.T) {
+	testCases := []struct {
+		name              string
+		spotMarketOptions *awsproviderv1.SpotMarketOptions
+		expectedRequest   *ec2.InstanceMarketOptionsRequest
+	}{
+		{
+			name:              "with no Spot options specified",
+			spotMarketOptions: nil,
+			expectedRequest:   nil,
+		},
+		{
+			name:              "with an empty Spot options specified",
+			spotMarketOptions: &awsproviderv1.SpotMarketOptions{},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+				},
+			},
+		},
+		{
+			name: "with an empty MaxPrice specified",
+			spotMarketOptions: &awsproviderv1.SpotMarketOptions{
+				MaxPrice: aws.String(""),
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+				},
+			},
+		},
+		{
+			name: "with a valid MaxPrice specified",
+			spotMarketOptions: &awsproviderv1.SpotMarketOptions{
+				MaxPrice: aws.String("0.01"),
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+					MaxPrice:                     aws.String("0.01"),
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			providerConfig := &awsproviderv1.AWSMachineProviderConfig{
+				SpotMarketOptions: tc.spotMarketOptions,
+			}
+
+			request := getInstanceMarketOptionsRequest(providerConfig)
+			if !reflect.DeepEqual(request, tc.expectedRequest) {
+				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
+			}
+		})
+	}
+}

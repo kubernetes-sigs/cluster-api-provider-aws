@@ -12,7 +12,7 @@ require (
 	github.com/onsi/gomega v1.7.0
 
 	// kube 1.16
-	github.com/openshift/machine-api-operator v0.2.1-0.20200310180732-c63fa2b143f0
+	github.com/openshift/machine-api-operator v0.2.1-0.20200320004730-01120a0337a6
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
