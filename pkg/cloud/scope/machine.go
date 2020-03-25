@@ -186,6 +186,12 @@ func (m *MachineScope) UseSecretsManager() bool {
 	return !m.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager
 }
 
+// UserDataIsCompressed returns the computed value of whether or not
+// userdata should be compressed using gzip.
+func (m *MachineScope) UserDataIsUncompressed() bool {
+	return m.AWSMachine.Spec.UncompressedUserData != nil && *m.AWSMachine.Spec.UncompressedUserData
+}
+
 // GetSecretPrefix returns the prefix for the secrets belonging
 // to the AWSMachine in AWS Secrets Manager
 func (m *MachineScope) GetSecretPrefix() string {

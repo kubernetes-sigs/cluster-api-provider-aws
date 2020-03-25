@@ -69,7 +69,7 @@ done
 10.0.0.68
 ```
 
-The above command returns IP addressess of the nodes in the cluster. In this
+The above command returns IP addresses of the nodes in the cluster. In this
 case **10.0.0.16** and **10.0.0.68**.
 
 ### SSHing to the nodes

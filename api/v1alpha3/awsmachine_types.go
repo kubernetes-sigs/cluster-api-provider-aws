@@ -80,8 +80,9 @@ type AWSMachineSpec struct {
 	// +optional
 	Subnet *AWSResourceReference `json:"subnet,omitempty"`
 
-	// SSHKeyName is the name of the ssh key to attach to the instance.
-	SSHKeyName string `json:"sshKeyName,omitempty"`
+	// SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
+	// +optional
+	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// RootVolume encapsulates the configuration options for the root volume
 	// +optional
@@ -92,6 +93,13 @@ type AWSMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=2
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
+
+	// UncompressedUserData specify whether the user data is gzip-compressed before it is sent to ec2 instance.
+	// cloud-init has built-in support for gzip-compressed user data
+	// user data stored in aws secret manager is always gzip-compressed.
+	//
+	// +optional
+	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
 
 	// CloudInit defines options related to the bootstrapping systems where
 	// CloudInit is used.

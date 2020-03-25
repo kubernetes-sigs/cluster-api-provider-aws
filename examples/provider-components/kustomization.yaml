@@ -1,7 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-- provider-components-cluster-api.yaml
-- provider-components-aws.yaml
-patchesStrategicMerge:
-- manager_tolerations_patch.yaml

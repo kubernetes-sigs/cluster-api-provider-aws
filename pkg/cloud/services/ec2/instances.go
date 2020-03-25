@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -153,6 +152,13 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		}
 	}
 
+	// Prefer AWSMachine.Spec.FailureDomain for now while migrating to the use of
+	// Machine.Spec.FailureDomain. The MachineController will handle migrating the value for us.
+	failureDomain := scope.AWSMachine.Spec.FailureDomain
+	if failureDomain == nil {
+		failureDomain = scope.Machine.Spec.FailureDomain
+	}
+
 	// Pick subnet from the machine configuration, or based on the availability zone specified,
 	// or default to the first private subnet available.
 	// TODO(vincepri): Move subnet picking logic to its own function/method.
@@ -160,17 +166,16 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
 		input.SubnetID = *scope.AWSMachine.Spec.Subnet.ID
 
-	case scope.AWSMachine.Spec.FailureDomain != nil:
-		zone := scope.AWSMachine.Spec.FailureDomain
-		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*zone)
+	case failureDomain != nil:
+		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
 		if len(subnets) == 0 {
 			record.Warnf(scope.AWSMachine, "FailedCreate",
-				"Failed to create instance: no subnets available in availability zone %q", *zone)
+				"Failed to create instance: no subnets available in availability zone %q", *failureDomain)
 
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available in availability zone %q",
 					scope.Name(),
-					*zone,
+					*failureDomain,
 				),
 			)
 		}
@@ -194,13 +199,14 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 			errors.New("failed to run controlplane, APIServer ELB not available"),
 		)
 	}
-
-	compressedUserData, err := userdata.GzipBytes(userData)
-	if err != nil {
-		return nil, errors.New("failed to gzip userdata")
+	if !scope.UserDataIsUncompressed() {
+		userData, err = userdata.GzipBytes(userData)
+		if err != nil {
+			return nil, errors.New("failed to gzip userdata")
+		}
 	}
 
-	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(compressedUserData))
+	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(userData))
 
 	// Set security groups.
 	ids, err := s.GetCoreSecurityGroups(scope)
@@ -209,12 +215,15 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	}
 	input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 
-	// Pick SSH key, if any.
-	input.SSHKeyName = aws.String(defaultSSHKeyName)
-	if scope.AWSMachine.Spec.SSHKeyName != "" {
-		input.SSHKeyName = aws.String(scope.AWSMachine.Spec.SSHKeyName)
-	} else if scope.AWSCluster.Spec.SSHKeyName != "" {
-		input.SSHKeyName = aws.String(scope.AWSCluster.Spec.SSHKeyName)
+	// If SSHKeyName WAS NOT provided in the AWSMachine Spec, fallback to the value provided in the AWSCluster Spec.
+	// If a value was not provided in the AWSCluster Spec, then use the defaultSSHKeyName
+	input.SSHKeyName = scope.AWSMachine.Spec.SSHKeyName
+	if input.SSHKeyName == nil {
+		if scope.AWSCluster.Spec.SSHKeyName != nil {
+			input.SSHKeyName = scope.AWSCluster.Spec.SSHKeyName
+		} else {
+			input.SSHKeyName = aws.String(defaultSSHKeyName)
+		}
 	}
 
 	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
@@ -671,7 +680,7 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 	copy(totalGroups, existingGroups)
 
 	for _, group := range groups {
-		if !util.Contains(existingGroups, group) {
+		if !containsGroup(existingGroups, group) {
 			totalGroups = append(totalGroups, group)
 		}
 	}
@@ -704,7 +713,7 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 
 	remainingGroups := existingGroups
 	for _, group := range groups {
-		remainingGroups = util.Filter(remainingGroups, group)
+		remainingGroups = filterGroups(remainingGroups, group)
 	}
 
 	input := &ec2.ModifyNetworkInterfaceAttributeInput{
@@ -716,4 +725,24 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
 	}
 	return nil
+}
+
+// filterGroups filters a list for a string.
+func filterGroups(list []string, strToFilter string) (newList []string) {
+	for _, item := range list {
+		if item != strToFilter {
+			newList = append(newList, item)
+		}
+	}
+	return
+}
+
+// containsGroup returns true if a list contains a string.
+func containsGroup(list []string, strToSearch string) bool {
+	for _, item := range list {
+		if item == strToSearch {
+			return true
+		}
+	}
+	return false
 }

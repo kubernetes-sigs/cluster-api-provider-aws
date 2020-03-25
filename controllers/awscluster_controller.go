@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"net"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -33,7 +34,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // AWSClusterReconciler reconciles a AwsCluster object
@@ -66,6 +72,12 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	if isPaused(cluster, awsCluster) {
+		log.Info("AWSCluster or linked Cluster is marked as paused. Won't reconcile")
+		return reconcile.Result{}, nil
+	}
+
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")
 		return reconcile.Result{}, nil
@@ -121,7 +133,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	clusterScope.AWSCluster.Finalizers = util.Filter(clusterScope.AWSCluster.Finalizers, infrav1.ClusterFinalizer)
+	controllerutil.RemoveFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer)
 
 	return reconcile.Result{}, nil
 }
@@ -133,12 +145,10 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	awsCluster := clusterScope.AWSCluster
 
 	// If the AWSCluster doesn't have our finalizer, add it.
-	if !util.Contains(awsCluster.Finalizers, infrav1.ClusterFinalizer) {
-		awsCluster.Finalizers = append(awsCluster.Finalizers, infrav1.ClusterFinalizer)
-		// Register the finalizer immediately to avoid orphaning AWS resources on delete
-		if err := clusterScope.PatchObject(); err != nil {
-			return reconcile.Result{}, err
-		}
+	controllerutil.AddFinalizer(awsCluster, infrav1.ClusterFinalizer)
+	// Register the finalizer immediately to avoid orphaning AWS resources on delete
+	if err := clusterScope.PatchObject(); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	ec2Service := ec2.NewService(clusterScope)
@@ -158,6 +168,11 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
 		clusterScope.Info("Waiting on API server ELB DNS name")
+		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
+	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
+		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
 		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
@@ -185,8 +200,58 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 }
 
 func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
-		Complete(r)
+		WithEventFilter(pausePredicates).
+		Build(r)
+
+	if err != nil {
+		return errors.Wrap(err, "error creating controller")
+	}
+
+	return controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(r.requeueAWSClusterForUnpausedCluster),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				cluster := e.Object.(*clusterv1.Cluster)
+				return !cluster.Spec.Paused
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return false
+			},
+		},
+	)
+}
+
+func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(o handler.MapObject) []ctrl.Request {
+	c, ok := o.Object.(*clusterv1.Cluster)
+	if !ok {
+		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get AWSClusters for unpaused Cluster")
+		return nil
+	}
+
+	// Don't handle deleted clusters
+	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
+	// Make sure the ref is set
+	if c.Spec.InfrastructureRef == nil {
+		return nil
+	}
+
+	return []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: c.Spec.InfrastructureRef.Name},
+		},
+	}
 }

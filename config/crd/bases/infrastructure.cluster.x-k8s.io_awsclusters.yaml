@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.2.5
+    controller-gen.kubebuilder.io/version: v0.2.6
   creationTimestamp: null
   name: awsclusters.infrastructure.cluster.x-k8s.io
 spec:
@@ -596,7 +596,8 @@ spec:
                 type: string
               sshKeyName:
                 description: SSHKeyName is the name of the ssh key to attach to the
-                  bastion host.
+                  bastion host. Valid values are empty string (do not use SSH keys),
+                  a valid SSH key name, or omitted (use the default SSH key name)
                 type: string
             type: object
           status:

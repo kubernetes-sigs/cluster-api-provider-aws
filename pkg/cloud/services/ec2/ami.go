@@ -40,15 +40,16 @@ const (
 	// The pattern is:
 	// 1. the string value `capa-ami-`
 	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
-	// 3. the kubernetes version as defined by the packages produced by kubernetes/release, for example: 1.13.0-00, 1.12.5-01
-	// 4. the timestamp that the AMI was built
-	amiNameFormat = "capa-ami-%s-%s-??-??????????"
+	// 3. the kubernetes version as defined by the packages produced by kubernetes/release with or without v as a prefix, for example: 1.13.0, 1.12.5-mybuild.1, v1.17.3
+	// 4. a `-` followed by any additional characters
+	amiNameFormat = "capa-ami-%s-?%s-*"
 
 	// Amazon's AMI timestamp format
 	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
 )
 
 func amiName(baseOS, kubernetesVersion string) string {
+	// strip the v (if present) to be able to match images with or without a v prefix
 	return fmt.Sprintf(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
 }
 

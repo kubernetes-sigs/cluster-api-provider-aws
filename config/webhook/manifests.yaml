@@ -13,6 +13,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachine
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.awsmachine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -31,6 +32,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinetemplate
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.awsmachinetemplate.infrastructure.x-k8s.io
   rules:
   - apiGroups:
