@@ -40,7 +40,7 @@ dump-logs() {
 
   # dump all the info from the CAPI related CRDs
   kubectl get \
-  clusters,awsclusters,machines,awsmachines,kubeadmconfigs,machinedeployments,awsmachinetemplates,kubeadmconfigtemplates,machinesets \
+  clusters,awsclusters,machines,awsmachines,kubeadmconfigs,machinedeployments,awsmachinetemplates,kubeadmconfigtemplates,machinesets,kubeadmcontrolplanes \
   --all-namespaces -o yaml >> "${ARTIFACTS}/logs/capa.info" || true
 
   # dump images info
@@ -63,9 +63,6 @@ dump-logs() {
   aws ec2 describe-instances --region "${AWS_REGION}" >> "${ARTIFACTS}/logs/capa-cluster.info" || true
   echo "=== cluster-info dump ===" >> "${ARTIFACTS}/logs/capa-cluster.info" || true
   kubectl --kubeconfig="${PWD}"/kubeconfig cluster-info dump >> "${ARTIFACTS}/logs/capa-cluster.info" || true
-
-  # dump cluster info for kind
-  kubectl cluster-info dump > "${ARTIFACTS}/logs/kind-cluster.info" || true
 
   # export all logs from kind
   kind "export" logs --name="clusterapi" "${ARTIFACTS}/logs" || true
@@ -225,7 +222,7 @@ generate_manifests() {
   if [[ -z ${IMAGE_ID:-} ]]; then
     # default lookup org hould be the same as defaultMachineAMIOwnerID
     IMAGE_LOOKUP_ORG=${IMAGE_LOOKUP_ORG:-"258751437250"}
-    filter="capa-ami-ubuntu-18.04-1.16.*"
+    filter="capa-ami-ubuntu-18.04-1.17.*"
     image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' \
       --filters "Name=name,Values=$filter" "Name=owner-id,Values=$IMAGE_LOOKUP_ORG" \
       --region "${AWS_REGION}" --output json | jq -r '.[0][0] | select (.!=null)')
@@ -261,17 +258,6 @@ create_stack() {
   "${REPO_ROOT}/bin/clusterawsadm" alpha bootstrap create-stack
 }
 
-# fix manifests to use k/k from CI
-fix_manifests() {
-  # TODO: revert to https://dl.k8s.io/ci/latest-green.txt once https://github.com/kubernetes/release/issues/897 is fixed.
-  CI_VERSION=${CI_VERSION:-$(curl -sSL https://dl.k8s.io/ci/k8s-master.txt)}
-  echo "Overriding Kubernetes version to : ${CI_VERSION}"
-  sed -i 's|kubernetesVersion: .*|kubernetesVersion: "ci/'"${CI_VERSION}"'"|' examples/_out/controlplane.yaml
-  sed -i 's|CI_VERSION=.*|CI_VERSION='"$CI_VERSION"'|' examples/_out/controlplane.yaml
-  sed -i 's|CI_VERSION=.*|CI_VERSION='"$CI_VERSION"'|' examples/_out/machinedeployment.yaml
-}
-
-
 create_key_pair() {
   (aws ec2 create-key-pair --key-name "${AWS_SSH_KEY_NAME}" --region "${AWS_REGION}" > /tmp/keypair-"${AWS_SSH_KEY_NAME}".json \
    && KEY_PAIR_CREATED="true" \
@@ -296,6 +282,11 @@ create_cluster() {
   tracestate="$(shopt -po xtrace)"
   set +o xtrace
 
+  if [[ -n ${USE_CI_ARTIFACTS:-} ]]; then
+    # TODO: revert to https://dl.k8s.io/ci/latest-green.txt once https://github.com/kubernetes/release/issues/897 is fixed.
+    CI_VERSION=${CI_VERSION:-$(curl -sSL https://dl.k8s.io/ci/k8s-master.txt)}
+  fi
+
   # Load the newly built image into kind and start the cluster
   (AWS_CREDENTIALS=$(aws iam create-access-key --user-name bootstrapper.cluster-api-provider-aws.sigs.k8s.io) \
   AWS_ACCESS_KEY_ID=$(echo "$AWS_CREDENTIALS" | jq .AccessKey.AccessKeyId -r) \
@@ -303,8 +294,9 @@ create_cluster() {
   AWS_REGION=${AWS_REGION} \
   CONTROL_PLANE_MACHINE_COUNT=1 \
   WORKER_MACHINE_COUNT=2 \
-  KUBERNETES_VERSION=$KUBERNETES_VERSION \
-  IMAGE_ID=$image_id \
+  KUBERNETES_VERSION=${KUBERNETES_VERSION} \
+  CI_VERSION=${CI_VERSION:-} \
+  IMAGE_ID=${image_id} \
   AWS_SSH_KEY_NAME=$AWS_SSH_KEY_NAME \
   AWS_CONTROL_PLANE_MACHINE_TYPE=m5.large \
   AWS_NODE_MACHINE_TYPE=m5.large \
@@ -433,10 +425,6 @@ EOF
 
   build
   generate_manifests
-  if [[ -n ${USE_CI_ARTIFACTS:-} ]]; then
-    echo "Fixing manifests to use latest CI artifacts..."
-    fix_manifests
-  fi
   if [[ -n "${SKIP_INIT_IMAGE:-}" ]]; then
     echo "Skipping image initialization..."
   else
