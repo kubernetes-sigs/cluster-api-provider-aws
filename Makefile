@@ -40,7 +40,7 @@ ifeq ($(NO_DOCKER), 1)
   IMAGE_BUILD_CMD = imagebuilder
   CGO_ENABLED = 1
 else
-  DOCKER_CMD := docker run --rm -e CGO_ENABLED=1 -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws openshift/origin-release:golang-1.12
+  DOCKER_CMD := docker run --rm -e CGO_ENABLED=1 -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws openshift/origin-release:golang-1.13
   IMAGE_BUILD_CMD = docker build
 endif
 
@@ -69,6 +69,8 @@ build: ## build binaries
                -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' \
                "$(REPO_PATH)/vendor/github.com/openshift/machine-api-operator/cmd/machineset"
+	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/termination-handler" \
+	             -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/termination-handler"						 
 
 aws-actuator:
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
