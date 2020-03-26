@@ -186,7 +186,7 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			&source.Kind{Type: &infrav1.AWSCluster{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.AWSClusterToAWSMachines)},
 		).
-		WithEventFilter(pausePredicates).
+		WithEventFilter(pausedPredicates(r.Log)).
 		Build(r)
 
 	if err != nil {
@@ -202,13 +202,48 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
 				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+				log := r.Log.WithValues("predicate", "updateEvent", "namespace", newCluster.Namespace, "cluster", newCluster.Name)
+
+				switch {
+				// never return true for a paused Cluster
+				case newCluster.Spec.Paused:
+					log.V(4).Info("Cluster is paused, will not attempt to map associated AWSMachine.")
+					return false
+				// return true if Cluster.Status.InfrastructureReady has changed from false to true
+				case !oldCluster.Status.InfrastructureReady && newCluster.Status.InfrastructureReady:
+					log.V(4).Info("Cluster InfrastructureReady became ready, will attempt to map associated AWSMachine.")
+					return true
+				// return true if Cluster.Spec.Paused has changed from true to false
+				case oldCluster.Spec.Paused && !newCluster.Spec.Paused:
+					log.V(4).Info("Cluster was unpaused, will attempt to map associated AWSMachine.")
+					return true
+				// otherwise, return false
+				default:
+					log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
+					return false
+				}
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
 				cluster := e.Object.(*clusterv1.Cluster)
-				return !cluster.Spec.Paused
+				log := r.Log.WithValues("predicateEvent", "create", "namespace", cluster.Namespace, "cluster", cluster.Name)
+
+				// Only need to trigger a reconcile if the Cluster.Spec.Paused is false and
+				// Cluster.Status.InfrastructureReady is true
+				if !cluster.Spec.Paused && cluster.Status.InfrastructureReady {
+					log.V(4).Info("Cluster is not paused and has infrastructure ready, will attempt to map associated AWSMachine.")
+					return true
+				}
+				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
+				return false
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
+				log := r.Log.WithValues("predicateEvent", "delete", "namespace", e.Meta.GetNamespace(), "cluster", e.Meta.GetName())
+				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
+				return false
+			},
+			GenericFunc: func(e event.GenericEvent) bool {
+				log := r.Log.WithValues("predicateEvent", "generic", "namespace", e.Meta.GetNamespace(), "cluster", e.Meta.GetName())
+				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSMachine.")
 				return false
 			},
 		},
@@ -540,59 +575,63 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 // AWSClusterToAWSMachines is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // of AWSMachines.
 func (r *AWSMachineReconciler) AWSClusterToAWSMachines(o handler.MapObject) []ctrl.Request {
-	c, ok := o.Object.(*infrav1.AWSCluster)
-	if !ok {
-		r.Log.Error(errors.Errorf("expected a AWSCluster but got a %T", o.Object), "failed to get AWSMachine for AWSCluster")
-		return nil
-	}
-	log := r.Log.WithValues("AWSCluster", c.Name, "Namespace", c.Namespace)
+	c := o.Object.(*infrav1.AWSCluster)
+	log := r.Log.WithValues("objectMapper", "awsClusterToAWSMachine", "namespace", c.Namespace, "awsCluster", c.Name)
 
 	// Don't handle deleted AWSClusters
 	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.V(4).Info("AWSCluster has a deletion timestamp, skipping mapping.")
 		return nil
 	}
 
 	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:
+		log.V(4).Info("Cluster for AWSCluster not found, skipping mapping.")
 		return nil
 	case err != nil:
-		log.Error(err, "failed to get owning cluster")
+		log.Error(err, "Failed to get owning cluster, skipping mapping.")
 		return nil
 	}
 
-	return r.requestsForCluster(cluster.Namespace, cluster.Name)
+	return r.requestsForCluster(log, cluster.Namespace, cluster.Name)
 }
 
 func (r *AWSMachineReconciler) requeueAWSMachinesForUnpausedCluster(o handler.MapObject) []ctrl.Request {
-	c, ok := o.Object.(*clusterv1.Cluster)
-	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get AWSMachines for unpaused Cluster")
-		return nil
-	}
+	c := o.Object.(*clusterv1.Cluster)
+	log := r.Log.WithValues("objectMapper", "clusterToAWSMachine", "namespace", c.Namespace, "cluster", c.Name)
 
 	// Don't handle deleted clusters
 	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.V(4).Info("Cluster has a deletion timestamp, skipping mapping.")
 		return nil
 	}
 
-	return r.requestsForCluster(c.Namespace, c.Name)
+	return r.requestsForCluster(log, c.Namespace, c.Name)
 }
 
-func (r *AWSMachineReconciler) requestsForCluster(namespace, name string) []ctrl.Request {
-	log := r.Log.WithValues("Cluster", name, "Namespace", namespace)
+func (r *AWSMachineReconciler) requestsForCluster(log logr.Logger, namespace, name string) []ctrl.Request {
 	labels := map[string]string{clusterv1.ClusterLabelName: name}
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
-		log.Error(err, "failed to get owned Machines")
+		log.Error(err, "Failed to get owned Machines, skipping mapping.")
 		return nil
 	}
 
 	result := make([]ctrl.Request, 0, len(machineList.Items))
 	for _, m := range machineList.Items {
-		if m.Spec.InfrastructureRef.Name != "" {
-			result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}})
+		log.WithValues("machine", m.Name)
+		if m.Spec.InfrastructureRef.GroupVersionKind().Kind != "AWSMachine" {
+			log.V(4).Info("Machine has an InfrastructureRef for a different type, will not add to reconciliation request.")
+			continue
 		}
+		if m.Spec.InfrastructureRef.Name == "" {
+			log.V(4).Info("Machine has an InfrastructureRef with an empty name, will not add to reconciliation request.")
+			continue
+		}
+		log.WithValues("awsMachine", m.Spec.InfrastructureRef.Name)
+		log.V(4).Info("Adding AWSMachine to reconciliation request.")
+		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}})
 	}
 	return result
 }
