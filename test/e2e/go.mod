@@ -13,9 +13,9 @@ require (
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v11.0.1-0.20190704100234-640d9f240853+incompatible
 	k8s.io/utils v0.0.0-20200229041039-0a110f9eb7ab
-	sigs.k8s.io/cluster-api v0.3.0
+	sigs.k8s.io/cluster-api v0.3.2
 	sigs.k8s.io/cluster-api-provider-aws v0.4.8
-	sigs.k8s.io/controller-runtime v0.5.1
+	sigs.k8s.io/controller-runtime v0.5.2
 )
 
 replace (
