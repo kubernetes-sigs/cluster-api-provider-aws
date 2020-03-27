@@ -191,8 +191,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	common.WaitDeployment(kindClient, "cert-manager", "cert-manager-webhook")
 
 	// Deploy the CAPI, CABPK, and KCP components from Cluster API repository,
-	// workaround since there isn't a v1alpha3 capi release yet
-	capiYAMLssss := "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.0/cluster-api-components.yaml"
+	capiYAMLssss := "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.2/cluster-api-components.yaml"
 	applyManifests(kindCluster, &capiYAMLssss)
 
 	// Deploy the CAPA components
