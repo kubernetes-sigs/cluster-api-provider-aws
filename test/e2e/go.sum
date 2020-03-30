@@ -696,10 +696,8 @@ modernc.org/mathutil v1.0.0/go.mod h1:wU0vUrJsVWBZ4P6e7xtFJEhFSNsfRLJ8H458uRjg03
 modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs=
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
-sigs.k8s.io/cluster-api v0.3.2 h1:+oiclIxk1PthGCBbYLEdfZi1u2qFTjK+wwIrtLNlBXA=
-sigs.k8s.io/cluster-api v0.3.2/go.mod h1:PkmtV10dmmSmBSpR28c5UxDvWRszTxj+p9KLrb8JVZ8=
-sigs.k8s.io/controller-runtime v0.5.1 h1:TNidCfVoU/cs2i+9xoTcL/l7yhl0bDhYXU0NCG6wmiE=
-sigs.k8s.io/controller-runtime v0.5.1/go.mod h1:Uojny7gvg55YLQnEGnPzRE3dC4ik2tRlZJgOUCWXAV4=
+sigs.k8s.io/cluster-api v0.3.3 h1:pNuvC6cm67SbxOaPriK8ZfLl1RSjmu/KX2GJiNQH3dU=
+sigs.k8s.io/cluster-api v0.3.3/go.mod h1:lgztyeCWCve8YB4DN6QeLR0blNYBvFX9+ATHrxs+zKU=
 sigs.k8s.io/controller-runtime v0.5.2 h1:pyXbUfoTo+HA3jeIfr0vgi+1WtmNh0CwlcnQGLXwsSw=
 sigs.k8s.io/controller-runtime v0.5.2/go.mod h1:JZUwSMVbxDupo0lTJSSFP5pimEyxGynROImSsqIOx1A=
 sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802/go.mod h1:HIZ3PWUezpklcjkqpFbnYOqaqsAE1JeCTEwkgvPLXjk=
