@@ -67,14 +67,14 @@ dump-logs() {
   # export all logs from kind
   kind "export" logs --name="clusterapi" "${ARTIFACTS}/logs" || true
 
-  node_filters="Name=tag:sigs.k8s.io/cluster-api-provider-aws/cluster/${CLUSTER_NAME},Values=owned"
-  bastion_filters="${node_filters} Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,Values=bastion"
-  jump_node=$(aws ec2 describe-instances --region "$AWS_REGION" --filters "${bastion_filters}" --query "Reservations[*].Instances[*].PublicIpAddress" --output text | head -1)
+  node_filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/cluster/${CLUSTER_NAME},Values=owned"
+  bastion_filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,Values=bastion"
+  jump_node=$(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filter}" "${bastion_filter}" --query "Reservations[*].Instances[*].PublicIpAddress" --output text | head -1)
 
   # We used to pipe this output to 'tail -n +2' but for some reason this was sometimes (all the time?) only finding the
   # bastion host. For now, omit the tail and gather logs for all VMs that have a private IP address. This will include
   # the bastion, but that's better than not getting logs from all the VMs.
-  for node in $(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filters}" --query "Reservations[*].Instances[*].PrivateIpAddress" --output text)
+  for node in $(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filter}" --query "Reservations[*].Instances[*].PrivateIpAddress" --output text)
   do
     echo "collecting logs from ${node} using jump host ${jump_node}"
     dir="${ARTIFACTS}/logs/${node}"
