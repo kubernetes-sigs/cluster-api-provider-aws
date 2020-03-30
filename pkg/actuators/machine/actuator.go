@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -37,21 +38,24 @@ const (
 
 // Actuator is responsible for performing machine reconciliation.
 type Actuator struct {
-	client        runtimeclient.Client
-	eventRecorder record.EventRecorder
+	client           runtimeclient.Client
+	eventRecorder    record.EventRecorder
+	awsClientBuilder awsclient.AwsClientBuilderFuncType
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	Client        runtimeclient.Client
-	EventRecorder record.EventRecorder
+	Client           runtimeclient.Client
+	EventRecorder    record.EventRecorder
+	AwsClientBuilder awsclient.AwsClientBuilderFuncType
 }
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
-		client:        params.Client,
-		eventRecorder: params.EventRecorder,
+		client:           params.Client,
+		eventRecorder:    params.EventRecorder,
+		awsClientBuilder: params.AwsClientBuilder,
 	}
 }
 
@@ -69,9 +73,10 @@ func (a *Actuator) handleMachineError(machine *machinev1.Machine, err error, eve
 func (a *Actuator) Create(ctx context.Context, machine *machinev1.Machine) error {
 	klog.Infof("%s: actuator creating machine", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context: ctx,
-		client:  a.client,
-		machine: machine,
+		Context:          ctx,
+		client:           a.client,
+		machine:          machine,
+		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
 		return a.handleMachineError(machine, err, createEventAction)
@@ -91,9 +96,10 @@ func (a *Actuator) Create(ctx context.Context, machine *machinev1.Machine) error
 func (a *Actuator) Exists(ctx context.Context, machine *machinev1.Machine) (bool, error) {
 	klog.Infof("%s: actuator checking if machine exists", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context: ctx,
-		client:  a.client,
-		machine: machine,
+		Context:          ctx,
+		client:           a.client,
+		machine:          machine,
+		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
 		return false, fmt.Errorf(scopeFailFmt, machine.GetName(), err)
@@ -105,9 +111,10 @@ func (a *Actuator) Exists(ctx context.Context, machine *machinev1.Machine) (bool
 func (a *Actuator) Update(ctx context.Context, machine *machinev1.Machine) error {
 	klog.Infof("%s: actuator updating machine", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context: ctx,
-		client:  a.client,
-		machine: machine,
+		Context:          ctx,
+		client:           a.client,
+		machine:          machine,
+		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
 		fmtErr := fmt.Sprintf(scopeFailFmt, machine.GetName(), err)
@@ -128,9 +135,10 @@ func (a *Actuator) Update(ctx context.Context, machine *machinev1.Machine) error
 func (a *Actuator) Delete(ctx context.Context, machine *machinev1.Machine) error {
 	klog.Infof("%s: actuator deleting machine", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context: ctx,
-		client:  a.client,
-		machine: machine,
+		Context:          ctx,
+		client:           a.client,
+		machine:          machine,
+		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
 		fmtErr := fmt.Sprintf(scopeFailFmt, machine.GetName(), err)

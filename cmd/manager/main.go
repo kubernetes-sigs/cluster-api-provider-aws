@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/klogr"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	machinesetcontroller "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machineset"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -77,8 +78,9 @@ func main() {
 
 	// Initialize machine actuator.
 	machineActuator := machineactuator.NewActuator(machineactuator.ActuatorParams{
-		Client:        mgr.GetClient(),
-		EventRecorder: mgr.GetEventRecorderFor("awscontroller"),
+		Client:           mgr.GetClient(),
+		EventRecorder:    mgr.GetEventRecorderFor("awscontroller"),
+		AwsClientBuilder: awsclient.NewClient,
 	})
 
 	if err := machine.AddWithActuator(mgr, machineActuator); err != nil {

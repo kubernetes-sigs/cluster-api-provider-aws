@@ -22,6 +22,7 @@ const (
 type machineScopeParams struct {
 	context.Context
 
+	awsClientBuilder awsclient.AwsClientBuilderFuncType
 	// api server controller runtime client
 	client runtimeclient.Client
 	// machine resource
@@ -58,7 +59,7 @@ func newMachineScope(params machineScopeParams) (*machineScope, error) {
 		credentialsSecretName = providerSpec.CredentialsSecret.Name
 	}
 
-	awsClient, err := awsclient.NewClient(params.client, credentialsSecretName, params.machine.Namespace, providerSpec.Placement.Region)
+	awsClient, err := params.awsClientBuilder(params.client, credentialsSecretName, params.machine.Namespace, providerSpec.Placement.Region)
 	if err != nil {
 		return nil, machineapierros.InvalidMachineConfiguration("failed to create aws client: %v", err.Error())
 	}
