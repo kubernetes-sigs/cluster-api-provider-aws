@@ -203,7 +203,7 @@ func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
-		WithEventFilter(pausePredicates).
+		WithEventFilter(pausedPredicates(r.Log)).
 		Build(r)
 
 	if err != nil {
@@ -219,13 +219,38 @@ func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
 				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+				log := r.Log.WithValues("predicate", "updateEvent", "namespace", newCluster.Namespace, "cluster", newCluster.Name)
+				switch {
+				// return true if Cluster.Spec.Paused has changed from true to false
+				case oldCluster.Spec.Paused && !newCluster.Spec.Paused:
+					log.V(4).Info("Cluster was unpaused, will attempt to map associated AWSCluster.")
+					return true
+				// otherwise, return false
+				default:
+					log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
+					return false
+				}
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
 				cluster := e.Object.(*clusterv1.Cluster)
-				return !cluster.Spec.Paused
+				log := r.Log.WithValues("predicate", "createEvent", "namespace", cluster.Namespace, "cluster", cluster.Name)
+
+				// Only need to trigger a reconcile if the Cluster.Spec.Paused is false
+				if !cluster.Spec.Paused {
+					log.V(4).Info("Cluster is not paused, will attempt to map associated AWSCluster.")
+					return true
+				}
+				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
+				return false
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
+				log := r.Log.WithValues("predicate", "deleteEvent", "namespace", e.Meta.GetNamespace(), "cluster", e.Meta.GetName())
+				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
+				return false
+			},
+			GenericFunc: func(e event.GenericEvent) bool {
+				log := r.Log.WithValues("predicate", "genericEvent", "namespace", e.Meta.GetNamespace(), "cluster", e.Meta.GetName())
+				log.V(4).Info("Cluster did not match expected conditions, will not attempt to map associated AWSCluster.")
 				return false
 			},
 		},
@@ -233,22 +258,27 @@ func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 }
 
 func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(o handler.MapObject) []ctrl.Request {
-	c, ok := o.Object.(*clusterv1.Cluster)
-	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get AWSClusters for unpaused Cluster")
-		return nil
-	}
+	c := o.Object.(*clusterv1.Cluster)
+	log := r.Log.WithValues("objectMapper", "clusterToAWSCluster", "namespace", c.Namespace, "cluster", c.Name)
 
 	// Don't handle deleted clusters
 	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.V(4).Info("Cluster has a deletion timestamp, skipping mapping.")
 		return nil
 	}
 
 	// Make sure the ref is set
 	if c.Spec.InfrastructureRef == nil {
+		log.V(4).Info("Cluster does not have an InfrastructureRef, skipping mapping.")
 		return nil
 	}
 
+	if c.Spec.InfrastructureRef.GroupVersionKind().Kind != "AWSCluster" {
+		log.V(4).Info("Cluster has an InfrastructureRef for a different type, skipping mapping.")
+		return nil
+	}
+
+	log.V(4).Info("Adding request.", "awsCluster", c.Spec.InfrastructureRef.Name)
 	return []ctrl.Request{
 		{
 			NamespacedName: client.ObjectKey{Namespace: c.Namespace, Name: c.Spec.InfrastructureRef.Name},
