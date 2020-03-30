@@ -17,6 +17,7 @@ import (
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -88,6 +89,9 @@ func TestAvailabilityZone(t *testing.T) {
 			machineScope, err := newMachineScope(machineScopeParams{
 				client:  fakeClient,
 				machine: machine,
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+					return mockAWSClient, nil
+				},
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -140,8 +144,6 @@ func TestAvailabilityZone(t *testing.T) {
 			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).AnyTimes()
 			mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(&ec2.DescribeSubnetsOutput{}, nil)
-
-			reconciler.awsClient = mockAWSClient
 
 			err = reconciler.create()
 			if tc.expectedError != nil {
@@ -486,13 +488,15 @@ func TestCreate(t *testing.T) {
 		machineScope, err := newMachineScope(machineScopeParams{
 			client:  fakeClient,
 			machine: machine,
+			awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+				return mockAWSClient, nil
+			},
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		reconciler := newReconciler(machineScope)
-		reconciler.awsClient = mockAWSClient
 
 		// test create
 		err = reconciler.create()
@@ -625,19 +629,20 @@ func TestGetMachineInstances(t *testing.T) {
 			machineCopy.Status.ProviderStatus = awsStatusRaw
 
 			fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, machine, awsCredentialsSecret, userDataSecret)
+			mockAWSClient := tc.awsClientFunc(ctrl)
 
 			machineScope, err := newMachineScope(machineScopeParams{
 				client:  fakeClient,
 				machine: machineCopy,
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+					return mockAWSClient, nil
+				},
 			})
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			reconciler := newReconciler(machineScope)
-
-			awsClient := tc.awsClientFunc(ctrl)
-			reconciler.awsClient = awsClient
 
 			instances, err := reconciler.getMachineInstances()
 			if err != nil {

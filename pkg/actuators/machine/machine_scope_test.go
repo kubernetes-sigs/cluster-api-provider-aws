@@ -16,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
+	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -264,6 +266,9 @@ func TestPatchMachine(t *testing.T) {
 			machineScope, err := newMachineScope(machineScopeParams{
 				client:  k8sClient,
 				machine: machine,
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+					return nil, nil
+				},
 			})
 
 			if err != nil {
@@ -278,7 +283,7 @@ func TestPatchMachine(t *testing.T) {
 			gs.Expect(machineScope.patchMachine()).To(Succeed())
 			checkExpectation := func() error {
 				if err := getMachine(); err != nil {
-					return nil
+					return err
 				}
 				return tc.expect(machine)
 			}
