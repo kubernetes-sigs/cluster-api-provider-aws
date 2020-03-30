@@ -22,7 +22,6 @@ import (
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -48,20 +47,10 @@ func pausedPredicates(logger logr.Logger) predicate.Funcs {
 func processIfUnpaused(logger logr.Logger, obj runtime.Object, meta metav1.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", meta.GetNamespace(), kind, meta.GetName())
-	if isPaused(nil, meta) {
+	if clusterutil.HasPausedAnnotation(meta) {
 		log.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}
 	log.V(4).Info("Resource is not paused, will attempt to map resource")
 	return true
-}
-
-// TODO: Fix up Cluster API's clusterutil.IsPaused function
-func isPaused(cluster *clusterv1.Cluster, v metav1.Object) bool {
-	if cluster == nil {
-		cluster = &clusterv1.Cluster{
-			Spec: clusterv1.ClusterSpec{},
-		}
-	}
-	return clusterutil.IsPaused(cluster, v)
 }

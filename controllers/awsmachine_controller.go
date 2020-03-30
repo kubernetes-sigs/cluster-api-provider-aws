@@ -112,7 +112,7 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		return ctrl.Result{}, nil
 	}
 
-	if isPaused(cluster, awsMachine) {
+	if util.IsPaused(cluster, awsMachine) {
 		logger.Info("AWSMachine or linked Cluster is marked as paused. Won't reconcile")
 		return ctrl.Result{}, nil
 	}
