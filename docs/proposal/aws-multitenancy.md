@@ -96,7 +96,7 @@ It follows that an organization may wish to provision control planes and worker 
 
 ## Proposal
 
-(Put diagram here)
+![Diagram](https://user-images.githubusercontent.com/208667/78036771-b299ad00-7338-11ea-90b2-1a88702fb1dd.png)
 
 The current implementation of CAPA requests a new AWS EC2 and ELB service per cluster and per machine and stores these in fields on the ClusterScope struct. ClusterScopes are reference values which are created per-reconciliation:
 
