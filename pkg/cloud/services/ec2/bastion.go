@@ -42,10 +42,14 @@ func (s *Service) ReconcileBastion() error {
 	}
 
 	if !s.scope.AWSCluster.Spec.Bastion.Enabled {
-		if s.scope.AWSCluster.Status.Bastion != nil {
-			return s.DeleteBastion()
+		_, err := s.describeBastionInstance()
+		if err != nil {
+			if awserrors.IsNotFound(err) {
+				return nil
+			}
+			return err
 		}
-		return nil
+		return s.DeleteBastion()
 	}
 
 	s.scope.V(2).Info("Reconciling bastion host")
@@ -80,6 +84,7 @@ func (s *Service) ReconcileBastion() error {
 
 	s.scope.AWSCluster.Status.Bastion = instance.DeepCopy()
 	s.scope.V(2).Info("Reconcile bastion completed successfully")
+
 	return nil
 }
 
