@@ -920,6 +920,7 @@ spec:
                     type: object
                 type: object
               ready:
+                default: false
                 type: boolean
             required:
             - ready
