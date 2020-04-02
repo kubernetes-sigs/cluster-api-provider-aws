@@ -11,6 +11,6 @@ else
     --env IS_CONTAINER=TRUE \
     --volume "${PWD}:/go/src/sigs.k8s.io/${REPO_NAME}:z" \
     --workdir "/go/src/sigs.k8s.io/${REPO_NAME}" \
-    openshift/origin-release:golang-1.12 \
+    openshift/origin-release:golang-1.13 \
     ./hack/goimports.sh "${@}"
 fi
