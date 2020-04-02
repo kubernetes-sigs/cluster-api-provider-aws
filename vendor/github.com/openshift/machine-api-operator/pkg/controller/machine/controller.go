@@ -327,7 +327,7 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 	if err != nil {
 		return fmt.Errorf("unable to build kube client: %v", err)
 	}
-	node, err := kubeClient.CoreV1().Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
+	node, err := kubeClient.CoreV1().Nodes().Get(context.Background(), machine.Status.NodeRef.Name, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
@@ -356,7 +356,6 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 		},
 		Out:    writer{klog.Info},
 		ErrOut: writer{klog.Error},
-		DryRun: false,
 	}
 
 	if nodeIsUnreachable(node) {
