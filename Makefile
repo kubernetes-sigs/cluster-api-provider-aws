@@ -67,10 +67,8 @@ bin:
 build: ## build binaries
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/machine-controller-manager" \
                -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/manager"
-	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/manager -ldflags '-extldflags "-static"' \
-               "$(REPO_PATH)/vendor/github.com/openshift/machine-api-operator/cmd/machineset"
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/termination-handler" \
-	             -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/termination-handler"						 
+	             -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/termination-handler"
 
 aws-actuator:
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
