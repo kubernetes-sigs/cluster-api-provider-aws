@@ -72,7 +72,7 @@ dump-logs() {
   # We used to pipe this output to 'tail -n +2' but for some reason this was sometimes (all the time?) only finding the
   # bastion host. For now, omit the tail and gather logs for all VMs that have a private IP address. This will include
   # the bastion, but that's better than not getting logs from all the VMs.
-  for node in $(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filter}" --query "Reservations[*].Instances[*].PrivateIpAddress" --output text)
+  for node in $(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filter}" --query "Reservations[*].Instances[*].InstanceId" --output text)
   do
     echo "collecting logs from ${node}"
     dir="${ARTIFACTS}/logs/${node}"
@@ -86,7 +86,7 @@ dump-logs() {
   done
 }
 
-# SSH to a node by name ($1) via jump server ($2) and run a command ($3).
+# SSH to a node by instance-id ($1) and run a command ($2).
 function ssh-to-node() {
   local node="$1"
   local cmd="$2"
