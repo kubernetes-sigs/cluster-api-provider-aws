@@ -68,37 +68,33 @@ dump-logs() {
   kind "export" logs --name="clusterapi" "${ARTIFACTS}/logs" || true
 
   node_filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/cluster/${CLUSTER_NAME},Values=owned"
-  bastion_filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,Values=bastion"
-  jump_node=$(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filter}" "${bastion_filter}" --query "Reservations[*].Instances[*].PublicIpAddress" --output text | head -1)
 
   # We used to pipe this output to 'tail -n +2' but for some reason this was sometimes (all the time?) only finding the
   # bastion host. For now, omit the tail and gather logs for all VMs that have a private IP address. This will include
   # the bastion, but that's better than not getting logs from all the VMs.
   for node in $(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filter}" --query "Reservations[*].Instances[*].PrivateIpAddress" --output text)
   do
-    echo "collecting logs from ${node} using jump host ${jump_node}"
+    echo "collecting logs from ${node}"
     dir="${ARTIFACTS}/logs/${node}"
     mkdir -p "${dir}"
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --output=short-precise -k" > "${dir}/kern.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --output=short-precise" > "${dir}/systemd.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo crictl version && sudo crictl info" > "${dir}/containerd.info" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u cloud-final" > "${dir}/cloud-final.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u kubelet.service" > "${dir}/kubelet.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u containerd.service" > "${dir}/containerd.log" || true
+    ssh-to-node "${node}" "sudo journalctl --output=short-precise -k" > "${dir}/kern.log" || true
+    ssh-to-node "${node}" "sudo journalctl --output=short-precise" > "${dir}/systemd.log" || true
+    ssh-to-node "${node}" "sudo crictl version && sudo crictl info" > "${dir}/containerd.info" || true
+    ssh-to-node "${node}" "sudo journalctl --no-pager -u cloud-final" > "${dir}/cloud-final.log" || true
+    ssh-to-node "${node}" "sudo journalctl --no-pager -u kubelet.service" > "${dir}/kubelet.log" || true
+    ssh-to-node "${node}" "sudo journalctl --no-pager -u containerd.service" > "${dir}/containerd.log" || true
   done
 }
 
 # SSH to a node by name ($1) via jump server ($2) and run a command ($3).
 function ssh-to-node() {
   local node="$1"
-  local jump="$2"
-  local cmd="$3"
+  local cmd="$2"
 
   ssh_key_pem="/tmp/${AWS_SSH_KEY_NAME}.pem"
   ssh_params="-o LogLevel=quiet -o ConnectTimeout=30 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-  scp "$ssh_params" -i "$ssh_key_pem" "$ssh_key_pem" "ubuntu@${jump}:$ssh_key_pem"
   ssh "$ssh_params" -i "$ssh_key_pem" \
-    -o "ProxyCommand ssh $ssh_params -W %h:%p -i $ssh_key_pem ubuntu@${jump}" \
+    -o "ProxyCommand sh -c \"aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'\"" \
     ubuntu@"${node}" "${cmd}"
 }
 
