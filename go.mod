@@ -9,30 +9,20 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.2.0
 	github.com/onsi/ginkgo v1.11.0
-	github.com/onsi/gomega v1.7.0
-
-	// kube 1.16
-	github.com/openshift/machine-api-operator v0.2.1-0.20200320004730-01120a0337a6
+	github.com/onsi/gomega v1.8.1
+	github.com/openshift/machine-api-operator v0.2.1-0.20200402110321-4f3602b96da3
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553
-	k8s.io/api v0.17.2
-	k8s.io/apimachinery v0.17.2
-	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+
+	// kube 1.18
+	k8s.io/api v0.18.0
+	k8s.io/apimachinery v0.18.0
+	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/klog v1.0.0
-	k8s.io/utils v0.0.0-20191217005138-9e5e9d854fcc
-	sigs.k8s.io/controller-runtime v0.3.1-0.20191016212439-2df793d02076
-	sigs.k8s.io/controller-tools v0.2.2-0.20190930215132-4752ed2de7d2
-
+	k8s.io/utils v0.0.0-20200327001022-6496210b90e8
+	sigs.k8s.io/controller-runtime v0.5.1-0.20200330174416-a11a908d91e0
+	sigs.k8s.io/controller-tools v0.2.9-0.20200331153640-3c5446d407dd
 )
-
-replace sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.4.0
-
-// kubernetes-1.16.1
-replace k8s.io/api => k8s.io/api v0.0.0-20191003000013-35e20aa79eb8
-
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
-
-replace k8s.io/client-go => k8s.io/client-go v0.0.0-20191003000419-f68efa97b39e
