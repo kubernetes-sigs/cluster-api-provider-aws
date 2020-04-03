@@ -91,11 +91,16 @@ function ssh-to-node() {
   local node="$1"
   local cmd="$2"
 
+  user=ubuntu
   ssh_key_pem="/tmp/${AWS_SSH_KEY_NAME}.pem"
-  ssh_params="-o LogLevel=quiet -o ConnectTimeout=30 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-  ssh "$ssh_params" -i "$ssh_key_pem" \
-    -o "ProxyCommand sh -c \"aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters 'portNumber=%p'\"" \
-    ubuntu@"${node}" "${cmd}"
+  proxy_command="sh -c \"aws ssm start-session --target %h --document-name AWS-StartSSHSession --parameters \\\"portNumber=%p\\\"\""
+  ssh -i "${ssh_key_pem}" \
+    -o LogLevel=quiet \
+    -o ConnectTimeout=30 \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=no \
+    -o ProxyCommand="${proxy_command}" \
+    "${user}"@"${node}" "${cmd}"
 }
 
 # cleanup all resources we use
@@ -116,6 +121,7 @@ cleanup() {
 
 # our exit handler (trap)
 exit-handler() {
+  unset KUBECONFIG
   dump-logs
   cleanup
 }
