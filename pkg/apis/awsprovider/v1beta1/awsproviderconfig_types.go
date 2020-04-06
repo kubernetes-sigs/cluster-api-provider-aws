@@ -21,13 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Annotation constants
-const (
-	// ClusterIDLabel is the label that a machineset must have to identify the
-	// cluster to which it belongs.
-	ClusterIDLabel = "machine.openshift.io/cluster-api-cluster"
-)
-
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 

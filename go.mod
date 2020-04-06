@@ -14,15 +14,14 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.4.0
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
 
 	// kube 1.18
 	k8s.io/api v0.18.0
 	k8s.io/apimachinery v0.18.0
-	k8s.io/client-go v11.0.0+incompatible
+	k8s.io/client-go v0.18.0
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8
 	sigs.k8s.io/controller-runtime v0.5.1-0.20200330174416-a11a908d91e0
 	sigs.k8s.io/controller-tools v0.2.9-0.20200331153640-3c5446d407dd
+	sigs.k8s.io/yaml v1.2.0
 )

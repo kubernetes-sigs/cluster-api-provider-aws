@@ -1,34 +1,20 @@
 package machine
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"path/filepath"
-	"strings"
+	"errors"
 	"testing"
-	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/gomega"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
-	machineapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
-	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 func init() {
@@ -43,11 +29,6 @@ const (
 )
 
 func TestMachineEvents(t *testing.T) {
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
-	}
-
 	machine, err := stubMachine()
 	if err != nil {
 		t.Fatal(err)
@@ -57,108 +38,101 @@ func TestMachineEvents(t *testing.T) {
 	userDataSecret := stubUserDataSecret()
 
 	machineInvalidProviderConfig := machine.DeepCopy()
-	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
+	machineInvalidProviderConfig.Spec.ProviderSpec = machinev1.ProviderSpec{
+		Value: &runtime.RawExtension{
+			Raw: []byte("test"),
+		},
+	}
 
 	workerMachine := machine.DeepCopy()
 	workerMachine.Spec.Labels["node-role.kubernetes.io/worker"] = ""
 
 	cases := []struct {
-		name                    string
-		machine                 *machinev1.Machine
-		error                   string
-		operation               func(actuator *Actuator, machine *machinev1.Machine)
-		event                   string
-		describeInstancesOutput *ec2.DescribeInstancesOutput
-		describeInstancesErr    error
-		runInstancesErr         error
-		terminateInstancesErr   error
-		lbErr                   error
-		regInstancesWithLbErr   error
+		name                  string
+		machine               *machinev1.Machine
+		error                 string
+		operation             func(actuator *Actuator, machine *machinev1.Machine)
+		event                 string
+		awsError              bool
+		runInstancesErr       error
+		terminateInstancesErr error
+		lbErr                 error
+		regInstancesWithLbErr error
 	}{
 		{
-			name:    "Create machine event failed (invalid configuration)",
+			name:    "Create machine event failed on invalid machine scope",
 			machine: machineInvalidProviderConfig,
 			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.CreateMachine(machine)
+				actuator.Create(context.TODO(), machine)
 			},
-			event: "Warning FailedCreate error decoding MachineProviderConfig: unable to find machine provider config: Spec.ProviderSpec.Value is not set",
+			event: "Warning FailedCreate failed to get machine config: error unmarshalling providerSpec: error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type v1beta1.AWSMachineProviderConfig",
 		},
 		{
-			name:    "Create machine event failed (error creating aws service)",
+			name:    "Create machine event failed, reconciler's create failed",
 			machine: machine,
-			error:   awsServiceError,
 			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.CreateMachine(machine)
+				actuator.Create(context.TODO(), machine)
 			},
-			event: "Warning FailedCreate error creating aws service",
-		},
-		{
-			name:            "Create machine event failed (error launching instance)",
-			machine:         machine,
-			runInstancesErr: fmt.Errorf("error"),
-			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.CreateMachine(machine)
-			},
-			event: "Warning FailedCreate error creating EC2 instance: error",
-		},
-		{
-			name:    "Create machine event failed (error updating load balancers)",
-			machine: machine,
-			lbErr:   fmt.Errorf("lb error"),
-			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.CreateMachine(machine)
-			},
-			event: "Warning FailedCreate lb error",
+			event:    "Warning FailedCreate unable to remove stopped machines: error getting stopped instances: error",
+			awsError: true,
 		},
 		{
 			name:    "Create machine event succeed",
 			machine: machine,
 			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.CreateMachine(machine)
+				actuator.Create(context.TODO(), machine)
 			},
-			event: "Normal Created Created Machine aws-actuator-testing-machine",
+			event: "Normal Create Created Machine aws-actuator-testing-machine",
 		},
 		{
-			name:    "Create worker machine event succeed",
-			machine: workerMachine,
-			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.CreateMachine(machine)
-			},
-			event: "Normal Created Created Machine aws-actuator-testing-machine",
-		},
-		{
-			name:    "Delete machine event failed",
+			name:    "Update machine event failed on invalid machine scope",
 			machine: machineInvalidProviderConfig,
 			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.DeleteMachine(machine)
+				actuator.Update(context.TODO(), machine)
 			},
-			event: "Warning FailedDelete error decoding MachineProviderConfig: unable to find machine provider config: Spec.ProviderSpec.Value is not set",
+			event: "Warning FailedUpdate aws-actuator-testing-machine: failed to create scope for machine: failed to get machine config: error unmarshalling providerSpec: error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type v1beta1.AWSMachineProviderConfig",
+		},
+		{
+			name:    "Update machine event failed, reconciler's update failed",
+			machine: machine,
+			operation: func(actuator *Actuator, machine *machinev1.Machine) {
+				actuator.Update(context.TODO(), machine)
+			},
+			event:    "Warning FailedCreate error",
+			awsError: true,
+		},
+		{
+			name:    "Update machine event succeed",
+			machine: machine,
+			operation: func(actuator *Actuator, machine *machinev1.Machine) {
+				actuator.Update(context.TODO(), machine)
+			},
+			event: "Normal Update Updated Machine aws-actuator-testing-machine",
+		},
+		{
+			name:    "Delete machine event failed on invalid machine scope",
+			machine: machineInvalidProviderConfig,
+			operation: func(actuator *Actuator, machine *machinev1.Machine) {
+				actuator.Delete(context.TODO(), machine)
+			},
+			event: "Warning FailedDelete aws-actuator-testing-machine: failed to create scope for machine: failed to get machine config: error unmarshalling providerSpec: error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string into Go value of type v1beta1.AWSMachineProviderConfig",
+		},
+		{
+			name:    "Delete machine event failed, reconciler's delete failed",
+			machine: machine,
+			operation: func(actuator *Actuator, machine *machinev1.Machine) {
+				actuator.Delete(context.TODO(), machine)
+			},
+			event:    "Warning FailedDelete error",
+			awsError: true,
 		},
 		{
 			name:    "Delete machine event succeed",
 			machine: machine,
 			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.DeleteMachine(machine)
+				actuator.Delete(context.TODO(), machine)
 			},
-			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
-		},
-		{
-			name:                    "Delete machine event succeed with pending instances",
-			machine:                 machine,
-			describeInstancesOutput: stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNamePending),
-			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.DeleteMachine(machine)
-			},
-			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
-		},
-		{
-			name:                    "Delete machine event succeed with stopped instances",
-			machine:                 machine,
-			describeInstancesOutput: stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameStopped),
-			operation: func(actuator *Actuator, machine *machinev1.Machine) {
-				actuator.DeleteMachine(machine)
-			},
-			event: "Normal Deleted Deleted machine aws-actuator-testing-machine",
+			event: "Normal Delete Deleted machine aws-actuator-testing-machine",
 		},
 	}
 
@@ -172,26 +146,23 @@ func TestMachineEvents(t *testing.T) {
 
 			params := ActuatorParams{
 				Client: fake.NewFakeClient(tc.machine, awsCredentialsSecret, userDataSecret),
-				AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
-					if tc.error == awsServiceError {
-						return nil, fmt.Errorf(awsServiceError)
-					}
-					return mockAWSClient, nil
-				},
-				Codec: codec,
 				// use fake recorder and store an event into one item long buffer for subsequent check
 				EventRecorder: &record.FakeRecorder{
 					Events: eventsChannel,
 				},
+				AwsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+					return mockAWSClient, nil
+				},
+			}
+
+			if tc.awsError {
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(nil, errors.New("error")).AnyTimes()
+			} else {
+
+				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), nil).AnyTimes()
 			}
 
 			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
-			if tc.describeInstancesOutput == nil {
-				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), tc.describeInstancesErr).AnyTimes()
-			} else {
-				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
-			}
-
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil)
 			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
 			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
@@ -200,10 +171,7 @@ func TestMachineEvents(t *testing.T) {
 			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
 			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
 
-			actuator, err := NewActuator(params)
-			if err != nil {
-				t.Fatalf("Could not create AWS machine actuator: %v", err)
-			}
+			actuator := NewActuator(params)
 
 			tc.operation(actuator, tc.machine)
 			select {
@@ -218,1273 +186,53 @@ func TestMachineEvents(t *testing.T) {
 	}
 }
 
-func TestActuator(t *testing.T) {
+func TestHandleMachineErrors(t *testing.T) {
 	machine, err := stubMachine()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	awsCredentialsSecret := stubAwsCredentialsSecret()
-	userDataSecret := stubUserDataSecret()
-
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
-	}
-
-	machineInvalidProviderConfig := machine.DeepCopy()
-	machineInvalidProviderConfig.Spec.ProviderSpec.Value = nil
-
-	machineNoClusterID := machine.DeepCopy()
-	delete(machineNoClusterID.Labels, awsproviderv1.ClusterIDLabel)
-
-	pendingInstance := stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c")
-	pendingInstance.State = &ec2.InstanceState{
-		Name: aws.String(ec2.InstanceStateNamePending),
-	}
-
 	cases := []struct {
-		name                    string
-		machine                 *machinev1.Machine
-		error                   string
-		operation               func(client client.Client, actuator *Actuator, machine *machinev1.Machine)
-		describeInstancesOutput *ec2.DescribeInstancesOutput
-		runInstancesErr         error
-		describeInstancesErr    error
-		terminateInstancesErr   error
-		lbErr                   error
+		name        string
+		eventAction string
+		event       string
 	}{
 		{
-			name:    "Create machine with success",
-			machine: machine,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				createErr := actuator.Create(context.TODO(), machine)
-				assert.NoError(t, createErr)
-
-				machineStatus, err := getMachineStatus(codec, machine)
-				if err != nil {
-					t.Fatalf("Unable to get machine status: %v", err)
-				}
-
-				assert.Equal(t, machineStatus.Conditions[0].Reason, awsproviderv1.MachineCreationSucceeded)
-
-				// Get the machine
-				if exists, err := actuator.Exists(context.TODO(), machine); err != nil || !exists {
-					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
-				} else {
-					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
-				}
-
-				// Update a machine
-				if err := actuator.Update(context.TODO(), machine); err != nil {
-					t.Errorf("Unable to create instance for machine: %v", err)
-				}
-
-				// Get the machine
-				if exists, err := actuator.Exists(context.TODO(), machine); err != nil || !exists {
-					t.Errorf("Instance for %v does not exists: %v", strings.Join([]string{machine.Namespace, machine.Name}, "/"), err)
-				} else {
-					t.Logf("Instance for %v exists", strings.Join([]string{machine.Namespace, machine.Name}, "/"))
-				}
-
-				// Delete a machine
-				if err := actuator.Delete(context.TODO(), machine); err != nil {
-					t.Errorf("Unable to delete instance for machine: %v", err)
-				}
-			},
+			name:        "Create event when event action is present",
+			eventAction: "testAction",
+			event:       "Warning FailedtestAction testError",
 		},
 		{
-			name:            "Create machine with failure",
-			machine:         machine,
-			runInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				createErr := actuator.Create(context.TODO(), machine)
-				assert.Error(t, createErr)
-
-				machineStatus, err := getMachineStatus(codec, machine)
-				if err != nil {
-					t.Fatalf("Unable to get machine status: %v", err)
-				}
-
-				assert.Equal(t, machineStatus.Conditions[0].Reason, awsproviderv1.MachineCreationFailed)
-			},
-		},
-		{
-			name:    "Update machine with success",
-			machine: machine,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name:    "Update machine failed (invalid configuration)",
-			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name:  "Update machine failed (error creating aws service)",
-			error: awsServiceError,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name:                 "Update machine failed (error getting running instances)",
-			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Update machine failed (no running instances)",
-			describeInstancesOutput: &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{},
-					},
-				},
-			},
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Update machine succeeds (two running instances)",
-			describeInstancesOutput: &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{
-							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
-							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
-						},
-					},
-				},
-			},
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Update machine status fails (instance pending)",
-			describeInstancesOutput: &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{
-							pendingInstance,
-						},
-					},
-				},
-			},
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Update machine failed (two running instances, error terminating one)",
-			describeInstancesOutput: &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{
-							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
-							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
-						},
-					},
-				},
-			},
-			terminateInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name:    "Update machine with failure (cluster ID missing)",
-			machine: machineNoClusterID,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name:  "Update machine failed (error updating load balancers)",
-			lbErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Update(context.TODO(), machine)
-			},
-		},
-		{
-			name:                 "Describe machine fails (error getting running instance)",
-			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Describe(machine)
-			},
-		},
-		{
-			name:    "Describe machine failed (invalid configuration)",
-			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Exists(context.TODO(), machine)
-			},
-		},
-		{
-			name:  "Describe machine failed (error creating aws service)",
-			error: awsServiceError,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Exists(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Describe machine fails (no running instance)",
-			describeInstancesOutput: &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{},
-					},
-				},
-			},
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Exists(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Describe machine succeeds",
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Exists(context.TODO(), machine)
-			},
-		},
-		{
-			name:    "Exists machine failed (invalid configuration)",
-			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Exists(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Exists machine fails (no running instance)",
-			describeInstancesOutput: &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{},
-					},
-				},
-			},
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Exists(context.TODO(), machine)
-			},
-		},
-		{
-			name:    "Delete machine failed (invalid configuration)",
-			machine: machineInvalidProviderConfig,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Delete(context.TODO(), machine)
-			},
-		},
-		{
-			name:  "Delete machine failed (error creating aws service)",
-			error: awsServiceError,
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Delete(context.TODO(), machine)
-			},
-		},
-		{
-			name:                 "Delete machine failed (error getting running instances)",
-			describeInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Delete(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Delete machine failed (no running instances)",
-
-			describeInstancesOutput: &ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
-					{
-						Instances: []*ec2.Instance{},
-					},
-				},
-			},
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Delete(context.TODO(), machine)
-			},
-		},
-		{
-			name: "Delete machine failed (error terminating instances)",
-
-			terminateInstancesErr: fmt.Errorf("error"),
-			operation: func(objectClient client.Client, actuator *Actuator, machine *machinev1.Machine) {
-				actuator.Delete(context.TODO(), machine)
-			},
+			name:        "Don't event when there is no event action",
+			eventAction: "",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fakeClient := fake.NewFakeClient(machine, awsCredentialsSecret, userDataSecret)
-			mockCtrl := gomock.NewController(t)
-			mockAWSClient := mockaws.NewMockClient(mockCtrl)
+			eventsChannel := make(chan string, 1)
 
 			params := ActuatorParams{
-				Client: fakeClient,
-				AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
-					if tc.error == awsServiceError {
-						return nil, fmt.Errorf(awsServiceError)
-					}
-					return mockAWSClient, nil
+				// use fake recorder and store an event into one item long buffer for subsequent check
+				EventRecorder: &record.FakeRecorder{
+					Events: eventsChannel,
 				},
-				Codec: codec,
-				// use empty recorder dropping any event recorded
-				EventRecorder: &record.FakeRecorder{},
 			}
 
-			actuator, err := NewActuator(params)
-			if err != nil {
-				t.Fatalf("Could not create AWS machine actuator: %v", err)
-			}
+			actuator := NewActuator(params)
 
-			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), tc.runInstancesErr).AnyTimes()
+			actuator.handleMachineError(machine, errors.New("testError"), tc.eventAction)
 
-			if tc.describeInstancesOutput == nil {
-				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), tc.describeInstancesErr).AnyTimes()
-			} else {
-				mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(tc.describeInstancesOutput, tc.describeInstancesErr).AnyTimes()
-			}
-
-			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, tc.terminateInstancesErr).AnyTimes()
-			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, tc.lbErr).AnyTimes()
-			mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), tc.lbErr).AnyTimes()
-			mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
-			mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
-
-			if tc.machine == nil {
-				tc.operation(fakeClient, actuator, machine)
-			} else {
-				tc.operation(fakeClient, actuator, tc.machine)
+			select {
+			case event := <-eventsChannel:
+				if event != tc.event {
+					t.Errorf("Expected %q event, got %q", tc.event, event)
+				}
+			default:
+				if tc.event != "" {
+					t.Errorf("Expected %q event, got none", tc.event)
+				}
 			}
 		})
 	}
-}
-
-func TestAvailabilityZone(t *testing.T) {
-	cases := []struct {
-		name             string
-		availabilityZone string
-		subnet           string
-	}{
-		{
-			name:             "availability zone only",
-			availabilityZone: "us-east-1a",
-		},
-		{
-			name:   "subnet only",
-			subnet: "subnet-b46032ec",
-		},
-		{
-			name:             "availability zone and subnet",
-			availabilityZone: "us-east-1a",
-			subnet:           "subnet-b46032ec",
-		},
-	}
-
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
-	}
-
-	awsCredentialsSecret := stubAwsCredentialsSecret()
-	userDataSecret := stubUserDataSecret()
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			machine, err := stubMachine()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			machinePc := &awsproviderv1.AWSMachineProviderConfig{}
-			if err = codec.DecodeProviderSpec(&machine.Spec.ProviderSpec, machinePc); err != nil {
-				t.Fatal(err)
-			}
-
-			// no load balancers tested
-			machinePc.LoadBalancers = nil
-
-			machinePc.Placement.AvailabilityZone = tc.availabilityZone
-			if tc.subnet == "" {
-				machinePc.Subnet.ID = nil
-			} else {
-				machinePc.Subnet.ID = aws.String(tc.subnet)
-			}
-
-			config, err := codec.EncodeProviderSpec(machinePc)
-			if err != nil {
-				t.Fatal(err)
-			}
-			machine.Spec.ProviderSpec = *config
-
-			fakeClient := fake.NewFakeClient(machine, awsCredentialsSecret, userDataSecret)
-
-			mockCtrl := gomock.NewController(t)
-			mockAWSClient := mockaws.NewMockClient(mockCtrl)
-
-			params := ActuatorParams{
-				Client: fakeClient,
-				AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
-					return mockAWSClient, nil
-				},
-				Codec: codec,
-				// use empty recorder dropping any event recorded
-				EventRecorder: &record.FakeRecorder{},
-			}
-
-			actuator, err := NewActuator(params)
-			if err != nil {
-				t.Fatalf("Could not create AWS machine actuator: %v", err)
-			}
-
-			var placement *ec2.Placement
-			if tc.availabilityZone != "" && tc.subnet == "" {
-				placement = &ec2.Placement{AvailabilityZone: aws.String(tc.availabilityZone)}
-			}
-			az := "us-east-1a"
-			mockAWSClient.EXPECT().RunInstances(placementMatcher{placement}).Return(
-				&ec2.Reservation{
-					Instances: []*ec2.Instance{
-						{
-							ImageId:    aws.String("ami-a9acbbd6"),
-							InstanceId: aws.String("i-02fcb933c5da7085c"),
-							State: &ec2.InstanceState{
-								Name: aws.String(ec2.InstanceStateNameRunning),
-							},
-							LaunchTime: aws.Time(time.Now()),
-							Placement: &ec2.Placement{
-								AvailabilityZone: &az,
-							},
-						},
-					},
-				}, nil)
-
-			mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(
-				&ec2.DescribeInstancesOutput{
-					Reservations: []*ec2.Reservation{
-						{
-							Instances: []*ec2.Instance{
-								{
-									ImageId:    aws.String("ami-a9acbbd6"),
-									InstanceId: aws.String("i-02fcb933c5da7085c"),
-									State: &ec2.InstanceState{
-										Name: aws.String(ec2.InstanceStateNameRunning),
-										Code: aws.Int64(16),
-									},
-									LaunchTime: aws.Time(time.Now()),
-								},
-							},
-						},
-					},
-				}, nil).AnyTimes()
-
-			mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil)
-			mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).AnyTimes()
-			mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, nil).AnyTimes()
-			mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(&ec2.DescribeSubnetsOutput{}, nil)
-
-			actuator.Create(context.TODO(), machine)
-		})
-	}
-}
-
-type placementMatcher struct {
-	placement *ec2.Placement
-}
-
-func (m placementMatcher) Matches(input interface{}) bool {
-	runInstancesInput, ok := input.(*ec2.RunInstancesInput)
-	if !ok {
-		return false
-	}
-	if runInstancesInput.Placement == m.placement {
-		return true
-	}
-	return false
-}
-
-func (m placementMatcher) String() string {
-	return fmt.Sprintf("is placement: %#v", m.placement)
-}
-
-func TestGetUserData(t *testing.T) {
-	machine, err := stubMachine()
-	if err != nil {
-		t.Fatal(err)
-	}
-	providerConfig := stubProviderConfig()
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
-	}
-
-	testCases := []struct {
-		secret *corev1.Secret
-		error  error
-	}{
-		{
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      userDataSecretName,
-					Namespace: defaultNamespace,
-				},
-				Data: map[string][]byte{
-					userDataSecretKey: []byte(userDataBlob),
-				},
-			},
-			error: nil,
-		},
-		{
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "notFound",
-					Namespace: defaultNamespace,
-				},
-				Data: map[string][]byte{
-					userDataSecretKey: []byte(userDataBlob),
-				},
-			},
-			error: &machineapierrors.MachineError{},
-		},
-		{
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      userDataSecretName,
-					Namespace: defaultNamespace,
-				},
-				Data: map[string][]byte{
-					"badKey": []byte(userDataBlob),
-				},
-			},
-			error: &machineapierrors.MachineError{},
-		},
-	}
-
-	for _, tc := range testCases {
-		params := ActuatorParams{
-			Client: fake.NewFakeClient(tc.secret),
-			Codec:  codec,
-			EventRecorder: &record.FakeRecorder{
-				Events: make(chan string, 1),
-			},
-		}
-		actuator, err := NewActuator(params)
-		if err != nil {
-			t.Fatalf("Could not create AWS machine actuator: %v", err)
-		}
-		userData, err := actuator.getUserData(machine, providerConfig)
-		if tc.error != nil {
-			if err == nil {
-				t.Fatal("Expected error")
-			}
-			_, expectMachineError := tc.error.(*machineapierrors.MachineError)
-			_, gotMachineError := err.(*machineapierrors.MachineError)
-			if expectMachineError && !gotMachineError || !expectMachineError && gotMachineError {
-				t.Errorf("Expected %T, got: %T", tc.error, err)
-			}
-		} else {
-			if compare := bytes.Compare(userData, []byte(userDataBlob)); compare != 0 {
-				t.Errorf("Expected: %v, got: %v", []byte(userDataBlob), userData)
-			}
-		}
-	}
-}
-
-func TestCreate(t *testing.T) {
-	// mock aws API calls
-	mockCtrl := gomock.NewController(t)
-	mockAWSClient := mockaws.NewMockClient(mockCtrl)
-	mockAWSClient.EXPECT().DescribeSecurityGroups(gomock.Any()).Return(nil, fmt.Errorf("describeSecurityGroups error")).AnyTimes()
-	mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, fmt.Errorf("describeAvailabilityZones error")).AnyTimes()
-	mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(nil, fmt.Errorf("describeImages error")).AnyTimes()
-	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), nil).AnyTimes()
-	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil).AnyTimes()
-	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
-	mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), nil)
-	mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
-	mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
-
-	testCases := []struct {
-		testcase             string
-		providerConfig       *awsproviderv1.AWSMachineProviderConfig
-		userDataSecret       *corev1.Secret
-		awsCredentialsSecret *corev1.Secret
-		error                error
-	}{
-		{
-			testcase: "Create succeed",
-			providerConfig: &awsproviderv1.AWSMachineProviderConfig{
-				AMI: awsproviderv1.AWSResourceReference{
-					ID: aws.String("ami-a9acbbd6"),
-				},
-				CredentialsSecret: &corev1.LocalObjectReference{
-					Name: awsCredentialsSecretName,
-				},
-				InstanceType: "m4.xlarge",
-				Placement: awsproviderv1.Placement{
-					Region:           region,
-					AvailabilityZone: defaultAvailabilityZone,
-				},
-				Subnet: awsproviderv1.AWSResourceReference{
-					ID: aws.String("subnet-0e56b13a64ff8a941"),
-				},
-				IAMInstanceProfile: &awsproviderv1.AWSResourceReference{
-					ID: aws.String("openshift_master_launch_instances"),
-				},
-				KeyName: aws.String(keyName),
-				UserDataSecret: &corev1.LocalObjectReference{
-					Name: userDataSecretName,
-				},
-				Tags: []awsproviderv1.TagSpecification{
-					{Name: "openshift-node-group-config", Value: "node-config-master"},
-					{Name: "host-type", Value: "master"},
-					{Name: "sub-host-type", Value: "default"},
-				},
-				SecurityGroups: []awsproviderv1.AWSResourceReference{
-					{ID: aws.String("sg-00868b02fbe29de17")},
-					{ID: aws.String("sg-0a4658991dc5eb40a")},
-					{ID: aws.String("sg-009a70e28fa4ba84e")},
-					{ID: aws.String("sg-07323d56fb932c84c")},
-					{ID: aws.String("sg-08b1ffd32874d59a2")},
-				},
-				PublicIP: aws.Bool(true),
-				LoadBalancers: []awsproviderv1.LoadBalancerReference{
-					{
-						Name: "cluster-con",
-						Type: awsproviderv1.ClassicLoadBalancerType,
-					},
-					{
-						Name: "cluster-ext",
-						Type: awsproviderv1.ClassicLoadBalancerType,
-					},
-					{
-						Name: "cluster-int",
-						Type: awsproviderv1.ClassicLoadBalancerType,
-					},
-					{
-						Name: "cluster-net-lb",
-						Type: awsproviderv1.NetworkLoadBalancerType,
-					},
-				},
-			},
-			userDataSecret:       stubUserDataSecret(),
-			awsCredentialsSecret: stubAwsCredentialsSecret(),
-			error:                nil,
-		},
-		{
-			testcase: "Bad userData",
-			providerConfig: &awsproviderv1.AWSMachineProviderConfig{
-				AMI: awsproviderv1.AWSResourceReference{
-					ID: aws.String("ami-a9acbbd6"),
-				},
-				CredentialsSecret: &corev1.LocalObjectReference{
-					Name: awsCredentialsSecretName,
-				},
-				InstanceType: "m4.xlarge",
-				Placement: awsproviderv1.Placement{
-					Region:           region,
-					AvailabilityZone: defaultAvailabilityZone,
-				},
-				Subnet: awsproviderv1.AWSResourceReference{
-					ID: aws.String("subnet-0e56b13a64ff8a941"),
-				},
-				IAMInstanceProfile: &awsproviderv1.AWSResourceReference{
-					ID: aws.String("openshift_master_launch_instances"),
-				},
-				KeyName: aws.String(keyName),
-				UserDataSecret: &corev1.LocalObjectReference{
-					Name: userDataSecretName,
-				},
-				Tags: []awsproviderv1.TagSpecification{
-					{Name: "openshift-node-group-config", Value: "node-config-master"},
-					{Name: "host-type", Value: "master"},
-					{Name: "sub-host-type", Value: "default"},
-				},
-				SecurityGroups: []awsproviderv1.AWSResourceReference{
-					{ID: aws.String("sg-00868b02fbe29de17")},
-					{ID: aws.String("sg-0a4658991dc5eb40a")},
-					{ID: aws.String("sg-009a70e28fa4ba84e")},
-					{ID: aws.String("sg-07323d56fb932c84c")},
-					{ID: aws.String("sg-08b1ffd32874d59a2")},
-				},
-				PublicIP: aws.Bool(true),
-				LoadBalancers: []awsproviderv1.LoadBalancerReference{
-					{
-						Name: "cluster-con",
-						Type: awsproviderv1.ClassicLoadBalancerType,
-					},
-					{
-						Name: "cluster-ext",
-						Type: awsproviderv1.ClassicLoadBalancerType,
-					},
-					{
-						Name: "cluster-int",
-						Type: awsproviderv1.ClassicLoadBalancerType,
-					},
-					{
-						Name: "cluster-net-lb",
-						Type: awsproviderv1.NetworkLoadBalancerType,
-					},
-				},
-			},
-			userDataSecret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      userDataSecretName,
-					Namespace: defaultNamespace,
-				},
-				Data: map[string][]byte{
-					"badKey": []byte(userDataBlob),
-				},
-			},
-			awsCredentialsSecret: stubAwsCredentialsSecret(),
-			error:                &machineapierrors.MachineError{},
-		},
-		{
-			testcase: "Failed security groups return invalid config machine error",
-			providerConfig: &awsproviderv1.AWSMachineProviderConfig{
-				AMI: awsproviderv1.AWSResourceReference{
-					ID: aws.String("ami-a9acbbd6"),
-				},
-				CredentialsSecret: &corev1.LocalObjectReference{
-					Name: awsCredentialsSecretName,
-				},
-				InstanceType: "m4.xlarge",
-				Placement: awsproviderv1.Placement{
-					Region:           region,
-					AvailabilityZone: defaultAvailabilityZone,
-				},
-				Subnet: awsproviderv1.AWSResourceReference{
-					ID: aws.String("subnet-0e56b13a64ff8a941"),
-				},
-				IAMInstanceProfile: &awsproviderv1.AWSResourceReference{
-					ID: aws.String("openshift_master_launch_instances"),
-				},
-				KeyName: aws.String(keyName),
-				UserDataSecret: &corev1.LocalObjectReference{
-					Name: userDataSecretName,
-				},
-				Tags: []awsproviderv1.TagSpecification{
-					{Name: "openshift-node-group-config", Value: "node-config-master"},
-					{Name: "host-type", Value: "master"},
-					{Name: "sub-host-type", Value: "default"},
-				},
-				SecurityGroups: []awsproviderv1.AWSResourceReference{{
-					Filters: []awsproviderv1.Filter{{
-						Name:   "tag:Name",
-						Values: []string{fmt.Sprintf("%s-%s-sg", clusterID, "role")},
-					}},
-				}},
-				PublicIP: aws.Bool(true),
-			},
-			userDataSecret:       stubUserDataSecret(),
-			awsCredentialsSecret: stubAwsCredentialsSecret(),
-			error:                &machineapierrors.MachineError{},
-		},
-		{
-			testcase: "Failed Availability zones return invalid config machine error",
-			providerConfig: &awsproviderv1.AWSMachineProviderConfig{
-				AMI: awsproviderv1.AWSResourceReference{
-					ID: aws.String("ami-a9acbbd6"),
-				},
-				CredentialsSecret: &corev1.LocalObjectReference{
-					Name: awsCredentialsSecretName,
-				},
-				InstanceType: "m4.xlarge",
-				Placement: awsproviderv1.Placement{
-					Region:           region,
-					AvailabilityZone: defaultAvailabilityZone,
-				},
-				Subnet: awsproviderv1.AWSResourceReference{
-					Filters: []awsproviderv1.Filter{{
-						Name:   "tag:Name",
-						Values: []string{fmt.Sprintf("%s-private-%s", clusterID, "az")},
-					}},
-				},
-				IAMInstanceProfile: &awsproviderv1.AWSResourceReference{
-					ID: aws.String("openshift_master_launch_instances"),
-				},
-				KeyName: aws.String(keyName),
-				UserDataSecret: &corev1.LocalObjectReference{
-					Name: userDataSecretName,
-				},
-				Tags: []awsproviderv1.TagSpecification{
-					{Name: "openshift-node-group-config", Value: "node-config-master"},
-					{Name: "host-type", Value: "master"},
-					{Name: "sub-host-type", Value: "default"},
-				},
-				SecurityGroups: []awsproviderv1.AWSResourceReference{
-					{ID: aws.String("sg-00868b02fbe29de17")},
-					{ID: aws.String("sg-0a4658991dc5eb40a")},
-					{ID: aws.String("sg-009a70e28fa4ba84e")},
-					{ID: aws.String("sg-07323d56fb932c84c")},
-					{ID: aws.String("sg-08b1ffd32874d59a2")},
-				},
-				PublicIP: aws.Bool(true),
-			},
-			userDataSecret:       stubUserDataSecret(),
-			awsCredentialsSecret: stubAwsCredentialsSecret(),
-			error:                &machineapierrors.MachineError{},
-		},
-		{
-			testcase: "Failed BlockDevices return invalid config machine error",
-			providerConfig: &awsproviderv1.AWSMachineProviderConfig{
-				AMI: awsproviderv1.AWSResourceReference{
-					ID: aws.String("ami-a9acbbd6"),
-				},
-				CredentialsSecret: &corev1.LocalObjectReference{
-					Name: awsCredentialsSecretName,
-				},
-				InstanceType: "m4.xlarge",
-				Placement: awsproviderv1.Placement{
-					Region:           region,
-					AvailabilityZone: defaultAvailabilityZone,
-				},
-				BlockDevices: []awsproviderv1.BlockDeviceMappingSpec{
-					{
-						EBS: &awsproviderv1.EBSBlockDeviceSpec{
-							VolumeType: pointer.StringPtr("type"),
-							VolumeSize: pointer.Int64Ptr(int64(1)),
-							Iops:       pointer.Int64Ptr(int64(1)),
-						},
-					},
-				},
-				Subnet: awsproviderv1.AWSResourceReference{
-					ID: aws.String("subnet-0e56b13a64ff8a941"),
-				},
-				IAMInstanceProfile: &awsproviderv1.AWSResourceReference{
-					ID: aws.String("openshift_master_launch_instances"),
-				},
-				KeyName: aws.String(keyName),
-				UserDataSecret: &corev1.LocalObjectReference{
-					Name: userDataSecretName,
-				},
-				Tags: []awsproviderv1.TagSpecification{
-					{Name: "openshift-node-group-config", Value: "node-config-master"},
-					{Name: "host-type", Value: "master"},
-					{Name: "sub-host-type", Value: "default"},
-				},
-				SecurityGroups: []awsproviderv1.AWSResourceReference{
-					{ID: aws.String("sg-00868b02fbe29de17")},
-					{ID: aws.String("sg-0a4658991dc5eb40a")},
-					{ID: aws.String("sg-009a70e28fa4ba84e")},
-					{ID: aws.String("sg-07323d56fb932c84c")},
-					{ID: aws.String("sg-08b1ffd32874d59a2")},
-				},
-				PublicIP: aws.Bool(true),
-			},
-			userDataSecret:       stubUserDataSecret(),
-			awsCredentialsSecret: stubAwsCredentialsSecret(),
-			error:                &machineapierrors.MachineError{},
-		},
-	}
-
-	for _, tc := range testCases {
-		// create fake resources
-		t.Logf("testCase: %v", tc.testcase)
-		codec, err := awsproviderv1.NewCodec()
-		if err != nil {
-			t.Fatalf("unable to build codec: %v", err)
-		}
-		encodedProviderConfig, err := codec.EncodeProviderSpec(tc.providerConfig)
-		if err != nil {
-			t.Fatalf("Unexpected error")
-		}
-		machine, err := stubMachine()
-		if err != nil {
-			t.Fatal(err)
-		}
-		machine.Spec.ProviderSpec = *encodedProviderConfig
-		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, machine, tc.awsCredentialsSecret, tc.userDataSecret)
-
-		// create actuator
-		params := ActuatorParams{
-			Client: fakeClient,
-			AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
-				return mockAWSClient, nil
-			},
-			Codec: codec,
-			// use empty recorder dropping any event recorded
-			EventRecorder: &record.FakeRecorder{},
-		}
-		actuator, err := NewActuator(params)
-		if err != nil {
-			t.Fatalf("Could not create AWS machine actuator: %v", err)
-		}
-
-		// test create
-		err = actuator.Create(context.TODO(), machine)
-		if tc.error != nil {
-			if err == nil {
-				t.Fatalf("Expected error")
-			}
-			_, expectMachineError := tc.error.(*machineapierrors.MachineError)
-			_, gotMachineError := err.(*machineapierrors.MachineError)
-			if expectMachineError && !gotMachineError || !expectMachineError && gotMachineError {
-				t.Fatalf("Expected %T, got: %T", tc.error, err)
-			}
-		} else if err != nil {
-			t.Fatalf("Unexpected error")
-		}
-	}
-}
-
-func TestGetMachineInstances(t *testing.T) {
-	clusterID := "aws-actuator-cluster"
-	instanceID := "i-02fa4197109214b46"
-	imageID := "ami-a9acbbd6"
-
-	machine, err := stubMachine()
-	if err != nil {
-		t.Fatalf("unable to build stub machine: %v", err)
-	}
-
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
-	}
-
-	testCases := []struct {
-		testcase       string
-		providerStatus awsproviderv1.AWSMachineProviderStatus
-		awsClientFunc  func(*gomock.Controller) awsclient.Client
-		exists         bool
-	}{
-		{
-			testcase:       "empty-status-search-by-tag",
-			providerStatus: awsproviderv1.AWSMachineProviderStatus{},
-			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
-				mockAWSClient := mockaws.NewMockClient(ctrl)
-
-				request := &ec2.DescribeInstancesInput{
-					Filters: []*ec2.Filter{
-						{
-							Name:   awsTagFilter("Name"),
-							Values: aws.StringSlice([]string{machine.Name}),
-						},
-
-						clusterFilter(clusterID),
-					},
-				}
-
-				mockAWSClient.EXPECT().DescribeInstances(request).Return(
-					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameRunning),
-					nil,
-				).Times(1)
-
-				return mockAWSClient
-			},
-			exists: true,
-		},
-		{
-			testcase: "has-status-search-by-id-running",
-			providerStatus: awsproviderv1.AWSMachineProviderStatus{
-				InstanceID: aws.String(instanceID),
-			},
-			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
-				mockAWSClient := mockaws.NewMockClient(ctrl)
-
-				request := &ec2.DescribeInstancesInput{
-					InstanceIds: aws.StringSlice([]string{instanceID}),
-				}
-
-				mockAWSClient.EXPECT().DescribeInstances(request).Return(
-					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameRunning),
-					nil,
-				).Times(1)
-
-				return mockAWSClient
-			},
-			exists: true,
-		},
-		{
-			testcase: "has-status-search-by-id-terminated",
-			providerStatus: awsproviderv1.AWSMachineProviderStatus{
-				InstanceID: aws.String(instanceID),
-			},
-			awsClientFunc: func(ctrl *gomock.Controller) awsclient.Client {
-				mockAWSClient := mockaws.NewMockClient(ctrl)
-
-				first := mockAWSClient.EXPECT().DescribeInstances(&ec2.DescribeInstancesInput{
-					InstanceIds: aws.StringSlice([]string{instanceID}),
-				}).Return(
-					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameTerminated),
-					nil,
-				).Times(1)
-
-				mockAWSClient.EXPECT().DescribeInstances(&ec2.DescribeInstancesInput{
-					Filters: []*ec2.Filter{
-						{
-							Name:   awsTagFilter("Name"),
-							Values: aws.StringSlice([]string{machine.Name}),
-						},
-
-						clusterFilter(clusterID),
-					},
-				}).Return(
-					stubDescribeInstancesOutput(imageID, instanceID, ec2.InstanceStateNameTerminated),
-					nil,
-				).Times(1).After(first)
-
-				return mockAWSClient
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.testcase, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			awsStatusRaw, err := codec.EncodeProviderStatus(&tc.providerStatus)
-			if err != nil {
-				t.Errorf("Error encoding ProviderStatus: %v", err)
-			}
-
-			machineCopy := machine.DeepCopy()
-			machineCopy.Status.ProviderStatus = awsStatusRaw
-
-			awsClient := tc.awsClientFunc(ctrl)
-
-			params := ActuatorParams{
-				Codec:            codec,
-				AwsClientBuilder: awsClientBuilderFunc(awsClient),
-			}
-
-			actuator, err := NewActuator(params)
-			if err != nil {
-				t.Errorf("Error creating Actuator: %v", err)
-			}
-
-			instances, err := actuator.getMachineInstances(machineCopy)
-			if err != nil {
-				t.Errorf("Unexpected error from getMachineInstances: %v", err)
-			}
-			if tc.exists != (len(instances) > 0) {
-				t.Errorf("Expected instance exists: %t, got instances: %v", tc.exists, instances)
-			}
-		})
-	}
-}
-
-func awsClientBuilderFunc(c awsclient.Client) awsclient.AwsClientBuilderFuncType {
-	return func(_ client.Client, _, _, _ string) (awsclient.Client, error) {
-		return c, nil
-	}
-}
-
-func TestPatchMachine(t *testing.T) {
-	// BEGIN: Set up test environment
-	g := NewWithT(t)
-
-	testEnv := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "crds")},
-	}
-
-	var err error
-	cfg, err := testEnv.Start()
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(cfg).ToNot(BeNil())
-	defer func() {
-		g.Expect(testEnv.Stop()).To(Succeed())
-	}()
-
-	mgr, err := manager.New(cfg, manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
-	g.Expect(err).ToNot(HaveOccurred())
-
-	actuator, err := initActuator(mgr, t)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	doneMgr := make(chan struct{})
-	go func() {
-		g.Expect(mgr.Start(doneMgr)).To(Succeed())
-	}()
-	defer close(doneMgr)
-
-	// END: setup test environment
-
-	k8sClient := mgr.GetClient()
-
-	awsCredentialsSecret := stubAwsCredentialsSecret()
-	g.Expect(k8sClient.Create(context.TODO(), awsCredentialsSecret)).To(Succeed())
-
-	userDataSecret := stubUserDataSecret()
-	g.Expect(k8sClient.Create(context.TODO(), userDataSecret)).To(Succeed())
-
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		t.Fatalf("unable to build codec: %v", err)
-	}
-
-	failedPhase := "Failed"
-
-	testCases := []struct {
-		name   string
-		mutate func(*machinev1.Machine)
-		expect func(*machinev1.Machine) error
-	}{
-		{
-			name: "Test changing labels",
-			mutate: func(m *machinev1.Machine) {
-				m.ObjectMeta.Labels["testlabel"] = "test"
-			},
-			expect: func(m *machinev1.Machine) error {
-				if m.ObjectMeta.Labels["testlabel"] != "test" {
-					return fmt.Errorf("label \"testlabel\" %q not equal expected \"test\"", m.ObjectMeta.Labels["test"])
-				}
-				return nil
-			},
-		},
-		{
-			name: "Test setting phase",
-			mutate: func(m *machinev1.Machine) {
-
-				m.Status.Phase = &failedPhase
-			},
-			expect: func(m *machinev1.Machine) error {
-				if m.Status.Phase != nil && *m.Status.Phase == failedPhase {
-					return nil
-				}
-				return fmt.Errorf("phase is nil or not equal expected \"Failed\"")
-			},
-		},
-		{
-			name: "Test setting provider status",
-			mutate: func(m *machinev1.Machine) {
-				instanceID := "123"
-				instanceState := "running"
-
-				providerStatus := &awsproviderv1.AWSMachineProviderStatus{
-					InstanceID:    &instanceID,
-					InstanceState: &instanceState,
-				}
-
-				status, err := codec.EncodeProviderStatus(providerStatus)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				m.Status.ProviderStatus = status
-			},
-			expect: func(m *machinev1.Machine) error {
-				providerStatus, err := getMachineStatus(codec, m)
-				if err != nil {
-					return fmt.Errorf("unable to get provider status: %v", err)
-				}
-
-				if providerStatus.InstanceID == nil || *providerStatus.InstanceID != "123" {
-					return fmt.Errorf("instanceID is nil or not equal expected \"123\"")
-				}
-
-				if providerStatus.InstanceState == nil || *providerStatus.InstanceState != "running" {
-					return fmt.Errorf("instanceState is nil or not equal expected \"running\"")
-				}
-
-				return nil
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			timeout := 10 * time.Second
-			gs := NewWithT(t)
-
-			machine, err := stubMachine()
-			gs.Expect(err).ToNot(HaveOccurred())
-			gs.Expect(machine).ToNot(BeNil())
-
-			ctx := context.TODO()
-
-			// Create the machine
-			gs.Expect(k8sClient.Create(ctx, machine)).To(Succeed())
-
-			defer func() {
-				gs.Expect(k8sClient.Delete(ctx, machine)).To(Succeed())
-			}()
-
-			// Ensure the machine has synced to the cache
-			getMachine := func() error {
-				machineKey := types.NamespacedName{Namespace: machine.Namespace, Name: machine.Name}
-				return k8sClient.Get(ctx, machineKey, machine)
-			}
-			gs.Eventually(getMachine, timeout).Should(Succeed())
-
-			machineToBePatched := client.MergeFrom(machine.DeepCopy())
-			tc.mutate(machine)
-
-			// Patch the machine and check the expectation from the test case
-			gs.Expect(actuator.patchMachine(ctx, machine, machineToBePatched)).To(Succeed())
-			checkExpectation := func() error {
-				if err := getMachine(); err != nil {
-					return nil
-				}
-				return tc.expect(machine)
-			}
-			gs.Eventually(checkExpectation, timeout).Should(Succeed())
-
-			// Check that resource version doesn't change if we call patchMachine() again
-			machineResourceVersion := machine.ResourceVersion
-
-			gs.Expect(actuator.patchMachine(ctx, machine, machineToBePatched)).To(Succeed())
-			gs.Eventually(getMachine, timeout).Should(Succeed())
-			gs.Expect(machine.ResourceVersion).To(Equal(machineResourceVersion))
-		})
-	}
-}
-
-func initActuator(mgr manager.Manager, t *testing.T) (*Actuator, error) {
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		return nil, fmt.Errorf("unable to create codec: %v", err)
-	}
-
-	mockCtrl := gomock.NewController(t)
-	mockAWSClient := mockaws.NewMockClient(mockCtrl)
-
-	mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"), nil).AnyTimes()
-	mockAWSClient.EXPECT().DescribeInstances(gomock.Any()).Return(stubDescribeInstancesOutput("ami-a9acbbd6", "i-02fcb933c5da7085c", ec2.InstanceStateNameRunning), nil).AnyTimes()
-	mockAWSClient.EXPECT().TerminateInstances(gomock.Any()).Return(&ec2.TerminateInstancesOutput{}, nil).AnyTimes()
-	mockAWSClient.EXPECT().RegisterInstancesWithLoadBalancer(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockAWSClient.EXPECT().ELBv2DescribeLoadBalancers(gomock.Any()).Return(stubDescribeLoadBalancersOutput(), nil).AnyTimes()
-	mockAWSClient.EXPECT().ELBv2DescribeTargetGroups(gomock.Any()).Return(stubDescribeTargetGroupsOutput(), nil).AnyTimes()
-	mockAWSClient.EXPECT().ELBv2RegisterTargets(gomock.Any()).Return(nil, nil).AnyTimes()
-
-	eventsChannel := make(chan string, 1)
-
-	params := ActuatorParams{
-		Client: mgr.GetClient(),
-		Config: mgr.GetConfig(),
-		AwsClientBuilder: func(client client.Client, secretName, namespace, region string) (awsclient.Client, error) {
-			return mockAWSClient, nil
-		},
-		Codec: codec,
-		// use fake recorder and store an event into one item long buffer for subsequent check
-		EventRecorder: &record.FakeRecorder{
-			Events: eventsChannel,
-		},
-	}
-
-	actuator, err := NewActuator(params)
-	if err != nil {
-		return nil, fmt.Errorf("could not create AWS machine actuator: %v", err)
-	}
-
-	return actuator, nil
-}
-
-func getMachineStatus(codec *awsproviderv1.AWSProviderConfigCodec, machine *machinev1.Machine) (*awsproviderv1.AWSMachineProviderStatus, error) {
-	machineStatus := &awsproviderv1.AWSMachineProviderStatus{}
-	if err := codec.DecodeProviderStatus(machine.Status.ProviderStatus, machineStatus); err != nil {
-		return nil, fmt.Errorf("error decoding machine provider status: %v", err)
-	}
-
-	return machineStatus, nil
 }

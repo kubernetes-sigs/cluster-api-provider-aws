@@ -26,7 +26,6 @@ import (
 	"k8s.io/klog/klogr"
 	machineactuator "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	machinesetcontroller "sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machineset"
-	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -77,10 +76,12 @@ func main() {
 		klog.Fatalf("Error setting up scheme: %v", err)
 	}
 
-	machineActuator, err := initActuator(mgr)
-	if err != nil {
-		klog.Fatalf("Error initializing actuator: %v", err)
-	}
+	// Initialize machine actuator.
+	machineActuator := machineactuator.NewActuator(machineactuator.ActuatorParams{
+		Client:           mgr.GetClient(),
+		EventRecorder:    mgr.GetEventRecorderFor("awscontroller"),
+		AwsClientBuilder: awsclient.NewClient,
+	})
 
 	if err := machine.AddWithActuator(mgr, machineActuator); err != nil {
 		klog.Fatalf("Error adding actuator: %v", err)
@@ -100,26 +101,4 @@ func main() {
 	if err != nil {
 		klog.Fatalf("Error starting manager: %v", err)
 	}
-}
-
-func initActuator(mgr manager.Manager) (*machineactuator.Actuator, error) {
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		return nil, fmt.Errorf("unable to create codec: %v", err)
-	}
-
-	params := machineactuator.ActuatorParams{
-		Client:           mgr.GetClient(),
-		Config:           mgr.GetConfig(),
-		AwsClientBuilder: awsclient.NewClient,
-		Codec:            codec,
-		EventRecorder:    mgr.GetEventRecorderFor("aws-controller"),
-	}
-
-	actuator, err := machineactuator.NewActuator(params)
-	if err != nil {
-		return nil, fmt.Errorf("could not create AWS machine actuator: %v", err)
-	}
-
-	return actuator, nil
 }

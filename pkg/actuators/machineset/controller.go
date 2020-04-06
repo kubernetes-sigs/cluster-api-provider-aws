@@ -107,7 +107,7 @@ func isInvalidConfigurationError(err error) bool {
 }
 
 func reconcile(machineSet *machinev1.MachineSet) (ctrl.Result, error) {
-	providerConfig, err := getProviderConfig(*machineSet)
+	providerConfig, err := awsproviderv1.ProviderSpecFromRawExtension(machineSet.Spec.Template.Spec.ProviderSpec.Value)
 	if err != nil {
 		return ctrl.Result{}, mapierrors.InvalidMachineConfiguration("failed to get providerConfig: %v", err)
 	}
@@ -126,18 +126,4 @@ func reconcile(machineSet *machinev1.MachineSet) (ctrl.Result, error) {
 	machineSet.Annotations[gpuKey] = strconv.FormatInt(instanceType.GPU, 10)
 
 	return ctrl.Result{}, nil
-}
-
-func getProviderConfig(machineSet machinev1.MachineSet) (*awsproviderv1.AWSMachineProviderConfig, error) {
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create codec: %v", err)
-	}
-
-	var providerConfig awsproviderv1.AWSMachineProviderConfig
-	if err := codec.DecodeProviderSpec(&machineSet.Spec.Template.Spec.ProviderSpec, &providerConfig); err != nil {
-		return nil, fmt.Errorf("failed to decode machineSet provider config: %v", err)
-	}
-
-	return &providerConfig, nil
 }

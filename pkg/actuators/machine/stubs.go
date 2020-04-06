@@ -98,11 +98,7 @@ func stubProviderConfig() *awsproviderv1.AWSMachineProviderConfig {
 func stubMachine() (*machinev1.Machine, error) {
 	machinePc := stubProviderConfig()
 
-	codec, err := awsproviderv1.NewCodec()
-	if err != nil {
-		return nil, fmt.Errorf("failed creating codec: %v", err)
-	}
-	providerSpec, err := codec.EncodeProviderSpec(machinePc)
+	providerSpec, err := awsproviderv1.RawExtensionFromProviderSpec(machinePc)
 	if err != nil {
 		return nil, fmt.Errorf("codec.EncodeProviderSpec failed: %v", err)
 	}
@@ -112,7 +108,7 @@ func stubMachine() (*machinev1.Machine, error) {
 			Name:      "aws-actuator-testing-machine",
 			Namespace: defaultNamespace,
 			Labels: map[string]string{
-				awsproviderv1.ClusterIDLabel: clusterID,
+				machinev1.MachineClusterIDLabel: clusterID,
 			},
 			Annotations: map[string]string{
 				// skip node draining since it's not mocked
@@ -127,7 +123,9 @@ func stubMachine() (*machinev1.Machine, error) {
 					"node-role.kubernetes.io/infra":  "",
 				},
 			},
-			ProviderSpec: *providerSpec,
+			ProviderSpec: machinev1.ProviderSpec{
+				Value: providerSpec,
+			},
 		},
 	}
 

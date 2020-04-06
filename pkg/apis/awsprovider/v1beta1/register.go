@@ -25,14 +25,14 @@ limitations under the License.
 package v1beta1
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 
-	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -43,81 +43,66 @@ var (
 	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
 )
 
-// AWSProviderConfigCodec is a runtime codec for the provider configuration
-// +k8s:deepcopy-gen=false
-type AWSProviderConfigCodec struct {
-	encoder runtime.Encoder
-	decoder runtime.Decoder
-}
+// RawExtensionFromProviderSpec marshals the machine provider spec.
+func RawExtensionFromProviderSpec(spec *AWSMachineProviderConfig) (*runtime.RawExtension, error) {
+	if spec == nil {
+		return &runtime.RawExtension{}, nil
+	}
 
-// NewScheme creates a new Scheme
-func NewScheme() (*runtime.Scheme, error) {
-	return SchemeBuilder.Build()
-}
+	var rawBytes []byte
+	var err error
+	if rawBytes, err = json.Marshal(spec); err != nil {
+		return nil, fmt.Errorf("error marshalling providerSpec: %v", err)
+	}
 
-// NewCodec creates a serializer/deserializer for the provider configuration
-func NewCodec() (*AWSProviderConfigCodec, error) {
-	scheme, err := NewScheme()
-	if err != nil {
-		return nil, err
-	}
-	codecFactory := serializer.NewCodecFactory(scheme)
-	encoder, err := newEncoder(&codecFactory)
-	if err != nil {
-		return nil, err
-	}
-	codec := AWSProviderConfigCodec{
-		encoder: encoder,
-		decoder: codecFactory.UniversalDecoder(SchemeGroupVersion),
-	}
-	return &codec, nil
-}
-
-// DecodeProviderSpec deserialises an object from the provider config
-func (codec *AWSProviderConfigCodec) DecodeProviderSpec(providerSpec *machinev1.ProviderSpec, out runtime.Object) error {
-	if providerSpec.Value != nil {
-		if _, _, err := codec.decoder.Decode(providerSpec.Value.Raw, nil, out); err != nil {
-			return fmt.Errorf("decoding failure: %v", err)
-		}
-	}
-	return nil
-}
-
-// EncodeProviderSpec serialises an object to the provider config
-func (codec *AWSProviderConfigCodec) EncodeProviderSpec(in runtime.Object) (*machinev1.ProviderSpec, error) {
-	var buf bytes.Buffer
-	if err := codec.encoder.Encode(in, &buf); err != nil {
-		return nil, fmt.Errorf("encoding failed: %v", err)
-	}
-	return &machinev1.ProviderSpec{
-		Value: &runtime.RawExtension{Raw: buf.Bytes()},
+	return &runtime.RawExtension{
+		Raw: rawBytes,
 	}, nil
 }
 
-// EncodeProviderStatus serialises the provider status
-func (codec *AWSProviderConfigCodec) EncodeProviderStatus(in runtime.Object) (*runtime.RawExtension, error) {
-	var buf bytes.Buffer
-	if err := codec.encoder.Encode(in, &buf); err != nil {
-		return nil, fmt.Errorf("encoding failed: %v", err)
+// RawExtensionFromProviderStatus marshals the machine provider status
+func RawExtensionFromProviderStatus(status *AWSMachineProviderStatus) (*runtime.RawExtension, error) {
+	if status == nil {
+		return &runtime.RawExtension{}, nil
 	}
-	return &runtime.RawExtension{Raw: buf.Bytes()}, nil
+
+	var rawBytes []byte
+	var err error
+	if rawBytes, err = json.Marshal(status); err != nil {
+		return nil, fmt.Errorf("error marshalling providerStatus: %v", err)
+	}
+
+	return &runtime.RawExtension{
+		Raw: rawBytes,
+	}, nil
 }
 
-// DecodeProviderStatus deserialises the provider status
-func (codec *AWSProviderConfigCodec) DecodeProviderStatus(providerStatus *runtime.RawExtension, out runtime.Object) error {
-	if providerStatus != nil {
-		if _, _, err := codec.decoder.Decode(providerStatus.Raw, nil, out); err != nil {
-			return fmt.Errorf("decoding failure: %v", err)
-		}
+// ProviderSpecFromRawExtension unmarshals a raw extension into an AWSMachineProviderSpec type
+func ProviderSpecFromRawExtension(rawExtension *runtime.RawExtension) (*AWSMachineProviderConfig, error) {
+	if rawExtension == nil {
+		return &AWSMachineProviderConfig{}, nil
 	}
-	return nil
+
+	spec := new(AWSMachineProviderConfig)
+	if err := yaml.Unmarshal(rawExtension.Raw, &spec); err != nil {
+		return nil, fmt.Errorf("error unmarshalling providerSpec: %v", err)
+	}
+
+	klog.V(5).Infof("Got provider Spec from raw extension: %+v", spec)
+	return spec, nil
 }
 
-func newEncoder(codecFactory *serializer.CodecFactory) (runtime.Encoder, error) {
-	serializerInfos := codecFactory.SupportedMediaTypes()
-	if len(serializerInfos) == 0 {
-		return nil, fmt.Errorf("unable to find any serlializers")
+// ProviderStatusFromRawExtension unmarshals a raw extension into an AWSMachineProviderStatus type
+func ProviderStatusFromRawExtension(rawExtension *runtime.RawExtension) (*AWSMachineProviderStatus, error) {
+	if rawExtension == nil {
+		return &AWSMachineProviderStatus{}, nil
 	}
-	encoder := codecFactory.EncoderForVersion(serializerInfos[0].Serializer, SchemeGroupVersion)
-	return encoder, nil
+
+	providerStatus := new(AWSMachineProviderStatus)
+	if err := yaml.Unmarshal(rawExtension.Raw, providerStatus); err != nil {
+		return nil, fmt.Errorf("error unmarshalling providerStatus: %v", err)
+	}
+
+	klog.V(5).Infof("Got provider Status from raw extension: %+v", providerStatus)
+	return providerStatus, nil
 }
