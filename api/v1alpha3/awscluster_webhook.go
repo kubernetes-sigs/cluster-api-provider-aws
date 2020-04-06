@@ -52,28 +52,29 @@ func (r *AWSCluster) ValidateDelete() error {
 
 func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	var allErrs field.ErrorList
+
 	oldC, ok := old.(*AWSCluster)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an AWSCluster but got a %T", old))
 	}
+
 	if r.Spec.Region != oldC.Spec.Region {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "region"), r.Spec.Region, "field is immutable"),
 		)
 	}
+
 	if !reflect.DeepEqual(r.Spec.ControlPlaneLoadBalancer, oldC.Spec.ControlPlaneLoadBalancer) {
 		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer"), r.Spec.ControlPlaneLoadBalancer, "field is immutable"),
+			field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer"),
+				r.Spec.ControlPlaneLoadBalancer, "field is immutable"),
 		)
 	}
-	if !reflect.DeepEqual(oldC.Spec.ControlPlaneEndpoint, clusterv1.APIEndpoint{}) && !reflect.DeepEqual(r.Spec.ControlPlaneEndpoint, oldC.Spec.ControlPlaneEndpoint) {
+
+	if !reflect.DeepEqual(oldC.Spec.ControlPlaneEndpoint, clusterv1.APIEndpoint{}) &&
+		!reflect.DeepEqual(r.Spec.ControlPlaneEndpoint, oldC.Spec.ControlPlaneEndpoint) {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "controlPlaneEndpoint"), r.Spec.ControlPlaneEndpoint, "field is immutable"),
-		)
-	}
-	if oldC.Spec.Bastion.Enabled && !r.Spec.Bastion.Enabled {
-		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "bastion.enabled"), r.Spec.Bastion.Enabled, "cannot be disabled"),
 		)
 	}
 

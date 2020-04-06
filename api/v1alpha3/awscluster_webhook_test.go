@@ -98,42 +98,6 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "bastion can be added",
-			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					Bastion: Bastion{
-						Enabled: false,
-					},
-				},
-			},
-			newCluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					Bastion: Bastion{
-						Enabled: true,
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "bastion cannot be removed",
-			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					Bastion: Bastion{
-						Enabled: true,
-					},
-				},
-			},
-			newCluster: &AWSCluster{
-				Spec: AWSClusterSpec{
-					Bastion: Bastion{
-						Enabled: false,
-					},
-				},
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
