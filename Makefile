@@ -38,6 +38,7 @@ TEST_E2E_DIR := test/e2e
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
+KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 ENVSUBST := $(TOOLS_BIN_DIR)/envsubst
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
@@ -150,6 +151,9 @@ $(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+
+$(KUSTOMIZE): $(TOOLS_DIR)/go.mod # Build kustomize from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
 
 $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags tools -o $(BIN_DIR)/release-notes sigs.k8s.io/cluster-api/hack/tools/release
@@ -276,7 +280,7 @@ release: clean-release  ## Builds and push container images using the latest git
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
-	kustomize build config > $(RELEASE_DIR)/infrastructure-components.yaml
+	$(KUSTOMIZE) build config > $(RELEASE_DIR)/infrastructure-components.yaml
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
@@ -318,14 +322,11 @@ release-notes: $(RELEASE_NOTES)
 # e2e-conformance.sh script, which is why we need it as a variable here.
 CLUSTER_NAME ?= test1
 
-# NOTE: do not add 'generate-exmaples' as a prerequisite of this target. It will break e2e conformance testing.
-.PHONY: create-cluster
-create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+.PHONY: create-management-cluster
+create-management-cluster: $(KUSTOMIZE) $(ENVSUBST)
+	## Create kind management cluster.
 	kind create cluster --name=clusterapi
-	@if [ ! -z "${LOAD_IMAGE}" ]; then \
-		echo "loading ${LOAD_IMAGE} into kind cluster ..." && \
-		kind --name="clusterapi" load docker-image "${LOAD_IMAGE}"; \
-	fi
+
 	# Install cert manager and wait for availability
 	kubectl create -f https://github.com/jetstack/cert-manager/releases/download/v0.11.1/cert-manager.yaml
 	kubectl wait --for=condition=Available --timeout=5m apiservice v1beta1.webhook.cert-manager.io
@@ -334,7 +335,8 @@ create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes clu
 	kubectl apply -f https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.3/cluster-api-components.yaml
 
 	# Deploy CAPA
-	kustomize build config | $(ENVSUBST) | kubectl apply -f -
+	kind load docker-image $(CONTROLLER_IMG)-$(ARCH):$(TAG) --name=clusterapi
+	$(KUSTOMIZE) build config | $(ENVSUBST) | kubectl apply -f -
 
 	# Wait for CAPI pods
 	kubectl wait --for=condition=Ready --timeout=5m -n capi-system pod -l cluster.x-k8s.io/provider=cluster-api
@@ -344,18 +346,38 @@ create-cluster: $(CLUSTERCTL) $(ENVSUBST) ## Create a development Kubernetes clu
 	# Wait for CAPA pods
 	kubectl wait --for=condition=Ready --timeout=5m -n capa-system pod -l cluster.x-k8s.io/provider=infrastructure-aws
 
-	# Create Cluster.
+	# required sleep for when creating management and workload cluster simultaneously
 	sleep 10
-	kustomize build templates | $(ENVSUBST) | kubectl apply -f -
+	@echo 'Set kubectl context to the kind management cluster by running "kubectl config set-context kind-clusterapi"'
+
+.PHONY: create-workload-cluster
+create-workload-cluster: $(KUSTOMIZE) $(ENVSUBST)
+	# Create workload Cluster.
+	$(KUSTOMIZE) build templates | $(ENVSUBST) | kubectl apply -f -
 
 	# Wait for the kubeconfig to become available.
 	timeout 300 bash -c "while ! kubectl get secrets | grep $(CLUSTER_NAME)-kubeconfig; do sleep 1; done"
 	# Get kubeconfig and store it locally.
 	kubectl get secrets $(CLUSTER_NAME)-kubeconfig -o json | jq -r .data.value | base64 --decode > ./kubeconfig
-	timeout 15m bash -c "while ! kubectl --kubeconfig=./kubeconfig get nodes | grep master; do sleep 1; done"
+	timeout 600 bash -c "while ! kubectl --kubeconfig=./kubeconfig get nodes | grep master; do sleep 1; done"
 
 	# Deploy calico
 	kubectl --kubeconfig=./kubeconfig apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+	@echo 'run "kubectl --kubeconfig=./kubeconfig ..." to work with the new target cluster'
+
+# NOTE: do not add 'generate-examples' as a prerequisite of this target. It will break e2e conformance testing.
+.PHONY: create-cluster
+create-cluster: create-management-cluster create-workload-cluster ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+
+.PHONY: delete-workload-cluster
+delete-workload-cluster: ## Deletes the example workload Kubernetes cluster
+	@echo 'Your AWS resources will now be deleted, this can take up to 20 minutes'
+	kubectl delete cluster $(CLUSTER_NAME)
+
+.PHONY: delete-cluster
+delete-cluster: delete-workload-cluster  ## Deletes the example kind cluster "clusterapi"
+	kind delete cluster --name=clusterapi
 
 .PHONY: kind-reset
 kind-reset: ## Destroys the "clusterapi" kind cluster.

@@ -42,8 +42,6 @@ source "${REPO_ROOT}/hack/ensure-go.sh"
 source "${REPO_ROOT}/hack/ensure-kind.sh"
 # shellcheck source=../hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
-# shellcheck source=../hack/ensure-kustomize.sh
-source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then
