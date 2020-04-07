@@ -127,8 +127,21 @@ func (a *Actuator) Update(ctx context.Context, machine *machinev1.Machine) error
 		}
 		return a.handleMachineError(machine, err, createEventAction)
 	}
-	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, updateEventAction, "Updated Machine %v", machine.GetName())
-	return scope.patchMachine()
+
+	previousResourceVersion := scope.machine.ResourceVersion
+
+	if err := scope.patchMachine(); err != nil {
+		return err
+	}
+
+	currentResourceVersion := scope.machine.ResourceVersion
+
+	// Create event only if machine object was modified
+	if previousResourceVersion != currentResourceVersion {
+		a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, updateEventAction, "Updated Machine %v", machine.GetName())
+	}
+
+	return nil
 }
 
 // Delete deletes a machine and updates its finalizer
