@@ -70,9 +70,6 @@ build: ## build binaries
 	$(DOCKER_CMD) go build $(GOGCFLAGS) -o "bin/termination-handler" \
 	             -ldflags "$(LD_FLAGS)" "$(REPO_PATH)/cmd/termination-handler"
 
-aws-actuator:
-	$(DOCKER_CMD) go build $(GOGCFLAGS) -o bin/aws-actuator sigs.k8s.io/cluster-api-provider-aws/cmd/aws-actuator
-
 .PHONY: images
 images: ## Create images
 	$(IMAGE_BUILD_CMD) -t "$(IMAGE):$(VERSION)" -t "$(IMAGE):$(MUTABLE_TAG)" ./
