@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"path/filepath"
 	"testing"
-	"time"
 
 	. "github.com/onsi/gomega"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
@@ -19,7 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+<<<<<<< HEAD
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+=======
+>>>>>>> Improve unit tests for events
 )
 
 const testNamespace = "aws-test"
@@ -142,7 +143,6 @@ func TestGetUserData(t *testing.T) {
 }
 
 func TestPatchMachine(t *testing.T) {
-	// BEGIN: Set up test environment
 	g := NewWithT(t)
 
 	testEnv := &envtest.Environment{
@@ -163,9 +163,15 @@ func TestPatchMachine(t *testing.T) {
 
 	awsCredentialsSecret := stubAwsCredentialsSecret()
 	g.Expect(k8sClient.Create(context.TODO(), awsCredentialsSecret)).To(Succeed())
+	defer func() {
+		g.Expect(k8sClient.Delete(context.TODO(), awsCredentialsSecret)).To(Succeed())
+	}()
 
 	userDataSecret := stubUserDataSecret()
 	g.Expect(k8sClient.Create(context.TODO(), userDataSecret)).To(Succeed())
+	defer func() {
+		g.Expect(k8sClient.Delete(context.TODO(), userDataSecret)).To(Succeed())
+	}()
 
 	failedPhase := "Failed"
 
@@ -229,7 +235,6 @@ func TestPatchMachine(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			timeout := 10 * time.Second
 			gs := NewWithT(t)
 
 			machine, err := stubMachine()

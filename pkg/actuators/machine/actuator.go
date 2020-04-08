@@ -30,6 +30,7 @@ import (
 
 const (
 	scopeFailFmt      = "%s: failed to create scope for machine: %v"
+	reconcilerFailFmt = "%s: reconciler failed to %s machine: %v"
 	createEventAction = "Create"
 	updateEventAction = "Update"
 	deleteEventAction = "Delete"
@@ -79,13 +80,15 @@ func (a *Actuator) Create(ctx context.Context, machine *machinev1.Machine) error
 		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
-		return a.handleMachineError(machine, err, createEventAction)
+		fmtErr := fmt.Sprintf(scopeFailFmt, machine.GetName(), err)
+		return a.handleMachineError(machine, fmt.Errorf(fmtErr), createEventAction)
 	}
 	if err := newReconciler(scope).create(); err != nil {
 		if err := scope.patchMachine(); err != nil {
 			return err
 		}
-		return a.handleMachineError(machine, err, createEventAction)
+		fmtErr := fmt.Sprintf(reconcilerFailFmt, machine.GetName(), createEventAction, err)
+		return a.handleMachineError(machine, fmt.Errorf(fmtErr), createEventAction)
 	}
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, createEventAction, "Created Machine %v", machine.GetName())
 	return scope.patchMachine()
@@ -125,7 +128,8 @@ func (a *Actuator) Update(ctx context.Context, machine *machinev1.Machine) error
 		if err := scope.patchMachine(); err != nil {
 			return err
 		}
-		return a.handleMachineError(machine, err, createEventAction)
+		fmtErr := fmt.Sprintf(reconcilerFailFmt, machine.GetName(), updateEventAction, err)
+		return a.handleMachineError(machine, fmt.Errorf(fmtErr), updateEventAction)
 	}
 
 	previousResourceVersion := scope.machine.ResourceVersion
@@ -161,7 +165,8 @@ func (a *Actuator) Delete(ctx context.Context, machine *machinev1.Machine) error
 		if err := scope.patchMachine(); err != nil {
 			return err
 		}
-		return a.handleMachineError(machine, err, deleteEventAction)
+		fmtErr := fmt.Sprintf(reconcilerFailFmt, machine.GetName(), deleteEventAction, err)
+		return a.handleMachineError(machine, fmt.Errorf(fmtErr), deleteEventAction)
 	}
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, deleteEventAction, "Deleted machine %v", machine.GetName())
 	return scope.patchMachine()
