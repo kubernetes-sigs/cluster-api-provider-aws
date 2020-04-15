@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -17,10 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-<<<<<<< HEAD
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-=======
->>>>>>> Improve unit tests for events
 )
 
 const testNamespace = "aws-test"

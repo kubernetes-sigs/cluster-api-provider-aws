@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	scopeFailFmt      = "%s: failed to create scope for machine: %v"
-	reconcilerFailFmt = "%s: reconciler failed to %s machine: %v"
+	scopeFailFmt      = "%s: failed to create scope for machine: %w"
+	reconcilerFailFmt = "%s: reconciler failed to %s machine: %w"
 	createEventAction = "Create"
 	updateEventAction = "Update"
 	deleteEventAction = "Delete"
@@ -80,15 +80,15 @@ func (a *Actuator) Create(ctx context.Context, machine *machinev1.Machine) error
 		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
-		fmtErr := fmt.Sprintf(scopeFailFmt, machine.GetName(), err)
-		return a.handleMachineError(machine, fmt.Errorf(fmtErr), createEventAction)
+		fmtErr := fmt.Errorf(scopeFailFmt, machine.GetName(), err)
+		return a.handleMachineError(machine, fmtErr, createEventAction)
 	}
 	if err := newReconciler(scope).create(); err != nil {
 		if err := scope.patchMachine(); err != nil {
 			return err
 		}
-		fmtErr := fmt.Sprintf(reconcilerFailFmt, machine.GetName(), createEventAction, err)
-		return a.handleMachineError(machine, fmt.Errorf(fmtErr), createEventAction)
+		fmtErr := fmt.Errorf(reconcilerFailFmt, machine.GetName(), createEventAction, err)
+		return a.handleMachineError(machine, fmtErr, createEventAction)
 	}
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, createEventAction, "Created Machine %v", machine.GetName())
 	return scope.patchMachine()
@@ -120,16 +120,16 @@ func (a *Actuator) Update(ctx context.Context, machine *machinev1.Machine) error
 		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
-		fmtErr := fmt.Sprintf(scopeFailFmt, machine.GetName(), err)
-		return a.handleMachineError(machine, fmt.Errorf(fmtErr), updateEventAction)
+		fmtErr := fmt.Errorf(scopeFailFmt, machine.GetName(), err)
+		return a.handleMachineError(machine, fmtErr, updateEventAction)
 	}
 	if err := newReconciler(scope).update(); err != nil {
 		// Update machine and machine status in case it was modified
 		if err := scope.patchMachine(); err != nil {
 			return err
 		}
-		fmtErr := fmt.Sprintf(reconcilerFailFmt, machine.GetName(), updateEventAction, err)
-		return a.handleMachineError(machine, fmt.Errorf(fmtErr), updateEventAction)
+		fmtErr := fmt.Errorf(reconcilerFailFmt, machine.GetName(), updateEventAction, err)
+		return a.handleMachineError(machine, fmtErr, updateEventAction)
 	}
 
 	previousResourceVersion := scope.machine.ResourceVersion
@@ -158,15 +158,15 @@ func (a *Actuator) Delete(ctx context.Context, machine *machinev1.Machine) error
 		awsClientBuilder: a.awsClientBuilder,
 	})
 	if err != nil {
-		fmtErr := fmt.Sprintf(scopeFailFmt, machine.GetName(), err)
-		return a.handleMachineError(machine, fmt.Errorf(fmtErr), deleteEventAction)
+		fmtErr := fmt.Errorf(scopeFailFmt, machine.GetName(), err)
+		return a.handleMachineError(machine, fmtErr, deleteEventAction)
 	}
 	if err := newReconciler(scope).delete(); err != nil {
 		if err := scope.patchMachine(); err != nil {
 			return err
 		}
-		fmtErr := fmt.Sprintf(reconcilerFailFmt, machine.GetName(), deleteEventAction, err)
-		return a.handleMachineError(machine, fmt.Errorf(fmtErr), deleteEventAction)
+		fmtErr := fmt.Errorf(reconcilerFailFmt, machine.GetName(), deleteEventAction, err)
+		return a.handleMachineError(machine, fmtErr, deleteEventAction)
 	}
 	a.eventRecorder.Eventf(machine, corev1.EventTypeNormal, deleteEventAction, "Deleted machine %v", machine.GetName())
 	return scope.patchMachine()
