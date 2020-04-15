@@ -189,6 +189,27 @@ func (r *Reconciler) update() error {
 
 	r.machineScope.setProviderStatus(newestInstance, conditionSuccess())
 
+	vpc, err := r.awsClient.DescribeVpcs(&ec2.DescribeVpcsInput{
+		VpcIds: []*string{newestInstance.VpcId},
+	})
+	if err != nil {
+		return err
+	}
+
+	dhcp, err := r.awsClient.DescribeDHCPOptions(&ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []*string{vpc.Vpcs[0].DhcpOptionsId},
+	})
+	if err != nil {
+		return err
+	}
+
+	klog.Infof("DHCP %+v", dhcp.DhcpOptions[0].DhcpConfigurations[0])
+	for _, i := range dhcp.DhcpOptions[0].DhcpConfigurations {
+		if *i.Key == "domain-name" {
+			klog.Infof("Domain value %v", i.Values)
+		}
+	}
+
 	return r.requeueIfInstancePending(newestInstance)
 }
 
