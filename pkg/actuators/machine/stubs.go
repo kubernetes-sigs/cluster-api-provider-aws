@@ -117,7 +117,7 @@ func stubMachine() (*machinev1.Machine, error) {
 		},
 
 		Spec: machinev1.MachineSpec{
-			ObjectMeta: metav1.ObjectMeta{
+			ObjectMeta: machinev1.ObjectMeta{
 				Labels: map[string]string{
 					"node-role.kubernetes.io/master": "",
 					"node-role.kubernetes.io/infra":  "",
