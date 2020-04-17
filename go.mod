@@ -5,15 +5,12 @@ go 1.13
 require (
 	github.com/aws/aws-sdk-go v1.15.66
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.2.0
-	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
 	github.com/openshift/machine-api-operator v0.2.1-0.20200402110321-4f3602b96da3
 	github.com/pkg/errors v0.8.1
-	github.com/spf13/cobra v0.0.5
-	github.com/spf13/pflag v1.0.5
 
 	// kube 1.18
 	k8s.io/api v0.18.0
@@ -25,3 +22,5 @@ require (
 	sigs.k8s.io/controller-tools v0.2.9-0.20200331153640-3c5446d407dd
 	sigs.k8s.io/yaml v1.2.0
 )
+
+replace github.com/openshift/machine-api-operator => github.com/joelspeed/machine-api-operator v0.2.1-0.20200417102748-367ae647375f
