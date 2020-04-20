@@ -36,6 +36,10 @@ type AWSMachineSpec struct {
 	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AWSResourceReference `json:"ami,omitempty"`
 
+	// ImageLookupFormat is the format string used for image lookup if AMI is
+	// not set. Supports substitutions for ${BASE_OS} and ${K8S_VERSION}.
+	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
+
 	// ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.
 	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
 
