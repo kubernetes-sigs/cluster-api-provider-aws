@@ -38,6 +38,7 @@ type AWSMachineSpec struct {
 
 	// ImageLookupFormat is the format string used for image lookup if AMI is
 	// not set. Supports substitutions for ${BASE_OS} and ${K8S_VERSION}.
+	// +optional
 	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
 
 	// ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.

@@ -434,6 +434,11 @@ spec:
                 description: ImageLookupBaseOS is the name of the base operating system
                   to use for image lookup the AMI is not set.
                 type: string
+              imageLookupFormat:
+                description: ImageLookupFormat is the format string used for image
+                  lookup if AMI is not set. Supports substitutions for ${BASE_OS}
+                  and ${K8S_VERSION}.
+                type: string
               imageLookupOrg:
                 description: ImageLookupOrg is the AWS Organization ID to use for
                   image lookup if AMI is not set.
