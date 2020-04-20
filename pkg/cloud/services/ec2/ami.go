@@ -49,9 +49,9 @@ const (
 )
 
 func amiName(amiNameFormat, baseOS, kubernetesVersion string) string {
-	amiName := strings.replaceAll(amiNameFormat,"${BASE_OS}", baseOS)
+	amiName := strings.ReplaceAll(amiNameFormat,"${BASE_OS}", baseOS)
 	// strip the v (if present) to be able to match images with or without a v prefix
-	amiName = strings.replaceAll(amiNameFormat,"${K8S_VERSION}", .strings.TrimPrefix(kubernetesVersion, 'v'))
+	amiName = strings.ReplaceAll(amiNameFormat,"${K8S_VERSION}", strings.TrimPrefix(kubernetesVersion, 'v'))
 	return amiName
 }
 
