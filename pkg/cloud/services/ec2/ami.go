@@ -17,7 +17,6 @@ limitations under the License.
 package ec2
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -51,7 +50,7 @@ const (
 func amiName(amiNameFormat, baseOS, kubernetesVersion string) string {
 	amiName := strings.ReplaceAll(amiNameFormat,"${BASE_OS}", baseOS)
 	// strip the v (if present) to be able to match images with or without a v prefix
-	amiName = strings.ReplaceAll(amiNameFormat,"${K8S_VERSION}", strings.TrimPrefix(kubernetesVersion, 'v'))
+	amiName = strings.ReplaceAll(amiNameFormat,"${K8S_VERSION}", strings.TrimPrefix(kubernetesVersion, "v"))
 	return amiName
 }
 
