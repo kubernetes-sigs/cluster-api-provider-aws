@@ -79,7 +79,7 @@ func TestAMIs(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
-			id, err := s.defaultAMILookup("", "base os-baseos version", "1.11.1")
+			id, err := s.defaultAMILookup("","", "base os-baseos version", "1.11.1")
 			if err != nil {
 				t.Fatalf("did not expect error calling a mock: %v", err)
 			}
@@ -140,7 +140,7 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
-			_, err = s.defaultAMILookup("", "base os-baseos version", "1.11.1")
+			_, err = s.defaultAMILookup("","", "base os-baseos version", "1.11.1")
 			if err == nil {
 				t.Fatalf("expected an error but did not get one")
 			}

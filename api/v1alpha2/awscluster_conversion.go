@@ -53,7 +53,9 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		dst.Spec.SSHKeyName = nil
 	}
 
-	dst.Spec.ImageLookupFormat = restored.Spec.ImageLookupFormat
+	if restored.Spec.ImageLookupFormat != nil {
+		dst.Spec.ImageLookupFormat = restored.Spec.ImageLookupFormat
+	}
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
 	dst.Spec.ImageLookupBaseOS = restored.Spec.ImageLookupBaseOS
 	if restored.Spec.ControlPlaneLoadBalancer != nil {
