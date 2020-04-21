@@ -55,7 +55,7 @@ type AWSClusterSpec struct {
 	// ImageLookupFormat is the AMI naming format to look up machine images when
 	// a machine does not specify an AMI. When set, this will be used for all
 	// cluster machines unless a machine specifies a different ImageLookupOrg.
-	// Supports substitutions for ${BASE_OS} and ${K8S_VERSION}.
+	// Supports substitutions for $BASE_OS and $K8S_VERSION.
 	// +optional
 	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
 

@@ -37,7 +37,7 @@ type AWSMachineSpec struct {
 	AMI AWSResourceReference `json:"ami,omitempty"`
 
 	// ImageLookupFormat is the format string used for image lookup if AMI is
-	// not set. Supports substitutions for ${BASE_OS} and ${K8S_VERSION}.
+	// not set. Supports substitutions for $BASE_OS and $K8S_VERSION.
 	// +optional
 	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
 

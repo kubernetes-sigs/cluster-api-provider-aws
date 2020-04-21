@@ -522,8 +522,8 @@ spec:
                 description: ImageLookupFormat is the AMI naming format to look up
                   machine images when a machine does not specify an AMI. When set,
                   this will be used for all cluster machines unless a machine specifies
-                  a different ImageLookupOrg. Supports substitutions for ${BASE_OS}
-                  and ${K8S_VERSION}.
+                  a different ImageLookupOrg. Supports substitutions for $BASE_OS
+                  and $K8S_VERSION.
                 type: string
               imageLookupOrg:
                 description: ImageLookupOrg is the AWS Organization ID to look up
