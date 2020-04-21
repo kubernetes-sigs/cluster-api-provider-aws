@@ -554,7 +554,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("capa-ami-${BASE_OS}-?${K8S_VERSION}-*","ubuntu-18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName("capa-ami-${BASE_OS}-?${K8S_VERSION}-*", "ubuntu-18.04", "v1.16.1"))},
 							},
 							{
 								Name:   aws.String("architecture"),
@@ -677,7 +677,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("capa-ami-${BASE_OS}-?${K8S_VERSION}-*","ubuntu-18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName("capa-ami-${BASE_OS}-?${K8S_VERSION}-*", "ubuntu-18.04", "v1.16.1"))},
 							},
 							{
 								Name:   aws.String("architecture"),
@@ -801,7 +801,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("capa-ami-${BASE_OS}-?${K8S_VERSION}-*","ubuntu-18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName("capa-ami-${BASE_OS}-?${K8S_VERSION}-*", "ubuntu-18.04", "v1.16.1"))},
 							},
 							{
 								Name:   aws.String("architecture"),
