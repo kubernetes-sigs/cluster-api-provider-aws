@@ -34,15 +34,12 @@ spec:
 
 #### Obtain public IP address of the bastion node
 
-Once the workload cluster is up and running after being configured for an SSH bastion host, you can use this AWS CLI command to look up the public IP address of the bastion host (your credentials must let you query the EC2 API):
+Once the workload cluster is up and running after being configured for an SSH bastion host, you can use the `kubectl get awscluster` command to look up the public IP address of the bastion host (make sure the `kubectl` context is set to the management cluster). The output will look something like this:
 
 ```bash
-export BASTION_HOST=$(aws ec2 describe-instances --filter='Name=tag:Name,Values=<CLUSTER_NAME>-bastion' \
-	| jq '.Reservations[].Instances[].PublicIpAddress' -r)
+NAME   CLUSTER   READY   VPC                     BASTION IP
+test   test      true    vpc-1739285ed052be7ad   1.2.3.4
 ```
-
-**NOTE**: If `make manifests` was used to generate manifests, by default the
-`<CLUSTER_NAME>` is set to `test1`.
 
 #### Setting up the SSH key path
 
@@ -55,18 +52,19 @@ export CLUSTER_SSH_KEY=$HOME/.ssh/cluster-api-provider-aws
 
 #### Get private IP addresses of nodes in the cluster
 
-To get the private IP addresses of nodes in the cluster (nodes may be control plane nodes or worker nodes), use this AWS CLI command (note that your credentials must let you query the EC2 API):
+To get the private IP addresses of nodes in the cluster (nodes may be control plane nodes or worker nodes), use this `kubectl` command with the context set to the management cluster:
 
 ```bash
-for type in control-plane node
-do
-	aws ec2 describe-instances \
-    --filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,\
-    Values=${type}" \
-		| jq '.Reservations[].Instances[].PrivateIpAddress' -r
-done
-10.0.0.16
-10.0.0.68
+kubectl get nodes -o custom-columns=NAME:.metadata.name,\
+IP:"{.status.addresses[?(@.type=='InternalIP')].address}"
+```
+
+This will produce output that looks like this:
+
+```bash
+NAME                                         IP
+ip-10-0-0-16.us-west-2.compute.internal   10.0.0.16
+ip-10-0-0-68.us-west-2.compute.internal   10.0.0.68
 ```
 
 The above command returns IP addresses of the nodes in the cluster. In this
@@ -97,7 +95,58 @@ Host 10.0.*
 
 All CAPA-published AMIs based on Ubuntu have the AWS SSM Agent pre-installed (as a Snap package; this was added in June 2018 to the base Ubuntu Server image for all 16.04 and later AMIs). This allows users to access cluster nodes directly, without the need for an SSH bastion host, using the AWS CLI and the Session Manager plugin.
 
-To access a cluster node (control plane node or worker node), you'll need the instance ID. You can retrieve the instance ID using this command:
+To access a cluster node (control plane node or worker node), you'll need the instance ID. You can retrieve the instance ID using this `kubectl` command with the context set to the management cluster:
+
+```bash
+kubectl get awsmachines -o custom-columns=NAME:.metadata.name,INSTANCEID:.spec.providerID
+```
+
+This will produce output similar to this:
+
+```bash
+NAME                      INSTANCEID
+test-controlplane-52fhh   aws:////i-112bac41a19da1819
+test-controlplane-lc5xz   aws:////i-99aaef2381ada9228
+```
+
+Users can then use the instance ID (everything after the `aws:////` prefix) to connect to the cluster node with this command:
+
+```bash
+aws ssm start-session --target <INSTANCE_ID>
+```
+
+This will log you into the cluster node as the `ssm-user` user ID.
+
+## Additional Notes
+
+### Using the AWS CLI instead of `kubectl`
+
+It is also possible to use AWS CLI commands instead of `kubectl` to gather information about the cluster nodes.
+
+For example, to use the AWS CLI to get the public IP address of the SSH bastion host, use this AWS CLI command:
+
+```bash
+export BASTION_HOST=$(aws ec2 describe-instances --filter='Name=tag:Name,Values=<CLUSTER_NAME>-bastion' \
+	| jq '.Reservations[].Instances[].PublicIpAddress' -r)
+```
+
+You should substitute the correct cluster name for `<CLUSTER_NAME>` in the above command. (**NOTE**: If `make manifests` was used to generate manifests, by default the `<CLUSTER_NAME>` is set to `test1`.)
+
+Similarly, to obtain the list of private IP addresses of the cluster nodes, use this AWS CLI command:
+
+```bash
+for type in control-plane node
+do
+	aws ec2 describe-instances \
+    --filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,\
+    Values=${type}" \
+		| jq '.Reservations[].Instances[].PrivateIpAddress' -r
+done
+10.0.0.16
+10.0.0.68
+```
+
+Finally, to obtain AWS instance IDs for cluster nodes, you can use this AWS CLI command:
 
 ```bash
 for type in control-plane node
@@ -111,10 +160,4 @@ i-112bac41a19da1819
 i-99aaef2381ada9228
 ```
 
-Users can then use the instance ID to connect to the cluster node with this command:
-
-```bash
-aws ssm start-session --target <INSTANCE_ID>
-```
-
-This will log you into the cluster node as the `ssm-user` user ID.
+Note that your AWS CLI must be configured with credentials that enable you to query the AWS EC2 API.
