@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
@@ -38,7 +37,7 @@ func (r *Reconciler) create() error {
 	klog.Infof("%s: creating machine", r.machine.Name)
 
 	if err := validateMachine(*r.machine); err != nil {
-		return fmt.Errorf("%v: failed validating machine provider spec: %v", r.machine.GetName(), err)
+		return fmt.Errorf("%v: failed validating machine provider spec: %w", r.machine.GetName(), err)
 	}
 
 	// TODO: remove 45 - 59, this logic is not needed anymore
@@ -54,14 +53,14 @@ func (r *Reconciler) create() error {
 		if !isMaster {
 			// Prevent having a lot of stopped nodes sitting around.
 			if err = removeStoppedMachine(r.machine, r.awsClient); err != nil {
-				return errors.Wrap(err, "unable to remove stopped machines")
+				return fmt.Errorf("unable to remove stopped machines: %w", err)
 			}
 		}
 	}
 
 	userData, err := r.machineScope.getUserData()
 	if err != nil {
-		return errors.Wrap(err, "failed to get user data")
+		return fmt.Errorf("failed to get user data: %w", err)
 	}
 
 	instance, err := launchInstance(r.machine, r.providerSpec, userData, r.awsClient)
@@ -70,21 +69,21 @@ func (r *Reconciler) create() error {
 		conditionFailed := conditionFailed()
 		conditionFailed.Message = err.Error()
 		r.machineScope.setProviderStatus(nil, conditionFailed)
-		return errors.Wrap(err, "failed to launch instance")
+		return fmt.Errorf("failed to launch instance: %w", err)
 	}
 
 	if err = r.updateLoadBalancers(instance); err != nil {
-		return errors.Wrap(err, "Failed to updated update load balancers")
+		return fmt.Errorf("failed to updated update load balancers: %w", err)
 	}
 
 	klog.Infof("Created Machine %v", r.machine.Name)
 
 	if err = r.setProviderID(instance); err != nil {
-		return errors.Wrap(err, "failed to update machine object with providerID")
+		return fmt.Errorf("failed to update machine object with providerID: %w", err)
 	}
 
 	if err = r.setMachineCloudProviderSpecifics(instance); err != nil {
-		return errors.Wrap(err, "failed to set machine cloud provider specifics")
+		return fmt.Errorf("failed to set machine cloud provider specifics: %w", err)
 	}
 
 	r.machineScope.setProviderStatus(instance, conditionSuccess())
@@ -112,7 +111,7 @@ func (r *Reconciler) delete() error {
 
 	terminatingInstances, err := terminateInstances(r.awsClient, existingInstances)
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete instaces")
+		return fmt.Errorf("failed to delete instaces: %w", err)
 	}
 
 	if len(terminatingInstances) == 1 {
@@ -170,7 +169,7 @@ func (r *Reconciler) update() error {
 
 		err = r.updateLoadBalancers(newestInstance)
 		if err != nil {
-			return errors.Wrap(err, "Failed to updated update load balancers")
+			return fmt.Errorf("failed to updated update load balancers: %w", err)
 		}
 	} else {
 		// Didn't find any running instances, just newest existing one.
@@ -179,11 +178,11 @@ func (r *Reconciler) update() error {
 	}
 
 	if err = r.setProviderID(newestInstance); err != nil {
-		return errors.Wrap(err, "failed to update machine object with providerID")
+		return fmt.Errorf("failed to update machine object with providerID: %w", err)
 	}
 
 	if err = r.setMachineCloudProviderSpecifics(newestInstance); err != nil {
-		return errors.Wrap(err, "failed to set machine cloud provider specifics")
+		return fmt.Errorf("failed to set machine cloud provider specifics: %w", err)
 	}
 
 	klog.Infof("Updated machine %s", r.machine.Name)
@@ -319,7 +318,7 @@ func (r *Reconciler) setMachineCloudProviderSpecifics(instance *ec2.Instance) er
 	// providing by *ec2.Instance object
 	machineProviderConfig, err := awsproviderv1.ProviderSpecFromRawExtension(r.machine.Spec.ProviderSpec.Value)
 	if err != nil {
-		return errors.Wrapf(err, "error decoding MachineProviderConfig")
+		return fmt.Errorf("error decoding MachineProviderConfig: %w", err)
 	}
 
 	r.machine.Labels[machinecontroller.MachineRegionLabelName] = machineProviderConfig.Placement.Region

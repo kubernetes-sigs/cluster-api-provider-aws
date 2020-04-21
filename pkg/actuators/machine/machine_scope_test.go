@@ -14,13 +14,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 const testNamespace = "aws-test"
@@ -157,21 +156,10 @@ func TestPatchMachine(t *testing.T) {
 		g.Expect(testEnv.Stop()).To(Succeed())
 	}()
 
-	mgr, err := manager.New(cfg, manager.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0",
-	})
-	g.Expect(err).ToNot(HaveOccurred())
-
-	doneMgr := make(chan struct{})
-	go func() {
-		g.Expect(mgr.Start(doneMgr)).To(Succeed())
-	}()
-	defer close(doneMgr)
-
 	// END: setup test environment
 
-	k8sClient := mgr.GetClient()
+	k8sClient, err := client.New(cfg, client.Options{})
+	g.Expect(err).ToNot(HaveOccurred())
 
 	awsCredentialsSecret := stubAwsCredentialsSecret()
 	g.Expect(k8sClient.Create(context.TODO(), awsCredentialsSecret)).To(Succeed())
