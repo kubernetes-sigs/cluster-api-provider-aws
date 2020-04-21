@@ -17,8 +17,10 @@ limitations under the License.
 package ec2
 
 import (
+	"bytes"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,17 +43,36 @@ const (
 	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
 	// 3. the kubernetes version as defined by the packages produced by kubernetes/release with or without v as a prefix, for example: 1.13.0, 1.12.5-mybuild.1, v1.17.3
 	// 4. a `-` followed by any additional characters
-	defaultAmiNameFormat = "capa-ami-${BASE_OS}-?${K8S_VERSION}-*"
+	defaultAmiNameFormat = "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*"
 
 	// Amazon's AMI timestamp format
 	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
 )
 
+// AMILookup contains the parameters used to template AMI names used for lookup.
+type AMILookup struct {
+	BaseOS     string
+	K8sVersion string
+}
+
 func amiName(amiNameFormat, baseOS, kubernetesVersion string) string {
-	amiName := strings.ReplaceAll(amiNameFormat, "${BASE_OS}", baseOS)
-	// strip the v (if present) to be able to match images with or without a v prefix
-	amiName = strings.ReplaceAll(amiName, "${K8S_VERSION}", strings.TrimPrefix(kubernetesVersion, "v"))
-	return amiName
+	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
+	// revert to default if not specified
+	if amiNameFormat == "" {
+		amiNameFormat = defaultAmiNameFormat
+	}
+	var templateBytes bytes.Buffer
+	template, err := template.New("amiName").Parse(amiNameFormat)
+	if err != nil {
+		errors.Wrapf(err, "failed create template from string: %q", amiNameFormat)
+		return amiNameFormat
+	}
+	err = template.Execute(&templateBytes, amiNameParameters)
+	if err != nil {
+		errors.Wrapf(err, "failed to substitute string: %q", amiNameFormat)
+		return amiNameFormat
+	}
+	return templateBytes.String()
 }
 
 // defaultAMILookup returns the default AMI based on region

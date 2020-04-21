@@ -36,8 +36,14 @@ type AWSMachineSpec struct {
 	// AMI is the reference to the AMI from which to create the machine instance.
 	AMI AWSResourceReference `json:"ami,omitempty"`
 
-	// ImageLookupFormat is the format string used for image lookup if AMI is
-	// not set. Supports substitutions for $BASE_OS and $K8S_VERSION.
+	// ImageLookupFormat is the AMI naming format to look up machine images when
+	// a machine does not specify an AMI. When set, this will be used for all
+	// cluster machines unless a machine specifies a different ImageLookupOrg.
+	// Supports substitutions for {{.BaseOS}} and {{.K8sVersion}} of the base OS
+	// of the AMI and the kubernetes version as defined by the packages produced
+	// by kubernetes/release with or without v as a prefix, for example: 1.13.0,
+	// 1.12.5-mybuild.1, v1.17.3 respectively. See golang templates
+	// https://golang.org/pkg/text/template/.
 	// +optional
 	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
 
