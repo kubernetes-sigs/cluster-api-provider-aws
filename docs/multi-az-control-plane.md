@@ -33,7 +33,7 @@ spec:
 
 Specifying the CIDR block alone for the VPC is not enough; users must also supply a list of subnets that provides the desired AZ, the CIDR for the subnet, and whether the subnet is public (has a route to an Internet gateway) or is private (does not have a route to an Internet gateway).
 
-Note that CAPA insists that there must be a public subnet (and associated Internet gateway) in order to place a control plane node in that AZ, even if the control plane load balancer is configured to be an internal load balancer. Therefore, for every AZ where a control plane node should be placed, the `networkSpec` object must define both a public and private subnet.
+Note that CAPA insists that there must be a public subnet (and associated Internet gateway), even if no public load balancer is requested for the control plane. Therefore, for every AZ where a control plane node should be placed, the `networkSpec` object must define both a public and private subnet.
 
 Once CAPA is provided with a `networkSpec` that spans multiple AZs, the KubeadmControlPlane controller will automatically distribute control plane nodes across multiple AZs. No further configuration from the user is required.
 
