@@ -544,6 +544,10 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				amiName, err := amiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				if err != nil {
+					t.Fatalf("Failed to process ami format: %v", err)
+				}
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
 					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
@@ -554,7 +558,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName)},
 							},
 							{
 								Name:   aws.String("architecture"),
@@ -667,6 +671,10 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				amiName, err := amiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				if err != nil {
+					t.Fatalf("Failed to process ami format: %v", err)
+				}
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
 					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
@@ -677,7 +685,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName)},
 							},
 							{
 								Name:   aws.String("architecture"),
@@ -791,6 +799,10 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				amiName, err := amiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1")
+				if err != nil {
+					t.Fatalf("Failed to process ami format: %v", err)
+				}
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
 					DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
@@ -801,7 +813,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "v1.16.1"))},
+								Values: []*string{aws.String(amiName)},
 							},
 							{
 								Name:   aws.String("architecture"),

@@ -55,7 +55,7 @@ type AMILookup struct {
 	K8sVersion string
 }
 
-func amiName(amiNameFormat, baseOS, kubernetesVersion string) string {
+func amiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
 	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
 	// revert to default if not specified
 	if amiNameFormat == "" {
@@ -64,15 +64,13 @@ func amiName(amiNameFormat, baseOS, kubernetesVersion string) string {
 	var templateBytes bytes.Buffer
 	template, err := template.New("amiName").Parse(amiNameFormat)
 	if err != nil {
-		errors.Wrapf(err, "failed create template from string: %q", amiNameFormat)
-		return amiNameFormat
+		return amiNameFormat, errors.Wrapf(err, "failed create template from string: %q", amiNameFormat)
 	}
 	err = template.Execute(&templateBytes, amiNameParameters)
 	if err != nil {
-		errors.Wrapf(err, "failed to substitute string: %q", amiNameFormat)
-		return amiNameFormat
+		return amiNameFormat, errors.Wrapf(err, "failed to substitute string: %q", amiNameFormat)
 	}
-	return templateBytes.String()
+	return templateBytes.String(), nil
 }
 
 // defaultAMILookup returns the default AMI based on region
@@ -86,6 +84,10 @@ func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVer
 	if baseOS == "" {
 		baseOS = defaultMachineAMILookupBaseOS
 	}
+	amiName, err := amiName(amiNameFormat, baseOS, kubernetesVersion)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
+	}
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -94,7 +96,7 @@ func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVer
 			},
 			{
 				Name:   aws.String("name"),
-				Values: []*string{aws.String(amiName(amiNameFormat, baseOS, kubernetesVersion))},
+				Values: []*string{aws.String(amiName)},
 			},
 			{
 				Name:   aws.String("architecture"),
@@ -113,10 +115,10 @@ func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVer
 
 	out, err := s.scope.EC2.DescribeImages(describeImageInput)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to find ami: %q", amiName(amiNameFormat, baseOS, kubernetesVersion))
+		return "", errors.Wrapf(err, "failed to find ami: %q", amiName)
 	}
 	if len(out.Images) == 0 {
-		return "", errors.Errorf("found no AMIs with the name: %q", amiName(amiNameFormat, baseOS, kubernetesVersion))
+		return "", errors.Errorf("found no AMIs with the name: %q", amiName)
 	}
 	latestImage, err := getLatestImage(out.Images)
 	if err != nil {
