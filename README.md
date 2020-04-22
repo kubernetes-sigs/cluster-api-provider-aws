@@ -81,13 +81,16 @@ Note: These AMIs are not updated for security fixes and it is recommended to alw
 |                          | v1.16.6                 |
 |                          | v1.16.7                 |
 |                          | v1.16.8                 |
+|                          | v1.16.9                 |
 | v1.17                    | v1.17.0                 |
 |                          | v1.17.1                 |
 |                          | v1.17.2                 |
 |                          | v1.17.3                 |
 |                          | v1.17.4                 |
+|                          | v1.17.5                 |
 | v1.18                    | v1.18.0                 |
 |                          | v1.18.1                 |
+|                          | v1.18.2                 |
 
 ------
 
