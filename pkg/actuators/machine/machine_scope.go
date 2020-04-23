@@ -3,6 +3,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
@@ -17,6 +18,9 @@ import (
 const (
 	userDataSecretKey = "userData"
 )
+
+// dhcpDomainKeyName is a variable so we can reference it in unit tests.
+var dhcpDomainKeyName = "domain-name"
 
 // machineScopeParams defines the input parameters used to create a new MachineScope.
 type machineScopeParams struct {
@@ -144,7 +148,13 @@ func (s *machineScope) setProviderStatus(instance *ec2.Instance, condition awspr
 		s.providerStatus.InstanceID = instance.InstanceId
 		s.providerStatus.InstanceState = instance.State.Name
 
-		addresses, err := extractNodeAddresses(instance)
+		domainNames, err := s.getCustomDomainFromDHCP(instance.VpcId)
+
+		if err != nil {
+			return err
+		}
+
+		addresses, err := extractNodeAddresses(instance, domainNames)
 		if err != nil {
 			klog.Errorf("%s: Error extracting instance IP addresses: %v", s.machine.Name, err)
 			return err
@@ -158,4 +168,37 @@ func (s *machineScope) setProviderStatus(instance *ec2.Instance, condition awspr
 	s.providerStatus.Conditions = setAWSMachineProviderCondition(condition, s.providerStatus.Conditions)
 
 	return nil
+}
+
+func (s *machineScope) getCustomDomainFromDHCP(vpcID *string) ([]string, error) {
+	vpc, err := s.awsClient.DescribeVpcs(&ec2.DescribeVpcsInput{
+		VpcIds: []*string{vpcID},
+	})
+	if err != nil {
+		klog.Errorf("%s: error describing vpc: %v", s.machine.Name, err)
+		return nil, err
+	}
+
+	if len(vpc.Vpcs) == 0 || vpc.Vpcs[0] == nil || vpc.Vpcs[0].DhcpOptionsId == nil {
+		return nil, nil
+	}
+
+	dhcp, err := s.awsClient.DescribeDHCPOptions(&ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []*string{vpc.Vpcs[0].DhcpOptionsId},
+	})
+	if err != nil {
+		klog.Errorf("%s: error describing dhcp: %v", s.machine.Name, err)
+		return nil, err
+	}
+
+	if dhcp == nil || len(dhcp.DhcpOptions) == 0 || dhcp.DhcpOptions[0] == nil {
+		return nil, nil
+	}
+
+	for _, i := range dhcp.DhcpOptions[0].DhcpConfigurations {
+		if i.Key != nil && *i.Key == dhcpDomainKeyName && len(i.Values) > 0 && i.Values[0] != nil && i.Values[0].Value != nil {
+			return strings.Split(*i.Values[0].Value, " "), nil
+		}
+	}
+	return nil, nil
 }

@@ -5,9 +5,12 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
+	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -284,5 +288,57 @@ func TestPatchMachine(t *testing.T) {
 			gs.Eventually(getMachine, timeout).Should(Succeed())
 			gs.Expect(machine.ResourceVersion).To(Equal(machineResourceVersion))
 		})
+	}
+}
+
+func TestGetCustomDomainFromDHCP(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	mockAWSClient := mockaws.NewMockClient(mockCtrl)
+	dhcpID := "someID"
+	expectedDomains := "openshift.com openshift.io"
+	mockAWSClient.EXPECT().DescribeVpcs(gomock.Any()).Return(&ec2.DescribeVpcsOutput{
+		Vpcs: []*ec2.Vpc{
+			&ec2.Vpc{DhcpOptionsId: &dhcpID},
+		},
+	}, nil).AnyTimes()
+
+	mockAWSClient.EXPECT().DescribeDHCPOptions(gomock.Any()).Return(&ec2.DescribeDhcpOptionsOutput{
+		DhcpOptions: []*ec2.DhcpOptions{
+			&ec2.DhcpOptions{
+				DhcpConfigurations: []*ec2.DhcpConfiguration{
+					&ec2.DhcpConfiguration{
+						Key: &dhcpDomainKeyName,
+						Values: []*ec2.AttributeValue{
+							&ec2.AttributeValue{
+								Value: &expectedDomains,
+							},
+						},
+					},
+				},
+			},
+		},
+	}, nil).AnyTimes()
+
+	testCases := []struct {
+		description string
+		expected    []string
+	}{
+		{
+			description: "Returns two",
+			expected:    []string{"openshift.com", "openshift.io"},
+		},
+	}
+
+	for _, tc := range testCases {
+		mS := machineScope{
+			awsClient: mockAWSClient,
+		}
+		got, err := mS.getCustomDomainFromDHCP(nil)
+		if err != nil {
+			t.Errorf("error when calling getCustomDomainFromDHCP: %v", err)
+		}
+		if !reflect.DeepEqual(got, tc.expected) {
+			t.Errorf("Case: %s. Got: %v, expected: %v", tc.description, got, tc.expected)
+		}
 	}
 }

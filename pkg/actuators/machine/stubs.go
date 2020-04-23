@@ -279,3 +279,31 @@ func stubDescribeInstancesOutput(imageID, instanceID string, state string) *ec2.
 		},
 	}
 }
+
+// StubDescribeDHCPOptions provides fake output
+func StubDescribeDHCPOptions() (*ec2.DescribeDhcpOptionsOutput, error) {
+	key := "key"
+	return &ec2.DescribeDhcpOptionsOutput{
+		DhcpOptions: []*ec2.DhcpOptions{
+			&ec2.DhcpOptions{
+				DhcpConfigurations: []*ec2.DhcpConfiguration{
+					&ec2.DhcpConfiguration{
+						Key:    &key,
+						Values: []*ec2.AttributeValue{},
+					},
+				},
+			},
+		},
+	}, nil
+}
+
+// StubDescribeVPCs provides fake output
+func StubDescribeVPCs() (*ec2.DescribeVpcsOutput, error) {
+	return &ec2.DescribeVpcsOutput{
+		Vpcs: []*ec2.Vpc{
+			{
+				VpcId: aws.String("vpc-32677e0e794418639"),
+			},
+		},
+	}, nil
+}

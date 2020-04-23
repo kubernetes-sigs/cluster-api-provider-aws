@@ -21,6 +21,7 @@ func TestExtractNodeAddresses(t *testing.T) {
 		testcase          string
 		instance          *ec2.Instance
 		expectedAddresses []corev1.NodeAddress
+		domainNames       []string
 	}{
 		{
 			testcase: "one-public",
@@ -32,6 +33,7 @@ func TestExtractNodeAddresses(t *testing.T) {
 				{Type: corev1.NodeExternalIP, Address: "1.1.1.1"},
 				{Type: corev1.NodeExternalDNS, Address: "ec2.example.net"},
 			},
+			domainNames: nil,
 		},
 		{
 			testcase: "one-private",
@@ -54,6 +56,55 @@ func TestExtractNodeAddresses(t *testing.T) {
 				{Type: corev1.NodeInternalDNS, Address: "ec2.example.net"},
 				{Type: corev1.NodeHostName, Address: "ec2.example.net"},
 			},
+			domainNames: nil,
+		},
+		{
+			testcase: "custom-domain",
+			instance: &ec2.Instance{
+				PrivateDnsName: aws.String("ec2.example.net"),
+				NetworkInterfaces: []*ec2.InstanceNetworkInterface{
+					{
+						Status: aws.String(ec2.NetworkInterfaceStatusInUse),
+						PrivateIpAddresses: []*ec2.InstancePrivateIpAddress{
+							{
+								Primary:          aws.Bool(true),
+								PrivateIpAddress: aws.String("10.0.0.5"),
+							},
+						},
+					},
+				},
+			},
+			expectedAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeInternalIP, Address: "10.0.0.5"},
+				{Type: corev1.NodeInternalDNS, Address: "ec2.example.net"},
+				{Type: corev1.NodeHostName, Address: "ec2.example.net"},
+				{Type: corev1.NodeInternalDNS, Address: "ec2.openshift.com"},
+				{Type: corev1.NodeInternalDNS, Address: "ec2.openshift.io"},
+			},
+			domainNames: []string{"openshift.com", "openshift.io"},
+		},
+		{
+			testcase: "custom-domain no duplicates",
+			instance: &ec2.Instance{
+				PrivateDnsName: aws.String("ec2.example.net"),
+				NetworkInterfaces: []*ec2.InstanceNetworkInterface{
+					{
+						Status: aws.String(ec2.NetworkInterfaceStatusInUse),
+						PrivateIpAddresses: []*ec2.InstancePrivateIpAddress{
+							{
+								Primary:          aws.Bool(true),
+								PrivateIpAddress: aws.String("10.0.0.5"),
+							},
+						},
+					},
+				},
+			},
+			expectedAddresses: []corev1.NodeAddress{
+				{Type: corev1.NodeInternalIP, Address: "10.0.0.5"},
+				{Type: corev1.NodeInternalDNS, Address: "ec2.example.net"},
+				{Type: corev1.NodeHostName, Address: "ec2.example.net"},
+			},
+			domainNames: []string{"example.net", "example.net"},
 		},
 		{
 			testcase: "multiple-private",
@@ -86,6 +137,7 @@ func TestExtractNodeAddresses(t *testing.T) {
 				{Type: corev1.NodeInternalDNS, Address: "ec2.example.net"},
 				{Type: corev1.NodeHostName, Address: "ec2.example.net"},
 			},
+			domainNames: nil,
 		},
 		{
 			testcase: "ipv6-private",
@@ -114,12 +166,13 @@ func TestExtractNodeAddresses(t *testing.T) {
 				{Type: corev1.NodeInternalDNS, Address: "ec2.example.net"},
 				{Type: corev1.NodeHostName, Address: "ec2.example.net"},
 			},
+			domainNames: nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.testcase, func(t *testing.T) {
-			addresses, err := extractNodeAddresses(tc.instance)
+			addresses, err := extractNodeAddresses(tc.instance, tc.domainNames)
 			if err != nil {
 				t.Errorf("Unexpected extractNodeAddresses error: %v", err)
 			}
