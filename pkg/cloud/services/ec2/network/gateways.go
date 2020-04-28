@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"fmt"
@@ -67,7 +67,7 @@ func (s *Service) reconcileInternetGateways() error {
 		}
 		return true, nil
 	}, awserrors.InternetGatewayNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", gateway.InternetGatewayId, err)
+		record.Warnf(s.scope.Target, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", gateway.InternetGatewayId, err)
 		return errors.Wrapf(err, "failed to tag internet gateway %q", *gateway.InternetGatewayId)
 	}
 
@@ -94,11 +94,11 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		if _, err := s.scope.EC2.DetachInternetGateway(detachReq); err != nil {
-			record.Warnf(s.scope.AWSCluster, "FailedDetachInternetGateway", "Failed to detach Internet Gateway %q from VPC %q: %v", *ig.InternetGatewayId, s.scope.VPC().ID, err)
+			record.Warnf(s.scope.Target, "FailedDetachInternetGateway", "Failed to detach Internet Gateway %q from VPC %q: %v", *ig.InternetGatewayId, s.scope.VPC().ID, err)
 			return errors.Wrapf(err, "failed to detach internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		record.Eventf(s.scope.AWSCluster, "SuccessfulDetachInternetGateway", "Detached Internet Gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
+		record.Eventf(s.scope.Target, "SuccessfulDetachInternetGateway", "Detached Internet Gateway %q from VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 		s.scope.Info("Detached internet gateway from VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 		deleteReq := &ec2.DeleteInternetGatewayInput{
@@ -106,11 +106,11 @@ func (s *Service) deleteInternetGateways() error {
 		}
 
 		if _, err = s.scope.EC2.DeleteInternetGateway(deleteReq); err != nil {
-			record.Warnf(s.scope.AWSCluster, "FailedDeleteInternetGateway", "Failed to delete Internet Gateway %q previously attached to VPC %q: %v", *ig.InternetGatewayId, s.scope.VPC().ID, err)
+			record.Warnf(s.scope.Target, "FailedDeleteInternetGateway", "Failed to delete Internet Gateway %q previously attached to VPC %q: %v", *ig.InternetGatewayId, s.scope.VPC().ID, err)
 			return errors.Wrapf(err, "failed to delete internet gateway %q", *ig.InternetGatewayId)
 		}
 
-		record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteInternetGateway", "Deleted Internet Gateway %q previously attached to VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
+		record.Eventf(s.scope.Target, "SuccessfulDeleteInternetGateway", "Deleted Internet Gateway %q previously attached to VPC %q", *ig.InternetGatewayId, s.scope.VPC().ID)
 		s.scope.Info("Deleted internet gateway in VPC", "internet-gateway-id", *ig.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 	}
 
@@ -120,10 +120,10 @@ func (s *Service) deleteInternetGateways() error {
 func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 	ig, err := s.scope.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedCreateInternetGateway", "Failed to create new managed Internet Gateway: %v", err)
+		record.Warnf(s.scope.Target, "FailedCreateInternetGateway", "Failed to create new managed Internet Gateway: %v", err)
 		return nil, errors.Wrap(err, "failed to create internet gateway")
 	}
-	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateInternetGateway", "Created new managed Internet Gateway %q", *ig.InternetGateway.InternetGatewayId)
+	record.Eventf(s.scope.Target, "SuccessfulCreateInternetGateway", "Created new managed Internet Gateway %q", *ig.InternetGateway.InternetGatewayId)
 	s.scope.Info("Created internet gateway for VPC", "vpc-id", s.scope.VPC().ID)
 
 	tagParams := s.getGatewayTagParams(*ig.InternetGateway.InternetGatewayId)
@@ -136,7 +136,7 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 		}
 		return true, nil
 	}, awserrors.InternetGatewayNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", *ig.InternetGateway.InternetGatewayId, err)
+		record.Warnf(s.scope.Target, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", *ig.InternetGateway.InternetGatewayId, err)
 		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
 	}
 
@@ -152,10 +152,10 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 		}
 		return true, nil
 	}, awserrors.InternetGatewayNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedAttachInternetGateway", "Failed to attach managed Internet Gateway %q to vpc %q: %v", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID, err)
+		record.Warnf(s.scope.Target, "FailedAttachInternetGateway", "Failed to attach managed Internet Gateway %q to vpc %q: %v", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to attach internet gateway %q to vpc %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	}
-	record.Eventf(s.scope.AWSCluster, "SuccessfulAttachInternetGateway", "Internet Gateway %q attached to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
+	record.Eventf(s.scope.Target, "SuccessfulAttachInternetGateway", "Internet Gateway %q attached to VPC %q", *ig.InternetGateway.InternetGatewayId, s.scope.VPC().ID)
 	s.scope.Info("attached internet gateway to VPC", "internet-gateway-id", *ig.InternetGateway.InternetGatewayId, "vpc-id", s.scope.VPC().ID)
 
 	return ig.InternetGateway, nil

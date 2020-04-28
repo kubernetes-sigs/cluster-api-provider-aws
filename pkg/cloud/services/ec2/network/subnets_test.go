@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"encoding/json"
@@ -531,7 +531,7 @@ func TestReconcileSubnets(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(scope.NetworkScope)
 			if err := s.reconcileSubnets(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
@@ -699,12 +699,12 @@ func TestDiscoverSubnets(t *testing.T) {
 
 			tc.mocks(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(scope.NetworkScope)
 			if err := s.reconcileSubnets(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 
-			subnets := s.scope.AWSCluster.Spec.NetworkSpec.Subnets
+			subnets := s.scope.Subnets()
 			out := make(map[string]*infrav1.SubnetSpec)
 			for _, sn := range subnets {
 				out[sn.ID] = sn

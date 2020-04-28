@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"fmt"
@@ -68,7 +68,7 @@ func (s *Service) reconcileNatGateways() error {
 				}
 				return true, nil
 			}, awserrors.ResourceNotFound); err != nil {
-				record.Warnf(s.scope.AWSCluster, "FailedTagNATGateway", "Failed to tag managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
+				record.Warnf(s.scope.Target, "FailedTagNATGateway", "Failed to tag managed NAT Gateway %q: %v", *ngw.NatGatewayId, err)
 				return errors.Wrapf(err, "failed to tag nat gateway %q", *ngw.NatGatewayId)
 			}
 
@@ -175,10 +175,10 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		}
 		return true, nil
 	}, awserrors.InvalidSubnet); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedCreateNATGateway", "Failed to create new NAT Gateway: %v", err)
+		record.Warnf(s.scope.Target, "FailedCreateNATGateway", "Failed to create new NAT Gateway: %v", err)
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
-	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
+	record.Eventf(s.scope.Target, "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
@@ -189,11 +189,11 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		}
 		return true, nil
 	}, awserrors.ResourceNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagNATGateway", "Failed to tag NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
+		record.Warnf(s.scope.Target, "FailedTagNATGateway", "Failed to tag NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
 		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulTagNATGateway", "Tagged NAT Gateway %q", *out.NatGateway.NatGatewayId)
+	record.Eventf(s.scope.Target, "SuccessfulTagNATGateway", "Tagged NAT Gateway %q", *out.NatGateway.NatGatewayId)
 	s.scope.Info("Created NAT gateway for subnet, waiting for it to become available...", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
@@ -210,10 +210,10 @@ func (s *Service) deleteNatGateway(id string) error {
 		NatGatewayId: aws.String(id),
 	})
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedDeleteNATGateway", "Failed to delete NAT Gateway %q previously attached to VPC %q: %v", id, s.scope.VPC().ID, err)
+		record.Warnf(s.scope.Target, "FailedDeleteNATGateway", "Failed to delete NAT Gateway %q previously attached to VPC %q: %v", id, s.scope.VPC().ID, err)
 		return errors.Wrapf(err, "failed to delete nat gateway %q", id)
 	}
-	record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteNATGateway", "Deleted NAT Gateway %q previously attached to VPC %q", id, s.scope.VPC().ID)
+	record.Eventf(s.scope.Target, "SuccessfulDeleteNATGateway", "Deleted NAT Gateway %q previously attached to VPC %q", id, s.scope.VPC().ID)
 	s.scope.Info("Deleted NAT gateway in VPC", "nat-gateway-id", id, "vpc-id", s.scope.VPC().ID)
 
 	describeInput := &ec2.DescribeNatGatewaysInput{

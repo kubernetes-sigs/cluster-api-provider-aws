@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"fmt"
@@ -52,7 +52,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 	})
 
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedAllocateEIP", "Failed to allocate Elastic IP for %q: %v", role, err)
+		record.Warnf(s.scope.Target, "FailedAllocateEIP", "Failed to allocate Elastic IP for %q: %v", role, err)
 		return "", errors.Wrap(err, "failed to allocate Elastic IP")
 	}
 
@@ -103,7 +103,7 @@ func (s *Service) disassociateAddress(ip *ec2.Address) error {
 		return true, nil
 	}, awserrors.AuthFailure)
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+		record.Warnf(s.scope.Target, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
 		return errors.Wrapf(err, "failed to disassociate Elastic IP %q", *ip.AllocationId)
 	}
 	return nil
@@ -125,7 +125,7 @@ func (s *Service) releaseAddresses() error {
 				AssociationId: ip.AssociationId,
 			})
 			if err != nil {
-				record.Warnf(s.scope.AWSCluster, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+				record.Warnf(s.scope.Target, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
 				return errors.Errorf("failed to disassociate Elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
 			}
 		}
@@ -144,7 +144,7 @@ func (s *Service) releaseAddresses() error {
 			return true, nil
 		}, awserrors.AuthFailure, awserrors.InUseIPAddress)
 		if err != nil {
-			record.Warnf(s.scope.AWSCluster, "FailedReleaseEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+			record.Warnf(s.scope.Target, "FailedReleaseEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
 			return errors.Wrapf(err, "failed to release ElasticIP %q", *ip.AllocationId)
 		}
 

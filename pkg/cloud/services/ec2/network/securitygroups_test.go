@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"fmt"
@@ -269,7 +269,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(scope.NetworkScope)
 			if err := s.reconcileSecurityGroups(); err != nil && tc.err != nil {
 				if !strings.Contains(err.Error(), tc.err.Error()) {
 					t.Fatalf("was expecting error to look like '%v', but got '%v'", tc.err, err)
@@ -292,7 +292,7 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 		t.Fatalf("Failed to create test context: %v", err)
 	}
 
-	s := NewService(scope)
+	s := NewService(scope.NetworkScope)
 	rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
 	if err != nil {
 		t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)

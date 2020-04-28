@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"fmt"
@@ -195,11 +195,11 @@ func (s *Service) deleteSecurityGroup(sg *infrav1.SecurityGroup, typ string) err
 	}
 
 	if _, err := s.scope.EC2.DeleteSecurityGroup(input); awserrors.IsIgnorableSecurityGroupError(err) != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedDeleteSecurityGroup", "Failed to delete %s SecurityGroup %q: %v", typ, sg.ID, err)
+		record.Warnf(s.scope.Target, "FailedDeleteSecurityGroup", "Failed to delete %s SecurityGroup %q: %v", typ, sg.ID, err)
 		return errors.Wrapf(err, "failed to delete security group %q", sg.ID)
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteSecurityGroup", "Deleted %s SecurityGroup %q", typ, sg.ID)
+	record.Eventf(s.scope.Target, "SuccessfulDeleteSecurityGroup", "Deleted %s SecurityGroup %q", typ, sg.ID)
 	s.scope.V(2).Info("Deleted security group", "security-group-id", sg.ID, "kind", typ)
 
 	return nil
@@ -273,11 +273,11 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 	})
 
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedCreateSecurityGroup", "Failed to create managed SecurityGroup for Role %q: %v", role, err)
+		record.Warnf(s.scope.Target, "FailedCreateSecurityGroup", "Failed to create managed SecurityGroup for Role %q: %v", role, err)
 		return errors.Wrapf(err, "failed to create security group %q in vpc %q", role, aws.StringValue(input.VpcId))
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %q for Role %q", aws.StringValue(out.GroupId), role)
+	record.Eventf(s.scope.Target, "SuccessfulCreateSecurityGroup", "Created managed SecurityGroup %q for Role %q", aws.StringValue(out.GroupId), role)
 
 	// Set the group id.
 	input.GroupId = out.GroupId
@@ -292,11 +292,11 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 		}
 		return true, nil
 	}, awserrors.GroupNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagSecurityGroup", "Failed to tag managed SecurityGroup %q: %v", aws.StringValue(out.GroupId), err)
+		record.Warnf(s.scope.Target, "FailedTagSecurityGroup", "Failed to tag managed SecurityGroup %q: %v", aws.StringValue(out.GroupId), err)
 		return errors.Wrapf(err, "failed to tag security group %q in vpc %q", aws.StringValue(out.GroupId), aws.StringValue(input.VpcId))
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulTagSecurityGroup", "Tagged managed SecurityGroup %q", aws.StringValue(out.GroupId))
+	record.Eventf(s.scope.Target, "SuccessfulTagSecurityGroup", "Tagged managed SecurityGroup %q", aws.StringValue(out.GroupId))
 	return nil
 }
 
@@ -307,11 +307,11 @@ func (s *Service) authorizeSecurityGroupIngressRules(id string, rules infrav1.In
 	}
 
 	if _, err := s.scope.EC2.AuthorizeSecurityGroupIngress(input); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedAuthorizeSecurityGroupIngressRules", "Failed to authorize security group ingress rules %v for SecurityGroup %q: %v", rules, id, err)
+		record.Warnf(s.scope.Target, "FailedAuthorizeSecurityGroupIngressRules", "Failed to authorize security group ingress rules %v for SecurityGroup %q: %v", rules, id, err)
 		return errors.Wrapf(err, "failed to authorize security group %q ingress rules: %v", id, rules)
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulAuthorizeSecurityGroupIngressRules", "Authorized security group ingress rules %v for SecurityGroup %q", rules, id)
+	record.Eventf(s.scope.Target, "SuccessfulAuthorizeSecurityGroupIngressRules", "Authorized security group ingress rules %v for SecurityGroup %q", rules, id)
 	return nil
 }
 
@@ -322,11 +322,11 @@ func (s *Service) revokeSecurityGroupIngressRules(id string, rules infrav1.Ingre
 	}
 
 	if _, err := s.scope.EC2.RevokeSecurityGroupIngress(input); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedRevokeSecurityGroupIngressRules", "Failed to revoke security group ingress rules %v for SecurityGroup %q: %v", rules, id, err)
+		record.Warnf(s.scope.Target, "FailedRevokeSecurityGroupIngressRules", "Failed to revoke security group ingress rules %v for SecurityGroup %q: %v", rules, id, err)
 		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", id, rules)
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked security group ingress rules %v for SecurityGroup %q", rules, id)
+	record.Eventf(s.scope.Target, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked security group ingress rules %v for SecurityGroup %q", rules, id)
 	return nil
 }
 
@@ -345,10 +345,10 @@ func (s *Service) revokeAllSecurityGroupIngressRules(id string) error {
 				IpPermissions: sg.IpPermissions,
 			}
 			if _, err := s.scope.EC2.RevokeSecurityGroupIngress(revokeInput); err != nil {
-				record.Warnf(s.scope.AWSCluster, "FailedRevokeSecurityGroupIngressRules", "Failed to revoke all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
+				record.Warnf(s.scope.Target, "FailedRevokeSecurityGroupIngressRules", "Failed to revoke all security group ingress rules for SecurityGroup %q: %v", *sg.GroupId, err)
 				return errors.Wrapf(err, "failed to revoke security group %q ingress rules", id)
 			}
-			record.Eventf(s.scope.AWSCluster, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked all security group ingress rules for SecurityGroup %q", *sg.GroupId)
+			record.Eventf(s.scope.Target, "SuccessfulRevokeSecurityGroupIngressRules", "Revoked all security group ingress rules for SecurityGroup %q", *sg.GroupId)
 		}
 	}
 

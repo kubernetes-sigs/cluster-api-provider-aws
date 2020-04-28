@@ -102,14 +102,41 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
+
+	networkScope, err := newNetworkScopeFromCluster(&params)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create network scope from cluster scope")
+	}
+
 	return &ClusterScope{
-		Logger:      params.Logger,
-		client:      params.Client,
-		AWSClients:  params.AWSClients,
-		Cluster:     params.Cluster,
-		AWSCluster:  params.AWSCluster,
-		patchHelper: helper,
+		Logger:       params.Logger,
+		client:       params.Client,
+		AWSClients:   params.AWSClients,
+		Cluster:      params.Cluster,
+		AWSCluster:   params.AWSCluster,
+		patchHelper:  helper,
+		NetworkScope: networkScope,
 	}, nil
+}
+
+func newNetworkScopeFromCluster(clusterParams *ClusterScopeParams) (*ClusterNetworkScope, error) {
+	params := &ClusterNetworkScopeParams{
+		Client:         clusterParams.Client,
+		Logger:         clusterParams.Logger,
+		Cluster:        clusterParams.Cluster,
+		Target:         interface{}(clusterParams.AWSCluster).(runtime.Object),
+		NetworkSpec:    &clusterParams.AWSCluster.Spec.NetworkSpec,
+		NetworkStatus:  &clusterParams.AWSCluster.Status.Network,
+		Region:         clusterParams.AWSCluster.Spec.Region,
+		AWSClients:     clusterParams.AWSClients,
+		AdditionalTags: clusterParams.AWSCluster.Labels,
+	}
+
+	if clusterParams.Cluster.Spec.ClusterNetwork != nil && clusterParams.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
+		params.APIServerPort = clusterParams.Cluster.Spec.ClusterNetwork.APIServerPort
+	}
+
+	return NewClusterNetworkScope(*params)
 }
 
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
@@ -132,6 +159,8 @@ type ClusterScope struct {
 	AWSClients
 	Cluster    *clusterv1.Cluster
 	AWSCluster *infrav1.AWSCluster
+
+	NetworkScope *ClusterNetworkScope
 }
 
 // Network returns the cluster network object.

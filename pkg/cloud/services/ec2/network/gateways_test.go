@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"testing"
@@ -127,7 +127,7 @@ func TestReconcileInternetGateways(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(scope.NetworkScope)
 			if err := s.reconcileInternetGateways(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}

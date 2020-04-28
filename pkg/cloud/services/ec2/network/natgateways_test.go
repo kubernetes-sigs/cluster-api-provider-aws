@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"testing"
@@ -288,7 +288,7 @@ func TestReconcileNatGateways(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
@@ -316,7 +316,7 @@ func TestReconcileNatGateways(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(clusterScope)
+			s := NewService(scope.NetworkScope)
 			if err := s.reconcileNatGateways(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}

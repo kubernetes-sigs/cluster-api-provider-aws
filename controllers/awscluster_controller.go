@@ -28,6 +28,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
@@ -118,6 +119,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 
 	ec2svc := ec2.NewService(clusterScope)
 	elbsvc := elb.NewService(clusterScope)
+	networkSvc := network.NewService(clusterScope.NetworkScope)
 	awsCluster := clusterScope.AWSCluster
 
 	if err := elbsvc.DeleteLoadbalancers(); err != nil {
@@ -128,7 +130,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 		return reconcile.Result{}, errors.Wrapf(err, "error deleting bastion for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
-	if err := ec2svc.DeleteNetwork(); err != nil {
+	if err := networkSvc.DeleteNetwork(); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "error deleting network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
@@ -153,8 +155,9 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 
 	ec2Service := ec2.NewService(clusterScope)
 	elbService := elb.NewService(clusterScope)
+	networkSvc := network.NewService(clusterScope.NetworkScope)
 
-	if err := ec2Service.ReconcileNetwork(); err != nil {
+	if err := networkSvc.ReconcileNetwork(); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
