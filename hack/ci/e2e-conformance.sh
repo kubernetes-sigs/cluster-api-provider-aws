@@ -40,7 +40,7 @@ dump-logs() {
 
   # dump all the info from the CAPI related CRDs
   kubectl get \
-  clusters,awsclusters,machines,awsmachines,kubeadmconfigs,machinedeployments,awsmachinetemplates,kubeadmconfigtemplates,machinesets \
+  clusters,awsclusters,machines,awsmachines,kubeadmconfigs,machinedeployments,awsmachinetemplates,kubeadmconfigtemplates,machinesets,kubeadmcontrolplanes \
   --all-namespaces -o yaml >> "${ARTIFACTS}/logs/capa.info" || true
 
   # dump images info
@@ -64,45 +64,43 @@ dump-logs() {
   echo "=== cluster-info dump ===" >> "${ARTIFACTS}/logs/capa-cluster.info" || true
   kubectl --kubeconfig="${PWD}"/kubeconfig cluster-info dump >> "${ARTIFACTS}/logs/capa-cluster.info" || true
 
-  # dump cluster info for kind
-  kubectl cluster-info dump > "${ARTIFACTS}/logs/kind-cluster.info" || true
-
   # export all logs from kind
   kind "export" logs --name="clusterapi" "${ARTIFACTS}/logs" || true
 
-  node_filters="Name=tag:sigs.k8s.io/cluster-api-provider-aws/cluster/${CLUSTER_NAME},Values=owned"
-  bastion_filters="${node_filters} Name=tag:sigs.k8s.io/cluster-api-provider-aws/role,Values=bastion"
-  jump_node=$(aws ec2 describe-instances --region "$AWS_REGION" --filters "${bastion_filters}" --query "Reservations[*].Instances[*].PublicIpAddress" --output text | head -1)
+  node_filter="Name=tag:sigs.k8s.io/cluster-api-provider-aws/cluster/${CLUSTER_NAME},Values=owned"
 
   # We used to pipe this output to 'tail -n +2' but for some reason this was sometimes (all the time?) only finding the
   # bastion host. For now, omit the tail and gather logs for all VMs that have a private IP address. This will include
   # the bastion, but that's better than not getting logs from all the VMs.
-  for node in $(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filters}" --query "Reservations[*].Instances[*].PrivateIpAddress" --output text)
+  for node in $(aws ec2 describe-instances --region "$AWS_REGION" --filters "${node_filter}" --query "Reservations[*].Instances[*].InstanceId" --output text)
   do
-    echo "collecting logs from ${node} using jump host ${jump_node}"
+    echo "collecting logs from ${node}"
     dir="${ARTIFACTS}/logs/${node}"
     mkdir -p "${dir}"
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --output=short-precise -k" > "${dir}/kern.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --output=short-precise" > "${dir}/systemd.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo crictl version && sudo crictl info" > "${dir}/containerd.info" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u cloud-final" > "${dir}/cloud-final.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u kubelet.service" > "${dir}/kubelet.log" || true
-    ssh-to-node "${node}" "${jump_node}" "sudo journalctl --no-pager -u containerd.service" > "${dir}/containerd.log" || true
+    ssh-to-node "${node}" "sudo journalctl --output=short-precise -k" > "${dir}/kern.log" || true
+    ssh-to-node "${node}" "sudo journalctl --output=short-precise" > "${dir}/systemd.log" || true
+    ssh-to-node "${node}" "sudo crictl version && sudo crictl info" > "${dir}/containerd.info" || true
+    ssh-to-node "${node}" "sudo journalctl --no-pager -u cloud-final" > "${dir}/cloud-final.log" || true
+    ssh-to-node "${node}" "sudo journalctl --no-pager -u kubelet.service" > "${dir}/kubelet.log" || true
+    ssh-to-node "${node}" "sudo journalctl --no-pager -u containerd.service" > "${dir}/containerd.log" || true
   done
 }
 
-# SSH to a node by name ($1) via jump server ($2) and run a command ($3).
+# SSH to a node by instance-id ($1) and run a command ($2).
 function ssh-to-node() {
   local node="$1"
-  local jump="$2"
-  local cmd="$3"
+  local cmd="$2"
 
+  user=ubuntu
   ssh_key_pem="/tmp/${AWS_SSH_KEY_NAME}.pem"
-  ssh_params="-o LogLevel=quiet -o ConnectTimeout=30 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-  scp "$ssh_params" -i "$ssh_key_pem" "$ssh_key_pem" "ubuntu@${jump}:$ssh_key_pem"
-  ssh "$ssh_params" -i "$ssh_key_pem" \
-    -o "ProxyCommand ssh $ssh_params -W %h:%p -i $ssh_key_pem ubuntu@${jump}" \
-    ubuntu@"${node}" "${cmd}"
+  proxy_command="sh -c \"aws ssm start-session --region ${AWS_REGION} --target %h --document-name AWS-StartSSHSession --parameters \\\"portNumber=%p\\\"\""
+  ssh -i "${ssh_key_pem}" \
+    -o LogLevel=quiet \
+    -o ConnectTimeout=30 \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=no \
+    -o ProxyCommand="${proxy_command}" \
+    "${user}"@"${node}" "${cmd}"
 }
 
 # cleanup all resources we use
@@ -123,6 +121,7 @@ cleanup() {
 
 # our exit handler (trap)
 exit-handler() {
+  unset KUBECONFIG
   dump-logs
   cleanup
 }
@@ -191,8 +190,8 @@ init_image() {
   eval "$tracestate"
 }
 
-# build kubernetes / node image, e2e binaries
-build() {
+# build Kubernetes E2E binaries
+build_k8s() {
   # possibly enable bazel build caching before building kubernetes
   if [[ "${BAZEL_REMOTE_CACHE_ENABLED:-false}" == "true" ]]; then
     create_bazel_cache_rcs.sh || true
@@ -216,61 +215,10 @@ build() {
   popd
 }
 
-# generate manifests needed for creating the GCP cluster to run the tests
-generate_manifests() {
-  if ! command -v kustomize >/dev/null 2>&1; then
-    (cd ./hack/tools/ && GO111MODULE=on go install sigs.k8s.io/kustomize/kustomize/v3)
-  fi
-
-  if [[ -z ${IMAGE_ID:-} ]]; then
-    # default lookup org hould be the same as defaultMachineAMIOwnerID
-    IMAGE_LOOKUP_ORG=${IMAGE_LOOKUP_ORG:-"258751437250"}
-    filter="capa-ami-ubuntu-18.04-1.16.*"
-    image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' \
-      --filters "Name=name,Values=$filter" "Name=owner-id,Values=$IMAGE_LOOKUP_ORG" \
-      --region "${AWS_REGION}" --output json | jq -r '.[0][0] | select (.!=null)')
-    if [[ -z "$image_id" ]]; then
-      echo "unable to find image using : $filter $IMAGE_LOOKUP_ORG ... bailing out!"
-      exit 1
-    fi
-  else
-    image_id=$(aws ec2 describe-images --image-ids "$IMAGE_ID" \
-      --query 'Images[*].[ImageId,Name]' --output json | jq -r '.[0][0] | select (.!=null)')
-    echo "using specified image id : ${IMAGE_ID}"
-    if [[ -z "$image_id" ]]; then
-      echo "unable to find image using id : $IMAGE_ID ... bailing out!"
-      exit 1
-    fi
-  fi
-
-
-  # Enable the bits to inject a script that can pull newer versions of kubernetes
-  if [[ -n ${CI_VERSION:-} || -n ${USE_CI_ARTIFACTS:-} ]]; then
-    if ! grep -i -wq "patchesStrategicMerge" "templates/kustomization.yaml"; then
-      echo "patchesStrategicMerge:" >> "templates/kustomization.yaml"
-      echo "- kustomizeversions.yaml" >> "templates/kustomization.yaml"
-    fi
-  fi
-
-  PULL_POLICY=IfNotPresent \
-    make modules docker-build clusterawsadm
-}
-
 # install cloud formation templates, iam objects etc
 create_stack() {
   "${REPO_ROOT}/bin/clusterawsadm" alpha bootstrap create-stack
 }
-
-# fix manifests to use k/k from CI
-fix_manifests() {
-  # TODO: revert to https://dl.k8s.io/ci/latest-green.txt once https://github.com/kubernetes/release/issues/897 is fixed.
-  CI_VERSION=${CI_VERSION:-$(curl -sSL https://dl.k8s.io/ci/k8s-master.txt)}
-  echo "Overriding Kubernetes version to : ${CI_VERSION}"
-  sed -i 's|kubernetesVersion: .*|kubernetesVersion: "ci/'"${CI_VERSION}"'"|' examples/_out/controlplane.yaml
-  sed -i 's|CI_VERSION=.*|CI_VERSION='"$CI_VERSION"'|' examples/_out/controlplane.yaml
-  sed -i 's|CI_VERSION=.*|CI_VERSION='"$CI_VERSION"'|' examples/_out/machinedeployment.yaml
-}
-
 
 create_key_pair() {
   (aws ec2 create-key-pair --key-name "${AWS_SSH_KEY_NAME}" --region "${AWS_REGION}" > /tmp/keypair-"${AWS_SSH_KEY_NAME}".json \
@@ -293,6 +241,27 @@ create_cluster() {
   # actually create the cluster
   KIND_IS_UP=true
 
+  if [[ -z ${IMAGE_ID:-} ]]; then
+    # default lookup org should be the same as defaultMachineAMIOwnerID
+    IMAGE_LOOKUP_ORG=${IMAGE_LOOKUP_ORG:-"258751437250"}
+    filter="capa-ami-ubuntu-18.04-1.17.*"
+    image_id=$(aws ec2 describe-images --query 'Images[*].[ImageId,Name]' \
+      --filters "Name=name,Values=$filter" "Name=owner-id,Values=$IMAGE_LOOKUP_ORG" \
+      --region "${AWS_REGION}" --output json | jq -r '.[0][0] | select (.!=null)')
+    if [[ -z "$image_id" ]]; then
+      echo "unable to find image using : $filter $IMAGE_LOOKUP_ORG ... bailing out!"
+      exit 1
+    fi
+  else
+    image_id=$(aws ec2 describe-images --image-ids "$IMAGE_ID" \
+      --query 'Images[*].[ImageId,Name]' --output json | jq -r '.[0][0] | select (.!=null)')
+    echo "using specified image id : ${IMAGE_ID}"
+    if [[ -z "$image_id" ]]; then
+      echo "unable to find image using id : $IMAGE_ID ... bailing out!"
+      exit 1
+    fi
+  fi
+
   tracestate="$(shopt -po xtrace)"
   set +o xtrace
 
@@ -303,13 +272,14 @@ create_cluster() {
   AWS_REGION=${AWS_REGION} \
   CONTROL_PLANE_MACHINE_COUNT=1 \
   WORKER_MACHINE_COUNT=2 \
-  KUBERNETES_VERSION=$KUBERNETES_VERSION \
-  IMAGE_ID=$image_id \
+  KUBERNETES_VERSION=${KUBERNETES_VERSION} \
+  IMAGE_ID=${image_id} \
   AWS_SSH_KEY_NAME=$AWS_SSH_KEY_NAME \
   AWS_CONTROL_PLANE_MACHINE_TYPE=m5.large \
   AWS_NODE_MACHINE_TYPE=m5.large \
   AWS_B64ENCODED_CREDENTIALS=$("${REPO_ROOT}"/bin/clusterawsadm alpha bootstrap encode-aws-credentials) \
-  LOAD_IMAGE="${REGISTRY}/cluster-api-aws-controller-amd64:dev" CLUSTER_NAME="${CLUSTER_NAME}" \
+  CLUSTER_NAME="${CLUSTER_NAME}" \
+  CI_VERSION=${CI_VERSION} \
     make create-cluster)
 
   eval "$tracestate"
@@ -380,6 +350,17 @@ run_tests() {
   unset KUBERNETES_CONFORMANCE_TEST
 }
 
+# generate manifests needed for creating the GCP cluster to run the tests
+add_kustomize_patch() {
+    # Enable the bits to inject a script that can pull newer versions of kubernetes
+    if ! grep -i -wq "patchesStrategicMerge" "templates/kustomization.yaml"; then
+        echo "patchesStrategicMerge:" >> "templates/kustomization.yaml"
+    fi
+    if ! grep -i -wq "kustomizeversions" "templates/kustomization.yaml"; then
+        echo "- kustomizeversions.yaml" >> "templates/kustomization.yaml"
+    fi
+}
+
 # setup kind, build kubernetes, create a cluster, run the e2es
 main() {
   for arg in "$@"
@@ -399,6 +380,8 @@ main() {
     fi
   done
 
+  tracestate="$(shopt -po xtrace)"
+  set +o xtrace
   if [[ -z "$AWS_ACCESS_KEY_ID" ]]; then
     cat <<EOF
 AWS_ACCESS_KEY_ID is not set.
@@ -411,6 +394,8 @@ AWS_SECRET_ACCESS_KEY is not set.
 EOF
     return 2
   fi
+  eval "$tracestate"
+
   if [[ -z "$AWS_REGION" ]]; then
     cat <<EOF
 AWS_REGION is not set.
@@ -428,26 +413,32 @@ EOF
   export ARTIFACTS
   mkdir -p "${ARTIFACTS}/logs"
 
-  source "${REPO_ROOT}/hack/ensure-go.sh"
-  source "${REPO_ROOT}/hack/ensure-kind.sh"
+  # Build the images and clusterawsadm
+  (PULL_POLICY=Never make modules docker-build clusterawsadm)
 
-  build
-  generate_manifests
-  if [[ -n ${USE_CI_ARTIFACTS:-} ]]; then
-    echo "Fixing manifests to use latest CI artifacts..."
-    fix_manifests
-  fi
+  # Create the aws pre-requisites
+  create_stack
+  create_key_pair
+
   if [[ -n "${SKIP_INIT_IMAGE:-}" ]]; then
     echo "Skipping image initialization..."
   else
     init_image
   fi
 
-  create_stack
-  create_key_pair
-  create_cluster
+  # create cluster
+  if [[ -z "${SKIP_CREATE_CLUSTER:-}" ]]; then
+    if [[ -n ${CI_VERSION:-} || -n ${USE_CI_ARTIFACTS:-} ]]; then
+      CI_VERSION=${CI_VERSION:-$(curl -sSL https://dl.k8s.io/ci/k8s-master.txt)}
+      KUBERNETES_VERSION=${CI_VERSION}
+      add_kustomize_patch
+    fi
+    create_cluster
+  fi
 
-  if [[ -z "${SKIP_RUN_TESTS:-}" ]]; then
+  # build k8s binaries and run conformance tests
+  if [[ -z "${SKIP_TESTS:-}" && -z "${SKIP_RUN_TESTS:-}" ]]; then
+    build_k8s
     run_tests
   fi
 }

@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -32,6 +33,7 @@ import (
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -53,6 +55,8 @@ func init() {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	klog.InitFlags(nil)
 
 	var (
@@ -135,6 +139,8 @@ func main() {
 
 	flag.Parse()
 
+	ctrl.SetLogger(klogr.New())
+
 	if watchNamespace != "" {
 		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", watchNamespace)
 	}
@@ -146,7 +152,6 @@ func main() {
 		}()
 	}
 
-	ctrl.SetLogger(klogr.New())
 	// Machine and cluster operations can create enough events to trigger the event recorder spam filter
 	// Setting the burst size higher ensures all events will be recorded and submitted to the API
 	broadcaster := cgrecord.NewBroadcasterWithCorrelatorOptions(cgrecord.CorrelatorOptions{
@@ -228,7 +233,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager")
+	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

@@ -17,32 +17,40 @@ limitations under the License.
 package controllers
 
 import (
+	"strings"
+
+	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterutil "sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-// TODO: Move to Cluster API
-var pausePredicates = predicate.Funcs{
-	UpdateFunc: func(e event.UpdateEvent) bool {
-		return !isPaused(nil, e.MetaNew)
-	},
-	CreateFunc: func(e event.CreateEvent) bool {
-		return !isPaused(nil, e.Meta)
-	},
-	DeleteFunc: func(e event.DeleteEvent) bool {
-		return !isPaused(nil, e.Meta)
-	},
+func pausedPredicates(logger logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return processIfUnpaused(logger.WithValues("predicate", "updateEvent"), e.ObjectNew, e.MetaNew)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return processIfUnpaused(logger.WithValues("predicate", "createEvent"), e.Object, e.Meta)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return processIfUnpaused(logger.WithValues("predicate", "deleteEvent"), e.Object, e.Meta)
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return processIfUnpaused(logger.WithValues("predicate", "genericEvent"), e.Object, e.Meta)
+		},
+	}
 }
 
-// TODO: Fix up Cluster API's clusterutil.IsPaused function
-func isPaused(cluster *clusterv1.Cluster, v metav1.Object) bool {
-	if cluster == nil {
-		cluster = &clusterv1.Cluster{
-			Spec: clusterv1.ClusterSpec{},
-		}
+func processIfUnpaused(logger logr.Logger, obj runtime.Object, meta metav1.Object) bool {
+	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
+	log := logger.WithValues("namespace", meta.GetNamespace(), kind, meta.GetName())
+	if clusterutil.HasPausedAnnotation(meta) {
+		log.V(4).Info("Resource is paused, will not attempt to map resource")
+		return false
 	}
-	return clusterutil.IsPaused(cluster, v)
+	log.V(4).Info("Resource is not paused, will attempt to map resource")
+	return true
 }
