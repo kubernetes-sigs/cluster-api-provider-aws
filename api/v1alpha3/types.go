@@ -542,6 +542,10 @@ type Instance struct {
 	// +optional
 	RootVolume *RootVolume `json:"rootVolume,omitempty"`
 
+	// Configuration options for the etcd storage volume.
+	// +optional
+	EtcdVolume *EtcdVolume `json:"etcdVolume,omitempty"`
+
 	// Specifies ENIs attached to instance
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
 
@@ -551,6 +555,32 @@ type Instance struct {
 
 // RootVolume encapsulates the configuration options for the root volume
 type RootVolume struct {
+	// Size specifies size (in Gi) of the root storage device.
+	// Must be greater than the image root snapshot size or 8 (whichever is greater).
+	// +kubebuilder:validation:Minimum=8
+	Size int64 `json:"size"`
+
+	// Type is the type of the root volume (e.g. gp2, io1, etc...).
+	// +optional
+	Type string `json:"type,omitempty"`
+
+	// IOPS is the number of IOPS requested for the disk. Not applicable to all types.
+	// +optional
+	IOPS int64 `json:"iops,omitempty"`
+
+	// Encrypted is whether the volume should be encrypted or not.
+	// +optional
+	Encrypted bool `json:"encrypted,omitempty"`
+
+	// EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
+	// If Encrypted is set and this is omitted, the default AWS key will be used.
+	// The key must already exist and be accessible by the controller.
+	// +optional
+	EncryptionKey string `json:"encryptionKey,omitempty"`
+}
+
+// EtcdVolume encapsulates the configuration options for the etcd volume
+type EtcdVolume struct {
 	// Size specifies size (in Gi) of the root storage device.
 	// Must be greater than the image root snapshot size or 8 (whichever is greater).
 	// +kubebuilder:validation:Minimum=8

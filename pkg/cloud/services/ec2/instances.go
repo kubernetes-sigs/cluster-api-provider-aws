@@ -108,6 +108,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		Type:              scope.AWSMachine.Spec.InstanceType,
 		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
 		RootVolume:        scope.AWSMachine.Spec.RootVolume,
+		EtcdVolume:        scope.AWSMachine.Spec.EtcdVolume,
 		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
 	}
 
@@ -393,6 +394,42 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 				Ebs:        ebsRootDevice,
 			},
 		}
+	}
+
+	if i.EtcdVolume != nil {
+
+		etcdDeviceName := aws.String("")
+
+		etcdDeviceName, err := s.getImageRootDevice(i.ImageID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get root volume from image %q", i.ImageID)
+		}
+
+		ebsEtcdDevice := &ec2.EbsBlockDevice{
+			DeleteOnTermination: aws.Bool(true),
+			VolumeSize:          aws.Int64(i.EtcdVolume.Size),
+			Encrypted:           aws.Bool(i.DeepCopy().EtcdVolume.Encrypted),
+		}
+
+		if i.EtcdVolume.IOPS != 0 {
+			ebsEtcdDevice.Iops = aws.Int64(i.EtcdVolume.IOPS)
+		}
+
+		if i.EtcdVolume.EncryptionKey != "" {
+			ebsEtcdDevice.Encrypted = aws.Bool(true)
+			ebsEtcdDevice.KmsKeyId = aws.String(i.EtcdVolume.EncryptionKey)
+		}
+
+		if i.EtcdVolume.Type != "" {
+			ebsEtcdDevice.VolumeType = aws.String(i.EtcdVolume.Type)
+		}
+
+		input.BlockDeviceMappings = append(input.BlockDeviceMappings, []*ec2.BlockDeviceMapping{
+			{
+				DeviceName: etcdDeviceName,
+				Ebs:        ebsEtcdDevice,
+			},
+		})
 	}
 
 	if len(i.Tags) > 0 {

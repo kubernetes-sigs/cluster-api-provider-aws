@@ -88,6 +88,10 @@ type AWSMachineSpec struct {
 	// +optional
 	RootVolume *RootVolume `json:"rootVolume,omitempty"`
 
+	// EtcdVolume encapsulates the configuration options for the etcd data-store volume
+	// +optional
+	EtcdVolume *EtcdVolume `json:"etcdVolume,omitempty"`
+
 	// NetworkInterfaces is a list of ENIs to associate with the instance.
 	// A maximum of 2 may be specified.
 	// +optional
