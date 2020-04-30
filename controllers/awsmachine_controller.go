@@ -522,6 +522,18 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc ser
 		return nil, err
 	}
 
+	// WIP: We prepend the userData with the instructions necessary for mounting
+	// an external etcd volume.
+	if scope.AWSMachine.Spec.EtcdVolume.Size != 0 {
+		bootHook := []byte(`\nbootcmd:
+  - mkdir -p /var/lib/etcd
+  - mkfs.ext4 /dev/sdb1`)
+		mountHook := []byte(`\nmounts:
+  - [ /dev/sdb1, /var/lib/etcd, "ext4", "defaults", "0", "2" ]`)
+		userData = append(userData, bootHook...)
+		userData = append(userData, mountHook...)
+	}
+
 	if scope.UseSecretsManager() {
 		compressedUserData, err := userdata.GzipBytes(userData)
 		if err != nil {

@@ -50,6 +50,10 @@ func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1a
 		restored.RootVolume.DeepCopyInto(dst.RootVolume)
 	}
 
+	if restored.EtcdVolume != nil {
+		restored.EtcdVolume.DeepCopyInto(dst.EtcdVolume)
+	}
+
 	// override the SSHKeyName conversion if we are roundtripping from v1alpha3 and the v1alpha3 value is nil
 	if dst.SSHKeyName != nil && *dst.SSHKeyName == "" && restored.SSHKeyName == nil {
 		dst.SSHKeyName = nil

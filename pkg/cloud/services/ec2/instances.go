@@ -398,12 +398,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	if i.EtcdVolume != nil {
 
-		etcdDeviceName := aws.String("")
-
-		etcdDeviceName, err := s.getImageRootDevice(i.ImageID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get root volume from image %q", i.ImageID)
-		}
+		etcdDeviceName := aws.String("/dev/sdb")
 
 		ebsEtcdDevice := &ec2.EbsBlockDevice{
 			DeleteOnTermination: aws.Bool(true),
@@ -429,7 +424,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 				DeviceName: etcdDeviceName,
 				Ebs:        ebsEtcdDevice,
 			},
-		})
+		}...)
 	}
 
 	if len(i.Tags) > 0 {
