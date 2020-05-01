@@ -33,7 +33,7 @@ Using clusterctl command we can create a new cluster in AWS which in turn will a
 management cluster to create the target cluster(in a different AWS account. This can be achieved by using the phases in
 clusterctl to perform all the steps except the pivoting. This will provide us with a bare-bones functioning cluster that
 we can use as a management cluster.
-To begin with follow the steps in this [getting started guide](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/release-0.2/docs/getting-started.md) to setup the environment
+To begin with follow the steps in this [getting started guide](https://cluster-api.sigs.k8s.io/user/quick-start.html) to setup the environment
 except for creating the actual cluster. Instead follow the steps below to create the cluster.
 
 create a new cluster using kind for bootstrapping purpose by running:
