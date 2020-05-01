@@ -25,6 +25,7 @@ webhooks:
     - UPDATE
     resources:
     - awsclusters
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -44,6 +45,7 @@ webhooks:
     - UPDATE
     resources:
     - awsmachines
+  sideEffects: None
 - clientConfig:
     caBundle: Cg==
     service:
@@ -63,3 +65,4 @@ webhooks:
     - UPDATE
     resources:
     - awsmachinetemplates
+  sideEffects: None
