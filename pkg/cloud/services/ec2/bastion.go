@@ -113,7 +113,12 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 		Filters: []*ec2.Filter{
 			filter.EC2.ProviderRole(infrav1.BastionRoleTagValue),
 			filter.EC2.Cluster(s.scope.Name()),
-			filter.EC2.InstanceStates(ec2.InstanceStateNamePending, ec2.InstanceStateNameRunning),
+			filter.EC2.InstanceStates(
+				ec2.InstanceStateNamePending,
+				ec2.InstanceStateNameRunning,
+				ec2.InstanceStateNameStopping,
+				ec2.InstanceStateNameStopped,
+			),
 		},
 	}
 
