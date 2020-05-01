@@ -524,12 +524,15 @@ func (r *AWSMachineReconciler) getOrCreate(scope *scope.MachineScope, ec2svc ser
 
 	// WIP: We prepend the userData with the instructions necessary for mounting
 	// an external etcd volume.
-	if scope.AWSMachine.Spec.EtcdVolume.Size != 0 {
-		bootHook := []byte(`\nbootcmd:
+	if scope.IsControlPlane() && scope.AWSMachine.Spec.EtcdVolume != nil {
+		r.Log.V(4).Info("Provisioned UserData with etcd mounting flags.")
+		bootHook := []byte(`
+bootcmd:
   - mkdir -p /var/lib/etcd
-  - mkfs.ext4 /dev/sdb1`)
-		mountHook := []byte(`\nmounts:
-  - [ /dev/sdb1, /var/lib/etcd, "ext4", "defaults", "0", "2" ]`)
+  - mkfs.ext4 /dev/nvme1n1`)
+		mountHook := []byte(`
+mounts:
+  - [ /dev/nvme1n1, /var/lib/etcd, "ext4", "defaults", "0", "2" ]`)
 		userData = append(userData, bootHook...)
 		userData = append(userData, mountHook...)
 	}
