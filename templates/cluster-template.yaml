@@ -41,14 +41,14 @@ spec:
     - if [ -d "/var/lib/etcd/lost+found" ]; then rm -Rf /var/lib/etcd/lost+found; fi
     diskSetup:
       filesystems:
-      - device: /dev/nvme1
+      - device: /dev/nvme1n1p1
         filesystem: ext4
         label: etcd_disk
       partitions:
-      - device: /dev/nvme
+      - device: /dev/nvme1n1
         layout: true
         overwrite: false
-        tableType: gpt
+        tableType: mbr
     initConfiguration:
       nodeRegistration:
         name: '{{ ds.meta_data.local_hostname }}'
@@ -122,14 +122,14 @@ spec:
     spec:
     diskSetup:
       filesystems:
-      - device: /dev/nvme1
+      - device: /dev/nvme1n1p1
         filesystem: ext4
         label: etcd_disk
       partitions:
-      - device: /dev/sdc
+      - device: /dev/nvme1n1
         layout: true
         overwrite: false
-        tableType: gpt
+        tableType: mbr
       joinConfiguration:
         nodeRegistration:
           name: '{{ ds.meta_data.local_hostname }}'
