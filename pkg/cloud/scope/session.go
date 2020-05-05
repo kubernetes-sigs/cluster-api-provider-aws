@@ -38,9 +38,6 @@ func sessionForRegion(region string) (*session.Session, error) {
 		Config: aws.Config{
 			Region: aws.String(region),
 		},
-	
-		// Force enable Shared Config support
-		SharedConfigState: session.SharedConfigEnable,
 	})
 
 	if err != nil {
