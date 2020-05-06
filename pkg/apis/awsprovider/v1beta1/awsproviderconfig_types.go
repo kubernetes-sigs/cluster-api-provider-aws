@@ -65,7 +65,7 @@ type AWSMachineProviderConfig struct {
 
 	// PublicIP specifies whether the instance should get a public IP. If not present,
 	// it should use the default of its subnet.
-	PublicIP *bool `json:"publicIp"`
+	PublicIP *bool `json:"publicIp,omitempty"`
 
 	// SecurityGroups is an array of references to security groups that should be applied to the
 	// instance.
