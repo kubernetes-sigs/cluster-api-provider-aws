@@ -476,13 +476,20 @@ var (
 	// that has been stopped and can be restarted
 	InstanceStateStopped = InstanceState("stopped")
 
-	// InstanceOperationalStates defines the set of states in which an EC2 instance is
-	// or can return to running, and supports all EC2 operations
-	InstanceOperationalStates = sets.NewString(
+	// InstanceRunningStates defines the set of states in which an EC2 instance is
+	// running or going to be running soon
+	InstanceRunningStates = sets.NewString(
 		string(InstanceStatePending),
 		string(InstanceStateRunning),
-		string(InstanceStateStopping),
-		string(InstanceStateStopped),
+	)
+
+	// InstanceOperationalStates defines the set of states in which an EC2 instance is
+	// or can return to running, and supports all EC2 operations
+	InstanceOperationalStates = InstanceRunningStates.Union(
+		sets.NewString(
+			string(InstanceStateStopping),
+			string(InstanceStateStopped),
+		),
 	)
 
 	// InstanceKnownStates represents all known EC2 instance states

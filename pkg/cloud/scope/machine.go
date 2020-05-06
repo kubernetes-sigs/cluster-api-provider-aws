@@ -283,6 +283,11 @@ func (m *MachineScope) HasFailed() bool {
 	return m.AWSMachine.Status.FailureReason != nil || m.AWSMachine.Status.FailureMessage != nil
 }
 
+func (m *MachineScope) InstanceIsRunning() bool {
+	state := m.GetInstanceState()
+	return state != nil && infrav1.InstanceRunningStates.Has(string(*state))
+}
+
 func (m *MachineScope) InstanceIsOperational() bool {
 	state := m.GetInstanceState()
 	return state != nil && infrav1.InstanceOperationalStates.Has(string(*state))
