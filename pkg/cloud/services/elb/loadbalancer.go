@@ -291,12 +291,13 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 		subnets = s.scope.Subnets().FilterPublic()
 	}
 
+subnetLoop:
 	for _, sn := range subnets {
 		for _, az := range res.AvailabilityZones {
 			if sn.AvailabilityZone == az {
 				// If we already attached another subnet in the same AZ, there is no need to
 				// add this subnet to the list of the ELB's subnets.
-				continue
+				continue subnetLoop
 			}
 		}
 		res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
