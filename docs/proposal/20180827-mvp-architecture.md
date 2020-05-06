@@ -59,7 +59,7 @@ In order to limit scope of the project and to be able to deliver an MVP implemen
 
 Private Networking, Single AZ
 
-![Private Networking, Single AZ](mvp-Private.png)
+![Private Networking, Single AZ](20180827-mvp-architecture-private.png)
 
 #### Features Implemented for Private Networking, Single AZ
 
@@ -87,7 +87,7 @@ Private Networking, Single AZ
 
 ### Public Networking, Single AZ
 
-![Public Networking, Single AZ](mvp-Public.png)
+![Public Networking, Single AZ](20180827-mvp-architecture-public.png)
 
 #### Features Implemented for Public Networking, Single AZ
 

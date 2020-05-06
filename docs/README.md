@@ -14,7 +14,7 @@
 
 ## Project Documentation
 
-- [Initial feature model](proposal/features.md)
-- [MVP Architecture](proposal/mvp-architecture.md)
-- [Machine configuration proposal](proposal/machine-config.md)
+- [Initial feature model](proposal/20180827-feature-model.md)
+- [MVP Architecture](proposal/20180827-mvp-architecture.md)
+- [Machine configuration proposal](proposal/20180821-machine-config.md)
 - [Historical lessons learned](history/lessons-learned.md)
