@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/actuators/machine"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 )
 
@@ -25,13 +26,7 @@ func (c *awsClient) DescribeImages(input *ec2.DescribeImagesInput) (*ec2.Describ
 }
 
 func (c *awsClient) DescribeVpcs(input *ec2.DescribeVpcsInput) (*ec2.DescribeVpcsOutput, error) {
-	return &ec2.DescribeVpcsOutput{
-		Vpcs: []*ec2.Vpc{
-			{
-				VpcId: aws.String("vpc-32677e0e794418639"),
-			},
-		},
-	}, nil
+	return machine.StubDescribeVPCs()
 }
 
 func (c *awsClient) DescribeSubnets(input *ec2.DescribeSubnetsInput) (*ec2.DescribeSubnetsOutput, error) {
@@ -56,6 +51,10 @@ func (c *awsClient) DescribeSecurityGroups(input *ec2.DescribeSecurityGroupsInpu
 			},
 		},
 	}, nil
+}
+
+func (c *awsClient) DescribeDHCPOptions(input *ec2.DescribeDhcpOptionsInput) (*ec2.DescribeDhcpOptionsOutput, error) {
+	return machine.StubDescribeDHCPOptions()
 }
 
 func (c *awsClient) RunInstances(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
