@@ -281,6 +281,14 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 	machineScope.V(3).Info("EC2 instance found matching deleted AWSMachine", "instance-id", instance.ID)
 
+	if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {
+		// We are tolerating AccessDenied error, so this won't block for users with older version of IAM;
+		// all the other errors are blocking.
+		if !elb.IsAccessDenied(err) {
+			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
+		}
+	}
+
 	// Check the instance state. If it's already shutting down or terminated,
 	// do nothing. Otherwise attempt to delete it.
 	// This decision is based on the ec2-instance-lifecycle graph at
@@ -451,15 +459,15 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		if err != nil {
 			return ctrl.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
 		}
+
+		if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {
+			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
+		}
 	}
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
 		machineScope.SetAddresses(instance.Addresses)
-
-		if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {
-			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
-		}
 
 		existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
 		if err != nil {
@@ -564,11 +572,27 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 	}
 
 	elbsvc := elb.NewService(clusterScope)
+
+	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
+	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
+	if !machineScope.AWSMachine.DeletionTimestamp.IsZero() || !machineScope.InstanceIsRunning() {
+		if err := elbsvc.DeregisterInstanceFromAPIServerELB(i); err != nil {
+			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
+				"Failed to deregister control plane instance %q from load balancer: %v", i.ID, err)
+			return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer", i.ID)
+		}
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDetachControlPlaneELB",
+			"Control plane instance %q is de-registered from load balancer", i.ID)
+		return nil
+	}
+
 	if err := elbsvc.RegisterInstanceWithAPIServerELB(i); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: %v", i.ID, err)
 		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 	}
+	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulAttachControlPlaneELB",
+		"Control plane instance %q is registered with load balancer", i.ID)
 	return nil
 }
 

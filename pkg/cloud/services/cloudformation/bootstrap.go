@@ -204,6 +204,7 @@ func controllersPolicy(accountID, partition string) *iam.PolicyDocument {
 					"elasticloadbalancing:DescribeTags",
 					"elasticloadbalancing:ModifyLoadBalancerAttributes",
 					"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+					"elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
 					"elasticloadbalancing:RemoveTags",
 				},
 			},

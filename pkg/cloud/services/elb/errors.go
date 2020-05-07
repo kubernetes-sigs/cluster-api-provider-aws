@@ -68,6 +68,16 @@ func IsNotFound(err error) bool {
 	return false
 }
 
+// IsAccessDenied returns true if the error is AccessDenied.
+func IsAccessDenied(err error) bool {
+	if code, ok := awserrors.Code(errors.Cause(err)); ok {
+		if code == "AccessDenied" {
+			return true
+		}
+	}
+	return false
+}
+
 // IsConflict returns true if the error was created by NewConflict.
 func IsConflict(err error) bool {
 	return ReasonForError(err) == http.StatusConflict

@@ -201,11 +201,23 @@ func (s *Service) RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error {
 	}
 
 	_, err = s.scope.ELB.RegisterInstancesWithLoadBalancer(input)
+	return err
+}
+
+// DeregisterInstanceFromAPIServerELB de-registers an instance from a classic ELB
+func (s *Service) DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error {
+	name, err := GenerateELBName(s.scope.Name())
 	if err != nil {
 		return err
 	}
 
-	return nil
+	input := &elb.DeregisterInstancesFromLoadBalancerInput{
+		Instances:        []*elb.Instance{{InstanceId: aws.String(i.ID)}},
+		LoadBalancerName: aws.String(name),
+	}
+
+	_, err = s.scope.ELB.DeregisterInstancesFromLoadBalancer(input)
+	return err
 }
 
 // GenerateELBName generates a formatted ELB name via either
