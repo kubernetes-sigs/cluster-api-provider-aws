@@ -23,6 +23,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"strings"
 	"testing"
@@ -137,6 +138,7 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
+	_ = v1alpha3.AddToScheme(sc)
 	return sc
 }
 
