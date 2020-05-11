@@ -84,7 +84,12 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
   exit 1
 fi
 
-make test-e2e ARTIFACTS=$ARTIFACTS
+if [ "${NEW_E2E_FLOW:-0}" = "1" ]; then
+  make test-e2e-new ARTIFACTS=$ARTIFACTS
+else
+  make test-e2e ARTIFACTS=$ARTIFACTS
+fi
+
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
