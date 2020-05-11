@@ -116,6 +116,7 @@ test-e2e: $(GINKGO) ## Run e2e tests
 
 .PHONY: test-e2e-new
 test-e2e-new: $(GINKGO) ## Run e2e tests
+	PULL_POLICY=IfNotPresent $(MAKE) docker-build
 	cd $(TEST_E2E_NEW_DIR); $(GINKGO) -nodes=2 -v -tags=e2e ./... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)"
 
 .PHONY: test-conformance

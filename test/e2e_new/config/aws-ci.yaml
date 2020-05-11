@@ -1,0 +1,92 @@
+---
+# Following env variables should be set before running the provider
+
+# export AWS_REGION=
+# export AWS_B64ENCODED_CREDENTIALS=
+
+images:
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-aws-controller-amd64:ci
+    loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.5
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.5
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.5
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-webhook:v0.11.0
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-controller:v0.11.0
+    loadBehavior: tryLoad
+
+providers:
+
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v0.3.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.5/core-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+
+  - name: kubeadm
+    type: BootstrapProvider
+    versions:
+      - name: v0.3.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.5/bootstrap-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+
+  - name: kubeadm
+    type: ControlPlaneProvider
+    versions:
+      - name: v0.3.5
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.5/control-plane-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+
+  - name: aws
+    type: InfrastructureProvider
+    versions:
+      - name: v0.5.0
+        # Use manifest from source files
+        value: ../../../config
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+    files:
+      # Add a cluster template
+      - sourcePath: "../data/infrastructure-aws/cluster-template-ci.yaml"
+        targetName: "cluster-template.yaml"
+
+variables:
+  KUBERNETES_VERSION: "v1.17.0"
+  CNI: "./data/cni/calico.yaml"
+  AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
+  AWS_NODE_MACHINE_TYPE: t3.large
+  # Also following variables are required but it is recommended to use env variables to avoid disclosure of sensitive data
+  # AWS_REGION=
+  # AWS_B64ENCODED_CREDENTIALS=
+
+intervals:
+  default/wait-controllers: ["3m", "10s"]
+  default/wait-cluster: ["20m", "10s"]
+  default/wait-control-plane: ["10m", "10s"]
+  default/wait-worker-nodes: ["10m", "10s"]
+  default/wait-delete-cluster: ["20m", "10s"]
+  default/wait-machine-upgrade: ["20m", "10s"]
