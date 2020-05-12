@@ -36,9 +36,6 @@ import (
 )
 
 const (
-	defaultPrivateSubnetCidr = "10.0.0.0/24"
-	defaultPublicSubnetCidr  = "10.0.1.0/24"
-
 	internalLoadBalancerTag = "kubernetes.io/role/internal-elb"
 	externalLoadBalancerTag = "kubernetes.io/role/elb"
 )
@@ -57,7 +54,7 @@ func (s *Service) reconcileSubnets() error {
 		return err
 	}
 
-	// If we have an unmanaged VPC then we expect either of the following:
+	// If we have an unmanaged VPC then we expect either of the following to be true:
 	// 1) No subnets specified and no existing subnets in the VPC
 	// 2) Subnets specified and they must already exist
 	// Otherwise this is an error
@@ -94,7 +91,7 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	if len(subnets) == 0 {
-		// If we have no subnets then create subnets. There will be 1 public and 1 provate subnet
+		// If we have no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
 		subnets, err = s.getDefaultSubnets()
 		if err != nil {
