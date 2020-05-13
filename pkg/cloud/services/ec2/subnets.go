@@ -54,22 +54,23 @@ func (s *Service) reconcileSubnets() error {
 		return err
 	}
 
-	// If we have an unmanaged VPC then we expect either of the following to be true:
-	// 1) No subnets specified and no existing subnets in the VPC
-	// 2) Subnets specified and they must already exist
+	// If we have an unmanaged VPC then we expect the following to be true:
+	// 1) Subnets must be specified
+	// 2) The subnets specified must already exist
 	// Otherwise this is an error
 	subnetErrs := []string{}
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		if len(subnets) == 0 {
-			if len(existing) > 0 {
-				return errors.New("no subnets specified but subnets already exist in the VPC")
-			}
-		} else {
-			for _, subnet := range subnets {
-				existingSubnet := existing.FindByID(subnet.ID)
-				if existingSubnet == nil {
-					subnetErrs = append(subnetErrs, fmt.Sprintf("subnet %s specified but it doesn't exist in vpc %s", subnet.ID, s.scope.VPC().ID))
-				}
+			return errors.New("no subnets specified, you must specify the subnets when using an umanaged vpc")
+		}
+		if len(existing) == 0 {
+			return errors.New("subnets must exist already in an unumanaged vpc")
+		}
+
+		for _, subnet := range subnets {
+			existingSubnet := existing.FindByID(subnet.ID)
+			if existingSubnet == nil {
+				subnetErrs = append(subnetErrs, fmt.Sprintf("subnet %s specified but it doesn't exist in vpc %s", subnet.ID, s.scope.VPC().ID))
 			}
 		}
 	}
