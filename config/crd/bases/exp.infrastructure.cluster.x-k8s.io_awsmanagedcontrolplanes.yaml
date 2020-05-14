@@ -1,0 +1,153 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.9
+  creationTimestamp: null
+  name: awsmanagedcontrolplanes.exp.infrastructure.cluster.x-k8s.io
+spec:
+  group: exp.infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: AWSManagedControlPlane
+    listKind: AWSManagedControlPlaneList
+    plural: awsmanagedcontrolplanes
+    shortNames:
+    - awsmcp
+    singular: awsmanagedcontrolplane
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: AWSManagedControlPlane API Server is ready to receive requests
+      jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    - description: This denotes whether or not the control plane has the uploaded kubeadm-config configmap
+      jsonPath: .status.initialized
+      name: Initialized
+      type: boolean
+    name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: AWSManagedControlPlane is the Schema for the awsmanagedcontrolplanes API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane
+            properties:
+              additionalTags:
+                additionalProperties:
+                  type: string
+                description: AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the ones added by default.
+                type: object
+              controlPlaneEndpoint:
+                description: ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+              encryptionConfig:
+                description: EncryptionConfig specifies the encryption configuration for the cluster
+                items:
+                  description: EncryptionConfig specifies the encryption configuration for the EKS clsuter
+                  properties:
+                    provider:
+                      description: Provider specifies the ARN or alias of the CMK (in AWS KMS)
+                      properties:
+                        arn:
+                          description: ARN of resource
+                          type: string
+                        filters:
+                          description: 'Filters is a set of key/value pairs used to identify a resource They are applied according to the rules defined by the AWS API: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html'
+                          items:
+                            description: Filter is a filter used to identify an AWS resource
+                            properties:
+                              name:
+                                description: Name of the filter. Filter names are case-sensitive.
+                                type: string
+                              values:
+                                description: Values includes one or more filter values. Filter values are case-sensitive.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                            - name
+                            - values
+                            type: object
+                          type: array
+                        id:
+                          description: ID of resource
+                          type: string
+                      type: object
+                    resources:
+                      description: Resources specifies the resources to be encrypted
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              private:
+                description: Private indicates if the control plane should be private
+                type: boolean
+              roleAdditionalPolicies:
+                description: RoleAdditionalPolicies allows you to attach additional polices to the control plane role.
+                items:
+                  type: string
+                type: array
+              roleName:
+                description: RoleName specifies the name of IAM role that gives EKS permission to make API calls. If no name is supplied then a role is created. If the role is pre-existing we will treat it as unmanaged and not delete it on deletion
+                minLength: 2
+                type: string
+              version:
+                description: Version defines the desired Kubernetes version. If no version number is supplied then the latest version of Kubernetesthat EKS supports will be used.
+                minLength: 2
+                pattern: ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?$
+                type: string
+            type: object
+          status:
+            description: AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane
+            properties:
+              failureMessage:
+                description: ErrorMessage indicates that there is a terminal problem reconciling the state, and will be set to a descriptive error message.
+                type: string
+              initialized:
+                default: false
+                description: Initialized denotes whether or not the control plane has the uploaded kubeadm-config configmap.
+                type: boolean
+              ready:
+                default: false
+                description: Ready denotes that the AWSManagedControlPlane API Server is ready to receive requests.
+                type: boolean
+            required:
+            - initialized
+            - ready
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -1,0 +1,173 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.9
+  creationTimestamp: null
+  name: awsmanagedclusters.exp.infrastructure.cluster.x-k8s.io
+spec:
+  group: exp.infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: AWSManagedCluster
+    listKind: AWSManagedClusterList
+    plural: awsmanagedclusters
+    shortNames:
+    - awsmc
+    singular: awsmanagedcluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha3
+    schema:
+      openAPIV3Schema:
+        description: AWSManagedCluster is the Schema for the awsmanagedclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AWSManagedClusterSpec defines the desired state of AWSManagedCluster
+            properties:
+              additionalTags:
+                additionalProperties:
+                  type: string
+                description: AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the ones added by default.
+                type: object
+              controlPlaneEndpoint:
+                description: ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+              networkSpec:
+                description: NetworkSpec encapsulates all things related to AWS network.
+                properties:
+                  cni:
+                    description: CNI configuration
+                    properties:
+                      cniIngressRules:
+                        description: CNIIngressRules specify rules to apply to control plane and worker node security groups. The source for the rule will be set to control plane and worker security group IDs.
+                        items:
+                          description: CNIIngressRule defines an AWS ingress rule for CNI requirements.
+                          properties:
+                            description:
+                              type: string
+                            fromPort:
+                              format: int64
+                              type: integer
+                            protocol:
+                              description: SecurityGroupProtocol defines the protocol type for a security group rule.
+                              type: string
+                            toPort:
+                              format: int64
+                              type: integer
+                          required:
+                          - description
+                          - fromPort
+                          - protocol
+                          - toPort
+                          type: object
+                        type: array
+                    type: object
+                  subnets:
+                    description: Subnets configuration.
+                    items:
+                      description: SubnetSpec configures an AWS Subnet.
+                      properties:
+                        availabilityZone:
+                          description: AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
+                          type: string
+                        cidrBlock:
+                          description: CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
+                          type: string
+                        id:
+                          description: ID defines a unique identifier to reference this resource.
+                          type: string
+                        isPublic:
+                          description: IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
+                          type: boolean
+                        natGatewayId:
+                          description: NatGatewayID is the NAT gateway id associated with the subnet. Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
+                          type: string
+                        routeTableId:
+                          description: RouteTableID is the routing table id associated with the subnet.
+                          type: string
+                        tags:
+                          additionalProperties:
+                            type: string
+                          description: Tags is a collection of tags describing the resource.
+                          type: object
+                      type: object
+                    type: array
+                  vpc:
+                    description: VPC configuration.
+                    properties:
+                      availabilityZoneSelection:
+                        default: Ordered
+                        description: 'AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes: Ordered - selects based on alphabetical order Random - selects AZs randomly in a region Defaults to Ordered'
+                        enum:
+                        - Ordered
+                        - Random
+                        type: string
+                      availabilityZoneUsageLimit:
+                        default: 3
+                        description: AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that should be used in a region when automatically creating subnets. If a region has more than this number of AZs then this number of AZs will be picked randomly when creating default subnets. Defaults to 3
+                        minimum: 1
+                        type: integer
+                      cidrBlock:
+                        description: CidrBlock is the CIDR block to be used when the provider creates a managed VPC. Defaults to 10.0.0.0/16.
+                        type: string
+                      id:
+                        description: ID is the vpc-id of the VPC this provider should use to create resources.
+                        type: string
+                      internetGatewayId:
+                        description: InternetGatewayID is the id of the internet gateway associated with the VPC.
+                        type: string
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags is a collection of tags describing the resource.
+                        type: object
+                    type: object
+                type: object
+              region:
+                description: The AWS Region the cluster lives in.
+                type: string
+              sshKeyName:
+                description: SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
+                type: string
+            type: object
+          status:
+            description: AWSManagedClusterStatus defines the observed state of AWSManagedCluster
+            properties:
+              ready:
+                description: Ready is true when the provider resource is ready.
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

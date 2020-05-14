@@ -26,8 +26,8 @@ import (
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -134,15 +134,15 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(clusterScope)
+		return r.reconcileDelete(clusterScope)
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
 // TODO(ncdc): should this be a function on ClusterScope?
-func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster delete")
 
 	ec2svc := ec2.NewService(clusterScope)
@@ -152,8 +152,10 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 
 	awsCluster := clusterScope.AWSCluster
 
-	if err := elbsvc.DeleteLoadbalancers(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleting load balancer for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+	if !clusterScope.IsManagedControlPlaneOwned() {
+		if err := elbsvc.DeleteLoadbalancers(); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "error deleting load balancer for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		}
 	}
 
 	if err := ec2svc.DeleteBastion(); err != nil {
@@ -175,7 +177,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 }
 
 // TODO(ncdc): should this be a function on ClusterScope?
-func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
@@ -206,41 +208,61 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile bastion host for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
-	if err := elbService.ReconcileLoadbalancers(); err != nil {
-		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancers for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
-	}
-
-	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
-		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameReason, clusterv1.ConditionSeverityInfo, "")
-		clusterScope.Info("Waiting on API server ELB DNS name")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
-	}
-
-	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
-		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
-		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
-	}
-	conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
-
-	awsCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
-		Host: awsCluster.Status.Network.APIServerELB.DNSName,
-		Port: clusterScope.APIServerPort(),
-	}
-
-	for _, subnet := range clusterScope.Subnets().FilterPrivate() {
-		found := false
-		for _, az := range awsCluster.Status.Network.APIServerELB.AvailabilityZones {
-			if az == subnet.AvailabilityZone {
-				found = true
-				break
-			}
+	if !clusterScope.IsManagedControlPlaneOwned() {
+		if err := elbService.ReconcileLoadbalancers(); err != nil {
+			conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancers for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 		}
 
-		clusterScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
-			ControlPlane: found,
-		})
+		if awsCluster.Status.Network.APIServerELB.DNSName == "" {
+			conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameReason, clusterv1.ConditionSeverityInfo, "")
+			clusterScope.Info("Waiting on API server ELB DNS name")
+			return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+		}
+
+		if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
+			conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
+			clusterScope.Info("Waiting on API server ELB DNS name to resolve")
+			return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
+		}
+		conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
+
+		awsCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+			Host: awsCluster.Status.Network.APIServerELB.DNSName,
+			Port: clusterScope.APIServerPort(),
+		}
+
+		for _, subnet := range clusterScope.Subnets().FilterPrivate() {
+			found := false
+			for _, az := range awsCluster.Status.Network.APIServerELB.AvailabilityZones {
+				if az == subnet.AvailabilityZone {
+					found = true
+					break
+				}
+			}
+
+			clusterScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
+				ControlPlane: found,
+			})
+		}
+	} else {
+		//TODO(richardcase): get the control plane endpoint from the ManagedControlPlane
+		managedControlPlane := &infrav1exp.AWSManagedControlPlane{}
+		managedControlPlaneRef := types.NamespacedName{
+			Name:      clusterScope.Cluster.Spec.ControlPlaneRef.Name,
+			Namespace: clusterScope.Cluster.Spec.ControlPlaneRef.Namespace,
+		}
+		if err := r.Get(ctx, managedControlPlaneRef, managedControlPlane); err != nil {
+			return reconcile.Result{}, errors.Wrap(err, "failed to get managed control plane ref")
+		}
+		awsCluster.Spec.ControlPlaneEndpoint = managedControlPlane.Spec.ControlPlaneEndpoint
+
+		//TODO(richardcase): set the failure domains based on the subnets
+		for _, subnet := range clusterScope.Subnets().FilterPrivate() {
+			clusterScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
+				ControlPlane: true,
+			})
+		}
 	}
 
 	awsCluster.Status.Ready = true

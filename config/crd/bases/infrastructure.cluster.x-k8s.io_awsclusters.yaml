@@ -433,7 +433,7 @@ spec:
                 - port
                 type: object
               controlPlaneLoadBalancer:
-                description: ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior
+                description: ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior. This is ignored for Managed clusters (EKS)
                 properties:
                   crossZoneLoadBalancing:
                     description: "CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing. \n With cross-zone load balancing, each load balancer node for your Classic Load Balancer distributes requests evenly across the registered instances in all enabled Availability Zones. If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across the registered instances in its Availability Zone only. \n Defaults to false."

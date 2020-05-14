@@ -343,6 +343,19 @@ func (s Subnets) FilterByZone(zone string) (res Subnets) {
 	return
 }
 
+// GetUniqueZones returns a slice containing the unique zones of the subnets
+func (s Subnets) GetUniqueZones() []string {
+	keys := make(map[string]bool, 0)
+	zones := []string{}
+	for _, x := range s {
+		if _, value := keys[x.AvailabilityZone]; !value {
+			keys[x.AvailabilityZone] = true
+			zones = append(zones, x.AvailabilityZone)
+		}
+	}
+	return zones
+}
+
 // CNISpec defines configuration for CNI
 type CNISpec struct {
 	// CNIIngressRules specify rules to apply to control plane and worker node security groups.
