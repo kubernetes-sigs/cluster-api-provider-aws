@@ -24,7 +24,7 @@ func SplitIntoSubnetsIPv4(cidrBlock string, numSubnets int) ([]*net.IPNet, error
 	modifiedNetworkLen := networkLen + int(subnetBits)
 
 	if modifiedNetworkLen > addrLen {
-		return nil, errors.Errorf("cidr %s cannot accomodate %d subnets", cidrBlock, numSubnets)
+		return nil, errors.Errorf("cidr %s cannot accommodate %d subnets", cidrBlock, numSubnets)
 	}
 
 	var subnets []*net.IPNet
