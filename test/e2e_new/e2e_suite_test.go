@@ -49,10 +49,21 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e_new/kubetest"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+)
+
+const (
+	KubernetesVersion    = "KUBERNETES_VERSION"
+	CNIPath              = "CNI"
+	AwsNodeMachineType   = "AWS_NODE_MACHINE_TYPE"
+	AwsAvailabilityZone1 = "AWS_AVAILABILITY_ZONE_1"
+	AwsAvailabilityZone2 = "AWS_AVAILABILITY_ZONE_2"
+	MultiAzFlavor        = "multi-az"
+	LimitAzFlavor        = "limit-az"
 )
 
 // Test suite flags
@@ -111,11 +122,6 @@ var (
 
 	// tickerDone to stop ticking
 	machineTickerDone chan bool
-)
-
-const (
-	KubernetesVersion = "KUBERNETES_VERSION"
-	CNIPath           = "CNI"
 )
 
 func init() {
@@ -203,7 +209,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	kubetestConfig = &conf.KubetestConfig
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, initScheme())
 	e2eConfig = &conf.E2EConfig
-
+	azs := getAvailabilityZones()
+	setEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
+	setEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	setEnvVar("AWS_REGION", conf.Region, false)
 	setEnvVar("AWS_SSH_KEY_NAME", defaultSSHKeyPairName, false)
 	awsSession = newAWSSession()
@@ -283,6 +291,7 @@ func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
 	_ = v1alpha3.AddToScheme(sc)
+	_ = clientgoscheme.AddToScheme(sc)
 	return sc
 }
 
