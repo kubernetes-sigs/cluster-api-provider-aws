@@ -115,7 +115,7 @@ func (s *Service) reconcileSecurityGroups() error {
 		s.scope.SecurityGroups()[role] = existing
 
 		// Make sure tags are up to date.
-		if ! s.securityGroupIsOverridden(*sg.GroupId) {
+		if !s.securityGroupIsOverridden(*sg.GroupId) {
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				if err := tags.Ensure(existing.Tags, &tags.ApplyParams{
 					EC2Client:   s.scope.EC2,
@@ -190,8 +190,8 @@ func (s *Service) reconcileSecurityGroups() error {
 }
 
 func (s *Service) securityGroupIsOverridden(securityGroupId string) bool {
-	for _, securityGroupId := range s.scope.SecurityGroupOverrides() {
-		if securityGroupId == securityGroupId {
+	for _, overrideId := range s.scope.SecurityGroupOverrides() {
+		if overrideId == securityGroupId {
 			return true
 		}
 	}
@@ -241,24 +241,9 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 }
 
 func (s *Service) deleteSecurityGroups() error {
-	// Security group overrides are mapped by Role rather than their security group name
-	// They are copied into the main 'sgs' list by their group name later
-	var securityGroupOverrides map[infrav1.SecurityGroupRole]*ec2.SecurityGroup
-	securityGroupOverrides, err := s.describeSecurityGroupOverridesByID()
-	if err != nil {
-		return err
-	}
-
 	for _, sg := range s.scope.SecurityGroups() {
 		// do not attempt to delete security groups that are overrides
-		isOverride := false
-		for _, sgOverride := range securityGroupOverrides {
-			if sg.ID == *sgOverride.GroupId {
-				isOverride = true
-				break
-			}
-		}
-		if isOverride {
+		if s.securityGroupIsOverridden(sg.ID) {
 			continue
 		}
 
@@ -274,14 +259,7 @@ func (s *Service) deleteSecurityGroups() error {
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
 		// do not attempt to delete security groups that are overrides
-		isOverride := false
-		for _, sgOverride := range securityGroupOverrides {
-			if sg.ID == *sgOverride.GroupId {
-				isOverride = true
-				break
-			}
-		}
-		if isOverride {
+		if s.securityGroupIsOverridden(sg.ID) {
 			continue
 		}
 
@@ -299,14 +277,7 @@ func (s *Service) deleteSecurityGroups() error {
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
 		// do not attempt to delete security groups that are overrides
-		isOverride := false
-		for _, sgOverride := range securityGroupOverrides {
-			if sg.ID == *sgOverride.GroupId {
-				isOverride = true
-				break
-			}
-		}
-		if isOverride {
+		if s.securityGroupIsOverridden(sg.ID) {
 			continue
 		}
 
