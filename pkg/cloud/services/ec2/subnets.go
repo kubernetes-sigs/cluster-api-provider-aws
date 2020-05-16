@@ -280,6 +280,22 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 		subnets = append(subnets, spec)
 	}
 
+	// only return subnets which are already specified in the cluster spec
+	// if no subnets were provided in the initial spec, all subnets will be added to the aws cluster spec and available for capa to use
+	if len(s.scope.Subnets()) > 0 {
+		filteredSubnets := make([]*infrav1.SubnetSpec, 0, len(s.scope.Subnets()))
+		for _, s := range s.scope.Subnets() {
+			for _, s2 := range subnets {
+				if s.ID == s2.ID {
+					fmt.Println("Keep subnet because it's in the spec: " + s2.ID)
+					filteredSubnets = append(filteredSubnets, s2)
+				}
+			}
+		}
+		fmt.Printf("Filtered subnets: %v\n", filteredSubnets)
+		return filteredSubnets, nil
+	}
+
 	return subnets, nil
 }
 

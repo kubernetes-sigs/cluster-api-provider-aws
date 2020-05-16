@@ -1359,3 +1359,387 @@ func TestDiscoverSubnets(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterSubnets(t *testing.T) {
+	testCases := []struct {
+		name   string
+		input  *infrav1.NetworkSpec
+		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect []*infrav1.SubnetSpec
+	}{
+		{
+			name: "only subnet-1 and subnet-2 are selected during reconciliation",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: infrav1.Subnets {
+					&infrav1.SubnetSpec {
+						ID: "subnet-1",
+					},
+					&infrav1.SubnetSpec {
+						ID: "subnet-2",
+					},
+				},
+			},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-1"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.10.0/24"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("provided-subnet-public"),
+									},
+								},
+							},
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-2"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.11.0/24"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("provided-subnet-private"),
+									},
+								},
+							},
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-3"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.12.0/24"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("provided-subnet-3-private"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-1"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("10.0.10.0/24"),
+										GatewayId:            aws.String("local"),
+									},
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										GatewayId:            aws.String("igw-0"),
+									},
+								},
+								RouteTableId: aws.String("rtb-1"),
+							},
+							{
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-2"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("10.0.11.0/24"),
+										GatewayId:            aws.String("local"),
+									},
+								},
+								RouteTableId: aws.String("rtb-2"),
+							},
+							{
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-3"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("10.0.12.0/24"),
+										GatewayId:            aws.String("local"),
+									},
+								},
+								RouteTableId: aws.String("rtb-3"),
+							},
+						},
+					}, nil)
+
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+			},
+			expect: []*infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.10.0/24",
+					IsPublic:         true,
+					RouteTableID:     aws.String("rtb-1"),
+					Tags: infrav1.Tags{
+						"Name": "provided-subnet-public",
+					},
+				},
+				{
+					ID:               "subnet-2",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.11.0/24",
+					IsPublic:         false,
+					RouteTableID:     aws.String("rtb-2"),
+					Tags: infrav1.Tags{
+						"Name": "provided-subnet-private",
+					},
+				},
+			},
+		},
+		{
+			name: "only subnet-2 and subnet-3 are selected during reconciliation",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: infrav1.Subnets {
+					&infrav1.SubnetSpec {
+						ID: "subnet-2",
+					},
+					&infrav1.SubnetSpec {
+						ID: "subnet-3",
+					},
+				},
+			},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-1"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.10.0/24"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("provided-subnet-public"),
+									},
+								},
+							},
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-2"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.11.0/24"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("provided-subnet-private"),
+									},
+								},
+							},
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-3"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.12.0/24"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("provided-subnet-3-private"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-1"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("10.0.10.0/24"),
+										GatewayId:            aws.String("local"),
+									},
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										GatewayId:            aws.String("igw-0"),
+									},
+								},
+								RouteTableId: aws.String("rtb-1"),
+							},
+							{
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-2"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("10.0.11.0/24"),
+										GatewayId:            aws.String("local"),
+									},
+								},
+								RouteTableId: aws.String("rtb-2"),
+							},
+							{
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-3"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										DestinationCidrBlock: aws.String("10.0.12.0/24"),
+										GatewayId:            aws.String("local"),
+									},
+								},
+								RouteTableId: aws.String("rtb-3"),
+							},						},
+					}, nil)
+
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+
+			},
+			expect: []*infrav1.SubnetSpec{
+				{
+					ID:               "subnet-2",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.11.0/24",
+					IsPublic:         false,
+					RouteTableID:     aws.String("rtb-2"),
+					Tags: infrav1.Tags{
+						"Name": "provided-subnet-private",
+					},
+				},
+				{
+					ID:               "subnet-3",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.12.0/24",
+					IsPublic:         false,
+					RouteTableID:     aws.String("rtb-3"),
+					Tags: infrav1.Tags{
+						"Name": "provided-subnet-3-private",
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSClients: scope.AWSClients{
+					EC2: ec2Mock,
+					ELB: elbMock,
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: *tc.input,
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.mocks(ec2Mock.EXPECT())
+
+			s := NewService(scope)
+			if err := s.reconcileSubnets(); err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+
+			subnets := s.scope.AWSCluster.Spec.NetworkSpec.Subnets
+			out := make(map[string]*infrav1.SubnetSpec)
+			for _, sn := range subnets {
+				out[sn.ID] = sn
+			}
+			for _, exp := range tc.expect {
+				sn, ok := out[exp.ID]
+				if !ok {
+					t.Errorf("Expected to find subnet %s in %+v", exp.ID, subnets)
+					continue
+				}
+
+				if !reflect.DeepEqual(sn, exp) {
+					expected, _ := json.MarshalIndent(exp, "", "\t")
+					actual, _ := json.MarshalIndent(sn, "", "\t")
+					t.Errorf("Expected %s, got %s", string(expected), string(actual))
+				}
+				delete(out, exp.ID)
+			}
+			if len(out) > 0 {
+				t.Errorf("Got unexpected subnets: %+v", out)
+			}
+		})
+	}
+}
