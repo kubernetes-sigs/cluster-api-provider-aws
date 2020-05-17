@@ -276,11 +276,11 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
 					Return(&ec2.DescribeSecurityGroupsOutput{
 						SecurityGroups: []*ec2.SecurityGroup{
-							{ GroupId: aws.String("sg-bastion"), GroupName: aws.String("Bastion Security Group") },
-							{ GroupId: aws.String("sg-apiserver-lb"), GroupName: aws.String("API load balancer Security Group") },
-							{ GroupId: aws.String("sg-lb"), GroupName: aws.String("Load balancer Security Group") },
-							{ GroupId: aws.String("sg-control"), GroupName: aws.String("Control plane Security Group") },
-							{ GroupId: aws.String("sg-node"), GroupName: aws.String("Node Security Group") },
+							{GroupId: aws.String("sg-bastion"), GroupName: aws.String("Bastion Security Group")},
+							{GroupId: aws.String("sg-apiserver-lb"), GroupName: aws.String("API load balancer Security Group")},
+							{GroupId: aws.String("sg-lb"), GroupName: aws.String("Load balancer Security Group")},
+							{GroupId: aws.String("sg-control"), GroupName: aws.String("Control plane Security Group")},
+							{GroupId: aws.String("sg-node"), GroupName: aws.String("Node Security Group")},
 						},
 					}, nil).AnyTimes()
 
