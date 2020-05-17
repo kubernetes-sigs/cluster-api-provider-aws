@@ -1373,11 +1373,11 @@ func TestFilterSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: infrav1.Subnets {
-					&infrav1.SubnetSpec {
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
 						ID: "subnet-1",
 					},
-					&infrav1.SubnetSpec {
+					&infrav1.SubnetSpec{
 						ID: "subnet-2",
 					},
 				},
@@ -1532,11 +1532,11 @@ func TestFilterSubnets(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
 				},
-				Subnets: infrav1.Subnets {
-					&infrav1.SubnetSpec {
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
 						ID: "subnet-2",
 					},
-					&infrav1.SubnetSpec {
+					&infrav1.SubnetSpec{
 						ID: "subnet-3",
 					},
 				},
@@ -1643,7 +1643,7 @@ func TestFilterSubnets(t *testing.T) {
 									},
 								},
 								RouteTableId: aws.String("rtb-3"),
-							},						},
+							}},
 					}, nil)
 
 				m.DescribeNatGatewaysPages(
