@@ -446,6 +446,7 @@ func autoConvert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *v1alpha3
 	} else {
 		out.ControlPlaneLoadBalancer = nil
 	}
+	// WARNING: in.ImageLookupFormat requires manual conversion: does not exist in peer-type
 	// WARNING: in.ImageLookupOrg requires manual conversion: does not exist in peer-type
 	// WARNING: in.ImageLookupBaseOS requires manual conversion: does not exist in peer-type
 	// WARNING: in.Bastion requires manual conversion: does not exist in peer-type
@@ -589,6 +590,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 	if err := Convert_v1alpha3_AWSResourceReference_To_v1alpha2_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}
+	// WARNING: in.ImageLookupFormat requires manual conversion: does not exist in peer-type
 	out.ImageLookupOrg = in.ImageLookupOrg
 	// WARNING: in.ImageLookupBaseOS requires manual conversion: does not exist in peer-type
 	out.InstanceType = in.InstanceType

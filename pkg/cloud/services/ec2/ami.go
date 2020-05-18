@@ -17,9 +17,10 @@ limitations under the License.
 package ec2
 
 import (
-	"fmt"
+	"bytes"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,30 +37,56 @@ const (
 	// when looking up machine AMIs
 	defaultMachineAMILookupBaseOS = "ubuntu-18.04"
 
-	// amiNameFormat is defined in the build/ directory of this project.
+	// defaultAmiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
 	// 1. the string value `capa-ami-`
 	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
 	// 3. the kubernetes version as defined by the packages produced by kubernetes/release with or without v as a prefix, for example: 1.13.0, 1.12.5-mybuild.1, v1.17.3
 	// 4. a `-` followed by any additional characters
-	amiNameFormat = "capa-ami-%s-?%s-*"
+	defaultAmiNameFormat = "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*"
 
 	// Amazon's AMI timestamp format
 	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
 )
 
-func amiName(baseOS, kubernetesVersion string) string {
-	// strip the v (if present) to be able to match images with or without a v prefix
-	return fmt.Sprintf(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
+// AMILookup contains the parameters used to template AMI names used for lookup.
+type AMILookup struct {
+	BaseOS     string
+	K8sVersion string
+}
+
+func amiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
+	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
+	// revert to default if not specified
+	if amiNameFormat == "" {
+		amiNameFormat = defaultAmiNameFormat
+	}
+	var templateBytes bytes.Buffer
+	template, err := template.New("amiName").Parse(amiNameFormat)
+	if err != nil {
+		return amiNameFormat, errors.Wrapf(err, "failed create template from string: %q", amiNameFormat)
+	}
+	err = template.Execute(&templateBytes, amiNameParameters)
+	if err != nil {
+		return amiNameFormat, errors.Wrapf(err, "failed to substitute string: %q", amiNameFormat)
+	}
+	return templateBytes.String(), nil
 }
 
 // defaultAMILookup returns the default AMI based on region
-func (s *Service) defaultAMILookup(ownerID, baseOS, kubernetesVersion string) (string, error) {
+func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
+	if amiNameFormat == "" {
+		amiNameFormat = defaultAmiNameFormat
+	}
 	if ownerID == "" {
 		ownerID = defaultMachineAMIOwnerID
 	}
 	if baseOS == "" {
 		baseOS = defaultMachineAMILookupBaseOS
+	}
+	amiName, err := amiName(amiNameFormat, baseOS, kubernetesVersion)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
@@ -69,7 +96,7 @@ func (s *Service) defaultAMILookup(ownerID, baseOS, kubernetesVersion string) (s
 			},
 			{
 				Name:   aws.String("name"),
-				Values: []*string{aws.String(amiName(baseOS, kubernetesVersion))},
+				Values: []*string{aws.String(amiName)},
 			},
 			{
 				Name:   aws.String("architecture"),
@@ -88,10 +115,10 @@ func (s *Service) defaultAMILookup(ownerID, baseOS, kubernetesVersion string) (s
 
 	out, err := s.scope.EC2.DescribeImages(describeImageInput)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to find ami: %q", amiName(baseOS, kubernetesVersion))
+		return "", errors.Wrapf(err, "failed to find ami: %q", amiName)
 	}
 	if len(out.Images) == 0 {
-		return "", errors.Errorf("found no AMIs with the name: %q", amiName(baseOS, kubernetesVersion))
+		return "", errors.Errorf("found no AMIs with the name: %q", amiName)
 	}
 	latestImage, err := getLatestImage(out.Images)
 	if err != nil {

@@ -43,6 +43,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 }
 
 func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1alpha3.AWSMachineSpec) {
+	dst.ImageLookupFormat = restored.ImageLookupFormat
 	dst.ImageLookupBaseOS = restored.ImageLookupBaseOS
 
 	// Note this may override the manual conversion in Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec.
@@ -139,7 +140,7 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 		out.RootDeviceSize = in.RootVolume.Size
 	}
 
-	// Discards ImageLookupBaseOS
+	// Discards ImageLookupBaseOS & ImageLookupFormat
 
 	return nil
 }

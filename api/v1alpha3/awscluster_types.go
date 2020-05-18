@@ -52,6 +52,21 @@ type AWSClusterSpec struct {
 	// +optional
 	ControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
 
+	// ImageLookupFormat is the AMI naming format to look up machine images when
+	// a machine does not specify an AMI. When set, this will be used for all
+	// cluster machines unless a machine specifies a different ImageLookupOrg.
+	// Supports substitutions for {{.BaseOS}} and {{.K8sVersion}} with the base
+	// OS and kubernetes version, respectively. The BaseOS will be the value in
+	// ImageLookupBaseOS or ubuntu (the default), and the kubernetes version as
+	// defined by the packages produced by kubernetes/release without v as a
+	// prefix: 1.13.0, 1.12.5-mybuild.1, or 1.17.3. For example, the default
+	// image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-* will end up
+	// searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-* for a
+	// Machine that is targeting kubernetes v1.18.0 and the ubuntu base OS. See
+	// also: https://golang.org/pkg/text/template/
+	// +optional
+	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
+
 	// ImageLookupOrg is the AWS Organization ID to look up machine images when a
 	// machine does not specify an AMI. When set, this will be used for all
 	// cluster machines unless a machine specifies a different ImageLookupOrg.

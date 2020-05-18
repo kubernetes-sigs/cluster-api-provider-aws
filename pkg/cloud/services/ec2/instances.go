@@ -136,6 +136,11 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 			return nil, err
 		}
 
+		imageLookupFormat := scope.AWSMachine.Spec.ImageLookupFormat
+		if imageLookupFormat == "" {
+			imageLookupFormat = scope.AWSCluster.Spec.ImageLookupFormat
+		}
+
 		imageLookupOrg := scope.AWSMachine.Spec.ImageLookupOrg
 		if imageLookupOrg == "" {
 			imageLookupOrg = scope.AWSCluster.Spec.ImageLookupOrg
@@ -146,7 +151,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 			imageLookupBaseOS = scope.AWSCluster.Spec.ImageLookupBaseOS
 		}
 
-		input.ImageID, err = s.defaultAMILookup(imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
+		input.ImageID, err = s.defaultAMILookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
 		if err != nil {
 			return nil, err
 		}
