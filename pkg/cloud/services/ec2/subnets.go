@@ -54,93 +54,66 @@ func (s *Service) reconcileSubnets() error {
 		return err
 	}
 
-	// If we have an unmanaged VPC then we expect the following to be true:
-	// 1) Subnets must be specified
-	// 2) The subnets specified must already exist
-	// Otherwise this is an error
-	subnetErrs := []string{}
-	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		if len(subnets) == 0 {
-			return errors.New("no subnets specified, you must specify the subnets when using an umanaged vpc")
-		}
-		if len(existing) == 0 {
-			return errors.New("subnets must exist already in an unumanaged vpc")
-		}
-
-		for _, subnet := range subnets {
-			existingSubnet := existing.FindByID(subnet.ID)
-			if existingSubnet == nil {
-				subnetErrs = append(subnetErrs, fmt.Sprintf("subnet %s specified but it doesn't exist in vpc %s", subnet.ID, s.scope.VPC().ID))
-			}
-		}
-	}
-
-	// If there are subnets specified we need at least 1 private and 1 public subnet
-	if len(subnets) > 0 {
-		privateSubnets := subnets.FilterPrivate()
-		if len(privateSubnets) < 1 {
-			subnetErrs = append(subnetErrs, "expected at least 1 private subnet but got 0")
-		}
-		publicSubnets := subnets.FilterPublic()
-		if len(publicSubnets) < 1 {
-			subnetErrs = append(subnetErrs, "expected at least 1 public subnet but got 0")
-		}
-	}
-
-	if len(subnetErrs) > 0 {
-		return errors.Errorf("subnet errors encountered: %s", subnetErrs)
-	}
+	unmanagedVPC := s.scope.VPC().IsUnmanaged(s.scope.Name())
 
 	if len(subnets) == 0 {
-		// If we have no subnets then create subnets. There will be 1 public and 1 private subnet
+		if unmanagedVPC {
+			// If we have a unmanaged VPC then subnets must be specified
+			errMsg := "no subnets specified, you must specify the subnets when using an umanaged vpc"
+			record.Warnf(s.scope.AWSCluster, "FailedNoSubnets", errMsg)
+			return errors.New(errMsg)
+		}
+		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
 		subnets, err = s.getDefaultSubnets()
 		if err != nil {
+			record.Warnf(s.scope.AWSCluster, "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
 			return errors.Wrap(err, "failed getting default subnets")
 		}
 	}
 
-LoopExisting:
-	for i := range existing {
-		exsn := existing[i]
-		// Check if the subnet already exists in the state, in that case reconcile it.
-		for j := range subnets {
-			sn := subnets[j]
-			// Two subnets are defined equal to each other if their id is equal
-			// or if they are in the same vpc and the cidr block is the same.
-			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.CidrBlock == exsn.CidrBlock) {
-				if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-					// TODO(vincepri): Validate provided subnet passes some basic checks.
-					exsn.DeepCopyInto(sn)
-					continue LoopExisting
-				}
-
-				// Make sure tags are up to date.
+	for _, sub := range subnets {
+		existingSubnet := existing.FindEqual(sub)
+		if existingSubnet != nil {
+			if !unmanagedVPC {
+				subnetTags := sub.Tags
+				// Make sure tags are up to date if we have a managed VPC.
 				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-					if err := tags.Ensure(exsn.Tags, &tags.ApplyParams{
+					if err := tags.Ensure(existingSubnet.Tags, &tags.ApplyParams{
 						EC2Client:   s.scope.EC2,
-						BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic, exsn.AvailabilityZone, sn.Tags),
+						BuildParams: s.getSubnetTagParams(existingSubnet.ID, existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags),
 					}); err != nil {
 						return false, err
 					}
 					return true, nil
 				}, awserrors.SubnetNotFound); err != nil {
-					record.Warnf(s.scope.AWSCluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", exsn.ID, err)
-					return errors.Wrapf(err, "failed to ensure tags on subnet %q", exsn.ID)
+					record.Warnf(s.scope.AWSCluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", existingSubnet.ID, err)
+					return errors.Wrapf(err, "failed to ensure tags on subnet %q", existingSubnet.ID)
 				}
-
-				// TODO(vincepri): check if subnet needs to be updated.
-				exsn.DeepCopyInto(sn)
-				continue LoopExisting
 			}
-		}
 
-		// TODO(vincepri): delete extra subnets that exist and are managed by us.
-		subnets = append(subnets, exsn)
+			// Update subnet spec with the existing subnet details
+			// TODO(vincepri): check if subnet needs to be updated.
+			existingSubnet.DeepCopyInto(sub)
+		} else if unmanagedVPC {
+			// If there is no existing subnet and we have an umanaged vpc report an error
+			record.Warnf(s.scope.AWSCluster, "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.ID, sub.CidrBlock)
+			return errors.New(fmt.Sprintf("usign unmanaged vpc and subnet %s (cidr %s) specified but it doesn't exist in vpc %s", sub.ID, sub.CidrBlock, s.scope.VPC().ID))
+		}
+	}
+
+	// Check that we need at least 1 private and 1 public subnet after we have updated the metadata
+	if len(subnets.FilterPrivate()) < 1 {
+		record.Warnf(s.scope.AWSCluster, "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
+		return errors.New("expected at least 1 private subnet but got 0")
+	}
+	if len(subnets.FilterPublic()) < 1 {
+		record.Warnf(s.scope.AWSCluster, "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
+		return errors.New("expected at least 1 public subnet but got 0")
 	}
 
 	// Proceed to create the rest of the subnets that don't have an ID.
-	if !s.scope.VPC().IsUnmanaged(s.scope.Name()) {
+	if !unmanagedVPC {
 		for _, subnet := range subnets {
 			if subnet.ID != "" {
 				continue
@@ -150,7 +123,7 @@ LoopExisting:
 			if err != nil {
 				return err
 			}
-			subnet.ID = nsn.ID
+			nsn.DeepCopyInto(subnet)
 		}
 	}
 
@@ -400,7 +373,7 @@ func (s *Service) getSubnetTagParams(id string, public bool, zone string, manual
 	name.WriteString("-subnet-")
 	name.WriteString(role)
 	name.WriteString("-")
-	name.WriteString(strings.Replace(zone, "-", "", -1))
+	name.WriteString(zone)
 
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),

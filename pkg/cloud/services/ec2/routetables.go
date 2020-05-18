@@ -318,7 +318,7 @@ func (s *Service) getRouteTableTagParams(id string, public bool, zone string) in
 		name.WriteString("private")
 	}
 	name.WriteString("-")
-	name.WriteString(strings.Replace(zone, "-", "", -1))
+	name.WriteString(zone)
 
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),

@@ -264,6 +264,18 @@ func (s Subnets) FindByID(id string) *SubnetSpec {
 	return nil
 }
 
+// FindEqual returns a subnet spec that is equal to the one passed in.
+// Two subnets are defined equal to each other if their id is equal
+// or if they are in the same vpc and the cidr block is the same.
+func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
+	for _, x := range s {
+		if (spec.ID != "" && x.ID == spec.ID) || (spec.CidrBlock == x.CidrBlock) {
+			return x
+		}
+	}
+	return nil
+}
+
 // FilterPrivate returns a slice containing all subnets marked as private.
 func (s Subnets) FilterPrivate() (res Subnets) {
 	for _, x := range s {

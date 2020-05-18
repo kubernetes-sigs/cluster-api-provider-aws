@@ -190,7 +190,7 @@ func TestReconcileRouteTables(t *testing.T) {
 									},
 									{
 										Key:   aws.String("Name"),
-										Value: aws.String("test-cluster-rt-private-useast1a"),
+										Value: aws.String("test-cluster-rt-private-us-east-1a"),
 									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -218,7 +218,7 @@ func TestReconcileRouteTables(t *testing.T) {
 									},
 									{
 										Key:   aws.String("Name"),
-										Value: aws.String("test-cluster-rt-public-useast1a"),
+										Value: aws.String("test-cluster-rt-public-us-east-1a"),
 									},
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
