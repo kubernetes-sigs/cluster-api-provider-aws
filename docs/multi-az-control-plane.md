@@ -2,11 +2,11 @@
 
 ## Overview
 
-By default, the control plane of a workload cluster created by CAPA will not span multiple availability zones (AZs) (also referred to as "failure domains"), even when using multiple control plane nodes. This is because CAPA will, by default, only create resources in the first discovered AZ of a region. However, if CAPA is specifically configured to create resources in multiple AZs, then control plane nodes will be automatically distributed across multiple AZs. This document explains how to instruct CAPA to create resources in multiple AZs.
+By default, the control plane of a workload cluster created by CAPA will span multiple availability zones (AZs) (also referred to as "failure domains") when using multiple control plane nodes. This is because CAPA will, by default, create public and private subnets in all the AZs of a region (up to a maximum of 3 AZs). If a region has more than 3 AZs then CAPA will pick 3 AZs by random to use.
 
-## Configuring CAPA to Use Multiple AZs
+## Configuring CAPA to Use Specific AZs
 
-To explicitly instruct CAPA to create resources in multiple AZs, users must add a `networkSpec` object to the AWSCluster specification. Here is an example `networkSpec` that creates resources across three AZs in the "us-west-2" region:
+To explicitly instruct CAPA to create resources in specific AZs (and not by random), users can add a `networkSpec` object to the AWSCluster specification. Here is an example `networkSpec` that creates resources across three AZs in the "us-west-2" region:
 
 ```yaml
 spec:
@@ -36,6 +36,8 @@ Specifying the CIDR block alone for the VPC is not enough; users must also suppl
 Note that CAPA insists that there must be a public subnet (and associated Internet gateway), even if no public load balancer is requested for the control plane. Therefore, for every AZ where a control plane node should be placed, the `networkSpec` object must define both a public and private subnet.
 
 Once CAPA is provided with a `networkSpec` that spans multiple AZs, the KubeadmControlPlane controller will automatically distribute control plane nodes across multiple AZs. No further configuration from the user is required.
+
+> Note: this method can also be used if you do not want to split your EC2 instance across multiple AZs.
 
 ## Caveats
 
