@@ -226,13 +226,21 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	// If SSHKeyName WAS NOT provided in the AWSMachine Spec, fallback to the value provided in the AWSCluster Spec.
 	// If a value was not provided in the AWSCluster Spec, then use the defaultSSHKeyName
-	input.SSHKeyName = scope.AWSMachine.Spec.SSHKeyName
-	if input.SSHKeyName == nil {
-		if scope.AWSCluster.Spec.SSHKeyName != nil {
-			input.SSHKeyName = scope.AWSCluster.Spec.SSHKeyName
-		} else {
-			input.SSHKeyName = aws.String(defaultSSHKeyName)
+	// Note that:
+	// - a nil AWSMachine.Spec.SSHKeyName value means use the AWSCluster.Spec.SSHKeyName SSH key name value
+	// - nil values for both AWSCluster.Spec.SSHKeyName and AWSMachine.Spec.SSHKeyName means use the default SSH key name value
+	// - an empty string means do not set an SSH key name at all
+	// - otherwise use the value specified in either AWSMachine or AWSCluster
+	if scope.AWSMachine.Spec.SSHKeyName != nil {
+		if *scope.AWSMachine.Spec.SSHKeyName != "" {
+			input.SSHKeyName = scope.AWSMachine.Spec.SSHKeyName
 		}
+	} else if scope.AWSCluster.Spec.SSHKeyName != nil {
+		if *scope.AWSCluster.Spec.SSHKeyName != "" {
+			input.SSHKeyName = scope.AWSCluster.Spec.SSHKeyName
+		}
+	} else {
+		input.SSHKeyName = aws.String(defaultSSHKeyName)
 	}
 
 	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
