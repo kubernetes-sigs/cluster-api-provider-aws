@@ -287,12 +287,10 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 		for _, s := range s.scope.Subnets() {
 			for _, s2 := range subnets {
 				if s.ID == s2.ID {
-					fmt.Println("Keep subnet because it's in the spec: " + s2.ID)
 					filteredSubnets = append(filteredSubnets, s2)
 				}
 			}
 		}
-		fmt.Printf("Filtered subnets: %v\n", filteredSubnets)
 		return filteredSubnets, nil
 	}
 
