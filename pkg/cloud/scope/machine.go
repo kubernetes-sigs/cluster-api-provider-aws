@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -138,8 +139,9 @@ func (m *MachineScope) GetProviderID() string {
 }
 
 // SetProviderID sets the AWSMachine providerID in spec.
-func (m *MachineScope) SetProviderID(v string) {
-	m.AWSMachine.Spec.ProviderID = pointer.StringPtr(v)
+func (m *MachineScope) SetProviderID(instanceID, availabilityZone string) {
+	providerID := fmt.Sprintf("aws:///%s/%s", availabilityZone, instanceID)
+	m.AWSMachine.Spec.ProviderID = pointer.StringPtr(providerID)
 }
 
 // GetInstanceID returns the AWSMachine instance state from the status.

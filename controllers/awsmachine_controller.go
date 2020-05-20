@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -411,7 +410,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	// Make sure Spec.ProviderID is always set.
-	machineScope.SetProviderID(fmt.Sprintf("aws:////%s", instance.ID))
+	machineScope.SetProviderID(instance.ID, instance.AvailabilityZone)
 
 	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 

@@ -88,6 +88,7 @@ func TestInstanceIfExists(t *testing.T) {
 			name:       "instance exists",
 			instanceID: "id-1",
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				az := "test-zone-1a"
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("id-1")},
 				})).
@@ -115,6 +116,9 @@ func TestInstanceIfExists(t *testing.T) {
 													VolumeId: aws.String("volume-1"),
 												},
 											},
+										},
+										Placement: &ec2.Placement{
+											AvailabilityZone: &az,
 										},
 									},
 								},
@@ -269,6 +273,8 @@ func TestCreateInstance(t *testing.T) {
 		},
 	}
 
+	az := "test-zone-1a"
+
 	testcases := []struct {
 		name          string
 		machine       clusterv1.Machine
@@ -361,6 +367,9 @@ func TestCreateInstance(t *testing.T) {
 											VolumeId: aws.String("volume-1"),
 										},
 									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
 								},
 							},
 						},
@@ -474,6 +483,9 @@ func TestCreateInstance(t *testing.T) {
 											VolumeId: aws.String("volume-1"),
 										},
 									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
 								},
 							},
 						},
@@ -606,6 +618,9 @@ func TestCreateInstance(t *testing.T) {
 										},
 									},
 								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
 							},
 						},
 					}, nil)
@@ -732,6 +747,9 @@ func TestCreateInstance(t *testing.T) {
 											VolumeId: aws.String("volume-1"),
 										},
 									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
 								},
 							},
 						},
@@ -860,6 +878,9 @@ func TestCreateInstance(t *testing.T) {
 											VolumeId: aws.String("volume-1"),
 										},
 									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
 								},
 							},
 						},

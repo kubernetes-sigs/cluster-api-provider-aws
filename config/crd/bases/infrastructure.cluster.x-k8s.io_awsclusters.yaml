@@ -638,6 +638,9 @@ spec:
                       - type
                       type: object
                     type: array
+                  availabilityZone:
+                    description: Availability zone of instance
+                    type: string
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.

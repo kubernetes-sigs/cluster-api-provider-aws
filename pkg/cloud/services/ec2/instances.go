@@ -624,6 +624,8 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 
 	i.Addresses = s.getInstanceAddresses(v)
 
+	i.AvailabilityZone = aws.StringValue(v.Placement.AvailabilityZone)
+
 	return i, nil
 }
 
