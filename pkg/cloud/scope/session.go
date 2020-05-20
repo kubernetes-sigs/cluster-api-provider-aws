@@ -21,13 +21,14 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 var (
 	sessionCache sync.Map
 )
 
-func sessionForRegion(region string) (*session.Session, error) {
+func sessionForRegion(awsCluster *infrav1.AWSCluster, region string) (*session.Session, error) {
 	s, ok := sessionCache.Load(region)
 	if ok {
 		return s.(*session.Session), nil
