@@ -154,6 +154,7 @@ type MachineStatus struct {
 	// own versioned API types that should be
 	// serialized/deserialized from this field.
 	// +optional
+	// +kubebuilder:validation:XPreserveUnknownFields
 	ProviderStatus *runtime.RawExtension `json:"providerStatus,omitempty"`
 
 	// Addresses is a list of addresses assigned to the machine. Queried from cloud provider, if available.
