@@ -24,11 +24,12 @@ import (
 	time "time"
 	unsafe "unsafe"
 
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	apiv1alpha2 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 func init() {
@@ -612,7 +613,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 
 func autoConvert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSMachineStatus, out *v1alpha3.AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]apiv1alpha3.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*v1alpha3.InstanceState)(unsafe.Pointer(in.InstanceState))
 	// WARNING: in.ErrorReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.ErrorMessage requires manual conversion: does not exist in peer-type
@@ -621,7 +622,7 @@ func autoConvert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSM
 
 func autoConvert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *v1alpha3.AWSMachineStatus, out *AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]apiv1alpha2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*InstanceState)(unsafe.Pointer(in.InstanceState))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
@@ -980,7 +981,7 @@ func autoConvert_v1alpha2_Instance_To_v1alpha3_Instance(in *Instance, out *v1alp
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.UserData = (*string)(unsafe.Pointer(in.UserData))
 	out.IAMProfile = in.IAMProfile
-	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]apiv1alpha3.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.PrivateIP = (*string)(unsafe.Pointer(in.PrivateIP))
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
@@ -1001,7 +1002,7 @@ func autoConvert_v1alpha3_Instance_To_v1alpha2_Instance(in *v1alpha3.Instance, o
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.UserData = (*string)(unsafe.Pointer(in.UserData))
 	out.IAMProfile = in.IAMProfile
-	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]apiv1alpha2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.PrivateIP = (*string)(unsafe.Pointer(in.PrivateIP))
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))

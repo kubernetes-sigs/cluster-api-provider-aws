@@ -21,7 +21,6 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
@@ -304,7 +303,7 @@ func (in *AWSMachineStatus) DeepCopyInto(out *AWSMachineStatus) {
 	*out = *in
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]v1.NodeAddress, len(*in))
+		*out = make([]apiv1alpha3.MachineAddress, len(*in))
 		copy(*out, *in)
 	}
 	if in.InstanceState != nil {
@@ -707,7 +706,7 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 	}
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]v1.NodeAddress, len(*in))
+		*out = make([]apiv1alpha3.MachineAddress, len(*in))
 		copy(*out, *in)
 	}
 	if in.PrivateIP != nil {
