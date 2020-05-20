@@ -117,7 +117,7 @@ func (s *Service) DeleteLoadbalancers() error {
 
 	elbs, err := s.listOwnedELBs()
 	if err != nil {
-		return err
+		return errors.Errorf("Listing owned ELBs (1): %v", err)
 	}
 
 	elbName, err := GenerateELBName(s.scope.Name())

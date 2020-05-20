@@ -365,6 +365,12 @@ func TestReconcileClusterVersion(t *testing.T) {
 						Name:      clusterName,
 					},
 				},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      clusterName,
+					},
+				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 						Version: aws.String("1.16"),

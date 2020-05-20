@@ -458,7 +458,7 @@ func autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSC
 	if err := Convert_v1alpha2_Network_To_v1alpha3_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (./api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
 	out.Ready = in.Ready
 	// WARNING: in.APIEndpoints requires manual conversion: does not exist in peer-type
 	return nil
@@ -584,7 +584,7 @@ func autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachi
 	}
 	// WARNING: in.RootDeviceSize requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*./api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
 	return nil
 }
 

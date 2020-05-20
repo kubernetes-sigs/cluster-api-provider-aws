@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -82,6 +83,10 @@ type AWSClusterSpec struct {
 	// Bastion contains options to configure the bastion host.
 	// +optional
 	Bastion Bastion `json:"bastion"`
+
+	// PrincipalRef is a reference to a principal to be used when reconciling this cluster
+	// +optional
+	PrincipalRef *corev1.ObjectReference `json:"principalRef,omitempty"`
 }
 
 type Bastion struct {

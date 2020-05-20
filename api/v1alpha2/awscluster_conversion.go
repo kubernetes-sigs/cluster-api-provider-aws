@@ -98,6 +98,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	// Manually convert conditions
 	dst.SetConditions(restored.GetConditions())
 
+	dst.Spec.PrincipalRef = restored.Spec.PrincipalRef
+
 	return nil
 }
 

@@ -774,6 +774,18 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 	var managedControlPlaneScope *scope.ManagedControlPlaneScope
 	var err error
 
+	awsCluster := &infrav1.AWSCluster{}
+
+	infraClusterName := client.ObjectKey{
+		Namespace: awsMachine.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+
+	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
+		// AWSCluster is not ready
+		return nil, nil
+	}
+
 	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Kind == "AWSManagedControlPlane" {
 		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 		controlPlaneName := client.ObjectKey{
@@ -790,6 +802,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 			Client:         r.Client,
 			Logger:         log,
 			Cluster:        cluster,
+			AWSCluster:     awsCluster,
 			ControlPlane:   controlPlane,
 			ControllerName: "awsManagedControlPlane",
 			Endpoints:      r.Endpoints,
@@ -824,18 +837,6 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 
 		r.Log.Info("Using externalInfraCluster")
 		return extenalInfraClusterScope, nil
-	}
-
-	awsCluster := &infrav1.AWSCluster{}
-
-	infraClusterName := client.ObjectKey{
-		Namespace: awsMachine.Namespace,
-		Name:      cluster.Spec.InfrastructureRef.Name,
-	}
-
-	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
-		// AWSCluster is not ready
-		return nil, nil
 	}
 
 	// Create the cluster scope
