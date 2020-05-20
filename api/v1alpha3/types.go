@@ -21,8 +21,8 @@ import (
 	"sort"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
@@ -531,7 +531,7 @@ type Instance struct {
 	IAMProfile string `json:"iamProfile,omitempty"`
 
 	// Addresses contains the AWS instance associated addresses.
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// The private IPv4 address assigned to the instance.
 	PrivateIP *string `json:"privateIp,omitempty"`

@@ -27,7 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -36,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -627,27 +627,27 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 	return i, nil
 }
 
-func (s *Service) getInstanceAddresses(instance *ec2.Instance) []corev1.NodeAddress {
-	addresses := []corev1.NodeAddress{}
+func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.MachineAddress {
+	addresses := []clusterv1.MachineAddress{}
 	for _, eni := range instance.NetworkInterfaces {
-		privateDNSAddress := corev1.NodeAddress{
-			Type:    corev1.NodeInternalDNS,
+		privateDNSAddress := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalDNS,
 			Address: aws.StringValue(eni.PrivateDnsName),
 		}
-		privateIPAddress := corev1.NodeAddress{
-			Type:    corev1.NodeInternalIP,
+		privateIPAddress := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalIP,
 			Address: aws.StringValue(eni.PrivateIpAddress),
 		}
 		addresses = append(addresses, privateDNSAddress, privateIPAddress)
 
 		// An elastic IP is attached if association is non nil pointer
 		if eni.Association != nil {
-			publicDNSAddress := corev1.NodeAddress{
-				Type:    corev1.NodeExternalDNS,
+			publicDNSAddress := clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalDNS,
 				Address: aws.StringValue(eni.Association.PublicDnsName),
 			}
-			publicIPAddress := corev1.NodeAddress{
-				Type:    corev1.NodeExternalIP,
+			publicIPAddress := clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalIP,
 				Address: aws.StringValue(eni.Association.PublicIp),
 			}
 			addresses = append(addresses, publicDNSAddress, publicIPAddress)
