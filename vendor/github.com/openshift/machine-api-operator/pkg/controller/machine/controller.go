@@ -87,6 +87,9 @@ const (
 	// Machine has a deletion timestamp
 	phaseDeleting = "Deleting"
 
+	// Hardcoded instance state set on machine failure
+	unknownInstanceState = "Unknown"
+
 	skipWaitForDeleteTimeoutSeconds = 60 * 5
 )
 
@@ -426,9 +429,17 @@ func (r *ReconcileMachine) setPhase(machine *machinev1.Machine, phase string, er
 		machine.Status.LastUpdated = &now
 		if phase == phaseFailed && errorMessage != "" {
 			machine.Status.ErrorMessage = &errorMessage
+			if machine.Annotations == nil {
+				machine.Annotations = map[string]string{}
+			}
+			machine.Annotations[MachineInstanceStateAnnotationName] = unknownInstanceState
+			if err := r.Client.Patch(context.Background(), machine, baseToPatch); err != nil {
+				klog.Errorf("Failed to update machine %q: %v", machine.GetName(), err)
+				return err
+			}
 		}
 		if err := r.Client.Status().Patch(context.Background(), machine, baseToPatch); err != nil {
-			klog.Errorf("Failed to update machine %q: %v", machine.GetName(), err)
+			klog.Errorf("Failed to update machine status %q: %v", machine.GetName(), err)
 			return err
 		}
 	}

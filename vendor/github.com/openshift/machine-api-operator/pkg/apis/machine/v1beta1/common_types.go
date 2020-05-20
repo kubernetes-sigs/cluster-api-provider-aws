@@ -31,6 +31,7 @@ type ProviderSpec struct {
 	// versioned API types that should be serialized/deserialized from this
 	// field, akin to component config.
 	// +optional
+	// +kubebuilder:validation:XPreserveUnknownFields
 	Value *runtime.RawExtension `json:"value,omitempty"`
 }
 
