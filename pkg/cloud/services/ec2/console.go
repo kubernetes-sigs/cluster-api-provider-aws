@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"encoding/base64"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -33,6 +34,7 @@ func (s *Service) GetConsoleOutput(instanceID string) (string, error) {
 
 	out, err := s.scope.EC2.GetConsoleOutput(input)
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedGetConsoleOutput", "failed to get console output for instance %q: %v", instanceID, err)
 		return "", errors.Wrapf(err, "failed to get console output for instance %q", instanceID)
 	}
 

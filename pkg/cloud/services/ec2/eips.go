@@ -33,6 +33,7 @@ import (
 func (s *Service) getOrAllocateAddress(role string) (string, error) {
 	out, err := s.describeAddresses(role)
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeAddresses", "Failed to query addresses for role %q: %v", role, err)
 		return "", errors.Wrap(err, "failed to query addresses")
 	}
 
@@ -72,6 +73,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 		}
 		return true, nil
 	}, awserrors.EIPNotFound); err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedAllocateAddress", "Failed to tag elastic IP %q: %v", aws.StringValue(out.AllocationId), err)
 		return "", errors.Wrapf(err, "failed to tag Elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 

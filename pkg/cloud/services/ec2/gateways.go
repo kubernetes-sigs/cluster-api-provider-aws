@@ -169,6 +169,7 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	})
 
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeInternetGateway", "Failed to describe internet gateways in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe internet gateways in vpc %q", s.scope.VPC().ID)
 	}
 

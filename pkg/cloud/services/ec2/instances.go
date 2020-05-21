@@ -57,6 +57,7 @@ func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.
 	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeInstances", "Failed to describe instances by tags: %v", err)
 		return nil, errors.Wrap(err, "failed to describe instances by tags")
 	}
 
@@ -90,6 +91,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeInstances", "failed to describe instance %q: %v", *id, err)
 		return nil, errors.Wrapf(err, "failed to describe instance: %q", *id)
 	}
 
@@ -192,6 +194,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	case input.SubnetID == "":
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
+			record.Eventf(s.scope.AWSCluster, "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available", scope.Name()),
 			)
@@ -200,6 +203,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	}
 
 	if s.scope.Network().APIServerELB.DNSName == "" {
+		record.Eventf(s.scope.AWSCluster, "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
 		return nil, awserrors.NewFailedDependency(
 			errors.New("failed to run controlplane, APIServer ELB not available"),
 		)

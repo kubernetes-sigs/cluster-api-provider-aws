@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"bytes"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sort"
 	"strings"
 	"text/template"
@@ -115,6 +116,7 @@ func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVer
 
 	out, err := s.scope.EC2.DescribeImages(describeImageInput)
 	if err != nil {
+		record.Eventf(s.scope.AWSCluster, "FailedDescribeImages", "Failed to find ami %q: %v", amiName, err)
 		return "", errors.Wrapf(err, "failed to find ami: %q", amiName)
 	}
 	if len(out.Images) == 0 {
