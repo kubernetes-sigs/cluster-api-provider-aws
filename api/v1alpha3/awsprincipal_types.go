@@ -55,6 +55,15 @@ type AWSClusterStaticPrincipal struct {
 	Spec AWSClusterStaticPrincipalSpec `json:"spec,omitempty"`
 }
 
+// +kubebuilder:object:root=true
+
+// AWSClusterStaticPrincipalList contains a list of AWSClusterStaticPrincipal
+type AWSClusterStaticPrincipalList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []AWSClusterStaticPrincipal `json:"items"`
+}
+
 type AWSClusterStaticPrincipalSpec struct {
 	AWSClusterPrincipalSpec `json:",inline"`
 	// Reference to a secret containing the credentials. The secret should
@@ -75,6 +84,14 @@ type AWSClusterRolePrincipal struct {
 	Spec AWSClusterRolePrincipalSpec `json:"spec,omitempty"`
 }
 
+// +kubebuilder:object:root=true
+
+// AWSClusterRolePrincipalList contains a list of AWSClusterRolePrincipal
+type AWSClusterRolePrincipalList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []AWSClusterRolePrincipal `json:"items"`
+}
 
 type AWSClusterRolePrincipalSpec struct {
 	AWSClusterPrincipalSpec `json:",inline"`
@@ -96,12 +113,23 @@ type AWSClusterRolePrincipalSpec struct {
 	SourcePrincipalRef corev1.ObjectReference `json:"sourcePrincipalRef,omitempty"`
 }
 
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=awsserviceaccountprincipals,scope=Cluster,categories=cluster-api
 type AWSServiceAccountPrincipal struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec for this AWSServiceAccountPrincipal.
 	Spec AWSServiceAccountPrincipalSpec `json:"spec,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// AWSServiceAccountPrincipalList contains a list of AWSServiceAccountPrincipal
+type AWSServiceAccountPrincipalList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []AWSServiceAccountPrincipal `json:"items"`
 }
 
 type AWSServiceAccountPrincipalSpec struct {
@@ -120,4 +148,14 @@ type AWSServiceAccountPrincipalSpec struct {
 	// +optional
 	// +default=86400
 	ExpirationSeconds int `json:"expirationSeconds"`
+}
+
+func init() {
+	SchemeBuilder.Register(
+		&AWSClusterStaticPrincipal{},
+		&AWSClusterStaticPrincipalList{},
+		&AWSServiceAccountPrincipal{},
+		&AWSServiceAccountPrincipalList{},
+		&AWSClusterRolePrincipal{},
+		&AWSClusterRolePrincipalList{})
 }

@@ -44,10 +44,6 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 
 				principal := &infrav1.AWSClusterStaticPrincipal {
-					TypeMeta: metav1.TypeMeta {
-						APIVersion:  infrav1.GroupVersion.String(),
-						Kind: "AWSClusterStaticPrincipal",
-					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "principal",
 					},
@@ -59,7 +55,7 @@ func TestPrincipalParsing(t *testing.T) {
 						},
 					},
 				}
-				//principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticPrincipal"))
+				principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticPrincipal"))
 				err = c.Create(context.Background(), principal)
 				if err != nil {
 					t.Fatal(err)
@@ -96,8 +92,7 @@ func TestPrincipalParsing(t *testing.T) {
 		},
 	}
 
-	scheme := runtime.NewScheme()
-	err := infrav1.AddToScheme(scheme)
+	scheme, err := setupScheme()
 	if err != nil {
 		t.Fatal(err)
 	}
