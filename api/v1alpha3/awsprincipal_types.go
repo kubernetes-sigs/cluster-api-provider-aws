@@ -71,7 +71,7 @@ type AWSClusterStaticPrincipalSpec struct {
 	//  AccessKeyID: AKIAIOSFODNN7EXAMPLE
 	//  SecretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 	//  SessionToken: Optional
-	SecretRef corev1.ObjectReference `json:"secretRef"`
+	SecretRef corev1.SecretReference `json:"secretRef"`
 }
 
 // +kubebuilder:object:root=true

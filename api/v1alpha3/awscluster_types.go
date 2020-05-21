@@ -86,7 +86,7 @@ type AWSClusterSpec struct {
 
 	// PrincipalRef is a reference to a principal to be used when reconciling this cluster
 	// +optional
-	PrincipalRef corev1.ObjectReference `json:"principalRef,omitempty"`
+	PrincipalRef *corev1.ObjectReference `json:"principalRef,omitempty"`
 
 	// AccountID is the ID of an AWS account the cluster is to be provisioned in
 	// +optional
