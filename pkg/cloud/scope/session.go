@@ -17,16 +17,19 @@ limitations under the License.
 package scope
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/gob"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
-	"sync"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sync"
 )
 
 var (
@@ -48,12 +51,22 @@ func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AW
 		awsConfig.Credentials = credentials.NewCredentials(provider)
 	}
 
+	providerHash, err := provider.Hash()
+	cachedProvider, ok := sessionCache.Load(providerHash)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrieve provider from cache: %v", err)
+	}
+	if ok {
+		provider = cachedProvider.(AWSPrincipalTypeProvider)
+	}
+
 	ns, err := session.NewSession(awsConfig.WithRegion(region))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to create a new AWS session: %v", err)
 	}
 
 	sessionCache.Store(region, ns)
+	sessionCache.Store(providerHash, cachedProvider)
 	return ns, nil
 }
 
@@ -104,16 +117,29 @@ type AWSPrincipalTypeProvider interface {
 }
 
 func NewAWSStaticPrincipalTypeProvider(principal *infrav1.AWSClusterStaticPrincipal, secret *corev1.Secret) (*AWSStaticPrincipalTypeProvider) {
+	accessKeyId := string(secret.Data["AccessKeyID"])
+	secretAccessKey := string(secret.Data["SecretAccessKey"])
+	sessionToken := string(secret.Data["SessionToken"])
+
 	return &AWSStaticPrincipalTypeProvider{
 		principal: principal,
-		accessKeyId: string(secret.Data["AccessKeyID"]),
-		secretAccessKey: string(secret.Data["SecretAccessKey"]),
-		sessionToken: string(secret.Data["SessionToken"]),
+		credentials: credentials.NewStaticCredentials(accessKeyId,secretAccessKey,sessionToken),
+		accessKeyId: accessKeyId,
+		secretAccessKey: secretAccessKey,
+		sessionToken: sessionToken,
 	}
 }
 
 func NewAWSRolePrincipalTypeProvider(principal *infrav1.AWSClusterRolePrincipal) (*AWSRolePrincipalTypeProvider) {
+	roleProvider := &stscreds.AssumeRoleProvider{
+		RoleARN: principal.Spec.RoleArn,
+		ExternalID: aws.String(principal.Spec.ExternalID),
+		// Duration: time.Second * principal.Spec.DurationSeconds,// TODO: fixme
+		RoleSessionName: principal.Spec.SessionName,
+		Policy: aws.String(principal.Spec.InlinePolicy),
+	}
 	return &AWSRolePrincipalTypeProvider{
+		credentials: credentials.NewCredentials(roleProvider),
 		principal: principal,
 	}
 }
@@ -126,32 +152,48 @@ func NewAWSServiceAccountPrincipalTypeProvider(principal *infrav1.AWSServiceAcco
 
 type AWSStaticPrincipalTypeProvider struct {
 	principal *infrav1.AWSClusterStaticPrincipal
+	credentials *credentials.Credentials
+	// these are for tests :/
 	accessKeyId string
 	secretAccessKey string
 	sessionToken string
 }
 func (p *AWSStaticPrincipalTypeProvider) Hash() (string,error) {
-	return "", nil
+	var roleIdentityValue bytes.Buffer
+	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.New()
+	return string(hash.Sum(roleIdentityValue.Bytes())), nil
 }
 func (p *AWSStaticPrincipalTypeProvider) Retrieve() (credentials.Value, error) {
-	return credentials.Value{}, nil
+	return p.credentials.Get()
 }
 func (p *AWSStaticPrincipalTypeProvider) IsExpired() bool {
-	return false
+	return p.credentials.IsExpired()
 }
 
 type AWSRolePrincipalTypeProvider struct {
-	principal * infrav1.AWSClusterRolePrincipal
+	principal *infrav1.AWSClusterRolePrincipal
+	credentials *credentials.Credentials
 }
 
 func (p *AWSRolePrincipalTypeProvider) Hash() (string,error) {
-	return "", nil
+	var roleIdentityValue bytes.Buffer
+	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.New()
+	return string(hash.Sum(roleIdentityValue.Bytes())), nil
 }
+
 func (p *AWSRolePrincipalTypeProvider) Retrieve() (credentials.Value, error) {
-	return credentials.Value{}, nil
+	return p.credentials.Get()
 }
 func (p *AWSRolePrincipalTypeProvider) IsExpired() bool {
-	return false
+	return p.credentials.IsExpired()
 }
 
 type AWSServiceAccountPrincipalTypeProvider struct {
@@ -159,7 +201,13 @@ type AWSServiceAccountPrincipalTypeProvider struct {
 }
 
 func (p *AWSServiceAccountPrincipalTypeProvider) Hash() (string,error) {
-	return "", nil
+	var roleIdentityValue bytes.Buffer
+	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.New()
+	return string(hash.Sum(roleIdentityValue.Bytes())), nil
 }
 func (p *AWSServiceAccountPrincipalTypeProvider) Retrieve() (credentials.Value, error) {
 	return credentials.Value{}, nil
