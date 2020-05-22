@@ -169,8 +169,9 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 	var out *ec2.CreateNatGatewayOutput
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if out, err = s.scope.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
-			SubnetId:     aws.String(subnetID),
-			AllocationId: aws.String(ip),
+			SubnetId:          aws.String(subnetID),
+			AllocationId:      aws.String(ip),
+			TagSpecifications: []*ec2.TagSpecification{tags.BuildParamsToTagSpecification(ec2.ResourceTypeNatgateway, s.getNatGatewayTagParams("not-created-yet"))},
 		}); err != nil {
 			return false, err
 		}
@@ -180,22 +181,6 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		return nil, errors.Wrapf(err, "failed to create NAT gateway for subnet ID %q", subnetID)
 	}
 	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateNATGateway", "Created new NAT Gateway %q", *out.NatGateway.NatGatewayId)
-
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if err := tags.Apply(&tags.ApplyParams{
-			EC2Client:   s.scope.EC2,
-			BuildParams: s.getNatGatewayTagParams(*out.NatGateway.NatGatewayId),
-		}); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.ResourceNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagNATGateway", "Failed to tag NAT Gateway %q: %v", *out.NatGateway.NatGatewayId, err)
-		return nil, errors.Wrapf(err, "failed to tag nat gateway %q", *out.NatGateway.NatGatewayId)
-	}
-
-	record.Eventf(s.scope.AWSCluster, "SuccessfulTagNATGateway", "Tagged NAT Gateway %q", *out.NatGateway.NatGatewayId)
-	s.scope.Info("Created NAT gateway for subnet, waiting for it to become available...", "nat-gateway-id", *out.NatGateway.NatGatewayId, "subnet-id", subnetID)
 
 	wReq := &ec2.DescribeNatGatewaysInput{NatGatewayIds: []*string{out.NatGateway.NatGatewayId}}
 	if err := s.scope.EC2.WaitUntilNatGatewayAvailable(wReq); err != nil {

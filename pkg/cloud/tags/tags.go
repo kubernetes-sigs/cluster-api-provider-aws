@@ -17,6 +17,8 @@ limitations under the License.
 package tags
 
 import (
+	"sort"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -50,6 +52,30 @@ func Apply(params *ApplyParams) error {
 
 	_, err := params.EC2Client.CreateTags(createTagsInput)
 	return errors.Wrapf(err, "failed to tag resource %q in cluster %q", params.ResourceID, params.ClusterName)
+}
+
+// BuildParamsToTagSpecification builds a TagSpecification for the specified resource type
+func BuildParamsToTagSpecification(ec2ResourceType string, params infrav1.BuildParams) *ec2.TagSpecification {
+	tags := infrav1.Build(params)
+
+	tagSpec := &ec2.TagSpecification{ResourceType: aws.String(ec2ResourceType)}
+
+	// For testing, we need sorted keys
+	sortedKeys := make([]string, 0, len(tags))
+	for k := range tags {
+		sortedKeys = append(sortedKeys, k)
+	}
+
+	sort.Strings(sortedKeys)
+
+	for _, key := range sortedKeys {
+		tagSpec.Tags = append(tagSpec.Tags, &ec2.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(tags[key]),
+		})
+	}
+
+	return tagSpec
 }
 
 // Ensure applies the tags if the current tags differ from the params.

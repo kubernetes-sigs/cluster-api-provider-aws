@@ -116,7 +116,27 @@ func TestReconcileNatGateways(t *testing.T) {
 				m.CreateNatGateway(&ec2.CreateNatGatewayInput{
 					AllocationId: aws.String(ElasticIPAllocationID),
 					SubnetId:     aws.String("subnet-1"),
-				}).Return(&ec2.CreateNatGatewayOutput{
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("natgateway"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+							},
+						},
+					},
+				},
+				).Return(&ec2.CreateNatGatewayOutput{
 					NatGateway: &ec2.NatGateway{
 						NatGatewayId: aws.String("natgateway"),
 					},
@@ -129,8 +149,6 @@ func TestReconcileNatGateways(t *testing.T) {
 				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
 			},
 		},
 		{
@@ -188,6 +206,25 @@ func TestReconcileNatGateways(t *testing.T) {
 				m.CreateNatGateway(&ec2.CreateNatGatewayInput{
 					AllocationId: aws.String(ElasticIPAllocationID),
 					SubnetId:     aws.String("subnet-3"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("natgateway"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+							},
+						},
+					},
 				}).Return(&ec2.CreateNatGatewayOutput{
 					NatGateway: &ec2.NatGateway{
 						NatGatewayId: aws.String("natgateway"),
@@ -199,7 +236,7 @@ func TestReconcileNatGateways(t *testing.T) {
 				}).Return(nil)
 
 				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil).Times(3)
+					Return(nil, nil).Times(2)
 			},
 		},
 		{
