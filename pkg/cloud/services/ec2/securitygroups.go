@@ -132,8 +132,8 @@ func (s *Service) reconcileSecurityGroups() error {
 
 	// Second iteration creates or updates all permissions on the security group to match
 	// the specified ingress rules.
-	for i := range s.scope.SecurityGroups() {
-		sg := s.scope.SecurityGroups()[i]
+	for role := range s.scope.SecurityGroups() {
+		sg := s.scope.SecurityGroups()[role]
 		if s.securityGroupIsOverridden(sg.ID) {
 			// skip rule/tag reconciliation on security groups that are overridden, assuming they're managed by another process
 			continue
@@ -146,7 +146,7 @@ func (s *Service) reconcileSecurityGroups() error {
 
 		current := sg.IngressRules
 
-		want, err := s.getSecurityGroupIngressRules(i)
+		want, err := s.getSecurityGroupIngressRules(role)
 		if err != nil {
 			return err
 		}
@@ -160,8 +160,9 @@ func (s *Service) reconcileSecurityGroups() error {
 		}
 
 		if len(toRevoke) > 0 {
+			securityGroupID := sg.ID
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-				if err := s.revokeSecurityGroupIngressRules(sg.ID, toRevoke); err != nil {
+				if err := s.revokeSecurityGroupIngressRules(securityGroupID, toRevoke); err != nil {
 					return false, err
 				}
 				return true, nil
@@ -173,8 +174,9 @@ func (s *Service) reconcileSecurityGroups() error {
 		}
 
 		if len(toAuthorize) > 0 {
+			securityGroupID := sg.ID
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-				if err := s.authorizeSecurityGroupIngressRules(sg.ID, toAuthorize); err != nil {
+				if err := s.authorizeSecurityGroupIngressRules(securityGroupID, toAuthorize); err != nil {
 					return false, err
 				}
 				return true, nil
@@ -189,9 +191,9 @@ func (s *Service) reconcileSecurityGroups() error {
 	return nil
 }
 
-func (s *Service) securityGroupIsOverridden(securityGroupId string) bool {
-	for _, overrideId := range s.scope.SecurityGroupOverrides() {
-		if overrideId == securityGroupId {
+func (s *Service) securityGroupIsOverridden(securityGroupID string) bool {
+	for _, overrideID := range s.scope.SecurityGroupOverrides() {
+		if overrideID == securityGroupID {
 			return true
 		}
 	}
@@ -211,12 +213,12 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 
 	if len(overrides) > 0 {
 		for _, role := range roles {
-			securityGroupId, ok := s.scope.SecurityGroupOverrides()[role]
+			securityGroupID, ok := s.scope.SecurityGroupOverrides()[role]
 			if !ok {
-				return nil, fmt.Errorf("Security group overrides have been provided for some but not all roles - missing security group for role %s", role)
+				return nil, fmt.Errorf("security group overrides have been provided for some but not all roles - missing security group for role %s", role)
 			}
-			securityGroupIds[role] = aws.String(securityGroupId)
-			input.GroupIds = append(input.GroupIds, aws.String(securityGroupId))
+			securityGroupIds[role] = aws.String(securityGroupID)
+			input.GroupIds = append(input.GroupIds, aws.String(securityGroupID))
 		}
 	}
 
@@ -241,13 +243,14 @@ func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGrou
 }
 
 func (s *Service) deleteSecurityGroups() error {
-	for _, sg := range s.scope.SecurityGroups() {
+	for i := range s.scope.SecurityGroups() {
+		sg := s.scope.SecurityGroups()[i]
+		current := sg.IngressRules
+
 		// do not attempt to delete security groups that are overrides
 		if s.securityGroupIsOverridden(sg.ID) {
 			continue
 		}
-
-		current := sg.IngressRules
 
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
 			return err
@@ -284,10 +287,10 @@ func (s *Service) deleteSecurityGroups() error {
 		if err := s.deleteSecurityGroup(&sg, "cluster managed"); err != nil {
 			errs = append(errs, err)
 		}
-	}
 
-	if len(errs) != 0 {
-		return errlist.NewAggregate(errs)
+		if len(errs) != 0 {
+			return errlist.NewAggregate(errs)
+		}
 	}
 
 	return nil
