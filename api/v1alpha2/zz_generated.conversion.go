@@ -324,11 +324,14 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+<<<<<<< HEAD
 	if err := s.AddConversionFunc((*v1alpha3.VPCSpec)(nil), (*VPCSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_VPCSpec_To_v1alpha2_VPCSpec(a.(*v1alpha3.VPCSpec), b.(*VPCSpec), scope)
 	}); err != nil {
 		return err
 	}
+=======
+>>>>>>> update generated conversion file
 	return nil
 }
 
@@ -458,7 +461,7 @@ func autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSC
 	if err := Convert_v1alpha2_Network_To_v1alpha3_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (./api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
 	out.Ready = in.Ready
 	// WARNING: in.APIEndpoints requires manual conversion: does not exist in peer-type
 	return nil
@@ -470,7 +473,7 @@ func autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *v1al
 		return err
 	}
 	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs ./api/v1alpha2.Instance)
 	return nil
 }
 
@@ -487,6 +490,7 @@ func Convert_v1alpha2_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in *AW
 func autoConvert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in *v1alpha3.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s conversion.Scope) error {
 	out.Scheme = (*ClassicELBScheme)(unsafe.Pointer(in.Scheme))
 	// WARNING: in.CrossZoneLoadBalancing requires manual conversion: does not exist in peer-type
+	// WARNING: in.SecurityGroups requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -582,7 +586,7 @@ func autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachi
 	}
 	// WARNING: in.RootDeviceSize requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*./api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
 	return nil
 }
 
@@ -607,7 +611,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 	// WARNING: in.RootVolume requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	// WARNING: in.UncompressedUserData requires manual conversion: does not exist in peer-type
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *./api/v1alpha2.CloudInit)
 	return nil
 }
 
@@ -1058,7 +1062,11 @@ func autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *v1alpha3.Netwo
 		return err
 	}
 	out.Subnets = *(*Subnets)(unsafe.Pointer(&in.Subnets))
+<<<<<<< HEAD
 	// WARNING: in.CNI requires manual conversion: does not exist in peer-type
+=======
+	// WARNING: in.SecurityGroupOverrides requires manual conversion: does not exist in peer-type
+>>>>>>> update generated conversion file
 	return nil
 }
 
