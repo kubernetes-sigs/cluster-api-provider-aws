@@ -200,6 +200,7 @@ type NetworkSpec struct {
 	TagSecurityGroups *bool `json:"tagSecurityGroups,omitempty"`
 
 	// SecurityGroupOverrides is an optional set of security groups to use for cluster instances
+	// This is optional - if not provided new security groups will be created for the cluster
 	// +optional
 	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
 }

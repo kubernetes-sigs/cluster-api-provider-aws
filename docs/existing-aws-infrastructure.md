@@ -93,3 +93,32 @@ Users may either specify `failureDomain` on the Machine or MachineDeployment obj
 
 * When both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet for placing EC2 instances.
 * If you configure CAPI to use existing infrastructure as outlined above, CAPI will _not_ create an SSH bastion host. Combined with the previous bullet, this means you must make sure you have established some form of connectivity to the instances that CAPI will create.
+
+## Security Groups
+
+To use existing security groups for instances for a cluster, add this to the AWSCluster specification:
+
+```yaml
+
+spec:
+  networkSpec:
+    securityGroupOverrides:
+      bastion: sg-0350a3507a5ad2c5c8c3
+      controlplane: sg-0350a3507a5ad2c5c8c3
+      apiserver-lb: sg-0200a3507a5ad2c5c8c3
+      node: sg-04e870a3507a5ad2c5c8c3
+      lb: sg-00a3507a5ad2c5c8c3
+```
+
+Any additional security groups specified in an AWSMachineTemplate will be applied in addition to these overriden security groups.
+
+To use existing security groups for the control plane load balancer for a cluster, add this to the AWSCluster specification:
+
+```yaml
+spec:
+  controlPlaneLoadBalancer:
+    securityGroups:
+    - sg-0200a3507a5ad2c5c8c3
+    - ...
+    
+```

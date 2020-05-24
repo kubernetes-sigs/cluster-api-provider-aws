@@ -109,6 +109,7 @@ type AWSLoadBalancerSpec struct {
 	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"`
 
 	// SecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs.
+	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
 	SecurityGroups []string `json:"securityGroups,omitempty"`
 }
