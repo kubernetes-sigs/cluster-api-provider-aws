@@ -513,7 +513,9 @@ spec:
                     type: string
                   securityGroups:
                     description: SecurityGroups sets the security groups used by the
-                      load balancer. Expected to be security group IDs.
+                      load balancer. Expected to be security group IDs. This is optional
+                      - if not provided new security groups will be created for the
+                      load balancer
                     items:
                       type: string
                     type: array
@@ -583,7 +585,8 @@ spec:
                     additionalProperties:
                       type: string
                     description: SecurityGroupOverrides is an optional set of security
-                      groups to use for cluster instances
+                      groups to use for cluster instances This is optional - if not
+                      provided new security groups will be created for the cluster
                     type: object
                   subnets:
                     description: Subnets configuration.
