@@ -201,7 +201,9 @@ func Convert_v1alpha3_VPCSpec_To_v1alpha2_VPCSpec(in *infrav1alpha3.VPCSpec, out
 	return autoConvert_v1alpha3_VPCSpec_To_v1alpha2_VPCSpec(in, out, s)
 }
 
-//Convert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec
-func Convert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *infrav1alpha3.NetworkSpec, out *NetworkSpec, s apiconversion.Scope) error {
-	return autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in, out, s)
+func Convert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *infrav1alpha3.NetworkSpec, out *NetworkSpec, s apiconversion.Scope) error { //nolint
+	if err := autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in, out, s); err != nil {
+		return err
+	}
+	return nil
 }
