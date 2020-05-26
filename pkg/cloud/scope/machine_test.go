@@ -201,3 +201,24 @@ func TestSetSecretARN(t *testing.T) {
 		t.Fatalf("prefix does not equal %s: %s", prefix, val)
 	}
 }
+
+func TestSetProviderID(t *testing.T) {
+	scope, err := setupMachineScope()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	scope.SetProviderID("test-id", "test-zone-1a")
+	providerID := *scope.AWSMachine.Spec.ProviderID
+	expectedProviderID := "aws:///test-zone-1a/test-id"
+	if providerID != expectedProviderID {
+		t.Fatalf("Expected providerID %s, got %s", expectedProviderID, providerID)
+	}
+
+	scope.SetProviderID("test-id", "")
+	providerID = *scope.AWSMachine.Spec.ProviderID
+	expectedProviderID = "aws:////test-id"
+	if providerID != expectedProviderID {
+		t.Fatalf("Expected providerID %s, got %s", expectedProviderID, providerID)
+	}
+}
