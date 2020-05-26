@@ -46,6 +46,20 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - awsclusterroleprincipals
+  - awsclusterstaticprincipals
+  - awsserviceaccountprincipals
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
   - awsclusters
   verbs:
   - create
