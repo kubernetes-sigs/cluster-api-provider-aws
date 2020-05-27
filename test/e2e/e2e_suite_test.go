@@ -32,9 +32,7 @@ import (
 
 	"github.com/onsi/ginkgo/reporters"
 
-	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
-	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	"github.com/aws/aws-sdk-go/aws"

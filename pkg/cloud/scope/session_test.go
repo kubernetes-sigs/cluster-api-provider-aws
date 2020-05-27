@@ -24,7 +24,7 @@ func TestPrincipalParsing(t *testing.T) {
 		expect func(credentials.Provider)
 	}{
 		{
-			name: "Default case - no principal specified",
+			name: "Default case - no Principal specified",
 			awsCluster: infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta {
 					Name: "cluster1",
@@ -45,7 +45,7 @@ func TestPrincipalParsing(t *testing.T) {
 			},
 		},
 		{
-			name: "Can get a session for a static principal",
+			name: "Can get a session for a static Principal",
 			awsCluster: infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta {
 					Name: "cluster2",
@@ -57,7 +57,7 @@ func TestPrincipalParsing(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec {
 					PrincipalRef: &corev1.ObjectReference{
-						Name: "principal",
+						Name: "Principal",
 						Kind: "AWSClusterStaticPrincipal",
 					},
 				},
@@ -65,7 +65,7 @@ func TestPrincipalParsing(t *testing.T) {
 			setup: func(c client.Client, t *testing.T) {
 				principal := &infrav1.AWSClusterStaticPrincipal {
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "principal",
+						Name: "Principal",
 					},
 					Spec: infrav1.AWSClusterStaticPrincipalSpec {
 						SecretRef: corev1.SecretReference{
@@ -117,7 +117,7 @@ func TestPrincipalParsing(t *testing.T) {
 			},
 		},
 		{
-			name: "Can get a session for a role principal",
+			name: "Can get a session for a role Principal",
 			awsCluster: infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta {
 					Name: "cluster3",
@@ -129,7 +129,7 @@ func TestPrincipalParsing(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec {
 					PrincipalRef: &corev1.ObjectReference{
-						Name: "principal",
+						Name: "Principal",
 						Namespace: "default",
 						Kind: "AWSClusterRolePrincipal",
 						APIVersion: infrav1.GroupVersion.String(),
@@ -139,7 +139,7 @@ func TestPrincipalParsing(t *testing.T) {
 			setup: func(c client.Client, t *testing.T) {
 				principal := &infrav1.AWSClusterRolePrincipal {
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "principal",
+						Name: "Principal",
 						Namespace: "default",
 					},
 					Spec: infrav1.AWSClusterRolePrincipalSpec {
@@ -155,7 +155,7 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 			},
 			expect: func(provider credentials.Provider) {
-				// session is a role principal
+				// session is a role Principal
 				if provider == nil {
 					t.Fatal("Expected provider not to be nil")
 				}
@@ -163,13 +163,13 @@ func TestPrincipalParsing(t *testing.T) {
 				if !ok {
 					t.Fatal("Expected provider to be of type AWSRolePrincipalTypeProvider")
 				}
-				if p.principal.Spec.RoleArn != "role-arn" {
-					t.Fatal(fmt.Errorf("Expected Role Provider ARN to be 'role-arn', got '%s'", p.principal.Spec.RoleArn))
+				if p.Principal.Spec.RoleArn != "role-arn" {
+					t.Fatal(fmt.Errorf("Expected Role Provider ARN to be 'role-arn', got '%s'", p.Principal.Spec.RoleArn))
 				}
 			},
 		},
 		{
-			name: "Can get a session for a service account principal",
+			name: "Can get a session for a service account Principal",
 			awsCluster: infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta {
 					Name: "cluster4",
@@ -181,7 +181,7 @@ func TestPrincipalParsing(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec {
 					PrincipalRef: &corev1.ObjectReference{
-						Name: "principal",
+						Name: "Principal",
 						Kind: "AWSServiceAccountPrincipal",
 					},
 				},
@@ -189,7 +189,7 @@ func TestPrincipalParsing(t *testing.T) {
 			setup: func(c client.Client, t *testing.T) {
 				principal := &infrav1.AWSServiceAccountPrincipal {
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "principal",
+						Name: "Principal",
 					},
 					Spec: infrav1.AWSServiceAccountPrincipalSpec {
 						Audiences: []string{"audience-1", "audience-2"},
@@ -223,17 +223,17 @@ func TestPrincipalParsing(t *testing.T) {
 				if !ok {
 					t.Fatal("Expected provider to be of type AWSRolePrincipalTypeProvider")
 				}
-				if len(p.principal.Spec.Audiences) != 2 {
-					t.Fatalf("Expected audiences to be a string array with 2 entries, got: %v", p.principal.Spec.Audiences)
+				if len(p.Principal.Spec.Audiences) != 2 {
+					t.Fatalf("Expected audiences to be a string array with 2 entries, got: %v", p.Principal.Spec.Audiences)
 				}
-				if p.principal.Spec.Audiences[0] != "audience-1" {
-					t.Fatalf("Expected audiences[0] to equal 'audience-1', got '%s'", p.principal.Spec.Audiences[0])
+				if p.Principal.Spec.Audiences[0] != "audience-1" {
+					t.Fatalf("Expected audiences[0] to equal 'audience-1', got '%s'", p.Principal.Spec.Audiences[0])
 				}
-				if p.principal.Spec.Audiences[1] != "audience-2" {
-					t.Fatalf("Expected audiences[1] to equal 'audience-2', got '%s'", p.principal.Spec.Audiences[1])
+				if p.Principal.Spec.Audiences[1] != "audience-2" {
+					t.Fatalf("Expected audiences[1] to equal 'audience-2', got '%s'", p.Principal.Spec.Audiences[1])
 				}
-				if p.principal.Spec.RoleArn != "role-arn" {
-					t.Fatalf("Expected role arn to be 'role-arn', got '%s'", p.principal.Spec.RoleArn)
+				if p.Principal.Spec.RoleArn != "role-arn" {
+					t.Fatalf("Expected role arn to be 'role-arn', got '%s'", p.Principal.Spec.RoleArn)
 				}
 			},
 		},

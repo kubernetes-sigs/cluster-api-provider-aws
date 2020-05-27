@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,29 +37,38 @@ var (
 	sessionCache sync.Map
 )
 
-func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AWSCluster, region string) (*session.Session, error) {
+func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AWSCluster, region string, logger logr.Logger) (*session.Session, error) {
+	log := logger.WithName("AWSSession")
+	log.Info("Creating a new AWS Session")
 	s, ok := sessionCache.Load(region)
 	if ok {
 		return s.(*session.Session), nil
 	}
 
 	awsConfig := aws.NewConfig()
-	provider, err := getProviderForCluster(context.Background(), k8sClient, awsCluster)
+	provider, err := getProviderForCluster(context.Background(), k8sClient, awsCluster, log)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get provider for cluster: %v", err)
 	}
 	if provider != nil {
+
+		// load an existing matching provider from the cache if such a provider exists
+		providerHash, err := provider.Hash()
+		cachedProvider, ok := sessionCache.Load(providerHash)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to retrieve provider from cache: %v", err)
+		}
+		if ok {
+			provider = cachedProvider.(AWSPrincipalTypeProvider)
+		} else {
+			// add this provider to the cache
+			sessionCache.Store(providerHash, provider)
+		}
+
+		// set the awsconfig to use the credential provider we located
 		awsConfig.Credentials = credentials.NewCredentials(provider)
 	}
 
-	providerHash, err := provider.Hash()
-	cachedProvider, ok := sessionCache.Load(providerHash)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to retrieve provider from cache: %v", err)
-	}
-	if ok {
-		provider = cachedProvider.(AWSPrincipalTypeProvider)
-	}
 
 	ns, err := session.NewSession(awsConfig.WithRegion(region))
 	if err != nil {
@@ -66,14 +76,15 @@ func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AW
 	}
 
 	sessionCache.Store(region, ns)
-	sessionCache.Store(providerHash, cachedProvider)
 	return ns, nil
 }
 
-func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsCluster *infrav1.AWSCluster) (AWSPrincipalTypeProvider, error) {
+func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsCluster *infrav1.AWSCluster, log logr.Logger) (AWSPrincipalTypeProvider, error) {
+	log.Info("Checking for a provider for the cluster")
 	var provider AWSPrincipalTypeProvider
 	if awsCluster.Spec.PrincipalRef != nil {
-		principalObjectKey := client.ObjectKey{Namespace: awsCluster.Spec.PrincipalRef.Namespace, Name: awsCluster.Spec.PrincipalRef.Name}
+		principalObjectKey := client.ObjectKey{Name: awsCluster.Spec.PrincipalRef.Name}
+		log.Info("Looking for a provider", "key", principalObjectKey)
 		switch awsCluster.Spec.PrincipalRef.Kind {
 		case "AWSClusterStaticPrincipal":
 			principal := &infrav1.AWSClusterStaticPrincipal{}
@@ -104,6 +115,8 @@ func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsClus
 		default:
 			return nil, fmt.Errorf("No such provider known: '%s'",awsCluster.Spec.PrincipalRef.Kind)
 		}
+	} else {
+		log.Info("AWSCluster does not have a PrincipalRef specified")
 	}
 
 	return provider, nil
@@ -112,7 +125,7 @@ func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsClus
 type AWSPrincipalTypeProvider interface {
 	credentials.Provider
 	// Hash returns a unique hash of the data forming the credentials
-	// for this principal
+	// for this Principal
 	Hash() (string, error)
 }
 
@@ -122,11 +135,11 @@ func NewAWSStaticPrincipalTypeProvider(principal *infrav1.AWSClusterStaticPrinci
 	sessionToken := string(secret.Data["SessionToken"])
 
 	return &AWSStaticPrincipalTypeProvider{
-		principal: principal,
-		credentials: credentials.NewStaticCredentials(accessKeyId,secretAccessKey,sessionToken),
-		accessKeyId: accessKeyId,
+		Principal:       principal,
+		credentials:     credentials.NewStaticCredentials(accessKeyId,secretAccessKey,sessionToken),
+		accessKeyId:     accessKeyId,
 		secretAccessKey: secretAccessKey,
-		sessionToken: sessionToken,
+		sessionToken:    sessionToken,
 	}
 }
 
@@ -134,24 +147,24 @@ func NewAWSRolePrincipalTypeProvider(principal *infrav1.AWSClusterRolePrincipal)
 	roleProvider := &stscreds.AssumeRoleProvider{
 		RoleARN: principal.Spec.RoleArn,
 		ExternalID: aws.String(principal.Spec.ExternalID),
-		// Duration: time.Second * principal.Spec.DurationSeconds,// TODO: fixme
+		// Duration: time.Second * Principal.Spec.DurationSeconds,// TODO: fixme
 		RoleSessionName: principal.Spec.SessionName,
 		Policy: aws.String(principal.Spec.InlinePolicy),
 	}
 	return &AWSRolePrincipalTypeProvider{
 		credentials: credentials.NewCredentials(roleProvider),
-		principal: principal,
+		Principal:   principal,
 	}
 }
 
 func NewAWSServiceAccountPrincipalTypeProvider(principal *infrav1.AWSServiceAccountPrincipal) (*AWSServiceAccountPrincipalTypeProvider) {
 	return &AWSServiceAccountPrincipalTypeProvider{
-		principal: principal,
+		Principal: principal,
 	}
 }
 
 type AWSStaticPrincipalTypeProvider struct {
-	principal *infrav1.AWSClusterStaticPrincipal
+	Principal   *infrav1.AWSClusterStaticPrincipal
 	credentials *credentials.Credentials
 	// these are for tests :/
 	accessKeyId string
@@ -175,7 +188,7 @@ func (p *AWSStaticPrincipalTypeProvider) IsExpired() bool {
 }
 
 type AWSRolePrincipalTypeProvider struct {
-	principal *infrav1.AWSClusterRolePrincipal
+	Principal   *infrav1.AWSClusterRolePrincipal
 	credentials *credentials.Credentials
 }
 
@@ -197,7 +210,7 @@ func (p *AWSRolePrincipalTypeProvider) IsExpired() bool {
 }
 
 type AWSServiceAccountPrincipalTypeProvider struct {
-	principal * infrav1.AWSServiceAccountPrincipal
+	Principal * infrav1.AWSServiceAccountPrincipal
 }
 
 func (p *AWSServiceAccountPrincipalTypeProvider) Hash() (string,error) {
