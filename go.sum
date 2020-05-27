@@ -354,8 +354,8 @@ github.com/openshift/build-machinery-go v0.0.0-20200211121458-5e3d6e570160/go.mo
 github.com/openshift/build-machinery-go v0.0.0-20200424080330-082bf86082cc/go.mod h1:1CkcsT3aVebzRBzVTSbiKSkJMsC/CASqxesfqEMfJEc=
 github.com/openshift/client-go v0.0.0-20200326155132-2a6cd50aedd0/go.mod h1:uUQ4LClRO+fg5MF/P6QxjMCb1C9f7Oh4RKepftDnEJE=
 github.com/openshift/library-go v0.0.0-20200512120242-21a1ff978534/go.mod h1:2kWwXTkpoQJUN3jZ3QW88EIY1hdRMqxgRs2hheEW/pg=
-github.com/openshift/machine-api-operator v0.2.1-0.20200520080344-fe76daf636f4 h1:rKZ4E7Uo3NlgrLxvRJuyXVVDnFIsIJrA08R2JXqxK9w=
-github.com/openshift/machine-api-operator v0.2.1-0.20200520080344-fe76daf636f4/go.mod h1:YKEQMHjXzrzm4fQGTyHBafFfQ/Yq/FrV+1YcGdPCp+0=
+github.com/openshift/machine-api-operator v0.2.1-0.20200527204437-14e5e0c7d862 h1:uI/6lz/E7ngKe0Fy0wy/wOpLuoS8eJlmoyuLLYfK1bs=
+github.com/openshift/machine-api-operator v0.2.1-0.20200527204437-14e5e0c7d862/go.mod h1:YKEQMHjXzrzm4fQGTyHBafFfQ/Yq/FrV+1YcGdPCp+0=
 github.com/operator-framework/operator-sdk v0.5.1-0.20190301204940-c2efe6f74e7b/go.mod h1:iVyukRkam5JZa8AnjYf+/G3rk7JI1+M6GsU0sq0B9NA=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
