@@ -26,10 +26,10 @@ Once you have that administrator user you need to set your environment variables
 After these are set run this command to get you up and running:
 
 ```bash
-clusterawsadm alpha bootstrap create-stack
+clusterawsadm bootstrap iam create-cloudformation-stack
 ```
 
-You can optionally specify additional AWS policies (they can be user or AWS managed, but must already exists) in the call to `create-stack` (and `generate-cloudformation`) if required, e.g.
+You can optionally specify additional AWS policies (they can be user or AWS managed, but must already exists) in the call to `create-formation-stack` (and `generate-cloudformation`) if required, e.g.
 
 ```
 clusterawsadm alpha bootstrap create-stack \

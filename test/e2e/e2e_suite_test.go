@@ -20,9 +20,7 @@ package e2e_test
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,7 +29,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/onsi/ginkgo/reporters"
 
@@ -53,8 +50,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
+	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
+	credentials "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
 	sts "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	common "sigs.k8s.io/cluster-api/test/helpers/components"
@@ -90,6 +89,7 @@ const (
 	capaDeploymentName  = "capa-controller-manager"
 	setupTimeout        = 10 * 60
 	stackName           = "cluster-api-provider-aws-sigs-k8s-io"
+	bootstrapUserName   = "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
 	keyPairName         = "cluster-api-provider-aws-sigs-k8s-io"
 )
 
@@ -100,17 +100,27 @@ var (
 	k8sVersion      = capiFlag.DefineOrLookupStringFlag("k8sVersion", "v1.17.3", "kubernetes version to test on")
 	sonobuoyVersion = capiFlag.DefineOrLookupStringFlag("sonobuoyVersion", "v0.17.2", "sonobuoy version")
 
-	kindCluster  kind.Cluster
-	kindClient   crclient.Client
-	clientSet    *kubernetes.Clientset
-	sess         client.ConfigProvider
-	accountID    string
-	accessKey    *iam.AccessKey
-	suiteTmpDir  string
-	region       string
-	artifactPath = ".artifacts"
-	logPath      string
+	kindCluster       kind.Cluster
+	kindClient        crclient.Client
+	clientSet         *kubernetes.Clientset
+	sess              client.ConfigProvider
+	accountID         string
+	accessKey         *iam.AccessKey
+	suiteTmpDir       string
+	region            string
+	artifactPath      = ".artifacts"
+	logPath           string
+	bootstrapTemplate bootstrap.Template
 )
+
+func createBootstrapTemplate() bootstrap.Template {
+	t := bootstrap.NewTemplate()
+	t.Spec.BootstrapUser.Enable = true
+	t.Spec.BootstrapUser.UserName = bootstrapUserName
+	t.Spec.StackName = stackName
+	t.Spec.Region = region
+	return t
+}
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	artifactPath, _ = os.LookupEnv("ARTIFACTS")
@@ -122,11 +132,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	fmt.Fprintf(GinkgoWriter, "Creating AWS prerequisites\n")
 	sess = getSession()
 	accountID = getAccountID(sess)
+	var ok bool
+	region, ok = os.LookupEnv("AWS_REGION")
+	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
+	if !ok {
+		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
+		Expect(ok).To(BeTrue())
+	}
+	bootstrapTemplate = createBootstrapTemplate()
 	createKeyPair(sess)
-	createIAMRoles(sess, accountID)
+	createIAMRoles(sess, bootstrapTemplate)
 
 	iamc := iam.New(sess)
-	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String("bootstrapper.cluster-api-provider-aws.sigs.k8s.io")})
+	out, err := iamc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String(bootstrapTemplate.Spec.BootstrapUser.UserName)})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(out.AccessKey).NotTo(BeNil())
 	return []byte(
@@ -152,6 +170,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		SecretAccessKey: &secretAccessKey,
 		UserName:        &accessKeyUsername,
 	}
+	var ok bool
+	region, ok = os.LookupEnv("AWS_REGION")
+	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
+	if !ok {
+		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
+		Expect(ok).To(BeTrue())
+	}
 	fmt.Fprintf(GinkgoWriter, "GETTING SESSION")
 	sess = getSession()
 	fmt.Fprintf(GinkgoWriter, "... DONE GETTING SESSION")
@@ -161,13 +186,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	suiteTmpDir, err = ioutil.TempDir("", "capa-e2e-suite")
 	Expect(err).NotTo(HaveOccurred())
 
-	var ok bool
-	region, ok = os.LookupEnv("AWS_REGION")
-	fmt.Fprintf(GinkgoWriter, "Running in region: %s\n", region)
-	if !ok {
-		fmt.Fprintf(GinkgoWriter, "Environment variable AWS_REGION not found")
-		Expect(ok).To(BeTrue())
-	}
 	kindCluster = kind.Cluster{
 		Name: "capa-test-" + util.RandomString(6),
 	}
@@ -227,7 +245,7 @@ var _ = SynchronizedAfterSuite(func() {
 	// This is intentionally done per node
 	iamc := iam.New(sess)
 	iamc.DeleteAccessKey(&iam.DeleteAccessKeyInput{UserName: accessKey.UserName, AccessKeyId: accessKey.AccessKeyId})
-	deleteIAMRoles(sess)
+	deleteIAMRoles(sess, bootstrapTemplate)
 })
 
 // watchLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
@@ -302,17 +320,18 @@ func getAccountID(prov client.ConfigProvider) string {
 	return accountID
 }
 
-func createIAMRoles(prov client.ConfigProvider, accountID string) {
+func createIAMRoles(prov client.ConfigProvider, t bootstrap.Template) {
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
+	cfnTemplate := t.RenderCloudFormation()
 	Expect(
-		cfnSvc.ReconcileBootstrapStack(stackName, accountID, "aws", []string{}, []string{}),
+		cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *cfnTemplate),
 	).To(Succeed())
 }
 
-func deleteIAMRoles(prov client.ConfigProvider) {
+func deleteIAMRoles(prov client.ConfigProvider, t bootstrap.Template) {
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	Expect(
-		cfnSvc.DeleteStack(stackName),
+		cfnSvc.DeleteStack(t.Spec.StackName),
 	).To(Succeed())
 }
 
@@ -368,32 +387,17 @@ func deployCAPAComponents(kindCluster kind.Cluster) {
 	applyManifests(kindCluster, &manifestFile)
 }
 
-const AWSCredentialsTemplate = `[default]
-aws_access_key_id = {{ .AccessKeyID }}
-aws_secret_access_key = {{ .SecretAccessKey }}
-region = {{ .Region }}
-`
-
-type awsCredential struct {
-	AccessKeyID     string
-	SecretAccessKey string
-	Region          string
-}
-
 func generateB64Credentials() string {
-	creds := awsCredential{
+	creds := credentials.AWSCredentials{
 		Region:          region,
 		AccessKeyID:     *accessKey.AccessKeyId,
 		SecretAccessKey: *accessKey.SecretAccessKey,
 	}
 
-	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
+	encCreds, err := creds.RenderBase64EncodedAWSDefaultProfile()
+
 	Expect(err).NotTo(HaveOccurred())
 
-	var profile bytes.Buffer
-	Expect(tmpl.Execute(&profile, creds)).To(Succeed())
-
-	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
 	return encCreds
 }
 

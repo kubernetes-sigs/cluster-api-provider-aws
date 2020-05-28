@@ -22,21 +22,32 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	"os"
 	"path"
 	"path/filepath"
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/session"
+	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/iam"
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
+	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/yaml"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
@@ -53,6 +64,9 @@ var (
 
 	// skipCleanup prevents cleanup of test resources e.g. for debug purposes.
 	skipCleanup bool
+
+	// skipCloudFormationDeletion prevents the deletion of the AWS CloudFormation stack
+	skipCloudFormationDeletion bool
 )
 
 // Test suite global vars
@@ -70,6 +84,17 @@ var (
 
 	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
 	bootstrapClusterProxy framework.ClusterProxy
+
+	// bootstrapTemplate is the clusterawsadm bootstrap template for this run
+	bootstrapTemplate *cfn_bootstrap.Template
+
+	// awsSession is a holder for AWS credentials
+	awsSession client.ConfigProvider
+
+	// bootstrapAccessKey
+	bootstrapAccessKey *iam.AccessKey
+
+	defaultSSHKeyPairName = "cluster-api-provider-aws-sigs-k8s-io"
 )
 
 const (
@@ -82,6 +107,7 @@ func init() {
 	flag.StringVar(&artifactFolder, "artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&useExistingCluster, "use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.BoolVar(&skipCleanup, "skip-cleanup", false, "if true, the resource cleanup after tests will be skipped")
+	flag.BoolVar(&skipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
 }
 
 func TestE2E(t *testing.T) {
@@ -96,17 +122,25 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
 	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", artifactFolder)
 
-	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
-	scheme := initScheme()
-
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
+
+	awsSession = newAWSSession()
+	createCloudFormationStack(awsSession, getBootstrapTemplate())
+	ensureNoServiceLinkedRoles(awsSession)
+	ensureSSHKeyPair(awsSession, defaultSSHKeyPairName)
+	bootstrapAccessKey = newUserAccessKey(awsSession, getBootstrapTemplate().Spec.BootstrapUser.UserName)
+
+	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
+	scheme := initScheme()
 
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
 	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")
 	bootstrapClusterProvider, bootstrapClusterProxy = setupBootstrapCluster(e2eConfig, scheme, useExistingCluster)
+
+	setEnvVar("AWS_B64ENCODED_CREDENTIALS", encodeCredentials(bootstrapAccessKey, getBootstrapTemplate().Spec.Region), true)
 
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
@@ -116,19 +150,22 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			configPath,
 			clusterctlConfigPath,
 			bootstrapClusterProxy.GetKubeconfigPath(),
+			getBootstrapTemplate().Spec.Region,
 		}, ","),
 	)
 }, func(data []byte) {
 	// Before each ParallelNode.
 
 	parts := strings.Split(string(data), ",")
-	Expect(parts).To(HaveLen(4))
+	Expect(parts).To(HaveLen(5))
 
 	artifactFolder = parts[0]
 	configPath = parts[1]
 	clusterctlConfigPath = parts[2]
 	kubeconfigPath := parts[3]
-
+	setEnvVar("AWS_REGION", parts[4], false)
+	setEnvVar("AWS_SSH_KEY_NAME", defaultSSHKeyPairName, false)
+	awsSession = newAWSSession()
 	e2eConfig = loadE2EConfig(configPath)
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme())
 })
@@ -144,6 +181,10 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Tearing down the management cluster")
 	if !skipCleanup {
 		tearDown(bootstrapClusterProvider, bootstrapClusterProxy)
+		if !skipCloudFormationDeletion {
+			awsSession = newAWSSession()
+			deleteCloudFormationStack(awsSession, getBootstrapTemplate())
+		}
 	}
 })
 
@@ -205,5 +246,122 @@ func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClust
 	}
 	if bootstrapClusterProvider != nil {
 		bootstrapClusterProvider.Dispose(context.TODO())
+	}
+}
+
+func newBootstrapTemplate() *cfn_bootstrap.Template {
+	By("Creating a bootstrap AWSIAMConfiguration")
+	t := cfn_bootstrap.NewTemplate()
+	t.Spec.BootstrapUser.Enable = true
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	t.Spec.Region = region
+	str, err := yaml.Marshal(t.Spec)
+	Expect(err).NotTo(HaveOccurred())
+	fmt.Printf("AWSIAMConfiguration created:\n %s\n", string(str))
+	return &t
+}
+
+func getBootstrapTemplate() *cfn_bootstrap.Template {
+	if bootstrapTemplate == nil {
+		bootstrapTemplate = newBootstrapTemplate()
+	}
+	return bootstrapTemplate
+}
+
+func newAWSSession() client.ConfigProvider {
+	By("Getting an AWS IAM session")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	config := aws.NewConfig().WithCredentialsChainVerboseErrors(true).WithRegion(region)
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config:            *config,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	_, err = sess.Config.Credentials.Get()
+	Expect(err).NotTo(HaveOccurred())
+	return sess
+}
+
+func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
+	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
+	iamSvc := iam.New(prov)
+	_, err := iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
+		RoleName: aws.String("AWSServiceRoleForElasticLoadBalancing"),
+	})
+	if code, _ := awserrors.Code(err); code != iam.ErrCodeNoSuchEntityException {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
+	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
+	cfnSvc := cloudformation.NewService(cfn.New(prov))
+	cfnTemplate := t.RenderCloudFormation()
+	Expect(
+		cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *cfnTemplate),
+	).To(Succeed())
+}
+
+func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
+	Byf("Deleting %s CloudFormation stack", t.Spec.StackName)
+	cfnSvc := cloudformation.NewService(cfn.New(prov))
+	Expect(
+		cfnSvc.DeleteStack(t.Spec.StackName),
+	).To(Succeed())
+}
+
+func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
+	Byf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName)
+	ec2c := ec2.New(prov)
+	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
+	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func encodeCredentials(accessKey *iam.AccessKey, region string) string {
+	creds := credentials.AWSCredentials{
+		Region:          region,
+		AccessKeyID:     *accessKey.AccessKeyId,
+		SecretAccessKey: *accessKey.SecretAccessKey,
+	}
+	encCreds, err := creds.RenderBase64EncodedAWSDefaultProfile()
+	Expect(err).NotTo(HaveOccurred())
+	return encCreds
+}
+
+func setEnvVar(key, value string, private bool) {
+	printableValue := "*******"
+	if !private {
+		printableValue = value
+	}
+
+	Byf("Setting environment variable: key=%s, value=%s", key, printableValue)
+	os.Setenv(key, value)
+}
+
+func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKey {
+	iamSvc := iam.New(prov)
+	keyOuts, err := iamSvc.ListAccessKeys(&iam.ListAccessKeysInput{
+		UserName: aws.String(userName),
+	})
+	for i := range keyOuts.AccessKeyMetadata {
+		Byf("Deleting an existing access key: user-name=%s", userName)
+		_, err := iamSvc.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+			UserName:    aws.String(userName),
+			AccessKeyId: keyOuts.AccessKeyMetadata[i].AccessKeyId,
+		})
+		Expect(err).NotTo(HaveOccurred())
+	}
+	Byf("Creating an access key: user-name=%s", userName)
+	out, err := iamSvc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String(userName)})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(out.AccessKey).ToNot(BeNil())
+
+	return &iam.AccessKey{
+		AccessKeyId:     out.AccessKey.AccessKeyId,
+		SecretAccessKey: out.AccessKey.SecretAccessKey,
 	}
 }

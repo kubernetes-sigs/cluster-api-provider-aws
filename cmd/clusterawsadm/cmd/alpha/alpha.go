@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/migrate"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 )
 
 // AlphaCmd is the top-level alpha set of commands
@@ -38,5 +39,6 @@ func AlphaCmd() *cobra.Command { // nolint
 	}
 	newCmd.AddCommand(bootstrap.RootCmd())
 	newCmd.AddCommand(migrate.MigrateCmd())
+	flags.MarkAlphaDeprecated(newCmd)
 	return newCmd
 }

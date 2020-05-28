@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,11 +21,56 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+
 	"github.com/aws/aws-sdk-go/aws"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	go_cfn "github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 )
+
+// Service holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
+// One alternative is to have a large list of functions from the ec2 client.
+type Service struct {
+	CFN cloudformationiface.CloudFormationAPI
+}
+
+// NewService returns a new service given the CloudFormation api client.
+func NewService(i cloudformationiface.CloudFormationAPI) *Service {
+	return &Service{
+		CFN: i,
+	}
+}
+
+// ReconcileBootstrapStack creates or updates bootstrap CloudFormation
+func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template) error {
+	yaml, err := t.YAML()
+	processedYaml := string(yaml)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
+	}
+
+	if err := s.createStack(stackName, processedYaml); err != nil {
+		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
+			klog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
+			updateErr := s.updateStack(stackName, processedYaml)
+			if updateErr != nil {
+				code, ok := awserrors.Code(errors.Cause(updateErr))
+				message := awserrors.Message(errors.Cause(updateErr))
+				if !ok || code != "ValidationError" || message != "No updates are to be performed." {
+					return updateErr
+				}
+			}
+			return nil
+		}
+		return err
+	}
+	return nil
+}
 
 func (s *Service) createStack(stackName string, yaml string) error {
 

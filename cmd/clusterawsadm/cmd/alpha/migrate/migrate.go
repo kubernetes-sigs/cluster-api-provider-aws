@@ -26,6 +26,7 @@ import (
 	awstags "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/spf13/cobra"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 )
 
 var (
@@ -95,7 +96,7 @@ Supported versions: %v`, supportedVersions),
 	if err := newCmd.MarkFlagRequired("clusterName"); err != nil {
 		_ = fmt.Errorf("error making required flag")
 	}
-
+	flags.MarkAlphaDeprecated(newCmd)
 	return newCmd
 }
 

@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
+	"sigs.k8s.io/yaml"
 )
 
 // Version provides the version information of clusterawsadm

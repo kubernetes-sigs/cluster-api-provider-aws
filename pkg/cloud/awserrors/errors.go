@@ -40,6 +40,7 @@ const (
 	AssociationIDNotFound   = "InvalidAssociationID.NotFound"
 	InvalidInstanceID       = "InvalidInstanceID.NotFound"
 	ResourceExists          = "ResourceExistsException"
+	NoCredentialProviders   = "NoCredentialProviders"
 )
 
 var _ error = &EC2Error{}
