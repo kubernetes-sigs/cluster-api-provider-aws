@@ -19,7 +19,6 @@ package v1alpha2
 import (
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -105,13 +104,11 @@ func TestConvertAWSMachineTemplate(t *testing.T) {
 			}
 
 			g.Expect(dst.ConvertFrom(src)).To(gomega.Succeed())
-			spew.Dump(dst)
 			restored := &infrav1alpha3.AWSMachineTemplate{}
 			g.Expect(dst.ConvertTo(restored)).To(gomega.Succeed())
 
 			// Test field restored fields.
 			g.Expect(restored).To(gomega.Equal(src))
-			spew.Dump(restored)
 		})
 	})
 
