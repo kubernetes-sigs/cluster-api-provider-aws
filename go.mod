@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/aws/aws-sdk-go v1.31.3
 	github.com/awslabs/goformation/v4 v4.8.0
-	github.com/davecgh/go-spew v1.1.1
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.3.1
 	github.com/onsi/ginkgo v1.12.0
