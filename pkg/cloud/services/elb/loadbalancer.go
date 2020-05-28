@@ -246,6 +246,17 @@ func (s *Service) DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error 
 	}
 
 	_, err = s.scope.ELB.DeregisterInstancesFromLoadBalancer(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case elb.ErrCodeAccessPointNotFoundException, elb.ErrCodeInvalidEndPointException:
+				// Ignoring LoadBalancerNotFound and InvalidInstance when deregistering
+				return nil
+			default:
+				return err
+			}
+		}
+	}
 	return err
 }
 
