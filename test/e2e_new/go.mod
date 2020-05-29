@@ -9,9 +9,9 @@ require (
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/utils v0.0.0-20200414100711-2df71ebbae66
-	sigs.k8s.io/cluster-api v0.3.5
+	sigs.k8s.io/cluster-api v0.3.7-0.20200529151716-3622e715454a
 	sigs.k8s.io/cluster-api-provider-aws v0.5.3
-	sigs.k8s.io/controller-runtime v0.5.2
+	sigs.k8s.io/controller-runtime v0.5.3
 )
 
 replace sigs.k8s.io/cluster-api-provider-aws => ../../

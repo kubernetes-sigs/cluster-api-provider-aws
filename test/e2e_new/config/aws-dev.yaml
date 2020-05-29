@@ -17,12 +17,12 @@
 
 images:
   # Use local dev images built source tree;
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev
-    loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:dev
-    loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:dev
-    loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v0.3.6
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v0.3.6
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v0.3.6
+    loadBehavior: tryLoad
   - name: gcr.io/k8s-staging-cluster-api/cluster-api-aws-controller-amd64:dev
     loadBehavior: mustLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v0.11.0
@@ -37,9 +37,10 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.0
+      - name: v0.3.6
         # Use manifest from source files
-        value: ../../../../cluster-api/config
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.6/core-components.yaml"
+        type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -49,9 +50,10 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v0.3.0
+      - name: v0.3.6
         # Use manifest from source files
-        value: ../../../../cluster-api/bootstrap/kubeadm/config
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.6/bootstrap-components.yaml"
+        type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -61,9 +63,10 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v0.3.0
+      - name: v0.3.6
         # Use manifest from source files
-        value: ../../../../cluster-api/controlplane/kubeadm/config
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.6/control-plane-components.yaml"
+        type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -83,7 +86,7 @@ providers:
             new: "--enable-leader-election=false"
     files:
       # Add a cluster template
-      - sourcePath: "../data/infrastructure-aws/cluster-template.yaml"
+      - sourcePath: "../../../templates/cluster-template.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.17.0"

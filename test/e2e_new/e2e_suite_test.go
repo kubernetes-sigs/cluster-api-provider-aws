@@ -68,6 +68,11 @@ var (
 	bootstrapClusterProxy framework.ClusterProxy
 )
 
+const (
+	KubernetesVersion = "KUBERNETES_VERSION"
+	CNIPath           = "CNI"
+)
+
 func init() {
 	flag.StringVar(&configPath, "config-path", "", "path to the e2e config file")
 	flag.StringVar(&artifactFolder, "artifacts-folder", "", "folder where e2e test artifact should be stored")
