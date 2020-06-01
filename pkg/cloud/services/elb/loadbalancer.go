@@ -128,20 +128,20 @@ func (s *Service) DeleteLoadbalancers() error {
 
 	elbs, err := s.listOwnedELBs()
 	if err != nil {
-		return err
+		return fmt.Errorf("Listing owned ELBs (1): %v", err)
 	}
 
 	for _, elb := range elbs {
 		s.scope.V(3).Info("deleting load balancer", "arn", elb)
 		if err := s.deleteClassicELB(elb); err != nil {
-			return err
+			return fmt.Errorf("Deleting classic ELBs: %v", err)
 		}
 	}
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (done bool, err error) {
 		elbs, err := s.listOwnedELBs()
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("Listing owned ELBs (2): %v", err)
 		}
 
 		return len(elbs) == 0, nil

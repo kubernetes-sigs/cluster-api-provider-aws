@@ -23,7 +23,6 @@ type AWSClusterPrincipalSpec struct {
 
 type AWSRoleSpec struct {
 	// The Amazon Resource Name (ARN) of the role to assume.
-	// +kubebuilder:validation:Pattern:=[\u0009\u000A\u000D\u0020-\u007E\u0085\u00A0-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]+
 	RoleArn string `json:"roleARN"`
 	// An identifier for the assumed role session
 	SessionName string `json:"sessionName,omitempty"`
@@ -32,7 +31,6 @@ type AWSRoleSpec struct {
 	// +kubebuilder:validation:Maximum:=43200
 	DurationSeconds uint `json:"durationSeconds,omitempty"`
 	// An IAM policy in JSON format that you want to use as an inline session policy.
-	// +kubebuilder:validation:Pattern:=[\u0009\u000A\u000D\u0020-\u00FF]+
 	InlinePolicy string `json:"inlinePolicy,omitempty"`
 
 	// The Amazon Resource Names (ARNs) of the IAM managed policies that you want
