@@ -21,7 +21,11 @@ package e2e_new
 import (
 	"context"
 	"flag"
+	"fmt"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
 	"os"
+	"path"
 	"path/filepath"
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -82,7 +86,10 @@ func init() {
 
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "capa e2e")
+	junitPath := path.Join(artifactFolder, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(junitPath)
+
+	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e", []Reporter{junitReporter})
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
