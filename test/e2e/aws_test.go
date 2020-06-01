@@ -519,7 +519,6 @@ var _ = Describe("functional tests", func() {
 
 	Describe("Create cluster with name having '.'", func() {
 		It("Cluster should be provisioned and deleted", func() {
-
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")

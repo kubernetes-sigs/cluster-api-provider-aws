@@ -31,10 +31,16 @@ export GOPROXY
 export GO111MODULE=on
 
 # Directories.
+ARTIFACTS ?= ${REPO_ROOT}/_artifacts
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TEST_E2E_DIR := test/e2e
+TEST_E2E_NEW_DIR := test/e2e_new
+
+# Files
+E2E_CONF_PATH  ?= ${REPO_ROOT}/test/e2e_new/config/aws-dev.yaml
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -107,6 +113,10 @@ test-integration: ## Run integration tests
 test-e2e: $(GINKGO) ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
 	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=2 -v -tags=e2e -focus=$(E2E_FOCUS) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: test-e2e-new
+test-e2e-new: $(GINKGO) ## Run e2e tests
+	cd $(TEST_E2E_NEW_DIR); $(GINKGO) -nodes=2 -v -tags=e2e ./... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)"
 
 .PHONY: test-conformance
 test-conformance: ## Run conformance test on workload cluster
