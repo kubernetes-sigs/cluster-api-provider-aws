@@ -1,0 +1,39 @@
+# Copyright 2018 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# If you update this file, please follow
+# https://suva.sh/posts/well-documented-makefiles
+
+
+# Hosts running SELinux need :z added to volume mounts
+SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
+
+ifeq ($(SELINUX_ENABLED),1)
+  DOCKER_VOL_OPTS?=:z
+endif
+
+.PHONY: docs
+docs: diagrams
+
+
+.PHONY: plantuml-image
+plantuml-image:
+	docker build . -t "plantuml-builder"
+
+.PHONY: diagrams
+diagrams: plantuml-image
+	-docker run -u $(UID):$(GID) -v $(abspath .):/docs$(DOCKER_VOL_OPTS) plantuml-builder -tsvg /docs/**/*.md
+	-docker run -u $(UID):$(GID) -v $(abspath .):/docs$(DOCKER_VOL_OPTS) plantuml-builder -tsvg /docs/**/*.plantuml
+
+

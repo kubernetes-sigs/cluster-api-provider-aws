@@ -81,7 +81,7 @@ GOLANG_VERSION := 1.13.8
 
 # 'functional tests' as the ginkgo filter will run ALL tests ~ 2 hours @ 3 node concurrency.
 E2E_FOCUS := "functional tests"
-# Instead, you can run a quick smoke test, it should run fast (9 minutes)... 
+# Instead, you can run a quick smoke test, it should run fast (9 minutes)...
 # E2E_FOCUS := "Create cluster with name having"
 
 ## --------------------------------------
@@ -425,3 +425,7 @@ verify-gen: generate
 		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
+
+.PHONY: docs
+docs: ## Build all documents and diagrams
+	$(MAKE) -C docs docs
