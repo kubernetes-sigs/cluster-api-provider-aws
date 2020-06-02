@@ -2,6 +2,7 @@ package machine
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -181,9 +182,11 @@ func getAMI(AMI awsproviderv1.AWSResourceReference, client awsclient.Client) (*s
 	return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
 }
 
-func getBlockDeviceMappings(blockDeviceMappings []awsproviderv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
-	if len(blockDeviceMappings) == 0 || blockDeviceMappings[0].EBS == nil {
-		return []*ec2.BlockDeviceMapping{}, nil
+func getBlockDeviceMappings(blockDeviceMappingSpecs []awsproviderv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
+	blockDeviceMappings := make([]*ec2.BlockDeviceMapping, 0)
+
+	if len(blockDeviceMappingSpecs) == 0 {
+		return blockDeviceMappings, nil
 	}
 
 	// Get image object to get the RootDeviceName
@@ -199,33 +202,52 @@ func getBlockDeviceMappings(blockDeviceMappings []awsproviderv1.BlockDeviceMappi
 		klog.Errorf("No image for given AMI was found")
 		return nil, fmt.Errorf("no image for given AMI not found")
 	}
-	deviceName := describeAMIResult.Images[0].RootDeviceName
 
-	// Only support one blockDeviceMapping
-	volumeSize := blockDeviceMappings[0].EBS.VolumeSize
-	volumeType := blockDeviceMappings[0].EBS.VolumeType
-	blockDeviceMapping := ec2.BlockDeviceMapping{
-		DeviceName: deviceName,
-		Ebs: &ec2.EbsBlockDevice{
-			VolumeSize: volumeSize,
-			VolumeType: volumeType,
-			Encrypted:  blockDeviceMappings[0].EBS.Encrypted,
-		},
+	rootDeviceFound := false
+	for _, blockDeviceMappingSpec := range blockDeviceMappingSpecs {
+		if blockDeviceMappingSpec.EBS == nil {
+			continue
+		}
+
+		deviceName := blockDeviceMappingSpec.DeviceName
+		volumeSize := blockDeviceMappingSpec.EBS.VolumeSize
+		volumeType := blockDeviceMappingSpec.EBS.VolumeType
+		deleteOnTermination := true
+
+		if blockDeviceMappingSpec.DeviceName == nil {
+			if rootDeviceFound {
+				return nil, errors.New("non root device must have name")
+			}
+			rootDeviceFound = true
+			deviceName = describeAMIResult.Images[0].RootDeviceName
+		}
+
+		blockDeviceMapping := ec2.BlockDeviceMapping{
+			DeviceName: deviceName,
+			Ebs: &ec2.EbsBlockDevice{
+				VolumeSize:          volumeSize,
+				VolumeType:          volumeType,
+				Encrypted:           blockDeviceMappingSpec.EBS.Encrypted,
+				DeleteOnTermination: &deleteOnTermination,
+			},
+		}
+
+		if *volumeType == ec2.VolumeTypeIo1 {
+			blockDeviceMapping.Ebs.Iops = blockDeviceMappingSpec.EBS.Iops
+		}
+
+		if aws.StringValue(blockDeviceMappingSpec.EBS.KMSKey.ID) != "" {
+			klog.V(3).Infof("Using KMS key ID %q for encrypting EBS volume", *blockDeviceMappingSpec.EBS.KMSKey.ID)
+			blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappingSpec.EBS.KMSKey.ID
+		} else if aws.StringValue(blockDeviceMappingSpec.EBS.KMSKey.ARN) != "" {
+			klog.V(3).Info("Using KMS key ARN for encrypting EBS volume") // ARN usually have account ids, therefore are sensitive data so shouldn't log the value
+			blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappingSpec.EBS.KMSKey.ARN
+		}
+
+		blockDeviceMappings = append(blockDeviceMappings, &blockDeviceMapping)
 	}
 
-	if aws.StringValue(blockDeviceMappings[0].EBS.KMSKey.ID) != "" {
-		klog.V(3).Infof("Using KMS key ID %q for encrypting EBS volume", *blockDeviceMappings[0].EBS.KMSKey.ID)
-		blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappings[0].EBS.KMSKey.ID
-	} else if aws.StringValue(blockDeviceMappings[0].EBS.KMSKey.ARN) != "" {
-		klog.V(3).Info("Using KMS key ARN for encrypting EBS volume") // ARN usually have account ids, therefore are sensitive data so shouldn't log the value
-		blockDeviceMapping.Ebs.KmsKeyId = blockDeviceMappings[0].EBS.KMSKey.ARN
-	}
-
-	if *volumeType == "io1" {
-		blockDeviceMapping.Ebs.Iops = blockDeviceMappings[0].EBS.Iops
-	}
-
-	return []*ec2.BlockDeviceMapping{&blockDeviceMapping}, nil
+	return blockDeviceMappings, nil
 }
 
 func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsproviderv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {

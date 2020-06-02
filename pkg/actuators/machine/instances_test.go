@@ -93,7 +93,11 @@ func TestBuildEC2Filters(t *testing.T) {
 func TestGetBlockDeviceMappings(t *testing.T) {
 	rootDeviceName := "/dev/sda1"
 	volumeSize := int64(16384)
+	deviceName2 := "/dev/sda2"
+	volumeSize2 := int64(16385)
+	deleteOnTermination := true
 	volumeType := "ssd"
+
 	mockCtrl := gomock.NewController(t)
 	mockAWSClient := mockaws.NewMockClient(mockCtrl)
 	mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(&ec2.DescribeImagesOutput{
@@ -106,10 +110,88 @@ func TestGetBlockDeviceMappings(t *testing.T) {
 		},
 	}, nil).AnyTimes()
 
+	oneBlockDevice := []awsproviderv1.BlockDeviceMappingSpec{
+		{
+			DeviceName: &rootDeviceName,
+			EBS: &awsproviderv1.EBSBlockDeviceSpec{
+				VolumeSize: &volumeSize,
+				VolumeType: &volumeType,
+			},
+			NoDevice:    nil,
+			VirtualName: nil,
+		},
+	}
+
+	oneExpectedBlockDevice := []*ec2.BlockDeviceMapping{
+		{
+			DeviceName: &rootDeviceName,
+			Ebs: &ec2.EbsBlockDevice{
+				VolumeSize:          &volumeSize,
+				VolumeType:          &volumeType,
+				DeleteOnTermination: &deleteOnTermination,
+			},
+			NoDevice:    nil,
+			VirtualName: nil,
+		},
+	}
+
+	blockDevices := []awsproviderv1.BlockDeviceMappingSpec{
+		{
+			DeviceName: &rootDeviceName,
+			EBS: &awsproviderv1.EBSBlockDeviceSpec{
+				VolumeSize: &volumeSize,
+				VolumeType: &volumeType,
+			},
+			NoDevice:    nil,
+			VirtualName: nil,
+		},
+		{
+			DeviceName: &deviceName2,
+			EBS: &awsproviderv1.EBSBlockDeviceSpec{
+				VolumeSize: &volumeSize2,
+				VolumeType: &volumeType,
+			},
+			NoDevice:    nil,
+			VirtualName: nil,
+		},
+	}
+
+	twoExpectedDevices := []*ec2.BlockDeviceMapping{
+		{
+			DeviceName: &rootDeviceName,
+			Ebs: &ec2.EbsBlockDevice{
+				VolumeSize:          &volumeSize,
+				VolumeType:          &volumeType,
+				DeleteOnTermination: &deleteOnTermination,
+			},
+			NoDevice:    nil,
+			VirtualName: nil,
+		},
+		{
+			DeviceName: &deviceName2,
+			Ebs: &ec2.EbsBlockDevice{
+				VolumeSize:          &volumeSize2,
+				VolumeType:          &volumeType,
+				DeleteOnTermination: &deleteOnTermination,
+			},
+			NoDevice:    nil,
+			VirtualName: nil,
+		},
+	}
+
+	blockDevicesOneEmptyName := make([]awsproviderv1.BlockDeviceMappingSpec, len(blockDevices))
+	copy(blockDevicesOneEmptyName, blockDevices)
+	blockDevicesOneEmptyName[0].DeviceName = nil
+
+	blockDevicesTwoEmptyNames := make([]awsproviderv1.BlockDeviceMappingSpec, len(blockDevicesOneEmptyName))
+	copy(blockDevicesTwoEmptyNames, blockDevicesOneEmptyName)
+	blockDevicesTwoEmptyNames[1].DeviceName = nil
+
 	testCases := []struct {
 		description  string
 		blockDevices []awsproviderv1.BlockDeviceMappingSpec
 		expected     []*ec2.BlockDeviceMapping
+		expectedErr  bool
 	}{
 		{
 			description:  "When it gets an empty blockDevices list",
@@ -117,39 +199,40 @@ func TestGetBlockDeviceMappings(t *testing.T) {
 			expected:     []*ec2.BlockDeviceMapping{},
 		},
 		{
-			description: "When it gets one blockDevice",
-			blockDevices: []awsproviderv1.BlockDeviceMappingSpec{
-				{
-					DeviceName: &rootDeviceName,
-					EBS: &awsproviderv1.EBSBlockDeviceSpec{
-						VolumeSize: &volumeSize,
-						VolumeType: &volumeType,
-					},
-					NoDevice:    nil,
-					VirtualName: nil,
-				},
-			},
-			expected: []*ec2.BlockDeviceMapping{
-				{
-					DeviceName: &rootDeviceName,
-					Ebs: &ec2.EbsBlockDevice{
-						VolumeSize: &volumeSize,
-						VolumeType: &volumeType,
-					},
-					NoDevice:    nil,
-					VirtualName: nil,
-				},
-			},
+			description:  "When it gets one blockDevice",
+			blockDevices: oneBlockDevice,
+			expected:     oneExpectedBlockDevice,
+		},
+		{
+			description:  "When it gets two blockDevices",
+			blockDevices: blockDevices,
+			expected:     twoExpectedDevices,
+		},
+		{
+			description:  "When it gets two blockDevices and one with empty device name",
+			blockDevices: blockDevicesOneEmptyName,
+			expected:     twoExpectedDevices,
+		},
+		{
+			description:  "Fail when it gets two blockDevices and two with empty device name",
+			blockDevices: blockDevicesTwoEmptyNames,
+			expectedErr:  true,
 		},
 	}
 
 	for _, tc := range testCases {
 		got, err := getBlockDeviceMappings(tc.blockDevices, "existing-AMI", mockAWSClient)
-		if err != nil {
-			t.Errorf("error when calling getBlockDeviceMappings: %v", err)
-		}
-		if !reflect.DeepEqual(got, tc.expected) {
-			t.Errorf("Case: %s. Got: %v, expected: %v", tc.description, got, tc.expected)
+		if tc.expectedErr {
+			if err == nil {
+				t.Error("Expected error")
+			}
+		} else {
+			if err != nil {
+				t.Errorf("error when calling getBlockDeviceMappings: %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.expected) {
+				t.Errorf("Got: %v, expected: %v", got, tc.expected)
+			}
 		}
 	}
 }
