@@ -25,6 +25,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -33,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
+	configv1 "github.com/openshift/api/config/v1"
 	machineapiapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -44,6 +46,9 @@ const (
 	AwsCredsSecretIDKey = "aws_access_key_id"
 	// AwsCredsSecretAccessKey is secret key containing AWS Secret Key
 	AwsCredsSecretAccessKey = "aws_secret_access_key"
+
+	// globalInfrastuctureName default name for infrastructure object
+	globalInfrastuctureName = "cluster"
 )
 
 // AwsClientBuilderFuncType is function type for building aws client
@@ -160,6 +165,11 @@ func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region st
 			string(accessKeyID), string(secretAccessKey), "")
 	}
 
+	// Resolve custom endpoints
+	if err := resolveEndpoints(awsConfig, ctrlRuntimeClient, region); err != nil {
+		return nil, err
+	}
+
 	// Otherwise default to relying on the IAM role of the masters where the actuator is running:
 	s, err := session.NewSession(awsConfig)
 	if err != nil {
@@ -204,4 +214,50 @@ func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error
 var addProviderVersionToUserAgent = request.NamedHandler{
 	Name: "openshift.io/cluster-api-provider-aws",
 	Fn:   request.MakeAddToUserAgentHandler("openshift.io cluster-api-provider-aws", version.Version.String()),
+}
+
+func resolveEndpoints(awsConfig *aws.Config, ctrlRuntimeClient client.Client, region string) error {
+	infra := &configv1.Infrastructure{}
+	infraName := client.ObjectKey{Name: globalInfrastuctureName}
+
+	if err := ctrlRuntimeClient.Get(context.Background(), infraName, infra); err != nil {
+		return err
+	}
+
+	// Do nothing when custom endpoints are missing
+	if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.AWS == nil {
+		return nil
+	}
+
+	customEndpointsMap := buildCustomEndpointsMap(infra.Status.PlatformStatus.AWS.ServiceEndpoints)
+
+	if len(customEndpointsMap) == 0 {
+		return nil
+	}
+
+	customResolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		if url, ok := customEndpointsMap[service]; ok {
+			return endpoints.ResolvedEndpoint{
+				URL:           url,
+				SigningRegion: region,
+			}, nil
+
+		}
+		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
+	}
+
+	awsConfig.EndpointResolver = endpoints.ResolverFunc(customResolver)
+
+	return nil
+}
+
+// buildCustomEndpointsMap constructs a map that links endpoint name and it's url
+func buildCustomEndpointsMap(customEndpoints []configv1.AWSServiceEndpoint) map[string]string {
+	customEndpointsMap := make(map[string]string)
+
+	for _, customEndpoint := range customEndpoints {
+		customEndpointsMap[customEndpoint.Name] = customEndpoint.URL
+	}
+
+	return customEndpointsMap
 }
