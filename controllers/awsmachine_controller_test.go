@@ -21,6 +21,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -179,6 +180,8 @@ var _ = Describe("AWSMachineReconciler", func() {
 				klog.SetOutput(buf)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
+
+				expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.BootstrapInfoReady, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingBootstrapInfo}})
 				Expect(err).To(BeNil())
 				Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
 			})
@@ -256,6 +259,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStatePending)))
 						Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 						Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+						expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReady}})
 					})
 
 					It("should set instance to running", func() {
@@ -264,6 +268,10 @@ var _ = Describe("AWSMachineReconciler", func() {
 						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
 						Expect(ms.AWSMachine.Status.Ready).To(Equal(true))
 						Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+						expectConditions(ms.AWSMachine, []conditionAssertion{
+							{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""},
+							{infrav1.BootstrapInfoReady, corev1.ConditionTrue, "", ""},
+						})
 					})
 				})
 			})
@@ -279,6 +287,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
 					Eventually(recorder.Events).Should(Receive(ContainSubstring("InstanceUnhandledState")))
 					Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"NewAWSMachineState\" is undefined")))
+					expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStateUnknown}})
 				})
 			})
 
@@ -385,6 +394,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
 					Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
 					Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
+					expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceTerminated}})
 				})
 			})
 		})
@@ -683,4 +693,23 @@ func (p *pointsTo) Matches(x interface{}) bool {
 
 func (p *pointsTo) String() string {
 	return fmt.Sprintf("Pointer to string %q", p.val)
+}
+
+type conditionAssertion struct {
+	conditionType clusterv1.ConditionType
+	status        corev1.ConditionStatus
+	severity      clusterv1.ConditionSeverity
+	reason        string
+}
+
+func expectConditions(m *infrav1.AWSMachine, expected []conditionAssertion) {
+	Expect(len(m.Status.Conditions)).To(BeNumerically(">=", len(expected)))
+	for _, c := range expected {
+		actual := conditions.Get(m, c.conditionType)
+		Expect(actual).To(Not(BeNil()))
+		Expect(actual.Type).To(Equal(c.conditionType))
+		Expect(actual.Status).To(Equal(c.status))
+		Expect(actual.Severity).To(Equal(c.severity))
+		Expect(actual.Reason).To(Equal(c.reason))
+	}
 }

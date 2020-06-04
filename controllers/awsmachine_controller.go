@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -157,6 +158,8 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 	// Always close the scope when exiting this function so we can persist any AWSMachine changes.
 	defer func() {
+		// set Ready condition before AWSMachine is patched
+		conditions.SetSummary(machineScope.AWSMachine)
 		if err := machineScope.Close(); err != nil && reterr == nil {
 			reterr = err
 		}
@@ -390,8 +393,10 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	// Make sure bootstrap data is available and populated.
 	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
 		machineScope.Info("Bootstrap data secret reference is not yet available")
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.BootstrapInfoReady, infrav1.WaitingBootstrapInfo, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
+	conditions.MarkTrue(machineScope.AWSMachine, infrav1.BootstrapInfoReady)
 
 	ec2svc := r.getEC2Service(clusterScope)
 
@@ -406,6 +411,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.Info("EC2 instance cannot be found")
 		machineScope.SetFailureReason(capierrors.UpdateMachineError)
 		machineScope.SetFailureMessage(errors.New("EC2 instance cannot be found"))
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFound, clusterv1.ConditionSeverityError, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -428,18 +434,22 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	switch instance.State {
 	case infrav1.InstanceStatePending, infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
 		machineScope.SetNotReady()
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReady, clusterv1.ConditionSeverityWarning, "")
 	case infrav1.InstanceStateRunning:
 		machineScope.SetReady()
+		conditions.MarkTrue(machineScope.AWSMachine, infrav1.InstanceReadyCondition)
 	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
 		machineScope.SetNotReady()
 		machineScope.Info("Unexpected EC2 instance termination", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnexpectedTermination", "Unexpected EC2 instance termination")
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceTerminated, clusterv1.ConditionSeverityError, "")
 	default:
 		machineScope.SetNotReady()
 		machineScope.Info("EC2 instance state is undefined", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnhandledState", "EC2 instance state is undefined")
 		machineScope.SetFailureReason(capierrors.UpdateMachineError)
 		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceStateUnknown, clusterv1.ConditionSeverityError, "")
 	}
 
 	// reconcile the deletion of the bootstrap data secret now that we have updated instance state

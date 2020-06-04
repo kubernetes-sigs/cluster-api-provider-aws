@@ -26,6 +26,37 @@ const (
 	// MachineFinalizer allows ReconcileAWSMachine to clean up AWS resources associated with AWSMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "awsmachine.infrastructure.cluster.x-k8s.io"
+
+	//AWSMachine ConditionTypes
+	// SecurityGroupsReady indicates the security groups are up to date on the AWSMachine.
+	SecurityGroupsReady clusterv1.ConditionType = "SecurityGroupsReady"
+
+	// Only applicable to control plane machines. ELBAttached will report true when a control plane is successfully registered with an ELB
+	// When set to false, severity can be an Error if the subnet is not found or unavailable in the instance's AZ
+	ELBAttached clusterv1.ConditionType = "ELBAttached"
+)
+
+const (
+	// InstanceReadyCondition reports on current status of the EC2 instance. Ready indicates the instance is in a Running state.
+	InstanceReadyCondition clusterv1.ConditionType = "InstanceReady"
+
+	// InstanceReady False reasons
+	// (Severity=Error)
+	InstanceNotFound = "InstanceNotFound"
+	// (Severity=Error)
+	InstanceTerminated = "InstanceTerminated"
+	// (Severity=Error)
+	InstanceStateUnknown = "InstanceStateUnknown"
+	// (Severity=Warning)
+	InstanceNotReady = "InstanceNotReady"
+)
+
+const (
+	// BootstrapInfoReady reports whether the bootstrap data secret is available on the Machine
+	BootstrapInfoReady clusterv1.ConditionType = "BootstrapInfoReady"
+
+	// (SeverityInfo)
+	WaitingBootstrapInfo = "WaitingBootstrapInfo"
 )
 
 // AWSMachineSpec defines the desired state of AWSMachine
@@ -191,6 +222,10 @@ type AWSMachineStatus struct {
 	// controller's output.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+
+	// Conditions defines current service state of the AWSMachine.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -210,6 +245,14 @@ type AWSMachine struct {
 
 	Spec   AWSMachineSpec   `json:"spec,omitempty"`
 	Status AWSMachineStatus `json:"status,omitempty"`
+}
+
+func (m *AWSMachine) GetConditions() clusterv1.Conditions {
+	return m.Status.Conditions
+}
+
+func (m *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true
