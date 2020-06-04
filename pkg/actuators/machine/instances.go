@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	mapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
+	"github.com/openshift/machine-api-operator/pkg/metrics"
 	"k8s.io/klog"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
 
@@ -355,6 +356,11 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 				}
 			}
 		}
+		metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
+			Name:      machine.Name,
+			Namespace: machine.Namespace,
+			Reason:    err.Error(),
+		})
 		klog.Errorf("Error creating EC2 instance: %v", err)
 		return nil, mapierrors.CreateMachine("error creating EC2 instance: %v", err)
 	}
