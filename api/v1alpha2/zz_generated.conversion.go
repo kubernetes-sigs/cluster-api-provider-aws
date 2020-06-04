@@ -626,6 +626,7 @@ func autoConvert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *v1al
 	out.InstanceState = (*InstanceState)(unsafe.Pointer(in.InstanceState))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
 	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
+	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
 	return nil
 }
 
