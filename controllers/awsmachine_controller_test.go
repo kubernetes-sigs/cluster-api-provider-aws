@@ -269,8 +269,8 @@ var _ = Describe("AWSMachineReconciler", func() {
 						Expect(ms.AWSMachine.Status.Ready).To(Equal(true))
 						Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
 						expectConditions(ms.AWSMachine, []conditionAssertion{
-							{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""},
-							{infrav1.BootstrapInfoReady, corev1.ConditionTrue, "", ""},
+							{conditionType: infrav1.InstanceReadyCondition, status: corev1.ConditionTrue},
+							{conditionType: infrav1.BootstrapInfoReady, status: corev1.ConditionTrue},
 						})
 					})
 				})
@@ -308,6 +308,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(instance.ID, []string{"sg-2345"})
 
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
+					expectConditions(ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.SecurityGroupsReady, status: corev1.ConditionTrue}})
 				})
 
 				It("should not tag anything if there's not tags", func() {

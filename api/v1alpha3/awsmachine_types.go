@@ -26,14 +26,6 @@ const (
 	// MachineFinalizer allows ReconcileAWSMachine to clean up AWS resources associated with AWSMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "awsmachine.infrastructure.cluster.x-k8s.io"
-
-	//AWSMachine ConditionTypes
-	// SecurityGroupsReady indicates the security groups are up to date on the AWSMachine.
-	SecurityGroupsReady clusterv1.ConditionType = "SecurityGroupsReady"
-
-	// Only applicable to control plane machines. ELBAttached will report true when a control plane is successfully registered with an ELB
-	// When set to false, severity can be an Error if the subnet is not found or unavailable in the instance's AZ
-	ELBAttached clusterv1.ConditionType = "ELBAttached"
 )
 
 const (
@@ -57,6 +49,23 @@ const (
 
 	// (SeverityInfo)
 	WaitingBootstrapInfo = "WaitingBootstrapInfo"
+)
+
+const (
+	// SecurityGroupsReady indicates the security groups are up to date on the AWSMachine.
+	SecurityGroupsReady clusterv1.ConditionType = "SecurityGroupsReady"
+
+	// (Severity=Error)
+	SecurityGroupsFailed = "SecurityGroupsSyncFailed"
+)
+
+const (
+	// Only applicable to control plane machines. ELBAttached will report true when a control plane is successfully registered with an ELB
+	// When set to false, severity can be an Error if the subnet is not found or unavailable in the instance's AZ
+	ELBAttached clusterv1.ConditionType = "ELBAttached"
+
+	// (Severity=Error)
+	ELBAttachFailed = "ELBAttachFailed"
 )
 
 // AWSMachineSpec defines the desired state of AWSMachine

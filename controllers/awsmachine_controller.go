@@ -486,8 +486,10 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		// Ensure that the security groups are correct.
 		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
 		if err != nil {
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReady, infrav1.SecurityGroupsFailed, clusterv1.ConditionSeverityError, "")
 			return ctrl.Result{}, errors.Errorf("failed to apply security groups: %+v", err)
 		}
+		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReady)
 	}
 
 	return ctrl.Result{}, nil
@@ -598,10 +600,12 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 	if err := elbsvc.RegisterInstanceWithAPIServerELB(i); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: %v", i.ID, err)
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttached, infrav1.ELBAttachFailed, clusterv1.ConditionSeverityError, err.Error())
 		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 	}
 	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulAttachControlPlaneELB",
 		"Control plane instance %q is registered with load balancer", i.ID)
+	conditions.MarkTrue(machineScope.AWSMachine, infrav1.ELBAttached)
 	return nil
 }
 
