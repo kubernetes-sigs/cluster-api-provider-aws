@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -47,7 +48,7 @@ func (s *Service) reconcileInternetGateways() error {
 
 		ig, err := s.createInternetGateway()
 		if err != nil {
-			return nil
+			return err
 		}
 		igs = []*ec2.InternetGateway{ig}
 	} else if err != nil {
@@ -70,7 +71,7 @@ func (s *Service) reconcileInternetGateways() error {
 		record.Warnf(s.scope.AWSCluster, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", gateway.InternetGatewayId, err)
 		return errors.Wrapf(err, "failed to tag internet gateway %q", *gateway.InternetGatewayId)
 	}
-
+	conditions.MarkTrue(s.scope.AWSCluster, infrav1.InternetGatewayReadyCondition)
 	return nil
 }
 

@@ -18,6 +18,8 @@ package ec2
 
 import (
 	"fmt"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -41,9 +43,21 @@ func (s *Service) reconcileNatGateways() error {
 
 	if len(s.scope.Subnets().FilterPrivate()) == 0 {
 		s.scope.V(2).Info("No private subnets available, skipping NAT gateways")
+		conditions.MarkFalse(
+			s.scope.AWSCluster,
+			infrav1.NatGatewaysReadyCondition,
+			infrav1.NatGatewaysReconciliationFailedReason,
+			clusterv1.ConditionSeverityWarning,
+			"No private subnets available, skipping NAT gateways")
 		return nil
 	} else if len(s.scope.Subnets().FilterPublic()) == 0 {
 		s.scope.V(2).Info("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		conditions.MarkFalse(
+			s.scope.AWSCluster,
+			infrav1.NatGatewaysReadyCondition,
+			infrav1.NatGatewaysReconciliationFailedReason,
+			clusterv1.ConditionSeverityWarning,
+			"No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		return nil
 	}
 
@@ -75,6 +89,14 @@ func (s *Service) reconcileNatGateways() error {
 			continue
 		}
 
+		// set NatGatewayCreationStarted if the condition has never been set before
+		if !conditions.Has(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition) {
+			conditions.MarkFalse(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition, infrav1.NatGatewaysCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
+			if err := s.scope.PatchObject(); err != nil {
+				return errors.Wrap(err, "failed to patch conditions")
+			}
+		}
+
 		ng, err := s.createNatGateway(sn.ID)
 		if err != nil {
 			return err
@@ -82,7 +104,7 @@ func (s *Service) reconcileNatGateways() error {
 
 		sn.NatGatewayID = ng.NatGatewayId
 	}
-
+	conditions.MarkTrue(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition)
 	return nil
 }
 

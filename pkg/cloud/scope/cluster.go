@@ -205,7 +205,18 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 
 // PatchObject persists the cluster configuration and status.
 func (s *ClusterScope) PatchObject() error {
-	return s.patchHelper.Patch(context.TODO(), s.AWSCluster)
+	return s.patchHelper.Patch(
+		context.TODO(),
+		s.AWSCluster,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			infrav1.VpcReadyCondition,
+			infrav1.SubnetsReadyCondition,
+			infrav1.InternetGatewayReadyCondition,
+			infrav1.NatGatewaysReadyCondition,
+			infrav1.RouteTablesReadyCondition,
+			infrav1.ClusterSecurityGroupsReadyCondition,
+			infrav1.BastionHostReadyCondition,
+			infrav1.LoadBalancerReadyCondition}})
 }
 
 // Close closes the current scope persisting the cluster configuration and status.

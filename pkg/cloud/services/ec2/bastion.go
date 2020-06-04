@@ -19,6 +19,8 @@ package ec2
 import (
 	"encoding/base64"
 	"fmt"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -64,6 +66,12 @@ func (s *Service) ReconcileBastion() error {
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance()
 	if awserrors.IsNotFound(err) {
+		if !conditions.Has(s.scope.AWSCluster, infrav1.BastionHostReadyCondition) {
+			conditions.MarkFalse(s.scope.AWSCluster, infrav1.BastionHostReadyCondition, infrav1.BastionCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
+			if err := s.scope.PatchObject(); err != nil {
+				return errors.Wrap(err, "failed to patch conditions")
+			}
+		}
 		instance, err = s.runInstance("bastion", spec)
 		if err != nil {
 			record.Warnf(s.scope.AWSCluster, "FailedCreateBastion", "Failed to create bastion instance: %v", err)
@@ -80,6 +88,7 @@ func (s *Service) ReconcileBastion() error {
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
 	s.scope.AWSCluster.Status.Bastion = instance.DeepCopy()
+	conditions.MarkTrue(s.scope.AWSCluster, infrav1.BastionHostReadyCondition)
 	s.scope.V(2).Info("Reconcile bastion completed successfully")
 
 	return nil

@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"strings"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -138,7 +139,7 @@ func (s *Service) reconcileRouteTables() error {
 		s.scope.V(2).Info("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
-
+	conditions.MarkTrue(s.scope.AWSCluster, infrav1.RouteTablesReadyCondition)
 	return nil
 }
 

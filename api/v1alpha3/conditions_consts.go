@@ -19,6 +19,77 @@ package v1alpha3
 import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 const (
+	// VpcReady condition reports on the successful reconciliation of a VPC
+	VpcReadyCondition clusterv1.ConditionType = "VpcReady"
+	// VpcCreationStartedReason used when attempting to create a VPC for a managed cluster.
+	// Will not be applied to unmanaged clusters.
+	VpcCreationStartedReason = "VpcCreationStarted"
+	// VpcReconciliationFailedReason used when errors occur during VPC reconciliation
+	VpcReconciliationFailedReason = "VpcReconciliationFailed"
+)
+
+const (
+	// SubnetsReady condition reports on the successful reconciliation of subnets.
+	SubnetsReadyCondition clusterv1.ConditionType = "SubnetsReady"
+	// SubnetsReconciliationFailedReason used to report failures while reconciling subnets
+	SubnetsReconciliationFailedReason = "SubnetsReconciliationFailed"
+)
+
+const (
+	// InternetGatewayReady condition reports on the successful reconciliation of internet gateways.
+	// Only applicable to managed clusters.
+	InternetGatewayReadyCondition clusterv1.ConditionType = "InternetGatewayReady"
+	// InternetGatewayFailedReason used when errors occur during internet gateway reconciliation
+	InternetGatewayFailedReason = "InternetGatewayFailed"
+)
+
+const (
+	// NatGatewayReady condition reports successful reconciliation of NAT gateways.
+	// Only applicable to managed clusters.
+	NatGatewaysReadyCondition clusterv1.ConditionType = "NatGatewaysReady"
+	// NatGatewaysCreationStartedReason set once when creating new NAT gateways.
+	NatGatewaysCreationStartedReason = "NatGatewaysCreationStarted"
+	// NatGatewaysReconciliationFailedReason used when any errors occur during reconciliation of NAT gateways.
+	NatGatewaysReconciliationFailedReason = "NatGatewaysReconciliationFailed"
+)
+
+const (
+	// RouteTablesReady condition reports successful reconciliation of route tables.
+	// Only applicable to managed clusters.
+	RouteTablesReadyCondition clusterv1.ConditionType = "RouteTablesReady"
+	// RouteTableReconciliationFailedReason used when any errors occur during reconciliation of route tables.
+	RouteTableReconciliationFailedReason = "RouteTableReconciliationFailed"
+)
+
+const (
+	// ClusterSecurityGroupsReady condition reports successful reconciliation of security groups.
+	ClusterSecurityGroupsReadyCondition clusterv1.ConditionType = "ClusterSecurityGroupsReady"
+	// ClusterSecurityGroupReconciliationFailedReason used when any errors occur during reconciliation of security groups.
+	ClusterSecurityGroupReconciliationFailedReason = "SecurityGroupReconciliationFailed"
+)
+
+const (
+	// BastionHostReadyCondition reports whether a bastion host is ready. Depending on the configuration, a cluster
+	// may not require a bastion host and this condition will be skipped
+	BastionHostReadyCondition clusterv1.ConditionType = "BastionHostReady"
+	// BastionCreationStartedReason used when creating a new bastion host
+	BastionCreationStartedReason = "BastionCreationStarted"
+	// BastionHostFailedReason used when an error occurs during the creation of a bastion host
+	BastionHostFailedReason = "BastionHostFailed"
+)
+
+const (
+	// LoadBalancerReadyCondition reports on whether a control plane load balancer was successfully reconciled.
+	LoadBalancerReadyCondition clusterv1.ConditionType = "LoadBalancerReady"
+	// WaitForDNSNameReason used while waiting for a DNS name for the API server to be populated
+	WaitForDNSNameReason = "WaitForDNSName"
+	// WaitForDNSNameResolveReason used while waiting for DNS name to resolve
+	WaitForDNSNameResolveReason = "WaitForDNSNameResolve"
+	// LoadBalancerFailedReason used when an error occurs during load balancer reconciliation
+	LoadBalancerFailedReason = "LoadBalancerFailed"
+)
+
+const (
 	// InstanceReadyCondition reports on current status of the EC2 instance. Ready indicates the instance is in a Running state.
 	InstanceReadyCondition clusterv1.ConditionType = "InstanceReady"
 
