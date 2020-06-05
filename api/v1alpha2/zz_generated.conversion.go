@@ -456,7 +456,7 @@ func autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSC
 	if err := Convert_v1alpha2_Network_To_v1alpha3_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (./api/v1alpha2.Instance vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance)
 	out.Ready = in.Ready
 	// WARNING: in.APIEndpoints requires manual conversion: does not exist in peer-type
 	return nil
@@ -468,7 +468,7 @@ func autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *v1al
 		return err
 	}
 	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
-	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance)
+	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs ./api/v1alpha2.Instance)
 	return nil
 }
 
@@ -580,7 +580,7 @@ func autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachi
 	}
 	// WARNING: in.RootDeviceSize requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (*./api/v1alpha2.CloudInit vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit)
 	return nil
 }
 
@@ -604,7 +604,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 	// WARNING: in.RootVolume requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	// WARNING: in.UncompressedUserData requires manual conversion: does not exist in peer-type
-	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit)
+	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *./api/v1alpha2.CloudInit)
 	return nil
 }
 
@@ -1158,6 +1158,8 @@ func autoConvert_v1alpha3_VPCSpec_To_v1alpha2_VPCSpec(in *v1alpha3.VPCSpec, out 
 	out.CidrBlock = in.CidrBlock
 	out.InternetGatewayID = (*string)(unsafe.Pointer(in.InternetGatewayID))
 	out.Tags = *(*Tags)(unsafe.Pointer(&in.Tags))
+	// WARNING: in.AvailabilityZoneUsageLimit requires manual conversion: does not exist in peer-type
+	// WARNING: in.AvailabilityZoneSelection requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -170,6 +170,17 @@ type ClassicELBHealthCheck struct {
 	UnhealthyThreshold int64         `json:"unhealthyThreshold"`
 }
 
+// AZSelectionScheme defines the scheme of selecting AZs.
+type AZSelectionScheme string
+
+var (
+	// AZSelectionSchemeOrdered will select AZs based on alphabetical order
+	AZSelectionSchemeOrdered = AZSelectionScheme("Ordered")
+
+	// AZSelectionSchemeRandom will select AZs randomly
+	AZSelectionSchemeRandom = AZSelectionScheme("Random")
+)
+
 // NetworkSpec encapsulates all things related to AWS network.
 type NetworkSpec struct {
 	// VPC configuration.
@@ -196,6 +207,23 @@ type VPCSpec struct {
 
 	// Tags is a collection of tags describing the resource.
 	Tags Tags `json:"tags,omitempty"`
+
+	// AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
+	// should be used in a region when automatically creating subnets. If a region has more
+	// than this number of AZs then this number of AZs will be picked randomly when creating
+	// default subnets. Defaults to 3
+	// +kubebuilder:default=3
+	// +kubebuilder:validation:Minimum=1
+	AvailabilityZoneUsageLimit *int `json:"availabilityZoneUsageLimit,omitempty"`
+
+	// AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
+	// in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
+	// Ordered - selects based on alphabetical order
+	// Random - selects AZs randomly in a region
+	// Defaults to Random
+	// +kubebuilder:default=Random
+	// +kubebuilder:validation:Enum=Ordered;Random
+	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
 }
 
 // String returns a string representation of the VPC.

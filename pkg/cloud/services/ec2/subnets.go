@@ -19,6 +19,7 @@ package ec2
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strings"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -38,6 +39,7 @@ import (
 const (
 	internalLoadBalancerTag = "kubernetes.io/role/internal-elb"
 	externalLoadBalancerTag = "kubernetes.io/role/elb"
+	defaultMaxNumAZs        = 3
 )
 
 func (s *Service) reconcileSubnets() error {
@@ -137,13 +139,27 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 		return nil, err
 	}
 
-	//TODO: should this be configurable or are we ok with 3 AZs max for the default?
-	if len(zones) > 3 {
-		s.scope.V(2).Info("region has more than 3 availability zones, picking 3 at random", "region", s.scope.Region())
-		rand.Shuffle(len(zones), func(i, j int) {
-			zones[i], zones[j] = zones[j], zones[i]
-		})
-		zones = append(zones, zones[0], zones[1], zones[2])
+	maxZones := defaultMaxNumAZs
+	if s.scope.VPC().AvailabilityZoneUsageLimit != nil {
+		maxZones = *s.scope.VPC().AvailabilityZoneUsageLimit
+	}
+	selectionScheme := infrav1.AZSelectionSchemeRandom
+	if s.scope.VPC().AvailabilityZoneSelection != nil {
+		selectionScheme = *s.scope.VPC().AvailabilityZoneSelection
+	}
+
+	if len(zones) > maxZones {
+		s.scope.V(2).Info("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
+		if selectionScheme == infrav1.AZSelectionSchemeRandom {
+			rand.Shuffle(len(zones), func(i, j int) {
+				zones[i], zones[j] = zones[j], zones[i]
+			})
+		}
+		if selectionScheme == infrav1.AZSelectionSchemeOrdered {
+			sort.Strings(zones)
+		}
+		zones = zones[:maxZones]
+		s.scope.V(2).Info("zones selected", "region", s.scope.Region(), "zones", zones)
 	}
 
 	// 1 private subnet for each AZ plus 1 other subnet that will be further sub-divided for the public subnets

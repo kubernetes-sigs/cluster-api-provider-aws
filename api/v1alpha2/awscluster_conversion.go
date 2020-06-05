@@ -66,6 +66,13 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		restored.Status.Bastion.DeepCopyInto(dst.Status.Bastion)
 	}
 
+	if restored.Spec.NetworkSpec.VPC.AvailabilityZoneUsageLimit != nil {
+		dst.Spec.NetworkSpec.VPC.AvailabilityZoneUsageLimit = restored.Spec.NetworkSpec.VPC.AvailabilityZoneUsageLimit
+	}
+	if restored.Spec.NetworkSpec.VPC.AvailabilityZoneSelection != nil {
+		dst.Spec.NetworkSpec.VPC.AvailabilityZoneSelection = restored.Spec.NetworkSpec.VPC.AvailabilityZoneSelection
+	}
+
 	return nil
 }
 

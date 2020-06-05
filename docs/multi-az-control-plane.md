@@ -2,7 +2,7 @@
 
 ## Overview
 
-By default, the control plane of a workload cluster created by CAPA will span multiple availability zones (AZs) (also referred to as "failure domains") when using multiple control plane nodes. This is because CAPA will, by default, create public and private subnets in all the AZs of a region (up to a maximum of 3 AZs). If a region has more than 3 AZs then CAPA will pick 3 AZs by random to use.
+By default, the control plane of a workload cluster created by CAPA will span multiple availability zones (AZs) (also referred to as "failure domains") when using multiple control plane nodes. This is because CAPA will, by default, create public and private subnets in all the AZs of a region (up to a maximum of 3 AZs by default). If a region has more than 3 AZs then CAPA will pick 3 AZs by random to use. 
 
 ## Configuring CAPA to Use Specific AZs
 
@@ -38,6 +38,27 @@ Note that CAPA insists that there must be a public subnet (and associated Intern
 Once CAPA is provided with a `networkSpec` that spans multiple AZs, the KubeadmControlPlane controller will automatically distribute control plane nodes across multiple AZs. No further configuration from the user is required.
 
 > Note: this method can also be used if you do not want to split your EC2 instance across multiple AZs.
+
+## Changing AZ defaults
+
+When creating default subnets by default a maximum of 3 AZs will be used. If you are creating a cluster in a region that has more than 3 AZs then 3 AZs will be picked randomly from that region. 
+
+If this default behavior for maximum number of AZs and random selection method doesn't suit your requirements you can use the following to change the behaviour:
+
+* `availabilityZoneUsageLimit` - specifies the maximum number of availability zones (AZ) that should be used in a region when automatically creating subnets.
+* `availabilityZoneSelection` - specifies how AZs should be selected if there are more AZs in a region than specified by availabilityZoneUsageLimit. There are 2 selection schemes:
+  * `Ordered` - selects based on alphabetical order
+  * `Random` - selects AZs randomly in a region
+
+For example if you wanted have a maximum of 2 AZs used an ordered selection scheme:
+
+```yaml
+spec:
+  networkSpec:
+    vpc:
+      availabilityZoneUsageLimit: 2
+      availabilityZoneSelection: Ordered
+```
 
 ## Caveats
 

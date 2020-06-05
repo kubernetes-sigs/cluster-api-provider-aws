@@ -895,6 +895,118 @@ func TestReconcileSubnets(t *testing.T) {
 			},
 		},
 		{
+			name: "Managed VPC, no existing subnets exist, two az's, max num azs is 1, expect one private and one public from default",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+					CidrBlock:                  defaultVPCCidr,
+					AvailabilityZoneUsageLimit: aws.Int(1),
+					AvailabilityZoneSelection:  &infrav1.AZSelectionSchemeOrdered,
+				},
+				Subnets: []*infrav1.SubnetSpec{},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeAvailabilityZones(gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1b"),
+							},
+							{
+								ZoneName: aws.String("us-east-1c"),
+							},
+						},
+					}, nil)
+
+				describeCall := m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{}, nil)
+
+				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGatewaysPages(
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+
+				zone1PublicSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String("10.0.0.0/17"),
+					AvailabilityZone: aws.String("us-east-1b"),
+				})).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &ec2.Subnet{
+							VpcId:               aws.String(subnetsVPCID),
+							SubnetId:            aws.String("subnet-1"),
+							CidrBlock:           aws.String("10.0.0.0/17"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						},
+					}, nil).
+					After(describeCall)
+
+				m.WaitUntilSubnetAvailable(gomock.Any()).
+					After(zone1PublicSubnet)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+
+				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
+					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-1"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
+					After(zone1PublicSubnet)
+
+				zone1PrivateSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
+					VpcId:            aws.String(subnetsVPCID),
+					CidrBlock:        aws.String("10.0.128.0/17"),
+					AvailabilityZone: aws.String("us-east-1b"),
+				})).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &ec2.Subnet{
+							VpcId:               aws.String(subnetsVPCID),
+							SubnetId:            aws.String("subnet-2"),
+							CidrBlock:           aws.String("10.0.128.0/17"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						},
+					}, nil).
+					After(zone1PublicSubnet)
+
+				m.WaitUntilSubnetAvailable(gomock.Any()).
+					After(zone1PrivateSubnet)
+
+				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
+			},
+		},
+		{
 			name: "Managed VPC, existing public subnet, 2 subnets in spec, should create 1 subnet",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
