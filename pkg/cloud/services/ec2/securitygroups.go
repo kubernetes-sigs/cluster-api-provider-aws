@@ -416,6 +416,16 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				},
 			},
 			{
+				Description: "vxlan (antrea)",
+				Protocol:    infrav1.SecurityGroupProtocolUDP,
+				FromPort:    4789,
+				ToPort:      4789,
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+				},
+			},
+			{
 				Description: "IP-in-IP (calico)",
 				Protocol:    infrav1.SecurityGroupProtocolIPinIP,
 				FromPort:    -1,
