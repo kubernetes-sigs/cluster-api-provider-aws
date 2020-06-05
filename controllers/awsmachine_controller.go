@@ -159,7 +159,12 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 	// Always close the scope when exiting this function so we can persist any AWSMachine changes.
 	defer func() {
 		// set Ready condition before AWSMachine is patched
-		conditions.SetSummary(machineScope.AWSMachine)
+		if machineScope.IsControlPlane() {
+			conditions.SetSummary(machineScope.AWSMachine, conditions.WithStepCounter(infrav1.ControlPlaneConditionCount))
+		} else {
+			conditions.SetSummary(machineScope.AWSMachine, conditions.WithStepCounter(infrav1.WorkerConditionCount))
+		}
+
 		if err := machineScope.Close(); err != nil && reterr == nil {
 			reterr = err
 		}
@@ -393,10 +398,8 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	// Make sure bootstrap data is available and populated.
 	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
 		machineScope.Info("Bootstrap data secret reference is not yet available")
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.BootstrapInfoReady, infrav1.WaitingBootstrapInfo, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
-	conditions.MarkTrue(machineScope.AWSMachine, infrav1.BootstrapInfoReady)
 
 	ec2svc := r.getEC2Service(clusterScope)
 
@@ -411,7 +414,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.Info("EC2 instance cannot be found")
 		machineScope.SetFailureReason(capierrors.UpdateMachineError)
 		machineScope.SetFailureMessage(errors.New("EC2 instance cannot be found"))
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFound, clusterv1.ConditionSeverityError, "")
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFoundReason, clusterv1.ConditionSeverityError, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -432,9 +435,12 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
 
 	switch instance.State {
-	case infrav1.InstanceStatePending, infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
+	case infrav1.InstanceStatePending:
 		machineScope.SetNotReady()
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReady, clusterv1.ConditionSeverityWarning, "")
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotReadyReason, clusterv1.ConditionSeverityWarning, "")
+	case infrav1.InstanceStateStopping, infrav1.InstanceStateStopped:
+		machineScope.SetNotReady()
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceStoppedReason, clusterv1.ConditionSeverityError, "")
 	case infrav1.InstanceStateRunning:
 		machineScope.SetReady()
 		conditions.MarkTrue(machineScope.AWSMachine, infrav1.InstanceReadyCondition)
@@ -442,14 +448,14 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.SetNotReady()
 		machineScope.Info("Unexpected EC2 instance termination", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnexpectedTermination", "Unexpected EC2 instance termination")
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceTerminated, clusterv1.ConditionSeverityError, "")
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceTerminatedReason, clusterv1.ConditionSeverityError, "")
 	default:
 		machineScope.SetNotReady()
 		machineScope.Info("EC2 instance state is undefined", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnhandledState", "EC2 instance state is undefined")
 		machineScope.SetFailureReason(capierrors.UpdateMachineError)
 		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceStateUnknown, clusterv1.ConditionSeverityError, "")
+		conditions.MarkUnknown(machineScope.AWSMachine, infrav1.InstanceReadyCondition, "", "")
 	}
 
 	// reconcile the deletion of the bootstrap data secret now that we have updated instance state
@@ -486,10 +492,10 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		// Ensure that the security groups are correct.
 		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
 		if err != nil {
-			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReady, infrav1.SecurityGroupsFailed, clusterv1.ConditionSeverityError, "")
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, "")
 			return ctrl.Result{}, errors.Errorf("failed to apply security groups: %+v", err)
 		}
-		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReady)
+		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
 	}
 
 	return ctrl.Result{}, nil
@@ -590,6 +596,7 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		if err := elbsvc.DeregisterInstanceFromAPIServerELB(i); err != nil {
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
 				"Failed to deregister control plane instance %q from load balancer: %v", i.ID, err)
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBDetachFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer", i.ID)
 		}
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDetachControlPlaneELB",
@@ -600,12 +607,12 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 	if err := elbsvc.RegisterInstanceWithAPIServerELB(i); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: %v", i.ID, err)
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttached, infrav1.ELBAttachFailed, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBAttachFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return errors.Wrapf(err, "could not register control plane instance %q with load balancer", i.ID)
 	}
 	r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulAttachControlPlaneELB",
 		"Control plane instance %q is registered with load balancer", i.ID)
-	conditions.MarkTrue(machineScope.AWSMachine, infrav1.ELBAttached)
+	conditions.MarkTrue(machineScope.AWSMachine, infrav1.ELBAttachedCondition)
 	return nil
 }
 

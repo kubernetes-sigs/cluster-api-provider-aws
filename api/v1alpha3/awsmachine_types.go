@@ -28,46 +28,6 @@ const (
 	MachineFinalizer = "awsmachine.infrastructure.cluster.x-k8s.io"
 )
 
-const (
-	// InstanceReadyCondition reports on current status of the EC2 instance. Ready indicates the instance is in a Running state.
-	InstanceReadyCondition clusterv1.ConditionType = "InstanceReady"
-
-	// InstanceReady False reasons
-	// (Severity=Error)
-	InstanceNotFound = "InstanceNotFound"
-	// (Severity=Error)
-	InstanceTerminated = "InstanceTerminated"
-	// (Severity=Error)
-	InstanceStateUnknown = "InstanceStateUnknown"
-	// (Severity=Warning)
-	InstanceNotReady = "InstanceNotReady"
-)
-
-const (
-	// BootstrapInfoReady reports whether the bootstrap data secret is available on the Machine
-	BootstrapInfoReady clusterv1.ConditionType = "BootstrapInfoReady"
-
-	// (SeverityInfo)
-	WaitingBootstrapInfo = "WaitingBootstrapInfo"
-)
-
-const (
-	// SecurityGroupsReady indicates the security groups are up to date on the AWSMachine.
-	SecurityGroupsReady clusterv1.ConditionType = "SecurityGroupsReady"
-
-	// (Severity=Error)
-	SecurityGroupsFailed = "SecurityGroupsSyncFailed"
-)
-
-const (
-	// Only applicable to control plane machines. ELBAttached will report true when a control plane is successfully registered with an ELB
-	// When set to false, severity can be an Error if the subnet is not found or unavailable in the instance's AZ
-	ELBAttached clusterv1.ConditionType = "ELBAttached"
-
-	// (Severity=Error)
-	ELBAttachFailed = "ELBAttachFailed"
-)
-
 // AWSMachineSpec defines the desired state of AWSMachine
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.

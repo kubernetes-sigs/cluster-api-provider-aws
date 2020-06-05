@@ -181,7 +181,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
 
-				expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.BootstrapInfoReady, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingBootstrapInfo}})
 				Expect(err).To(BeNil())
 				Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
 			})
@@ -259,7 +258,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStatePending)))
 						Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 						Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
-						expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReady}})
+						expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 					})
 
 					It("should set instance to running", func() {
@@ -270,7 +269,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 						Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
 						expectConditions(ms.AWSMachine, []conditionAssertion{
 							{conditionType: infrav1.InstanceReadyCondition, status: corev1.ConditionTrue},
-							{conditionType: infrav1.BootstrapInfoReady, status: corev1.ConditionTrue},
 						})
 					})
 				})
@@ -287,7 +285,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
 					Eventually(recorder.Events).Should(Receive(ContainSubstring("InstanceUnhandledState")))
 					Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"NewAWSMachineState\" is undefined")))
-					expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStateUnknown}})
+					expectConditions(ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.InstanceReadyCondition, status: corev1.ConditionUnknown}})
 				})
 			})
 
@@ -308,7 +306,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(instance.ID, []string{"sg-2345"})
 
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs)
-					expectConditions(ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.SecurityGroupsReady, status: corev1.ConditionTrue}})
+					expectConditions(ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.SecurityGroupsReadyCondition, status: corev1.ConditionTrue}})
 				})
 
 				It("should not tag anything if there's not tags", func() {
@@ -353,6 +351,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopping)))
 					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
 				It("should then set instance to stopped and unready", func() {
@@ -361,6 +360,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopped)))
 					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					Expect(buf.String()).To(ContainSubstring(("EC2 instance state changed")))
+					expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
 				It("should then set instance to running and ready once it is restarted", func() {
@@ -395,7 +395,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					Expect(buf.String()).To(ContainSubstring(("Unexpected EC2 instance termination")))
 					Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
 					Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
-					expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceTerminated}})
+					expectConditions(ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceTerminatedReason}})
 				})
 			})
 		})
