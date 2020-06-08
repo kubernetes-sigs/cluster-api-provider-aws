@@ -426,6 +426,16 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				},
 			},
 			{
+				Description: "TCP (antrea)",
+				Protocol:    infrav1.SecurityGroupProtocolTCP,
+				FromPort:    10349,
+				ToPort:      10349,
+				SourceSecurityGroupIDs: []string{
+					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+				},
+			},
+			{
 				Description: "IP-in-IP (calico)",
 				Protocol:    infrav1.SecurityGroupProtocolIPinIP,
 				FromPort:    -1,
