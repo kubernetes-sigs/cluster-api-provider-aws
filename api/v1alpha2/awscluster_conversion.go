@@ -67,6 +67,9 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		restored.Status.Bastion.DeepCopyInto(dst.Status.Bastion)
 	}
 
+	// Manually convert conditions
+	dst.SetConditions(restored.GetConditions())
+
 	return nil
 }
 

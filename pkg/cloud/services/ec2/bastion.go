@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/base64"
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -83,6 +84,7 @@ func (s *Service) ReconcileBastion() error {
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
 	s.scope.AWSCluster.Status.Bastion = instance.DeepCopy()
+	conditions.MarkTrue(s.scope.AWSCluster, infrav1.BastionHostReadyCondition)
 	s.scope.V(2).Info("Reconcile bastion completed successfully")
 
 	return nil

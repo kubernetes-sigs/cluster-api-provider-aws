@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"net"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -98,6 +99,12 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 	// Always close the scope when exiting this function so we can persist any AWSCluster changes.
 	defer func() {
+		if c := conditions.Get(clusterScope.AWSCluster, infrav1.BastionHostReadyCondition); c != nil {
+			// Bastion was not skipped
+			conditions.SetSummary(clusterScope.AWSCluster, conditions.WithStepCounter(infrav1.ClusterConditionWithBastionCount))
+		} else {
+			conditions.SetSummary(clusterScope.AWSCluster, conditions.WithStepCounter(infrav1.ClusterConditionCount))
+		}
 		if err := clusterScope.Close(); err != nil && reterr == nil {
 			reterr = err
 		}
@@ -155,16 +162,21 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	elbService := elb.NewService(clusterScope)
 
 	if err := ec2Service.ReconcileNetwork(); err != nil {
+		conditions.MarkFalse(awsCluster, infrav1.NetworkInfrastructureReadyCondition, infrav1.NetworkInfrastructureFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
+	conditions.MarkTrue(awsCluster, infrav1.NetworkInfrastructureReadyCondition)
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
+		conditions.MarkFalse(awsCluster, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile bastion host for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
 	if err := elbService.ReconcileLoadbalancers(); err != nil {
+		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancers for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
+	conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
 		clusterScope.Info("Waiting on API server ELB DNS name")
