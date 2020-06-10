@@ -190,6 +190,10 @@ type NetworkSpec struct {
 	// Subnets configuration.
 	// +optional
 	Subnets Subnets `json:"subnets,omitempty"`
+
+	// CNI configuration
+	// +optional
+	CNI *CNISpec `json:"cni,omitempty"`
 }
 
 // VPCSpec configures an AWS VPC.
@@ -332,6 +336,24 @@ func (s Subnets) FilterByZone(zone string) (res Subnets) {
 		}
 	}
 	return
+}
+
+// CNISpec defines configuration for CNI
+type CNISpec struct {
+	// CNIIngressRules specify rules to apply to control plane and worker node security groups.
+	// The source for the rule will be set to control plane and worker security group IDs.
+	CNIIngressRules CNIIngressRules `json:"cniIngressRules,omitempty"`
+}
+
+// CNIIngressRules is a slice of CNIIngressRule
+type CNIIngressRules []*CNIIngressRule
+
+// CNIIngressRule defines an AWS ingress rule for CNI requirements.
+type CNIIngressRule struct {
+	Description string                `json:"description"`
+	Protocol    SecurityGroupProtocol `json:"protocol"`
+	FromPort    int64                 `json:"fromPort"`
+	ToPort      int64                 `json:"toPort"`
 }
 
 // RouteTable defines an AWS routing table.

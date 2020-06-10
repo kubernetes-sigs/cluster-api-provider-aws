@@ -366,6 +366,21 @@ func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) *infrav1.I
 }
 
 func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (infrav1.IngressRules, error) {
+	// Set source of CNI ingress rules to be control plane and node security groups
+	cniRules := make(infrav1.IngressRules, len(s.scope.CNIIngressRules()))
+	for i, r := range s.scope.CNIIngressRules() {
+		cniRules[i] = &infrav1.IngressRule{
+			Description: r.Description,
+			Protocol:    r.Protocol,
+			FromPort:    r.FromPort,
+			ToPort:      r.ToPort,
+			SourceSecurityGroupIDs: []string{
+				s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
+				s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
+			},
+		}
+	}
+
 	switch role {
 	case infrav1.SecurityGroupBastion:
 		return infrav1.IngressRules{
@@ -378,7 +393,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 			},
 		}, nil
 	case infrav1.SecurityGroupControlPlane:
-		return infrav1.IngressRules{
+		rules := infrav1.IngressRules{
 			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Kubernetes API",
@@ -405,30 +420,11 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				ToPort:                 2380,
 				SourceSecurityGroupIDs: []string{s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID},
 			},
-			{
-				Description: "bgp (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    179,
-				ToPort:      179,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
-				},
-			},
-			{
-				Description: "IP-in-IP (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolIPinIP,
-				FromPort:    -1,
-				ToPort:      65535,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
-				},
-			},
-		}, nil
+		}
+		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
-		return infrav1.IngressRules{
+		rules := infrav1.IngressRules{
 			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
 			{
 				Description: "Node Port Services",
@@ -448,27 +444,8 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
 				},
 			},
-			{
-				Description: "bgp (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    179,
-				ToPort:      179,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
-				},
-			},
-			{
-				Description: "IP-in-IP (calico)",
-				Protocol:    infrav1.SecurityGroupProtocolIPinIP,
-				FromPort:    -1,
-				ToPort:      65535,
-				SourceSecurityGroupIDs: []string{
-					s.scope.SecurityGroups()[infrav1.SecurityGroupNode].ID,
-					s.scope.SecurityGroups()[infrav1.SecurityGroupControlPlane].ID,
-				},
-			},
-		}, nil
+		}
+		return append(cniRules, rules...), nil
 	case infrav1.SecurityGroupAPIServerLB:
 		return infrav1.IngressRules{
 			{

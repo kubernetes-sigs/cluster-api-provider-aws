@@ -149,6 +149,14 @@ func (s *ClusterScope) Subnets() infrav1.Subnets {
 	return s.AWSCluster.Spec.NetworkSpec.Subnets
 }
 
+// CNIIngressRules returns the CNI spec ingress rules.
+func (s *ClusterScope) CNIIngressRules() infrav1.CNIIngressRules {
+	if s.AWSCluster.Spec.NetworkSpec.CNI != nil {
+		return s.AWSCluster.Spec.NetworkSpec.CNI.CNIIngressRules
+	}
+	return infrav1.CNIIngressRules{}
+}
+
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
 	return s.AWSCluster.Status.Network.SecurityGroups
