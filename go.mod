@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.2.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
-	github.com/openshift/machine-api-operator v0.2.1-0.20200527204437-14e5e0c7d862
+	github.com/openshift/machine-api-operator v0.2.1-0.20200611014855-9a69f85c32dd
 
 	// kube 1.18
 	k8s.io/api v0.18.2
@@ -17,7 +17,9 @@ require (
 	k8s.io/client-go v0.18.2
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8
-	sigs.k8s.io/controller-runtime v0.5.1-0.20200330174416-a11a908d91e0
-	sigs.k8s.io/controller-tools v0.2.9-0.20200331153640-3c5446d407dd
+	sigs.k8s.io/controller-runtime v0.6.0
+	sigs.k8s.io/controller-tools v0.3.0
 	sigs.k8s.io/yaml v1.2.0
 )
+
+replace sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20200612013036-1a97c62077cb

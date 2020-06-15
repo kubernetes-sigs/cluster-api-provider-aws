@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -196,13 +194,8 @@ type LastOperation struct {
 func (m *Machine) Validate() field.ErrorList {
 	errors := field.ErrorList{}
 
-	// validate spec.labels
-	fldPath := field.NewPath("spec")
-	if m.Labels[MachineClusterIDLabel] == "" {
-		errors = append(errors, field.Invalid(fldPath.Child("labels"), m.Labels, fmt.Sprintf("missing %v label.", MachineClusterIDLabel)))
-	}
-
 	// validate provider config is set
+	fldPath := field.NewPath("spec")
 	if m.Spec.ProviderSpec.Value == nil {
 		errors = append(errors, field.Invalid(fldPath.Child("spec").Child("providerspec"), m.Spec.ProviderSpec, "value field must be set"))
 	}
