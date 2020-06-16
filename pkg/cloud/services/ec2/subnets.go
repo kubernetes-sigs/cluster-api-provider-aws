@@ -143,7 +143,7 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 	if s.scope.VPC().AvailabilityZoneUsageLimit != nil {
 		maxZones = *s.scope.VPC().AvailabilityZoneUsageLimit
 	}
-	selectionScheme := infrav1.AZSelectionSchemeRandom
+	selectionScheme := infrav1.AZSelectionSchemeOrdered
 	if s.scope.VPC().AvailabilityZoneSelection != nil {
 		selectionScheme = *s.scope.VPC().AvailabilityZoneSelection
 	}

@@ -220,8 +220,8 @@ type VPCSpec struct {
 	// in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
 	// Ordered - selects based on alphabetical order
 	// Random - selects AZs randomly in a region
-	// Defaults to Random
-	// +kubebuilder:default=Random
+	// Defaults to Ordered
+	// +kubebuilder:default=Ordered
 	// +kubebuilder:validation:Enum=Ordered;Random
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
 }

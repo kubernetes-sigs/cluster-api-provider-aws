@@ -573,12 +573,12 @@ spec:
                     description: VPC configuration.
                     properties:
                       availabilityZoneSelection:
-                        default: Random
+                        default: Ordered
                         description: 'AvailabilityZoneSelection specifies how AZs
                           should be selected if there are more AZs in a region than
                           specified by AvailabilityZoneUsageLimit. There are 2 selection
                           schemes: Ordered - selects based on alphabetical order Random
-                          - selects AZs randomly in a region Defaults to Random'
+                          - selects AZs randomly in a region Defaults to Ordered'
                         enum:
                         - Ordered
                         - Random
