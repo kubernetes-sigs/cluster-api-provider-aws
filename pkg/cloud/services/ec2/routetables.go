@@ -105,7 +105,7 @@ func (s *Service) reconcileRouteTables() error {
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				if err := tags.Ensure(converters.TagsToMap(rt.Tags), &tags.ApplyParams{
 					EC2Client:   s.scope.EC2,
-					BuildParams: s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic),
+					BuildParams: s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic, sn.AvailabilityZone),
 				}); err != nil {
 					return false, err
 				}
@@ -121,7 +121,7 @@ func (s *Service) reconcileRouteTables() error {
 
 		// For each subnet that doesn't have a routing table associated with it,
 		// create a new table with the appropriate default routes and associate it to the subnet.
-		rt, err := s.createRouteTableWithRoutes(routes, sn.IsPublic)
+		rt, err := s.createRouteTableWithRoutes(routes, sn.IsPublic, sn.AvailabilityZone)
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 	return out.RouteTables, nil
 }
 
-func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool) (*infrav1.RouteTable, error) {
+func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool, zone string) (*infrav1.RouteTable, error) {
 	out, err := s.scope.EC2.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(s.scope.VPC().ID),
 	})
@@ -238,7 +238,7 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool)
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
-			BuildParams: s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic),
+			BuildParams: s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic, zone),
 		}); err != nil {
 			return false, err
 		}
@@ -308,7 +308,7 @@ func (s *Service) getGatewayPublicRoute() *ec2.Route {
 	}
 }
 
-func (s *Service) getRouteTableTagParams(id string, public bool) infrav1.BuildParams {
+func (s *Service) getRouteTableTagParams(id string, public bool, zone string) infrav1.BuildParams {
 	var name strings.Builder
 
 	name.WriteString(s.scope.Name())
@@ -318,6 +318,8 @@ func (s *Service) getRouteTableTagParams(id string, public bool) infrav1.BuildPa
 	} else {
 		name.WriteString("private")
 	}
+	name.WriteString("-")
+	name.WriteString(zone)
 
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),

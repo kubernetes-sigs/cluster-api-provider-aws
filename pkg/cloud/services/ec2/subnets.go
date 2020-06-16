@@ -17,6 +17,9 @@ limitations under the License.
 package ec2
 
 import (
+	"fmt"
+	"math/rand"
+	"sort"
 	"strings"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -29,15 +32,14 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 const (
-	defaultPrivateSubnetCidr = "10.0.0.0/24"
-	defaultPublicSubnetCidr  = "10.0.1.0/24"
-
 	internalLoadBalancerTag = "kubernetes.io/role/internal-elb"
 	externalLoadBalancerTag = "kubernetes.io/role/elb"
+	defaultMaxNumAZs        = 3
 )
 
 func (s *Service) reconcileSubnets() error {
@@ -54,80 +56,66 @@ func (s *Service) reconcileSubnets() error {
 		return err
 	}
 
-	// If the subnets are empty, populate the slice with the default configuration.
-	// Adds a single private and public subnet in the first available zone.
-	if len(existing) < 2 && len(subnets) < 2 {
-		zones, err := s.getAvailableZones()
+	unmanagedVPC := s.scope.VPC().IsUnmanaged(s.scope.Name())
+
+	if len(subnets) == 0 {
+		if unmanagedVPC {
+			// If we have a unmanaged VPC then subnets must be specified
+			errMsg := "no subnets specified, you must specify the subnets when using an umanaged vpc"
+			record.Warnf(s.scope.AWSCluster, "FailedNoSubnets", errMsg)
+			return errors.New(errMsg)
+		}
+		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
+		// for each az in a region up to a maximum of 3 azs
+		subnets, err = s.getDefaultSubnets()
 		if err != nil {
-			return err
-		}
-
-		if len(subnets.FilterPrivate()) == 0 {
-			if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-				return errors.New("expected at least one private subnet available for use, got 0")
-			}
-
-			subnets = append(subnets, &infrav1.SubnetSpec{
-				CidrBlock:        defaultPrivateSubnetCidr,
-				AvailabilityZone: zones[0],
-				IsPublic:         false,
-			})
-		}
-
-		if len(subnets.FilterPublic()) == 0 {
-			if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-				return errors.New("expected at least one public subnet available for use, got 0")
-			}
-
-			subnets = append(subnets, &infrav1.SubnetSpec{
-				CidrBlock:        defaultPublicSubnetCidr,
-				AvailabilityZone: zones[0],
-				IsPublic:         true,
-			})
+			record.Warnf(s.scope.AWSCluster, "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
+			return errors.Wrap(err, "failed getting default subnets")
 		}
 	}
 
-LoopExisting:
-	for i := range existing {
-		exsn := existing[i]
-		// Check if the subnet already exists in the state, in that case reconcile it.
-		for j := range subnets {
-			sn := subnets[j]
-			// Two subnets are defined equal to each other if their id is equal
-			// or if they are in the same vpc and the cidr block is the same.
-			if (sn.ID != "" && exsn.ID == sn.ID) || (sn.CidrBlock == exsn.CidrBlock) {
-				if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-					// TODO(vincepri): Validate provided subnet passes some basic checks.
-					exsn.DeepCopyInto(sn)
-					continue LoopExisting
-				}
-
-				// Make sure tags are up to date.
+	for _, sub := range subnets {
+		existingSubnet := existing.FindEqual(sub)
+		if existingSubnet != nil {
+			if !unmanagedVPC {
+				subnetTags := sub.Tags
+				// Make sure tags are up to date if we have a managed VPC.
 				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-					if err := tags.Ensure(exsn.Tags, &tags.ApplyParams{
+					if err := tags.Ensure(existingSubnet.Tags, &tags.ApplyParams{
 						EC2Client:   s.scope.EC2,
-						BuildParams: s.getSubnetTagParams(exsn.ID, exsn.IsPublic, sn.Tags),
+						BuildParams: s.getSubnetTagParams(existingSubnet.ID, existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags),
 					}); err != nil {
 						return false, err
 					}
 					return true, nil
 				}, awserrors.SubnetNotFound); err != nil {
-					record.Warnf(s.scope.AWSCluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", exsn.ID, err)
-					return errors.Wrapf(err, "failed to ensure tags on subnet %q", exsn.ID)
+					record.Warnf(s.scope.AWSCluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", existingSubnet.ID, err)
+					return errors.Wrapf(err, "failed to ensure tags on subnet %q", existingSubnet.ID)
 				}
-
-				// TODO(vincepri): check if subnet needs to be updated.
-				exsn.DeepCopyInto(sn)
-				continue LoopExisting
 			}
-		}
 
-		// TODO(vincepri): delete extra subnets that exist and are managed by us.
-		subnets = append(subnets, exsn)
+			// Update subnet spec with the existing subnet details
+			// TODO(vincepri): check if subnet needs to be updated.
+			existingSubnet.DeepCopyInto(sub)
+		} else if unmanagedVPC {
+			// If there is no existing subnet and we have an umanaged vpc report an error
+			record.Warnf(s.scope.AWSCluster, "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.ID, sub.CidrBlock)
+			return errors.New(fmt.Sprintf("usign unmanaged vpc and subnet %s (cidr %s) specified but it doesn't exist in vpc %s", sub.ID, sub.CidrBlock, s.scope.VPC().ID))
+		}
+	}
+
+	// Check that we need at least 1 private and 1 public subnet after we have updated the metadata
+	if len(subnets.FilterPrivate()) < 1 {
+		record.Warnf(s.scope.AWSCluster, "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
+		return errors.New("expected at least 1 private subnet but got 0")
+	}
+	if len(subnets.FilterPublic()) < 1 {
+		record.Warnf(s.scope.AWSCluster, "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
+		return errors.New("expected at least 1 public subnet but got 0")
 	}
 
 	// Proceed to create the rest of the subnets that don't have an ID.
-	if !s.scope.VPC().IsUnmanaged(s.scope.Name()) {
+	if !unmanagedVPC {
 		for _, subnet := range subnets {
 			if subnet.ID != "" {
 				continue
@@ -137,13 +125,71 @@ LoopExisting:
 			if err != nil {
 				return err
 			}
-
 			nsn.DeepCopyInto(subnet)
 		}
 	}
 
 	s.scope.V(2).Info("Subnets available", "subnets", subnets)
 	return nil
+}
+
+func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
+	zones, err := s.getAvailableZones()
+	if err != nil {
+		return nil, err
+	}
+
+	maxZones := defaultMaxNumAZs
+	if s.scope.VPC().AvailabilityZoneUsageLimit != nil {
+		maxZones = *s.scope.VPC().AvailabilityZoneUsageLimit
+	}
+	selectionScheme := infrav1.AZSelectionSchemeOrdered
+	if s.scope.VPC().AvailabilityZoneSelection != nil {
+		selectionScheme = *s.scope.VPC().AvailabilityZoneSelection
+	}
+
+	if len(zones) > maxZones {
+		s.scope.V(2).Info("region has more than AvailabilityZoneUsageLimit availability zones, picking zones to use", "region", s.scope.Region(), "AvailabilityZoneUsageLimit", maxZones)
+		if selectionScheme == infrav1.AZSelectionSchemeRandom {
+			rand.Shuffle(len(zones), func(i, j int) {
+				zones[i], zones[j] = zones[j], zones[i]
+			})
+		}
+		if selectionScheme == infrav1.AZSelectionSchemeOrdered {
+			sort.Strings(zones)
+		}
+		zones = zones[:maxZones]
+		s.scope.V(2).Info("zones selected", "region", s.scope.Region(), "zones", zones)
+	}
+
+	// 1 private subnet for each AZ plus 1 other subnet that will be further sub-divided for the public subnets
+	numSubnets := len(zones) + 1
+	subnetCIDRs, err := cidr.SplitIntoSubnetsIPv4(s.scope.VPC().CidrBlock, numSubnets)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed splitting VPC CIDR %s into subnets", s.scope.VPC().CidrBlock)
+	}
+
+	publicSubnetCIDRs, err := cidr.SplitIntoSubnetsIPv4(subnetCIDRs[0].String(), len(zones))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed splitting CIDR %s into public subnets", subnetCIDRs[0].String())
+	}
+	privateSubnetCIDRs := append(subnetCIDRs[:0], subnetCIDRs[1:]...)
+
+	subnets := infrav1.Subnets{}
+	for i, zone := range zones {
+		subnets = append(subnets, &infrav1.SubnetSpec{
+			CidrBlock:        publicSubnetCIDRs[i].String(),
+			AvailabilityZone: zone,
+			IsPublic:         true,
+		})
+		subnets = append(subnets, &infrav1.SubnetSpec{
+			CidrBlock:        privateSubnetCIDRs[i].String(),
+			AvailabilityZone: zone,
+			IsPublic:         false,
+		})
+	}
+
+	return subnets, nil
 }
 
 func (s *Service) deleteSubnets() error {
@@ -259,7 +305,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
 			EC2Client:   s.scope.EC2,
-			BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic, sn.Tags),
+			BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
 		}); err != nil {
 			return false, err
 		}
@@ -320,7 +366,7 @@ func (s *Service) deleteSubnet(id string) error {
 	return nil
 }
 
-func (s *Service) getSubnetTagParams(id string, public bool, manualTags infrav1.Tags) infrav1.BuildParams {
+func (s *Service) getSubnetTagParams(id string, public bool, zone string, manualTags infrav1.Tags) infrav1.BuildParams {
 	var role string
 	additionalTags := s.scope.AdditionalTags()
 
@@ -343,6 +389,8 @@ func (s *Service) getSubnetTagParams(id string, public bool, manualTags infrav1.
 	name.WriteString(s.scope.Name())
 	name.WriteString("-subnet-")
 	name.WriteString(role)
+	name.WriteString("-")
+	name.WriteString(zone)
 
 	return infrav1.BuildParams{
 		ClusterName: s.scope.Name(),

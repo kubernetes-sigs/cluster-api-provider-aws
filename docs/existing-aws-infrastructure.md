@@ -15,7 +15,7 @@ In order to have Cluster API consume existing AWS infrastructure, you will need 
 
 Note that a public subnet (and associated Internet gateway) are required even if the control plane of the workload cluster is set to use an internal load balancer.
 
-You will need the ID of the VPC that Cluster API should use. This information is available via the AWS Management Console or the AWS CLI. It is not necessary to have a list of the subnet IDs; Cluster API will discover the subnets if the VPC ID is provided.
+You will need the ID of the VPC and subnet IDs that Cluster API should use. This information is available via the AWS Management Console or the AWS CLI.
 
 Note that there is no need to create an Elastic Load Balancer (ELB), security groups, or EC2 instances; Cluster API will take care of these items.
 
@@ -38,9 +38,10 @@ spec:
   networkSpec:
     vpc:
       id: vpc-0425c335226437144
+    subnets:
+    - id: subnet-0261219d564bb0dc5
+    - id: subnet-0fdcccba78668e013
 ```
-
-Although the `networkSpec` does support specifying all the subnet IDs, as mentioned earlier this is not required. It is currently not possible to force Cluster API to use a "subset" of available subnets by providing the list of subnet IDs.
 
 When you use `kubectl apply` to apply the Cluster and AWSCluster specifications to the management cluster, Cluster API will use the specified VPC ID, will discover the associated subnet IDs, and will not create a new VPC, new subnets, or other associated resources. It _will_, however, create a new ELB and new security groups.
 
