@@ -21,10 +21,12 @@ package e2e_new
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elb"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,14 +34,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	"path/filepath"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"time"
 )
 
 var _ = Describe("functional tests", func() {
@@ -119,7 +118,7 @@ func createCluster(ctx context.Context, clusterName string, namespace string) *c
 }
 
 func createLBService(svcNamespace string, svcName string, k8sclient crclient.Client) string {
-	fmt.Fprintf(GinkgoWriter, "Creating service of type Load Balancer with name: %s under namespace: %s\n", svcName, svcNamespace)
+	Byf("Creating service of type Kubernetes Load Balancer: name=%s, namespace=%s", svcName, svcNamespace)
 	svcSpec := corev1.ServiceSpec{
 		Type: corev1.ServiceTypeLoadBalancer,
 		Ports: []corev1.ServicePort{
@@ -143,7 +142,6 @@ func createLBService(svcNamespace string, svcName string, k8sclient crclient.Cli
 		ingressHostname := svcCreated.Status.LoadBalancer.Ingress[0].Hostname
 		elbName = strings.Split(ingressHostname, "-")[0]
 	}
-	fmt.Fprintf(GinkgoWriter, "Created Load Balancer service and ELB name is: %s\n", elbName)
 	return elbName
 }
 
@@ -162,8 +160,8 @@ func createService(svcName string, svcNamespace string, labels map[string]string
 }
 
 func verifyElbExists(elbName string, exists bool) {
-	fmt.Fprintf(GinkgoWriter, "Verifying ELB with name %s present\n", elbName)
-	elbClient := elb.New(getSession())
+	Byf("Verifying existence of AWS ELB Load Balancer: name=%s", elbName)
+	elbClient := elb.New(awsSession)
 	input := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: []*string{
 			aws.String(elbName),
@@ -172,20 +170,11 @@ func verifyElbExists(elbName string, exists bool) {
 	elbsOutput, err := elbClient.DescribeLoadBalancers(input)
 	if exists {
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(elbsOutput.LoadBalancerDescriptions)).To(Equal(1))
-		fmt.Fprintf(GinkgoWriter, "ELB with name %s exists\n", elbName)
+		count := len(elbsOutput.LoadBalancerDescriptions)
+		Expect(count).To(Equal(1), "Number of AWS ELBs not equal to 1: name=%s, count=%s", elbName, count)
 	} else {
 		aerr, ok := err.(awserr.Error)
 		Expect(ok).To(BeTrue())
-		Expect(aerr.Code()).To(Equal(elb.ErrCodeAccessPointNotFoundException))
-		fmt.Fprintf(GinkgoWriter, "ELB with name %s doesn't exists\n", elbName)
+		Expect(aerr.Code()).To(Equal(elb.ErrCodeAccessPointNotFoundException), "AWS ELB found when it shouldn't: name=%s", elbName)
 	}
-}
-
-func getSession() client.ConfigProvider {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	return sess
 }

@@ -40,12 +40,14 @@ TEST_E2E_DIR := test/e2e
 TEST_E2E_NEW_DIR := test/e2e_new
 
 # Files
-E2E_CONF_PATH  ?= ${REPO_ROOT}/test/e2e_new/config/aws-dev.yaml
+E2E_CONF_PATH  ?= ${REPO_ROOT}/test/e2e_new/e2e_conf.yaml
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+KIND := $(TOOLS_BIN_DIR)/kind
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+DEFAULTER_GEN := $(TOOLS_BIN_DIR)/defaulter-gen
 ENVSUBST := $(TOOLS_BIN_DIR)/envsubst
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
@@ -53,6 +55,7 @@ CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 GINKGO := $(abspath $(TOOLS_BIN_DIR)/ginkgo)
+export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -110,13 +113,17 @@ test-integration: ## Run integration tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
 .PHONY: test-e2e
-test-e2e: $(GINKGO) ## Run e2e tests
+test-e2e: $(GINKGO) $(KIND) ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	cd $(TEST_E2E_DIR); $(GINKGO) -nodes=2 -v -tags=e2e -focus=$(E2E_FOCUS) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	cd $(TEST_E2E_DIR); time $(GINKGO) -nodes=2 -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG) $(E2E_ARGS)
 
 .PHONY: test-e2e-new
-test-e2e-new: $(GINKGO) ## Run e2e tests
-	cd $(TEST_E2E_NEW_DIR); $(GINKGO) -nodes=2 -v -tags=e2e ./... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)"
+test-e2e-new: $(GINKGO) e2e-image ## Run e2e tests
+	cd $(TEST_E2E_NEW_DIR); time $(GINKGO) -trace -progress -nodes=2 -v -tags=e2e $(GINKGO_ARGS) ./... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
+
+.PHONY: e2e-image
+e2e-image:
+	docker build --tag="capa-manager:e2e" .
 
 .PHONY: test-conformance
 test-conformance: ## Run conformance test on workload cluster
@@ -162,11 +169,17 @@ $(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
+$(DEFAULTER_GEN): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/defaulter-gen k8s.io/code-generator/cmd/defaulter-gen
+
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod # Build kustomize from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
 
 $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags tools -o $(BIN_DIR)/release-notes sigs.k8s.io/cluster-api/hack/tools/release
+
+$(KIND): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags tools -o $(BIN_DIR)/kind sigs.k8s.io/kind
 
 ## --------------------------------------
 ## Linting
@@ -192,10 +205,19 @@ generate: ## Generate code
 	$(MAKE) generate-manifests
 
 .PHONY: generate-go
-generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) ## Runs Go related generate targets
+generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN) ## Runs Go related generate targets
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
+
+	$(CONTROLLER_GEN) \
+		paths=./cmd/clusterawsadm/api/... \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
+
+	$(DEFAULTER_GEN) \
+		--input-dirs=./cmd/clusterawsadm/api/bootstrap/v1alpha1,./cmd/clusterawsadm/api/iam/v1alpha1 \
+		--v=0 \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha2 \
@@ -411,6 +433,16 @@ clean-bin: ## Remove all generated binaries
 clean-temporary: ## Remove all temporary files and folders
 	rm -f minikube.kubeconfig
 	rm -f kubeconfig
+	rm -rf _artifacts
+	rm -rf test/e2e/.artifacts/*
+	rm -rf test/e2e/*.xml
+	rm -rf test/e2e/capa-controller-manager
+	rm -rf test/e2e/capi-controller-manager
+	rm -rf test/e2e/capi-kubeadm-bootstrap-controller-manager
+	rm -rf test/e2e/capi-kubeadm-control-plane-controller-manager
+	rm -rf test/e2e/logs
+	rm -rf test/e2e/resources
+
 
 .PHONY: clean-release
 clean-release: ## Remove the release folder

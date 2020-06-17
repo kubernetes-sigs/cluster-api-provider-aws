@@ -1466,7 +1466,7 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 		cluster := &clusterv1.Cluster{}
 
 		logit := func() {
-			fmt.Fprintf(GinkgoWriter, "POLLING ( # %v ) (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %v , Err = %v \n", polls0, namespace, name, cluster.Status, err)
+			fmt.Fprintf(GinkgoWriter, "POLLING ( # %v ) (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %+v , Err = %v \n", polls0, namespace, name, cluster.Status, err)
 		}
 
 		if err = kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {

@@ -24,15 +24,33 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/version"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // RootCmd is the Cobra root command
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "clusterawsadm",
-		Short: "cluster api aws management",
-		Long:  `Cluster API Provider AWS commands`,
+		Short: "Kubernetes Cluster API Provider AWS Management Utility",
+		Long: cmd.LongDesc(`
+			clusterawsadm provides helpers for bootstrapping Kubernetes Cluster
+			API Provider AWS. Use clusterawsadm to view required AWS Identity and Access Management
+			(IAM) policies as JSON docs, or create IAM roles and instance profiles automatically
+			using AWS CloudFormation.
+
+			clusterawsadm additionally helps provide credentials for use with clusterctl.
+		`),
+		Example: cmd.Examples(`
+			# Create AWS Identity and Access Management (IAM) roles for use with
+			# Kubernetes Cluster API Provider AWS.
+			clusterawsadm bootstrap iam create-cloudformation-stack
+
+			# Encode credentials for use with clusterctl init
+			export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+			clusterctl init --infrastructure aws
+		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cmd.Help(); err != nil {
 				return err
@@ -41,6 +59,7 @@ func RootCmd() *cobra.Command {
 		},
 	}
 	newCmd.AddCommand(alpha.AlphaCmd())
+	newCmd.AddCommand(bootstrap.RootCmd())
 	newCmd.AddCommand(version.VersionCmd(os.Stdout))
 	return newCmd
 }
@@ -49,10 +68,11 @@ func RootCmd() *cobra.Command {
 func Execute() {
 	if err := flag.CommandLine.Parse([]string{}); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, "")
 		os.Exit(1)
 	}
 	if err := RootCmd().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+
 		os.Exit(1)
 	}
 

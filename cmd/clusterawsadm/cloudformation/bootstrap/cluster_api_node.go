@@ -1,0 +1,63 @@
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package bootstrap
+
+import (
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+)
+
+func (t Template) secretPolicy() iamv1.StatementEntry {
+	return iamv1.StatementEntry{
+		Effect: iamv1.EffectAllow,
+		Resource: iamv1.Resources{
+			"arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
+		},
+		Action: iamv1.Actions{
+			"secretsmanager:DeleteSecret",
+			"secretsmanager:GetSecretValue",
+		},
+	}
+}
+
+func (t Template) sessionManagerPolicy() iamv1.StatementEntry {
+	return iamv1.StatementEntry{
+		Effect:   iamv1.EffectAllow,
+		Resource: iamv1.Resources{iamv1.Any},
+		Action: iamv1.Actions{
+			"ssm:UpdateInstanceInformation",
+			"ssmmessages:CreateControlChannel",
+			"ssmmessages:CreateDataChannel",
+			"ssmmessages:OpenControlChannel",
+			"ssmmessages:OpenDataChannel",
+			"s3:GetEncryptionConfiguration",
+		},
+	}
+}
+
+func (t Template) nodePolicy() *iamv1.PolicyDocument {
+	policyDocument := t.cloudProviderNodeAwsPolicy()
+	policyDocument.Statement = append(
+		policyDocument.Statement,
+		t.secretPolicy(),
+		t.sessionManagerPolicy(),
+	)
+	policyDocument.Statement = append(
+		policyDocument.Statement,
+		t.Spec.Nodes.ExtraStatements...,
+	)
+	return policyDocument
+}

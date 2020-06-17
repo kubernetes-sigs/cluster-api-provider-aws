@@ -17,32 +17,22 @@ limitations under the License.
 package bootstrap
 
 import (
-	"bytes"
-	"encoding/base64"
 	"fmt"
 	"os"
-	"text/template"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/defaults"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
-	awssts "github.com/aws/aws-sdk-go/service/sts"
 	"github.com/spf13/cobra"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/cloudformation"
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
+	cfnBootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
+	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/sts"
+
+	creds "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 )
 
-// AWSCredentialsTemplate generates an AWS credentials file that can
-// be loaded by the various SDKs.
-const AWSCredentialsTemplate = `[default]
-aws_access_key_id = {{ .AccessKeyID }}
-aws_secret_access_key = {{ .SecretAccessKey }}
-region = {{ .Region }}
-{{if .SessionToken }}
-aws_session_token = {{ .SessionToken }}
-{{end}}
-`
+const backupAWSRegion = "us-east-1"
 
 var (
 	extraControlPlanePolicies []string
@@ -67,10 +57,19 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(generateIAMPolicyDocJSON())
 	newCmd.AddCommand(encodeAWSSecret())
 	newCmd.AddCommand(generateAWSDefaultProfileWithChain())
-
 	newCmd.PersistentFlags().String("partition", "aws", "AWS partition, for AWS GovCloud (US) it is aws-us-gov")
+	flags.MarkAlphaDeprecated(newCmd)
 
 	return newCmd
+}
+
+func bootstrapTemplateFromCmdLine() cfnBootstrap.Template {
+	conf := bootstrapv1.NewAWSIAMConfiguration()
+	conf.Spec.ControlPlane.ExtraPolicyAttachments = extraControlPlanePolicies
+	conf.Spec.Nodes.ExtraPolicyAttachments = extraNodePolicies
+	return cfnBootstrap.Template{
+		Spec: &conf.Spec,
+	}
 }
 
 func getPartitionFlag(cmd *cobra.Command) string {
@@ -104,8 +103,7 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			partition := getPartitionFlag(cmd)
-			template := cloudformation.BootstrapTemplate(args[0], partition, extraControlPlanePolicies, extraNodePolicies)
+			template := bootstrapTemplateFromCmdLine().RenderCloudFormation()
 			j, err := template.YAML()
 			if err != nil {
 				return err
@@ -118,7 +116,7 @@ Instructions for obtaining the AWS account ID can be found on https://docs.aws.a
 
 	newCmd.Flags().StringSliceVar(&extraControlPlanePolicies, "extra-controlplane-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created control plane role (must already exist)")
 	newCmd.Flags().StringSliceVar(&extraNodePolicies, "extra-node-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created nodes role (must already exist)")
-
+	flags.MarkAlphaDeprecated(newCmd)
 	return newCmd
 }
 
@@ -129,8 +127,8 @@ func createStackCmd() *cobra.Command {
 		Long:  "Create a new AWS CloudFormation stack using the bootstrap template",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			stackName := "cluster-api-provider-aws-sigs-k8s-io"
-			fmt.Printf("Attempting to create CloudFormation stack %s\n", stackName)
+			t := bootstrapTemplateFromCmdLine()
+			fmt.Printf("Attempting to create CloudFormation stack %s\n", t.Spec.StackName)
 			sess, err := session.NewSessionWithOptions(session.Options{
 				SharedConfigState: session.SharedConfigEnable,
 			})
@@ -139,28 +137,21 @@ func createStackCmd() *cobra.Command {
 				return err
 			}
 
-			stsSvc := sts.NewService(awssts.New(sess))
-			accountID, stsErr := stsSvc.AccountID()
-			if stsErr != nil {
-				fmt.Printf("Error: %v", stsErr)
-				return err
-			}
-
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
-			partition := getPartitionFlag(cmd)
-			err = cfnSvc.ReconcileBootstrapStack(stackName, accountID, partition, extraControlPlanePolicies, extraNodePolicies)
+
+			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation())
 			if err != nil {
 				fmt.Printf("Error: %v", err)
 				return err
 			}
 
-			return cfnSvc.ShowStackResources(stackName)
+			return cfnSvc.ShowStackResources(t.Spec.StackName)
 		},
 	}
 
 	newCmd.Flags().StringSliceVar(&extraControlPlanePolicies, "extra-controlplane-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created control plane role (must already exist)")
 	newCmd.Flags().StringSliceVar(&extraNodePolicies, "extra-node-policies", []string{}, "Comma-separated list of extra policies (ARNs) to add to the created nodes role (must already exist)")
-
+	flags.MarkAlphaDeprecated(newCmd)
 	return newCmd
 }
 
@@ -209,18 +200,10 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			accountID := args[0]
 			policyDocDir := args[1]
-			sess, err := session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-			})
-			if err != nil {
-				return fmt.Errorf("failed to create a session: %v", err)
-			}
 
-			cfnSvc := cloudformation.NewService(cfn.New(sess))
-			partition := getPartitionFlag(cmd)
-			err = cfnSvc.GenerateManagedIAMPolicyDocuments(policyDocDir, accountID, partition)
+			t := bootstrapTemplateFromCmdLine()
+			err := t.GenerateManagedIAMPolicyDocuments(policyDocDir)
 
 			if err != nil {
 				return fmt.Errorf("failed to generate PolicyDocument for all ManagedIAMPolicies: %v", err)
@@ -230,6 +213,7 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 			return nil
 		},
 	}
+	flags.MarkAlphaDeprecated(newCmd)
 	return newCmd
 }
 
@@ -239,22 +223,30 @@ func encodeAWSSecret() *cobra.Command {
 		Short: "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		Long:  "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := getCredentialsFromDefaultChain()
 
+			region, err := flags.GetRegion(cmd)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Could not resolve AWS region, defaulting to %s.\n", backupAWSRegion)
+				region = backupAWSRegion
+			}
+
+			awsCreds, err := creds.NewAWSCredentialFromDefaultChain(region)
 			if err != nil {
 				return err
 			}
 
-			err = generateAWSKubernetesSecret(*creds)
-
+			str, err := awsCreds.RenderBase64EncodedAWSDefaultProfile()
 			if err != nil {
 				return err
 			}
+
+			fmt.Println(str)
 
 			return nil
 		},
 	}
-
+	flags.MarkAlphaDeprecated(newCmd)
+	flags.AddRegionFlag(newCmd)
 	return newCmd
 }
 
@@ -265,87 +257,30 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 		Long:  "Generate an AWS profile from the current environment for the ephemeral bootstrap cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			fmt.Fprint(os.Stderr, "\nWARNING: generate-aws-default-profile command is intended NOT to be used in production environment\n\n\n")
+			flags.CredentialWarning(cmd)
 
-			creds, err := getCredentialsFromDefaultChain()
+			region, err := flags.GetRegion(cmd)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Could not resolve AWS region, defaulting to %s.\n", backupAWSRegion)
+				region = backupAWSRegion
+			}
+
+			awsCreds, err := creds.NewAWSCredentialFromDefaultChain(region)
 			if err != nil {
 				return err
 			}
 
-			profile, err := renderAWSDefaultProfile(*creds)
+			profile, err := awsCreds.RenderAWSDefaultProfile()
 			if err != nil {
 				return err
 			}
 
-			fmt.Println(profile.String())
+			fmt.Println(profile)
 
 			return nil
 		},
 	}
-
+	flags.MarkAlphaDeprecated(newCmd)
+	flags.AddRegionFlag(newCmd)
 	return newCmd
-}
-
-func getCredentialsFromDefaultChain() (*awsCredential, error) {
-	creds := awsCredential{}
-	conf := aws.NewConfig()
-	chain := defaults.CredChain(conf, defaults.Handlers())
-	chainCreds, err := chain.Get()
-	if err != nil {
-		return nil, err
-	}
-
-	// still needed as defaults.CredChain doesn't contain region
-	region, err := getEnv("AWS_REGION")
-	if err != nil {
-		return nil, err
-	}
-	creds.Region = region
-
-	creds.AccessKeyID = chainCreds.AccessKeyID
-	creds.SecretAccessKey = chainCreds.SecretAccessKey
-	creds.SessionToken = chainCreds.SessionToken
-
-	return &creds, nil
-}
-
-type awsCredential struct {
-	AccessKeyID     string
-	SecretAccessKey string
-	SessionToken    string
-	Region          string
-}
-
-func getEnv(key string) (string, error) {
-	val, ok := os.LookupEnv(key)
-	if !ok {
-		return "", fmt.Errorf("environment variable %q not found", key)
-	}
-	return val, nil
-}
-
-func renderAWSDefaultProfile(creds awsCredential) (*bytes.Buffer, error) {
-	tmpl, err := template.New("AWS Credentials").Parse(AWSCredentialsTemplate)
-	if err != nil {
-		return nil, err
-	}
-
-	var credsFileStr bytes.Buffer
-	err = tmpl.Execute(&credsFileStr, creds)
-	if err != nil {
-		return nil, err
-	}
-
-	return &credsFileStr, nil
-}
-
-func generateAWSKubernetesSecret(creds awsCredential) error {
-	profile, err := renderAWSDefaultProfile(creds)
-	if err != nil {
-		return err
-	}
-
-	encCreds := base64.StdEncoding.EncodeToString(profile.Bytes())
-	fmt.Println(encCreds)
-	return nil
 }
