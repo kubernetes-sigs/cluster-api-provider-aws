@@ -541,6 +541,38 @@ spec:
               networkSpec:
                 description: NetworkSpec encapsulates all things related to AWS network.
                 properties:
+                  cni:
+                    description: CNI configuration
+                    properties:
+                      cniIngressRules:
+                        description: CNIIngressRules specify rules to apply to control
+                          plane and worker node security groups. The source for the
+                          rule will be set to control plane and worker security group
+                          IDs.
+                        items:
+                          description: CNIIngressRule defines an AWS ingress rule
+                            for CNI requirements.
+                          properties:
+                            description:
+                              type: string
+                            fromPort:
+                              format: int64
+                              type: integer
+                            protocol:
+                              description: SecurityGroupProtocol defines the protocol
+                                type for a security group rule.
+                              type: string
+                            toPort:
+                              format: int64
+                              type: integer
+                          required:
+                          - description
+                          - fromPort
+                          - protocol
+                          - toPort
+                          type: object
+                        type: array
+                    type: object
                   subnets:
                     description: Subnets configuration.
                     items:

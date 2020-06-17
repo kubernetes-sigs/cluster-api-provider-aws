@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -104,6 +105,103 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			if err := tt.newCluster.ValidateUpdate(tt.oldCluster); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestAWSCluster_Default(t *testing.T) {
+	g := NewWithT(t)
+	tests := []struct {
+		name          string
+		beforeCluster *AWSCluster
+		afterCluster  *AWSCluster
+	}{
+		{
+			name: "CNI ingressRules are updated cni spec undefined",
+			beforeCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			afterCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						CNI: &CNISpec{
+							CNIIngressRules: CNIIngressRules{
+								{
+									Description: "bgp (calico)",
+									Protocol:    SecurityGroupProtocolTCP,
+									FromPort:    179,
+									ToPort:      179,
+								},
+								{
+									Description: "IP-in-IP (calico)",
+									Protocol:    SecurityGroupProtocolIPinIP,
+									FromPort:    -1,
+									ToPort:      65535,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "CNIIngressRules are not added for empty CNISpec",
+			beforeCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						CNI: &CNISpec{},
+					},
+				},
+			},
+			afterCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						CNI: &CNISpec{},
+					},
+				},
+			},
+		},
+		{
+			name: "CNI ingressRules are unmodified when they exist",
+			beforeCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						CNI: &CNISpec{
+							CNIIngressRules: CNIIngressRules{
+								{
+									Description: "Antrea 1",
+									Protocol:    SecurityGroupProtocolTCP,
+									FromPort:    10349,
+									ToPort:      10349,
+								},
+							},
+						},
+					},
+				},
+			},
+			afterCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						CNI: &CNISpec{
+							CNIIngressRules: CNIIngressRules{
+								{
+									Description: "Antrea 1",
+									Protocol:    SecurityGroupProtocolTCP,
+									FromPort:    10349,
+									ToPort:      10349,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.beforeCluster.Default()
+			g.Expect(tt.beforeCluster).To(Equal(tt.afterCluster))
 		})
 	}
 }

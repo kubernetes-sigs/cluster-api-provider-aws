@@ -39,8 +39,10 @@ func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awscluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1alpha3,name=validation.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awscluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1alpha3,name=default.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None
 
 var _ webhook.Validator = &AWSCluster{}
+var _ webhook.Defaulter = &AWSCluster{}
 
 func (r *AWSCluster) ValidateCreate() error {
 	return nil
@@ -79,4 +81,26 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+}
+
+func (r *AWSCluster) Default() {
+	// Default to Calico ingress rules if no rules have been set
+	if r.Spec.NetworkSpec.CNI == nil {
+		r.Spec.NetworkSpec.CNI = &CNISpec{
+			CNIIngressRules: CNIIngressRules{
+				{
+					Description: "bgp (calico)",
+					Protocol:    SecurityGroupProtocolTCP,
+					FromPort:    179,
+					ToPort:      179,
+				},
+				{
+					Description: "IP-in-IP (calico)",
+					Protocol:    SecurityGroupProtocolIPinIP,
+					FromPort:    -1,
+					ToPort:      65535,
+				},
+			},
+		}
+	}
 }
