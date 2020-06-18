@@ -6,10 +6,11 @@ require (
 	github.com/aws/aws-sdk-go v1.15.66
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.1.0
-	github.com/golang/mock v1.2.0
+	github.com/golang/mock v1.3.1
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.8.1
-	github.com/openshift/machine-api-operator v0.2.1-0.20200611014855-9a69f85c32dd
+	github.com/openshift/api v0.0.0-20200424083944-0422dc17083e
+	github.com/openshift/machine-api-operator v0.2.1-0.20200701225707-950912b03628
 
 	// kube 1.18
 	k8s.io/api v0.18.2
@@ -22,4 +23,7 @@ require (
 	sigs.k8s.io/yaml v1.2.0
 )
 
-replace sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20200612013036-1a97c62077cb
+replace (
+	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20200618031251-e16dd65fdd85
+	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20200618001858-af08a66b92de
+)
