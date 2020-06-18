@@ -47,7 +47,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AW
 	}
 
 	awsConfig := aws.NewConfig().WithRegion(region)
-	provider, err := getProviderForCluster(context.Background(), k8sClient, awsCluster, log, region)
+	provider, err := getProviderForCluster(context.Background(), k8sClient, awsCluster, awsConfig, log)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get provider for cluster: %v", err)
 	}
@@ -59,7 +59,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AW
 			return nil, fmt.Errorf("Failed to retrieve provider from cache: %v", err)
 		}
 		if ok {
-			log.Info("Found a like principal provider in the cache")
+			log.Info("Found a fit principal provider in the cache")
 			provider = cachedProvider.(AWSPrincipalTypeProvider)
 		} else {
 			log.Info("Storing principal provider in the cache")
@@ -67,11 +67,13 @@ func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AW
 			sessionCache.Store(providerHash, provider)
 		}
 		awsConfig.Credentials = credentials.NewCredentials(provider)
+		log.Info("Set config credentials", "credentials", awsConfig.Credentials)
 	} else {
 		log.Info("No provider found, using ambient credentials")
 	}
 
-	ns, err := session.NewSession(awsConfig.WithRegion(region))
+
+	ns, err := session.NewSession(awsConfig)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create a new AWS session: %v", err)
 	}
@@ -80,7 +82,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, awsCluster *infrav1.AW
 	return ns, nil
 }
 
-func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsCluster *infrav1.AWSCluster, log logr.Logger, awsRegion string) (AWSPrincipalTypeProvider, error) {
+func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsCluster *infrav1.AWSCluster, awsConfig *aws.Config, log logr.Logger) (AWSPrincipalTypeProvider, error) {
 	var provider AWSPrincipalTypeProvider
 	if awsCluster.Spec.PrincipalRef != nil {
 		principalObjectKey := client.ObjectKey{Name: awsCluster.Spec.PrincipalRef.Name}
@@ -105,7 +107,7 @@ func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsClus
 				return nil, err
 			}
 			log.Info("Found an AWSClusterRolePrincipal", "principal", principal.GetName(), "RoleARN", principal.Spec.RoleArn)
-			provider = NewAWSRolePrincipalTypeProvider(principal, log)
+			provider = NewAWSRolePrincipalTypeProvider(principal, awsConfig, log)
 		case "AWSServiceAccountPrincipal":
 			principal := &infrav1.AWSServiceAccountPrincipal{}
 			err := k8sClient.Get(ctx, principalObjectKey, principal)
@@ -146,8 +148,8 @@ func NewAWSStaticPrincipalTypeProvider(principal *infrav1.AWSClusterStaticPrinci
 	}
 }
 
-func NewAWSRolePrincipalTypeProvider(principal *infrav1.AWSClusterRolePrincipal, log logr.Logger) (*AWSRolePrincipalTypeProvider) {
-	sess := session.Must(session.NewSession())
+func NewAWSRolePrincipalTypeProvider(principal *infrav1.AWSClusterRolePrincipal, awsConfig *aws.Config, log logr.Logger) (*AWSRolePrincipalTypeProvider) {
+	sess := session.Must(session.NewSession(awsConfig))
 	creds := stscreds.NewCredentials(sess, principal.Spec.RoleArn, func(p *stscreds.AssumeRoleProvider) {
 		if principal.Spec.ExternalID != "" {
 			p.ExternalID = aws.String(principal.Spec.ExternalID)
@@ -158,7 +160,7 @@ func NewAWSRolePrincipalTypeProvider(principal *infrav1.AWSClusterRolePrincipal,
 		}
 
 	})
-	
+
 	return &AWSRolePrincipalTypeProvider{
 		credentials: creds,
 		Principal:   principal,
