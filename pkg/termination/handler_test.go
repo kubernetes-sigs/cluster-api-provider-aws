@@ -102,7 +102,7 @@ var _ = Describe("Handler Suite", func() {
 		var testMachine *machinev1.Machine
 
 		BeforeEach(func() {
-			testMachine = newTestMachine("test-machine", "test-namespace", nodeName)
+			testMachine = newTestMachine("test-machine", testNamespace, nodeName)
 			createMachine(testMachine)
 
 			// Ensure the polling logic is excercised in tests
@@ -254,7 +254,7 @@ var _ = Describe("Handler Suite", func() {
 			var testMachine *machinev1.Machine
 
 			BeforeEach(func() {
-				testMachine = newTestMachine("test-machine", "test-namespace", nodeName)
+				testMachine = newTestMachine("test-machine", testNamespace, nodeName)
 				createMachine(testMachine)
 			})
 

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	configv1 "github.com/openshift/api/config/v1"
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/openshift/machine-api-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -91,6 +92,8 @@ const (
 	unknownInstanceState = "Unknown"
 
 	skipWaitForDeleteTimeoutSeconds = 60 * 5
+
+	globalInfrastuctureName = "cluster"
 )
 
 var DefaultActuator Actuator
@@ -172,6 +175,11 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		err := fmt.Errorf("%v: machine validation failed: %v", machineName, errList.ToAggregate().Error())
 		klog.Error(err)
 		r.eventRecorder.Eventf(m, corev1.EventTypeWarning, "FailedValidate", err.Error())
+		return reconcile.Result{}, err
+	}
+
+	// Add clusterID label
+	if err := r.setClusterIDLabel(ctx, m); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -459,6 +467,25 @@ func (r *ReconcileMachine) patchFailedMachineInstanceAnnotation(machine *machine
 	if err := r.Client.Patch(context.Background(), machine, baseToPatch); err != nil {
 		return err
 	}
+	return nil
+}
+
+func (r *ReconcileMachine) setClusterIDLabel(ctx context.Context, m *machinev1.Machine) error {
+	infra := &configv1.Infrastructure{}
+	infraName := client.ObjectKey{Name: globalInfrastuctureName}
+
+	if err := r.Client.Get(ctx, infraName, infra); err != nil {
+		return err
+	}
+
+	clusterID := infra.Status.InfrastructureName
+
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+
+	m.Labels[machinev1.MachineClusterIDLabel] = clusterID
+
 	return nil
 }
 
