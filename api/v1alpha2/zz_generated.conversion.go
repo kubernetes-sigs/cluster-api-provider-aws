@@ -324,14 +324,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-<<<<<<< HEAD
 	if err := s.AddConversionFunc((*v1alpha3.VPCSpec)(nil), (*VPCSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_VPCSpec_To_v1alpha2_VPCSpec(a.(*v1alpha3.VPCSpec), b.(*VPCSpec), scope)
 	}); err != nil {
 		return err
 	}
-=======
->>>>>>> update generated conversion file
 	return nil
 }
 
@@ -1062,11 +1059,8 @@ func autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *v1alpha3.Netwo
 		return err
 	}
 	out.Subnets = *(*Subnets)(unsafe.Pointer(&in.Subnets))
-<<<<<<< HEAD
 	// WARNING: in.CNI requires manual conversion: does not exist in peer-type
-=======
 	// WARNING: in.SecurityGroupOverrides requires manual conversion: does not exist in peer-type
->>>>>>> update generated conversion file
 	return nil
 }
 
