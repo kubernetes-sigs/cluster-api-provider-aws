@@ -988,6 +988,9 @@ func TestCreateInstance(t *testing.T) {
 										},
 									},
 								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
 							},
 						},
 					}, nil
@@ -1094,6 +1097,9 @@ func TestCreateInstance(t *testing.T) {
 												VolumeId: aws.String("volume-1"),
 											},
 										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
 									},
 								},
 							},
@@ -1203,6 +1209,9 @@ func TestCreateInstance(t *testing.T) {
 											},
 										},
 									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
 								},
 							},
 						}, nil
@@ -1307,6 +1316,9 @@ func TestCreateInstance(t *testing.T) {
 												VolumeId: aws.String("volume-1"),
 											},
 										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
 									},
 								},
 							},
@@ -1413,6 +1425,9 @@ func TestCreateInstance(t *testing.T) {
 											},
 										},
 									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
 								},
 							},
 						}, nil
@@ -1517,6 +1532,9 @@ func TestCreateInstance(t *testing.T) {
 												VolumeId: aws.String("volume-1"),
 											},
 										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
 									},
 								},
 							},
