@@ -105,13 +105,15 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	// Check that we need at least 1 private and 1 public subnet after we have updated the metadata
-	if len(subnets.FilterPrivate()) < 1 {
-		record.Warnf(s.scope.AWSCluster, "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
-		return errors.New("expected at least 1 private subnet but got 0")
-	}
-	if len(subnets.FilterPublic()) < 1 {
-		record.Warnf(s.scope.AWSCluster, "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
-		return errors.New("expected at least 1 public subnet but got 0")
+	if !unmanagedVPC {
+		if len(subnets.FilterPrivate()) < 1 {
+			record.Warnf(s.scope.AWSCluster, "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
+			return errors.New("expected at least 1 private subnet but got 0")
+		}
+		if len(subnets.FilterPublic()) < 1 {
+			record.Warnf(s.scope.AWSCluster, "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
+			return errors.New("expected at least 1 public subnet but got 0")
+		}
 	}
 
 	// Proceed to create the rest of the subnets that don't have an ID.
