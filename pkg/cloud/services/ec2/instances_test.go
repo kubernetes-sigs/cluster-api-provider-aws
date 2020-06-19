@@ -967,34 +967,34 @@ func TestCreateInstance(t *testing.T) {
 							t.Fatalf("Expected SSH key name to be '%s', not '%s'", defaultSSHKeyName, *input.KeyName)
 						}
 						return &ec2.Reservation{
-						Instances: []*ec2.Instance{
-							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
-								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
-									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
-								},
-								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
-								SubnetId:       aws.String("subnet-1"),
-								ImageId:        aws.String("ami-1"),
-								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
-									{
-										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
-											VolumeId: aws.String("volume-1"),
+							Instances: []*ec2.Instance{
+								{
+									State: &ec2.InstanceState{
+										Name: aws.String(ec2.InstanceStateNamePending),
+									},
+									IamInstanceProfile: &ec2.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   aws.String("m5.large"),
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &ec2.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
 										},
 									},
-								},
-								Placement: &ec2.Placement{
-									AvailabilityZone: &az,
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
 								},
 							},
-						},
-					}, nil
-				})
+						}, nil
+					})
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
 
@@ -1132,7 +1132,7 @@ func TestCreateInstance(t *testing.T) {
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
-				SSHKeyName: aws.String("specific-machine-ssh-key-name"),
+				SSHKeyName:   aws.String("specific-machine-ssh-key-name"),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
@@ -1243,7 +1243,7 @@ func TestCreateInstance(t *testing.T) {
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
-				SSHKeyName: nil,
+				SSHKeyName:   nil,
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
@@ -1351,7 +1351,7 @@ func TestCreateInstance(t *testing.T) {
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
-				SSHKeyName: aws.String(""),
+				SSHKeyName:   aws.String(""),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
@@ -1459,7 +1459,7 @@ func TestCreateInstance(t *testing.T) {
 					ID: aws.String("abc"),
 				},
 				InstanceType: "m5.large",
-				SSHKeyName: aws.String(""),
+				SSHKeyName:   aws.String(""),
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
