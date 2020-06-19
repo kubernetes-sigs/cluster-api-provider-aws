@@ -19,7 +19,6 @@ package elb
 import (
 	"fmt"
 	"reflect"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"strings"
 	"time"
 
@@ -34,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/hash"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 // ResourceGroups are filtered by ARN identifier: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax
@@ -166,6 +166,34 @@ func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer
 	}
 
 	return nil
+}
+
+// InstanceIsRegisteredWithAPIServerELB returns true if the instance is already registered with the APIServer ELB.
+func (s *Service) InstanceIsRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error) {
+	name, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return false, err
+	}
+
+	input := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: aws.StringSlice([]string{name}),
+	}
+
+	output, err := s.scope.ELB.DescribeLoadBalancers(input)
+	if err != nil {
+		return false, errors.Wrapf(err, "error describing ELB %q", name)
+	}
+	if len(output.LoadBalancerDescriptions) != 1 {
+		return false, errors.Errorf("expected 1 ELB description for %q, got %d", name, len(output.LoadBalancerDescriptions))
+	}
+
+	for _, registeredInstance := range output.LoadBalancerDescriptions[0].Instances {
+		if aws.StringValue(registeredInstance.InstanceId) == i.ID {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // RegisterInstanceWithAPIServerELB registers an instance with a classic ELB
