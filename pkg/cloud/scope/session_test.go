@@ -59,15 +59,18 @@ func TestPrincipalParsing(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec {
 					PrincipalRef: &corev1.ObjectReference{
-						Name: "Principal",
+						Name: "static-principal",
+						Namespace: "default",
 						Kind: "AWSClusterStaticPrincipal",
+						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
 			setup: func(c client.Client, t *testing.T) {
 				principal := &infrav1.AWSClusterStaticPrincipal {
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "Principal",
+						Name: "static-principal",
+						Namespace: "default",
 					},
 					Spec: infrav1.AWSClusterStaticPrincipalSpec {
 						SecretRef: corev1.SecretReference{
@@ -105,7 +108,7 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 				p, ok := provider.(*AWSStaticPrincipalTypeProvider)
 				if !ok {
-					t.Fatal("Expected provider to be of type AWSRolePrincipalTypeProvider")
+					t.Fatal("Expected provider to be of type AWSStaticPrincipalTypeProvider")
 				}
 				if p.accessKeyId != "1234567890" {
 					t.Fatalf("Expected AccessKeyID to be '%s', got '%s'", "1234567890", p.accessKeyId)
@@ -131,7 +134,7 @@ func TestPrincipalParsing(t *testing.T) {
 				},
 				Spec: infrav1.AWSClusterSpec {
 					PrincipalRef: &corev1.ObjectReference{
-						Name: "Principal",
+						Name: "role-principal",
 						Namespace: "default",
 						Kind: "AWSClusterRolePrincipal",
 						APIVersion: infrav1.GroupVersion.String(),
@@ -141,7 +144,7 @@ func TestPrincipalParsing(t *testing.T) {
 			setup: func(c client.Client, t *testing.T) {
 				principal := &infrav1.AWSClusterRolePrincipal {
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "Principal",
+						Name: "role-principal",
 						Namespace: "default",
 					},
 					Spec: infrav1.AWSClusterRolePrincipalSpec {
@@ -150,7 +153,7 @@ func TestPrincipalParsing(t *testing.T) {
 						},
 					},
 				}
-				principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticPrincipal"))
+				principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRolePrincipal"))
 				err := c.Create(context.Background(), principal)
 				if err != nil {
 					t.Fatal(err)
@@ -170,75 +173,76 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 			},
 		},
-		{
-			name: "Can get a session for a service account Principal",
-			awsCluster: infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta {
-					Name: "cluster4",
-					Namespace: "default",
-				},
-				TypeMeta: metav1.TypeMeta {
-					APIVersion: infrav1.GroupVersion.String(),
-					Kind: "AWSCluster",
-				},
-				Spec: infrav1.AWSClusterSpec {
-					PrincipalRef: &corev1.ObjectReference{
-						Name: "Principal",
-						Kind: "AWSServiceAccountPrincipal",
-					},
-				},
-			},
-			setup: func(c client.Client, t *testing.T) {
-				principal := &infrav1.AWSServiceAccountPrincipal {
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "Principal",
-					},
-					Spec: infrav1.AWSServiceAccountPrincipalSpec {
-						Audiences: []string{"audience-1", "audience-2"},
-						AWSRoleSpec: infrav1.AWSRoleSpec{
-							RoleArn: "role-arn",
-						},
-					},
-				}
-				principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticPrincipal"))
-				err := c.Create(context.Background(), principal)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				serviceAccount := &corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta {
-						Name: "test-service-account",
-						Namespace: "default",
-					},
-				}
-				err = c.Create(context.Background(), serviceAccount)
-				if err != nil {
-					t.Fatal(err)
-				}
-			},
-			expect: func(provider credentials.Provider) {
-				if provider == nil {
-					t.Fatal("Expected provider not to be nil")
-				}
-				p, ok := provider.(*AWSServiceAccountPrincipalTypeProvider)
-				if !ok {
-					t.Fatal("Expected provider to be of type AWSRolePrincipalTypeProvider")
-				}
-				if len(p.Principal.Spec.Audiences) != 2 {
-					t.Fatalf("Expected audiences to be a string array with 2 entries, got: %v", p.Principal.Spec.Audiences)
-				}
-				if p.Principal.Spec.Audiences[0] != "audience-1" {
-					t.Fatalf("Expected audiences[0] to equal 'audience-1', got '%s'", p.Principal.Spec.Audiences[0])
-				}
-				if p.Principal.Spec.Audiences[1] != "audience-2" {
-					t.Fatalf("Expected audiences[1] to equal 'audience-2', got '%s'", p.Principal.Spec.Audiences[1])
-				}
-				if p.Principal.Spec.RoleArn != "role-arn" {
-					t.Fatalf("Expected role arn to be 'role-arn', got '%s'", p.Principal.Spec.RoleArn)
-				}
-			},
-		},
+		// TODO: (andrewmy) ServiceAccountPrincipal not implemented yet
+		//{
+		//	name: "Can get a session for a service account Principal",
+		//	awsCluster: infrav1.AWSCluster{
+		//		ObjectMeta: metav1.ObjectMeta {
+		//			Name: "cluster4",
+		//			Namespace: "default",
+		//		},
+		//		TypeMeta: metav1.TypeMeta {
+		//			APIVersion: infrav1.GroupVersion.String(),
+		//			Kind: "AWSCluster",
+		//		},
+		//		Spec: infrav1.AWSClusterSpec {
+		//			PrincipalRef: &corev1.ObjectReference{
+		//				Name: "Principal",
+		//				Kind: "AWSServiceAccountPrincipal",
+		//			},
+		//		},
+		//	},
+		//	setup: func(c client.Client, t *testing.T) {
+		//		principal := &infrav1.AWSServiceAccountPrincipal {
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name: "Principal",
+		//			},
+		//			Spec: infrav1.AWSServiceAccountPrincipalSpec {
+		//				Audiences: []string{"audience-1", "audience-2"},
+		//				AWSRoleSpec: infrav1.AWSRoleSpec{
+		//					RoleArn: "role-arn",
+		//				},
+		//			},
+		//		}
+		//		principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticPrincipal"))
+		//		err := c.Create(context.Background(), principal)
+		//		if err != nil {
+		//			t.Fatal(err)
+		//		}
+		//
+		//		serviceAccount := &corev1.ServiceAccount{
+		//			ObjectMeta: metav1.ObjectMeta {
+		//				Name: "test-service-account",
+		//				Namespace: "default",
+		//			},
+		//		}
+		//		err = c.Create(context.Background(), serviceAccount)
+		//		if err != nil {
+		//			t.Fatal(err)
+		//		}
+		//	},
+		//	expect: func(provider credentials.Provider) {
+		//		if provider == nil {
+		//			t.Fatal("Expected provider not to be nil")
+		//		}
+		//		p, ok := provider.(*AWSServiceAccountPrincipalTypeProvider)
+		//		if !ok {
+		//			t.Fatal("Expected provider to be of type AWSRolePrincipalTypeProvider")
+		//		}
+		//		if len(p.Principal.Spec.Audiences) != 2 {
+		//			t.Fatalf("Expected audiences to be a string array with 2 entries, got: %v", p.Principal.Spec.Audiences)
+		//		}
+		//		if p.Principal.Spec.Audiences[0] != "audience-1" {
+		//			t.Fatalf("Expected audiences[0] to equal 'audience-1', got '%s'", p.Principal.Spec.Audiences[0])
+		//		}
+		//		if p.Principal.Spec.Audiences[1] != "audience-2" {
+		//			t.Fatalf("Expected audiences[1] to equal 'audience-2', got '%s'", p.Principal.Spec.Audiences[1])
+		//		}
+		//		if p.Principal.Spec.RoleArn != "role-arn" {
+		//			t.Fatalf("Expected role arn to be 'role-arn', got '%s'", p.Principal.Spec.RoleArn)
+		//		}
+		//	},
+		//},
 	}
 
 	for _, tc := range testCases {
