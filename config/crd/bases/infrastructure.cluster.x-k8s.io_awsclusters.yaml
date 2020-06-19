@@ -463,10 +463,6 @@ spec:
           spec:
             description: AWSClusterSpec defines the desired state of AWSCluster
             properties:
-              accountID:
-                description: AccountID is the ID of an AWS account the cluster is
-                  to be provisioned in
-                type: string
               additionalTags:
                 additionalProperties:
                   type: string

@@ -96,6 +96,9 @@ func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsClus
 				return nil, err
 			}
 			log.V(4).Info("Found an AWSClusterStaticPrincipal", "principal", principal.GetName())
+			if !clusterIsPermittedToUsePrincipal(awsCluster, principal.Spec.AWSClusterPrincipalSpec) {
+				return nil, fmt.Errorf("Cluster %s%s is not permitted to use principal %s/%s", awsCluster.Namespace, awsCluster.Name, principal.Namespace, principal.Name)
+			}
 			provider = NewAWSStaticPrincipalTypeProvider(principal, secret)
 		case "AWSClusterRolePrincipal":
 			principal := &infrav1.AWSClusterRolePrincipal{}
@@ -122,6 +125,21 @@ func getProviderForCluster(ctx context.Context, k8sClient client.Client, awsClus
 	}
 
 	return provider, nil
+}
+
+func clusterIsPermittedToUsePrincipal(awsCluster *infrav1.AWSCluster, principalSpec infrav1.AWSClusterPrincipalSpec) bool {
+	// TODO (andrewmy):
+	// https://github.com/randomvariable/cluster-api-provider-aws/blob/2f7b382b70ccbf7c2b4b56f9a14227c5b422b698/docs/proposal/20200506-single-controller-multitenancy.md#implementation-detailsnotesconstraints
+	// AllowedNamespaces is a selector of namespaces that AWSClusters can
+	// use this ClusterPrincipal from. This is a standard Kubernetes LabelSelector,
+	// a label query over a set of resources. The result of matchLabels and
+	// matchExpressions are ANDed. Controllers must not support AWSClusters in
+	// namespaces outside this selector.
+	//
+	// An empty selector (default) indicates that AWSClusters can use this
+	// AWSClusterPrincipal from any namespace. This field is intentionally not a
+	// pointer because the nil behavior (no namespaces) is undesirable here.
+	return true
 }
 
 type AWSPrincipalTypeProvider interface {

@@ -24,6 +24,7 @@ func TestPrincipalParsing(t *testing.T) {
 		principal    runtime.Object
 		setup func(client.Client, *testing.T)
 		expect func(credentials.Provider)
+		expectError bool
 	}{
 		{
 			name: "Default case - no Principal specified",
@@ -77,6 +78,13 @@ func TestPrincipalParsing(t *testing.T) {
 							Name: "static-credentials-secret",
 							Namespace: "default",
 						},
+						AWSClusterPrincipalSpec: infrav1.AWSClusterPrincipalSpec{
+							AllowedNamespaces: metav1.LabelSelector {
+								MatchLabels: map[string]string {
+
+								},
+							},
+						},
 					},
 				}
 				principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticPrincipal"))
@@ -121,6 +129,82 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 			},
 		},
+		// // TODO (andrewmy): figure out how label selectors work
+		//{
+		//	name: "Denies using a Principal from a non-whitelisted namespace",
+		//	awsCluster: infrav1.AWSCluster{
+		//		ObjectMeta: metav1.ObjectMeta {
+		//			Name: "cluster2",
+		//			Namespace: "default",
+		//		},
+		//		TypeMeta: metav1.TypeMeta {
+		//			APIVersion: infrav1.GroupVersion.String(),
+		//			Kind: "AWSCluster",
+		//		},
+		//		Spec: infrav1.AWSClusterSpec {
+		//			PrincipalRef: &corev1.ObjectReference{
+		//				Name: "static-principal",
+		//				Namespace: "forbidden-namespace",
+		//				Kind: "AWSClusterStaticPrincipal",
+		//				APIVersion: infrav1.GroupVersion.String(),
+		//			},
+		//		},
+		//	},
+		//	setup: func(c client.Client, t *testing.T) {
+		//		ns := &corev1.Namespace {
+		//			ObjectMeta: metav1.ObjectMeta {
+		//				Name: "forbidden-namespace",
+		//			},
+		//		}
+		//		err := c.Create(context.Background(), ns)
+		//		if err != nil {
+		//			t.Error(err)
+		//		}
+		//
+		//		principal := &infrav1.AWSClusterStaticPrincipal {
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name: "static-principal",
+		//				Namespace: "forbidden-namespace",
+		//			},
+		//			Spec: infrav1.AWSClusterStaticPrincipalSpec {
+		//				SecretRef: corev1.SecretReference{
+		//					Name: "static-credentials-secret",
+		//					Namespace: "forbidden-namespace",
+		//				},
+		//				AWSClusterPrincipalSpec: infrav1.AWSClusterPrincipalSpec{
+		//					AllowedNamespaces: metav1.LabelSelector {
+		//						MatchLabels: map[string]string {
+		//							// what is an appropriate test key/value pair here?
+		//						},
+		//					},
+		//				},
+		//			},
+		//		}
+		//		principal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticPrincipal"))
+		//		err = c.Create(context.Background(), principal)
+		//		if err != nil {
+		//			t.Fatal(err)
+		//		}
+		//
+		//		credentialsSecret := &corev1.Secret{
+		//			ObjectMeta: metav1.ObjectMeta {
+		//				Name: "static-credentials-secret",
+		//				Namespace: "forbidden-namespace",
+		//			},
+		//			Data: map[string][]byte {
+		//				"AccessKeyID": []byte("1234567890"),
+		//				"SecretAccessKey": []byte("abcdefghijklmnop"),
+		//				"SessionToken": []byte("asdfasdfasdf"),
+		//			},
+		//		}
+		//		credentialsSecret.SetGroupVersionKind(schema.GroupVersionKind{Group: "", Kind: "Secret", Version: "v1"})
+		//		err = c.Create(context.Background(), credentialsSecret)
+		//		if err != nil {
+		//			t.Fatal(err)
+		//		}
+		//	},
+		//	expectError: true,
+		//},
 		{
 			name: "Can get a session for a role Principal",
 			awsCluster: infrav1.AWSCluster{
@@ -173,7 +257,7 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 			},
 		},
-		// TODO: (andrewmy) ServiceAccountPrincipal not implemented yet
+		// TODO (andrewmy): ServiceAccountPrincipal not implemented yet
 		//{
 		//	name: "Can get a session for a service account Principal",
 		//	awsCluster: infrav1.AWSCluster{
@@ -255,10 +339,16 @@ func TestPrincipalParsing(t *testing.T) {
 			awsConfig := aws.NewConfig()
 			tc.setup(k8sClient, t)
 			provider, err := getProviderForCluster(context.Background(), k8sClient, &tc.awsCluster, awsConfig, klogr.New())
-			if err != nil {
-				t.Fatal(err)
+			if tc.expectError {
+				if err == nil {
+					t.Fatal("Expected an error but didn't get one")
+				}
+			} else {
+				if err != nil {
+					t.Fatal(err)
+				}
+				tc.expect(provider)
 			}
-			tc.expect(provider)
 		})
 	}
 }
