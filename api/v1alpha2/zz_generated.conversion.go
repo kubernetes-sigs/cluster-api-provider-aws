@@ -1060,6 +1060,7 @@ func autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *v1alpha3.Netwo
 	}
 	out.Subnets = *(*Subnets)(unsafe.Pointer(&in.Subnets))
 	// WARNING: in.CNI requires manual conversion: does not exist in peer-type
+	// WARNING: in.TagSecurityGroups requires manual conversion: does not exist in peer-type
 	// WARNING: in.SecurityGroupOverrides requires manual conversion: does not exist in peer-type
 	return nil
 }
