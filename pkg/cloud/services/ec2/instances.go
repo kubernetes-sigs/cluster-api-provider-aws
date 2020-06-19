@@ -231,16 +231,21 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	// - nil values for both AWSCluster.Spec.SSHKeyName and AWSMachine.Spec.SSHKeyName means use the default SSH key name value
 	// - an empty string means do not set an SSH key name at all
 	// - otherwise use the value specified in either AWSMachine or AWSCluster
-	if scope.AWSMachine.Spec.SSHKeyName != nil {
-		if *scope.AWSMachine.Spec.SSHKeyName != "" {
-			input.SSHKeyName = scope.AWSMachine.Spec.SSHKeyName
-		}
-	} else if scope.AWSCluster.Spec.SSHKeyName != nil {
-		if *scope.AWSCluster.Spec.SSHKeyName != "" {
-			input.SSHKeyName = scope.AWSCluster.Spec.SSHKeyName
-		}
-	} else {
-		input.SSHKeyName = aws.String(defaultSSHKeyName)
+	var prioritizedSSHKeyName string
+	switch {
+	case scope.AWSMachine.Spec.SSHKeyName != nil:
+		// prefer AWSMachine.Spec.SSHKeyName if it is defined
+		prioritizedSSHKeyName = *scope.AWSMachine.Spec.SSHKeyName
+	case scope.AWSCluster.Spec.SSHKeyName != nil:
+		// fallback to AWSCluster.Spec.SSHKeyName if it is defined
+		prioritizedSSHKeyName = *scope.AWSCluster.Spec.SSHKeyName
+	default:
+		prioritizedSSHKeyName = defaultSSHKeyName
+	}
+
+	// Only set input.SSHKeyName if the user did not explicitly request no ssh key be set (explicitly setting "" on either the Machine or related Cluster)
+	if prioritizedSSHKeyName != "" {
+		input.SSHKeyName = aws.String(prioritizedSSHKeyName)
 	}
 
 	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
