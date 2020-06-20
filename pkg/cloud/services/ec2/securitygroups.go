@@ -92,7 +92,7 @@ func (s *Service) reconcileSecurityGroups() error {
 
 		sgOverride, ok := securityGroupOverrides[role]
 		if ok {
-			s.scope.V(2).Info("Using security group override", "role", role, "security group", sgOverride)
+			s.scope.V(2).Info("Using security group override", "role", role, "security group", sgOverride.GroupName)
 			sg = sgOverride
 		}
 
