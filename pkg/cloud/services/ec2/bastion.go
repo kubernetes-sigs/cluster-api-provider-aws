@@ -36,12 +36,9 @@ const (
 
 // ReconcileBastion ensures a bastion is created for the cluster
 func (s *Service) ReconcileBastion() error {
-	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping bastion reconcile in unmanaged mode")
-		return nil
-	}
 
 	if !s.scope.AWSCluster.Spec.Bastion.Enabled {
+		s.scope.V(4).Info("Skipping bastion reconcile")
 		_, err := s.describeBastionInstance()
 		if err != nil {
 			if awserrors.IsNotFound(err) {
