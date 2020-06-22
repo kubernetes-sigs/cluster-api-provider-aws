@@ -575,6 +575,17 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
 	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
 	if !machineScope.AWSMachine.DeletionTimestamp.IsZero() || !machineScope.InstanceIsRunning() {
+		registered, err := elbsvc.InstanceIsRegisteredWithAPIServerELB(i)
+		if err != nil {
+			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
+				"Failed to deregister control plane instance %q from load balancer: failed to determine registration status: %v", i.ID, err)
+			return errors.Wrapf(err, "could not deregister control plane instance %q from load balancer - error determining registration status", i.ID)
+		}
+		if !registered {
+			// Already deregistered - nothing more to do
+			return nil
+		}
+
 		if err := elbsvc.DeregisterInstanceFromAPIServerELB(i); err != nil {
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
 				"Failed to deregister control plane instance %q from load balancer: %v", i.ID, err)
@@ -582,6 +593,17 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 		}
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulDetachControlPlaneELB",
 			"Control plane instance %q is de-registered from load balancer", i.ID)
+		return nil
+	}
+
+	registered, err := elbsvc.InstanceIsRegisteredWithAPIServerELB(i)
+	if err != nil {
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
+			"Failed to register control plane instance %q with load balancer: failed to determine registration status: %v", i.ID, err)
+		return errors.Wrapf(err, "could not register control plane instance %q with load balancer - error determining registration status", i.ID)
+	}
+	if registered {
+		// Already registered - nothing more to do
 		return nil
 	}
 
