@@ -23,11 +23,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -40,9 +37,31 @@ var _ = Describe("Handler Suite", func() {
 	var terminationServer *httptest.Server
 	var httpHandler http.Handler
 	var nodeName string
+	var testNode *corev1.Node
 	var stop chan struct{}
 	var errs chan error
 	var h *handler
+
+	nodeMarkedForDeletion := func(nodeName string) func() (bool, error) {
+		key := client.ObjectKey{Name: nodeName}
+		return func() (bool, error) {
+			n := &corev1.Node{}
+			err := k8sClient.Get(ctx, key, n)
+			if err != nil {
+				return false, err
+			}
+			for _, condition := range n.Status.Conditions {
+				if condition.Type == terminatingConditionType {
+					if condition.Status == corev1.ConditionTrue {
+						return true, nil
+					}
+					// Found the condition with the right type, but wrong status
+					return false, nil
+				}
+			}
+			return false, nil
+		}
+	}
 
 	BeforeEach(func() {
 		// Reset test vars
@@ -52,6 +71,9 @@ var _ = Describe("Handler Suite", func() {
 		httpHandler = newMockHTTPHandler(notFoundFunc)
 		stop = nil
 		errs = nil
+
+		testNode = newTestNode(nodeName)
+		createNode(testNode)
 
 		// use NewHandler() instead of manual construction in order to test NewHandler() logic
 		// like checking that machine api is added to scheme
@@ -81,13 +103,14 @@ var _ = Describe("Handler Suite", func() {
 		}
 		terminationServer.Close()
 
-		Expect(deleteAllMachines(k8sClient)).To(Succeed())
+		Expect(deleteAllNodes(k8sClient)).To(Succeed())
 	})
 
 	Context("when running the handler", func() {
 		JustBeforeEach(func() {
 			stop, errs = StartTestHandler(h)
 		})
+
 		Context("when the handler is stopped", func() {
 			JustBeforeEach(func() {
 				close(stop)
@@ -98,20 +121,10 @@ var _ = Describe("Handler Suite", func() {
 			})
 		})
 
-		Context("when no machine exists for the node", func() {
-			It("should return an error upon starting", func() {
-				Eventually(errs).Should(Receive(MatchError("error fetching machine for node (\"test-node\"): machine not found for node \"test-node\"")))
-			})
-		})
-
-		Context("when a machine exists for the node", func() {
+		Context("when polling the termination endpoint", func() {
 			var counter int32
-			var testMachine *machinev1.Machine
 
 			BeforeEach(func() {
-				testMachine = newTestMachine("test-machine", testNamespace, nodeName)
-				createMachine(testMachine)
-
 				// Ensure the polling logic is excercised in tests
 				httpHandler = newMockHTTPHandler(func(rw http.ResponseWriter, req *http.Request) {
 					if atomic.LoadInt32(&counter) == 4 {
@@ -139,28 +152,14 @@ var _ = Describe("Handler Suite", func() {
 					Eventually(errs).Should(Receive(BeNil()))
 				})
 
-				It("should not delete the machine", func() {
-					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-					Consistently(func() error {
-						m := &machinev1.Machine{}
-						return k8sClient.Get(ctx, key, m)
-					}).Should(Succeed())
+				It("should not mark the node for deletion", func() {
+					Consistently(nodeMarkedForDeletion(testNode.Name)).Should(BeFalse())
 				})
 			})
 
 			Context("and the instance termination notice is fulfilled", func() {
-				It("should delete the machine", func() {
-					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-					Eventually(func() error {
-						m := &machinev1.Machine{}
-						err := k8sClient.Get(ctx, key, m)
-						if err != nil && errors.IsNotFound(err) {
-							return nil
-						} else if err != nil {
-							return err
-						}
-						return fmt.Errorf("machine not yet deleted")
-					}).Should(Succeed())
+				It("should mark the node for deletion", func() {
+					Eventually(nodeMarkedForDeletion(testNode.Name)).Should(BeTrue())
 				})
 			})
 
@@ -169,12 +168,8 @@ var _ = Describe("Handler Suite", func() {
 					httpHandler = newMockHTTPHandler(notFoundFunc)
 				})
 
-				It("should not delete the machine", func() {
-					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-					Consistently(func() error {
-						m := &machinev1.Machine{}
-						return k8sClient.Get(ctx, key, m)
-					}).Should(Succeed())
+				It("should not mark the node for deletion", func() {
+					Consistently(nodeMarkedForDeletion(testNode.Name)).Should(BeFalse())
 				})
 			})
 
@@ -195,11 +190,7 @@ var _ = Describe("Handler Suite", func() {
 				})
 
 				It("should not delete the machine", func() {
-					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-					Consistently(func() error {
-						m := &machinev1.Machine{}
-						return k8sClient.Get(ctx, key, m)
-					}).Should(Succeed())
+					Consistently(nodeMarkedForDeletion(testNode.Name)).Should(BeFalse())
 				})
 			})
 
@@ -209,69 +200,110 @@ var _ = Describe("Handler Suite", func() {
 				})
 
 				It("should return an error", func() {
-					Eventually(errs).Should(Receive(MatchError("error polling termination endpoint: could not get URL \"abc#1://localhost\": Get abc#1://localhost: unsupported protocol scheme \"\"")))
+					Eventually(errs).Should(Receive(MatchError(ContainSubstring("error polling termination endpoint: could not get URL \"abc#1://localhost\":"))))
 				})
 
 				It("should not delete the machine", func() {
-					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-					Consistently(func() error {
-						m := &machinev1.Machine{}
-						return k8sClient.Get(ctx, key, m)
-					}).Should(Succeed())
+					Consistently(nodeMarkedForDeletion(testNode.Name)).Should(BeFalse())
 				})
 			})
 		})
-	})
 
-	Context("getMachineForNode", func() {
-		var machine *machinev1.Machine
-		var err error
-
-		JustBeforeEach(func() {
-			machine, err = h.getMachineForNode(ctx)
-		})
-
-		Context("with a broken client", func() {
-			BeforeEach(func() {
-				brokenClient, err := client.New(cfg, client.Options{Scheme: runtime.NewScheme()})
-				Expect(err).ToNot(HaveOccurred())
-				h.client = brokenClient
+		Context("addNodeTerminationCondition", func() {
+			JustBeforeEach(func() {
+				addNodeTerminationCondition(testNode)
 			})
 
-			It("should return an error", func() {
-				Expect(err).ToNot(BeNil())
-				Expect(err.Error()).To(HavePrefix("error listing machines: no kind is registered for the type v1beta1.MachineList in scheme"))
+			Context("with no existing conditions", func() {
+				BeforeEach(func() {
+					Expect(testNode.Status.Conditions).To(HaveLen(0))
+				})
+
+				It("should add the condition to the node", func() {
+					Expect(testNode.Status.Conditions).To(HaveLen(1))
+					condition := testNode.Status.Conditions[0]
+					Expect(condition.Type).To(Equal(terminatingConditionType))
+					Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+					Expect(condition.Reason).To(Equal(terminationRequestedReason))
+				})
 			})
 
-			It("should not return a machine", func() {
-				Expect(machine).To(BeNil())
+			Context("with the terminating condition with the correct status", func() {
+				var updated *metav1.Time
+
+				BeforeEach(func() {
+					now := metav1.Now()
+					updated = &now
+					testNode.Status.Conditions = []corev1.NodeCondition{
+						{
+							Type:               terminatingConditionType,
+							Status:             corev1.ConditionTrue,
+							Reason:             terminationRequestedReason,
+							LastTransitionTime: now,
+							LastHeartbeatTime:  now,
+						},
+					}
+				})
+
+				It("should not update the condition on the node", func() {
+					Expect(testNode.Status.Conditions).To(HaveLen(1))
+					condition := testNode.Status.Conditions[0]
+					Expect(condition.Type).To(Equal(terminatingConditionType))
+					Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+					Expect(condition.Reason).To(Equal(terminationRequestedReason))
+					Expect(condition.LastTransitionTime).To(Equal(*updated))
+					Expect(condition.LastHeartbeatTime).To(Equal(*updated))
+				})
 			})
-		})
 
-		Context("with no machine for the node name", func() {
-			It("should return an error", func() {
-				Expect(err).To(MatchError("machine not found for node \"test-node\""))
+			Context("with the terminating condition with the incorrect status", func() {
+				var updated *metav1.Time
+
+				BeforeEach(func() {
+					now := metav1.Now()
+					updated = &now
+					testNode.Status.Conditions = []corev1.NodeCondition{
+						{
+							Type:               terminatingConditionType,
+							Status:             corev1.ConditionFalse,
+							Reason:             terminationRequestedReason,
+							LastTransitionTime: now,
+							LastHeartbeatTime:  now,
+						},
+					}
+				})
+
+				It("should update the condition on the node", func() {
+					Expect(testNode.Status.Conditions).To(HaveLen(1))
+					condition := testNode.Status.Conditions[0]
+					Expect(condition.Type).To(Equal(terminatingConditionType))
+					Expect(condition.Status).To(Equal(corev1.ConditionTrue))
+					Expect(condition.Reason).To(Equal(terminationRequestedReason))
+					Expect(condition.LastTransitionTime).ToNot(Equal(*updated))
+					Expect(condition.LastHeartbeatTime).ToNot(Equal(*updated))
+				})
 			})
 
-			It("should not return a machine", func() {
-				Expect(machine).To(BeNil())
-			})
-		})
+			Context("with existing conditions", func() {
+				var existingCondition *corev1.NodeCondition
 
-		Context("with a machine matching the node name", func() {
-			var testMachine *machinev1.Machine
+				BeforeEach(func() {
+					now := metav1.Now()
+					existingCondition = &corev1.NodeCondition{
+						Type:               corev1.NodeReady,
+						Status:             corev1.ConditionFalse,
+						Reason:             "Unknown",
+						LastTransitionTime: now,
+						LastHeartbeatTime:  now,
+					}
 
-			BeforeEach(func() {
-				testMachine = newTestMachine("test-machine", testNamespace, nodeName)
-				createMachine(testMachine)
-			})
+					testNode.Status.Conditions = []corev1.NodeCondition{*existingCondition}
+				})
 
-			It("should not return an error", func() {
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("should return a machine", func() {
-				Expect(machine).To(Equal(testMachine))
+				It("should not modify the existing conditions", func() {
+					Expect(testNode.Status.Conditions).To(HaveLen(2))
+					Expect(testNode.Status.Conditions).To(ContainElement(Equal(*existingCondition)))
+				})
 			})
 		})
 	})
@@ -303,17 +335,17 @@ func isClosed(ch <-chan struct{}) bool {
 	return false
 }
 
-func deleteAllMachines(c client.Client) error {
-	machineList := &machinev1.MachineList{}
-	err := c.List(ctx, machineList)
+func deleteAllNodes(c client.Client) error {
+	nodeList := &corev1.NodeList{}
+	err := c.List(ctx, nodeList)
 	if err != nil {
 		return fmt.Errorf("error listing machines: %v", err)
 	}
 
-	// Delete all machines found
-	for _, machine := range machineList.Items {
-		m := machine
-		err := c.Delete(ctx, &m)
+	// Delete all nodes found
+	for _, node := range nodeList.Items {
+		n := node
+		err := c.Delete(ctx, &n)
 		if err != nil {
 			return err
 		}
@@ -321,34 +353,28 @@ func deleteAllMachines(c client.Client) error {
 	return nil
 }
 
-func newTestMachine(name, namespace, nodeName string) *machinev1.Machine {
-	return &machinev1.Machine{
+func newTestNode(name string) *corev1.Node {
+	return &corev1.Node{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Machine",
-			APIVersion: machinev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
+			APIVersion: "",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Status: machinev1.MachineStatus{
-			NodeRef: &corev1.ObjectReference{
-				Name: nodeName,
-			},
+			Name: name,
 		},
 	}
 }
 
-func createMachine(m *machinev1.Machine) {
-	typeMeta := m.TypeMeta
-	status := m.Status
-	Expect(k8sClient.Create(ctx, m)).To(Succeed())
-	m.Status = status
-	Expect(k8sClient.Status().Update(ctx, m)).To(Succeed())
+func createNode(n *corev1.Node) {
+	typeMeta := n.TypeMeta
+	status := n.Status
+	Expect(k8sClient.Create(ctx, n)).To(Succeed())
+	n.Status = status
+	Expect(k8sClient.Status().Update(ctx, n)).To(Succeed())
 
 	// Fetch object to sync back to latest changes
-	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
-	Expect(k8sClient.Get(ctx, key, m)).To(Succeed())
+	key := client.ObjectKey{Namespace: n.Namespace, Name: n.Name}
+	Expect(k8sClient.Get(ctx, key, n)).To(Succeed())
 	// Restore TypeMeta as not restored by Get
-	m.TypeMeta = typeMeta
+	n.TypeMeta = typeMeta
 }
