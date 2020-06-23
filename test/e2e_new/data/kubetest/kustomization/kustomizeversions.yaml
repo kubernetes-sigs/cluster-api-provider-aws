@@ -21,30 +21,30 @@ spec:
           set -o errexit
           [[ $(id -u) != 0 ]] && SUDO="sudo" || SUDO=""
           GSUTIL=gsutil
-          if ! command -v $${GSUTIL} > /dev/null; then
+          if ! command -v ${GSUTIL} > /dev/null; then
             curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=~/gcloud --disable-prompts > /dev/null 2>&1
             GSUTIL=~/gcloud/google-cloud-sdk/bin/gsutil
             # For faster downloads
             pip install --no-cache-dir -U crcmod
           fi
-          $${GSUTIL} version
+          ${GSUTIL} version
           # This test installs release packages or binaries that are a result of the CI and release builds.
           # It runs '... --version' commands to verify that the binaries are correctly installed
           # and finally uninstalls the packages.
           # For the release packages it tests all versions in the support skew.
           LINE_SEPARATOR="*************************************************"
-          echo "$$LINE_SEPARATOR"
+          echo "$LINE_SEPARATOR"
           CI_VERSION=${CI_VERSION}
-          if [[ "$${CI_VERSION}" != "" ]]; then
+          if [[ "${CI_VERSION}" != "" ]]; then
             CI_DIR=/tmp/k8s-ci
-            mkdir -p $$CI_DIR
+            mkdir -p $CI_DIR
             declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
             declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
             CONTAINER_EXT="tar"
-            echo "* testing CI version $$CI_VERSION"
+            echo "* testing CI version $CI_VERSION"
             # Check for semver
-            if [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              CI_URL="gs://kubernetes-release/release/$$CI_VERSION/bin/linux/amd64"
+            if [[ "${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              CI_URL="gs://kubernetes-release/release/$CI_VERSION/bin/linux/amd64"
               VERSION_WITHOUT_PREFIX="${CI_VERSION#v}"
               DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl
               curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
@@ -52,27 +52,27 @@ spec:
               apt-get update
               # replace . with \.
               VERSION_REGEX="${VERSION_WITHOUT_PREFIX//./\\.}"
-              PACKAGE_VERSION="$(apt-cache madison kubelet|grep $${VERSION_REGEX}- | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
-              for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-                echo "* installing package: $$CI_PACKAGE $${PACKAGE_VERSION}"
-                DEBIAN_FRONTEND=noninteractive apt-get install -y $$CI_PACKAGE=$$PACKAGE_VERSION
+              PACKAGE_VERSION="$(apt-cache madison kubelet|grep ${VERSION_REGEX}- | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
+              for CI_PACKAGE in "${PACKAGES_TO_TEST[@]}"; do
+                echo "* installing package: $CI_PACKAGE ${PACKAGE_VERSION}"
+                DEBIAN_FRONTEND=noninteractive apt-get install -y $CI_PACKAGE=$PACKAGE_VERSION
               done
             else
-              CI_URL="gs://kubernetes-release-dev/ci/$$CI_VERSION-bazel/bin/linux/amd64"
-              for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-                echo "* downloading binary: $$CI_URL/$$CI_PACKAGE"
-                $${GSUTIL} cp "$$CI_URL/$$CI_PACKAGE" "$$CI_DIR/$$CI_PACKAGE"
-                chmod +x "$$CI_DIR/$$CI_PACKAGE"
-                mv "$$CI_DIR/$$CI_PACKAGE" "/usr/bin/$$CI_PACKAGE"
+              CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+              for CI_PACKAGE in "${PACKAGES_TO_TEST[@]}"; do
+                echo "* downloading binary: $CI_URL/$CI_PACKAGE"
+                ${GSUTIL} cp "$CI_URL/$CI_PACKAGE" "$CI_DIR/$CI_PACKAGE"
+                chmod +x "$CI_DIR/$CI_PACKAGE"
+                mv "$CI_DIR/$CI_PACKAGE" "/usr/bin/$CI_PACKAGE"
               done
               systemctl restart kubelet
             fi
-            for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
-              echo "* downloading package: $$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT"
-              $${GSUTIL} cp "$$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT" "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT"
-              $${SUDO} ctr -n k8s.io images import "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT" || echo "* ignoring expected 'ctr images import' result"
-              $${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" k8s.gcr.io/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
-              $${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" gcr.io/kubernetes-ci-images/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
+            for CI_CONTAINER in "${CONTAINERS_TO_TEST[@]}"; do
+              echo "* downloading package: $CI_URL/$CI_CONTAINER.$CONTAINER_EXT"
+              ${GSUTIL} cp "$CI_URL/$CI_CONTAINER.$CONTAINER_EXT" "$CI_DIR/$CI_CONTAINER.$CONTAINER_EXT"
+              ${SUDO} ctr -n k8s.io images import "$CI_DIR/$CI_CONTAINER.$CONTAINER_EXT" || echo "* ignoring expected 'ctr images import' result"
+              ${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$CI_CONTAINER-amd64:"${CI_VERSION//+/_}" k8s.gcr.io/$CI_CONTAINER:"${CI_VERSION//+/_}"
+              ${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$CI_CONTAINER-amd64:"${CI_VERSION//+/_}" gcr.io/kubernetes-ci-images/$CI_CONTAINER:"${CI_VERSION//+/_}"
             done
           fi
           echo "* checking binary versions"
@@ -80,7 +80,7 @@ spec:
           echo "kubeadm version: " $(kubeadm version -o=short)
           echo "kubectl version: " $(kubectl version --client=true --short=true)
           echo "kubelet version: " $(kubelet --version)
-          echo "$$LINE_SEPARATOR"
+          echo "$LINE_SEPARATOR"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AWSMachineTemplate
@@ -113,30 +113,30 @@ spec:
             set -o errexit
             [[ $(id -u) != 0 ]] && SUDO="sudo" || SUDO=""
             GSUTIL=gsutil
-            if ! command -v $${GSUTIL} > /dev/null; then
+            if ! command -v ${GSUTIL} > /dev/null; then
               curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=~/gcloud --disable-prompts > /dev/null 2>&1
               GSUTIL=~/gcloud/google-cloud-sdk/bin/gsutil
               # For faster downloads
               pip install --no-cache-dir -U crcmod
             fi
-            $${GSUTIL} version
+            ${GSUTIL} version
             # This test installs release packages or binaries that are a result of the CI and release builds.
             # It runs '... --version' commands to verify that the binaries are correctly installed
             # and finally uninstalls the packages.
             # For the release packages it tests all versions in the support skew.
             LINE_SEPARATOR="*************************************************"
-            echo "$$LINE_SEPARATOR"
+            echo "$LINE_SEPARATOR"
             CI_VERSION=${CI_VERSION}
-            if [[ "$${CI_VERSION}" != "" ]]; then
+            if [[ "${CI_VERSION}" != "" ]]; then
               CI_DIR=/tmp/k8s-ci
-              mkdir -p $$CI_DIR
+              mkdir -p $CI_DIR
               declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
               declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
               CONTAINER_EXT="tar"
-              echo "* testing CI version $$CI_VERSION"
+              echo "* testing CI version $CI_VERSION"
               # Check for semver
-              if [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                CI_URL="gs://kubernetes-release/release/$$CI_VERSION/bin/linux/amd64"
+              if [[ "${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                CI_URL="gs://kubernetes-release/release/$CI_VERSION/bin/linux/amd64"
                 VERSION_WITHOUT_PREFIX="${CI_VERSION#v}"
                 DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl
                 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
@@ -144,27 +144,27 @@ spec:
                 apt-get update
                 # replace . with \.
                 VERSION_REGEX="${VERSION_WITHOUT_PREFIX//./\\.}"
-                PACKAGE_VERSION="$(apt-cache madison kubelet|grep $${VERSION_REGEX}- | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
-                for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-                  echo "* installing package: $$CI_PACKAGE $${PACKAGE_VERSION}"
-                  DEBIAN_FRONTEND=noninteractive apt-get install -y $$CI_PACKAGE=$$PACKAGE_VERSION
+                PACKAGE_VERSION="$(apt-cache madison kubelet|grep ${VERSION_REGEX}- | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
+                for CI_PACKAGE in "${PACKAGES_TO_TEST[@]}"; do
+                  echo "* installing package: $CI_PACKAGE ${PACKAGE_VERSION}"
+                  DEBIAN_FRONTEND=noninteractive apt-get install -y $CI_PACKAGE=$PACKAGE_VERSION
                 done
               else
-                CI_URL="gs://kubernetes-release-dev/ci/$$CI_VERSION-bazel/bin/linux/amd64"
-                for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-                  echo "* downloading binary: $$CI_URL/$$CI_PACKAGE"
-                  $${GSUTIL} cp "$$CI_URL/$$CI_PACKAGE" "$$CI_DIR/$$CI_PACKAGE"
-                  chmod +x "$$CI_DIR/$$CI_PACKAGE"
-                  mv "$$CI_DIR/$$CI_PACKAGE" "/usr/bin/$$CI_PACKAGE"
+                CI_URL="gs://kubernetes-release-dev/ci/$CI_VERSION-bazel/bin/linux/amd64"
+                for CI_PACKAGE in "${PACKAGES_TO_TEST[@]}"; do
+                  echo "* downloading binary: $CI_URL/$CI_PACKAGE"
+                  ${GSUTIL} cp "$CI_URL/$CI_PACKAGE" "$CI_DIR/$CI_PACKAGE"
+                  chmod +x "$CI_DIR/$CI_PACKAGE"
+                  mv "$CI_DIR/$CI_PACKAGE" "/usr/bin/$CI_PACKAGE"
                 done
                 systemctl restart kubelet
               fi
-              for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
-                echo "* downloading package: $$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT"
-                $${GSUTIL} cp "$$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT" "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT"
-                $${SUDO} ctr -n k8s.io images import "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT" || echo "* ignoring expected 'ctr images import' result"
-                $${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" k8s.gcr.io/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
-                $${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" gcr.io/kubernetes-ci-images/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
+              for CI_CONTAINER in "${CONTAINERS_TO_TEST[@]}"; do
+                echo "* downloading package: $CI_URL/$CI_CONTAINER.$CONTAINER_EXT"
+                ${GSUTIL} cp "$CI_URL/$CI_CONTAINER.$CONTAINER_EXT" "$CI_DIR/$CI_CONTAINER.$CONTAINER_EXT"
+                ${SUDO} ctr -n k8s.io images import "$CI_DIR/$CI_CONTAINER.$CONTAINER_EXT" || echo "* ignoring expected 'ctr images import' result"
+                ${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$CI_CONTAINER-amd64:"${CI_VERSION//+/_}" k8s.gcr.io/$CI_CONTAINER:"${CI_VERSION//+/_}"
+                ${SUDO} ctr -n k8s.io images tag k8s.gcr.io/$CI_CONTAINER-amd64:"${CI_VERSION//+/_}" gcr.io/kubernetes-ci-images/$CI_CONTAINER:"${CI_VERSION//+/_}"
               done
             fi
             echo "* checking binary versions"
@@ -172,7 +172,7 @@ spec:
             echo "kubeadm version: " $(kubeadm version -o=short)
             echo "kubectl version: " $(kubectl version --client=true --short=true)
             echo "kubelet version: " $(kubelet --version)
-            echo "$$LINE_SEPARATOR"
+            echo "$LINE_SEPARATOR"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AWSMachineTemplate
@@ -183,3 +183,12 @@ spec:
     spec:
       ami:
         id: ${IMAGE_ID}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  networkSpec:
+    vpc:
+      availabilityZoneUsageLimit: 1

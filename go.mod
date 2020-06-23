@@ -7,6 +7,8 @@ require (
 	github.com/awslabs/goformation/v4 v4.11.0
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.3
+	github.com/google/goexpect v0.0.0-20200703111054-623d5ca06f56
+	github.com/google/goterm v0.0.0-20190703233501-fc88cf888a3f // indirect
 	github.com/onsi/ginkgo v1.12.2
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1

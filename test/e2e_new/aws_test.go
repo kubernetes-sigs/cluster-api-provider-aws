@@ -43,22 +43,21 @@ import (
 
 var _ = Describe("functional tests", func() {
 	var (
-		namespace     *corev1.Namespace
-		ctx           context.Context
-		cancelWatches context.CancelFunc
+		namespace *corev1.Namespace
+		ctx       context.Context
 	)
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		ctx = context.TODO()
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, "functional-tests", bootstrapClusterProxy, artifactFolder)
+		namespace = setupSpecNamespace(ctx, "functional-tests", bootstrapClusterProxy, artifactFolder)
 	})
 
 	Describe("Create cluster with name having more than 22 characters", func() {
 		It("Cluster should be provisioned and deleted", func() {
 			By("Creating a workload cluster with single control plane")
-			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(20))
+			clusterName := fmt.Sprintf("long-cluster-name-cluster-%s", util.RandomString(20))
 			cluster := createCluster(ctx, clusterName, namespace.Name)
 
 			By("Deleting the Cluster")
@@ -69,7 +68,7 @@ var _ = Describe("functional tests", func() {
 	Describe("Provisioning LoadBalancer dynamically and deleting on cluster deletion", func() {
 		It("It should create and delete Load Balancer", func() {
 			By("Creating a cluster")
-			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(20))
+			clusterName := fmt.Sprintf("service-lb-cluster-%s", util.RandomString(8))
 			cluster := createCluster(ctx, clusterName, namespace.Name)
 			clusterClient := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
 
@@ -88,7 +87,7 @@ var _ = Describe("functional tests", func() {
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, namespace, cancelWatches, e2eConfig.GetIntervals, skipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, skipCleanup)
 	})
 })
 
@@ -152,7 +151,7 @@ func createService(svcName string, svcNamespace string, labels map[string]string
 		},
 		Spec: serviceSpec,
 	}
-	if labels != nil && len(labels) > 0 {
+	if len(labels) > 0 {
 		svcToCreate.ObjectMeta.Labels = labels
 	}
 	Expect(k8sClient.Create(context.TODO(), &svcToCreate)).NotTo(HaveOccurred())
