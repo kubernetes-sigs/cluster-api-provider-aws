@@ -27,8 +27,10 @@ func (t Template) controlPlanePolicies() []cfn_iam.Role_Policy {
 	if t.Spec.ControlPlane.ExtraStatements != nil {
 		policies = append(policies,
 			cfn_iam.Role_Policy{
+				PolicyName: t.Spec.StackName,
 				PolicyDocument: iamv1.PolicyDocument{
 					Statement: t.Spec.ControlPlane.ExtraStatements,
+					Version:   iamv1.CurrentVersion,
 				},
 			},
 		)
