@@ -389,7 +389,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    22,
 				ToPort:      22,
-				CidrBlocks:  []string{anyIPv4CidrBlock},
+				CidrBlocks:  s.scope.AWSCluster.Spec.Bastion.AllowedCIDRBlocks,
 			},
 		}, nil
 	case infrav1.SecurityGroupControlPlane:

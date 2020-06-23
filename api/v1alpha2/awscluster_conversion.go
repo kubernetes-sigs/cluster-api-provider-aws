@@ -53,6 +53,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		dst.Spec.SSHKeyName = nil
 	}
 
+	dst.Spec.Bastion.AllowedCIDRBlocks = restored.Spec.Bastion.AllowedCIDRBlocks
+	dst.Spec.Bastion.DisableIngressRules = restored.Spec.Bastion.DisableIngressRules
 	dst.Spec.ImageLookupFormat = restored.Spec.ImageLookupFormat
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
 	dst.Spec.ImageLookupBaseOS = restored.Spec.ImageLookupBaseOS

@@ -109,7 +109,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 	}
 }
 
-func TestAWSCluster_Default(t *testing.T) {
+func TestAWSCluster_DefaultCNIIngressRules(t *testing.T) {
 	g := NewWithT(t)
 	tests := []struct {
 		name          string
@@ -201,7 +201,143 @@ func TestAWSCluster_Default(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.beforeCluster.Default()
-			g.Expect(tt.beforeCluster).To(Equal(tt.afterCluster))
+			g.Expect(tt.beforeCluster.Spec.NetworkSpec).To(Equal(tt.afterCluster.Spec.NetworkSpec))
+		})
+	}
+}
+
+func TestAWSCluster_ValidateAllowedCIDRBlocks(t *testing.T) {
+	tests := []struct {
+		name    string
+		awsc    *AWSCluster
+		wantErr bool
+	}{
+		{
+			name: "allow valid CIDRs",
+			awsc: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks: []string{
+							"192.168.0.0/16",
+							"192.168.0.1/32",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "disableIngressRules allowed with empty CIDR block",
+			awsc: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks:   []string{},
+						DisableIngressRules: true,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "disableIngressRules not allowed with CIDR blocks",
+			awsc: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks: []string{
+							"192.168.0.0/16",
+							"192.168.0.1/32",
+						},
+						DisableIngressRules: true,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid CIDR block with invalid network",
+			awsc: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks: []string{
+							"100.200.300.400/99",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid CIDR block with garbage string",
+			awsc: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks: []string{
+							"abcdefg",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.awsc.validateAllowedCIDRBlocks(); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateAllowedCIDRBlocks() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAWSCluster_DefaultAllowedCIDRBlocks(t *testing.T) {
+	g := NewWithT(t)
+	tests := []struct {
+		name          string
+		beforeCluster *AWSCluster
+		afterCluster  *AWSCluster
+	}{
+		{
+			name: "empty AllowedCIDRBlocks is defaulted to allow open ingress to bastion host",
+			beforeCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			afterCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks: []string{
+							"0.0.0.0/0",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "empty AllowedCIDRBlocks is kept if DisableIngressRules is true",
+			beforeCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks:   []string{},
+						DisableIngressRules: true,
+						Enabled:             true,
+					},
+				},
+			},
+			afterCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Bastion: Bastion{
+						AllowedCIDRBlocks:   []string{},
+						DisableIngressRules: true,
+						Enabled:             true,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.beforeCluster.Default()
+			g.Expect(tt.beforeCluster.Spec.Bastion).To(Equal(tt.afterCluster.Spec.Bastion))
 		})
 	}
 }

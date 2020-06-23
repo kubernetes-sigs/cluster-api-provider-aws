@@ -42,6 +42,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 			}
 
 			instance := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+			instance.Default()
 
 			// Create the AWSCluster object and expect the Reconcile and Deployment to be created
 			Expect(k8sClient.Create(ctx, instance)).To(Succeed())
