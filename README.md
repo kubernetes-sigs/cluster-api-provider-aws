@@ -121,6 +121,14 @@ do!
 
 This repository uses the Kubernetes bots.  See a full list of the commands [here][prow].
 
+### Build the images locally
+
+If you want to just build the CAPA containers locally, run
+
+```
+	REGISTRY=docker.io/my-reg make docker-build
+```
+
 ### Tilt-based development environment
 
 We have support for using [Tilt][tilt] for rapid iterative development. Please visit the
