@@ -58,6 +58,8 @@ GINKGO := $(abspath $(TOOLS_BIN_DIR)/ginkgo)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
 # Define Docker related variables. Releases should modify and double check these vars.
+
+# TODO this means anyone without a default gcloud project + gcloud binary will break on default `make docker-build` target, remove this gcloud dep if possible.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 STAGING_REGISTRY := gcr.io/k8s-staging-cluster-api-aws
 PROD_REGISTRY := us.gcr.io/k8s-artifacts-prod/cluster-api-aws
