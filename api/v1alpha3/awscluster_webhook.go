@@ -45,7 +45,11 @@ var _ webhook.Validator = &AWSCluster{}
 var _ webhook.Defaulter = &AWSCluster{}
 
 func (r *AWSCluster) ValidateCreate() error {
-	return nil
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.validateSshkey()...)
+
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
 func (r *AWSCluster) ValidateDelete() error {
@@ -103,4 +107,12 @@ func (r *AWSCluster) Default() {
 			},
 		}
 	}
+}
+
+func (r *AWSCluster) validateSshkey() field.ErrorList {
+	var allErrs field.ErrorList
+	if !isValidSshKey(r.Spec.SSHKeyName) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.sshKey"), r.Spec.SSHKeyName, "sshKey contains invalid charactor"))
+	}
+	return nil
 }

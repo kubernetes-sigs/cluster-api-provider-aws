@@ -33,3 +33,16 @@ func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorLis
 		allErrs,
 	)
 }
+
+func isValidSshKey(sshKey *string) bool {
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		return false
+	}
+	processedString := reg.ReplaceAllString(sshKey, "")
+
+	if sshKey == aws.String(processedString) {
+		return true
+	}
+	return false
+}
