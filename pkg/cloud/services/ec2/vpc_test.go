@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/diff"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
@@ -61,16 +62,29 @@ func TestReconcileVPC(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	usageLimit := 3
+	selection := infrav1.AZSelectionSchemeOrdered
+
 	testCases := []struct {
-		name   string
-		input  *infrav1.VPCSpec
-		output *infrav1.VPCSpec
-		expect func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		name     string
+		input    *infrav1.VPCSpec
+		expected *infrav1.VPCSpec
+		expect   func(m *mock_ec2iface.MockEC2APIMockRecorder)
 	}{
 		{
-			name:   "managed vpc exists",
-			input:  &infrav1.VPCSpec{ID: "vpc-exists"},
-			output: &infrav1.VPCSpec{ID: "vpc-exists", CidrBlock: "10.0.0.0/8"},
+			name:  "managed vpc exists",
+			input: &infrav1.VPCSpec{ID: "vpc-exists", AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			expected: &infrav1.VPCSpec{
+				ID:        "vpc-exists",
+				CidrBlock: "10.0.0.0/8",
+				Tags: map[string]string{
+					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"Name": "test-cluster-vpc",
+					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+				},
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					VpcIds: []*string{
@@ -112,9 +126,19 @@ func TestReconcileVPC(t *testing.T) {
 			},
 		},
 		{
-			name:   "managed vpc does not exist",
-			input:  &infrav1.VPCSpec{},
-			output: &infrav1.VPCSpec{ID: "vpc-new", CidrBlock: "10.1.0.0/16"},
+			name:  "managed vpc does not exist",
+			input: &infrav1.VPCSpec{AvailabilityZoneUsageLimit: &usageLimit, AvailabilityZoneSelection: &selection},
+			expected: &infrav1.VPCSpec{
+				ID:        "vpc-new",
+				CidrBlock: "10.1.0.0/16",
+				Tags: map[string]string{
+					"sigs.k8s.io/cluster-api-provider-aws/role": "common",
+					"Name": "test-cluster-vpc",
+					"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
+				},
+				AvailabilityZoneUsageLimit: &usageLimit,
+				AvailabilityZoneSelection:  &selection,
+			},
 			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
 				m.DescribeVpcs(gomock.Eq(&ec2.DescribeVpcsInput{
 					Filters: []*ec2.Filter{
@@ -188,7 +212,9 @@ func TestReconcileVPC(t *testing.T) {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 
-			reflect.DeepEqual(tc.input, tc.output)
+			if !reflect.DeepEqual(tc.expected, &scope.AWSCluster.Spec.NetworkSpec.VPC) {
+				t.Errorf("Actual/expected mismatch: %s", diff.ObjectDiff(tc.expected, scope.AWSCluster.Spec.NetworkSpec.VPC))
+			}
 		})
 	}
 }

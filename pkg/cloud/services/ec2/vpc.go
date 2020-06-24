@@ -53,6 +53,19 @@ func (s *Service) reconcileVPC() error {
 		return errors.Wrap(err, "failed to describe VPCs")
 	}
 
+	// This function creates a new infrav1.VPCSpec, populates it with data from AWS, and then deep copies into the
+	// AWSCluster's VPC spec (see the DeepCopyInto lines below). This is potentially problematic, as it completely
+	// overwrites the data for the VPC spec as retrieved from the apiserver. This is a temporary band-aid to restore
+	// recently-added fields that descripe user intent and do not come from AWS resource descriptions.
+	//
+	// FIXME(ncdc): rather than copying these values from the scope to vpc, find a better way to merge AWS information
+	// with data in the scope retrieved from the apiserver. Could use something like mergo.
+	//
+	// NOTE: it may look like we are losing InternetGatewayID because it's not populated by describeVPC/createVPC or
+	// restored here, but that's ok. It is restored by reconcileInternetGateways, which is invoked after this.
+	vpc.AvailabilityZoneSelection = s.scope.VPC().AvailabilityZoneSelection
+	vpc.AvailabilityZoneUsageLimit = s.scope.VPC().AvailabilityZoneUsageLimit
+
 	if vpc.IsUnmanaged(s.scope.Name()) {
 		vpc.DeepCopyInto(s.scope.VPC())
 		s.scope.V(2).Info("Working on unmanaged VPC", "vpc-id", vpc.ID)
