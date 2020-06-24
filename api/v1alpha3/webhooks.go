@@ -20,6 +20,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"regexp"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
@@ -39,7 +41,7 @@ func isValidSshKey(sshKey *string) bool {
 	if err != nil {
 		return false
 	}
-	processedString := reg.ReplaceAllString(sshKey, "")
+	processedString := reg.ReplaceAllString(*sshKey, "")
 
 	if sshKey == aws.String(processedString) {
 		return true
