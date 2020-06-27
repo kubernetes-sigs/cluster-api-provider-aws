@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -47,7 +48,7 @@ var _ webhook.Defaulter = &AWSCluster{}
 func (r *AWSCluster) ValidateCreate() error {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, r.validateSshkey()...)
+	allErrs = append(allErrs, isValidSSHKey(r.Spec.SSHKeyName)...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -109,10 +110,3 @@ func (r *AWSCluster) Default() {
 	}
 }
 
-func (r *AWSCluster) validateSshkey() field.ErrorList {
-	var allErrs field.ErrorList
-	if !isValidSshKey(r.Spec.SSHKeyName) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.sshKey"), r.Spec.SSHKeyName, "sshKey contains invalid charactor"))
-	}
-	return nil
-}

@@ -18,7 +18,6 @@ package v1alpha3
 
 import (
 	"reflect"
-
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,7 +46,7 @@ func (r *AWSMachine) ValidateCreate() error {
 
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
 	allErrs = append(allErrs, r.validateVolumeTypeIOPS()...)
-	allErrs = append(allErrs, r.validateSshkey()...)
+	allErrs = append(allErrs, isValidSSHKey(r.Spec.SSHKeyName)...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -123,15 +122,6 @@ func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSMachine) validateSshkey() field.ErrorList {
-	var allErrs field.ErrorList
-
-	if !isValidSshKey(r.Spec.SSHKeyName) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.sshKey"), r.Spec.SSHKeyName, "sshKey contains invalid charactor"))
-	}
-	return nil
-}
-
 func (r *AWSMachine) validateVolumeTypeIOPS() field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -141,6 +131,7 @@ func (r *AWSMachine) validateVolumeTypeIOPS() field.ErrorList {
 
 	return allErrs
 }
+
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachine) ValidateDelete() error {
