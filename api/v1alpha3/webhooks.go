@@ -21,7 +21,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"regexp"
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
