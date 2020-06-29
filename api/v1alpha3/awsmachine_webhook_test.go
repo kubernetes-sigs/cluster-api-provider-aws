@@ -41,7 +41,7 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ssh key is invalid",
+			name: "SSH key is invalid",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					SSHKeyName: aws.String("test\t"),
