@@ -46,7 +46,7 @@ func  isValidSSHKey(sshKey *string) field.ErrorList {
 		if *sshKey == processedString {
 			return nil
 		}
-		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "sshKey contains invalid charactor"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "name contains invalid character"))
 	}
 
 	return allErrs
