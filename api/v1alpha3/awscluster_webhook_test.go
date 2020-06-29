@@ -40,7 +40,7 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ssh key name should valid",
+			name: "SSH key name should valid",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					SSHKeyName: aws.String("test-capi"),
