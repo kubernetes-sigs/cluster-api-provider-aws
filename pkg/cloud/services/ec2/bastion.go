@@ -87,11 +87,6 @@ func (s *Service) ReconcileBastion() error {
 
 // DeleteBastion deletes the Bastion instance
 func (s *Service) DeleteBastion() error {
-	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
-		s.scope.V(4).Info("Skipping bastion deletion in unmanaged mode")
-		return nil
-	}
-
 	instance, err := s.describeBastionInstance()
 	if err != nil {
 		if awserrors.IsNotFound(err) {
