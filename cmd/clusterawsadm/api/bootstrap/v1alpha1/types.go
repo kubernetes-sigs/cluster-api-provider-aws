@@ -94,6 +94,10 @@ type AWSIAMRoleSpec struct {
 // the Kubernetes Cluster API Provider AWS controller.
 type ClusterAPIControllers struct {
 	AWSIAMRoleSpec `json:",inline"`
+	// AllowedEC2InstanceProfiles controls which EC2 roles are allowed to be
+	// consumed by Cluster API when creating an ec2 instance. Defaults to
+	// *.<suffix>, where suffix is defaulted to .cluster-api-provider-aws.sigs.k8s.io
+	AllowedEC2InstanceProfiles []string `json:"allowedEC2InstanceProfiles,omitempty"`
 }
 
 // Nodes controls the configuration of the AWS IAM role for worker nodes

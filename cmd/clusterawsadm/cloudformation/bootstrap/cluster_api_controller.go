@@ -130,11 +130,8 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				},
 			},
 			{
-				Effect: iamv1.EffectAllow,
-				Resource: iamv1.Resources{fmt.Sprintf(
-					"arn:*:iam::*:role/%s",
-					t.NewManagedName(iamv1.Any),
-				)},
+				Effect:   iamv1.EffectAllow,
+				Resource: t.allowedEC2InstanceProfiles(),
 				Action: iamv1.Actions{
 					"iam:PassRole",
 				},
@@ -152,7 +149,20 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 		},
 	}
-
-	policyDocument.Statement = append(policyDocument.Statement, t.Spec.ControlPlane.ExtraStatements...)
 	return policyDocument
+}
+
+func (t Template) allowedEC2InstanceProfiles() iamv1.Resources {
+	if t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles == nil {
+		t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles = []string{
+			t.NewManagedName(iamv1.Any),
+		}
+	}
+	instanceProfiles := make(iamv1.Resources, len(t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles))
+
+	for i, p := range t.Spec.ClusterAPIControllers.AllowedEC2InstanceProfiles {
+		instanceProfiles[i] = fmt.Sprintf("arn:*:iam::*:role/%s", p)
+	}
+
+	return instanceProfiles
 }

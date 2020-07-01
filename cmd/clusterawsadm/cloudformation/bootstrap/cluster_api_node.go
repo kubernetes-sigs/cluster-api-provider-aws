@@ -55,9 +55,6 @@ func (t Template) nodePolicy() *iamv1.PolicyDocument {
 		t.secretPolicy(),
 		t.sessionManagerPolicy(),
 	)
-	policyDocument.Statement = append(
-		policyDocument.Statement,
-		t.Spec.Nodes.ExtraStatements...,
-	)
+
 	return policyDocument
 }

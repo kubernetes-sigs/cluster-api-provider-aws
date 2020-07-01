@@ -23,12 +23,13 @@ import (
 
 func (t Template) nodePolicies() []cfn_iam.Role_Policy {
 	policies := []cfn_iam.Role_Policy{}
-
 	if t.Spec.Nodes.ExtraStatements != nil {
 		policies = append(policies,
 			cfn_iam.Role_Policy{
+				PolicyName: t.Spec.StackName,
 				PolicyDocument: iamv1.PolicyDocument{
 					Statement: t.Spec.Nodes.ExtraStatements,
+					Version:   iamv1.CurrentVersion,
 				},
 			},
 		)
