@@ -191,6 +191,10 @@ type AWSMachineStatus struct {
 	// controller's output.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+
+	// Conditions defines current service state of the AWSMachine.
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -210,6 +214,14 @@ type AWSMachine struct {
 
 	Spec   AWSMachineSpec   `json:"spec,omitempty"`
 	Status AWSMachineStatus `json:"status,omitempty"`
+}
+
+func (m *AWSMachine) GetConditions() clusterv1.Conditions {
+	return m.Status.Conditions
+}
+
+func (m *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

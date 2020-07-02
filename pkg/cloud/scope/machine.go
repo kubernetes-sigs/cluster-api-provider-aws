@@ -260,7 +260,13 @@ func (m *MachineScope) GetRawBootstrapData() ([]byte, error) {
 
 // PatchObject persists the machine spec and status.
 func (m *MachineScope) PatchObject() error {
-	return m.patchHelper.Patch(context.TODO(), m.AWSMachine)
+	return m.patchHelper.Patch(
+		context.TODO(),
+		m.AWSMachine,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			infrav1.InstanceReadyCondition,
+			infrav1.SecurityGroupsReadyCondition,
+			infrav1.ELBAttachedCondition}})
 }
 
 // Close the MachineScope by updating the machine spec, machine status.

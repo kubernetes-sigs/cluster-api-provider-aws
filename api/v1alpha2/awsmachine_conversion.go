@@ -38,7 +38,8 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 		return err
 	}
 	restoreAWSMachineSpec(&restored.Spec, &dst.Spec)
-
+	// Manual conversion for conditions
+	dst.SetConditions(restored.GetConditions())
 	return nil
 }
 
