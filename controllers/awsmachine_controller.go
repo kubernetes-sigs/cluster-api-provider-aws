@@ -331,7 +331,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	if err := r.reconcileLBAttachment(machineScope, clusterScope, instance); err != nil {
 		// We are tolerating AccessDenied error, so this won't block for users with older version of IAM;
 		// all the other errors are blocking.
-		if !elb.IsAccessDenied(err) {
+		if !elb.IsAccessDenied(err) && !elb.IsNotFound(err) {
 			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
 		}
 	}
