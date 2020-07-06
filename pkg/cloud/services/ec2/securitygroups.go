@@ -267,10 +267,14 @@ func makeInfraSecurityGroup(ec2sg *ec2.SecurityGroup) infrav1.SecurityGroup {
 }
 
 func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2.SecurityGroup) error {
+	sgTags := s.getSecurityGroupTagParams(aws.StringValue(input.GroupName), temporaryResourceID, role)
 	out, err := s.scope.EC2.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 		VpcId:       input.VpcId,
 		GroupName:   input.GroupName,
 		Description: aws.String(fmt.Sprintf("Kubernetes cluster %s: %s", s.scope.Name(), role)),
+		TagSpecifications: []*ec2.TagSpecification{
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeSecurityGroup, sgTags),
+		},
 	})
 
 	if err != nil {
@@ -283,21 +287,6 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 	// Set the group id.
 	input.GroupId = out.GroupId
 
-	// Tag the security group.
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if _, err := s.scope.EC2.CreateTags(&ec2.CreateTagsInput{
-			Resources: []*string{out.GroupId},
-			Tags:      input.Tags,
-		}); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.GroupNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagSecurityGroup", "Failed to tag managed SecurityGroup %q: %v", aws.StringValue(out.GroupId), err)
-		return errors.Wrapf(err, "failed to tag security group %q in vpc %q", aws.StringValue(out.GroupId), aws.StringValue(input.VpcId))
-	}
-
-	record.Eventf(s.scope.AWSCluster, "SuccessfulTagSecurityGroup", "Tagged managed SecurityGroup %q", aws.StringValue(out.GroupId))
 	return nil
 }
 

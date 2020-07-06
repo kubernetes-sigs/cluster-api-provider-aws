@@ -85,18 +85,30 @@ func TestReconcileInternetGateways(t *testing.T) {
 
 				m.CreateInternetGateway(gomock.AssignableToTypeOf(&ec2.CreateInternetGatewayInput{})).
 					Return(&ec2.CreateInternetGatewayOutput{
-						InternetGateway: &ec2.InternetGateway{InternetGatewayId: aws.String("igw-1")},
+						InternetGateway: &ec2.InternetGateway{
+							InternetGatewayId: aws.String("igw-1"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String(infrav1.ClusterTagKey("test-cluster")),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-igw"),
+								},
+							},
+						},
 					}, nil)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
 
 				m.AttachInternetGateway(gomock.Eq(&ec2.AttachInternetGatewayInput{
 					InternetGatewayId: aws.String("igw-1"),
 					VpcId:             aws.String("vpc-gateways"),
 				})).
 					Return(&ec2.AttachInternetGatewayOutput{}, nil)
-
 			},
 		},
 	}

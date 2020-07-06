@@ -519,6 +519,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.1.0.0/16"),
 					AvailabilityZone: aws.String("us-east-1a"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-private-us-east-1a"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/internal-elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("private"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -534,13 +561,37 @@ func TestReconcileSubnets(t *testing.T) {
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(firstSubnet)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
-
 				secondSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.2.0.0/16"),
 					AvailabilityZone: aws.String("us-east-1b"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-public-us-east-1b"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("public"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -555,8 +606,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(secondSubnet)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
 
 				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
@@ -679,6 +728,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/17"),
 					AvailabilityZone: aws.String("us-east-1c"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-public-us-east-1c"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("public"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -694,9 +770,6 @@ func TestReconcileSubnets(t *testing.T) {
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(firstSubnet)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
-
 				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
@@ -710,6 +783,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1c"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-private-us-east-1c"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/internal-elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("private"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -724,8 +824,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(secondSubnet)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
 
 			},
 		},
@@ -790,6 +888,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/19"),
 					AvailabilityZone: aws.String("us-east-1b"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-public-us-east-1b"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("public"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -805,9 +930,6 @@ func TestReconcileSubnets(t *testing.T) {
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(zone1PublicSubnet)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
-
 				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
@@ -821,6 +943,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.64.0/18"),
 					AvailabilityZone: aws.String("us-east-1b"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-private-us-east-1b"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/internal-elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("private"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -836,14 +985,39 @@ func TestReconcileSubnets(t *testing.T) {
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(zone1PrivateSubnet)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
-
 				// zone 2
 
 				zone2PublicSubnet := m.CreateSubnet(gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.32.0/19"),
 					AvailabilityZone: aws.String("us-east-1c"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-public-us-east-1c"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("public"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -859,9 +1033,6 @@ func TestReconcileSubnets(t *testing.T) {
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(zone2PublicSubnet)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
-
 				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
@@ -875,6 +1046,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/18"),
 					AvailabilityZone: aws.String("us-east-1c"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-private-us-east-1c"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/internal-elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("private"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -889,8 +1087,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(zone2PrivateSubnet)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
 
 			},
 		},
@@ -957,6 +1153,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.0.0/17"),
 					AvailabilityZone: aws.String("us-east-1b"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-public-us-east-1b"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("public"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -972,9 +1195,6 @@ func TestReconcileSubnets(t *testing.T) {
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(zone1PublicSubnet)
 
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
-
 				m.ModifySubnetAttribute(&ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &ec2.AttributeBooleanValue{
 						Value: aws.Bool(true),
@@ -988,6 +1208,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1b"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-private-us-east-1b"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/internal-elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("private"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -1002,8 +1249,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(zone1PrivateSubnet)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{}))
 			},
 		},
 		{
@@ -1093,6 +1338,33 @@ func TestReconcileSubnets(t *testing.T) {
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/17"),
 					AvailabilityZone: aws.String("us-east-1a"),
+					TagSpecifications: []*ec2.TagSpecification{
+						{
+							ResourceType: aws.String("subnet"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-subnet-private-us-east-1a"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+									Value: aws.String("shared"),
+								},
+								{
+									Key:   aws.String("kubernetes.io/role/internal-elb"),
+									Value: aws.String("1"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("private"),
+								},
+							},
+						},
+					},
 				})).
 					Return(&ec2.CreateSubnetOutput{
 						Subnet: &ec2.Subnet{
@@ -1105,9 +1377,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any())
 
-				// Private subnet
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
 				// Public subnet
 				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)

@@ -176,6 +176,9 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 
 	input := &ec2.CreateVpcInput{
 		CidrBlock: aws.String(s.scope.VPC().CidrBlock),
+		TagSpecifications: []*ec2.TagSpecification{
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpc, s.getVPCTagParams(temporaryResourceID)),
+		},
 	}
 
 	out, err := s.scope.EC2.CreateVpc(input)
@@ -196,26 +199,10 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
-	// Apply tags so that we know this is a managed VPC.
-	tagParams := s.getVPCTagParams(*out.Vpc.VpcId)
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if err := tags.Apply(&tags.ApplyParams{
-			EC2Client:   s.scope.EC2,
-			BuildParams: tagParams,
-		}); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.VPCNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", *out.Vpc.VpcId, err)
-		return nil, err
-	}
-	record.Eventf(s.scope.AWSCluster, "SuccessfulTagVPC", "Tagged managed VPC %q", *out.Vpc.VpcId)
-
 	return &infrav1.VPCSpec{
 		ID:        *out.Vpc.VpcId,
 		CidrBlock: *out.Vpc.CidrBlock,
-		Tags:      infrav1.Build(tagParams),
+		Tags:      converters.TagsToMap(out.Vpc.Tags),
 	}, nil
 }
 
