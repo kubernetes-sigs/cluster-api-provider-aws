@@ -471,6 +471,7 @@ func autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *v1al
 	}
 	// WARNING: in.FailureDomains requires manual conversion: does not exist in peer-type
 	// WARNING: in.Bastion requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.Instance vs sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.Instance)
+	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
 	return nil
 }
 

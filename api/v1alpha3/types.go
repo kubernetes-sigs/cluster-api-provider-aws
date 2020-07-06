@@ -240,6 +240,11 @@ func (v *VPCSpec) IsUnmanaged(clusterName string) bool {
 	return v.ID != "" && !v.Tags.HasOwned(clusterName)
 }
 
+// IsManaged returns true if VPC is managed.
+func (v *VPCSpec) IsManaged(clusterName string) bool {
+	return !v.IsUnmanaged(clusterName)
+}
+
 // SubnetSpec configures an AWS Subnet.
 type SubnetSpec struct {
 	// ID defines a unique identifier to reference this resource.

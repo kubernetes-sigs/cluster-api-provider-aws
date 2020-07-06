@@ -116,6 +116,7 @@ type AWSClusterStatus struct {
 	Network        Network                  `json:"network,omitempty"`
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 	Bastion        *Instance                `json:"bastion,omitempty"`
+	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -144,6 +145,14 @@ type AWSClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AWSCluster `json:"items"`
+}
+
+func (c *AWSCluster) GetConditions() clusterv1.Conditions {
+	return c.Status.Conditions
+}
+
+func (c *AWSCluster) SetConditions(conditions clusterv1.Conditions) {
+	c.Status.Conditions = conditions
 }
 
 func init() {

@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"fmt"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	errlist "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -147,7 +148,7 @@ func (s *Service) reconcileSecurityGroups() error {
 			s.scope.V(2).Info("Authorized ingress rules in security group", "authorized-ingress-rules", toAuthorize, "security-group-id", sg.ID)
 		}
 	}
-
+	conditions.MarkTrue(s.scope.AWSCluster, infrav1.ClusterSecurityGroupsReadyCondition)
 	return nil
 }
 

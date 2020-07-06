@@ -19,6 +19,7 @@ package ec2
 import (
 	"fmt"
 	"math/rand"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sort"
 	"strings"
 
@@ -130,6 +131,7 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	s.scope.V(2).Info("Subnets available", "subnets", subnets)
+	conditions.MarkTrue(s.scope.AWSCluster, infrav1.SubnetsReadyCondition)
 	return nil
 }
 

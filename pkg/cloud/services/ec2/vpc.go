@@ -22,8 +22,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -32,6 +30,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -44,6 +45,12 @@ func (s *Service) reconcileVPC() error {
 	vpc, err := s.describeVPC()
 	if awserrors.IsNotFound(err) {
 		// Create a new managed vpc.
+		if !conditions.Has(s.scope.AWSCluster, infrav1.VpcReadyCondition) {
+			conditions.MarkFalse(s.scope.AWSCluster, infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
+			if err := s.scope.PatchObject(); err != nil {
+				return errors.Wrap(err, "failed to patch conditions")
+			}
+		}
 		vpc, err = s.createVPC()
 		if err != nil {
 			return errors.Wrap(err, "failed to create new vpc")

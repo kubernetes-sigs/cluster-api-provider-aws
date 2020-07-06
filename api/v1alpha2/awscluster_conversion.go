@@ -74,6 +74,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	if restored.Spec.NetworkSpec.VPC.AvailabilityZoneSelection != nil {
 		dst.Spec.NetworkSpec.VPC.AvailabilityZoneSelection = restored.Spec.NetworkSpec.VPC.AvailabilityZoneSelection
 	}
+	// Manually convert conditions
+	dst.SetConditions(restored.GetConditions())
 
 	return nil
 }

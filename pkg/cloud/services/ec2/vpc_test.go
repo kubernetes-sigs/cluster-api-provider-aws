@@ -24,12 +24,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/diff"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func describeVpcAttributeTrue(input *ec2.DescribeVpcAttributeInput) (*ec2.DescribeVpcAttributeOutput, error) {
@@ -185,7 +187,18 @@ func TestReconcileVPC(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
-			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: *tc.input,
+					},
+				},
+			}
+			client := fake.NewFakeClientWithScheme(scheme, awsCluster)
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
@@ -193,13 +206,8 @@ func TestReconcileVPC(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				AWSCluster: &infrav1.AWSCluster{
-					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: infrav1.NetworkSpec{
-							VPC: *tc.input,
-						},
-					},
-				},
+				AWSCluster: awsCluster,
+				Client:     client,
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -207,13 +215,13 @@ func TestReconcileVPC(t *testing.T) {
 
 			tc.expect(ec2Mock.EXPECT())
 
-			s := NewService(scope)
+			s := NewService(clusterScope)
 			if err := s.reconcileVPC(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 
-			if !reflect.DeepEqual(tc.expected, &scope.AWSCluster.Spec.NetworkSpec.VPC) {
-				t.Errorf("Actual/expected mismatch: %s", diff.ObjectDiff(tc.expected, scope.AWSCluster.Spec.NetworkSpec.VPC))
+			if !reflect.DeepEqual(tc.expected, &clusterScope.AWSCluster.Spec.NetworkSpec.VPC) {
+				t.Errorf("Actual/expected mismatch: %s", diff.ObjectDiff(tc.expected, clusterScope.AWSCluster.Spec.NetworkSpec.VPC))
 			}
 		})
 	}

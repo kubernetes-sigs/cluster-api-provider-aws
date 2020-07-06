@@ -17,6 +17,8 @@ limitations under the License.
 package ec2
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -324,7 +326,22 @@ func TestReconcileNatGateways(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
-
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: subnetsVPCID,
+							Tags: infrav1.Tags{
+								infrav1.ClusterTagKey("test-cluster"): "owned",
+							},
+						},
+						Subnets: tc.input,
+					},
+				},
+			}
+			client := fake.NewFakeClientWithScheme(scheme, awsCluster)
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
@@ -333,19 +350,8 @@ func TestReconcileNatGateways(t *testing.T) {
 					EC2: ec2Mock,
 					ELB: elbMock,
 				},
-				AWSCluster: &infrav1.AWSCluster{
-					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: infrav1.NetworkSpec{
-							VPC: infrav1.VPCSpec{
-								ID: subnetsVPCID,
-								Tags: infrav1.Tags{
-									infrav1.ClusterTagKey("test-cluster"): "owned",
-								},
-							},
-							Subnets: tc.input,
-						},
-					},
-				},
+				AWSCluster: awsCluster,
+				Client:     client,
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
