@@ -58,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/gophercloud/gophercloud"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
@@ -1458,15 +1459,14 @@ func waitForAWSMachineRunning(namespace, name string) {
 func waitForClusterInfrastructureReady(namespace, name string) bool {
 	fmt.Fprintf(GinkgoWriter, "Ensuring infrastructure is ready for cluster %s/%s\n", namespace, name)
 	polls := 0
-	polls0 := 0
 	var err error
 	endTime := time.Now().Add(20 * time.Minute)
 	for time.Now().Before(endTime) {
-		polls0 = polls + 1
+		polls = polls + 1
 		cluster := &clusterv1.Cluster{}
 
 		logit := func() {
-			fmt.Fprintf(GinkgoWriter, "POLLING ( # %v ) (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %+v , Err = %v \n", polls0, namespace, name, cluster.Status, err)
+			fmt.Fprintf(GinkgoWriter, "POLLING ( # %v ) (waitForClusterInfrastructureReady) --> Ensuring infrastructure is ready for cluster %s/%s : Status = %+v , Err = %v \n", polls, namespace, name, cluster.Status, err)
 		}
 
 		if err = kindClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: name}, cluster); nil == err {
@@ -1475,7 +1475,7 @@ func waitForClusterInfrastructureReady(namespace, name string) bool {
 				return true
 			}
 		}
-		if polls0 == 1 || polls0%5 == 0 {
+		if polls == 1 || polls%5 == 0 {
 			logit()
 		}
 		time.Sleep(15 * time.Second)
@@ -1660,6 +1660,11 @@ func makeAWSCluster(namespace, name string, multipleAZ bool) {
 		Spec: infrav1.AWSClusterSpec{
 			Region:     region,
 			SSHKeyName: pointer.StringPtr(keyPairName),
+			NetworkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					AvailabilityZoneUsageLimit: gophercloud.IntToPointer(1),
+				},
+			},
 		},
 	}
 	if multipleAZ {
