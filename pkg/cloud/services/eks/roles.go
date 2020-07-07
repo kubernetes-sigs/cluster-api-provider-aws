@@ -79,7 +79,6 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 
 	policies := []*string{
 		aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
-		aws.String("arn:aws:iam::aws:policy/AmazonEKSServicePolicy"),
 	}
 	if s.scope.ControlPlane.Spec.RoleAdditionalPolicies != nil {
 		for _, additionalPolicy := range *s.scope.ControlPlane.Spec.RoleAdditionalPolicies {
@@ -138,7 +137,7 @@ func (s *Service) getIAMRolePolicies(roleName string) ([]*string, error) {
 	return policies, nil
 }
 
-func (s *Service) detatchIAMRolePolicy(roleName string, policyARN string) error {
+func (s *Service) detachIAMRolePolicy(roleName string, policyARN string) error {
 	input := &iam.DetachRolePolicyInput{
 		RoleName:  aws.String(roleName),
 		PolicyArn: aws.String(policyARN),
@@ -146,7 +145,7 @@ func (s *Service) detatchIAMRolePolicy(roleName string, policyARN string) error 
 
 	_, err := s.IAMClient.DetachRolePolicy(input)
 	if err != nil {
-		return errors.Wrapf(err, "error detatching policy %s from role %s", policyARN, roleName)
+		return errors.Wrapf(err, "error detaching policy %s from role %s", policyARN, roleName)
 	}
 
 	return nil
@@ -177,7 +176,7 @@ func (s *Service) ensurePoliciesAttached(role *iam.Role, policies []*string) err
 	for _, existingPolicy := range existingPolices {
 		_, found := findStringInSlice(policies, *existingPolicy)
 		if !found {
-			err = s.detatchIAMRolePolicy(*role.RoleName, *existingPolicy)
+			err = s.detachIAMRolePolicy(*role.RoleName, *existingPolicy)
 			if err != nil {
 				return err
 			}
@@ -238,7 +237,29 @@ func (s *Service) createRole(name string) (*iam.Role, error) {
 	return out.Role, nil
 }
 
+func (s *Service) detachAllPoliciesForRole(name string) error {
+	s.scope.V(3).Info("Detaching all policies for role", "role", name)
+	input := &iam.ListAttachedRolePoliciesInput{
+		RoleName: &name,
+	}
+	policies, err := s.scope.IAM.ListAttachedRolePolicies(input)
+	if err != nil {
+		return errors.Wrapf(err, "error fetching policies for role %s", name)
+	}
+	for _, p := range policies.AttachedPolicies {
+		s.scope.V(2).Info("Detaching policy", "policy", *p)
+		if err := s.detachIAMRolePolicy(name, *p.PolicyArn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Service) deleteRole(name string) error {
+	if err := s.detachAllPoliciesForRole(name); err != nil {
+		return errors.Wrapf(err, "error detaching policies for role %s", name)
+	}
+
 	input := &iam.DeleteRoleInput{
 		RoleName: aws.String(name),
 	}
