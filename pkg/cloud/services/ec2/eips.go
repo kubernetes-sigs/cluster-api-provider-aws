@@ -30,21 +30,28 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
-func (s *Service) getOrAllocateAddress(role string) (string, error) {
+func (s *Service) getOrAllocateAddresses(num int, role string) (eips []string, err error) {
 	out, err := s.describeAddresses(role)
 	if err != nil {
 		record.Eventf(s.scope.AWSCluster, "FailedDescribeAddresses", "Failed to query addresses for role %q: %v", role, err)
-		return "", errors.Wrap(err, "failed to query addresses")
+		return nil, errors.Wrap(err, "failed to query addresses")
 	}
 
-	// TODO: better handle multiple addresses returned
 	for _, address := range out.Addresses {
 		if address.AssociationId == nil {
-			return aws.StringValue(address.AllocationId), nil
+			eips = append(eips, aws.StringValue(address.AllocationId))
 		}
 	}
 
-	return s.allocateAddress(role)
+	for len(eips) < num {
+		ip, err := s.allocateAddress(role)
+		if err != nil {
+			return nil, err
+		}
+		eips = append(eips, ip)
+	}
+
+	return eips, nil
 }
 
 func (s *Service) allocateAddress(role string) (string, error) {
