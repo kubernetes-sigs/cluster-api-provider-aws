@@ -89,6 +89,16 @@ type Bastion struct {
 	// with a public ip to access the VPC private network.
 	// +optional
 	Enabled bool `json:"enabled"`
+
+	// DisableIngressRules will ensure there are no Ingress rules in the bastion host's security group.
+	// Requires AllowedCIDRBlocks to be empty.
+	// +optional
+	DisableIngressRules bool `json:"disableIngressRules,omitempty"`
+
+	// AllowedCIDRBlocks is a list of CIDR blocks allowed to access the bastion host.
+	// They are set as ingress rules for the Bastion host's Security Group (defaults to 0.0.0.0/0).
+	// +optional
+	AllowedCIDRBlocks []string `json:"allowedCIDRBlocks,omitempty"`
 }
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer

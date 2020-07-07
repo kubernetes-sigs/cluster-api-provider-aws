@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,7 +46,11 @@ var _ webhook.Validator = &AWSCluster{}
 var _ webhook.Defaulter = &AWSCluster{}
 
 func (r *AWSCluster) ValidateCreate() error {
-	return nil
+	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, r.validateAllowedCIDRBlocks()...)
+
+	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
 func (r *AWSCluster) ValidateDelete() error {
@@ -80,10 +85,37 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
+	allErrs = append(allErrs, r.validateAllowedCIDRBlocks()...)
+
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
 
+func (r *AWSCluster) validateAllowedCIDRBlocks() []*field.Error {
+	var errs field.ErrorList
+
+	if r.Spec.Bastion.DisableIngressRules && len(r.Spec.Bastion.AllowedCIDRBlocks) > 0 {
+		errs = append(errs,
+			field.Forbidden(field.NewPath("spec", "bastion", "allowedCIDRBlocks"), "cannot be set if spec.bastion.disableIngressRules is true"),
+		)
+		return errs
+	}
+
+	for i, cidr := range r.Spec.Bastion.AllowedCIDRBlocks {
+		if _, _, err := net.ParseCIDR(cidr); err != nil {
+			errs = append(errs,
+				field.Invalid(field.NewPath("spec", "bastion", fmt.Sprintf("allowedCIDRBlocks[%d]", i)), cidr, "must be a valid CIDR block"),
+			)
+		}
+	}
+	return errs
+}
+
 func (r *AWSCluster) Default() {
+	// Default to allow open access to the bastion host if no CIDR Blocks have been set
+	if len(r.Spec.Bastion.AllowedCIDRBlocks) == 0 && !r.Spec.Bastion.DisableIngressRules {
+		r.Spec.Bastion.AllowedCIDRBlocks = []string{"0.0.0.0/0"}
+	}
+
 	// Default to Calico ingress rules if no rules have been set
 	if r.Spec.NetworkSpec.CNI == nil {
 		r.Spec.NetworkSpec.CNI = &CNISpec{
