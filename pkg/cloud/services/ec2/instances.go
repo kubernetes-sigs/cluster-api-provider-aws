@@ -128,7 +128,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
-	if scope.AWSMachine.Spec.AMI.ID != nil {
+	if scope.AWSMachine.Spec.AMI.ID != nil { // nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
 	} else {
 		if scope.Machine.Spec.Version == nil {
@@ -362,7 +362,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		}
 	}
 
-	if i.RootVolume != nil {
+	if i.RootVolume != nil { // nolint:nestif
 		rootDeviceName, err := s.getImageRootDevice(i.ImageID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get root volume from image %q", i.ImageID)
@@ -494,7 +494,7 @@ func (s *Service) UpdateInstanceSecurityGroups(instanceID string, ids []string) 
 // This will be called if there is anything to create (update) or delete.
 // We may not always have to perform each action, so we check what we're
 // receiving to avoid calling AWS if we don't need to.
-func (s *Service) UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error {
+func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[string]string) error {
 	s.scope.V(2).Info("Attempting to update tags on resource", "resource-id", *resourceID)
 
 	// If we have anything to create or update

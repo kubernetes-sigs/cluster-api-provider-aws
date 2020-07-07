@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"fmt"
+
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -155,7 +156,6 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 			filter.EC2.VPCAttachment(s.scope.VPC().ID),
 		},
 	})
-
 	if err != nil {
 		record.Eventf(s.scope.AWSCluster, "FailedDescribeInternetGateway", "Failed to describe internet gateways in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe internet gateways in vpc %q", s.scope.VPC().ID)

@@ -41,7 +41,6 @@ func printConfigCmd() *cobra.Command {
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			t, err := getBootstrapTemplate(cmd)
 			if err != nil {
 				return err

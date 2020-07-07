@@ -181,7 +181,7 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 			}
 
 			if _, err = os.Stat(policyDocDir); os.IsNotExist(err) {
-				err = os.Mkdir(policyDocDir, 0755)
+				err = os.Mkdir(policyDocDir, 0o755)
 				if err != nil {
 					fmt.Printf("Error: failed to make directory %q, %v", policyDocDir, err)
 					if err := cmd.Help(); err != nil {
@@ -204,7 +204,6 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 
 			t := bootstrapTemplateFromCmdLine()
 			err := t.GenerateManagedIAMPolicyDocuments(policyDocDir)
-
 			if err != nil {
 				return fmt.Errorf("failed to generate PolicyDocument for all ManagedIAMPolicies: %v", err)
 			}
@@ -223,7 +222,6 @@ func encodeAWSSecret() *cobra.Command {
 		Short: "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		Long:  "Encode AWS credentials as a base64 encoded Kubernetes secret",
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			region, err := flags.GetRegion(cmd)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Could not resolve AWS region, defaulting to %s.\n", backupAWSRegion)
@@ -256,7 +254,6 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 		Short: "Generate an AWS profile from the current environment",
 		Long:  "Generate an AWS profile from the current environment for the ephemeral bootstrap cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			flags.CredentialWarning(cmd)
 
 			region, err := flags.GetRegion(cmd)

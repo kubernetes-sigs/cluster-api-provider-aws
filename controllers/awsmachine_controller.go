@@ -235,7 +235,6 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			},
 		).
 		Build(r)
-
 	if err != nil {
 		return err
 	}
@@ -586,7 +585,7 @@ func (r *AWSMachineReconciler) createInstance(scope *scope.MachineScope, ec2svc 
 		return nil, err
 	}
 
-	if scope.UseSecretsManager() {
+	if scope.UseSecretsManager() { // nolint:nestif
 		compressedUserData, err := userdata.GzipBytes(userData)
 		if err != nil {
 			return nil, err

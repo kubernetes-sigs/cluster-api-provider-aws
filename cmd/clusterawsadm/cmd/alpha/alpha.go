@@ -17,8 +17,6 @@ limitations under the License.
 package alpha
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha/migrate"
@@ -26,15 +24,13 @@ import (
 )
 
 // AlphaCmd is the top-level alpha set of commands
-func AlphaCmd() *cobra.Command { // nolint
+func AlphaCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "alpha",
 		Short: "alpha commands",
 		Long:  `Alpha commands may not be supported in future releases`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := cmd.Help(); err != nil {
-				_ = fmt.Errorf("error printing Help")
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
 		},
 	}
 	newCmd.AddCommand(bootstrap.RootCmd())

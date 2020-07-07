@@ -84,5 +84,4 @@ func TestTags_Merge(t *testing.T) {
 			}
 		})
 	}
-
 }

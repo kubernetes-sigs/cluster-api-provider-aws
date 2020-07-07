@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/a8m/envsubst v1.1.0
 	github.com/golang/mock v1.3.1
-	github.com/golangci/golangci-lint v1.23.8
+	github.com/golangci/golangci-lint v1.28.1
 	github.com/onsi/ginkgo v1.12.0
 	k8s.io/code-generator v0.18.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20200430151019-59a696e07b5e

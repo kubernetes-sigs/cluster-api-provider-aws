@@ -33,7 +33,7 @@ type Version struct {
 }
 
 // VersionCmd provides the version information clusterawsadm.
-func VersionCmd(out io.Writer) *cobra.Command { // nolint
+func VersionCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print version of clusterawsadm",

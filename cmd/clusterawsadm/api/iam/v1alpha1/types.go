@@ -16,9 +16,11 @@ limitations under the License.
 
 package v1alpha1
 
-type Effect string
-type ConditionOperator string
-type PrincipalType string
+type (
+	Effect            string
+	ConditionOperator string
+	PrincipalType     string
+)
 
 const (
 

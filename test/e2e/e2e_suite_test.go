@@ -125,7 +125,7 @@ func createBootstrapTemplate() bootstrap.Template {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	artifactPath, _ = os.LookupEnv("ARTIFACTS")
 	logPath = path.Join(artifactPath, "logs")
-	Expect(os.MkdirAll(filepath.Dir(logPath), 0755)).To(Succeed())
+	Expect(os.MkdirAll(filepath.Dir(logPath), 0o755)).To(Succeed())
 
 	fmt.Fprintf(GinkgoWriter, "Setting up kind cluster\n")
 
@@ -270,10 +270,10 @@ func watchLogs(namespace, deploymentName, logDir string) {
 
 				logFile := path.Join(logDir, deploymentName, pod.Name, container.Name+".log")
 				fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
-				Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+				Expect(os.MkdirAll(filepath.Dir(logFile), 0o755)).To(Succeed())
 
 				fmt.Fprintf(GinkgoWriter, "Creating file: %s\n", logFile)
-				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 				Expect(err).NotTo(HaveOccurred())
 				defer f.Close()
 
@@ -381,7 +381,7 @@ func deployCAPAComponents(kindCluster kind.Cluster) {
 
 	// write out the manifests
 	manifestFile := path.Join(suiteTmpDir, "infrastructure-components.yaml")
-	Expect(ioutil.WriteFile(manifestFile, []byte(manifestsContent), 0644)).To(Succeed())
+	Expect(ioutil.WriteFile(manifestFile, []byte(manifestsContent), 0o644)).To(Succeed())
 
 	// apply generated manifests
 	applyManifests(kindCluster, &manifestFile)

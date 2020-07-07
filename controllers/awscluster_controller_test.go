@@ -33,7 +33,6 @@ var _ = Describe("AWSClusterReconciler", func() {
 
 	Context("Reconcile an AWSCluster", func() {
 		It("should not error and not requeue the request with insufficient set up", func() {
-
 			ctx := context.Background()
 
 			reconciler := &AWSClusterReconciler{

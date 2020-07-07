@@ -21,9 +21,11 @@ package e2e_new
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	. "github.com/onsi/ginkgo"
 	corev1 "k8s.io/api/core/v1"
-	"path/filepath"
+
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 )

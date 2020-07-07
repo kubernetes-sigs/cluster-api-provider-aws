@@ -35,7 +35,6 @@ type testCase struct {
 }
 
 func Test_RenderCloudformation(t *testing.T) {
-
 	cases := []testCase{
 		{
 			fixture:  "default",

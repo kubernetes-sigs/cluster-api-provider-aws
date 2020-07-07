@@ -216,12 +216,12 @@ type AWSMachine struct {
 	Status AWSMachineStatus `json:"status,omitempty"`
 }
 
-func (m *AWSMachine) GetConditions() clusterv1.Conditions {
-	return m.Status.Conditions
+func (r *AWSMachine) GetConditions() clusterv1.Conditions {
+	return r.Status.Conditions
 }
 
-func (m *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
-	m.Status.Conditions = conditions
+func (r *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
+	r.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

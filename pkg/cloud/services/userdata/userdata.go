@@ -52,7 +52,7 @@ type baseUserData struct {
 	WriteFiles []Files
 }
 
-func generate(kind string, tpl string, data interface{}) (string, error) {
+func generate(kind, tpl string, data interface{}) (string, error) {
 	tm := template.New(kind).Funcs(defaultTemplateFuncMap)
 	if _, err := tm.Parse(filesTemplate); err != nil {
 		return "", errors.Wrap(err, "failed to parse files template")

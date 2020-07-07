@@ -51,7 +51,6 @@ func (s *Service) allocateAddress(role string) (string, error) {
 	out, err := s.scope.EC2.AllocateAddress(&ec2.AllocateAddressInput{
 		Domain: aws.String("vpc"),
 	})
-
 	if err != nil {
 		record.Warnf(s.scope.AWSCluster, "FailedAllocateEIP", "Failed to allocate Elastic IP for %q: %v", role, err)
 		return "", errors.Wrap(err, "failed to allocate Elastic IP")
@@ -115,7 +114,6 @@ func (s *Service) releaseAddresses() error {
 	out, err := s.scope.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{filter.EC2.Cluster(s.scope.Name())},
 	})
-
 	if err != nil {
 		return errors.Wrapf(err, "failed to describe elastic IPs %q", err)
 	}

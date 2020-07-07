@@ -84,7 +84,6 @@ func TestTags_Merge(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestTags_Difference(t *testing.T) {

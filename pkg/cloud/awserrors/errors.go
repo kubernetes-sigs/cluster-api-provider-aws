@@ -62,7 +62,7 @@ func Message(err error) string {
 }
 
 // EC2Error is an error exposed to users of this library.
-type EC2Error struct { //nolint
+type EC2Error struct {
 	err error
 
 	Code int

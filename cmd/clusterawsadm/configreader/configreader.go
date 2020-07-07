@@ -116,7 +116,6 @@ func resolveRelativePaths(paths []*string, root string) {
 
 // DecodeBootstrapConfiguration decodes a serialized AWSIAMConfiguration to the internal type
 func DecodeBootstrapConfiguration(bootstrapCodecs *serializer.CodecFactory, data []byte) (*bootstrapv1.AWSIAMConfiguration, error) {
-
 	obj := &bootstrapv1.AWSIAMConfiguration{}
 
 	if err := runtime.DecodeInto(bootstrapCodecs.UniversalDecoder(), data, obj); err != nil {

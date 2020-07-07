@@ -21,10 +21,6 @@ package e2e_test
 import (
 	"context"
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -32,6 +28,11 @@ import (
 	"strconv"
 	"text/template"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
 	"github.com/vmware-tanzu/sonobuoy/pkg/client"
 	sonodynamic "github.com/vmware-tanzu/sonobuoy/pkg/dynamic"
@@ -43,9 +44,7 @@ import (
 )
 
 var _ = Describe("conformance tests", func() {
-	var (
-		setup testSetup
-	)
+	var setup testSetup
 
 	BeforeEach(func() {
 		var err error
@@ -161,7 +160,6 @@ func runConformance(tmpDir, namespace, clusterName string) error {
 	eg.Go(func() error { return <-ec })
 	eg.Go(func() error {
 		filesCreated, err := client.UntarAll(reader, outputDir, strconv.Itoa(config.GinkgoConfig.ParallelNode))
-
 		if err != nil {
 			return errors.Wrap(err, "couldn't untar sonobuoy results")
 		}

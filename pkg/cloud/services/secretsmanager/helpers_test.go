@@ -83,5 +83,4 @@ func TestSplitBytes(t *testing.T) {
 		})
 		g.Expect(count).To(BeEquivalentTo(0))
 	})
-
 }

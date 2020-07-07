@@ -21,6 +21,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+
 	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/golang/mock/gomock"
@@ -35,9 +36,9 @@ import (
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope" //nolint
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services" //nolint
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/mock_services"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -129,7 +130,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 			},
 			Recorder: recorder,
 		}
-
 	})
 	AfterEach(func() {
 		mockCtrl.Finish()
@@ -137,7 +137,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 	Context("Reconciling an AWSMachine", func() {
 		When("we can't reach amazon", func() {
-			var expectedErr = errors.New("no connection available ")
+			expectedErr := errors.New("no connection available ")
 
 			BeforeEach(func() {
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, expectedErr).AnyTimes()
@@ -187,14 +187,13 @@ var _ = Describe("AWSMachineReconciler", func() {
 			})
 
 			It("should return an error when we can't list instances by tags", func() {
-
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs)
 				Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
 		})
 
 		When("there's a provider ID", func() {
-			var id = "aws:////myMachine"
+			id := "aws:////myMachine"
 			BeforeEach(func() {
 				_, err := noderefutil.NewProviderID(id)
 				Expect(err).To(BeNil())
@@ -318,7 +317,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 				})
 
 				It("should tag instances from machine and cluster tags", func() {
-
 					ms.AWSMachine.Spec.AdditionalTags = infrav1.Tags{"kind": "alicorn"}
 					ms.AWSCluster.Spec.AdditionalTags = infrav1.Tags{"colour": "lavender"}
 
@@ -471,7 +469,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 				ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs)
 			})
-
 		})
 
 		When("there's only a secret ARN and no node ref", func() {
@@ -546,11 +543,9 @@ var _ = Describe("AWSMachineReconciler", func() {
 				Expect(ms.GetSecretCount()).To(Equal(int32(1)))
 			})
 		})
-
 	})
 
 	Context("deleting an AWSMachine", func() {
-
 		BeforeEach(func() {
 			ms.AWSMachine.Finalizers = []string{
 				infrav1.MachineFinalizer,
@@ -630,7 +625,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 			When("instance can be shut down", func() {
 				BeforeEach(func() {
 					ec2Svc.EXPECT().TerminateInstanceAndWait(gomock.Any()).Return(nil)
-
 				})
 
 				When("there are network interfaces", func() {

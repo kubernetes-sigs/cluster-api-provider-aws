@@ -260,7 +260,6 @@ func TestReconcileRouteTables(t *testing.T) {
 					},
 				},
 			})
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}

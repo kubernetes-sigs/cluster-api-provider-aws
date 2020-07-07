@@ -19,9 +19,10 @@ package ec2
 import (
 	"fmt"
 	"math/rand"
-	"sigs.k8s.io/cluster-api/util/conditions"
 	"sort"
 	"strings"
+
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -297,7 +298,6 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 			),
 		},
 	})
-
 	if err != nil {
 		record.Warnf(s.scope.AWSCluster, "FailedCreateSubnet", "Failed creating new managed Subnet %v", err)
 		return nil, errors.Wrap(err, "failed to create subnet")
@@ -348,7 +348,6 @@ func (s *Service) deleteSubnet(id string) error {
 	_, err := s.scope.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
 		SubnetId: aws.String(id),
 	})
-
 	if err != nil {
 		record.Warnf(s.scope.AWSCluster, "FailedDeleteSubnet", "Failed to delete managed Subnet %q: %v", id, err)
 		return errors.Wrapf(err, "failed to delete subnet %q", id)

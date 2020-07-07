@@ -42,8 +42,10 @@ func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awscluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1alpha3,name=validation.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awscluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1alpha3,name=default.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None
 
-var _ webhook.Validator = &AWSCluster{}
-var _ webhook.Defaulter = &AWSCluster{}
+var (
+	_ webhook.Validator = &AWSCluster{}
+	_ webhook.Defaulter = &AWSCluster{}
+)
 
 func (r *AWSCluster) ValidateCreate() error {
 	var allErrs field.ErrorList

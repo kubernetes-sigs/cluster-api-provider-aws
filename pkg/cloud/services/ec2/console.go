@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"encoding/base64"
+
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"

@@ -17,19 +17,18 @@ limitations under the License.
 package ec2
 
 import (
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 func (s *Service) getAvailableZones() ([]string, error) {
 	out, err := s.scope.EC2.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
 		Filters: []*ec2.Filter{filter.EC2.Available()},
 	})
-
 	if err != nil {
 		record.Eventf(s.scope.AWSCluster, "FailedDescribeAvailableZone", "Failed getting available zones: %v", err)
 		return nil, errors.Wrap(err, "failed to describe availability zones")

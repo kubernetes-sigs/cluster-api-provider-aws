@@ -53,9 +53,7 @@ func TestGenerateELBName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			elbName, err := GenerateELBName(tt.name)
-
 			if err != nil {
 				t.Error(err)
 			}
@@ -67,7 +65,6 @@ func TestGenerateELBName(t *testing.T) {
 			if len(elbName) > 32 {
 				t.Errorf("ELB name too long: %v vs. %s", len(elbName), "32")
 			}
-
 		})
 	}
 }
@@ -125,5 +122,4 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 			}
 		})
 	}
-
 }

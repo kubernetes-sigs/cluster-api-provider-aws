@@ -16,7 +16,7 @@ limitations under the License.
 
 package secretsmanager
 
-//nolint
+// nolint
 const secretFetchScript = `#!/bin/bash
 
 # Copyright 2020 The Kubernetes Authors.

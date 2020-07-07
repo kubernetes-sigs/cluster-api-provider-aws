@@ -26,7 +26,8 @@ import (
 func TestTags_ComputeDiff(t *testing.T) {
 	pName := "test"
 	pRole := "testrole"
-	bp := infrav1.BuildParams{Lifecycle: infrav1.ResourceLifecycleOwned,
+	bp := infrav1.BuildParams{
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
 		ClusterName: "testcluster",
 		Name:        &pName,
 		Role:        &pRole,
@@ -41,37 +42,47 @@ func TestTags_ComputeDiff(t *testing.T) {
 		{
 			name:  "input is nil",
 			input: nil,
-			expected: infrav1.Tags{"Name": pName,
+			expected: infrav1.Tags{
+				"Name":                                pName,
 				"k1":                                  "v1",
 				infrav1.ClusterTagKey(bp.ClusterName): string(infrav1.ResourceLifecycleOwned),
-				infrav1.NameAWSClusterAPIRole:         pRole},
+				infrav1.NameAWSClusterAPIRole:         pRole,
+			},
 		},
 		{
 			name: "same input",
-			input: infrav1.Tags{"Name": pName,
+			input: infrav1.Tags{
+				"Name":                                pName,
 				"k1":                                  "v1",
 				infrav1.ClusterTagKey(bp.ClusterName): string(infrav1.ResourceLifecycleOwned),
-				infrav1.NameAWSClusterAPIRole:         pRole},
+				infrav1.NameAWSClusterAPIRole:         pRole,
+			},
 			expected: infrav1.Tags{},
 		},
 		{
 			name: "input with external tags",
-			input: infrav1.Tags{"Name": pName,
+			input: infrav1.Tags{
+				"Name":                                pName,
 				"k1":                                  "v1",
 				infrav1.ClusterTagKey(bp.ClusterName): string(infrav1.ResourceLifecycleOwned),
 				infrav1.NameAWSClusterAPIRole:         pRole,
-				"k2":                                  "v2"},
+				"k2":                                  "v2",
+			},
 			expected: infrav1.Tags{},
 		},
 		{
 			name: "input with modified values",
-			input: infrav1.Tags{"Name": pName,
+			input: infrav1.Tags{
+				"Name":                                pName,
 				"k1":                                  "v2",
 				infrav1.ClusterTagKey(bp.ClusterName): string(infrav1.ResourceLifecycleOwned),
 				infrav1.NameAWSClusterAPIRole:         "testrole2",
-				"k2":                                  "v2"},
-			expected: infrav1.Tags{"k1": "v1",
-				infrav1.NameAWSClusterAPIRole: pRole},
+				"k2":                                  "v2",
+			},
+			expected: infrav1.Tags{
+				"k1":                          "v1",
+				infrav1.NameAWSClusterAPIRole: pRole,
+			},
 		},
 	}
 	for _, tc := range tests {

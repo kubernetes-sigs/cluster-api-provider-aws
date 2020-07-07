@@ -235,7 +235,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				})).
 					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).
 					After(securityGroupNode)
-
 			},
 		},
 	}
@@ -259,7 +258,6 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					},
 				},
 			})
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}

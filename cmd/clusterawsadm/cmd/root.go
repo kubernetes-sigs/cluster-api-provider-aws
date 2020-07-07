@@ -72,7 +72,6 @@ func Execute() {
 		os.Exit(1)
 	}
 	if err := RootCmd().Execute(); err != nil {
-
 		os.Exit(1)
 	}
 

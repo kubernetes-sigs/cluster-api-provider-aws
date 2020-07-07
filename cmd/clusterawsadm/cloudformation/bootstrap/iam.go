@@ -51,7 +51,7 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 		}
 
 		fn := path.Join(policyDocDir, fmt.Sprintf("%s.json", pn))
-		err = ioutil.WriteFile(fn, []byte(pds), 0600)
+		err = ioutil.WriteFile(fn, []byte(pds), 0o600)
 		if err != nil {
 			return fmt.Errorf("failed to generate policy document for ManagedIAMPolicy %q: %v", pn, err)
 		}

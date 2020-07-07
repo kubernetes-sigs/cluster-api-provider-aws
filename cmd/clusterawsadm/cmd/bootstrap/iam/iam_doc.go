@@ -48,7 +48,6 @@ func printPolicyCmd() *cobra.Command {
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			template, err := getBootstrapTemplate(cmd)
 			if err != nil {
 				return err

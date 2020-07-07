@@ -125,7 +125,6 @@ func TestInstanceIfExists(t *testing.T) {
 							},
 						},
 					}, nil)
-
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -249,7 +248,6 @@ func TestTerminateInstance(t *testing.T) {
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{},
 			})
-
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
@@ -376,7 +374,6 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
-
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -493,7 +490,6 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
-
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -627,7 +623,6 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
-
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -757,7 +752,6 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
-
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
@@ -888,7 +882,6 @@ func TestCreateInstance(t *testing.T) {
 
 				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil)
-
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
