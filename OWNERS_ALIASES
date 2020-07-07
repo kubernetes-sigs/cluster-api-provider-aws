@@ -19,6 +19,7 @@ aliases:
     - chuckha
     - detiber
     - ncdc
+    - randomvariable
     - rudoi
     - vincepri
   cluster-api-aws-reviewers:
