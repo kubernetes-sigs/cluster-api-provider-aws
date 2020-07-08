@@ -116,7 +116,7 @@ type AWSLoadBalancerSpec struct {
 	//
 	// Defaults to false.
 	// +optional
-	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"`
+	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster

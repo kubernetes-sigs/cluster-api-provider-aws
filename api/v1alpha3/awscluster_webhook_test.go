@@ -45,7 +45,7 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "controlPlaneLoadBalancer is immutable",
+			name: "controlPlaneLoadBalancer scheme is immutable",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
@@ -61,6 +61,24 @@ func TestAWSCluster_ValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "controlPlaneLoadBalancer crossZoneLoadBalancer is mutable",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						CrossZoneLoadBalancing: false,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						CrossZoneLoadBalancing: true,
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "controlPlaneEndpoint is immutable",
