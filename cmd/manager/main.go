@@ -22,6 +22,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	mapiv1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/openshift/machine-api-operator/pkg/controller/machine"
+	"github.com/openshift/machine-api-operator/pkg/metrics"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
@@ -41,6 +42,12 @@ func main() {
 		"version",
 		false,
 		"print version and exit",
+	)
+
+	metricsAddress := flag.String(
+		"metrics-bind-address",
+		metrics.DefaultMachineMetricsAddress,
+		"Address for hosting metrics",
 	)
 
 	watchNamespace := flag.String(
@@ -95,10 +102,9 @@ func main() {
 		LeaderElectionNamespace: *leaderElectResourceNamespace,
 		LeaderElectionID:        "cluster-api-provider-aws-leader",
 		LeaseDuration:           leaderElectLeaseDuration,
+		HealthProbeBindAddress:  *healthAddr,
 		SyncPeriod:              &syncPeriod,
-		// Disable metrics serving
-		MetricsBindAddress:     "0",
-		HealthProbeBindAddress: *healthAddr,
+		MetricsBindAddress:      *metricsAddress,
 	}
 
 	if *watchNamespace != "" {

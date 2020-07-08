@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
+	"github.com/openshift/machine-api-operator/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
@@ -73,11 +74,15 @@ func (r *Reconciler) create() error {
 	}
 
 	if err = r.updateLoadBalancers(instance); err != nil {
+		metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
+			Name:      r.machine.Name,
+			Namespace: r.machine.Namespace,
+			Reason:    err.Error(),
+		})
 		return fmt.Errorf("failed to updated update load balancers: %w", err)
 	}
 
 	klog.Infof("Created Machine %v", r.machine.Name)
-
 	if err = r.setProviderID(instance); err != nil {
 		return fmt.Errorf("failed to update machine object with providerID: %w", err)
 	}
@@ -111,6 +116,11 @@ func (r *Reconciler) delete() error {
 
 	terminatingInstances, err := terminateInstances(r.awsClient, existingInstances)
 	if err != nil {
+		metrics.RegisterFailedInstanceDelete(&metrics.MachineLabels{
+			Name:      r.machine.Name,
+			Namespace: r.machine.Namespace,
+			Reason:    err.Error(),
+		})
 		return fmt.Errorf("failed to delete instaces: %w", err)
 	}
 
@@ -169,6 +179,11 @@ func (r *Reconciler) update() error {
 
 		err = r.updateLoadBalancers(newestInstance)
 		if err != nil {
+			metrics.RegisterFailedInstanceUpdate(&metrics.MachineLabels{
+				Name:      r.machine.Name,
+				Namespace: r.machine.Namespace,
+				Reason:    err.Error(),
+			})
 			return fmt.Errorf("failed to updated update load balancers: %w", err)
 		}
 	} else {
