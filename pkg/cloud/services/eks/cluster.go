@@ -52,9 +52,19 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 		s.scope.V(2).Info("Found EKS control plane: %s", *cluster.Name)
 	}
 
+	s.scope.ControlPlane.Status.Initialized = true
+	if err := s.scope.PatchObject(); err != nil {
+		return errors.Wrap(err, "failed to update control plane")
+	}
+
 	cluster, err = s.waitForClusterActive()
 	if err != nil {
 		return errors.Wrap(err, "failed to wait for cluster to be active")
+	}
+
+	s.scope.ControlPlane.Status.Ready = true
+	if err := s.scope.PatchObject(); err != nil {
+		return errors.Wrap(err, "failed to update control plane")
 	}
 
 	s.scope.V(2).Info("EKS Control Plane active endpoint: %s", *cluster.Endpoint)
