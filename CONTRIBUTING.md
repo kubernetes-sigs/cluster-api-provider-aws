@@ -12,4 +12,4 @@ Kubernetes projects require that you sign a Contributor License Agreement (CLA) 
 1. Fork the desired repo, develop and test your code changes.
 1. Submit a pull request.
   1. All code PR must be labeled with
-    ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, minor or feature additions), 🐛 (:bug:, patch and bugfixes), 📖 (:book:, documentation or proposals), or 🏃 (:running:, other)
+    ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, minor or feature additions), 🐛 (:bug:, patch and bugfixes), 📖 (:book:, documentation or proposals), or 🌱 (:seedling:, minor or other)
