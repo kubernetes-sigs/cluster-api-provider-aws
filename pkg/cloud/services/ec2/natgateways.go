@@ -193,7 +193,7 @@ func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
 		if out, err = s.scope.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
 			SubnetId:          aws.String(subnetID),
 			AllocationId:      aws.String(ip),
-			TagSpecifications: []*ec2.TagSpecification{tags.BuildParamsToTagSpecification(ec2.ResourceTypeNatgateway, s.getNatGatewayTagParams("not-created-yet"))},
+			TagSpecifications: []*ec2.TagSpecification{tags.BuildParamsToTagSpecification(ec2.ResourceTypeNatgateway, s.getNatGatewayTagParams(temporaryResourceID))},
 		}); err != nil {
 			return false, err
 		}

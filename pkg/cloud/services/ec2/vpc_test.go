@@ -162,6 +162,20 @@ func TestReconcileVPC(t *testing.T) {
 							State:     aws.String("available"),
 							VpcId:     aws.String("vpc-new"),
 							CidrBlock: aws.String("10.1.0.0/16"),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-vpc"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+							},
 						},
 					}, nil)
 
@@ -175,9 +189,6 @@ func TestReconcileVPC(t *testing.T) {
 					VpcIds: []*string{aws.String("vpc-new")},
 				})).
 					Return(nil)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
 			},
 		},
 	}

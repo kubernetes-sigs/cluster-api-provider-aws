@@ -119,7 +119,11 @@ func (s *Service) deleteInternetGateways() error {
 }
 
 func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
-	ig, err := s.scope.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{})
+	ig, err := s.scope.EC2.CreateInternetGateway(&ec2.CreateInternetGatewayInput{
+		TagSpecifications: []*ec2.TagSpecification{
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeInternetGateway, s.getGatewayTagParams(temporaryResourceID)),
+		},
+	})
 	if err != nil {
 		record.Warnf(s.scope.AWSCluster, "FailedCreateInternetGateway", "Failed to create new managed Internet Gateway: %v", err)
 		return nil, errors.Wrap(err, "failed to create internet gateway")
@@ -127,23 +131,6 @@ func (s *Service) createInternetGateway() (*ec2.InternetGateway, error) {
 	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateInternetGateway", "Created new managed Internet Gateway %q", *ig.InternetGateway.InternetGatewayId)
 	s.scope.Info("Created internet gateway for VPC", "vpc-id", s.scope.VPC().ID)
 
-	tagParams := s.getGatewayTagParams(*ig.InternetGateway.InternetGatewayId)
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if err := tags.Apply(&tags.ApplyParams{
-			EC2Client:   s.scope.EC2,
-			BuildParams: tagParams,
-		}); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.InternetGatewayNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", *ig.InternetGateway.InternetGatewayId, err)
-		return nil, errors.Wrapf(err, "failed to tag internet gateway %q", *ig.InternetGateway.InternetGatewayId)
-	}
-
-	// Update the tags, so that when ig.InternetGateway is returned it has the
-	// latest tag data rather than returning empty tags.
-	ig.InternetGateway.Tags = converters.MapToTags(infrav1.Build(tagParams))
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if _, err := s.scope.EC2.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 			InternetGatewayId: ig.InternetGateway.InternetGatewayId,

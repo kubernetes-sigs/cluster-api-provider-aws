@@ -290,6 +290,12 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		VpcId:            aws.String(s.scope.VPC().ID),
 		CidrBlock:        aws.String(sn.CidrBlock),
 		AvailabilityZone: aws.String(sn.AvailabilityZone),
+		TagSpecifications: []*ec2.TagSpecification{
+			tags.BuildParamsToTagSpecification(
+				ec2.ResourceTypeSubnet,
+				s.getSubnetTagParams(temporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
+			),
+		},
 	})
 
 	if err != nil {
@@ -303,21 +309,6 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	if err := s.scope.EC2.WaitUntilSubnetAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
-
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if err := tags.Apply(&tags.ApplyParams{
-			EC2Client:   s.scope.EC2,
-			BuildParams: s.getSubnetTagParams(*out.Subnet.SubnetId, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
-		}); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.SubnetNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", *out.Subnet.SubnetId, err)
-		return nil, errors.Wrapf(err, "failed to tag subnet %q", *out.Subnet.SubnetId)
-	}
-
-	record.Eventf(s.scope.AWSCluster, "SuccessfulTagSubnet", "Tagged managed Subnet %q", *out.Subnet.SubnetId)
 
 	if sn.IsPublic {
 		attReq := &ec2.ModifySubnetAttributeInput{
