@@ -24,8 +24,8 @@ import (
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
-	corev1 "k8s.io/api/core/v1"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 )

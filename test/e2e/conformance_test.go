@@ -30,10 +30,10 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 
+	"github.com/onsi/ginkgo/config"
+	"github.com/pkg/errors"
 	"github.com/vmware-tanzu/sonobuoy/pkg/client"
 	sonodynamic "github.com/vmware-tanzu/sonobuoy/pkg/dynamic"
 	"golang.org/x/sync/errgroup"

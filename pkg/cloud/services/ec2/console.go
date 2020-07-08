@@ -19,11 +19,10 @@ package ec2
 import (
 	"encoding/base64"
 
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 // GetConsoleOutput returns the latest console output of an instance

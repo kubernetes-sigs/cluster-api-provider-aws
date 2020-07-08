@@ -19,8 +19,6 @@ package ec2
 import (
 	"fmt"
 
-	"sigs.k8s.io/cluster-api/util/conditions"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
@@ -31,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (s *Service) reconcileInternetGateways() error {
