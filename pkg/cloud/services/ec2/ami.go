@@ -18,7 +18,6 @@ package ec2
 
 import (
 	"bytes"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sort"
 	"strings"
 	"text/template"
@@ -27,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 const (

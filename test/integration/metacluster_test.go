@@ -32,10 +32,7 @@ const (
 )
 
 var _ = Describe("Metacluster", func() {
-	var (
-		kindCluster kind.Cluster
-		// client      kubernetes.Interface
-	)
+	var kindCluster kind.Cluster
 	BeforeEach(func() {
 		kindCluster = kind.Cluster{
 			Name: "capa-test-" + util.RandomString(6),

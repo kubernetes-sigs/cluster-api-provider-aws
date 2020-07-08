@@ -43,7 +43,7 @@ func (s *Service) reconcileVPC() error {
 	s.scope.V(2).Info("Reconciling VPC")
 
 	vpc, err := s.describeVPC()
-	if awserrors.IsNotFound(err) {
+	if awserrors.IsNotFound(err) { // nolint:nestif
 		// Create a new managed vpc.
 		if !conditions.Has(s.scope.AWSCluster, infrav1.VpcReadyCondition) {
 			conditions.MarkFalse(s.scope.AWSCluster, infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")

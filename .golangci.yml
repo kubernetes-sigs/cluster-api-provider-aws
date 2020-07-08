@@ -11,6 +11,8 @@ linters:
     - whitespace
     - gocognit
     - gomnd
+    - godot
+    - goerr113
   # Run with --fast=false for more extensive checks
   fast: true
 issues:

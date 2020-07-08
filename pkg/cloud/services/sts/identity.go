@@ -31,7 +31,6 @@ func (s *Service) AccountID() (string, error) {
 	input := &sts.GetCallerIdentityInput{}
 
 	out, err := s.STS.GetCallerIdentity(input)
-
 	if err != nil {
 		return "", errors.Wrap(err, "unable to get caller identity")
 	}

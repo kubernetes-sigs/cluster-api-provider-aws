@@ -17,20 +17,19 @@ limitations under the License.
 package ec2
 
 import (
-	"sigs.k8s.io/cluster-api/util/conditions"
 	"strings"
-
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -83,7 +82,6 @@ func (s *Service) reconcileRouteTables() error {
 					if *currentRoute.DestinationCidrBlock == *specRoute.DestinationCidrBlock &&
 						((currentRoute.GatewayId != nil && *currentRoute.GatewayId != *specRoute.GatewayId) ||
 							(currentRoute.NatGatewayId != nil && *currentRoute.NatGatewayId != *specRoute.NatGatewayId)) {
-
 						if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 							if _, err := s.scope.EC2.ReplaceRoute(&ec2.ReplaceRouteInput{
 								RouteTableId:         rt.RouteTableId,
@@ -217,7 +215,6 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 	out, err := s.scope.EC2.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
 		Filters: filters,
 	})
-
 	if err != nil {
 		record.Eventf(s.scope.AWSCluster, "FailedDescribeVPCRouteTable", "Failed to describe route tables in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe route tables in vpc %q", s.scope.VPC().ID)

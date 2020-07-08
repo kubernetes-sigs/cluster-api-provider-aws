@@ -38,7 +38,7 @@ func (r *AWSMachineReconciler) updateMachineAnnotationJSON(machine *infrav1.AWSM
 
 // updateMachineAnnotation updates the `annotation` on the given `machine` with
 // `content`.
-func (r *AWSMachineReconciler) updateMachineAnnotation(machine *infrav1.AWSMachine, annotation string, content string) {
+func (r *AWSMachineReconciler) updateMachineAnnotation(machine *infrav1.AWSMachine, annotation, content string) {
 	// Get the annotations
 	annotations := machine.GetAnnotations()
 

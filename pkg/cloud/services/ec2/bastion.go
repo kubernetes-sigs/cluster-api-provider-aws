@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/base64"
 	"fmt"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
@@ -38,7 +39,6 @@ const (
 
 // ReconcileBastion ensures a bastion is created for the cluster
 func (s *Service) ReconcileBastion() error {
-
 	if !s.scope.AWSCluster.Spec.Bastion.Enabled {
 		s.scope.V(4).Info("Skipping bastion reconcile")
 		_, err := s.describeBastionInstance()
@@ -65,7 +65,7 @@ func (s *Service) ReconcileBastion() error {
 
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance()
-	if awserrors.IsNotFound(err) {
+	if awserrors.IsNotFound(err) { // nolint:nestif
 		if !conditions.Has(s.scope.AWSCluster, infrav1.BastionHostReadyCondition) {
 			conditions.MarkFalse(s.scope.AWSCluster, infrav1.BastionHostReadyCondition, infrav1.BastionCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
 			if err := s.scope.PatchObject(); err != nil {

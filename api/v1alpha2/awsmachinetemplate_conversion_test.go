@@ -50,7 +50,6 @@ func TestConvertAWSMachineTemplate(t *testing.T) {
 			g.Expect(src.ConvertTo(dst)).To(gomega.Succeed())
 			g.Expect(dst.Spec.Template.Spec.RootVolume.Size).To(gomega.Equal(int64(10)))
 		})
-
 	})
 
 	t.Run("from hub", func(t *testing.T) {
@@ -111,5 +110,4 @@ func TestConvertAWSMachineTemplate(t *testing.T) {
 			g.Expect(restored).To(gomega.Equal(src))
 		})
 	})
-
 }

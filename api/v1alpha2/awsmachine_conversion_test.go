@@ -113,7 +113,6 @@ func TestConvertAWSMachine(t *testing.T) {
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.RootVolume.Size).To(Equal(int64(10)))
 		})
-
 	})
 
 	t.Run("should prefer newer cloudinit data on the v1alpha2 obj", func(t *testing.T) {

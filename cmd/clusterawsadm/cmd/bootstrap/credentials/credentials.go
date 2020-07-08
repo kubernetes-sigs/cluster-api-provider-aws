@@ -116,7 +116,6 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 		` + CredentialHelp + EncodingHelp),
 		Example: cmd.Examples(examples),
 		RunE: func(c *cobra.Command, args []string) error {
-
 			flags.CredentialWarning(c)
 
 			output, err := getOutputFlag(c)

@@ -45,7 +45,6 @@ const (
 )
 
 func TestReconcileSubnets(t *testing.T) {
-
 	testCases := []struct {
 		name          string
 		input         *infrav1.NetworkSpec
@@ -615,7 +614,6 @@ func TestReconcileSubnets(t *testing.T) {
 				}).
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
-
 			},
 		},
 		{
@@ -824,7 +822,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(secondSubnet)
-
 			},
 		},
 		{
@@ -1087,7 +1084,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailable(gomock.Any()).
 					After(zone2PrivateSubnet)
-
 			},
 		},
 		{

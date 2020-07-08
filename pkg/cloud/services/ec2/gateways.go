@@ -18,7 +18,6 @@ package ec2
 
 import (
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/conditions"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -30,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (s *Service) reconcileInternetGateways() error {
@@ -155,7 +155,6 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 			filter.EC2.VPCAttachment(s.scope.VPC().ID),
 		},
 	})
-
 	if err != nil {
 		record.Eventf(s.scope.AWSCluster, "FailedDescribeInternetGateway", "Failed to describe internet gateways in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe internet gateways in vpc %q", s.scope.VPC().ID)

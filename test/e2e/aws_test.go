@@ -22,14 +22,14 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-
-	"os" // used in watchEvents
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"os" // used in watchEvents
 
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
@@ -255,7 +255,6 @@ var _ = Describe("functional tests", func() {
 			By("Deleting retained dynamically provisioned volumes")
 			deleteRetainedVolumes(awsVolIds)
 			By("PASSED!")
-
 		})
 	})
 
@@ -377,7 +376,6 @@ var _ = Describe("functional tests", func() {
 
 	Describe("MachineDeployment will replace a deleted Machine", func() {
 		It("It should reconcile the deleted machine", func() {
-
 			setup, cancelFunc := setup1()
 			defer cancelFunc()
 			By("Creating a workload cluster with single control plane")
@@ -445,7 +443,6 @@ var _ = Describe("functional tests", func() {
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
 			By("PASSED!")
-
 		})
 	})
 
@@ -529,7 +526,6 @@ var _ = Describe("functional tests", func() {
 			By("Deleting the Cluster")
 			deleteCluster(setup.namespace, setup.clusterName)
 			By("PASSED!")
-
 		})
 	})
 })
@@ -537,9 +533,9 @@ var _ = Describe("functional tests", func() {
 func watchEvents(ctx context.Context, namespace string) {
 	logFile := path.Join(artifactPath, "resources", namespace, "events.log")
 	fmt.Fprintf(GinkgoWriter, "Creating directory: %s\n", filepath.Dir(logFile))
-	Expect(os.MkdirAll(filepath.Dir(logFile), 0755)).To(Succeed())
+	Expect(os.MkdirAll(filepath.Dir(logFile), 0o755)).To(Succeed())
 
-	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	Expect(err).NotTo(HaveOccurred())
 	defer f.Close()
 
@@ -873,7 +869,7 @@ func createLBService(svcNamespace string, svcName string, k8sclient crclient.Cli
 		},
 	}
 	createService(svcName, svcNamespace, nil, svcSpec, k8sclient)
-	//this sleep is required for the service to get updated with ingress details
+	// this sleep is required for the service to get updated with ingress details
 	time.Sleep(15 * time.Second)
 	svcCreated := &corev1.Service{}
 	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: svcNamespace, Name: svcName}, svcCreated)
@@ -917,7 +913,7 @@ func createClusterKubeConfigs(tmpDir, namespace, clusterName string) (string, cr
 	Expect(err).NotTo(HaveOccurred())
 
 	kubeConfigPath := path.Join(tmpDir, clusterName+".kubeconfig")
-	Expect(ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0640)).To(Succeed())
+	Expect(ioutil.WriteFile(kubeConfigPath, kubeConfigData, 0o640)).To(Succeed())
 
 	kubeConfigData, readErr := ioutil.ReadFile(kubeConfigPath)
 	Expect(readErr).NotTo(HaveOccurred())
@@ -1672,29 +1668,29 @@ func makeAWSCluster(namespace, name string, multipleAZ bool) {
 		azs := getAvailabilityZone()
 		availabilityZones = append(availabilityZones, azs[0].ZoneName, azs[1].ZoneName, azs[2].ZoneName)
 		subnets := []*infrav1.SubnetSpec{
-			&infrav1.SubnetSpec{
+			{
 				CidrBlock:        privateCIDRs[0],
 				AvailabilityZone: *availabilityZones[0],
 			},
-			&infrav1.SubnetSpec{
+			{
 				CidrBlock:        publicCIDRs[0],
 				AvailabilityZone: *availabilityZones[0],
 				IsPublic:         true,
 			},
-			&infrav1.SubnetSpec{
+			{
 				CidrBlock:        privateCIDRs[1],
 				AvailabilityZone: *availabilityZones[1],
 			},
-			&infrav1.SubnetSpec{
+			{
 				CidrBlock:        publicCIDRs[1],
 				AvailabilityZone: *availabilityZones[1],
 				IsPublic:         true,
 			},
-			&infrav1.SubnetSpec{
+			{
 				CidrBlock:        privateCIDRs[2],
 				AvailabilityZone: *availabilityZones[2],
 			},
-			&infrav1.SubnetSpec{
+			{
 				CidrBlock:        publicCIDRs[2],
 				AvailabilityZone: *availabilityZones[2],
 				IsPublic:         true,

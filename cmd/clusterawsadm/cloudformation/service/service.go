@@ -54,7 +54,7 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template) e
 		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
 	}
 
-	if err := s.createStack(stackName, processedYaml); err != nil {
+	if err := s.createStack(stackName, processedYaml); err != nil { // nolint:nestif
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
 			klog.Infof("AWS Cloudformation stack %q already exists, updating", stackName)
 			updateErr := s.updateStack(stackName, processedYaml)
@@ -72,8 +72,7 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template) e
 	return nil
 }
 
-func (s *Service) createStack(stackName string, yaml string) error {
-
+func (s *Service) createStack(stackName, yaml string) error {
 	input := &cfn.CreateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
 		TemplateBody: aws.String(yaml),
@@ -94,8 +93,7 @@ func (s *Service) createStack(stackName string, yaml string) error {
 	return nil
 }
 
-func (s *Service) updateStack(stackName string, yaml string) error {
-
+func (s *Service) updateStack(stackName, yaml string) error {
 	input := &cfn.UpdateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
 		TemplateBody: aws.String(yaml),
@@ -138,7 +136,6 @@ func (s *Service) ShowStackResources(stackName string) error {
 		StackName: aws.String(stackName),
 	}
 	out, err := s.CFN.DescribeStackResources(input)
-
 	if err != nil {
 		return errors.Wrap(err, "unable to describe stack resources")
 	}

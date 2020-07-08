@@ -48,7 +48,7 @@ func NewBackoff() wait.Backoff {
 }
 
 // WaitForWithRetryable repeats a condition check with exponential backoff.
-func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, retryableErrors ...string) error { //nolint
+func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, retryableErrors ...string) error {
 	var errToReturn error
 	waitErr := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		// clear errToReturn value from previous iteration

@@ -48,7 +48,6 @@ func printCloudFormationTemplateCmd() *cobra.Command {
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			t, err := getBootstrapTemplate(cmd)
 			if err != nil {
 				return err
@@ -88,7 +87,6 @@ func createCloudFormationStackCmd() *cobra.Command {
 		clusterawsadm bootstrap iam create-cloudformation-stack --config bootstrap_config.yaml
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			t, err := getBootstrapTemplate(cmd)
 			if err != nil {
 				return err
@@ -112,7 +110,6 @@ func createCloudFormationStackCmd() *cobra.Command {
 			}
 
 			return cfnSvc.ShowStackResources(t.Spec.StackName)
-
 		},
 	}
 	addConfigFlag(newCmd)
@@ -132,7 +129,6 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 			AWS.
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-
 			t, err := getBootstrapTemplate(cmd)
 			if err != nil {
 				return err
@@ -161,7 +157,6 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 			}
 
 			return cfnSvc.ShowStackResources(t.Spec.StackName)
-
 		},
 	}
 	addConfigFlag(newCmd)

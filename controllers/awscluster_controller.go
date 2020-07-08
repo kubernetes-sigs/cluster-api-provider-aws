@@ -20,7 +20,6 @@ import (
 	"context"
 	"net"
 	"reflect"
-	"sigs.k8s.io/cluster-api/util/conditions"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -33,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -104,7 +104,8 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
-			infrav1.LoadBalancerReadyCondition}
+			infrav1.LoadBalancerReadyCondition,
+		}
 
 		if clusterScope.VPC().IsManaged(clusterScope.Name()) {
 			applicableConditions = append(applicableConditions,
@@ -250,7 +251,6 @@ func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			},
 		).
 		Build(r)
-
 	if err != nil {
 		return errors.Wrap(err, "error creating controller")
 	}

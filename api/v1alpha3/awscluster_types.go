@@ -157,12 +157,12 @@ type AWSClusterList struct {
 	Items           []AWSCluster `json:"items"`
 }
 
-func (c *AWSCluster) GetConditions() clusterv1.Conditions {
-	return c.Status.Conditions
+func (r *AWSCluster) GetConditions() clusterv1.Conditions {
+	return r.Status.Conditions
 }
 
-func (c *AWSCluster) SetConditions(conditions clusterv1.Conditions) {
-	c.Status.Conditions = conditions
+func (r *AWSCluster) SetConditions(conditions clusterv1.Conditions) {
+	r.Status.Conditions = conditions
 }
 
 func init() {

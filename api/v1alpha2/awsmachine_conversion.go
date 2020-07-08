@@ -25,7 +25,7 @@ import (
 )
 
 // ConvertTo converts this AWSMachine to the Hub version (v1alpha3).
-func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1alpha3.AWSMachine)
 
 	if err := Convert_v1alpha2_AWSMachine_To_v1alpha3_AWSMachine(src, dst, nil); err != nil {
@@ -43,7 +43,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	return nil
 }
 
-func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1alpha3.AWSMachineSpec) {
+func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec) {
 	dst.ImageLookupFormat = restored.ImageLookupFormat
 	dst.ImageLookupBaseOS = restored.ImageLookupBaseOS
 
@@ -62,7 +62,7 @@ func restoreAWSMachineSpec(restored *infrav1alpha3.AWSMachineSpec, dst *infrav1a
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
-func (dst *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint:golint,stylecheck
 	src := srcRaw.(*infrav1alpha3.AWSMachine)
 	if err := Convert_v1alpha3_AWSMachine_To_v1alpha2_AWSMachine(src, dst, nil); err != nil {
 		return err
@@ -77,20 +77,20 @@ func (dst *AWSMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 }
 
 // ConvertTo converts this AWSMachineList to the Hub version (v1alpha3).
-func (src *AWSMachineList) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *AWSMachineList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1alpha3.AWSMachineList)
 	return Convert_v1alpha2_AWSMachineList_To_v1alpha3_AWSMachineList(src, dst, nil)
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
-func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *AWSMachineList) ConvertFrom(srcRaw conversion.Hub) error { // nolint:golint,stylecheck
 	src := srcRaw.(*infrav1alpha3.AWSMachineList)
 	return Convert_v1alpha3_AWSMachineList_To_v1alpha2_AWSMachineList(src, dst, nil)
 }
 
 // Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec converts this AWSMachineSpec to the Hub version (v1alpha3).
 // Requires manual conversion as infrav1alpha2.AWSMachineSpec.RootDeviceSize does not exist in AWSMachineSpec.
-func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSpec, out *infrav1alpha3.AWSMachineSpec, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSpec, out *infrav1alpha3.AWSMachineSpec, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in, out, s); err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSp
 
 // Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec converts from the Hub version (v1alpha3) of the AWSMachineSpec to this version.
 // Requires manual conversion as infrav1alpha3.AWSMachineSpec.ImageLookupBaseOS does not exist in AWSMachineSpec.
-func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha3.AWSMachineSpec, out *AWSMachineSpec, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha3.AWSMachineSpec, out *AWSMachineSpec, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in, out, s); err != nil {
 		return err
 	}
@@ -130,7 +130,6 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 	// Manually convert SSHKeyName
 	if in.SSHKeyName != nil {
 		out.SSHKeyName = *in.SSHKeyName
-
 	}
 	out.CloudInit = &CloudInit{}
 	if err := Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(&in.CloudInit, out.CloudInit, s); err != nil {
@@ -147,7 +146,7 @@ func Convert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *infrav1alpha
 }
 
 // Convert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus converts this AWSMachineStatus to the Hub version (v1alpha3).
-func Convert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSMachineStatus, out *infrav1alpha3.AWSMachineStatus, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSMachineStatus, out *infrav1alpha3.AWSMachineStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in, out, s); err != nil {
 		return err
 	}
@@ -160,7 +159,7 @@ func Convert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSMachi
 }
 
 // Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus converts from the Hub version (v1alpha3) of the AWSMachineStatus to this version.
-func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1alpha3.AWSMachineStatus, out *AWSMachineStatus, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1alpha3.AWSMachineStatus, out *AWSMachineStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in, out, s); err != nil {
 		return err
 	}
@@ -173,7 +172,7 @@ func Convert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *infrav1a
 }
 
 // Convert_v1alpha2_Instance_To_v1alpha3_Instance converts this Instance to the Hub version (v1alpha3).
-func Convert_v1alpha2_Instance_To_v1alpha3_Instance(in *Instance, out *infrav1alpha3.Instance, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha2_Instance_To_v1alpha3_Instance(in *Instance, out *infrav1alpha3.Instance, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_Instance_To_v1alpha3_Instance(in, out, s); err != nil {
 		return err
 	}
@@ -189,7 +188,7 @@ func Convert_v1alpha2_Instance_To_v1alpha3_Instance(in *Instance, out *infrav1al
 }
 
 // Convert_v1alpha3_Instance_To_v1alpha2_Instance converts from the Hub version (v1alpha3) of the Instance to this version.
-func Convert_v1alpha3_Instance_To_v1alpha2_Instance(in *infrav1alpha3.Instance, out *Instance, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha3_Instance_To_v1alpha2_Instance(in *infrav1alpha3.Instance, out *Instance, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha3_Instance_To_v1alpha2_Instance(in, out, s); err != nil {
 		return err
 	}
@@ -201,7 +200,7 @@ func Convert_v1alpha3_Instance_To_v1alpha2_Instance(in *infrav1alpha3.Instance, 
 	return nil
 }
 
-func Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in *CloudInit, out *infrav1alpha3.CloudInit, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in *CloudInit, out *infrav1alpha3.CloudInit, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in, out, s); err != nil {
 		return err
 	}
@@ -211,7 +210,7 @@ func Convert_v1alpha2_CloudInit_To_v1alpha3_CloudInit(in *CloudInit, out *infrav
 	return nil
 }
 
-func Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in *infrav1alpha3.CloudInit, out *CloudInit, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in *infrav1alpha3.CloudInit, out *CloudInit, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in, out, s); err != nil {
 		return err
 	}

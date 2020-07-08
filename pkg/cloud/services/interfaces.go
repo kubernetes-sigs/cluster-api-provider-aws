@@ -32,7 +32,7 @@ type EC2MachineInterface interface {
 	GetCoreSecurityGroups(machine *scope.MachineScope) ([]string, error)
 	GetInstanceSecurityGroups(instanceID string) (map[string][]string, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
-	UpdateResourceTags(resourceID *string, create map[string]string, remove map[string]string) error
+	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 
 	TerminateInstanceAndWait(instanceID string) error
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error

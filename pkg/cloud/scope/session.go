@@ -23,9 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
-var (
-	sessionCache sync.Map
-)
+var sessionCache sync.Map
 
 func sessionForRegion(region string) (*session.Session, error) {
 	s, ok := sessionCache.Load(region)

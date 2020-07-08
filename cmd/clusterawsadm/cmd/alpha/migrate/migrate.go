@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awstags "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
@@ -39,7 +40,7 @@ var (
 
 // MigrateCmd is the command for migrating AWS resources to be compatible
 // with specific CAPA versions
-func MigrateCmd() *cobra.Command { // nolint
+func MigrateCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "migrate [target version]",
 		Short: "migrate between CAPA versions",
@@ -94,7 +95,7 @@ Supported versions: %v`, supportedVersions),
 
 	newCmd.Flags().StringVarP(&clusterName, "clusterName", "n", "", "name of existing Cluster object")
 	if err := newCmd.MarkFlagRequired("clusterName"); err != nil {
-		_ = fmt.Errorf("error making required flag")
+		panic(errors.Wrap(err, "error making required flag"))
 	}
 	flags.MarkAlphaDeprecated(newCmd)
 	return newCmd
@@ -128,7 +129,6 @@ func getResourcesByCluster(svc *awstags.ResourceGroupsTaggingAPI, name string) (
 }
 
 func applyNewTags(svc *awstags.ResourceGroupsTaggingAPI, arns []*string, name string) error {
-
 	for i := 0; i <= (len(arns) / maxARNs); i++ {
 		end := (i + 1) * maxARNs
 		if end > len(arns) {

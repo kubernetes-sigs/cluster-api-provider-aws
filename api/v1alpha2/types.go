@@ -445,6 +445,8 @@ func (i *IngressRule) Equals(o *IngressRule) bool {
 		SecurityGroupProtocolICMP,
 		SecurityGroupProtocolICMPv6:
 		return i.FromPort == o.FromPort && i.ToPort == o.ToPort
+	case SecurityGroupProtocolAll, SecurityGroupProtocolIPinIP:
+		// FromPort / ToPort are not applicable
 	}
 
 	return true

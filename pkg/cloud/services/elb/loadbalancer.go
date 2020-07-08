@@ -46,7 +46,6 @@ func (s *Service) ReconcileLoadbalancers() error {
 
 	// Get default api server spec.
 	spec, err := s.getAPIServerClassicELBSpec()
-
 	if err != nil {
 		return err
 	}
@@ -154,7 +153,7 @@ func (s *Service) DeleteLoadbalancers() error {
 }
 
 // RegisterInstanceWithClassicELB registers an instance with a classic ELB
-func (s *Service) RegisterInstanceWithClassicELB(instanceID string, loadBalancer string) error {
+func (s *Service) RegisterInstanceWithClassicELB(instanceID, loadBalancer string) error {
 	input := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
 		LoadBalancerName: aws.String(loadBalancer),
@@ -476,7 +475,6 @@ func (s *Service) listByTag(tag string) ([]string, error) {
 		}
 		return true
 	})
-
 	if err != nil {
 		record.Eventf(s.scope.AWSCluster, "FailedListELBsByTag", "Failed to list %s ELB by Tags: %v", s.scope.Name(), err)
 		return nil, errors.Wrapf(err, "failed to list %s ELBs by tag group", s.scope.Name())
@@ -537,7 +535,6 @@ func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 	outAtt, err := s.scope.ELB.DescribeLoadBalancerAttributes(&elb.DescribeLoadBalancerAttributesInput{
 		LoadBalancerName: aws.String(name),
 	})
-
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to describe classic load balancer %q attributes", name)
 	}

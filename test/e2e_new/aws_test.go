@@ -90,7 +90,6 @@ var _ = Describe("functional tests", func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, namespace, cancelWatches, e2eConfig.GetIntervals, skipCleanup)
 	})
-
 })
 
 func createCluster(ctx context.Context, clusterName string, namespace string) *clusterv1.Cluster {
@@ -132,7 +131,7 @@ func createLBService(svcNamespace string, svcName string, k8sclient crclient.Cli
 		},
 	}
 	createService(svcName, svcNamespace, nil, svcSpec, k8sclient)
-	//this sleep is required for the service to get updated with ingress details
+	// this sleep is required for the service to get updated with ingress details
 	time.Sleep(15 * time.Second)
 	svcCreated := &corev1.Service{}
 	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: svcNamespace, Name: svcName}, svcCreated)

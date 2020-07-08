@@ -216,7 +216,8 @@ func (s *ClusterScope) PatchObject() error {
 			infrav1.RouteTablesReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
 			infrav1.BastionHostReadyCondition,
-			infrav1.LoadBalancerReadyCondition}})
+			infrav1.LoadBalancerReadyCondition,
+		}})
 }
 
 // Close closes the current scope persisting the cluster configuration and status.

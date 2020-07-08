@@ -26,12 +26,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	defaultTemplateFuncMap = template.FuncMap{
-		"Base64Encode": templateBase64Encode,
-		"Indent":       templateYAMLIndent,
-	}
-)
+var defaultTemplateFuncMap = template.FuncMap{
+	"Base64Encode": templateBase64Encode,
+	"Indent":       templateYAMLIndent,
+}
 
 func templateBase64Encode(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))

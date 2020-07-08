@@ -42,5 +42,4 @@ func TestConvertAWSCluster(t *testing.T) {
 			g.Expect(restored.Spec.SSHKeyName).To(BeNil())
 		})
 	})
-
 }

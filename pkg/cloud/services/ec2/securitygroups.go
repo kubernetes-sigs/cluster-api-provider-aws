@@ -18,20 +18,19 @@ package ec2
 
 import (
 	"fmt"
-	"sigs.k8s.io/cluster-api/util/conditions"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/pkg/errors"
 	errlist "k8s.io/apimachinery/pkg/util/errors"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -224,7 +223,6 @@ func (s *Service) describeClusterOwnedSecurityGroups() ([]infrav1.SecurityGroup,
 		}
 		return true
 	})
-
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to describe cluster-owned security groups in vpc %q", s.scope.VPC().ID)
 	}
@@ -276,7 +274,6 @@ func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2
 			tags.BuildParamsToTagSpecification(ec2.ResourceTypeSecurityGroup, sgTags),
 		},
 	})
-
 	if err != nil {
 		record.Warnf(s.scope.AWSCluster, "FailedCreateSecurityGroup", "Failed to create managed SecurityGroup for Role %q: %v", role, err)
 		return errors.Wrapf(err, "failed to create security group %q in vpc %q", role, aws.StringValue(input.VpcId))
@@ -468,7 +465,7 @@ func (s *Service) getDefaultSecurityGroup(role infrav1.SecurityGroupRole) *ec2.S
 	}
 }
 
-func (s *Service) getSecurityGroupTagParams(name string, id string, role infrav1.SecurityGroupRole) infrav1.BuildParams {
+func (s *Service) getSecurityGroupTagParams(name, id string, role infrav1.SecurityGroupRole) infrav1.BuildParams {
 	additional := s.scope.AdditionalTags()
 	if role == infrav1.SecurityGroupLB {
 		additional[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
@@ -497,7 +494,7 @@ func ingressRuleToSDKType(i *infrav1.IngressRule) (res *ec2.IpPermission) {
 			FromPort:   aws.Int64(i.FromPort),
 			ToPort:     aws.Int64(i.ToPort),
 		}
-	default:
+	case infrav1.SecurityGroupProtocolAll, infrav1.SecurityGroupProtocolIPinIP:
 		res = &ec2.IpPermission{
 			IpProtocol: aws.String(string(i.Protocol)),
 		}

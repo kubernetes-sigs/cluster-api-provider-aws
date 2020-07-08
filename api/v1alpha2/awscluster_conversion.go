@@ -28,7 +28,7 @@ import (
 )
 
 // ConvertTo converts this AWSCluster to the Hub version (v1alpha3).
-func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1alpha3.AWSCluster)
 
 	if err := Convert_v1alpha2_AWSCluster_To_v1alpha3_AWSCluster(src, dst, nil); err != nil {
@@ -83,7 +83,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
-func (dst *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint:golint,stylecheck
 	src := srcRaw.(*infrav1alpha3.AWSCluster)
 
 	if err := Convert_v1alpha3_AWSCluster_To_v1alpha2_AWSCluster(src, dst, nil); err != nil {
@@ -109,19 +109,19 @@ func (dst *AWSCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 }
 
 // ConvertTo converts this AWSClusterList to the Hub version (v1alpha3).
-func (src *AWSClusterList) ConvertTo(dstRaw conversion.Hub) error { // nolint
+func (src *AWSClusterList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1alpha3.AWSClusterList)
 	return Convert_v1alpha2_AWSClusterList_To_v1alpha3_AWSClusterList(src, dst, nil)
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
-func (dst *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error { // nolint
+func (dst *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error { // nolint:golint,stylecheck
 	src := srcRaw.(*infrav1alpha3.AWSClusterList)
 	return Convert_v1alpha3_AWSClusterList_To_v1alpha2_AWSClusterList(src, dst, nil)
 }
 
 // Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus converts AWSCluster.Status from v1alpha2 to v1alpha3.
-func Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSClusterStatus, out *v1alpha3.AWSClusterStatus, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSClusterStatus, out *v1alpha3.AWSClusterStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in, out, s); err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func Convert_v1alpha2_AWSClusterStatus_To_v1alpha3_AWSClusterStatus(in *AWSClust
 }
 
 // Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec.
-func Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *AWSClusterSpec, out *infrav1alpha3.AWSClusterSpec, s apiconversion.Scope) error { //nolint
+func Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *AWSClusterSpec, out *infrav1alpha3.AWSClusterSpec, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in, out, s); err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func Convert_v1alpha2_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *AWSClusterSp
 
 // Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec converts from the Hub version (v1alpha3) of the AWSClusterSpec to this version.
 // Requires manual conversion as infrav1alpha3.AWSClusterSpec.ImageLookupOrg does not exist in AWSClusterSpec.
-func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha3.AWSClusterSpec, out *AWSClusterSpec, s apiconversion.Scope) error { // nolint
+func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha3.AWSClusterSpec, out *AWSClusterSpec, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in, out, s); err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func Convert_v1alpha3_AWSClusterSpec_To_v1alpha2_AWSClusterSpec(in *infrav1alpha
 }
 
 // Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus.
-func Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *infrav1alpha3.AWSClusterStatus, out *AWSClusterStatus, s apiconversion.Scope) error { //nolint
+func Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *infrav1alpha3.AWSClusterStatus, out *AWSClusterStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in, out, s); err != nil {
 		return err
 	}
@@ -187,16 +187,16 @@ func Convert_v1alpha3_AWSClusterStatus_To_v1alpha2_AWSClusterStatus(in *infrav1a
 }
 
 // Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB.
-func Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(in *infrav1alpha3.ClassicELB, out *ClassicELB, s apiconversion.Scope) error { //nolint
+func Convert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(in *infrav1alpha3.ClassicELB, out *ClassicELB, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_ClassicELB_To_v1alpha2_ClassicELB(in, out, s)
 }
 
 // Convert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec.
-func Convert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in *infrav1alpha3.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error { //nolint
+func Convert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in *infrav1alpha3.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in, out, s)
 }
 
-func Convert_v1alpha3_ClassicELBAttributes_To_v1alpha2_ClassicELBAttributes(in *infrav1alpha3.ClassicELBAttributes, out *ClassicELBAttributes, s apiconversion.Scope) error { //nolint
+func Convert_v1alpha3_ClassicELBAttributes_To_v1alpha2_ClassicELBAttributes(in *infrav1alpha3.ClassicELBAttributes, out *ClassicELBAttributes, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_ClassicELBAttributes_To_v1alpha2_ClassicELBAttributes(in, out, s)
 }
 
@@ -205,7 +205,7 @@ func Convert_v1alpha3_VPCSpec_To_v1alpha2_VPCSpec(in *infrav1alpha3.VPCSpec, out
 	return autoConvert_v1alpha3_VPCSpec_To_v1alpha2_VPCSpec(in, out, s)
 }
 
-//Convert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec
+// Convert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec
 func Convert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *infrav1alpha3.NetworkSpec, out *NetworkSpec, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in, out, s)
 }

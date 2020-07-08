@@ -266,7 +266,8 @@ func (m *MachineScope) PatchObject() error {
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			infrav1.InstanceReadyCondition,
 			infrav1.SecurityGroupsReadyCondition,
-			infrav1.ELBAttachedCondition}})
+			infrav1.ELBAttachedCondition,
+		}})
 }
 
 // Close the MachineScope by updating the machine spec, machine status.
