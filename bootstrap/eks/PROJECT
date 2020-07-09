@@ -1,0 +1,10 @@
+domain: cluster.x-k8s.io
+repo: sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks
+resources:
+- group: bootstrap
+  kind: EKSConfig
+  version: v1alpha3
+- group: bootstrap
+  kind: EKSConfigTemplate
+  version: v1alpha3
+version: "2"
