@@ -140,6 +140,7 @@ func TestReconcileNatGateways(t *testing.T) {
 				).Return(&ec2.CreateNatGatewayOutput{
 					NatGateway: &ec2.NatGateway{
 						NatGatewayId: aws.String("natgateway"),
+						SubnetId:     aws.String("subnet-1"),
 					},
 				}, nil)
 
@@ -228,6 +229,7 @@ func TestReconcileNatGateways(t *testing.T) {
 				}).Return(&ec2.CreateNatGatewayOutput{
 					NatGateway: &ec2.NatGateway{
 						NatGatewayId: aws.String("natgateway"),
+						SubnetId:     aws.String("subnet-3"),
 					},
 				}, nil)
 

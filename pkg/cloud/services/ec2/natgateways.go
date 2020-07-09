@@ -67,6 +67,8 @@ func (s *Service) reconcileNatGateways() error {
 		return err
 	}
 
+	subnetIDs := []string{}
+
 	for _, sn := range s.scope.Subnets().FilterPublic() {
 		if sn.ID == "" {
 			continue
@@ -90,6 +92,11 @@ func (s *Service) reconcileNatGateways() error {
 			continue
 		}
 
+		subnetIDs = append(subnetIDs, sn.ID)
+	}
+
+	// Batch the creation of NAT gateways
+	if len(subnetIDs) > 0 {
 		// set NatGatewayCreationStarted if the condition has never been set before
 		if !conditions.Has(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition) {
 			conditions.MarkFalse(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition, infrav1.NatGatewaysCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
@@ -97,15 +104,19 @@ func (s *Service) reconcileNatGateways() error {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
 		}
+		ngws, err := s.createNatGateways(subnetIDs)
 
-		ng, err := s.createNatGateway(sn.ID)
+		for _, ng := range ngws {
+			subnet := s.scope.Subnets().FindByID(*ng.SubnetId)
+			subnet.NatGatewayID = ng.NatGatewayId
+		}
+
 		if err != nil {
 			return err
 		}
-
-		sn.NatGatewayID = ng.NatGatewayId
+		conditions.MarkTrue(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition)
 	}
-	conditions.MarkTrue(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition)
+
 	return nil
 }
 
@@ -182,13 +193,26 @@ func (s *Service) getNatGatewayTagParams(id string) infrav1.BuildParams {
 	}
 }
 
-func (s *Service) createNatGateway(subnetID string) (*ec2.NatGateway, error) {
-	ip, err := s.getOrAllocateAddress(infrav1.APIServerRoleTagValue)
+func (s *Service) createNatGateways(subnetIDs []string) (natgateways []*ec2.NatGateway, err error) {
+	eips, err := s.getOrAllocateAddresses(len(subnetIDs), infrav1.APIServerRoleTagValue)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create IP address for NAT gateway for subnet ID %q", subnetID)
+		return nil, errors.Wrapf(err, "failed to create one or more IP addresses for NAT gateways")
 	}
 
+	for i, sn := range subnetIDs {
+		ngw, err := s.createNatGateway(sn, eips[i])
+		if err != nil {
+			return natgateways, err
+		}
+		natgateways = append(natgateways, ngw)
+	}
+	return natgateways, nil
+}
+
+func (s *Service) createNatGateway(subnetID, ip string) (*ec2.NatGateway, error) {
 	var out *ec2.CreateNatGatewayOutput
+	var err error
+
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if out, err = s.scope.EC2.CreateNatGateway(&ec2.CreateNatGatewayInput{
 			SubnetId:          aws.String(subnetID),
