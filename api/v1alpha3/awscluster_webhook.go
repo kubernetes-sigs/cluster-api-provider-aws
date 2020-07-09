@@ -73,10 +73,19 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	if !reflect.DeepEqual(r.Spec.ControlPlaneLoadBalancer, oldC.Spec.ControlPlaneLoadBalancer) {
+	existingLoadBalancer := &AWSLoadBalancerSpec{}
+	newLoadBalancer := &AWSLoadBalancerSpec{}
+
+	if oldC.Spec.ControlPlaneLoadBalancer != nil {
+		existingLoadBalancer = oldC.Spec.ControlPlaneLoadBalancer.DeepCopy()
+	}
+	if r.Spec.ControlPlaneLoadBalancer != nil {
+		newLoadBalancer = r.Spec.ControlPlaneLoadBalancer.DeepCopy()
+	}
+	if !reflect.DeepEqual(existingLoadBalancer.Scheme, newLoadBalancer.Scheme) {
 		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer"),
-				r.Spec.ControlPlaneLoadBalancer, "field is immutable"),
+			field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "scheme"),
+				r.Spec.ControlPlaneLoadBalancer.Scheme, "field is immutable"),
 		)
 	}
 
