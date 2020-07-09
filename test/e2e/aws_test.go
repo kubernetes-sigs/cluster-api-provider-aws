@@ -528,6 +528,20 @@ var _ = Describe("functional tests", func() {
 			By("PASSED!")
 		})
 	})
+
+	Describe("Create cluster with name starting with 'sg-'", func() {
+		It("Cluster should be provisioned and deleted", func() {
+			setup, cancelFunc := setup1()
+			defer cancelFunc()
+			By("Creating a workload cluster with single control plane")
+			setup.clusterName = "sg-" + util.RandomString(6)
+			makeSingleControlPlaneCluster(setup)
+
+			By("Deleting the Cluster")
+			deleteCluster(setup.namespace, setup.clusterName)
+			By("PASSED!")
+		})
+	})
 })
 
 func watchEvents(ctx context.Context, namespace string) {

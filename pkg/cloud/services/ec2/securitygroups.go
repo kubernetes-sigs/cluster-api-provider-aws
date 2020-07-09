@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -452,7 +453,11 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 }
 
 func (s *Service) getSecurityGroupName(clusterName string, role infrav1.SecurityGroupRole) string {
-	return fmt.Sprintf("%s-%v", clusterName, role)
+	groupPrefix := clusterName
+	if strings.HasPrefix(clusterName, "sg-") {
+		groupPrefix = "@" + clusterName
+	}
+	return fmt.Sprintf("%s-%v", groupPrefix, role)
 }
 
 func (s *Service) getDefaultSecurityGroup(role infrav1.SecurityGroupRole) *ec2.SecurityGroup {
