@@ -198,13 +198,25 @@ func (s *Service) createNatGateways(subnetIDs []string) (natgateways []*ec2.NatG
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create one or more IP addresses for NAT gateways")
 	}
+	type ngwCreation struct {
+		natGateway *ec2.NatGateway
+		error      error
+	}
+	c := make(chan ngwCreation, len(subnetIDs))
 
 	for i, sn := range subnetIDs {
-		ngw, err := s.createNatGateway(sn, eips[i])
-		if err != nil {
-			return natgateways, err
+		go func(c chan ngwCreation, subnetID, ip string) {
+			ngw, err := s.createNatGateway(subnetID, ip)
+			c <- ngwCreation{natGateway: ngw, error: err}
+		}(c, sn, eips[i])
+	}
+
+	for i := 0; i < len(subnetIDs); i++ {
+		ngwResult := <-c
+		if ngwResult.error != nil {
+			return nil, err
 		}
-		natgateways = append(natgateways, ngw)
+		natgateways = append(natgateways, ngwResult.natGateway)
 	}
 	return natgateways, nil
 }
