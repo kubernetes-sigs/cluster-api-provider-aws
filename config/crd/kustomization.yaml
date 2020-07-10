@@ -9,6 +9,7 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_awsclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsmachinetemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsmanagedclusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_awsmachinepools.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

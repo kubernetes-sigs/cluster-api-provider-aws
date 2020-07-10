@@ -18,6 +18,7 @@ package services
 
 import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -27,6 +28,16 @@ const (
 	// AnyIPv4CidrBlock is the CIDR block to match all IPv4 addresses
 	AnyIPv4CidrBlock = "0.0.0.0/0"
 )
+
+// ASGInterface encapsulates the methods exposed to the machinepool
+// actuator
+type ASGInterface interface {
+	ASGIfExists(id *string) (*expinfrav1.AutoScalingGroup, error)
+	GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error)
+	CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error)
+	UpdateASG(scope *scope.MachinePoolScope) error
+	DeleteASGAndWait(id string) error
+}
 
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
@@ -43,6 +54,13 @@ type EC2MachineInterface interface {
 
 	TerminateInstanceAndWait(instanceID string) error
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error
+
+	DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*string, error)
+	GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, error)
+	CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *string, userData []byte) (string, error)
+	CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, imageID *string, userData []byte) error
+	DeleteLaunchTemplate(id string) error
+	LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
 }
 
 // SecretsManagerInterface encapsulated the methods exposed to the
