@@ -32,10 +32,8 @@ func (r *EKSConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-// +kubebuilder:webhook:verbs=create;update,path=/validate-bootstrap-cluster-x-k8s-io-v1alpha3-eksconfig,mutating=false,failurePolicy=fail,groups=bootstrap.cluster.x-k8s.io,resources=eksconfigs,versions=v1alpha3,name=veksconfig.kb.io
+// (user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
+// +kubebuilder:webhook:verbs=create;update,path=/validate-bootstrap-cluster-x-k8s-io-v1alpha3-eksconfig,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=bootstrap.cluster.x-k8s.io,resources=eksconfigs,versions=v1alpha3,name=validation.eksconfig.bootstrap.cluster.x-k8s.io,sideEffects=None
 
 var _ webhook.Validator = &EKSConfig{}
 
