@@ -135,10 +135,11 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 	// Create the cluster scope
 	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:     r.Client,
-		Logger:     logger,
-		Cluster:    cluster,
-		AWSCluster: awsCluster,
+		Client:         r.Client,
+		Logger:         logger,
+		Cluster:        cluster,
+		AWSCluster:     awsCluster,
+		ControllerName: "awsmachine",
 	})
 	if err != nil {
 		return ctrl.Result{}, err
