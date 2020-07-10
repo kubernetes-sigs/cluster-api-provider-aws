@@ -33,7 +33,7 @@ import (
 func (s *Service) getOrAllocateAddresses(num int, role string) (eips []string, err error) {
 	out, err := s.describeAddresses(role)
 	if err != nil {
-		record.Eventf(s.scope.AWSCluster, "FailedDescribeAddresses", "Failed to query addresses for role %q: %v", role, err)
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeAddresses", "Failed to query addresses for role %q: %v", role, err)
 		return nil, errors.Wrap(err, "failed to query addresses")
 	}
 
@@ -55,17 +55,17 @@ func (s *Service) getOrAllocateAddresses(num int, role string) (eips []string, e
 }
 
 func (s *Service) allocateAddress(role string) (string, error) {
-	out, err := s.scope.EC2.AllocateAddress(&ec2.AllocateAddressInput{
+	out, err := s.EC2Client.AllocateAddress(&ec2.AllocateAddressInput{
 		Domain: aws.String("vpc"),
 	})
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedAllocateEIP", "Failed to allocate Elastic IP for %q: %v", role, err)
+		record.Warnf(s.scope.InfraCluster(), "FailedAllocateEIP", "Failed to allocate Elastic IP for %q: %v", role, err)
 		return "", errors.Wrap(err, "failed to allocate Elastic IP")
 	}
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if err := tags.Apply(&tags.ApplyParams{
-			EC2Client: s.scope.EC2,
+			EC2Client: s.EC2Client,
 			BuildParams: infrav1.BuildParams{
 				ClusterName: s.scope.Name(),
 				ResourceID:  *out.AllocationId,
@@ -79,7 +79,7 @@ func (s *Service) allocateAddress(role string) (string, error) {
 		}
 		return true, nil
 	}, awserrors.EIPNotFound); err != nil {
-		record.Eventf(s.scope.AWSCluster, "FailedAllocateAddress", "Failed to tag elastic IP %q: %v", aws.StringValue(out.AllocationId), err)
+		record.Eventf(s.scope.InfraCluster(), "FailedAllocateAddress", "Failed to tag elastic IP %q: %v", aws.StringValue(out.AllocationId), err)
 		return "", errors.Wrapf(err, "failed to tag Elastic IP %q", aws.StringValue(out.AllocationId))
 	}
 
@@ -92,14 +92,14 @@ func (s *Service) describeAddresses(role string) (*ec2.DescribeAddressesOutput, 
 		x = append(x, filter.EC2.ProviderRole(role))
 	}
 
-	return s.scope.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
+	return s.EC2Client.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: x,
 	})
 }
 
 func (s *Service) disassociateAddress(ip *ec2.Address) error {
 	err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		_, err := s.scope.EC2.DisassociateAddress(&ec2.DisassociateAddressInput{
+		_, err := s.EC2Client.DisassociateAddress(&ec2.DisassociateAddressInput{
 			AssociationId: ip.AssociationId,
 		})
 		if err != nil {
@@ -111,14 +111,14 @@ func (s *Service) disassociateAddress(ip *ec2.Address) error {
 		return true, nil
 	}, awserrors.AuthFailure)
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+		record.Warnf(s.scope.InfraCluster(), "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
 		return errors.Wrapf(err, "failed to disassociate Elastic IP %q", *ip.AllocationId)
 	}
 	return nil
 }
 
 func (s *Service) releaseAddresses() error {
-	out, err := s.scope.EC2.DescribeAddresses(&ec2.DescribeAddressesInput{
+	out, err := s.EC2Client.DescribeAddresses(&ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{filter.EC2.Cluster(s.scope.Name())},
 	})
 	if err != nil {
@@ -128,17 +128,17 @@ func (s *Service) releaseAddresses() error {
 	for i := range out.Addresses {
 		ip := out.Addresses[i]
 		if ip.AssociationId != nil {
-			_, err := s.scope.EC2.DisassociateAddress(&ec2.DisassociateAddressInput{
+			_, err := s.EC2Client.DisassociateAddress(&ec2.DisassociateAddressInput{
 				AssociationId: ip.AssociationId,
 			})
 			if err != nil {
-				record.Warnf(s.scope.AWSCluster, "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+				record.Warnf(s.scope.InfraCluster(), "FailedDisassociateEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
 				return errors.Errorf("failed to disassociate Elastic IP %q with allocation ID %q: Still associated with association ID %q", *ip.PublicIp, *ip.AllocationId, *ip.AssociationId)
 			}
 		}
 
 		err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			_, err := s.scope.EC2.ReleaseAddress(&ec2.ReleaseAddressInput{AllocationId: ip.AllocationId})
+			_, err := s.EC2Client.ReleaseAddress(&ec2.ReleaseAddressInput{AllocationId: ip.AllocationId})
 			if err != nil {
 				if ip.AssociationId != nil {
 					if s.disassociateAddress(ip) != nil {
@@ -151,7 +151,7 @@ func (s *Service) releaseAddresses() error {
 			return true, nil
 		}, awserrors.AuthFailure, awserrors.InUseIPAddress)
 		if err != nil {
-			record.Warnf(s.scope.AWSCluster, "FailedReleaseEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
+			record.Warnf(s.scope.InfraCluster(), "FailedReleaseEIP", "Failed to disassociate Elastic IP %q: %v", *ip.AllocationId, err)
 			return errors.Wrapf(err, "failed to release ElasticIP %q", *ip.AllocationId)
 		}
 

@@ -47,7 +47,7 @@ func (s *Service) reconcileSubnets() error {
 
 	subnets := s.scope.Subnets()
 	defer func() {
-		s.scope.AWSCluster.Spec.NetworkSpec.Subnets = subnets
+		s.scope.SetSubnets(subnets)
 	}()
 
 	// Describe subnets in the vpc.
@@ -62,14 +62,14 @@ func (s *Service) reconcileSubnets() error {
 		if unmanagedVPC {
 			// If we have a unmanaged VPC then subnets must be specified
 			errMsg := "no subnets specified, you must specify the subnets when using an umanaged vpc"
-			record.Warnf(s.scope.AWSCluster, "FailedNoSubnets", errMsg)
+			record.Warnf(s.scope.InfraCluster(), "FailedNoSubnets", errMsg)
 			return errors.New(errMsg)
 		}
 		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
 		// for each az in a region up to a maximum of 3 azs
 		subnets, err = s.getDefaultSubnets()
 		if err != nil {
-			record.Warnf(s.scope.AWSCluster, "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
+			record.Warnf(s.scope.InfraCluster(), "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
 			return errors.Wrap(err, "failed getting default subnets")
 		}
 	}
@@ -82,14 +82,14 @@ func (s *Service) reconcileSubnets() error {
 				// Make sure tags are up to date if we have a managed VPC.
 				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 					if err := tags.Ensure(existingSubnet.Tags, &tags.ApplyParams{
-						EC2Client:   s.scope.EC2,
+						EC2Client:   s.EC2Client,
 						BuildParams: s.getSubnetTagParams(existingSubnet.ID, existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags),
 					}); err != nil {
 						return false, err
 					}
 					return true, nil
 				}, awserrors.SubnetNotFound); err != nil {
-					record.Warnf(s.scope.AWSCluster, "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", existingSubnet.ID, err)
+					record.Warnf(s.scope.InfraCluster(), "FailedTagSubnet", "Failed tagging managed Subnet %q: %v", existingSubnet.ID, err)
 					return errors.Wrapf(err, "failed to ensure tags on subnet %q", existingSubnet.ID)
 				}
 			}
@@ -99,18 +99,18 @@ func (s *Service) reconcileSubnets() error {
 			existingSubnet.DeepCopyInto(sub)
 		} else if unmanagedVPC {
 			// If there is no existing subnet and we have an umanaged vpc report an error
-			record.Warnf(s.scope.AWSCluster, "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.ID, sub.CidrBlock)
+			record.Warnf(s.scope.InfraCluster(), "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.ID, sub.CidrBlock)
 			return errors.New(fmt.Sprintf("usign unmanaged vpc and subnet %s (cidr %s) specified but it doesn't exist in vpc %s", sub.ID, sub.CidrBlock, s.scope.VPC().ID))
 		}
 	}
 
 	// Check that we need at least 1 private and 1 public subnet after we have updated the metadata
 	if len(subnets.FilterPrivate()) < 1 {
-		record.Warnf(s.scope.AWSCluster, "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
+		record.Warnf(s.scope.InfraCluster(), "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
 		return errors.New("expected at least 1 private subnet but got 0")
 	}
 	if len(subnets.FilterPublic()) < 1 {
-		record.Warnf(s.scope.AWSCluster, "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
+		record.Warnf(s.scope.InfraCluster(), "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
 		return errors.New("expected at least 1 public subnet but got 0")
 	}
 
@@ -130,7 +130,7 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	s.scope.V(2).Info("Subnets available", "subnets", subnets)
-	conditions.MarkTrue(s.scope.AWSCluster, infrav1.SubnetsReadyCondition)
+	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition)
 	return nil
 }
 
@@ -227,9 +227,9 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 		input.Filters = append(input.Filters, filter.EC2.VPC(s.scope.VPC().ID))
 	}
 
-	out, err := s.scope.EC2.DescribeSubnets(input)
+	out, err := s.EC2Client.DescribeSubnets(input)
 	if err != nil {
-		record.Eventf(s.scope.AWSCluster, "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeSubnet", "Failed to describe subnets in vpc %q: %v", s.scope.VPC().ID, err)
 		return nil, errors.Wrapf(err, "failed to describe subnets in vpc %q", s.scope.VPC().ID)
 	}
 
@@ -285,7 +285,7 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 }
 
 func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, error) {
-	out, err := s.scope.EC2.CreateSubnet(&ec2.CreateSubnetInput{
+	out, err := s.EC2Client.CreateSubnet(&ec2.CreateSubnetInput{
 		VpcId:            aws.String(s.scope.VPC().ID),
 		CidrBlock:        aws.String(sn.CidrBlock),
 		AvailabilityZone: aws.String(sn.AvailabilityZone),
@@ -297,14 +297,14 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		},
 	})
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedCreateSubnet", "Failed creating new managed Subnet %v", err)
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateSubnet", "Failed creating new managed Subnet %v", err)
 		return nil, errors.Wrap(err, "failed to create subnet")
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
+	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []*string{out.Subnet.SubnetId}}
-	if err := s.scope.EC2.WaitUntilSubnetAvailable(wReq); err != nil {
+	if err := s.EC2Client.WaitUntilSubnetAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
@@ -317,15 +317,15 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		}
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if _, err := s.scope.EC2.ModifySubnetAttribute(attReq); err != nil {
+			if _, err := s.EC2Client.ModifySubnetAttribute(attReq); err != nil {
 				return false, err
 			}
 			return true, nil
 		}, awserrors.SubnetNotFound); err != nil {
-			record.Warnf(s.scope.AWSCluster, "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
+			record.Warnf(s.scope.InfraCluster(), "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
 			return nil, errors.Wrapf(err, "failed to set subnet %q attributes", *out.Subnet.SubnetId)
 		}
-		record.Eventf(s.scope.AWSCluster, "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
 	}
 
 	s.scope.V(2).Info("Created new subnet in VPC with cidr and availability zone ",
@@ -343,16 +343,16 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 }
 
 func (s *Service) deleteSubnet(id string) error {
-	_, err := s.scope.EC2.DeleteSubnet(&ec2.DeleteSubnetInput{
+	_, err := s.EC2Client.DeleteSubnet(&ec2.DeleteSubnetInput{
 		SubnetId: aws.String(id),
 	})
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedDeleteSubnet", "Failed to delete managed Subnet %q: %v", id, err)
+		record.Warnf(s.scope.InfraCluster(), "FailedDeleteSubnet", "Failed to delete managed Subnet %q: %v", id, err)
 		return errors.Wrapf(err, "failed to delete subnet %q", id)
 	}
 
 	s.scope.V(2).Info("Deleted subnet in vpc", "subnet-id", id, "vpc-id", s.scope.VPC().ID)
-	record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteSubnet", "Deleted managed Subnet %q", id)
+	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteSubnet", "Deleted managed Subnet %q", id)
 	return nil
 }
 

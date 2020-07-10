@@ -52,12 +52,12 @@ func (s *Service) GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.
 		},
 	}
 
-	out, err := s.scope.EC2.DescribeInstances(input)
+	out, err := s.EC2Client.DescribeInstances(input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
-		record.Eventf(s.scope.AWSCluster, "FailedDescribeInstances", "Failed to describe instances by tags: %v", err)
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeInstances", "Failed to describe instances by tags: %v", err)
 		return nil, errors.Wrap(err, "failed to describe instances by tags")
 	}
 
@@ -86,12 +86,12 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 		InstanceIds: []*string{id},
 	}
 
-	out, err := s.scope.EC2.DescribeInstances(input)
+	out, err := s.EC2Client.DescribeInstances(input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, nil
 	case err != nil:
-		record.Eventf(s.scope.AWSCluster, "FailedDescribeInstances", "failed to describe instance %q: %v", *id, err)
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeInstances", "failed to describe instance %q: %v", *id, err)
 		return nil, errors.Wrapf(err, "failed to describe instance: %q", *id)
 	}
 
@@ -194,7 +194,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	case input.SubnetID == "":
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
-			record.Eventf(s.scope.AWSCluster, "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
+			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
 			return nil, awserrors.NewFailedDependency(
 				errors.Errorf("failed to run machine %q, no subnets available", scope.Name()),
 			)
@@ -203,7 +203,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	}
 
 	if s.scope.Network().APIServerELB.DNSName == "" {
-		record.Eventf(s.scope.AWSCluster, "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
+		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
 		return nil, awserrors.NewFailedDependency(
 			errors.New("failed to run controlplane, APIServer ELB not available"),
 		)
@@ -296,7 +296,7 @@ func (s *Service) TerminateInstance(instanceID string) error {
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
-	if _, err := s.scope.EC2.TerminateInstances(input); err != nil {
+	if _, err := s.EC2Client.TerminateInstances(input); err != nil {
 		return errors.Wrapf(err, "failed to terminate instance with id %q", instanceID)
 	}
 
@@ -317,7 +317,7 @@ func (s *Service) TerminateInstanceAndWait(instanceID string) error {
 		InstanceIds: aws.StringSlice([]string{instanceID}),
 	}
 
-	if err := s.scope.EC2.WaitUntilInstanceTerminated(input); err != nil {
+	if err := s.EC2Client.WaitUntilInstanceTerminated(input); err != nil {
 		return errors.Wrapf(err, "failed to wait for instance %q termination", instanceID)
 	}
 
@@ -416,7 +416,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		input.TagSpecifications = append(input.TagSpecifications, spec)
 	}
 
-	out, err := s.scope.EC2.RunInstances(input)
+	out, err := s.EC2Client.RunInstances(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to run instance")
 	}
@@ -430,10 +430,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	ctx, cancel := context.WithTimeout(aws.BackgroundContext(), waitTimeout)
 	defer cancel()
 
-	if err := s.scope.EC2.WaitUntilInstanceRunningWithContext(
+	if err := s.EC2Client.WaitUntilInstanceRunningWithContext(
 		ctx,
 		&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}},
-		request.WithWaiterLogger(&awslog{s.scope.Logger}),
+		request.WithWaiterLogger(&awslog{s.scope}),
 	); err != nil {
 		s.scope.V(2).Info("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
 	}
@@ -511,7 +511,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 		}
 
 		// Create/Update tags in AWS.
-		if _, err := s.scope.EC2.CreateTags(input); err != nil {
+		if _, err := s.EC2Client.CreateTags(input); err != nil {
 			return errors.Wrapf(err, "failed to create tags for resource %q: %+v", *resourceID, create)
 		}
 	}
@@ -530,7 +530,7 @@ func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[stri
 		}
 
 		// Delete tags in AWS.
-		if _, err := s.scope.EC2.DeleteTags(input); err != nil {
+		if _, err := s.EC2Client.DeleteTags(input); err != nil {
 			return errors.Wrapf(err, "failed to delete tags for resource %q: %v", *resourceID, remove)
 		}
 	}
@@ -548,7 +548,7 @@ func (s *Service) getInstanceENIs(instanceID string) ([]*ec2.NetworkInterface, e
 		},
 	}
 
-	output, err := s.scope.EC2.DescribeNetworkInterfaces(input)
+	output, err := s.EC2Client.DescribeNetworkInterfaces(input)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +561,7 @@ func (s *Service) getImageRootDevice(imageID string) (*string, error) {
 		ImageIds: []*string{aws.String(imageID)},
 	}
 
-	output, err := s.scope.EC2.DescribeImages(input)
+	output, err := s.EC2Client.DescribeImages(input)
 	if err != nil {
 		return nil, err
 	}
@@ -578,7 +578,7 @@ func (s *Service) getImageSnapshotSize(imageID string) (*int64, error) {
 		ImageIds: []*string{aws.String(imageID)},
 	}
 
-	output, err := s.scope.EC2.DescribeImages(input)
+	output, err := s.EC2Client.DescribeImages(input)
 	if err != nil {
 		return nil, err
 	}
@@ -668,7 +668,7 @@ func (s *Service) getNetworkInterfaceSecurityGroups(interfaceID string) ([]strin
 		NetworkInterfaceId: aws.String(interfaceID),
 	}
 
-	output, err := s.scope.EC2.DescribeNetworkInterfaceAttribute(input)
+	output, err := s.EC2Client.DescribeNetworkInterfaceAttribute(input)
 	if err != nil {
 		return nil, err
 	}
@@ -708,7 +708,7 @@ func (s *Service) attachSecurityGroupsToNetworkInterface(groups []string, interf
 		Groups:             aws.StringSlice(totalGroups),
 	}
 
-	if _, err := s.scope.EC2.ModifyNetworkInterfaceAttribute(input); err != nil {
+	if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(input); err != nil {
 		return errors.Wrapf(err, "failed to modify interface %q to have security groups %v", interfaceID, totalGroups)
 	}
 	return nil
@@ -732,7 +732,7 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 		Groups:             aws.StringSlice(remainingGroups),
 	}
 
-	if _, err := s.scope.EC2.ModifyNetworkInterfaceAttribute(input); err != nil {
+	if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(input); err != nil {
 		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
 	}
 	return nil

@@ -20,20 +20,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/metrics"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-aws/version"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,12 +33,12 @@ import (
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
-	AWSClients
 	Client         client.Client
 	Logger         logr.Logger
 	Cluster        *clusterv1.Cluster
 	AWSCluster     *infrav1.AWSCluster
 	ControllerName string
+	Session        awsclient.ConfigProvider
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -68,43 +60,6 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
-	userAgentHandler := request.NamedHandler{
-		Name: "capa/user-agent",
-		Fn:   request.MakeAddToUserAgentHandler("aws.cluster.x-k8s.io", version.Get().String()),
-	}
-
-	if params.AWSClients.EC2 == nil {
-		ec2Client := ec2.New(session)
-		ec2Client.Handlers.Build.PushFrontNamed(userAgentHandler)
-		ec2Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
-		ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
-		params.AWSClients.EC2 = ec2Client
-	}
-
-	if params.AWSClients.ELB == nil {
-		elbClient := elb.New(session)
-		elbClient.Handlers.Build.PushFrontNamed(userAgentHandler)
-		elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
-		elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
-		params.AWSClients.ELB = elbClient
-	}
-
-	if params.AWSClients.ResourceTagging == nil {
-		resourceTagging := resourcegroupstaggingapi.New(session)
-		resourceTagging.Handlers.Build.PushFrontNamed(userAgentHandler)
-		resourceTagging.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
-		resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
-		params.AWSClients.ResourceTagging = resourceTagging
-	}
-
-	if params.AWSClients.SecretsManager == nil {
-		sClient := secretsmanager.New(session)
-		sClient.Handlers.Build.PushFrontNamed(userAgentHandler)
-		sClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
-		sClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
-		params.AWSClients.SecretsManager = sClient
-	}
-
 	helper, err := patch.NewHelper(params.AWSCluster, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
@@ -112,22 +67,11 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	return &ClusterScope{
 		Logger:      params.Logger,
 		client:      params.Client,
-		AWSClients:  params.AWSClients,
 		Cluster:     params.Cluster,
 		AWSCluster:  params.AWSCluster,
 		patchHelper: helper,
+		session:     session,
 	}, nil
-}
-
-func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
-	return func(r *request.Request) {
-		if awsErr, ok := r.Error.(awserr.Error); ok {
-			switch awsErr.Code() {
-			case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
-				record.Warnf(target, awsErr.Code(), "Operation %s failed with a credentials or permission issue", r.Operation.Name)
-			}
-		}
-	}
 }
 
 // ClusterScope defines the basic context for an actuator to operate upon.
@@ -136,9 +80,10 @@ type ClusterScope struct {
 	client      client.Client
 	patchHelper *patch.Helper
 
-	AWSClients
 	Cluster    *clusterv1.Cluster
 	AWSCluster *infrav1.AWSCluster
+
+	session awsclient.ConfigProvider
 }
 
 // Network returns the cluster network object.
@@ -154,6 +99,11 @@ func (s *ClusterScope) VPC() *infrav1.VPCSpec {
 // Subnets returns the cluster subnets.
 func (s *ClusterScope) Subnets() infrav1.Subnets {
 	return s.AWSCluster.Spec.NetworkSpec.Subnets
+}
+
+// SetSubnets updates the clusters subnets
+func (s *ClusterScope) SetSubnets(subnets infrav1.Subnets) {
+	s.AWSCluster.Spec.NetworkSpec.Subnets = subnets
 }
 
 // CNIIngressRules returns the CNI spec ingress rules.
@@ -255,4 +205,31 @@ func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomainS
 		s.AWSCluster.Status.FailureDomains = make(clusterv1.FailureDomains)
 	}
 	s.AWSCluster.Status.FailureDomains[id] = spec
+}
+
+// InfraCluster returns the AWS infrastructure cluster object.
+// Initially this will be AWSCluster but in the future it
+// could also be AWSManagedCluster
+func (s *ClusterScope) InfraCluster() cloud.ClusterObject {
+	return s.AWSCluster
+}
+
+// Session returns the AWS SDK session. Used for creating clients
+func (s *ClusterScope) Session() awsclient.ConfigProvider {
+	return s.session
+}
+
+// Bastion returns the bastion details
+func (s *ClusterScope) Bastion() *infrav1.Bastion {
+	return &s.AWSCluster.Spec.Bastion
+}
+
+// SetBastionInstance sets the bastion instance in the status of the cluster
+func (s *ClusterScope) SetBastionInstance(instance *infrav1.Instance) {
+	s.AWSCluster.Status.Bastion = instance
+}
+
+// SSHKeyName returns the SSH key name to use for instances
+func (s *ClusterScope) SSHKeyName() *string {
+	return s.AWSCluster.Spec.SSHKeyName
 }

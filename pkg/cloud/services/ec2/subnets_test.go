@@ -30,7 +30,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -1385,15 +1384,10 @@ func TestReconcileSubnets(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
-				},
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-					ELB: elbMock,
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
@@ -1408,6 +1402,7 @@ func TestReconcileSubnets(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
+			s.EC2Client = ec2Mock
 			err = s.reconcileSubnets()
 
 			if tc.errorExpected && err == nil {
@@ -1572,15 +1567,10 @@ func TestDiscoverSubnets(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
-				},
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-					ELB: elbMock,
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
@@ -1595,11 +1585,13 @@ func TestDiscoverSubnets(t *testing.T) {
 			tc.mocks(ec2Mock.EXPECT())
 
 			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
 			if err := s.reconcileSubnets(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}
 
-			subnets := s.scope.AWSCluster.Spec.NetworkSpec.Subnets
+			subnets := s.scope.Subnets()
 			out := make(map[string]*infrav1.SubnetSpec)
 			for _, sn := range subnets {
 				out[sn.ID] = sn

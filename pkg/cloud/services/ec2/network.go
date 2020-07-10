@@ -25,42 +25,42 @@ import (
 
 // ReconcileNetwork reconciles the network of the given cluster.
 func (s *Service) ReconcileNetwork() (err error) {
-	s.scope.V(2).Info("Reconciling network for cluster", "cluster-name", s.scope.Cluster.Name, "cluster-namespace", s.scope.Cluster.Namespace)
+	s.scope.V(2).Info("Reconciling network for cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 
 	// VPC.
 	if err := s.reconcileVPC(); err != nil {
-		conditions.MarkFalse(s.scope.AWSCluster, infrav1.VpcReadyCondition, infrav1.VpcReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
-	conditions.MarkTrue(s.scope.AWSCluster, infrav1.VpcReadyCondition)
+	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.VpcReadyCondition)
 
 	// Subnets.
 	if err := s.reconcileSubnets(); err != nil {
-		conditions.MarkFalse(s.scope.AWSCluster, infrav1.SubnetsReadyCondition, infrav1.SubnetsReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, infrav1.SubnetsReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 
 	// Internet Gateways.
 	if err := s.reconcileInternetGateways(); err != nil {
-		conditions.MarkFalse(s.scope.AWSCluster, infrav1.InternetGatewayReadyCondition, infrav1.InternetGatewayFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, infrav1.InternetGatewayFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 
 	// NAT Gateways.
 	if err := s.reconcileNatGateways(); err != nil {
-		conditions.MarkFalse(s.scope.AWSCluster, infrav1.NatGatewaysReadyCondition, infrav1.NatGatewaysReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, infrav1.NatGatewaysReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 
 	// Routing tables.
 	if err := s.reconcileRouteTables(); err != nil {
-		conditions.MarkFalse(s.scope.AWSCluster, infrav1.RouteTablesReadyCondition, infrav1.RouteTableReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, infrav1.RouteTableReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 
 	// Security groups.
 	if err := s.reconcileSecurityGroups(); err != nil {
-		conditions.MarkFalse(s.scope.AWSCluster, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 

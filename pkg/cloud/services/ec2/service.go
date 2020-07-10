@@ -17,6 +17,8 @@ limitations under the License.
 package ec2
 
 import (
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -28,12 +30,14 @@ const (
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
-	scope *scope.ClusterScope
+	scope     cloud.ClusterScoper
+	EC2Client ec2iface.EC2API
 }
 
 // NewService returns a new service given the ec2 api client.
-func NewService(scope *scope.ClusterScope) *Service {
+func NewService(clusterScope cloud.ClusterScoper) *Service {
 	return &Service{
-		scope: scope,
+		scope:     clusterScope,
+		EC2Client: scope.NewEC2Client(clusterScope, clusterScope.InfraCluster()),
 	}
 }

@@ -17,6 +17,9 @@ limitations under the License.
 package secretsmanager
 
 import (
+	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -24,12 +27,14 @@ import (
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
-	scope *scope.ClusterScope
+	scope                cloud.ClusterScoper
+	SecretsManagerClient secretsmanageriface.SecretsManagerAPI
 }
 
 // NewService returns a new service given the api clients.
-func NewService(scope *scope.ClusterScope) *Service {
+func NewService(secretsScope cloud.ClusterScoper) *Service {
 	return &Service{
-		scope: scope,
+		scope:                secretsScope,
+		SecretsManagerClient: scope.NewSecretsManagerClient(secretsScope, secretsScope.InfraCluster()),
 	}
 }

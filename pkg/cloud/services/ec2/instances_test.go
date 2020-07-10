@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -160,14 +159,9 @@ func TestInstanceIfExists(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{},
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-					ELB: elbMock,
-				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
 						NetworkSpec: infrav1.NetworkSpec{
@@ -185,6 +179,8 @@ func TestInstanceIfExists(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
 			instance, err := s.InstanceIfExists(&tc.instanceID)
 			tc.check(instance, err)
 		})
@@ -238,13 +234,8 @@ func TestTerminateInstance(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-					ELB: elbMock,
-				},
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{},
 			})
@@ -255,6 +246,8 @@ func TestTerminateInstance(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
 			err = s.TerminateInstance(tc.instanceID)
 			tc.check(err)
 		})
@@ -895,7 +888,6 @@ func TestCreateInstance(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -934,11 +926,7 @@ func TestCreateInstance(t *testing.T) {
 			client := fake.NewFakeClient(secret, cluster, machine)
 
 			machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
-				Client: client,
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-					ELB: elbMock,
-				},
+				Client:     client,
 				Cluster:    cluster,
 				Machine:    machine,
 				AWSMachine: awsMachine,
@@ -951,11 +939,7 @@ func TestCreateInstance(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client: client,
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-					ELB: elbMock,
-				},
+				Client:     client,
 				Cluster:    cluster,
 				AWSCluster: tc.awsCluster,
 			})
@@ -964,6 +948,8 @@ func TestCreateInstance(t *testing.T) {
 			}
 
 			s := NewService(clusterScope)
+			s.EC2Client = ec2Mock
+
 			instance, err := s.CreateInstance(machineScope, []byte("userData"))
 			tc.check(instance, err)
 		})

@@ -38,7 +38,6 @@ import (
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
-	AWSClients
 	Client     client.Client
 	Logger     logr.Logger
 	Cluster    *clusterv1.Cluster
