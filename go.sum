@@ -634,6 +634,7 @@ k8s.io/client-go v0.17.7/go.mod h1:hfACB9JP8K4uxFeIUDlmF8OLDbIZ4chzZzNIiN6h9lA=
 k8s.io/cluster-bootstrap v0.17.7 h1:dtI2bYeodFQodPBxwHnLBDZ75ZIAqqqtDsmPqF+O6lc=
 k8s.io/cluster-bootstrap v0.17.7/go.mod h1:CrKgg7bLbbpMvRC7UvA2qZawpBmYckb70PBMliKT6CI=
 k8s.io/code-generator v0.17.7/go.mod h1:iiHz51+oTx+Z9D0vB3CH3O4HDDPWrvZyUgUYaIE9h9M=
+k8s.io/component-base v0.17.7 h1:/mei48fKDjn3QyQipJdaMW5sJcWF4SyOlQEKstcIM+s=
 k8s.io/component-base v0.17.7/go.mod h1:eGIlfz1DvIChXUz7svn5KeiP3u2n+khdZ/fb9HD4x8I=
 k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
 k8s.io/gengo v0.0.0-20190822140433-26a664648505/go.mod h1:ezvh/TsK7cY6rbqRK0oQQ8IAqLxYwwyPxAX1Pzy0ii0=
