@@ -165,6 +165,20 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		return nil, errors.New("AWSMachinePool has no LaunchTemplateID for some reason")
 	}
 
+	// Make sure to use the MachinePoolScope here to get the merger of AWSCluster and AWSMachinePool tags
+	additionalTags := scope.AdditionalTags()
+	// Set the cloud provider tag
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+
+	input.Tags = infrav1.Build(infrav1.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Name:        aws.String(scope.Name()),
+		Role:        aws.String("node"),
+		Additional:  additionalTags,
+	})
+
+	s.scope.Info("Running instance")
 	if err := s.runPool(input, scope.AWSMachinePool.Status.LaunchTemplateID); err != nil {
 		// Only record the failure event if the error is not related to failed dependencies.
 		// This is to avoid spamming failure events since the machine will be requeued by the actuator.
@@ -198,6 +212,10 @@ func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID strin
 			LaunchTemplateId: aws.String(launchTemplateID),
 			Version:          aws.String(expinfrav1.LaunchTemplateLatestVersion),
 		}
+	}
+
+	if i.Tags != nil {
+		input.Tags = BuildTagsFromMap(i.Name, i.Tags)
 	}
 
 	_, err := s.ASGClient.CreateAutoScalingGroup(input)
@@ -301,4 +319,133 @@ func createSDKMixedInstancesPolicy(name string, i *expinfrav1.MixedInstancesPoli
 	}
 
 	return mixedInstancesPolicy
+}
+
+// BuildTags takes the tag configuration from the resources and returns a slice of autoscaling Tags
+// usable in autoscaling API calls
+func BuildTags(name string, params infrav1.BuildParams) []*autoscaling.Tag {
+	tags := make([]*autoscaling.Tag, 0)
+	resourceName := aws.String(name)
+	propagateAtLaunch := aws.Bool(false)
+	resourceType := aws.String("auto-scaling-group")
+	if params.Additional != nil {
+		for k, v := range params.Additional {
+			tags = append(tags, &autoscaling.Tag{
+				Key:   aws.String(k),
+				Value: aws.String(v),
+				// We set the instance tags in the LaunchTemplate, disabling propagation to prevent the two
+				// resources from clobbering each other's tags
+				PropagateAtLaunch: propagateAtLaunch,
+				ResourceId:        resourceName,
+				ResourceType:      resourceType,
+			})
+		}
+	}
+
+	tags = append(tags, &autoscaling.Tag{
+		Key:               aws.String(infrav1.ClusterTagKey(params.ClusterName)),
+		Value:             aws.String(string(params.Lifecycle)),
+		PropagateAtLaunch: propagateAtLaunch,
+		ResourceId:        resourceName,
+		ResourceType:      resourceType,
+	})
+
+	if params.Role != nil {
+		tags = append(tags, &autoscaling.Tag{
+			Key:               aws.String(infrav1.NameAWSClusterAPIRole),
+			Value:             params.Role,
+			PropagateAtLaunch: propagateAtLaunch,
+			ResourceId:        resourceName,
+			ResourceType:      resourceType,
+		})
+	}
+
+	if params.Name != nil {
+		tags = append(tags, &autoscaling.Tag{
+			Key:               aws.String("Name"),
+			Value:             params.Name,
+			PropagateAtLaunch: propagateAtLaunch,
+			ResourceId:        resourceName,
+			ResourceType:      resourceType,
+		})
+	}
+
+	return tags
+}
+
+// BuildTagsFromMap takes a map of keys and values and returns them as autoscaling group tags
+func BuildTagsFromMap(asgName string, inTags map[string]string) []*autoscaling.Tag {
+	if inTags == nil {
+		return nil
+	}
+	tags := make([]*autoscaling.Tag, 0)
+	for k, v := range inTags {
+		tags = append(tags, &autoscaling.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+			// We set the instance tags in the LaunchTemplate, disabling propagation to prevent the two
+			// resources from clobbering the tags set in the LaunchTemplate
+			PropagateAtLaunch: aws.Bool(false),
+			ResourceId:        aws.String(asgName),
+			ResourceType:      aws.String("auto-scaling-group"),
+		})
+	}
+
+	return tags
+}
+
+// UpdateResourceTags updates the tags for an autoscaling group.
+// This will be called if there is anything to create (update) or delete.
+// We may not always have to perform each action, so we check what we're
+// receiving to avoid calling AWS if we don't need to.
+func (s *Service) UpdateResourceTags(resourceID *string, create, remove map[string]string) error {
+	s.scope.V(2).Info("Attempting to update tags on resource", "resource-id", *resourceID)
+	s.scope.Info("updating tags on resource", "resource-id", *resourceID, "create", create, "remove", remove)
+
+	// If we have anything to create or update
+	if len(create) > 0 {
+		s.scope.V(2).Info("Attempting to create tags on resource", "resource-id", *resourceID)
+
+		createOrUpdateTagsInput := &autoscaling.CreateOrUpdateTagsInput{}
+
+		createOrUpdateTagsInput.Tags = mapToTags(create, resourceID)
+
+		if _, err := s.ASGClient.CreateOrUpdateTags(createOrUpdateTagsInput); err != nil {
+			return errors.Wrapf(err, "failed to update tags on AutoScalingGroup %q", *resourceID)
+		}
+	}
+
+	// If we have anything to remove
+	if len(remove) > 0 {
+		s.scope.V(2).Info("Attempting to delete tags on resource", "resource-id", *resourceID)
+
+		// Convert our remove map into an array of *ec2.Tag
+		removeTagsInput := mapToTags(remove, resourceID)
+
+		// Create the DeleteTags input
+		input := &autoscaling.DeleteTagsInput{
+			Tags: removeTagsInput,
+		}
+
+		// Delete tags in AWS.
+		if _, err := s.ASGClient.DeleteTags(input); err != nil {
+			return errors.Wrapf(err, "failed to delete tags on AutoScalingGroup %q: %v", *resourceID, remove)
+		}
+	}
+
+	return nil
+}
+
+func mapToTags(input map[string]string, resourceID *string) []*autoscaling.Tag {
+	tags := make([]*autoscaling.Tag, 0)
+	for k, v := range input {
+		tags = append(tags, &autoscaling.Tag{
+			Key:               aws.String(k),
+			PropagateAtLaunch: aws.Bool(false),
+			ResourceId:        resourceID,
+			ResourceType:      aws.String("auto-scaling-group"),
+			Value:             aws.String(v),
+		})
+	}
+	return tags
 }

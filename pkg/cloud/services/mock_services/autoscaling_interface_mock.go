@@ -122,3 +122,17 @@ func (mr *MockASGInterfaceMockRecorder) UpdateASG(arg0 interface{}) *gomock.Call
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateASG", reflect.TypeOf((*MockASGInterface)(nil).UpdateASG), arg0)
 }
+
+// UpdateResourceTags mocks base method
+func (m *MockASGInterface) UpdateResourceTags(arg0 *string, arg1, arg2 map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateResourceTags", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateResourceTags indicates an expected call of UpdateResourceTags
+func (mr *MockASGInterfaceMockRecorder) UpdateResourceTags(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateResourceTags", reflect.TypeOf((*MockASGInterface)(nil).UpdateResourceTags), arg0, arg1, arg2)
+}
