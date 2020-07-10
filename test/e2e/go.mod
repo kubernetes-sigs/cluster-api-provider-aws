@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/aws/aws-sdk-go v1.33.3
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/gophercloud/gophercloud v0.2.0
 	github.com/onsi/ginkgo v1.12.2
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
