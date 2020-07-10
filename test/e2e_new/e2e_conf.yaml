@@ -95,6 +95,7 @@ variables:
   CNI: "./data/cni/calico.yaml"
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large
+  AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
