@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/metrics"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -41,10 +42,11 @@ import (
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
 	AWSClients
-	Client     client.Client
-	Logger     logr.Logger
-	Cluster    *clusterv1.Cluster
-	AWSCluster *infrav1.AWSCluster
+	Client         client.Client
+	Logger         logr.Logger
+	Cluster        *clusterv1.Cluster
+	AWSCluster     *infrav1.AWSCluster
+	ControllerName string
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -74,6 +76,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if params.AWSClients.EC2 == nil {
 		ec2Client := ec2.New(session)
 		ec2Client.Handlers.Build.PushFrontNamed(userAgentHandler)
+		ec2Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
 		ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.EC2 = ec2Client
 	}
@@ -81,6 +84,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if params.AWSClients.ELB == nil {
 		elbClient := elb.New(session)
 		elbClient.Handlers.Build.PushFrontNamed(userAgentHandler)
+		elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
 		elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.ELB = elbClient
 	}
@@ -88,12 +92,15 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if params.AWSClients.ResourceTagging == nil {
 		resourceTagging := resourcegroupstaggingapi.New(session)
 		resourceTagging.Handlers.Build.PushFrontNamed(userAgentHandler)
+		resourceTagging.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
 		resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.ResourceTagging = resourceTagging
 	}
 
 	if params.AWSClients.SecretsManager == nil {
 		sClient := secretsmanager.New(session)
+		sClient.Handlers.Build.PushFrontNamed(userAgentHandler)
+		sClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(params.ControllerName))
 		sClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(params.AWSCluster))
 		params.AWSClients.SecretsManager = sClient
 	}
