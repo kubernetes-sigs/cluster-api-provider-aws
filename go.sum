@@ -650,6 +650,7 @@ modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
+sigs.k8s.io/cluster-api v0.3.6 h1:Md//qVTwPvJFIBzQ8Mnsro1510x4UFtOyx4t6sPoDnM=
 sigs.k8s.io/cluster-api v0.3.7-alpha.0.0.20200629143729-ef2b61f7d491 h1:JRKASAeYbp3mGq86ls6gG1Wnd/NVqup9qlFxvPXWam0=
 sigs.k8s.io/cluster-api v0.3.7-alpha.0.0.20200629143729-ef2b61f7d491/go.mod h1:unQmk4qqZSAeWP4qWxmyDG4kLg2kQwiSHVH7zpXF5j0=
 sigs.k8s.io/controller-runtime v0.5.7 h1:QcB8YQTyMshLLspHiqAkKHO74PgmUAUmTDhol4VccOw=
