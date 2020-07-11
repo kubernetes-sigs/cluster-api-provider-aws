@@ -38,13 +38,22 @@ spec:
           spec:
             description: EKSConfigTemplateSpec defines the desired state of EKSConfigTemplate
             properties:
-              foo:
-                description: Foo is an example field of EKSConfigTemplate. Edit EKSConfigTemplate_types.go
-                  to remove/update
-                type: string
-            type: object
-          status:
-            description: EKSConfigTemplateStatus defines the observed state of EKSConfigTemplate
+              template:
+                description: EKSConfigTemplateResource defines the Template structure
+                properties:
+                  spec:
+                    description: EKSConfigSpec defines the desired state of EKSConfig
+                    properties:
+                      kubeletExtraArgs:
+                        additionalProperties:
+                          type: string
+                        description: Passes the kubelet args into the EKS bootstrap
+                          script
+                        type: object
+                    type: object
+                type: object
+            required:
+            - template
             type: object
         type: object
     served: true

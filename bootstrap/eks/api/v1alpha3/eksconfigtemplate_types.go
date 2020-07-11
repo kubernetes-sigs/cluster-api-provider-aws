@@ -25,17 +25,12 @@ import (
 
 // EKSConfigTemplateSpec defines the desired state of EKSConfigTemplate
 type EKSConfigTemplateSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of EKSConfigTemplate. Edit EKSConfigTemplate_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Template EKSConfigTemplateResource `json:"template"`
 }
 
-// EKSConfigTemplateStatus defines the observed state of EKSConfigTemplate
-type EKSConfigTemplateStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+// EKSConfigTemplateResource defines the Template structure
+type EKSConfigTemplateResource struct {
+	Spec EKSConfigSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -47,8 +42,7 @@ type EKSConfigTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   EKSConfigTemplateSpec   `json:"spec,omitempty"`
-	Status EKSConfigTemplateStatus `json:"status,omitempty"`
+	Spec EKSConfigTemplateSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true
