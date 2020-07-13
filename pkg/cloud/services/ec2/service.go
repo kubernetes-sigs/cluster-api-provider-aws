@@ -38,6 +38,6 @@ type Service struct {
 func NewService(clusterScope cloud.ClusterScoper) *Service {
 	return &Service{
 		scope:     clusterScope,
-		EC2Client: scope.NewEC2Client(clusterScope, clusterScope.InfraCluster()),
+		EC2Client: scope.NewEC2Client(clusterScope, clusterScope, clusterScope.InfraCluster()),
 	}
 }

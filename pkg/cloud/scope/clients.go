@@ -31,44 +31,49 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/metrics"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 )
 
 // NewEC2Client creates a new EC2 API client for a given session
-func NewEC2Client(session cloud.Session, target runtime.Object) ec2iface.EC2API {
+func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) ec2iface.EC2API {
 	ec2Client := ec2.New(session.Session())
 	ec2Client.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	ec2Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
 	ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return ec2Client
 }
 
 // NewELBClient creates a new ELB API client for a given session
-func NewELBClient(session cloud.Session, target runtime.Object) elbiface.ELBAPI {
+func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) elbiface.ELBAPI {
 	elbClient := elb.New(session.Session())
 	elbClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
 	elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return elbClient
 }
 
 // NewResourgeTaggingClient creates a new Resource Tagging API client for a given session
-func NewResourgeTaggingClient(session cloud.Session, target runtime.Object) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
+func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
 	resourceTagging := resourcegroupstaggingapi.New(session.Session())
 	resourceTagging.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	resourceTagging.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
 	resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return resourceTagging
 }
 
 // NewSecretsManagerClient creates a new Secrets API client for a given session
-func NewSecretsManagerClient(session cloud.Session, target runtime.Object) secretsmanageriface.SecretsManagerAPI {
-	sClient := secretsmanager.New(session.Session())
-	sClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	sClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) secretsmanageriface.SecretsManagerAPI {
+	secretsClient := secretsmanager.New(session.Session())
+	secretsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	secretsClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	secretsClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
-	return sClient
+	return secretsClient
 }
 
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {

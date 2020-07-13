@@ -46,7 +46,7 @@ type Service struct {
 func NewService(elbScope Scope) *Service {
 	return &Service{
 		scope:                 elbScope,
-		ELBClient:             scope.NewELBClient(elbScope, elbScope.InfraCluster()),
-		ResourceTaggingClient: scope.NewResourgeTaggingClient(elbScope, elbScope.InfraCluster()),
+		ELBClient:             scope.NewELBClient(elbScope, elbScope, elbScope.InfraCluster()),
+		ResourceTaggingClient: scope.NewResourgeTaggingClient(elbScope, elbScope, elbScope.InfraCluster()),
 	}
 }

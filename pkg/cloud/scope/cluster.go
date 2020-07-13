@@ -65,12 +65,13 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 	return &ClusterScope{
-		Logger:      params.Logger,
-		client:      params.Client,
-		Cluster:     params.Cluster,
-		AWSCluster:  params.AWSCluster,
-		patchHelper: helper,
-		session:     session,
+		Logger:         params.Logger,
+		client:         params.Client,
+		Cluster:        params.Cluster,
+		AWSCluster:     params.AWSCluster,
+		patchHelper:    helper,
+		session:        session,
+		controllerName: params.ControllerName,
 	}, nil
 }
 
@@ -83,7 +84,8 @@ type ClusterScope struct {
 	Cluster    *clusterv1.Cluster
 	AWSCluster *infrav1.AWSCluster
 
-	session awsclient.ConfigProvider
+	session        awsclient.ConfigProvider
+	controllerName string
 }
 
 // Network returns the cluster network object.
@@ -101,7 +103,7 @@ func (s *ClusterScope) Subnets() infrav1.Subnets {
 	return s.AWSCluster.Spec.NetworkSpec.Subnets
 }
 
-// SetSubnets updates the clusters subnets
+// SetSubnets updates the clusters subnets.
 func (s *ClusterScope) SetSubnets(subnets infrav1.Subnets) {
 	s.AWSCluster.Spec.NetworkSpec.Subnets = subnets
 }
@@ -219,17 +221,23 @@ func (s *ClusterScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
 
-// Bastion returns the bastion details
+// Bastion returns the bastion details.
 func (s *ClusterScope) Bastion() *infrav1.Bastion {
 	return &s.AWSCluster.Spec.Bastion
 }
 
-// SetBastionInstance sets the bastion instance in the status of the cluster
+// SetBastionInstance sets the bastion instance in the status of the cluster.
 func (s *ClusterScope) SetBastionInstance(instance *infrav1.Instance) {
 	s.AWSCluster.Status.Bastion = instance
 }
 
-// SSHKeyName returns the SSH key name to use for instances
+// SSHKeyName returns the SSH key name to use for instances.
 func (s *ClusterScope) SSHKeyName() *string {
 	return s.AWSCluster.Spec.SSHKeyName
+}
+
+// ControllerName returns the name of the controller that
+// created the ClusterScope.
+func (s *ClusterScope) ControllerName() string {
+	return s.controllerName
 }
