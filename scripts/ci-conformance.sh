@@ -16,7 +16,7 @@
 
 ################################################################################
 # usage: ci-conformance.sh
-#  This program runs the e2e conformance test suite.
+#  This program runs the clusterctl conformance e2e tests.
 #
 # ENVIRONMENT VARIABLES
 #  JANITOR_ENABLED
@@ -35,13 +35,6 @@ cleanup() {
   [[ -z ${HEART_BEAT_PID:-} ]] || kill -9 "${HEART_BEAT_PID}"
 }
 trap cleanup EXIT
-
-# shellcheck source=../hack/ensure-go.sh
-source "${REPO_ROOT}/hack/ensure-go.sh"
-# shellcheck source=../hack/ensure-kind.sh
-source "${REPO_ROOT}/hack/ensure-kind.sh"
-# shellcheck source=../hack/ensure-kubectl.sh
-source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then
@@ -65,24 +58,19 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
     exit "${checkout_account_status}"
   fi
 
-  # run the heart beat process to tell boskos that we are still
-  # using the checked out account periodically
-  ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
-  mkdir -p "$ARTIFACTS/logs/"
-  python -u hack/heartbeat_account.py >> "$ARTIFACTS/logs/boskos.log" 2>&1 &
+  python -u hack/heartbeat_account.py >>$ARTIFACTS/boskos.log 2>&1 &
   HEART_BEAT_PID=$(echo $!)
 fi
 
 # Prevent a disallowed AWS key from being used.
-if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
-  { md5sum 2>/dev/null || md5; } | \
+if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" |
+  { md5sum 2>/dev/null || md5; } |
   awk '{print $1}')" hack/e2e-aws-disallowed.txt; then
   echo "The provided AWS key is not allowed" 1>&2
   exit 1
 fi
 
-# TODO(dims): remove "SKIP_INIT_IMAGE" once we fix problem building images in CI
-hack/ci/e2e-conformance.sh --verbose --skip-init-image $*
+make test-conformance-new E2E_ARGS=-kubetest.use-ci-artifacts
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.

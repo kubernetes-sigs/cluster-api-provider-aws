@@ -31,16 +31,23 @@ export GOPROXY
 export GO111MODULE=on
 
 # Directories.
-ARTIFACTS ?= ${REPO_ROOT}/_artifacts
+ARTIFACTS ?= $(REPO_ROOT)/_artifacts
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TEST_E2E_DIR := test/e2e
 TEST_E2E_NEW_DIR := test/e2e_new
+OVERLAY_DIR := $(ARTIFACTS)/overlay
+OVERLAY_SOURCE := $(TEST_E2E_NEW_DIR)/data/kubetest/kustomization
 
 # Files
-E2E_CONF_PATH  ?= ${REPO_ROOT}/test/e2e_new/e2e_conf.yaml
+E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e_new/data
+E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
+KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
+KUBETEST_FAST_CONF_PATH ?= $(abspath $(REPO_ROOT)/test/e2e_new/data/kubetest/conformance-fast.yaml)
+CONFORMANCE_CI_TEMPLATE := $(ARTIFACTS)/templates/cluster-template-conformance-ci-artifacts.yaml
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -54,8 +61,13 @@ MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
-GINKGO := $(abspath $(TOOLS_BIN_DIR)/ginkgo)
-export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+GINKGO := $(TOOLS_BIN_DIR)/ginkgo
+SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
+
+UNAME := $(shell uname -s)
+PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+
+export PATH
 
 # Define Docker related variables. Releases should modify and double check these vars.
 
@@ -91,9 +103,11 @@ LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 GOLANG_VERSION := 1.13.8
 
 # 'functional tests' as the ginkgo filter will run ALL tests ~ 2 hours @ 3 node concurrency.
-E2E_FOCUS := "functional tests"
+E2E_FOCUS ?= "functional tests"
 # Instead, you can run a quick smoke test, it should run fast (9 minutes)...
 # E2E_FOCUS := "Create cluster with name having"
+
+GINKGO_NODES ?= 2
 
 ## --------------------------------------
 ## Help
@@ -106,6 +120,15 @@ help:  ## Display this help
 ## Testing
 ## --------------------------------------
 
+$(ARTIFACTS):
+	mkdir -p $@
+
+$(ARTIFACTS)/templates: $(ARTIFACTS)
+	mkdir -p $@
+
+$(OVERLAY_DIR): $(ARTIFACTS)
+	mkdir -p $@
+
 .PHONY: test
 test: ## Run tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
@@ -114,36 +137,60 @@ test: ## Run tests
 test-integration: ## Run integration tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
+$(OVERLAY_DIR)/kustomization.yaml: $(OVERLAY_DIR) $(OVERLAY_SOURCE)/kustomization.yaml
+	cp -f $(OVERLAY_SOURCE)/kustomization.yaml $@
+
+$(OVERLAY_DIR)/kustomizeversions.yaml: $(OVERLAY_DIR) $(OVERLAY_SOURCE)/kustomizeversions.yaml
+	cp -f $(OVERLAY_SOURCE)/kustomizeversions.yaml $@
+
+$(OVERLAY_DIR)/cluster-template.yaml: $(OVERLAY_DIR)
+	cp -f templates/cluster-template.yaml $@
+
+$(CONFORMANCE_CI_TEMPLATE): $(OVERLAY_DIR)/cluster-template.yaml $(ARTIFACTS)/templates $(KUSTOMIZE) $(OVERLAY_DIR)/kustomization.yaml $(OVERLAY_DIR)/kustomizeversions.yaml
+		$(KUSTOMIZE) build $(OVERLAY_DIR) > $@
+
 .PHONY: test-e2e
 test-e2e: $(GINKGO) $(KIND) ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	cd $(TEST_E2E_DIR); time $(GINKGO) -nodes=2 -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG) $(E2E_ARGS)
+	cd $(TEST_E2E_DIR); time $(GINKGO) -nodes=$(GINKGO_NODES) -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG) $(E2E_ARGS)
 
-.PHONY: test-e2e-new
-test-e2e-new: $(GINKGO) e2e-image ## Run e2e tests
-	cd $(TEST_E2E_NEW_DIR); time $(GINKGO) -trace -progress -nodes=2 -v -tags=e2e $(GINKGO_ARGS) ./... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
+.PHONY: test-e2e-new ## Run new e2e tests using clusterctl
+test-e2e-new: $(GINKGO) $(CONFORMANCE_CI_TEMPLATE) $(KIND) $(SSM_PLUGIN) e2e-image ## Run e2e tests
+	time $(GINKGO) -trace -progress -nodes=$(GINKGO_NODES) -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./test/e2e_new/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
 
 .PHONY: e2e-image
 e2e-image:
-	docker build --tag="capa-manager:e2e" .
+ifndef FASTBUILD
+	docker build -f Dockerfile --tag="capa-manager:e2e" .
+else
+	$(MAKE) manager
+	docker build -f Dockerfile.fastbuild --tag="capa-manager:e2e" .
+endif
 
 .PHONY: test-conformance
 test-conformance: ## Run conformance test on workload cluster
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
 	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "conformance tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
+CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
+CONFORMANCE_E2E_ARGS += $(E2E_ARGS)
+CONFORMANCE_GINKGO_ARGS ?= -stream
+CONFORMANCE_GINKGO_ARGS += $(GINKGO_ARGS)
+.PHONY: test-conformance-new
+test-conformance-new: ## Run clusterctl based conformance test on workload cluster (requires Docker).
+	$(MAKE) test-e2e-new E2E_FOCUS="conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' GINKGO_ARGS='$(CONFORMANCE_GINKGO_ARGS)'
+
+test-conformance-fast: ## Run clusterctl based conformance test on workload cluster (requires Docker) using a subset of the conformance suite in parallel. Run with FASTBUILD=true to skip full CAPA rebuild.
+	$(MAKE) test-conformance-new CONFORMANCE_E2E_ARGS="-kubetest.config-file=$(KUBETEST_FAST_CONF_PATH) -kubetest.ginkgo-nodes=5"
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
-$(GINKGO): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/ginkgo
-
 .PHONY: binaries
 binaries: manager clusterawsadm ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
@@ -153,35 +200,72 @@ clusterawsadm: ## Build clusterawsadm binary.
 ## Tooling Binaries
 ## --------------------------------------
 
+$(TOOLS_BIN_DIR):
+	mkdir -p $@
+
+$(TOOLS_SHARE_DIR):
+	mkdir -p $@
+
 $(CLUSTERCTL): go.mod ## Build clusterctl binary.
 	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(ENVSUBST): $(TOOLS_DIR)/go.mod # Build envsubst from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/envsubst github.com/a8m/envsubst/cmd/envsubst
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/a8m/envsubst/cmd/envsubst
 
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golangci/golangci-lint/cmd/golangci-lint
 
 $(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golang/mock/mockgen
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/code-generator/cmd/conversion-gen
 
 $(DEFAULTER_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/defaulter-gen k8s.io/code-generator/cmd/defaulter-gen
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/code-generator/cmd/defaulter-gen
 
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod # Build kustomize from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
+	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) sigs.k8s.io/kustomize/kustomize/v3
 
 $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags tools -o $(BIN_DIR)/release-notes sigs.k8s.io/cluster-api/hack/tools/release
+	cd $(TOOLS_DIR) && go build -tags tools -o $(subst hack/tools/,,$@) sigs.k8s.io/cluster-api/hack/tools/release
 
 $(KIND): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags tools -o $(BIN_DIR)/kind sigs.k8s.io/kind
+	cd $(TOOLS_DIR) && go build -tags tools -o $(subst hack/tools/,,$@) sigs.k8s.io/kind
+
+$(GINKGO): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/ginkgo
+
+## ------------------------------------------------------------------------------------------------
+## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
+## ------------------------------------------------------------------------------------------------
+
+SSM_SHARE := $(TOOLS_SHARE_DIR)/ssm
+
+$(SSM_SHARE): $(TOOLS_SHARE_DIR)
+	mkdir -p $@
+
+$(SSM_SHARE)/session-manager-plugin.deb: $(SSM_SHARE)
+	curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o $@
+
+$(SSM_SHARE)/sessionmanager-bundle.zip: $(SSM_SHARE)
+	curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o $@
+
+$(SSM_SHARE)/data.tar.gz: $(SSM_SHARE)/session-manager-plugin.deb
+	cd $(SSM_SHARE) && ar x session-manager-plugin.deb data.tar.gz
+
+$(SSM_PLUGIN): $(TOOLS_BIN_DIR)
+ifeq ($(UNAME), Linux)
+	$(MAKE) $(SSM_SHARE)/data.tar.gz
+	cd $(TOOLS_BIN_DIR) && tar -xvf ../share/ssm/data.tar.gz usr/local/sessionmanagerplugin/bin/session-manager-plugin --strip-components 4 --directory $(TOOLS_BIN_DIR)
+endif
+ifeq ($(UNAME), Darwin)
+	$(MAKE) $(SSM_SHARE)/sessionmanager-bundle.zip
+	cd $(TOOLS_BIN_DIR) && unzip -j ../share/ssm/sessionmanager-bundle.zip sessionmanager-bundle/bin/session-manager-plugin
+endif
 
 ## --------------------------------------
 ## Linting
@@ -299,7 +383,7 @@ RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
 RELEASE_DIR := out
 
 $(RELEASE_DIR):
-	mkdir -p $(RELEASE_DIR)/
+	mkdir -p $@
 
 .PHONY: release
 release: clean-release  ## Builds and push container images using the latest git tag for the commit.
@@ -388,7 +472,7 @@ create-management-cluster: $(KUSTOMIZE) $(ENVSUBST)
 .PHONY: create-workload-cluster
 create-workload-cluster: $(KUSTOMIZE) $(ENVSUBST)
 	# Create workload Cluster.
-	$(KUSTOMIZE) build templates | $(ENVSUBST) | kubectl apply -f -
+	cat templates/cluster-template.yaml | $(ENVSUBST) | kubectl apply -f -
 
 	# Wait for the kubeconfig to become available.
 	timeout 700 bash -c "while ! kubectl get secrets | grep $(CLUSTER_NAME)-kubeconfig; do sleep 1; done"
@@ -445,7 +529,6 @@ clean-temporary: ## Remove all temporary files and folders
 	rm -rf test/e2e/capi-kubeadm-control-plane-controller-manager
 	rm -rf test/e2e/logs
 	rm -rf test/e2e/resources
-
 
 .PHONY: clean-release
 clean-release: ## Remove the release folder

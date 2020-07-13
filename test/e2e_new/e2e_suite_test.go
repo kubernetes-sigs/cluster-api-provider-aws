@@ -22,11 +22,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -45,7 +47,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/yaml"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e_new/kubetest"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -88,13 +92,25 @@ var (
 	// bootstrapTemplate is the clusterawsadm bootstrap template for this run
 	bootstrapTemplate *cfn_bootstrap.Template
 
-	// awsSession is a holder for AWS credentials
-	awsSession client.ConfigProvider
-
 	// bootstrapAccessKey
 	bootstrapAccessKey *iam.AccessKey
 
 	defaultSSHKeyPairName = "cluster-api-provider-aws-sigs-k8s-io"
+
+	// conformance configuration
+	kubetestConfig *kubetest.Configuration
+
+	// ticker for dumping resources
+	resourceTicker *time.Ticker
+
+	// tickerDone to stop ticking
+	resourceTickerDone chan bool
+
+	// ticker for dumping resources
+	machineTicker *time.Ticker
+
+	// tickerDone to stop ticking
+	machineTickerDone chan bool
 )
 
 const (
@@ -110,6 +126,16 @@ func init() {
 	flag.BoolVar(&skipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
 }
 
+type synchronizedBeforeTestSuiteConfig struct {
+	ArtifactFolder       string                 `json:"artifactFolder,omitempty"`
+	ConfigPath           string                 `json:"configPath,omitempty"`
+	ClusterctlConfigPath string                 `json:"clusterctlConfigPath,omitempty"`
+	KubeconfigPath       string                 `json:"kubeconfigPath,omitempty"`
+	Region               string                 `json:"region,omitempty"`
+	E2EConfig            clusterctl.E2EConfig   `json:"e2eConfig,omitempty"`
+	KubetestConfig       kubetest.Configuration `json:"conformanceConfiguration,omitempty"`
+}
+
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
 	junitPath := path.Join(artifactFolder, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
@@ -120,7 +146,7 @@ func TestE2E(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
-	Expect(os.MkdirAll(artifactFolder, 0o755)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", artifactFolder)
+	Expect(os.MkdirAll(artifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", artifactFolder)
 
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
@@ -134,6 +160,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
 	scheme := initScheme()
 
+	kubetestConfiguration := kubetest.NewConfiguration(e2eConfig, artifactFolder)
+	kubetestConfig = kubetestConfiguration
+	// If using a version of Kubernetes from CI, override the image ID with a known good image
+	if kubetestConfig.UseCIArtifacts {
+		e2eConfig.Variables["IMAGE_ID"] = conformanceImageID()
+	}
+
 	Byf("Creating a clusterctl local repository into %q", artifactFolder)
 	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
 
@@ -144,40 +177,97 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
-	return []byte(
-		strings.Join([]string{
-			artifactFolder,
-			configPath,
-			clusterctlConfigPath,
-			bootstrapClusterProxy.GetKubeconfigPath(),
-			getBootstrapTemplate().Spec.Region,
-		}, ","),
-	)
+
+	conf := synchronizedBeforeTestSuiteConfig{
+		ArtifactFolder:       artifactFolder,
+		ConfigPath:           configPath,
+		ClusterctlConfigPath: clusterctlConfigPath,
+		KubeconfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
+		Region:               getBootstrapTemplate().Spec.Region,
+		E2EConfig:            *e2eConfig,
+		KubetestConfig:       *kubetestConfiguration,
+	}
+
+	data, err := yaml.Marshal(conf)
+	Expect(err).NotTo(HaveOccurred())
+	return data
+
 }, func(data []byte) {
 	// Before each ParallelNode.
+	conf := &synchronizedBeforeTestSuiteConfig{}
+	err := yaml.UnmarshalStrict(data, conf)
+	Expect(err).NotTo(HaveOccurred())
+	artifactFolder = conf.ArtifactFolder
+	configPath = conf.ConfigPath
+	clusterctlConfigPath = conf.ClusterctlConfigPath
+	kubetestConfig = &conf.KubetestConfig
+	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, initScheme())
+	e2eConfig = &conf.E2EConfig
 
-	parts := strings.Split(string(data), ",")
-	Expect(parts).To(HaveLen(5))
-
-	artifactFolder = parts[0]
-	configPath = parts[1]
-	clusterctlConfigPath = parts[2]
-	kubeconfigPath := parts[3]
-	setEnvVar("AWS_REGION", parts[4], false)
+	setEnvVar("AWS_REGION", conf.Region, false)
 	setEnvVar("AWS_SSH_KEY_NAME", defaultSSHKeyPairName, false)
 	awsSession = newAWSSession()
-	e2eConfig = loadE2EConfig(configPath)
-	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme())
+	namespaces = map[*corev1.Namespace]context.CancelFunc{}
+	resourceTicker = time.NewTicker(time.Second * 5)
+	resourceTickerDone = make(chan bool)
+	// Get EC2 logs every minute
+	machineTicker = time.NewTicker(time.Second * 60)
+	machineTickerDone = make(chan bool)
+	resourceCtx, resourceCancel := context.WithCancel(context.Background())
+	machineCtx, machineCancel := context.WithCancel(context.Background())
+
+	// Dump resources every 5 seconds
+	go func() {
+		defer GinkgoRecover()
+		for {
+			select {
+			case <-resourceTickerDone:
+				resourceCancel()
+				return
+			case <-resourceTicker.C:
+				for k := range namespaces {
+					dumpSpecResources(resourceCtx, bootstrapClusterProxy, artifactFolder, k)
+				}
+			}
+		}
+	}()
+
+	// Dump machine logs every 60 seconds
+	go func() {
+		defer GinkgoRecover()
+		for {
+			select {
+			case <-machineTickerDone:
+				machineCancel()
+				return
+			case <-machineTicker.C:
+				for k := range namespaces {
+					dumpMachines(machineCtx, bootstrapClusterProxy, k, artifactFolder)
+				}
+			}
+		}
+	}()
 })
 
 // Using a SynchronizedAfterSuite for controlling how to delete resources shared across ParallelNodes (~ginkgo threads).
 // The bootstrap cluster is shared across all the tests, so it should be deleted only after all ParallelNodes completes.
 // The local clusterctl repository is preserved like everything else created into the artifact folder.
 var _ = SynchronizedAfterSuite(func() {
-	// After each ParallelNode.
+	if resourceTickerDone != nil {
+		resourceTickerDone <- true
+	}
+	if machineTickerDone != nil {
+		machineTickerDone <- true
+	}
+	kubetest.GatherReports(kubetestConfig)
+	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Minute)
+	defer cancel()
+	for k := range namespaces {
+		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, k, e2eConfig.GetIntervals, skipCleanup)
+		dumpMachines(ctx, bootstrapClusterProxy, k, artifactFolder)
+	}
 }, func() {
 	// After all ParallelNodes.
-
 	By("Tearing down the management cluster")
 	if !skipCleanup {
 		tearDown(bootstrapClusterProvider, bootstrapClusterProxy)
@@ -188,6 +278,7 @@ var _ = SynchronizedAfterSuite(func() {
 	}
 })
 
+// initScheme creates a new GVK scheme
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
@@ -195,12 +286,15 @@ func initScheme() *runtime.Scheme {
 	return sc
 }
 
+// loadE2EConfig loads the e2econfig from the specified path
 func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
 	return config
 }
 
+// createClusterctlLocalRepository generates a clusterctl repository.
+// Must always be run after kubetest.NewConfiguration
 func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFolder string) string {
 	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), clusterctl.CreateRepositoryInput{
 		E2EConfig:        config,
@@ -210,6 +304,7 @@ func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	return clusterctlConfig
 }
 
+// setupBootstrapCluster installs Cluster API components via clusterctl
 func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme, useExistingCluster bool) (bootstrap.ClusterProvider, framework.ClusterProxy) {
 	var clusterProvider bootstrap.ClusterProvider
 	kubeconfigPath := ""
@@ -231,6 +326,7 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	return clusterProvider, clusterProxy
 }
 
+// initBootstrapCluster uses kind to create a cluster
 func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
 	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 		ClusterProxy:            bootstrapClusterProxy,
@@ -240,6 +336,7 @@ func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 
+// tearDown the bootstrap kind cluster
 func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
 	if bootstrapClusterProxy != nil {
 		bootstrapClusterProxy.Dispose(context.TODO())
@@ -249,6 +346,8 @@ func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClust
 	}
 }
 
+// newBootstrapTemplate generates a clusterawsadm configuration, and prints it
+// and the resultant cloudformation template to the artifacts directory
 func newBootstrapTemplate() *cfn_bootstrap.Template {
 	By("Creating a bootstrap AWSIAMConfiguration")
 	t := cfn_bootstrap.NewTemplate()
@@ -258,10 +357,14 @@ func newBootstrapTemplate() *cfn_bootstrap.Template {
 	t.Spec.Region = region
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
-	fmt.Printf("AWSIAMConfiguration created:\n %s\n", string(str))
+	Expect(ioutil.WriteFile(path.Join(artifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
+	cfnData, err := t.RenderCloudFormation().YAML()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(ioutil.WriteFile(path.Join(artifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
 	return &t
 }
 
+// getBootstrapTemplate gets or generates a new bootstrap template
 func getBootstrapTemplate() *cfn_bootstrap.Template {
 	if bootstrapTemplate == nil {
 		bootstrapTemplate = newBootstrapTemplate()
@@ -284,6 +387,8 @@ func newAWSSession() client.ConfigProvider {
 	return sess
 }
 
+// ensureNotServiceLinkedRoles removes an auto-created IAM role, and tests
+// the controller's IAM permissions to use ELB successfully
 func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
 	iamSvc := iam.New(prov)
@@ -295,6 +400,7 @@ func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 	}
 }
 
+// createCloudFormationStack ensures the cloudformation stack is up to date
 func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
@@ -304,6 +410,7 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	).To(Succeed())
 }
 
+// deleteCloudFormationStack removes the provisioned clusterawsadm stack
 func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	Byf("Deleting %s CloudFormation stack", t.Spec.StackName)
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
@@ -312,6 +419,7 @@ func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 	).To(Succeed())
 }
 
+// ensureSSHKeyPair ensures A SSH key is present under the name
 func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
 	Byf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName)
 	ec2c := ec2.New(prov)
@@ -321,6 +429,7 @@ func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
 	}
 }
 
+// encodeCredentials leverages clusterawsadm to encode AWS credentials
 func encodeCredentials(accessKey *iam.AccessKey, region string) string {
 	creds := credentials.AWSCredentials{
 		Region:          region,
@@ -332,6 +441,8 @@ func encodeCredentials(accessKey *iam.AccessKey, region string) string {
 	return encCreds
 }
 
+// setEnvVar sets an environment variable in the process. If marked private,
+// the value is not printed.
 func setEnvVar(key, value string, private bool) {
 	printableValue := "*******"
 	if !private {
@@ -342,9 +453,11 @@ func setEnvVar(key, value string, private bool) {
 	os.Setenv(key, value)
 }
 
+// newUserAccessKey generates a new AWS Access Key pair based off of the
+// bootstrap user. This tests that the CloudFormation policy is correct.
 func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKey {
 	iamSvc := iam.New(prov)
-	keyOuts, err := iamSvc.ListAccessKeys(&iam.ListAccessKeysInput{
+	keyOuts, _ := iamSvc.ListAccessKeys(&iam.ListAccessKeysInput{
 		UserName: aws.String(userName),
 	})
 	for i := range keyOuts.AccessKeyMetadata {
@@ -364,4 +477,33 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 		AccessKeyId:     out.AccessKey.AccessKeyId,
 		SecretAccessKey: out.AccessKey.SecretAccessKey,
 	}
+}
+
+// conformanceImageID looks up a specific image for a given
+// Kubernetes version in the e2econfig
+func conformanceImageID() string {
+	ver := e2eConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
+	strippedVer := strings.Replace(ver, "v", "", 1)
+	amiName := AMIPrefix + strippedVer + "*"
+
+	Byf("Searching for AMI: name=%s", amiName)
+	ec2Svc := ec2.New(awsSession)
+	filters := []*ec2.Filter{
+		{
+			Name:   aws.String("name"),
+			Values: []*string{aws.String(amiName)},
+		},
+	}
+	filters = append(filters, &ec2.Filter{
+		Name:   aws.String("owner-id"),
+		Values: []*string{aws.String(DefaultImageLookupOrg)},
+	})
+	resp, err := ec2Svc.DescribeImages(&ec2.DescribeImagesInput{
+		Filters: filters,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(len(resp.Images)).To(Not(BeZero()))
+	imageID := aws.StringValue(resp.Images[0].ImageId)
+	Byf("Using AMI: image-id=%s", imageID)
+	return imageID
 }

@@ -76,7 +76,7 @@ providers:
     versions:
       - name: v0.5.0
         # Use manifest from source files
-        value: ../../config
+        value: ../../../config
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -88,7 +88,8 @@ providers:
             new: capa-manager:e2e
     files:
       # Add a cluster template
-      - sourcePath: "../../templates/cluster-template.yaml"
+      - sourcePath: "../../../templates/cluster-template.yaml"
+      - sourcePath: "../../../_artifacts/templates/cluster-template-conformance-ci-artifacts.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"
@@ -96,11 +97,21 @@ variables:
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.18.2"
+  CONFORMANCE_WORKER_MACHINE_COUNT: "5"
+  CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
+  # include hacks for a typical conformance bootstrap script
+  GSUTIL: '${GSUTIL}'
+  PACKAGE_VERSION: '${PACKAGE_VERSION}'
+  SUDO: '${SUDO}'
+  VERSION_REGEX: '${VERSION_REGEX}'
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["20m", "10s"]
   default/wait-control-plane: ["10m", "10s"]
   default/wait-worker-nodes: ["10m", "10s"]
+  conformance/wait-control-plane: ["30m", "10s"]
+  conformance/wait-worker-nodes: ["30m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]

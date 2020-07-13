@@ -1,7 +1,6 @@
 .git
 .github
 .vscode
-bin/
 config/
 hack/
 docs/
