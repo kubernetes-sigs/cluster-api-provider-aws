@@ -11,6 +11,7 @@ require (
 	github.com/onsi/gomega v1.8.1
 	github.com/openshift/api v0.0.0-20200424083944-0422dc17083e
 	github.com/openshift/machine-api-operator v0.2.1-0.20200701225707-950912b03628
+	golang.org/x/text v0.3.3 // indirect
 
 	// kube 1.18
 	k8s.io/api v0.18.2
