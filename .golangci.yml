@@ -13,6 +13,7 @@ linters:
     - gomnd
     - godot
     - goerr113
+    - gofumpt
   # Run with --fast=false for more extensive checks
   fast: true
 issues:
