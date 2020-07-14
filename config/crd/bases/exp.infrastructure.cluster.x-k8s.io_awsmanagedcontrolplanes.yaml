@@ -104,6 +104,11 @@ spec:
                       type: array
                   type: object
                 type: array
+              logging:
+                additionalProperties:
+                  type: boolean
+                description: Logging specifies whether a logging type is enabled or disabled
+                type: object
               private:
                 description: Private indicates if the control plane should be private
                 type: boolean

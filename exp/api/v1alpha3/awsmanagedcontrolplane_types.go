@@ -51,6 +51,10 @@ type AWSManagedControlPlaneSpec struct {
 	// +optional
 	RoleAdditionalPolicies *[]string `json:"roleAdditionalPolicies"`
 
+	// Logging specifies whether a logging type is enabled or disabled
+	// +optional
+	Logging map[string]bool `json:"logging,omitempty"`
+
 	// EncryptionConfig specifies the encryption configuration for the cluster
 	// +optional
 	EncryptionConfig *[]EncryptionConfig `json:"encryptionConfig,omitempty"`

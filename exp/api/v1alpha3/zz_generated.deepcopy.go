@@ -209,6 +209,13 @@ func (in *AWSManagedControlPlaneSpec) DeepCopyInto(out *AWSManagedControlPlaneSp
 			copy(*out, *in)
 		}
 	}
+	if in.Logging != nil {
+		in, out := &in.Logging, &out.Logging
+		*out = make(map[string]bool, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.EncryptionConfig != nil {
 		in, out := &in.EncryptionConfig, &out.EncryptionConfig
 		*out = new([]EncryptionConfig)
