@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -889,6 +890,11 @@ func TestCreateInstance(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
 
+			scheme, err := setupScheme()
+			if err != nil {
+				t.Fatalf("failed to create scheme: %v", err)
+			}
+
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test1",
@@ -923,7 +929,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
-			client := fake.NewFakeClient(secret, cluster, machine)
+			client := fake.NewFakeClientWithScheme(scheme, secret, cluster, machine)
 
 			machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
 				Client:     client,
@@ -954,4 +960,15 @@ func TestCreateInstance(t *testing.T) {
 			tc.check(instance, err)
 		})
 	}
+}
+
+func setupScheme() (*runtime.Scheme, error) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	return scheme, nil
 }
