@@ -1,4 +1,5 @@
 /*
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,37 +18,35 @@ package controllers
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/conditions"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 )
 
 // AWSManagedClusterReconciler reconciles AWSManagedCluster
 type AWSManagedClusterReconciler struct {
 	client.Client
-	Log              logr.Logger
-	Recorder         record.EventRecorder
-	ReconcileTimeout time.Duration
-}
-
-func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(options).
-		For(&infrav1exp.AWSManagedCluster{}).
-		Complete(r)
+	Log      logr.Logger
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=exp.infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters,verbs=get;list;watch;create;update;patch;delete
@@ -57,11 +56,11 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 
 func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reterr error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("namespace", req.Namespace, "eksCluster", req.Name)
+	log := r.Log.WithValues("namespace", req.Namespace, "awsManagedCluster", req.Name)
 
 	// Fetch the AWSManagedCluster instance
-	eksCluster := &infrav1exp.AWSManagedCluster{}
-	err := r.Get(ctx, req.NamespacedName, eksCluster)
+	awsManagedCluster := &infrav1exp.AWSManagedCluster{}
+	err := r.Get(ctx, req.NamespacedName, awsManagedCluster)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return reconcile.Result{}, nil
@@ -70,7 +69,7 @@ func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 	}
 
 	// Fetch the Cluster.
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, eksCluster.ObjectMeta)
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, awsManagedCluster.ObjectMeta)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -79,35 +78,154 @@ func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 		return reconcile.Result{}, nil
 	}
 
-	controlPlane := &infrav1exp.AWSManagedControlPlane{}
-	controlPlaneRef := types.NamespacedName{
-		Name:      cluster.Spec.ControlPlaneRef.Name,
-		Namespace: cluster.Namespace,
+	if util.IsPaused(cluster, awsManagedCluster) {
+		log.Info("AWSManagedCluster or linked Cluster is marked as paused. Won't reconcile")
+		return reconcile.Result{}, nil
 	}
 
 	log = log.WithValues("cluster", cluster.Name)
 
+	controlPlane := &infrav1exp.AWSManagedControlPlane{}
+	controlPlaneRef := types.NamespacedName{
+		Name:      cluster.Spec.ControlPlaneRef.Name,
+		Namespace: cluster.Spec.ControlPlaneRef.Namespace,
+	}
+
 	if err := r.Get(ctx, controlPlaneRef, controlPlane); err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to get control plane ref")
+		return reconcile.Result{}, fmt.Errorf("failed to get control plane ref: %w", err)
 	}
 
-	log = log.WithValues("controlPlane", controlPlaneRef.Name)
-
-	patchhelper, err := patch.NewHelper(eksCluster, r.Client)
+	managedClusterScope, err := scope.NewManagedClusterScope(scope.ManagedClusterScopeParams{
+		Client:            r.Client,
+		Logger:            log,
+		Cluster:           cluster,
+		AWSManagedCluster: awsManagedCluster,
+		Controlplane:      controlPlane,
+		ControllerName:    "awsmanagedcluster",
+	})
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to init patch helper")
+		return reconcile.Result{}, fmt.Errorf("failed to create managed scope: %w", err)
 	}
 
-	// Match whatever the control plane says. We should also enqueue
-	// requests from control plane to infra cluster to keep this accurate
-	eksCluster.Status.Ready = controlPlane.Status.Ready
-	eksCluster.Spec.ControlPlaneEndpoint = controlPlane.Spec.ControlPlaneEndpoint
+	defer func() {
+		applicableConditions := []clusterv1.ConditionType{
+			infrav1.VpcReadyCondition,
+			infrav1.SubnetsReadyCondition,
+			infrav1.ClusterSecurityGroupsReadyCondition,
+			infrav1exp.EKSControlPlaneReadyCondition,
+		}
 
-	if err := patchhelper.Patch(ctx, eksCluster); err != nil {
+		if managedClusterScope.VPC().IsManaged(managedClusterScope.Name()) {
+			applicableConditions = append(applicableConditions,
+				infrav1.InternetGatewayReadyCondition,
+				infrav1.NatGatewaysReadyCondition,
+				infrav1.RouteTablesReadyCondition,
+			)
+			if managedClusterScope.Bastion().Enabled {
+				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
+			}
+		}
+
+		conditions.SetSummary(managedClusterScope.AWSManagedCluster, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
+
+		if err := managedClusterScope.Close(); err != nil && reterr == nil {
+			reterr = err
+		}
+	}()
+
+	// Hnadle deleted clusters
+	if !awsManagedCluster.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(managedClusterScope)
+	}
+
+	return r.reconcileNormal(managedClusterScope)
+}
+
+func (r *AWSManagedClusterReconciler) reconcileDelete(managedClusterScope *scope.ManagedClusterScope) (reconcile.Result, error) {
+	managedClusterScope.Info("Reconciling AWSManagedCluster delete")
+
+	ec2svc := ec2.NewService(managedClusterScope)
+	networkSvc := network.NewService(managedClusterScope)
+
+	awsManagedCluster := managedClusterScope.InfraCluster().(*infrav1exp.AWSManagedCluster)
+
+	//TODO: wait for the control plane to delete
+
+	if err := ec2svc.DeleteBastion(); err != nil {
+		return reconcile.Result{}, fmt.Errorf("error deleting bastion for AWSManagedCluster %s/%s: %w", awsManagedCluster.Namespace, awsManagedCluster.Name, err)
+	}
+
+	if err := networkSvc.DeleteNetwork(); err != nil {
+		return reconcile.Result{}, fmt.Errorf("error deleting network for AWSManagedCluster %s/%s: %w", awsManagedCluster.Namespace, awsManagedCluster.Name, err)
+	}
+
+	// Cluster is deleted so remove the finalizer.
+	controllerutil.RemoveFinalizer(awsManagedCluster, infrav1exp.ManagedClusterFinalizer)
+
+	return reconcile.Result{}, nil
+}
+
+func (r *AWSManagedClusterReconciler) reconcileNormal(managedClusterScope *scope.ManagedClusterScope) (reconcile.Result, error) {
+	managedClusterScope.Info("Reconciling AWSManagedCluster")
+
+	awsManagedCluster := managedClusterScope.AWSManagedCluster
+
+	// If the AWSManagedCluster doesn't have our finalizer, add it.
+	controllerutil.AddFinalizer(awsManagedCluster, infrav1exp.ManagedClusterFinalizer)
+	// Register the finalizer immediately to avoid orphaning AWS resources on delete
+	if err := managedClusterScope.PatchObject(); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Successfully reconciled")
+	ec2Service := ec2.NewService(managedClusterScope)
+	networkSvc := network.NewService(managedClusterScope)
+
+	if err := networkSvc.ReconcileNetwork(); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile network for AWSManagedCluster %s/%s: %w", awsManagedCluster.Namespace, awsManagedCluster.Name, err)
+	}
+
+	if err := ec2Service.ReconcileBastion(); err != nil {
+		conditions.MarkFalse(awsManagedCluster, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedCluster %s/%s: %w", awsManagedCluster.Namespace, awsManagedCluster.Name, err)
+	}
+
+	for _, subnet := range managedClusterScope.Subnets().FilterPrivate() {
+		managedClusterScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
+			ControlPlane: true,
+		})
+	}
+
+	// We have initialized the infra - its ok
+	// for the control plane to reconcile
+	awsManagedCluster.Status.Initialized = true
+
+	// Check the control plane and see if we are ready
+	controlPlane := managedClusterScope.Controlplane
+	if controlPlane.Status.Ready {
+		//TODO: is this the right place for this???
+		conditions.MarkTrue(awsManagedCluster, infrav1exp.EKSControlPlaneReadyCondition)
+
+		awsManagedCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+			Host: controlPlane.Spec.ControlPlaneEndpoint.Host,
+			Port: controlPlane.Spec.ControlPlaneEndpoint.Port,
+		}
+		if !awsManagedCluster.Spec.ControlPlaneEndpoint.IsZero() {
+			awsManagedCluster.Status.Ready = true
+		}
+	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+	// controller, err := ctrl.NewControllerManagedBy(mgr).
+	// 	WithOptions(options).
+	// 	For(&infrav1exp.AWSManagedCluster{}).
+	// 	WithEventFilter(pa)
+
+	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(options).
+		For(&infrav1exp.AWSManagedCluster{}).
+		Complete(r)
+	//TODO: add
 }

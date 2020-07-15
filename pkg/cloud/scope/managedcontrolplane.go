@@ -32,13 +32,13 @@ import (
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
-	Client         client.Client
-	Logger         logr.Logger
-	Cluster        *clusterv1.Cluster
-	AWSCluster     *infrav1.AWSCluster
-	ControlPlane   *infrav1exp.AWSManagedControlPlane
-	ControllerName string
-	Session        awsclient.ConfigProvider
+	Client            client.Client
+	Logger            logr.Logger
+	Cluster           *clusterv1.Cluster
+	AWSManagedCluster *infrav1exp.AWSManagedCluster
+	ControlPlane      *infrav1exp.AWSManagedControlPlane
+	ControllerName    string
+	Session           awsclient.ConfigProvider
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -47,17 +47,17 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	if params.Cluster == nil {
 		return nil, errors.New("failed to generate new scope from nil Cluster")
 	}
-	if params.AWSCluster == nil {
-		return nil, errors.New("failed to generate new scope from nil AWSCluster")
+	if params.AWSManagedCluster == nil {
+		return nil, errors.New("failed to generate new scope from nil AWSManagedCluster")
 	}
 	if params.ControlPlane == nil {
-		return nil, errors.New("failed to generate new scope from nil EKSControlPlane")
+		return nil, errors.New("failed to generate new scope from nil AWSManagedControlPlane")
 	}
 	if params.Logger == nil {
 		params.Logger = klogr.New()
 	}
 
-	session, err := sessionForRegion(params.AWSCluster.Spec.Region)
+	session, err := sessionForRegion(params.AWSManagedCluster.Spec.Region)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -68,14 +68,14 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	}
 
 	return &ManagedControlPlaneScope{
-		Logger:         params.Logger,
-		Client:         params.Client,
-		Cluster:        params.Cluster,
-		AWSCluster:     params.AWSCluster,
-		ControlPlane:   params.ControlPlane,
-		patchHelper:    helper,
-		session:        session,
-		controllerName: params.ControllerName,
+		Logger:            params.Logger,
+		Client:            params.Client,
+		Cluster:           params.Cluster,
+		AWSManagedCluster: params.AWSManagedCluster,
+		ControlPlane:      params.ControlPlane,
+		patchHelper:       helper,
+		session:           session,
+		controllerName:    params.ControllerName,
 	}, nil
 }
 
@@ -85,9 +85,9 @@ type ManagedControlPlaneScope struct {
 	Client      client.Client
 	patchHelper *patch.Helper
 
-	Cluster      *clusterv1.Cluster
-	AWSCluster   *infrav1.AWSCluster
-	ControlPlane *infrav1exp.AWSManagedControlPlane
+	Cluster           *clusterv1.Cluster
+	AWSManagedCluster *infrav1exp.AWSManagedCluster
+	ControlPlane      *infrav1exp.AWSManagedControlPlane
 
 	session        awsclient.ConfigProvider
 	controllerName string
@@ -95,22 +95,22 @@ type ManagedControlPlaneScope struct {
 
 // Network returns the control plane network object.
 func (s *ManagedControlPlaneScope) Network() *infrav1.Network {
-	return &s.AWSCluster.Status.Network
+	return &s.AWSManagedCluster.Status.Network
 }
 
 // VPC returns the control plane VPC.
 func (s *ManagedControlPlaneScope) VPC() *infrav1.VPCSpec {
-	return &s.AWSCluster.Spec.NetworkSpec.VPC
+	return &s.AWSManagedCluster.Spec.NetworkSpec.VPC
 }
 
 // Subnets returns the control plane subnets.
 func (s *ManagedControlPlaneScope) Subnets() infrav1.Subnets {
-	return s.AWSCluster.Spec.NetworkSpec.Subnets
+	return s.AWSManagedCluster.Spec.NetworkSpec.Subnets
 }
 
 // SecurityGroups returns the control plane security groups as a map, it creates the map if empty.
 func (s *ManagedControlPlaneScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
-	return s.AWSCluster.Status.Network.SecurityGroups
+	return s.AWSManagedCluster.Status.Network.SecurityGroups
 }
 
 // Name returns the cluster name.
@@ -125,7 +125,7 @@ func (s *ManagedControlPlaneScope) Namespace() string {
 
 // Region returns the cluster region.
 func (s *ManagedControlPlaneScope) Region() string {
-	return s.AWSCluster.Spec.Region
+	return s.AWSManagedCluster.Spec.Region
 }
 
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
@@ -147,11 +147,11 @@ func (s *ManagedControlPlaneScope) Close() error {
 
 // AdditionalTags returns AdditionalTags from the scope's EksControlPlane. The returned value will never be nil.
 func (s *ManagedControlPlaneScope) AdditionalTags() infrav1.Tags {
-	if s.AWSCluster.Spec.AdditionalTags == nil {
-		s.AWSCluster.Spec.AdditionalTags = infrav1.Tags{}
+	if s.AWSManagedCluster.Spec.AdditionalTags == nil {
+		s.AWSManagedCluster.Spec.AdditionalTags = infrav1.Tags{}
 	}
 
-	return s.AWSCluster.Spec.AdditionalTags.DeepCopy()
+	return s.AWSManagedCluster.Spec.AdditionalTags.DeepCopy()
 }
 
 // ControllerName returns the name of the controller that

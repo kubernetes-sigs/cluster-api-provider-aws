@@ -14,4 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package exp
+package v1alpha3
+
+import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+
+const (
+	// EKSControlPlaneReadyCondition condition reports on the successful reconciliation of eks control plane.
+	EKSControlPlaneReadyCondition clusterv1.ConditionType = "EKSControlPlaneReady"
+	// EKSControlPlaneReconciliationFailedReason used to report failures while reconciling EKS control plane
+	EKSControlPlaneReconciliationFailedReason = "EKSControlPlaneReconciliationFailed"
+)
