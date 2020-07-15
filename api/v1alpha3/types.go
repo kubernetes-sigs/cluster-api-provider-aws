@@ -345,7 +345,7 @@ func (s Subnets) FilterByZone(zone string) (res Subnets) {
 
 // GetUniqueZones returns a slice containing the unique zones of the subnets
 func (s Subnets) GetUniqueZones() []string {
-	keys := make(map[string]bool, 0)
+	keys := make(map[string]bool)
 	zones := []string{}
 	for _, x := range s {
 		if _, value := keys[x.AvailabilityZone]; !value {

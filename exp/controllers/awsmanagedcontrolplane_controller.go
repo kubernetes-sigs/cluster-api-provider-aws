@@ -132,11 +132,12 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 	logger = logger.WithValues("cluster", cluster.Name)
 
 	managedScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-		Client:       r.Client,
-		Logger:       logger,
-		Cluster:      cluster,
-		AWSCluster:   awsCluster,
-		ControlPlane: awsControlPlane,
+		Client:         r.Client,
+		Logger:         logger,
+		Cluster:        cluster,
+		AWSCluster:     awsCluster,
+		ControlPlane:   awsControlPlane,
+		ControllerName: "awsmanagedcontrolplane",
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
@@ -177,23 +178,19 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
+func (r *AWSManagedControlPlaneReconciler) reconcileDelete(_ context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
 	managedScope.Info("Reconciling AWSManagedClusterPlane delete")
 
 	ekssvc := eks.NewService(managedScope)
 	controlPlane := managedScope.ControlPlane
 
 	if err := ekssvc.DeleteControlPlane(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleteing EKS cluster for EKS control plane %s/%s", managedScope.Namespace(), managedScope.Name())
+		return reconcile.Result{}, errors.Wrapf(err, "error deleting EKS cluster for EKS control plane %s/%s", managedScope.Namespace(), managedScope.Name())
 	}
 
 	controllerutil.RemoveFinalizer(controlPlane, infrav1exp.EKSControlPlaneFinalizer)
 
 	return reconcile.Result{}, nil
-}
-
-func (r *AWSManagedControlPlaneReconciler) reconcilHealth(ctx context.Context, cluster *clusterv1.Cluster, ekp *infrav1exp.AWSManagedControlPlane) (_ ctrl.Result, reterr error) {
-	return
 }
 
 // ClusterToAWSManagedControlPlane is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation

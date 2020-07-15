@@ -81,7 +81,8 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 		aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
 	}
 	if s.scope.ControlPlane.Spec.RoleAdditionalPolicies != nil {
-		for _, additionalPolicy := range *s.scope.ControlPlane.Spec.RoleAdditionalPolicies {
+		for _, policy := range *s.scope.ControlPlane.Spec.RoleAdditionalPolicies {
+			additionalPolicy := policy
 			policies = append(policies, &additionalPolicy)
 		}
 	}
@@ -174,19 +175,19 @@ func (s *Service) ensurePoliciesAttached(role *iam.Role, policies []*string) err
 
 	// Remove polices that aren't in the list
 	for _, existingPolicy := range existingPolices {
-		_, found := findStringInSlice(policies, *existingPolicy)
+		found := findStringInSlice(policies, *existingPolicy)
 		if !found {
 			err = s.detachIAMRolePolicy(*role.RoleName, *existingPolicy)
 			if err != nil {
 				return err
 			}
-			s.scope.V(2).Info("Detatched policy from role", "role", role.RoleName, "policy", existingPolicy)
+			s.scope.V(2).Info("Detached policy from role", "role", role.RoleName, "policy", existingPolicy)
 		}
 	}
 
 	// Add any policies that aren't currently attached
 	for _, policy := range policies {
-		_, found := findStringInSlice(existingPolices, *policy)
+		found := findStringInSlice(existingPolices, *policy)
 		if !found {
 			// Make sure policy exists before attaching
 			_, err := s.getIAMPolicy(*policy)
@@ -242,7 +243,7 @@ func (s *Service) detachAllPoliciesForRole(name string) error {
 	input := &iam.ListAttachedRolePoliciesInput{
 		RoleName: &name,
 	}
-	policies, err := s.scope.IAM.ListAttachedRolePolicies(input)
+	policies, err := s.IAMClient.ListAttachedRolePolicies(input)
 	if err != nil {
 		return errors.Wrapf(err, "error fetching policies for role %s", name)
 	}
@@ -345,12 +346,12 @@ func isNotFound(err error) bool {
 	return false
 }
 
-func findStringInSlice(slice []*string, toFind string) (int, bool) {
-	for i, item := range slice {
+func findStringInSlice(slice []*string, toFind string) bool {
+	for _, item := range slice {
 		if *item == toFind {
-			return i, true
+			return true
 		}
 	}
 
-	return -1, false
+	return false
 }
