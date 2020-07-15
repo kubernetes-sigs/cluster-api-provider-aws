@@ -32,9 +32,9 @@ func (s *Service) GetConsoleOutput(instanceID string) (string, error) {
 		Latest:     aws.Bool(true),
 	}
 
-	out, err := s.scope.EC2.GetConsoleOutput(input)
+	out, err := s.EC2Client.GetConsoleOutput(input)
 	if err != nil {
-		record.Eventf(s.scope.AWSCluster, "FailedGetConsoleOutput", "failed to get console output for instance %q: %v", instanceID, err)
+		record.Eventf(s.scope.InfraCluster(), "FailedGetConsoleOutput", "failed to get console output for instance %q: %v", instanceID, err)
 		return "", errors.Wrapf(err, "failed to get console output for instance %q", instanceID)
 	}
 

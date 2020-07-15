@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"fmt"
@@ -45,8 +45,8 @@ func (s *Service) reconcileVPC() error {
 	vpc, err := s.describeVPC()
 	if awserrors.IsNotFound(err) { // nolint:nestif
 		// Create a new managed vpc.
-		if !conditions.Has(s.scope.AWSCluster, infrav1.VpcReadyCondition) {
-			conditions.MarkFalse(s.scope.AWSCluster, infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
+		if !conditions.Has(s.scope.InfraCluster(), infrav1.VpcReadyCondition) {
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
@@ -82,14 +82,14 @@ func (s *Service) reconcileVPC() error {
 	// Make sure attributes are configured
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if err := tags.Ensure(vpc.Tags, &tags.ApplyParams{
-			EC2Client:   s.scope.EC2,
+			EC2Client:   s.EC2Client,
 			BuildParams: s.getVPCTagParams(vpc.ID),
 		}); err != nil {
 			return false, err
 		}
 		return true, nil
 	}, awserrors.VPCNotFound); err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedTagVPC", "Failed to tag managed VPC %q: %v", vpc.ID, err)
+		record.Warnf(s.scope.InfraCluster(), "FailedTagVPC", "Failed to tag managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to tag vpc %q", vpc.ID)
 	}
 
@@ -119,7 +119,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 		VpcId:     aws.String(vpc.ID),
 		Attribute: aws.String("enableDnsHostnames"),
 	}
-	vpcAttr, err := s.scope.EC2.DescribeVpcAttribute(descAttrInput)
+	vpcAttr, err := s.EC2Client.DescribeVpcAttribute(descAttrInput)
 	if err != nil {
 		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsHostnames vpc attribute"))
 	} else if !aws.BoolValue(vpcAttr.EnableDnsHostnames.Value) {
@@ -127,7 +127,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			VpcId:              aws.String(vpc.ID),
 			EnableDnsHostnames: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 		}
-		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
+		if _, err := s.EC2Client.ModifyVpcAttribute(attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsHostnames vpc attribute"))
 		} else {
 			updated = true
@@ -138,7 +138,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 		VpcId:     aws.String(vpc.ID),
 		Attribute: aws.String("enableDnsSupport"),
 	}
-	vpcAttr, err = s.scope.EC2.DescribeVpcAttribute(descAttrInput)
+	vpcAttr, err = s.EC2Client.DescribeVpcAttribute(descAttrInput)
 	if err != nil {
 		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsSupport vpc attribute"))
 	} else if !aws.BoolValue(vpcAttr.EnableDnsSupport.Value) {
@@ -146,7 +146,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			VpcId:            aws.String(vpc.ID),
 			EnableDnsSupport: &ec2.AttributeBooleanValue{Value: aws.Bool(true)},
 		}
-		if _, err := s.scope.EC2.ModifyVpcAttribute(attrInput); err != nil {
+		if _, err := s.EC2Client.ModifyVpcAttribute(attrInput); err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to set enableDnsSupport vpc attribute"))
 		} else {
 			updated = true
@@ -154,12 +154,12 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 	}
 
 	if len(errs) > 0 {
-		record.Warnf(s.scope.AWSCluster, "FailedSetVPCAttributes", "Failed to set managed VPC attributes for %q: %v", vpc.ID, err)
+		record.Warnf(s.scope.InfraCluster(), "FailedSetVPCAttributes", "Failed to set managed VPC attributes for %q: %v", vpc.ID, err)
 		return kerrors.NewAggregate(errs)
 	}
 
 	if updated {
-		record.Eventf(s.scope.AWSCluster, "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID)
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulSetVPCAttributes", "Set managed VPC attributes for %q", vpc.ID)
 	}
 
 	return nil
@@ -181,13 +181,13 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		},
 	}
 
-	out, err := s.scope.EC2.CreateVpc(input)
+	out, err := s.EC2Client.CreateVpc(input)
 	if err != nil {
-		record.Warnf(s.scope.AWSCluster, "FailedCreateVPC", "Failed to create new managed VPC: %v", err)
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateVPC", "Failed to create new managed VPC: %v", err)
 		return nil, errors.Wrap(err, "failed to create vpc")
 	}
 
-	record.Eventf(s.scope.AWSCluster, "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
+	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateVPC", "Created new managed VPC %q", *out.Vpc.VpcId)
 	s.scope.V(2).Info("Created new VPC with cidr", "vpc-id", *out.Vpc.VpcId, "cidr-block", *out.Vpc.CidrBlock)
 
 	// TODO: we should attempt to record the VPC ID as soon as possible by setting s.scope.VPC().ID
@@ -195,7 +195,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	// need to be updated to accommodate for the recording of the VPC ID prior to the tagging.
 
 	wReq := &ec2.DescribeVpcsInput{VpcIds: []*string{out.Vpc.VpcId}}
-	if err := s.scope.EC2.WaitUntilVpcAvailable(wReq); err != nil {
+	if err := s.EC2Client.WaitUntilVpcAvailable(wReq); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for vpc %q", *out.Vpc.VpcId)
 	}
 
@@ -218,18 +218,18 @@ func (s *Service) deleteVPC() error {
 		VpcId: aws.String(vpc.ID),
 	}
 
-	if _, err := s.scope.EC2.DeleteVpc(input); err != nil {
+	if _, err := s.EC2Client.DeleteVpc(input); err != nil {
 		// Ignore if it's already deleted
 		if code, ok := awserrors.Code(err); ok && code == awserrors.VPCNotFound {
 			s.scope.V(4).Info("Skipping VPC deletion, VPC not found")
 			return nil
 		}
-		record.Warnf(s.scope.AWSCluster, "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)
+		record.Warnf(s.scope.InfraCluster(), "FailedDeleteVPC", "Failed to delete managed VPC %q: %v", vpc.ID, err)
 		return errors.Wrapf(err, "failed to delete vpc %q", vpc.ID)
 	}
 
 	s.scope.V(2).Info("Deleted VPC", "vpc-id", vpc.ID)
-	record.Eventf(s.scope.AWSCluster, "SuccessfulDeleteVPC", "Deleted managed VPC %q", vpc.ID)
+	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteVPC", "Deleted managed VPC %q", vpc.ID)
 	return nil
 }
 
@@ -247,7 +247,7 @@ func (s *Service) describeVPC() (*infrav1.VPCSpec, error) {
 		input.VpcIds = []*string{aws.String(s.scope.VPC().ID)}
 	}
 
-	out, err := s.scope.EC2.DescribeVpcs(input)
+	out, err := s.EC2Client.DescribeVpcs(input)
 	if err != nil {
 		if awserrors.IsNotFound(err) {
 			return nil, err

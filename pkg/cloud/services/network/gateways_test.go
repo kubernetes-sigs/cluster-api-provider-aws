@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ec2
+package network
 
 import (
 	"testing"
@@ -26,7 +26,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -116,15 +115,10 @@ func TestReconcileInternetGateways(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
-			elbMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
-				},
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-					ELB: elbMock,
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
@@ -139,6 +133,8 @@ func TestReconcileInternetGateways(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
 			if err := s.reconcileInternetGateways(); err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
 			}

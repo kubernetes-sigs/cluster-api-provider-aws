@@ -68,9 +68,6 @@ func TestAMIs(t *testing.T) {
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{},
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-				},
 			})
 			if err != nil {
 				t.Fatalf("did not expect err: %v", err)
@@ -79,6 +76,8 @@ func TestAMIs(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
 			id, err := s.defaultAMILookup("", "", "base os-baseos version", "1.11.1")
 			if err != nil {
 				t.Fatalf("did not expect error calling a mock: %v", err)
@@ -129,9 +128,6 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster:    &clusterv1.Cluster{},
 				AWSCluster: &infrav1.AWSCluster{},
-				AWSClients: scope.AWSClients{
-					EC2: ec2Mock,
-				},
 			})
 			if err != nil {
 				t.Fatalf("did not expect err: %v", err)
@@ -140,6 +136,8 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
 			_, err = s.defaultAMILookup("", "", "base os-baseos version", "1.11.1")
 			if err == nil {
 				t.Fatalf("expected an error but did not get one")
