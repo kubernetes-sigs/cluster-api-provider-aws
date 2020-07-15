@@ -65,6 +65,7 @@ func RootCmd() *cobra.Command {
 
 func bootstrapTemplateFromCmdLine() cfnBootstrap.Template {
 	conf := bootstrapv1.NewAWSIAMConfiguration()
+	conf.Spec.BootstrapUser.Enable = true
 	conf.Spec.ControlPlane.ExtraPolicyAttachments = extraControlPlanePolicies
 	conf.Spec.Nodes.ExtraPolicyAttachments = extraNodePolicies
 	return cfnBootstrap.Template{
