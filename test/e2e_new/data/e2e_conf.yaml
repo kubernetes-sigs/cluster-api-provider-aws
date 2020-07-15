@@ -89,7 +89,6 @@ providers:
     files:
       # Add a cluster template
       - sourcePath: "../../../templates/cluster-template.yaml"
-      - sourcePath: "../../../_artifacts/templates/cluster-template-conformance-ci-artifacts.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"
@@ -100,11 +99,6 @@ variables:
   CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.18.2"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
-  # include hacks for a typical conformance bootstrap script
-  GSUTIL: '${GSUTIL}'
-  PACKAGE_VERSION: '${PACKAGE_VERSION}'
-  SUDO: '${SUDO}'
-  VERSION_REGEX: '${VERSION_REGEX}'
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

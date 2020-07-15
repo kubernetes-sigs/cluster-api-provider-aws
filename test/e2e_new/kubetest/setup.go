@@ -81,7 +81,6 @@ func NewConfiguration(e2eConfig *clusterctl.E2EConfig, artifactsDirectory string
 	if c.UseCIArtifacts {
 		newVersion := fetchKubernetesCIVersion()
 		c.E2EConfig.Variables["KUBERNETES_VERSION"] = newVersion
-		c.E2EConfig.Variables["CI_VERSION"] = newVersion
 	}
 	c.DumpE2EConfig()
 	return &c

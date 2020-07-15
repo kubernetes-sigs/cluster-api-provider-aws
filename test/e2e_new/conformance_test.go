@@ -21,8 +21,14 @@ package e2e_new
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path"
 	"path/filepath"
 	"strconv"
+
+	"os/exec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -99,3 +105,56 @@ var _ = Describe("conformance tests", func() {
 	})
 
 })
+
+func prepConformanceConfig(artifactsDir string, e2eConfig *clusterctl.E2EConfig) error {
+	for i, p := range e2eConfig.Providers {
+		if p.Name != "aws" {
+			continue
+		}
+		e2eConfig.Providers[i].Files = append(p.Files, clusterctl.Files{
+			SourcePath: path.Join(artifactFolder, "/templates/cluster-template-conformance-ci-artifacts.yaml"),
+			TargetName: "cluster-template-conformance-ci-artifacts.yaml",
+		},
+		)
+	}
+	templateDir := path.Join(artifactsDir, "templates")
+	overlayDir := path.Join(artifactsDir, "overlay")
+	srcDir := path.Join("data", "kubetest", "kustomization")
+	originalTemplate := path.Join("..", "..", "templates", "cluster-template.yaml")
+
+	if err := copy(path.Join(srcDir, "kustomization.yaml"), path.Join(overlayDir, "kustomization.yaml")); err != nil {
+		return err
+	}
+	if err := copy(path.Join(srcDir, "kustomizeversions.yaml"), path.Join(overlayDir, "kustomizeversions.yaml")); err != nil {
+		return err
+	}
+	if err := copy(originalTemplate, path.Join(overlayDir, "cluster-template.yaml")); err != nil {
+		return err
+	}
+	cmd := exec.Command("kustomize", "build", overlayDir)
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	os.MkdirAll(templateDir, 0o750)
+	if err := ioutil.WriteFile(path.Join(templateDir, "cluster-template-conformance-ci-artifacts.yaml"), data, 0o640); err != nil {
+		return err
+	}
+	return nil
+}
+
+func copy(src, dest string) error {
+	os.MkdirAll(path.Dir(dest), 0o750)
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	destFile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(destFile, srcFile); err != nil {
+		return err
+	}
+	return nil
+}
