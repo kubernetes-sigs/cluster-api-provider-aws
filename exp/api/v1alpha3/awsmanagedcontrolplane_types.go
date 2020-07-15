@@ -57,7 +57,7 @@ type AWSManagedControlPlaneSpec struct {
 
 	// EncryptionConfig specifies the encryption configuration for the cluster
 	// +optional
-	EncryptionConfig *[]EncryptionConfig `json:"encryptionConfig,omitempty"`
+	EncryptionConfig *EncryptionConfig `json:"encryptionConfig,omitempty"`
 
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
@@ -76,7 +76,7 @@ type AWSManagedControlPlaneSpec struct {
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter
 type EncryptionConfig struct {
 	// Provider specifies the ARN or alias of the CMK (in AWS KMS)
-	Provider *infrav1.AWSResourceReference `json:"provider,omitempty"`
+	Provider *string `json:"provider,omitempty"`
 	//Resources specifies the resources to be encrypted
 	Resources []*string `json:"resources,omitempty"`
 }

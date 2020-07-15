@@ -218,14 +218,8 @@ func (in *AWSManagedControlPlaneSpec) DeepCopyInto(out *AWSManagedControlPlaneSp
 	}
 	if in.EncryptionConfig != nil {
 		in, out := &in.EncryptionConfig, &out.EncryptionConfig
-		*out = new([]EncryptionConfig)
-		if **in != nil {
-			in, out := *in, *out
-			*out = make([]EncryptionConfig, len(*in))
-			for i := range *in {
-				(*in)[i].DeepCopyInto(&(*out)[i])
-			}
-		}
+		*out = new(EncryptionConfig)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.AdditionalTags != nil {
 		in, out := &in.AdditionalTags, &out.AdditionalTags
@@ -292,8 +286,8 @@ func (in *EncryptionConfig) DeepCopyInto(out *EncryptionConfig) {
 	*out = *in
 	if in.Provider != nil {
 		in, out := &in.Provider, &out.Provider
-		*out = new(apiv1alpha3.AWSResourceReference)
-		(*in).DeepCopyInto(*out)
+		*out = new(string)
+		**out = **in
 	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources

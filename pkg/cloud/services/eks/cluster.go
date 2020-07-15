@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 )
 
 func (s *Service) reconcileCluster(ctx context.Context) error {
@@ -175,6 +176,18 @@ func (s *Service) deleteClusterAndWait(cluster *eks.Cluster) error {
 	return nil
 }
 
+func makeEksEncryptionConfigs(encryptionConfig *infrav1exp.EncryptionConfig) []*eks.EncryptionConfig {
+	if encryptionConfig == nil {
+		return []*eks.EncryptionConfig{}
+	}
+	return []*eks.EncryptionConfig{{
+		Provider: &eks.Provider{
+			KeyArn: encryptionConfig.Provider,
+		},
+		Resources: encryptionConfig.Resources,
+	}}
+}
+
 func makeEksLogging(loggingSpec map[string]bool) *eks.Logging {
 	var on = true
 	var off = false
@@ -243,11 +256,13 @@ func (s *Service) createCluster() (*eks.Cluster, error) {
 	}
 
 	logging := makeEksLogging(s.scope.ControlPlane.Spec.Logging)
+	encryptionConfigs := makeEksEncryptionConfigs(s.scope.ControlPlane.Spec.EncryptionConfig)
 	input := &eks.CreateClusterInput{
 		Name: &s.scope.Cluster.Name,
 		//ClientRequestToken: aws.String(uuid.New().String()),
-		Version: aws.String(version),
-		Logging: logging,
+		Version:          aws.String(version),
+		Logging:          logging,
+		EncryptionConfig: encryptionConfigs,
 		ResourcesVpcConfig: &eks.VpcConfigRequest{
 			SubnetIds: subnetIds,
 		},
