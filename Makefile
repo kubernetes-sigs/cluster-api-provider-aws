@@ -47,7 +47,8 @@ E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e_new/data
 E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
 KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 KUBETEST_FAST_CONF_PATH ?= $(abspath $(REPO_ROOT)/test/e2e_new/data/kubetest/conformance-fast.yaml)
-CONFORMANCE_CI_TEMPLATE := $(ARTIFACTS)/templates/cluster-template-conformance-ci-artifacts.yaml
+CONFORMANCE_CI_TEMPLATE := _artifacts/templates/cluster-template-conformance-ci-artifacts.yaml
+CONFORMANCE_CI_TEMPLATE_ARTIFACT := $(ARTIFACTS)/templates/cluster-template-conformance-ci-artifacts.yaml
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -147,7 +148,11 @@ $(OVERLAY_DIR)/cluster-template.yaml: $(OVERLAY_DIR)
 	cp -f templates/cluster-template.yaml $@
 
 $(CONFORMANCE_CI_TEMPLATE): $(OVERLAY_DIR)/cluster-template.yaml $(ARTIFACTS)/templates $(KUSTOMIZE) $(OVERLAY_DIR)/kustomization.yaml $(OVERLAY_DIR)/kustomizeversions.yaml
-		$(KUSTOMIZE) build $(OVERLAY_DIR) > $@
+	mkdir -p $(dir $(CONFORMANCE_CI_TEMPLATE))
+	$(KUSTOMIZE) build $(OVERLAY_DIR) > $@
+
+$(CONFORMANCE_CI_TEMPLATE_ARTIFACT): $(CONFORMANCE_CI_TEMPLATE) $(ARTIFACTS)/templates
+	-cp -R $(CONFORMANCE_CI_TEMPLATE) $@
 
 .PHONY: test-e2e
 test-e2e: $(GINKGO) $(KIND) ## Run e2e tests

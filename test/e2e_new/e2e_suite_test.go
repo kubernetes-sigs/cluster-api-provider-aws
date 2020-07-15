@@ -152,6 +152,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	e2eConfig = loadE2EConfig(configPath)
 
 	awsSession = newAWSSession()
+	if err := dumpServiceQuotas(context.TODO(), artifactFolder); err != nil {
+		// Non-lethal error
+		fmt.Fprintln(GinkgoWriter, "Error dumping service quotas: err=%s", err)
+	}
 	createCloudFormationStack(awsSession, getBootstrapTemplate())
 	ensureNoServiceLinkedRoles(awsSession)
 	ensureSSHKeyPair(awsSession, defaultSSHKeyPairName)

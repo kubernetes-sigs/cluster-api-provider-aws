@@ -21,17 +21,21 @@ package e2e_new
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/servicequotas"
 	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -161,4 +165,38 @@ func dumpSpecResources(ctx context.Context, clusterProxy framework.ClusterProxy,
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
+}
+
+func dumpServiceQuotas(ctx context.Context, artifactFolder string) error {
+	if err := dumpServiceQuota(ctx, artifactFolder, "ec2"); err != nil {
+		return err
+	}
+	if err := dumpServiceQuota(ctx, artifactFolder, "elasticloadbalancing"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func dumpServiceQuota(ctx context.Context, artifactFolder string, service string) error {
+	s := servicequotas.New(awsSession)
+	resp, err := s.ListServiceQuotasWithContext(ctx, &servicequotas.ListServiceQuotasInput{
+		ServiceCode: aws.String(service),
+	})
+	if err != nil {
+		return err
+	}
+	quotas := resp.Quotas
+	for i := range quotas {
+		quotas[i].QuotaArn = aws.String("")
+	}
+	data, err := yaml.Marshal(resp.Quotas)
+	if err != nil {
+		return err
+	}
+	filename := path.Join(artifactFolder, "service-quotas", service+".yaml")
+	if err := os.MkdirAll(path.Dir(filename), 0o750); err != nil {
+		return err
+	}
+	ioutil.WriteFile(filename, data, 0o640)
+	return nil
 }
