@@ -51,12 +51,15 @@ var _ = Describe("Handler Suite", func() {
 		nodeName = "test-node"
 		httpHandler = newMockHTTPHandler(notFoundFunc)
 
-		h = &handler{
-			client:       k8sClient,
-			pollInterval: 100 * time.Millisecond,
-			nodeName:     nodeName,
-			log:          klogr.New(),
-		}
+		// use NewHandler() instead of manual construction in order to test NewHandler() logic
+		// like checking that machine api is added to scheme
+		handlerInterface, err := NewHandler(klogr.New(), cfg, 100*time.Millisecond, "", nodeName)
+		Expect(err).ToNot(HaveOccurred())
+
+		h = handlerInterface.(*handler)
+
+		// set pollURL so we can override initial value later
+		h.pollURL = nil
 	})
 
 	JustBeforeEach(func() {

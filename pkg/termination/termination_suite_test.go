@@ -24,7 +24,8 @@ import (
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
+	kubernetesscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -56,14 +57,19 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "..", "config", "crds")},
 	}
-	machinev1.AddToScheme(scheme.Scheme)
+
+	// Use our own scheme so we don't interfere with any test cases
+	// that would initialise the scheme themselves.
+	scheme := runtime.NewScheme()
+	kubernetesscheme.AddToScheme(scheme)
+	machinev1.AddToScheme(scheme)
 
 	var err error
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	k8sClient, err = client.New(cfg, client.Options{})
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
 	Expect(err).ToNot(HaveOccurred())
 
 	Expect(k8sClient.Create(ctx, &corev1.Namespace{
