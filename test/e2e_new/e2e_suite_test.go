@@ -57,13 +57,14 @@ import (
 )
 
 const (
-	KubernetesVersion    = "KUBERNETES_VERSION"
-	CNIPath              = "CNI"
-	AwsNodeMachineType   = "AWS_NODE_MACHINE_TYPE"
-	AwsAvailabilityZone1 = "AWS_AVAILABILITY_ZONE_1"
-	AwsAvailabilityZone2 = "AWS_AVAILABILITY_ZONE_2"
-	MultiAzFlavor        = "multi-az"
-	LimitAzFlavor        = "limit-az"
+	KubernetesVersion            = "KUBERNETES_VERSION"
+	CNIPath                      = "CNI"
+	AwsNodeMachineType           = "AWS_NODE_MACHINE_TYPE"
+	AwsAvailabilityZone1         = "AWS_AVAILABILITY_ZONE_1"
+	AwsAvailabilityZone2         = "AWS_AVAILABILITY_ZONE_2"
+	MultiAzFlavor                = "multi-az"
+	LimitAzFlavor                = "limit-az"
+	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 )
 
 // Test suite flags

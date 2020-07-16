@@ -108,8 +108,19 @@ var _ = Describe("functional tests", func() {
 			clusterName := fmt.Sprintf("sg-test.%s", util.RandomString(20))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
-			cluster, _ := createCluster(ctx, configCluster)
+			cluster, md := createCluster(ctx, configCluster)
 			clusterClient := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
+
+			By("Waiting for worker nodes to be in Running phase")
+			machines := getMachinesOfDeployment(namespace, md[0])
+			Expect(len(machines.Items)).Should(BeNumerically(">", 0))
+			statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseRunning))}
+			machineStatusInput := framework.WaitForMachineStatusCheckInput{
+				Getter:       bootstrapClusterProxy.GetClient(),
+				Machine:      &machines.Items[0],
+				StatusChecks: statusChecks,
+			}
+			framework.WaitForMachineStatusCheck(ctx, machineStatusInput, e2eConfig.GetIntervals("", "wait-machine-status")...)
 
 			By("Creating the LB service")
 			lbServiceName := "test-svc-" + util.RandomString(6)
@@ -491,6 +502,7 @@ func createStorageClass(storageClassName string, k8sclient crclient.Client) {
 	Byf("Creating StorageClass object with name: %s", storageClassName)
 	volExpansion := true
 	bindingMode := storagev1.VolumeBindingImmediate
+	azs := getAvailabilityZones()
 	storageClass := storagev1.StorageClass{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "storage.k8s.io/v1",
@@ -506,6 +518,12 @@ func createStorageClass(storageClassName string, k8sclient crclient.Client) {
 		AllowVolumeExpansion: &volExpansion,
 		MountOptions:         []string{"debug"},
 		VolumeBindingMode:    &bindingMode,
+		AllowedTopologies: []corev1.TopologySelectorTerm{{
+			MatchLabelExpressions: []corev1.TopologySelectorLabelRequirement{{
+				Key:    StorageClassFailureZoneLabel,
+				Values: []string{*azs[0].ZoneName},
+			}},
+		}},
 	}
 	Expect(k8sclient.Create(context.TODO(), &storageClass)).NotTo(HaveOccurred())
 }
