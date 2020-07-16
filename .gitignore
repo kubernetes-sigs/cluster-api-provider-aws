@@ -58,3 +58,5 @@ junit.*.xml
 
 # test results
 _artifacts
+awsiamconfiguration.yaml
+cloudformation.yaml

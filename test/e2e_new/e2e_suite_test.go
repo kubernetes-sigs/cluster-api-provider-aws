@@ -145,12 +145,12 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	flag.Parse()
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
 	Expect(os.MkdirAll(artifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", artifactFolder)
-
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
-
+	Expect(prepConformanceConfig(artifactFolder, e2eConfig)).To(Succeed())
 	awsSession = newAWSSession()
 	createCloudFormationStack(awsSession, getBootstrapTemplate())
 	ensureNoServiceLinkedRoles(awsSession)
