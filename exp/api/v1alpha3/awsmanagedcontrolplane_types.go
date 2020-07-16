@@ -64,13 +64,26 @@ type AWSManagedControlPlaneSpec struct {
 	// +optional
 	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
 
-	// Private indicates if the control plane should be private
+	// Endpoints specifies access to this cluster's control plane endpoints
 	// +optional
-	Private *bool `json:"private,omitempty"`
+	EndpointAccess EndpointAccess `json:"endpointAccess,omitempty"`
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+}
+
+// EndpointAccess specifies how control plane endpoints are accessible
+type EndpointAccess struct {
+	// Public controls whether control plane endpoints are publicly accessible
+	// +optional
+	Public *bool `json:"public,omitempty"`
+	// PublicCIDRs specifies which blocks can access the public endpoint
+	// +optional
+	PublicCIDRs []*string `json:"publicCIDRs,omitempty"`
+	// Private points VPC-internal control plane access to the private endpoint
+	// +optional
+	Private *bool `json:"private,omitempty"`
 }
 
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter

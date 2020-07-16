@@ -76,14 +76,26 @@ spec:
                       type: string
                     type: array
                 type: object
+              endpointAccess:
+                description: Endpoints specifies access to this cluster's control plane endpoints
+                properties:
+                  private:
+                    description: Private points VPC-internal control plane access to the private endpoint
+                    type: boolean
+                  public:
+                    description: Public controls whether control plane endpoints are publicly accessible
+                    type: boolean
+                  publicCIDRs:
+                    description: PublicCIDRs specifies which blocks can access the public endpoint
+                    items:
+                      type: string
+                    type: array
+                type: object
               logging:
                 additionalProperties:
                   type: boolean
                 description: Logging specifies whether a logging type is enabled or disabled
                 type: object
-              private:
-                description: Private indicates if the control plane should be private
-                type: boolean
               roleAdditionalPolicies:
                 description: RoleAdditionalPolicies allows you to attach additional polices to the control plane role.
                 items:

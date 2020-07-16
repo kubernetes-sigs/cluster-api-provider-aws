@@ -19,6 +19,7 @@ package eks
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,10 +27,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/tristate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
@@ -188,6 +191,39 @@ func makeEksEncryptionConfigs(encryptionConfig *infrav1exp.EncryptionConfig) []*
 	}}
 }
 
+func makeVpcConfig(subnets infrav1.Subnets, endpointAccess infrav1exp.EndpointAccess) (*eks.VpcConfigRequest, error) {
+	// TODO: Do we need to just add the private subnets?
+	if len(subnets) < 2 {
+		return nil, awserrors.NewFailedDependency("at least 2 subnets is required")
+	}
+
+	zones := subnets.GetUniqueZones()
+	if len(zones) < 2 {
+		return nil, awserrors.NewFailedDependency("subnets in at least 2 different az's are required")
+	}
+
+	subnetIds := make([]*string, 0)
+	for _, subnet := range subnets {
+		subnetIds = append(subnetIds, &subnet.ID)
+	}
+
+	cidrs := make([]*string, 0)
+	for _, cidr := range endpointAccess.PublicCIDRs {
+		_, ipNet, err := net.ParseCIDR(*cidr)
+		if err != nil {
+			return nil, errors.Wrap(err, "couldn't parse PublicCIDRs")
+		}
+		parsedCIDR := ipNet.String()
+		cidrs = append(cidrs, &parsedCIDR)
+	}
+	return &eks.VpcConfigRequest{
+		EndpointPublicAccess:  endpointAccess.Public,
+		EndpointPrivateAccess: endpointAccess.Private,
+		PublicAccessCidrs:     cidrs,
+		SubnetIds:             subnetIds,
+	}, nil
+}
+
 func makeEksLogging(loggingSpec map[string]bool) *eks.Logging {
 	var on = true
 	var off = false
@@ -217,24 +253,11 @@ func makeEksLogging(loggingSpec map[string]bool) *eks.Logging {
 }
 
 func (s *Service) createCluster() (*eks.Cluster, error) {
-	// TODO: Do we need to just add the private subnets?
-	subnets := s.scope.Subnets()
-	if len(subnets) < 2 {
-		return nil, awserrors.NewFailedDependency(
-			fmt.Sprintf("failed to create eks control plane %q, at least 2 subnets is required", s.scope.Name()),
-		)
-	}
-
-	zones := subnets.GetUniqueZones()
-	if len(zones) < 2 {
-		return nil, awserrors.NewFailedDependency(
-			fmt.Sprintf("failed to create eks control plane %q, subnets in at least 2 different az's are required", s.scope.Name()),
-		)
-	}
-
-	subnetIds := make([]*string, 0)
-	for _, subnet := range subnets {
-		subnetIds = append(subnetIds, &subnet.ID)
+	logging := makeEksLogging(s.scope.ControlPlane.Spec.Logging)
+	encryptionConfigs := makeEksEncryptionConfigs(s.scope.ControlPlane.Spec.EncryptionConfig)
+	vpcConfig, err := makeVpcConfig(s.scope.Subnets(), s.scope.ControlPlane.Spec.EndpointAccess)
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't create vpc config for cluster")
 	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
@@ -255,19 +278,15 @@ func (s *Service) createCluster() (*eks.Cluster, error) {
 		return nil, errors.Wrapf(err, "error getting control plane iam role: %s", *s.scope.ControlPlane.Spec.RoleName)
 	}
 
-	logging := makeEksLogging(s.scope.ControlPlane.Spec.Logging)
-	encryptionConfigs := makeEksEncryptionConfigs(s.scope.ControlPlane.Spec.EncryptionConfig)
 	input := &eks.CreateClusterInput{
 		Name: &s.scope.Cluster.Name,
 		//ClientRequestToken: aws.String(uuid.New().String()),
-		Version:          aws.String(version),
-		Logging:          logging,
-		EncryptionConfig: encryptionConfigs,
-		ResourcesVpcConfig: &eks.VpcConfigRequest{
-			SubnetIds: subnetIds,
-		},
-		RoleArn: role.Arn,
-		Tags:    tags,
+		Version:            aws.String(version),
+		Logging:            logging,
+		EncryptionConfig:   encryptionConfigs,
+		ResourcesVpcConfig: vpcConfig,
+		RoleArn:            role.Arn,
+		Tags:               tags,
 	}
 
 	var out *eks.CreateClusterOutput
@@ -318,6 +337,15 @@ func (s *Service) reconcileClusterConfig(cluster *eks.Cluster) error {
 		input.Logging = updateLogging
 	}
 
+	updateVpcConfig, err := s.reconcileVpcConfig(cluster.ResourcesVpcConfig)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create vpc config for cluster")
+	}
+	if updateVpcConfig != nil {
+		needsUpdate = true
+		input.ResourcesVpcConfig = updateVpcConfig
+	}
+
 	if needsUpdate {
 		if err := input.Validate(); err != nil {
 			return errors.Wrap(err, "created invalid UpdateClusterConfigInput")
@@ -347,6 +375,38 @@ func (s *Service) reconcileLogging(logging *eks.Logging) *eks.Logging {
 		}
 	}
 	return nil
+}
+
+func publicAccessCIDRsEqual(as []*string, bs []*string) bool {
+	all := "0.0.0.0/0"
+	if len(as) == 0 {
+		as = []*string{&all}
+	}
+	if len(bs) == 0 {
+		bs = []*string{&all}
+	}
+	return sets.NewString(aws.StringValueSlice(as)...).Equal(
+		sets.NewString(aws.StringValueSlice(bs)...),
+	)
+}
+
+func (s *Service) reconcileVpcConfig(vpcConfig *eks.VpcConfigResponse) (*eks.VpcConfigRequest, error) {
+	endpointAccess := s.scope.ControlPlane.Spec.EndpointAccess
+	updatedVpcConfig, err := makeVpcConfig(s.scope.Subnets(), endpointAccess)
+	if err != nil {
+		return nil, err
+	}
+	needsUpdate := !tristate.EqualWithDefault(false, vpcConfig.EndpointPrivateAccess, updatedVpcConfig.EndpointPrivateAccess) ||
+		!tristate.EqualWithDefault(true, vpcConfig.EndpointPublicAccess, updatedVpcConfig.EndpointPublicAccess) ||
+		!publicAccessCIDRsEqual(vpcConfig.PublicAccessCidrs, updatedVpcConfig.PublicAccessCidrs)
+	if needsUpdate {
+		return &eks.VpcConfigRequest{
+			EndpointPublicAccess:  updatedVpcConfig.EndpointPublicAccess,
+			EndpointPrivateAccess: updatedVpcConfig.EndpointPrivateAccess,
+			PublicAccessCidrs:     updatedVpcConfig.PublicAccessCidrs,
+		}, nil
+	}
+	return nil, nil
 }
 
 func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
