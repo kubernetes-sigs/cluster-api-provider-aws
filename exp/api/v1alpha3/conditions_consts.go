@@ -24,3 +24,10 @@ const (
 	// EKSControlPlaneReconciliationFailedReason used to report failures while reconciling EKS control plane
 	EKSControlPlaneReconciliationFailedReason = "EKSControlPlaneReconciliationFailed"
 )
+
+const (
+	// IAMControlPlaneRolesReadyCondition condition reports on the successful reconciliation of eks control plane iam roles.
+	IAMControlPlaneRolesReadyCondition clusterv1.ConditionType = "IAMControlPlaneRolesReady"
+	// IAMControlPlaneRolesReconciliationFailedReason used to report failures while reconciling EKS control plane iam roles
+	IAMControlPlaneRolesReconciliationFailedReason = "IAMControlPlaneRolesReconciliationFailed"
+)

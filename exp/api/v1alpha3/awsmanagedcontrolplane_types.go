@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	// EKSControlPlaneFinalizer allows the controller to clean up resources on delete
-	EKSControlPlaneFinalizer = "eks.exp.infrastructure.cluster.x-k8s.io"
+	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete
+	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.exp.infrastructure.cluster.x-k8s.io"
 )
 
 // AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane
@@ -106,16 +106,13 @@ type AWSManagedControlPlaneStatus struct {
 	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
 
-	// FailureReason indicates that there is a terminal problem reconciling the
-	// state, and will be set to a token value suitable for
-	// programmatic interpretation.
-	// +optional
-	//FailureReason errors.KubeadmControlPlaneStatusError `json:"failureReason,omitempty"`
-
 	// ErrorMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
+
+	// Conditions specifies the cpnditions for the managed control plane
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -137,11 +134,21 @@ type AWSManagedControlPlane struct {
 
 // +kubebuilder:object:root=true
 
-// AWSManagedControlPlane contains a list of AWSManagedControlPlane
+// AWSManagedControlPlaneList contains a list of AWSManagedControlPlane
 type AWSManagedControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AWSManagedControlPlane `json:"items"`
+}
+
+// GetConditions returns the control planes conditions
+func (r *AWSManagedControlPlane) GetConditions() clusterv1.Conditions {
+	return r.Status.Conditions
+}
+
+// SetConditions sets the status conditions for the AWSManagedControlPlane
+func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1.Conditions) {
+	r.Status.Conditions = conditions
 }
 
 func init() {

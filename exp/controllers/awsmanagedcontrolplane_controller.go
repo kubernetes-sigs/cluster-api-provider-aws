@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -141,6 +142,12 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 
 	// Always close the scope
 	defer func() {
+		applicableConditions := []clusterv1.ConditionType{
+			infrav1exp.EKSControlPlaneReadyCondition,
+			infrav1exp.IAMControlPlaneRolesReadyCondition,
+		}
+		conditions.SetSummary(managedScope.ControlPlane, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
+
 		if err := managedScope.Close(); err != nil && reterr == nil {
 			reterr = err
 		}
@@ -158,9 +165,9 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (res ctrl.Result, reterr error) {
 	managedScope.Info("Reconciling AWSManagedControlPlane")
 
-	// TODO: check failed???
+	awsManagedControlPlane := managedScope.ControlPlane
 
-	controllerutil.AddFinalizer(managedScope.ControlPlane, infrav1exp.EKSControlPlaneFinalizer)
+	controllerutil.AddFinalizer(managedScope.ControlPlane, infrav1exp.ManagedControlPlaneFinalizer)
 	if err := managedScope.PatchObject(); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -168,7 +175,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	ekssvc := eks.NewService(managedScope)
 
 	if err := ekssvc.ReconcileControlPlane(ctx); err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
 	managedScope.ControlPlane.Status.Ready = true
@@ -186,7 +193,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(_ context.Context, ma
 		return reconcile.Result{}, errors.Wrapf(err, "error deleting EKS cluster for EKS control plane %s/%s", managedScope.Namespace(), managedScope.Name())
 	}
 
-	controllerutil.RemoveFinalizer(controlPlane, infrav1exp.EKSControlPlaneFinalizer)
+	controllerutil.RemoveFinalizer(controlPlane, infrav1exp.ManagedControlPlaneFinalizer)
 
 	return reconcile.Result{}, nil
 }

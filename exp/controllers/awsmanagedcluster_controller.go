@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,12 +29,15 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/predicates"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
@@ -112,7 +116,6 @@ func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
-			infrav1exp.EKSControlPlaneReadyCondition,
 		}
 
 		if managedClusterScope.VPC().IsManaged(managedClusterScope.Name()) {
@@ -202,9 +205,6 @@ func (r *AWSManagedClusterReconciler) reconcileNormal(managedClusterScope *scope
 	// Check the control plane and see if we are ready
 	controlPlane := managedClusterScope.Controlplane
 	if controlPlane.Status.Ready {
-		//TODO: is this the right place for this???
-		conditions.MarkTrue(awsManagedCluster, infrav1exp.EKSControlPlaneReadyCondition)
-
 		awsManagedCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 			Host: controlPlane.Spec.ControlPlaneEndpoint.Host,
 			Port: controlPlane.Spec.ControlPlaneEndpoint.Port,
@@ -218,14 +218,76 @@ func (r *AWSManagedClusterReconciler) reconcileNormal(managedClusterScope *scope
 }
 
 func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	// controller, err := ctrl.NewControllerManagedBy(mgr).
-	// 	WithOptions(options).
-	// 	For(&infrav1exp.AWSManagedCluster{}).
-	// 	WithEventFilter(pa)
+	awsManagedCluster := &infrav1exp.AWSManagedCluster{}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
-		For(&infrav1exp.AWSManagedCluster{}).
-		Complete(r)
-	//TODO: add
+		For(awsManagedCluster).
+		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		Build(r)
+
+	if err != nil {
+		return fmt.Errorf("error creating controller: %w", err)
+	}
+
+	// Add a watch for clusterv1.Cluster unpaise
+	if err = controller.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: util.ClusterToInfrastructureMapFunc(awsManagedCluster.GroupVersionKind()),
+		},
+		predicates.ClusterUnpaused(r.Log),
+	); err != nil {
+		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
+	}
+
+	// Add a watch for AWSManagedControlPlane
+	if err = controller.Watch(
+		&source.Kind{Type: &infrav1exp.AWSManagedControlPlane{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(r.managedControlPlaneToManagedCluster),
+		},
+		predicates.ClusterUnpaused(r.Log),
+	); err != nil {
+		return fmt.Errorf("failed adding watch on AWSManagedControlPlane: %w", err)
+	}
+
+	return nil
+}
+
+func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(o handler.MapObject) []ctrl.Request {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	awsManagedControlPlane, ok := o.Object.(*infrav1exp.AWSManagedControlPlane)
+	if !ok {
+		r.Log.Error(nil, fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o.Object))
+		return nil
+	}
+
+	if !awsManagedControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
+		r.Log.V(4).Info("AWSManagedControlPlane has a deletion timestamp, skipping mapping")
+		return nil
+	}
+
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, awsManagedControlPlane.ObjectMeta)
+	if err != nil {
+		r.Log.Error(err, "failed to get owning cluster")
+		return nil
+	}
+
+	managedClusterRef := cluster.Spec.InfrastructureRef
+	if managedClusterRef == nil || managedClusterRef.Kind != "AWSManagedCluster" {
+		r.Log.V(4).Info("InfrastructureRef is nil or not AWSManagedCluster, skipping mapping")
+		return nil
+	}
+
+	return []ctrl.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      managedClusterRef.Name,
+				Namespace: managedClusterRef.Namespace,
+			},
+		},
+	}
 }
