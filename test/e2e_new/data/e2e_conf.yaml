@@ -89,6 +89,10 @@ providers:
     files:
       # Add a cluster template
       - sourcePath: "../../../templates/cluster-template.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-multi-az.yaml"
+        targetName: "cluster-template-multi-az.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-limit-az.yaml"
+        targetName: "cluster-template-limit-az.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.18.2"
@@ -101,11 +105,13 @@ variables:
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
 
 intervals:
-  default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["20m", "10s"]
   default/wait-control-plane: ["10m", "10s"]
   default/wait-worker-nodes: ["10m", "10s"]
   conformance/wait-control-plane: ["30m", "10s"]
   conformance/wait-worker-nodes: ["30m", "10s"]
+  default/wait-controllers: ["3m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
+  default/wait-machine-status: ["20m", "10s"]
+  default/wait-infra-subnets: ["5m", "30s"]

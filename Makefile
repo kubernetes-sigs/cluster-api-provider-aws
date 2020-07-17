@@ -135,7 +135,7 @@ test-e2e: $(GINKGO) $(KIND) ## Run e2e tests
 
 .PHONY: test-e2e-new ## Run new e2e tests using clusterctl
 test-e2e-new: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
-	time $(GINKGO) -trace -progress -nodes=$(GINKGO_NODES) -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./test/e2e_new/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
+	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./test/e2e_new/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
 
 .PHONY: e2e-image
 e2e-image:
