@@ -1,6 +1,0 @@
-logs
-resources
-capa-controller-manager
-capi-controller-manager
-capi-kubeadm-bootstrap-controller-manager
-capi-kubeadm-control-plane-controller-manager

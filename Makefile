@@ -38,13 +38,12 @@ TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TEST_E2E_DIR := test/e2e
-TEST_E2E_NEW_DIR := test/e2e_new
 
 # Files
-E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e_new/data
+E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e/data
 E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
 KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
-KUBETEST_FAST_CONF_PATH ?= $(abspath $(REPO_ROOT)/test/e2e_new/data/kubetest/conformance-fast.yaml)
+KUBETEST_FAST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance-fast.yaml)
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -124,18 +123,9 @@ $(ARTIFACTS):
 test: ## Run tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
-.PHONY: test-integration
-test-integration: ## Run integration tests
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
-
-.PHONY: test-e2e
-test-e2e: $(GINKGO) $(KIND) ## Run e2e tests
-	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	cd $(TEST_E2E_DIR); time $(GINKGO) -nodes=$(GINKGO_NODES) -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./... -- -managerImage=$(CONTROLLER_IMG)-$(ARCH):$(TAG) $(E2E_ARGS)
-
-.PHONY: test-e2e-new ## Run new e2e tests using clusterctl
-test-e2e-new: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
-	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./test/e2e_new/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
+.PHONY: test-e2e ## Run new e2e tests using clusterctl
+test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
+	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./test/e2e/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
 
 .PHONY: e2e-image
 e2e-image:
@@ -146,21 +136,18 @@ else
 	docker build -f Dockerfile.fastbuild --tag="capa-manager:e2e" .
 endif
 
-.PHONY: test-conformance
-test-conformance: ## Run conformance test on workload cluster
-	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	cd $(TEST_E2E_DIR); go test -v -tags=e2e -timeout=4h . -args -ginkgo.v -ginkgo.focus "conformance tests" --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
 CONFORMANCE_E2E_ARGS += $(E2E_ARGS)
 CONFORMANCE_GINKGO_ARGS ?= -stream
 CONFORMANCE_GINKGO_ARGS += $(GINKGO_ARGS)
-.PHONY: test-conformance-new
+.PHONY: test-conformance
 test-conformance-new: ## Run clusterctl based conformance test on workload cluster (requires Docker).
-	$(MAKE) test-e2e-new E2E_FOCUS="conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' GINKGO_ARGS='$(CONFORMANCE_GINKGO_ARGS)'
+	$(MAKE) test-e2e E2E_FOCUS="conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' GINKGO_ARGS='$(CONFORMANCE_GINKGO_ARGS)'
 
+.PHONY: test-conformance-fast
 test-conformance-fast: ## Run clusterctl based conformance test on workload cluster (requires Docker) using a subset of the conformance suite in parallel. Run with FASTBUILD=true to skip full CAPA rebuild.
-	$(MAKE) test-conformance-new CONFORMANCE_E2E_ARGS="-kubetest.config-file=$(KUBETEST_FAST_CONF_PATH) -kubetest.ginkgo-nodes=5 $(E2E_ARGS)"
+	$(MAKE) test-conformance CONFORMANCE_E2E_ARGS="-kubetest.config-file=$(KUBETEST_FAST_CONF_PATH) -kubetest.ginkgo-nodes=5 $(E2E_ARGS)"
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
@@ -262,7 +249,6 @@ lint: $(GOLANGCI_LINT) ## Lint codebase
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
-	cd $(TEST_E2E_DIR); go mod tidy
 
 .PHONY: generate
 generate: ## Generate code

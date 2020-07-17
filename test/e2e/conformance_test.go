@@ -1,7 +1,7 @@
 // +build e2e
 
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,190 +16,145 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e_test
+package e2e
 
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
-	"text/template"
-	"time"
+
+	"os/exec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/onsi/ginkgo/config"
-	"github.com/pkg/errors"
-	"github.com/vmware-tanzu/sonobuoy/pkg/client"
-	sonodynamic "github.com/vmware-tanzu/sonobuoy/pkg/dynamic"
-	"golang.org/x/sync/errgroup"
-	"k8s.io/client-go/tools/clientcmd"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/kubetest"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	AMIPrefix             = "capa-ami-ubuntu-18.04-"
+	DefaultImageLookupOrg = "258751437250"
 )
 
 var _ = Describe("conformance tests", func() {
-	var setup testSetup
+	var (
+		namespace *corev1.Namespace
+		ctx       context.Context
+	)
 
 	BeforeEach(func() {
-		var err error
-		setup = testSetup{}
-		setup.testTmpDir, err = ioutil.TempDir(suiteTmpDir, "conformance-test")
+		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
+		Expect(kubetestConfig).ToNot(BeNil(), "Invalid argument. ConformanceConfiguration can't be nil")
+		ctx = context.TODO()
+		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		namespace = setupSpecNamespace(ctx, "conformance-tests", bootstrapClusterProxy, artifactFolder)
+	})
+	specName := "conformance"
+	Measure("conformance", func(b Benchmarker) {
+
+		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		flavor := clusterctl.DefaultFlavor
+		if kubetestConfig.UseCIArtifacts {
+			flavor = "conformance-ci-artifacts"
+		}
+		workerMachineCount, err := strconv.ParseInt(e2eConfig.GetVariable("CONFORMANCE_WORKER_MACHINE_COUNT"), 10, 64)
+		Expect(err).NotTo(HaveOccurred())
+		controlPlaneMachineCount, err := strconv.ParseInt(e2eConfig.GetVariable("CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT"), 10, 64)
 		Expect(err).NotTo(HaveOccurred())
 
-		setup.namespace = "conformance-" + util.RandomString(6)
-		createNamespace(setup.namespace)
-
-		setup.clusterName = "conformance-" + util.RandomString(6)
-		setup.awsClusterName = "conformance-infra-" + util.RandomString(6)
-		setup.cpMachinePrefix = "conformance-" + util.RandomString(6)
-		setup.cpAWSMachinePrefix = "conformance-infra-" + util.RandomString(6)
-		setup.cpBootstrapConfigPrefix = "conformance-boot-" + util.RandomString(6)
-		setup.mdBootstrapConfig = "conformance-boot-md" + util.RandomString(6)
-		setup.machineDeploymentName = "conformance-capa-md" + util.RandomString(6)
-		setup.awsMachineTemplateName = "conformance-infra-capa-mt" + util.RandomString(6)
-		setup.initialReplicas = 2
-		setup.instanceType = "t3.large"
-		setup.multipleAZ = false
-	})
-
-	Describe("conformance on workload cluster", func() {
-		It("It should pass k8s certified-conformance tests", func() {
-			By("Creating a cluster with single control plane")
-			makeSingleControlPlaneCluster(setup)
-
-			By("Deploying a MachineDeployment")
-			createMachineDeployment(setup)
-
-			By("Running conformance on the workload cluster")
-			err := runConformance(setup.testTmpDir, setup.namespace, setup.clusterName)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Deleting the Cluster")
-			deleteCluster(setup.namespace, setup.clusterName)
+		runtime := b.Time("cluster creation", func() {
+			_, _, _ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: bootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     clusterctlConfigPath,
+					KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   flavor,
+					Namespace:                namespace.Name,
+					ClusterName:              name,
+					KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
+					ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
+					WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
+				},
+				CNIManifestPath:              e2eConfig.GetVariable(CNIPath),
+				WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+			})
 		})
+		b.RecordValue("cluster creation", runtime.Seconds())
+		workloadProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
+		runtime = b.Time("conformance suite", func() {
+			kubetest.Run(kubetestConfig, workloadProxy, workerMachineCount)
+		})
+		b.RecordValue("conformance suite run time", runtime.Seconds())
+	}, 1)
+
+	AfterEach(func() {
+		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, skipCleanup)
 	})
+
 })
 
-type sonobuoyConfig struct {
-	SonobuoyVersion string
-	K8sVersion      string
+func prepConformanceConfig(artifactsDir string, e2eConfig *clusterctl.E2EConfig) error {
+	for i, p := range e2eConfig.Providers {
+		if p.Name != "aws" {
+			continue
+		}
+		e2eConfig.Providers[i].Files = append(p.Files, clusterctl.Files{
+			SourcePath: path.Join(artifactFolder, "/templates/cluster-template-conformance-ci-artifacts.yaml"),
+			TargetName: "cluster-template-conformance-ci-artifacts.yaml",
+		},
+		)
+	}
+	templateDir := path.Join(artifactsDir, "templates")
+	overlayDir := path.Join(artifactsDir, "overlay")
+	srcDir := path.Join("data", "kubetest", "kustomization")
+	originalTemplate := path.Join("..", "..", "templates", "cluster-template.yaml")
+
+	if err := copy(path.Join(srcDir, "kustomization.yaml"), path.Join(overlayDir, "kustomization.yaml")); err != nil {
+		return err
+	}
+	if err := copy(path.Join(srcDir, "kustomizeversions.yaml"), path.Join(overlayDir, "kustomizeversions.yaml")); err != nil {
+		return err
+	}
+	if err := copy(originalTemplate, path.Join(overlayDir, "cluster-template.yaml")); err != nil {
+		return err
+	}
+	cmd := exec.Command("kustomize", "build", overlayDir)
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	os.MkdirAll(templateDir, 0o750)
+	if err := ioutil.WriteFile(path.Join(templateDir, "cluster-template-conformance-ci-artifacts.yaml"), data, 0o640); err != nil {
+		return err
+	}
+	return nil
 }
 
-func runConformance(tmpDir, namespace, clusterName string) error {
-	cluster := crclient.ObjectKey{
-		Namespace: namespace,
-		Name:      clusterName,
-	}
-	kubeConfigData, err := kubeconfig.FromSecret(context.TODO(), kindClient, cluster)
+func copy(src, dest string) error {
+	os.MkdirAll(path.Dir(dest), 0o750)
+	srcFile, err := os.Open(src)
 	if err != nil {
-		return errors.Wrap(err, "couldn't get kubeconfig of workload cluster")
+		return err
 	}
-
-	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfigData)
+	destFile, err := os.Create(dest)
 	if err != nil {
-		return errors.Wrap(err, "couldn't get rest config from kubeconfig")
+		return err
 	}
-
-	sonobuoyKubeCli, err := sonodynamic.NewAPIHelperFromRESTConfig(restConfig)
-	if err != nil {
-		return errors.Wrap(err, "couldn't create sonobuoy client")
-	}
-
-	sonobuoyClient, err := client.NewSonobuoyClient(restConfig, sonobuoyKubeCli)
-	if err != nil {
-		return errors.Wrap(err, "couldn't create sonobuoy client")
-	}
-
-	k8sClient, err := sonobuoyClient.Client()
-	if err != nil {
-		return errors.Wrap(err, "couldn't retrieve k8s client")
-	}
-
-	apiVersion, err := k8sClient.Discovery().ServerVersion()
-	if err != nil {
-		return errors.Wrap(err, "couldn't get workload cluster's k8s version")
-	}
-
-	tmpl, err := template.ParseFiles("sonobuoy-config-tmpl.yaml")
-	if err != nil {
-		return errors.Wrap(err, "couldn't parse sonobuoy config template")
-	}
-
-	sonobuoyConfigPath := path.Join(tmpDir, clusterName+"-sonobuoy-config.yaml")
-	fileP, err := os.Create(sonobuoyConfigPath)
-	if err != nil {
-		return errors.Wrap(err, "couldn't create sonobuoy config file")
-	}
-
-	sbConfig := sonobuoyConfig{SonobuoyVersion: *sonobuoyVersion, K8sVersion: apiVersion.GitVersion}
-	err = tmpl.Execute(fileP, sbConfig)
-	if err != nil {
-		return errors.Wrap(err, "couldn't execute template")
-	}
-
-	runConfig := &client.RunConfig{
-		Wait:    time.Duration(4) * time.Hour,
-		GenFile: sonobuoyConfigPath,
-	}
-	if err := sonobuoyClient.Run(runConfig); err != nil {
-		return errors.Wrap(err, "error attempting to run sonobuoy")
-	}
-	reader, ec, err := sonobuoyClient.RetrieveResults(&client.RetrieveConfig{Namespace: "sonobuoy"})
-	if err != nil {
-		return errors.Wrap(err, "couldn't retrieve sonobuoy results")
-	}
-	var fileName string
-	outputDir := path.Join(artifactPath, "sonobuoy")
-	eg := &errgroup.Group{}
-	eg.Go(func() error { return <-ec })
-	eg.Go(func() error {
-		filesCreated, err := client.UntarAll(reader, outputDir, strconv.Itoa(config.GinkgoConfig.ParallelNode))
-		if err != nil {
-			return errors.Wrap(err, "couldn't untar sonobuoy results")
-		}
-		fmt.Fprintf(GinkgoWriter, "Files created by sonobuoy: ")
-		for _, fileName = range filesCreated {
-			fmt.Fprintf(GinkgoWriter, "%s\n", fileName)
-		}
-		return nil
-	})
-
-	err = eg.Wait()
-	if err != nil {
-		return errors.Wrap(err, "error retrieving results")
-	}
-
-	_, err = exec.Command("tar", "-C", outputDir, "-xf", fileName).Output()
-	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "untar %s failed\n", fileName)
-	} else {
-		// Move the conformance junit file to the artifact directory for prow to pick it up
-		src := path.Join(outputDir, "plugins/e2e/results/global/junit_01.xml")
-		dest := path.Join(artifactPath, "junit.k8s_conf.xml")
-		dst, err := os.Create(dest)
-		if err != nil {
-			return errors.Wrap(err, "couldnt make output dirs for tests?")
-		}
-		if err := os.Rename(src, dest); err != nil {
-			defer dst.Close()
-			fmt.Fprintf(GinkgoWriter, "couldn't fetch junit.k8s_conf.xml %v", err)
-		}
-	}
-
-	err = sonobuoyClient.Delete(&client.DeleteConfig{
-		Namespace:  "sonobuoy",
-		EnableRBAC: true,
-		DeleteAll:  true,
-		Wait:       15 * time.Minute,
-	})
-	if err != nil {
-		return errors.Wrap(err, "error deleting sonobuoy")
+	if _, err := io.Copy(destFile, srcFile); err != nil {
+		return err
 	}
 	return nil
 }
