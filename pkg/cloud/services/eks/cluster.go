@@ -216,27 +216,66 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess infrav1exp.EndpointAc
 		parsedCIDR := ipNet.String()
 		cidrs = append(cidrs, &parsedCIDR)
 	}
-	return &eks.VpcConfigRequest{
+
+	vpcConfig := &eks.VpcConfigRequest{
 		EndpointPublicAccess:  endpointAccess.Public,
 		EndpointPrivateAccess: endpointAccess.Private,
-		PublicAccessCidrs:     cidrs,
 		SubnetIds:             subnetIds,
-	}, nil
+	}
+
+	if len(cidrs) > 0 {
+		vpcConfig.PublicAccessCidrs = cidrs
+	}
+
+	return vpcConfig, nil
 }
 
-func makeEksLogging(loggingSpec map[string]bool) *eks.Logging {
+func makeEksLogging(loggingSpec *infrav1exp.ControlPlaneLoggingSpec) *eks.Logging {
 	var on = true
 	var off = false
 	enabled := eks.LogSetup{Enabled: &on}
 	disabled := eks.LogSetup{Enabled: &off}
-	for k, v := range loggingSpec {
-		loggingKey := k
-		if v {
-			enabled.Types = append(enabled.Types, &loggingKey)
-		} else {
-			disabled.Types = append(disabled.Types, &loggingKey)
-		}
+
+	// API Server
+	logType := eks.LogTypeApi
+	if loggingSpec.APIServer {
+		enabled.Types = append(enabled.Types, &logType)
+	} else {
+		disabled.Types = append(disabled.Types, &logType)
 	}
+
+	// Audit
+	logType = eks.LogTypeAudit
+	if loggingSpec.Audit {
+		enabled.Types = append(enabled.Types, &logType)
+	} else {
+		disabled.Types = append(disabled.Types, &logType)
+	}
+
+	// Authenticator
+	logType = eks.LogTypeAuthenticator
+	if loggingSpec.Authenticator {
+		enabled.Types = append(enabled.Types, &logType)
+	} else {
+		disabled.Types = append(disabled.Types, &logType)
+	}
+
+	// Controller Manager
+	logType = eks.LogTypeControllerManager
+	if loggingSpec.ControllerManager {
+		enabled.Types = append(enabled.Types, &logType)
+	} else {
+		disabled.Types = append(disabled.Types, &logType)
+	}
+
+	// Scheduler
+	logType = eks.LogTypeScheduler
+	if loggingSpec.Scheduler {
+		enabled.Types = append(enabled.Types, &logType)
+	} else {
+		disabled.Types = append(disabled.Types, &logType)
+	}
+
 	var clusterLogging []*eks.LogSetup
 	if len(enabled.Types) > 0 {
 		clusterLogging = append(clusterLogging, &enabled)
@@ -369,7 +408,8 @@ func (s *Service) reconcileClusterConfig(cluster *eks.Cluster) error {
 func (s *Service) reconcileLogging(logging *eks.Logging) *eks.Logging {
 	for _, logSetup := range logging.ClusterLogging {
 		for _, l := range logSetup.Types {
-			if enabled, ok := s.scope.ControlPlane.Spec.Logging[*l]; ok && enabled != *logSetup.Enabled {
+			enabled := s.scope.ControlPlane.Spec.Logging.IsLogEnabled(*l)
+			if enabled != *logSetup.Enabled {
 				return makeEksLogging(s.scope.ControlPlane.Spec.Logging)
 			}
 		}
@@ -412,7 +452,10 @@ func (s *Service) reconcileVpcConfig(vpcConfig *eks.VpcConfigResponse) (*eks.Vpc
 func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
 	specVersion := version.MustParseGeneric(*s.scope.ControlPlane.Spec.Version)
 	clusterVersion := version.MustParseGeneric(*cluster.Version)
+
 	if clusterVersion.LessThan(specVersion) {
+		// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
+		// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
 		nextVersion := clusterVersion.WithMinor(clusterVersion.Minor() + 1)
 		nextVersionString := fmt.Sprintf("%d.%d", nextVersion.Major(), nextVersion.Minor())
 

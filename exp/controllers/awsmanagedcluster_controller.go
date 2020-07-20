@@ -150,7 +150,7 @@ func (r *AWSManagedClusterReconciler) reconcileDelete(managedClusterScope *scope
 	ec2svc := ec2.NewService(managedClusterScope)
 	networkSvc := network.NewService(managedClusterScope)
 
-	awsManagedCluster := managedClusterScope.InfraCluster().(*infrav1exp.AWSManagedCluster)
+	awsManagedCluster := managedClusterScope.AWSManagedCluster
 
 	//TODO: wait for the control plane to delete
 

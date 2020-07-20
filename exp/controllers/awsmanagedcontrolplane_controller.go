@@ -235,6 +235,10 @@ func (r *AWSManagedControlPlaneReconciler) managedClusterToManagedControlPlane(o
 		r.Log.Error(err, "failed to get owning cluster")
 		return nil
 	}
+	if cluster == nil {
+		r.Log.V(4).Info("Owning cluster not set on AWSManagedCluster, skipping mapping")
+		return nil
+	}
 
 	controlPlaneRef := cluster.Spec.ControlPlaneRef
 	if controlPlaneRef == nil || controlPlaneRef.Kind != "AWSManagedControlPlane" {

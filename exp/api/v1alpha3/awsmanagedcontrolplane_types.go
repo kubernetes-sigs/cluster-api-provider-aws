@@ -51,9 +51,10 @@ type AWSManagedControlPlaneSpec struct {
 	// +optional
 	RoleAdditionalPolicies *[]string `json:"roleAdditionalPolicies"`
 
-	// Logging specifies whether a logging type is enabled or disabled
+	// Logging specifies which EKS Cluster logs should be enabled. Entries for
+	// each of the enabled logs will be sent to CloudWatch
 	// +optional
-	Logging map[string]bool `json:"logging,omitempty"`
+	Logging *ControlPlaneLoggingSpec `json:"logging,omitempty"`
 
 	// EncryptionConfig specifies the encryption configuration for the cluster
 	// +optional

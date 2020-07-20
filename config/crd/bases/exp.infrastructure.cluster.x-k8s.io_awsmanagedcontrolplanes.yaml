@@ -92,9 +92,29 @@ spec:
                     type: array
                 type: object
               logging:
-                additionalProperties:
-                  type: boolean
-                description: Logging specifies whether a logging type is enabled or disabled
+                description: Logging specifies which EKS Cluster logs should be enabled. Entries for each of the enabled logs will be sent to CloudWatch
+                properties:
+                  apiServer:
+                    description: APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
+                    type: boolean
+                  audit:
+                    description: Audit indicates if the Kubernetes API audit log should be enabled
+                    type: boolean
+                  authenticator:
+                    description: Authenticator indicates if the iam authenticator log should be enabled
+                    type: boolean
+                  controllerManager:
+                    description: ControllerManager indicates if the controller manager (kube-controller-manager) log should be enabled
+                    type: boolean
+                  scheduler:
+                    description: Scheduler indicates if the Kubernetes scheduler (kube-scheduler) log should be enabled
+                    type: boolean
+                required:
+                - apiServer
+                - audit
+                - authenticator
+                - controllerManager
+                - scheduler
                 type: object
               roleAdditionalPolicies:
                 description: RoleAdditionalPolicies allows you to attach additional polices to the control plane role.
@@ -114,6 +134,35 @@ spec:
           status:
             description: AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane
             properties:
+              conditions:
+                description: Conditions specifies the cpnditions for the managed control plane
+                items:
+                  description: Condition defines an observation of a Cluster API resource operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status to another. This should be when the underlying condition changed. If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition in CamelCase. The specific API may choose whether or not this field is considered a guaranteed API. This field may not be empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of Reason code, so the users or machines can immediately understand the current situation and act accordingly. The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase. Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
               failureMessage:
                 description: ErrorMessage indicates that there is a terminal problem reconciling the state, and will be set to a descriptive error message.
                 type: string
