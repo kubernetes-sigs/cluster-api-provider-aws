@@ -29,6 +29,7 @@ const (
 	filterNameVpcID         = "vpc-id"
 	filterNameState         = "state"
 	filterNameVpcAttachment = "attachment.vpc-id"
+	filterAvailabilityZone  = "availability-zone"
 )
 
 // EC2 exposes the ec2 sdk related filters.
@@ -139,5 +140,12 @@ func (ec2Filters) SubnetStates(states ...string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String("state"),
 		Values: aws.StringSlice(states),
+	}
+}
+
+func (ec2Filters) AvailabilityZone(zone string) *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String(filterAvailabilityZone),
+		Values: aws.StringSlice([]string{zone}),
 	}
 }
