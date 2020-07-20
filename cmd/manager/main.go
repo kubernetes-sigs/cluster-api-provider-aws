@@ -70,7 +70,7 @@ func main() {
 
 	leaderElectLeaseDuration := flag.Duration(
 		"leader-elect-lease-duration",
-		15*time.Second,
+		90*time.Second,
 		"The duration that non-leader candidates will wait after observing a leadership renewal until attempting to acquire leadership of a led but unrenewed leader slot. This is effectively the maximum duration that a leader can be stopped before it is replaced by another candidate. This is only applicable if leader election is enabled.",
 	)
 
