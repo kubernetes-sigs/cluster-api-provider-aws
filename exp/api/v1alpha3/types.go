@@ -23,19 +23,28 @@ import (
 // ControlPlaneLoggingSpec defines what EKS control plane logs that should be enabled
 type ControlPlaneLoggingSpec struct {
 	// APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
+	// +kubebuilder:default=false
 	APIServer bool `json:"apiServer"`
 	// Audit indicates if the Kubernetes API audit log should be enabled
+	// +kubebuilder:default=false
 	Audit bool `json:"audit"`
 	// Authenticator indicates if the iam authenticator log should be enabled
+	// +kubebuilder:default=false
 	Authenticator bool `json:"authenticator"`
 	//ControllerManager indicates if the controller manager (kube-controller-manager) log should be enabled
+	// +kubebuilder:default=false
 	ControllerManager bool `json:"controllerManager"`
 	// Scheduler indicates if the Kubernetes scheduler (kube-scheduler) log should be enabled
+	// +kubebuilder:default=false
 	Scheduler bool `json:"scheduler"`
 }
 
 // IsLogEnabled returns true if the log is enabled
 func (s *ControlPlaneLoggingSpec) IsLogEnabled(logName string) bool {
+	if s == nil {
+		return false
+	}
+
 	switch logName {
 	case eks.LogTypeApi:
 		return s.APIServer
@@ -51,3 +60,15 @@ func (s *ControlPlaneLoggingSpec) IsLogEnabled(logName string) bool {
 		return false
 	}
 }
+
+// EKSTokenMethod defines the method for obtaining a client token to use when connecting to EKS.
+type EKSTokenMethod string
+
+var (
+	// EKSTokenMethodIAMAuthenticator indicates that IAM autenticator will be used to get a token
+	EKSTokenMethodIAMAuthenticator = EKSTokenMethod("iam-authenticator")
+
+	// EKSTokenMethodAWSCli indicates that the AWS CLI will be used to get a token
+	// Version 1.16.156 or greater is required of the AWS CLI
+	EKSTokenMethodAWSCli = EKSTokenMethod("aws-cli")
+)

@@ -210,9 +210,7 @@ func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomainS
 	s.AWSCluster.Status.FailureDomains[id] = spec
 }
 
-// InfraCluster returns the AWS infrastructure cluster object.
-// Initially this will be AWSCluster but in the future it
-// could also be AWSManagedCluster
+// InfraCluster returns the AWS infrastructure cluster or control plane object.
 func (s *ClusterScope) InfraCluster() cloud.ClusterObject {
 	return s.AWSCluster
 }

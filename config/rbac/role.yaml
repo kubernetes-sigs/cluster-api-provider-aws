@@ -58,46 +58,6 @@ rules:
   - patch
   - watch
 - apiGroups:
-  - exp.infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedclusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - exp.infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - exp.infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedcontrolplanes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - exp.infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedcontrolplanes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsclusters
@@ -133,6 +93,46 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsmachines/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedcontrolplanes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedcontrolplanes/status
   verbs:
   - get
   - patch

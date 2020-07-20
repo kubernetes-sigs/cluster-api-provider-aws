@@ -24,11 +24,21 @@ import (
 
 const (
 	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete
-	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.exp.infrastructure.cluster.x-k8s.io"
+	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.infrastructure.cluster.x-k8s.io"
 )
 
 // AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane
 type AWSManagedControlPlaneSpec struct {
+	// NetworkSpec encapsulates all things related to AWS network.
+	NetworkSpec infrav1.NetworkSpec `json:"networkSpec,omitempty"`
+
+	// The AWS Region the cluster lives in.
+	Region string `json:"region,omitempty"`
+
+	// SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
+	// +optional
+	SSHKeyName *string `json:"sshKeyName,omitempty"`
+
 	// Version defines the desired Kubernetes version. If no version number
 	// is supplied then the latest version of Kubernetesthat EKS supports
 	// will be used.
@@ -72,6 +82,18 @@ type AWSManagedControlPlaneSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// Bastion contains options to configure the bastion host.
+	// +optional
+	Bastion infrav1.Bastion `json:"bastion"`
+
+	// TokenMethod is used to specify the method for obtaining a client token for communicating with EKS
+	// iam-authenticator - obtains a client token using iam-authentictor
+	// aws-cli - obtains a client token using the AWS CLI
+	// Defaults to iam-authenticator
+	// +kubebuilder:default=iam-authenticator
+	// +kubebuilder:validation:Enum=iam-authenticator;aws-cli
+	TokenMethod *EKSTokenMethod `json:"tokenMethod,omitempty"`
 }
 
 // EndpointAccess specifies how control plane endpoints are accessible
@@ -97,21 +119,23 @@ type EncryptionConfig struct {
 
 // AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane
 type AWSManagedControlPlaneStatus struct {
-	// Initialized denotes whether or not the control plane has the
-	// uploaded kubeadm-config configmap.
-	// +kubebuilder:default=false
-	Initialized bool `json:"initialized"`
-
+	// Networks holds details about the AWS networking resources used by the control plane
+	// +optional
+	Network infrav1.Network `json:"network,omitempty"`
+	// FailureDomains specifies a list fo available availability zones that can be used
+	// +optional
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	// Bastion holds details of the instance that is used as a bastion jump box
+	// +optional
+	Bastion *infrav1.Instance `json:"bastion,omitempty"`
 	// Ready denotes that the AWSManagedControlPlane API Server is ready to
-	// receive requests.
+	// receive requests and that the VPC infra is ready.
 	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
-
 	// ErrorMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
-
 	// Conditions specifies the cpnditions for the managed control plane
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
@@ -121,8 +145,11 @@ type AWSManagedControlPlaneStatus struct {
 // +kubebuilder:resource:path=awsmanagedcontrolplanes,shortName=awsmcp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Ready",type=boolean,JSONPath=".status.ready",description="AWSManagedControlPlane API Server is ready to receive requests"
-// +kubebuilder:printcolumn:name="Initialized",type=boolean,JSONPath=".status.initialized",description="This denotes whether or not the control plane has the uploaded kubeadm-config configmap"
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this AWSManagedControl belongs"
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Control plane infrastructure is ready for worker nodes"
+// +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.networkSpec.vpc.id",description="AWS VPC the control plane is using"
+// +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint.host",description="API Endpoint",priority=1
+// +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IP address for breakglass access"
 
 // AWSManagedControlPlane is the Schema for the awsmanagedcontrolplanes API
 type AWSManagedControlPlane struct {

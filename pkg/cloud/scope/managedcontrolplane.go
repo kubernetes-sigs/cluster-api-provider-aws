@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,13 +33,12 @@ import (
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
-	Client            client.Client
-	Logger            logr.Logger
-	Cluster           *clusterv1.Cluster
-	AWSManagedCluster *infrav1exp.AWSManagedCluster
-	ControlPlane      *infrav1exp.AWSManagedControlPlane
-	ControllerName    string
-	Session           awsclient.ConfigProvider
+	Client         client.Client
+	Logger         logr.Logger
+	Cluster        *clusterv1.Cluster
+	ControlPlane   *infrav1exp.AWSManagedControlPlane
+	ControllerName string
+	Session        awsclient.ConfigProvider
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -47,9 +47,6 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	if params.Cluster == nil {
 		return nil, errors.New("failed to generate new scope from nil Cluster")
 	}
-	if params.AWSManagedCluster == nil {
-		return nil, errors.New("failed to generate new scope from nil AWSManagedCluster")
-	}
 	if params.ControlPlane == nil {
 		return nil, errors.New("failed to generate new scope from nil AWSManagedControlPlane")
 	}
@@ -57,7 +54,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		params.Logger = klogr.New()
 	}
 
-	session, err := sessionForRegion(params.AWSManagedCluster.Spec.Region)
+	session, err := sessionForRegion(params.ControlPlane.Spec.Region)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -68,14 +65,13 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	}
 
 	return &ManagedControlPlaneScope{
-		Logger:            params.Logger,
-		Client:            params.Client,
-		Cluster:           params.Cluster,
-		AWSManagedCluster: params.AWSManagedCluster,
-		ControlPlane:      params.ControlPlane,
-		patchHelper:       helper,
-		session:           session,
-		controllerName:    params.ControllerName,
+		Logger:         params.Logger,
+		Client:         params.Client,
+		Cluster:        params.Cluster,
+		ControlPlane:   params.ControlPlane,
+		patchHelper:    helper,
+		session:        session,
+		controllerName: params.ControllerName,
 	}, nil
 }
 
@@ -85,9 +81,8 @@ type ManagedControlPlaneScope struct {
 	Client      client.Client
 	patchHelper *patch.Helper
 
-	Cluster           *clusterv1.Cluster
-	AWSManagedCluster *infrav1exp.AWSManagedCluster
-	ControlPlane      *infrav1exp.AWSManagedControlPlane
+	Cluster      *clusterv1.Cluster
+	ControlPlane *infrav1exp.AWSManagedControlPlane
 
 	session        awsclient.ConfigProvider
 	controllerName string
@@ -95,22 +90,35 @@ type ManagedControlPlaneScope struct {
 
 // Network returns the control plane network object.
 func (s *ManagedControlPlaneScope) Network() *infrav1.Network {
-	return &s.AWSManagedCluster.Status.Network
+	return &s.ControlPlane.Status.Network
 }
 
 // VPC returns the control plane VPC.
 func (s *ManagedControlPlaneScope) VPC() *infrav1.VPCSpec {
-	return &s.AWSManagedCluster.Spec.NetworkSpec.VPC
+	return &s.ControlPlane.Spec.NetworkSpec.VPC
 }
 
 // Subnets returns the control plane subnets.
 func (s *ManagedControlPlaneScope) Subnets() infrav1.Subnets {
-	return s.AWSManagedCluster.Spec.NetworkSpec.Subnets
+	return s.ControlPlane.Spec.NetworkSpec.Subnets
+}
+
+// SetSubnets updates the control planes subnets.
+func (s *ManagedControlPlaneScope) SetSubnets(subnets infrav1.Subnets) {
+	s.ControlPlane.Spec.NetworkSpec.Subnets = subnets
+}
+
+// CNIIngressRules returns the CNI spec ingress rules.
+func (s *ManagedControlPlaneScope) CNIIngressRules() infrav1.CNIIngressRules {
+	if s.ControlPlane.Spec.NetworkSpec.CNI != nil {
+		return s.ControlPlane.Spec.NetworkSpec.CNI.CNIIngressRules
+	}
+	return infrav1.CNIIngressRules{}
 }
 
 // SecurityGroups returns the control plane security groups as a map, it creates the map if empty.
 func (s *ManagedControlPlaneScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
-	return s.AWSManagedCluster.Status.Network.SecurityGroups
+	return s.ControlPlane.Status.Network.SecurityGroups
 }
 
 // Name returns the cluster name.
@@ -125,7 +133,7 @@ func (s *ManagedControlPlaneScope) Namespace() string {
 
 // Region returns the cluster region.
 func (s *ManagedControlPlaneScope) Region() string {
-	return s.AWSManagedCluster.Spec.Region
+	return s.ControlPlane.Spec.Region
 }
 
 // ListOptionsLabelSelector returns a ListOptions with a label selector for clusterName.
@@ -137,7 +145,19 @@ func (s *ManagedControlPlaneScope) ListOptionsLabelSelector() client.ListOption 
 
 // PatchObject persists the control plane configuration and status.
 func (s *ManagedControlPlaneScope) PatchObject() error {
-	return s.patchHelper.Patch(context.TODO(), s.ControlPlane)
+	return s.patchHelper.Patch(
+		context.TODO(),
+		s.ControlPlane,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			infrav1.VpcReadyCondition,
+			infrav1.SubnetsReadyCondition,
+			infrav1.InternetGatewayReadyCondition,
+			infrav1.NatGatewaysReadyCondition,
+			infrav1.RouteTablesReadyCondition,
+			infrav1.BastionHostReadyCondition,
+			infrav1exp.EKSControlPlaneReadyCondition,
+			infrav1exp.IAMControlPlaneRolesReadyCondition,
+		}})
 }
 
 // Close closes the current scope persisting the control plane configuration and status.
@@ -147,11 +167,49 @@ func (s *ManagedControlPlaneScope) Close() error {
 
 // AdditionalTags returns AdditionalTags from the scope's EksControlPlane. The returned value will never be nil.
 func (s *ManagedControlPlaneScope) AdditionalTags() infrav1.Tags {
-	if s.AWSManagedCluster.Spec.AdditionalTags == nil {
-		s.AWSManagedCluster.Spec.AdditionalTags = infrav1.Tags{}
+	if s.ControlPlane.Spec.AdditionalTags == nil {
+		s.ControlPlane.Spec.AdditionalTags = infrav1.Tags{}
 	}
 
-	return s.AWSManagedCluster.Spec.AdditionalTags.DeepCopy()
+	return s.ControlPlane.Spec.AdditionalTags.DeepCopy()
+}
+
+// APIServerPort returns the port to use when communicating with the API server
+func (s *ManagedControlPlaneScope) APIServerPort() int32 {
+	return 443
+}
+
+// SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
+func (s *ManagedControlPlaneScope) SetFailureDomain(id string, spec clusterv1.FailureDomainSpec) {
+	if s.ControlPlane.Status.FailureDomains == nil {
+		s.ControlPlane.Status.FailureDomains = make(clusterv1.FailureDomains)
+	}
+	s.ControlPlane.Status.FailureDomains[id] = spec
+}
+
+// InfraCluster returns the AWS infrastructure cluster or control plane object.
+func (s *ManagedControlPlaneScope) InfraCluster() cloud.ClusterObject {
+	return s.ControlPlane
+}
+
+// Session returns the AWS SDK session. Used for creating clients
+func (s *ManagedControlPlaneScope) Session() awsclient.ConfigProvider {
+	return s.session
+}
+
+// Bastion returns the bastion details.
+func (s *ManagedControlPlaneScope) Bastion() *infrav1.Bastion {
+	return &s.ControlPlane.Spec.Bastion
+}
+
+// SetBastionInstance sets the bastion instance in the status of the cluster.
+func (s *ManagedControlPlaneScope) SetBastionInstance(instance *infrav1.Instance) {
+	s.ControlPlane.Status.Bastion = instance
+}
+
+// SSHKeyName returns the SSH key name to use for instances.
+func (s *ManagedControlPlaneScope) SSHKeyName() *string {
+	return s.ControlPlane.Spec.SSHKeyName
 }
 
 // ControllerName returns the name of the controller that
@@ -160,7 +218,11 @@ func (s *ManagedControlPlaneScope) ControllerName() string {
 	return s.controllerName
 }
 
-// Session returns the AWS SDK session. Used for creating clients
-func (s *ManagedControlPlaneScope) Session() awsclient.ConfigProvider {
-	return s.session
+// TokenMethod returns the token method to use in the kubeconfig
+func (s *ManagedControlPlaneScope) TokenMethod() infrav1exp.EKSTokenMethod {
+	if s.ControlPlane.Spec.TokenMethod != nil {
+		return *s.ControlPlane.Spec.TokenMethod
+	}
+
+	return infrav1exp.EKSTokenMethodIAMAuthenticator
 }

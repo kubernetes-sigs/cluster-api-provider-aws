@@ -8,8 +8,8 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_awsmachines.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsmachinetemplates.yaml
-- bases/exp.infrastructure.cluster.x-k8s.io_awsmanagedcontrolplanes.yaml
-- bases/exp.infrastructure.cluster.x-k8s.io_awsmanagedclusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_awsmanagedcontrolplanes.yaml
+- bases/infrastructure.cluster.x-k8s.io_awsmanagedclusters.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

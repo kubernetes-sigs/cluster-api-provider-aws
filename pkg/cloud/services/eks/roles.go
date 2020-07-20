@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 // TrustRelationshipPolicyDocument represesnts an IAM policy docyment
@@ -66,8 +67,10 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 
 		role, err = s.createRole(*s.scope.ControlPlane.Spec.RoleName)
 		if err != nil {
+			record.Warnf(s.scope.ControlPlane, "FailedIAMRoleCreation", "Failed to create control plane IAM role %q: %v", *s.scope.ControlPlane.Spec.RoleName, err)
 			return err
 		}
+		record.Eventf(s.scope.ControlPlane, "SucessfulIAMRoleCreation", "Created control plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
 	}
 
 	if s.isUnmanaged(role) {
@@ -293,9 +296,11 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 
 	err = s.deleteRole(*s.scope.ControlPlane.Spec.RoleName)
 	if err != nil {
+		record.Eventf(s.scope.ControlPlane, "FailedIAMRoleDeletion", "Failed to delete control Plane IAM role %q: %v", *s.scope.ControlPlane.Spec.RoleName, err)
 		return err
 	}
 
+	record.Eventf(s.scope.ControlPlane, "SucessfulIAMRoleDeletion", "Deleted Control Plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
 	return nil
 }
 

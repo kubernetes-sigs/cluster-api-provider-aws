@@ -8,28 +8,24 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
   infrastructureRef:
-    apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: AWSManagedCluster
     name: "${CLUSTER_NAME}"
   controlPlaneRef:
     kind: AWSManagedControlPlane
-    apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     name: "${CLUSTER_NAME}-control-plane"
 ---
-apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: AWSManagedCluster
 metadata:
   name: "${CLUSTER_NAME}"
-spec:
-  region: "${AWS_REGION}"
-  sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 kind: AWSManagedControlPlane
-apiVersion: exp.infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
   version: "${EKS_KUBERNETES_VERSION}"
-  # roleName: "${AWS_EKS_ROLE_ARN}"
-  # TODO: encryptionConfig:
-  # TODO: logging:

@@ -49,7 +49,6 @@ type AWSClusterSpec struct {
 	AdditionalTags Tags `json:"additionalTags,omitempty"`
 
 	// ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.
-	// This is ignored for Managed clusters (EKS)
 	// +optional
 	ControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
 

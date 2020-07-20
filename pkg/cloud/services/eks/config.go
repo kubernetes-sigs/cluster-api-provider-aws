@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
 func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster) error {
@@ -57,6 +58,7 @@ func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster)
 		if createErr != nil {
 			return err
 		}
+
 	}
 
 	//TODO: does this need cert rotation? I don't think so
@@ -86,18 +88,31 @@ func (s *Service) createKubeconfigSecret(ctx context.Context, cluster *eks.Clust
 			},
 		},
 		CurrentContext: contextName,
-		AuthInfos: map[string]*api.AuthInfo{
-			userName: {
-				Exec: &api.ExecConfig{
-					APIVersion: "client.authentication.k8s.io/v1alpha1",
-					Command:    "aws-iam-authenticator",
-					Args: []string{
-						"token",
-						"-i",
-						clusterName,
-					},
-				},
-			},
+	}
+
+	execConfig := &api.ExecConfig{APIVersion: "client.authentication.k8s.io/v1alpha1"}
+	switch s.scope.TokenMethod() {
+	case infrav1exp.EKSTokenMethodIAMAuthenticator:
+		execConfig.Command = "aws-iam-authenticator"
+		execConfig.Args = []string{
+			"token",
+			"-i",
+			clusterName,
+		}
+	case infrav1exp.EKSTokenMethodAWSCli:
+		execConfig.Command = "aws"
+		execConfig.Args = []string{
+			"eks",
+			"get-token",
+			"--cluster-name",
+			clusterName,
+		}
+	default:
+		return fmt.Errorf("unknown token method %s", s.scope.TokenMethod())
+	}
+	cfg.AuthInfos = map[string]*api.AuthInfo{
+		userName: {
+			Exec: execConfig,
 		},
 	}
 
@@ -111,5 +126,6 @@ func (s *Service) createKubeconfigSecret(ctx context.Context, cluster *eks.Clust
 		return errors.Wrap(err, "failed to create kubeconfig secret")
 	}
 
+	record.Eventf(s.scope.ControlPlane, "SucessfulCreateKubeconfig", "Created kubeconfig for cluster %q", s.scope.Name())
 	return nil
 }

@@ -98,30 +98,29 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 		return errors.Wrap(err, "failed reconciling cluster config")
 	}
 
+	if err := s.reconcileTags(cluster); err != nil {
+		return errors.Wrap(err, "failed updating cluster tags")
+	}
+
 	return nil
 }
 
 func (s *Service) setStatus(cluster *eks.Cluster) error {
 	switch *cluster.Status {
 	case eks.ClusterStatusDeleting:
-		s.scope.ControlPlane.Status.Initialized = false
 		s.scope.ControlPlane.Status.Ready = false
 	case eks.ClusterStatusFailed:
-		s.scope.ControlPlane.Status.Initialized = true
 		s.scope.ControlPlane.Status.Ready = false
 		// TODO FailureReason
 		failureMsg := fmt.Sprintf("EKS cluster in unexpected %s state", *cluster.Status)
 		s.scope.ControlPlane.Status.FailureMessage = &failureMsg
 	case eks.ClusterStatusActive:
-		s.scope.ControlPlane.Status.Initialized = true
 		s.scope.ControlPlane.Status.Ready = true
 		s.scope.ControlPlane.Status.FailureMessage = nil
 		// TODO FailureReason
 	case eks.ClusterStatusCreating:
-		s.scope.ControlPlane.Status.Initialized = true
 		s.scope.ControlPlane.Status.Ready = false
 	case eks.ClusterStatusUpdating:
-		s.scope.ControlPlane.Status.Initialized = true
 		s.scope.ControlPlane.Status.Ready = true
 	default:
 		return errors.Errorf("unexpected EKS cluster status %s", *cluster.Status)
@@ -231,6 +230,10 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess infrav1exp.EndpointAc
 }
 
 func makeEksLogging(loggingSpec *infrav1exp.ControlPlaneLoggingSpec) *eks.Logging {
+	if loggingSpec == nil {
+		return nil
+	}
+
 	var on = true
 	var off = false
 	enabled := eks.LogSetup{Enabled: &on}
@@ -398,7 +401,7 @@ func (s *Service) reconcileClusterConfig(cluster *eks.Cluster) error {
 			}
 			return true, nil
 		}); err != nil {
-			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: %v", err)
+			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane %s: %v", cluster.Name, err)
 			return errors.Wrapf(err, "failed to update EKS cluster")
 		}
 	}
@@ -471,6 +474,7 @@ func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
 				}
 				return false, err
 			}
+			record.Eventf(s.scope.ControlPlane, "SuccessfulUpdateEKSControlPlane", "Updated EKS control plane %s to version %s", *cluster.Name, nextVersionString)
 			return true, nil
 		}); err != nil {
 			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: %v", err)
@@ -486,7 +490,7 @@ func (s *Service) waitForClusterUpdate() (*eks.Cluster, error) {
 		return nil, err
 	}
 
-	record.Eventf(s.scope.ControlPlane, "SuccessfulUpdateEKSControlPlane", "Upgraded control plane to %s", *cluster.Version)
+	record.Eventf(s.scope.ControlPlane, "SuccessfulUpdateEKSControlPlane", "Updated EKS control plane %s", *cluster.Name)
 	return cluster, nil
 }
 

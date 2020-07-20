@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -40,9 +39,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 )
 
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object
@@ -50,14 +52,13 @@ type AWSManagedControlPlaneReconciler struct {
 	client.Client
 	Log      logr.Logger
 	Recorder record.EventRecorder
-
-	scheme     *runtime.Scheme
-	controller controller.Controller
 }
 
+// SetupWithManager is used to setup the controller
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+	awsManagedControlPlane := &infrav1exp.AWSManagedControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1exp.AWSManagedControlPlane{}).
+		For(awsManagedControlPlane).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
 		Watches(
@@ -69,20 +70,28 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, op
 		Build(r)
 
 	if err != nil {
-		return errors.Wrap(err, "failed setting up with a controller manager")
+		return fmt.Errorf("failed setting up the AWSManagedControlPlane controller manager: %w", err)
 	}
 
-	r.scheme = mgr.GetScheme()
-	r.controller = c
+	if err = c.Watch(
+		&source.Kind{Type: &clusterv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: util.ClusterToInfrastructureMapFunc(awsManagedControlPlane.GroupVersionKind()),
+		},
+		predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
+	); err != nil {
+		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
+	}
 
 	return nil
 }
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=exp.infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=exp.infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
 
+// Reconcile will reconcile AWSManagedControlPlane Resources
 func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, reterr error) {
 	logger := r.Log.WithValues("namespace", req.Namespace, "eksControlPlane", req.Name)
 	ctx := context.Background()
@@ -112,32 +121,17 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 		return ctrl.Result{}, nil
 	}
 
-	awsManagedCluster := &infrav1exp.AWSManagedCluster{}
-	awsManagedClusterRef := types.NamespacedName{
-		Name:      cluster.Spec.InfrastructureRef.Name,
-		Namespace: cluster.Spec.InfrastructureRef.Namespace,
-	}
-	if err := r.Get(ctx, awsManagedClusterRef, awsManagedCluster); err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to get AWSManagedCluster")
-	}
-
-	// Wait for the aws managed cluster infrastructure to be initialized before creating the EKS control plane
-	if !awsManagedCluster.Status.Initialized {
-		return ctrl.Result{}, nil
-	}
-
 	logger = logger.WithValues("cluster", cluster.Name)
 
 	managedScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-		Client:            r.Client,
-		Logger:            logger,
-		Cluster:           cluster,
-		AWSManagedCluster: awsManagedCluster,
-		ControlPlane:      awsControlPlane,
-		ControllerName:    "awsmanagedcontrolplane",
+		Client:         r.Client,
+		Logger:         logger,
+		Cluster:        cluster,
+		ControlPlane:   awsControlPlane,
+		ControllerName: "awsmanagedcontrolplane",
 	})
 	if err != nil {
-		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
+		return reconcile.Result{}, fmt.Errorf("failed to create scope: %w", err)
 	}
 
 	// Always close the scope
@@ -145,7 +139,22 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 		applicableConditions := []clusterv1.ConditionType{
 			infrav1exp.EKSControlPlaneReadyCondition,
 			infrav1exp.IAMControlPlaneRolesReadyCondition,
+			infrav1.VpcReadyCondition,
+			infrav1.SubnetsReadyCondition,
+			infrav1.ClusterSecurityGroupsReadyCondition,
 		}
+
+		if managedScope.VPC().IsManaged(managedScope.Name()) {
+			applicableConditions = append(applicableConditions,
+				infrav1.InternetGatewayReadyCondition,
+				infrav1.NatGatewaysReadyCondition,
+				infrav1.RouteTablesReadyCondition,
+			)
+			if managedScope.Bastion().Enabled {
+				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
+			}
+		}
+
 		conditions.SetSummary(managedScope.ControlPlane, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
 
 		if err := managedScope.Close(); err != nil && reterr == nil {
@@ -172,13 +181,28 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
+	ec2Service := ec2.NewService(managedScope)
+	networkSvc := network.NewService(managedScope)
 	ekssvc := eks.NewService(managedScope)
+
+	if err := networkSvc.ReconcileNetwork(); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile network for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
+	}
+
+	if err := ec2Service.ReconcileBastion(); err != nil {
+		conditions.MarkFalse(awsManagedControlPlane, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
+	}
 
 	if err := ekssvc.ReconcileControlPlane(ctx); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
-	managedScope.ControlPlane.Status.Ready = true
+	for _, subnet := range managedScope.Subnets().FilterPrivate() {
+		managedScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
+			ControlPlane: true,
+		})
+	}
 
 	return reconcile.Result{}, nil
 }
@@ -186,11 +210,22 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 func (r *AWSManagedControlPlaneReconciler) reconcileDelete(_ context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
 	managedScope.Info("Reconciling AWSManagedClusterPlane delete")
 
-	ekssvc := eks.NewService(managedScope)
 	controlPlane := managedScope.ControlPlane
+
+	ekssvc := eks.NewService(managedScope)
+	ec2svc := ec2.NewService(managedScope)
+	networkSvc := network.NewService(managedScope)
 
 	if err := ekssvc.DeleteControlPlane(); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "error deleting EKS cluster for EKS control plane %s/%s", managedScope.Namespace(), managedScope.Name())
+	}
+
+	if err := ec2svc.DeleteBastion(); err != nil {
+		return reconcile.Result{}, fmt.Errorf("error deleting bastion for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
+	}
+
+	if err := networkSvc.DeleteNetwork(); err != nil {
+		return reconcile.Result{}, fmt.Errorf("error deleting network for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
 	}
 
 	controllerutil.RemoveFinalizer(controlPlane, infrav1exp.ManagedControlPlaneFinalizer)
