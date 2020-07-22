@@ -10,7 +10,9 @@ import (
 	osconfigv1 "github.com/openshift/api/config/v1"
 	osclientset "github.com/openshift/client-go/config/clientset/versioned"
 	gcp "github.com/openshift/cluster-api-provider-gcp/pkg/apis/gcpprovider/v1beta1"
+	"github.com/openshift/machine-api-operator/pkg/apis/machine"
 	vsphere "github.com/openshift/machine-api-operator/pkg/apis/vsphereprovider/v1beta1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,6 +86,15 @@ var (
 )
 
 const (
+	DefaultMachineMutatingHookPath      = "/mutate-machine-openshift-io-v1beta1-machine"
+	DefaultMachineValidatingHookPath    = "/validate-machine-openshift-io-v1beta1-machine"
+	DefaultMachineSetMutatingHookPath   = "/mutate-machine-openshift-io-v1beta1-machineset"
+	DefaultMachineSetValidatingHookPath = "/validate-machine-openshift-io-v1beta1-machineset"
+
+	defaultWebhookConfigurationName = "machine-api"
+	defaultWebhookServiceName       = "machine-api-operator-webhook"
+	defaultWebhookServiceNamespace  = "openshift-machine-api"
+
 	defaultUserDataSecret  = "worker-user-data"
 	defaultSecretNamespace = "openshift-machine-api"
 
@@ -108,6 +119,13 @@ const (
 	// Minimum vSphere values taken from vSphere reconciler
 	minVSphereCPU       = 2
 	minVSphereMemoryMiB = 2048
+)
+
+var (
+	// webhookFailurePolicy is ignore so we don't want to block machine lifecycle on the webhook operational aspects.
+	// This would be particularly problematic for chicken egg issues when bootstrapping a cluster.
+	webhookFailurePolicy = admissionregistrationv1.Ignore
+	webhookSideEffects   = admissionregistrationv1.SideEffectClassNone
 )
 
 func getInfra() (*osconfigv1.Infrastructure, error) {
@@ -213,7 +231,11 @@ func createMachineDefaulter(platformStatus *osconfigv1.PlatformStatus, clusterID
 func getMachineDefaulterOperation(platformStatus *osconfigv1.PlatformStatus) machineAdmissionFn {
 	switch platformStatus.Type {
 	case osconfigv1.AWSPlatformType:
-		return defaultAWS
+		region := ""
+		if platformStatus.AWS != nil {
+			region = platformStatus.AWS.Region
+		}
+		return awsDefaulter{region: region}.defaultAWS
 	case osconfigv1.AzurePlatformType:
 		return defaultAzure
 	case osconfigv1.GCPPlatformType:
@@ -229,6 +251,170 @@ func getMachineDefaulterOperation(platformStatus *osconfigv1.PlatformStatus) mac
 		return func(m *Machine, clusterID string) (bool, utilerrors.Aggregate) {
 			return true, nil
 		}
+	}
+}
+
+// NewValidatingWebhookConfiguration creates a validation webhook configuration with configured Machine and MachineSet webhooks
+func NewValidatingWebhookConfiguration() *admissionregistrationv1.ValidatingWebhookConfiguration {
+	validatingWebhookConfiguration := &admissionregistrationv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: defaultWebhookConfigurationName,
+			Annotations: map[string]string{
+				"service.beta.openshift.io/inject-cabundle": "true",
+			},
+		},
+		Webhooks: []admissionregistrationv1.ValidatingWebhook{
+			MachineValidatingWebhook(),
+			MachineSetValidatingWebhook(),
+		},
+	}
+
+	// Setting group version is required for testEnv to create unstructured objects, as the new structure sets it on empty strings
+	// Usual way to populate those values, is to create the resource in the cluster first, which we can't yet do.
+	validatingWebhookConfiguration.SetGroupVersionKind(admissionregistrationv1.SchemeGroupVersion.WithKind("ValidatingWebhookConfiguration"))
+	return validatingWebhookConfiguration
+}
+
+// MachineValidatingWebhook returns validating webhooks for machine to populate the configuration
+func MachineValidatingWebhook() admissionregistrationv1.ValidatingWebhook {
+	serviceReference := admissionregistrationv1.ServiceReference{
+		Namespace: defaultWebhookServiceNamespace,
+		Name:      defaultWebhookServiceName,
+		Path:      pointer.StringPtr(DefaultMachineValidatingHookPath),
+	}
+	return admissionregistrationv1.ValidatingWebhook{
+		AdmissionReviewVersions: []string{"v1beta1"},
+		Name:                    "validation.machine.machine.openshift.io",
+		FailurePolicy:           &webhookFailurePolicy,
+		SideEffects:             &webhookSideEffects,
+		ClientConfig: admissionregistrationv1.WebhookClientConfig{
+			Service: &serviceReference,
+		},
+		Rules: []admissionregistrationv1.RuleWithOperations{
+			{
+				Rule: admissionregistrationv1.Rule{
+					APIGroups:   []string{machine.GroupName},
+					APIVersions: []string{SchemeGroupVersion.Version},
+					Resources:   []string{"machines"},
+				},
+				Operations: []admissionregistrationv1.OperationType{
+					admissionregistrationv1.Create,
+					admissionregistrationv1.Update,
+				},
+			},
+		},
+	}
+}
+
+// MachineSetValidatingWebhook returns validating webhooks for machineSet to populate the configuration
+func MachineSetValidatingWebhook() admissionregistrationv1.ValidatingWebhook {
+	machinesetServiceReference := admissionregistrationv1.ServiceReference{
+		Namespace: defaultWebhookServiceNamespace,
+		Name:      defaultWebhookServiceName,
+		Path:      pointer.StringPtr(DefaultMachineSetValidatingHookPath),
+	}
+	return admissionregistrationv1.ValidatingWebhook{
+		AdmissionReviewVersions: []string{"v1beta1"},
+		Name:                    "validation.machineset.machine.openshift.io",
+		FailurePolicy:           &webhookFailurePolicy,
+		SideEffects:             &webhookSideEffects,
+		ClientConfig: admissionregistrationv1.WebhookClientConfig{
+			Service: &machinesetServiceReference,
+		},
+		Rules: []admissionregistrationv1.RuleWithOperations{
+			{
+				Rule: admissionregistrationv1.Rule{
+					APIGroups:   []string{machine.GroupName},
+					APIVersions: []string{SchemeGroupVersion.Version},
+					Resources:   []string{"machinesets"},
+				},
+				Operations: []admissionregistrationv1.OperationType{
+					admissionregistrationv1.Create,
+					admissionregistrationv1.Update,
+				},
+			},
+		},
+	}
+}
+
+// NewMutatingWebhookConfiguration creates a mutating webhook configuration with configured Machine and MachineSet webhooks
+func NewMutatingWebhookConfiguration() *admissionregistrationv1.MutatingWebhookConfiguration {
+	mutatingWebhookConfiguration := &admissionregistrationv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: defaultWebhookConfigurationName,
+			Annotations: map[string]string{
+				"service.beta.openshift.io/inject-cabundle": "true",
+			},
+		},
+		Webhooks: []admissionregistrationv1.MutatingWebhook{
+			MachineMutatingWebhook(),
+			MachineSetMutatingWebhook(),
+		},
+	}
+
+	// Setting group version is required for testEnv to create unstructured objects, as the new structure sets it on empty strings
+	// Usual way to populate those values, is to create the resource in the cluster first, which we can't yet do.
+	mutatingWebhookConfiguration.SetGroupVersionKind(admissionregistrationv1.SchemeGroupVersion.WithKind("MutatingWebhookConfiguration"))
+	return mutatingWebhookConfiguration
+}
+
+// MachineMutatingWebhook returns mutating webhooks for machine to apply in configuration
+func MachineMutatingWebhook() admissionregistrationv1.MutatingWebhook {
+	machineServiceReference := admissionregistrationv1.ServiceReference{
+		Namespace: defaultWebhookServiceNamespace,
+		Name:      defaultWebhookServiceName,
+		Path:      pointer.StringPtr(DefaultMachineMutatingHookPath),
+	}
+	return admissionregistrationv1.MutatingWebhook{
+		AdmissionReviewVersions: []string{"v1beta1"},
+		Name:                    "default.machine.machine.openshift.io",
+		FailurePolicy:           &webhookFailurePolicy,
+		SideEffects:             &webhookSideEffects,
+		ClientConfig: admissionregistrationv1.WebhookClientConfig{
+			Service: &machineServiceReference,
+		},
+		Rules: []admissionregistrationv1.RuleWithOperations{
+			{
+				Rule: admissionregistrationv1.Rule{
+					APIGroups:   []string{machine.GroupName},
+					APIVersions: []string{SchemeGroupVersion.Version},
+					Resources:   []string{"machines"},
+				},
+				Operations: []admissionregistrationv1.OperationType{
+					admissionregistrationv1.Create,
+				},
+			},
+		},
+	}
+}
+
+// MachineSetMutatingWebhook returns mutating webhook for machineSet to apply in configuration
+func MachineSetMutatingWebhook() admissionregistrationv1.MutatingWebhook {
+	machineSetServiceReference := admissionregistrationv1.ServiceReference{
+		Namespace: defaultWebhookServiceNamespace,
+		Name:      defaultWebhookServiceName,
+		Path:      pointer.StringPtr(DefaultMachineSetMutatingHookPath),
+	}
+	return admissionregistrationv1.MutatingWebhook{
+		AdmissionReviewVersions: []string{"v1beta1"},
+		Name:                    "default.machineset.machine.openshift.io",
+		FailurePolicy:           &webhookFailurePolicy,
+		SideEffects:             &webhookSideEffects,
+		ClientConfig: admissionregistrationv1.WebhookClientConfig{
+			Service: &machineSetServiceReference,
+		},
+		Rules: []admissionregistrationv1.RuleWithOperations{
+			{
+				Rule: admissionregistrationv1.Rule{
+					APIGroups:   []string{machine.GroupName},
+					APIVersions: []string{SchemeGroupVersion.Version},
+					Resources:   []string{"machinesets"},
+				},
+				Operations: []admissionregistrationv1.OperationType{
+					admissionregistrationv1.Create,
+				},
+			},
+		},
 	}
 }
 
@@ -259,6 +445,15 @@ func (h *machineDefaulterHandler) Handle(ctx context.Context, req admission.Requ
 
 	klog.V(3).Infof("Mutate webhook called for Machine: %s", m.GetName())
 
+	// Enforce that the same clusterID is set for machineSet Selector and machine labels.
+	// Otherwise a discrepancy on the value would leave the machine orphan
+	// and would trigger a new machine creation by the machineSet.
+	// https://bugzilla.redhat.com/show_bug.cgi?id=1857175
+	if m.Labels == nil {
+		m.Labels = make(map[string]string)
+	}
+	m.Labels[MachineClusterIDLabel] = h.clusterID
+
 	if ok, err := h.webhookOperations(m, h.clusterID); !ok {
 		return admission.Denied(err.Error())
 	}
@@ -270,7 +465,11 @@ func (h *machineDefaulterHandler) Handle(ctx context.Context, req admission.Requ
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledMachine)
 }
 
-func defaultAWS(m *Machine, clusterID string) (bool, utilerrors.Aggregate) {
+type awsDefaulter struct {
+	region string
+}
+
+func (a awsDefaulter) defaultAWS(m *Machine, clusterID string) (bool, utilerrors.Aggregate) {
 	klog.V(3).Infof("Defaulting AWS providerSpec")
 
 	var errs []error
@@ -286,6 +485,11 @@ func defaultAWS(m *Machine, clusterID string) (bool, utilerrors.Aggregate) {
 	if providerSpec.IAMInstanceProfile == nil {
 		providerSpec.IAMInstanceProfile = &aws.AWSResourceReference{ID: defaultAWSIAMInstanceProfile(clusterID)}
 	}
+
+	if providerSpec.Placement.Region == "" {
+		providerSpec.Placement.Region = a.region
+	}
+
 	if providerSpec.UserDataSecret == nil {
 		providerSpec.UserDataSecret = &corev1.LocalObjectReference{Name: defaultUserDataSecret}
 	}
@@ -307,7 +511,7 @@ func defaultAWS(m *Machine, clusterID string) (bool, utilerrors.Aggregate) {
 		}
 	}
 
-	if providerSpec.Subnet.ARN == nil && providerSpec.Subnet.ID == nil && providerSpec.Subnet.Filters == nil {
+	if providerSpec.Subnet.ARN == nil && providerSpec.Subnet.ID == nil && providerSpec.Subnet.Filters == nil && providerSpec.Placement.AvailabilityZone != "" {
 		providerSpec.Subnet.Filters = []aws.Filter{
 			{
 				Name:   "tag:Name",
@@ -356,6 +560,16 @@ func validateAWS(m *Machine, clusterID string) (bool, utilerrors.Aggregate) {
 			field.Required(
 				field.NewPath("providerSpec", "ami"),
 				"expected either providerSpec.ami.arn or providerSpec.ami.filters or providerSpec.ami.id to be populated",
+			),
+		)
+	}
+
+	if providerSpec.Placement.Region == "" {
+		errs = append(
+			errs,
+			field.Required(
+				field.NewPath("providerSpec", "placement", "region"),
+				"expected providerSpec.placement.region to be populated",
 			),
 		)
 	}
