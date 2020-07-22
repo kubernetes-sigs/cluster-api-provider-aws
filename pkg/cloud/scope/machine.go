@@ -263,6 +263,7 @@ func (m *MachineScope) PatchObject() error {
 		context.TODO(),
 		m.AWSMachine,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
 			infrav1.InstanceReadyCondition,
 			infrav1.SecurityGroupsReadyCondition,
 			infrav1.ELBAttachedCondition,

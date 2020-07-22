@@ -168,6 +168,7 @@ func (s *ClusterScope) PatchObject() error {
 		context.TODO(),
 		s.AWSCluster,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.InternetGatewayReadyCondition,
