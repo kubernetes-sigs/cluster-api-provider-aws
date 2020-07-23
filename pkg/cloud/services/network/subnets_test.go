@@ -18,7 +18,6 @@ package network
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -26,18 +25,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
-
-func init() {
-	if err := clusterv1.AddToScheme(scheme.Scheme); err != nil {
-		_ = fmt.Errorf("Error adding clusterv1 to scheme")
-	}
-}
 
 const (
 	subnetsVPCID = "vpc-subnets"

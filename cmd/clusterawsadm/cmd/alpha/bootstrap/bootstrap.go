@@ -206,7 +206,7 @@ func generateIAMPolicyDocJSON() *cobra.Command {
 			t := bootstrapTemplateFromCmdLine()
 			err := t.GenerateManagedIAMPolicyDocuments(policyDocDir)
 			if err != nil {
-				return fmt.Errorf("failed to generate PolicyDocument for all ManagedIAMPolicies: %v", err)
+				return fmt.Errorf("failed to generate PolicyDocument for all ManagedIAMPolicies: %w", err)
 			}
 
 			fmt.Printf("PolicyDocument for all ManagedIAMPolicies successfully generated in JSON at %q\n", policyDocDir)

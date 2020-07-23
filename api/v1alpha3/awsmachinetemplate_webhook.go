@@ -17,9 +17,9 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"errors"
 	"reflect"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -60,7 +60,7 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	oldAWSMachineTemplate := old.(*AWSMachineTemplate)
 	if !reflect.DeepEqual(r.Spec, oldAWSMachineTemplate.Spec) {
-		return errors.New("awsMachineTemplateSpec is immutable")
+		return apierrors.NewBadRequest("AWSMachineTemplate.Spec is immutable")
 	}
 
 	return nil

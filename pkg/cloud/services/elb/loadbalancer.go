@@ -523,7 +523,7 @@ func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 	}
 
 	if out != nil && len(out.LoadBalancerDescriptions) == 0 {
-		return nil, NewNotFound(fmt.Errorf("no classic load balancer found with name %q", name))
+		return nil, NewNotFound(fmt.Sprintf("no classic load balancer found with name %q", name))
 	}
 
 	if s.scope.VPC().ID != "" && s.scope.VPC().ID != *out.LoadBalancerDescriptions[0].VPCId {

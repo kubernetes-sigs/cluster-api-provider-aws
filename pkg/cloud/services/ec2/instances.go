@@ -19,6 +19,7 @@ package ec2
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"time"
 
@@ -167,9 +168,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	if s.scope.Network().APIServerELB.DNSName == "" {
 		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
-		return nil, awserrors.NewFailedDependency(
-			errors.New("failed to run controlplane, APIServer ELB not available"),
-		)
+		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
 	}
 	if !scope.UserDataIsUncompressed() {
 		userData, err = userdata.GzipBytes(userData)
@@ -259,7 +258,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			record.Warnf(scope.AWSMachine, "FailedCreate",
 				"Failed to create instance: no subnets available matching filters %q", scope.AWSMachine.Spec.Subnet.Filters)
 			return "", awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available matching filters %q",
+				fmt.Sprintf("failed to run machine %q, no subnets available matching filters %q",
 					scope.Name(),
 					scope.AWSMachine.Spec.Subnet.Filters,
 				),
@@ -274,7 +273,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 				"Failed to create instance: no subnets available in availability zone %q", *failureDomain)
 
 			return "", awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available in availability zone %q",
+				fmt.Sprintf("failed to run machine %q, no subnets available in availability zone %q",
 					scope.Name(),
 					*failureDomain,
 				),
@@ -289,9 +288,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		sns := s.scope.Subnets().FilterPrivate()
 		if len(sns) == 0 {
 			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
-			return "", awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available", scope.Name()),
-			)
+			return "", awserrors.NewFailedDependency(fmt.Sprintf("failed to run machine %q, no subnets available", scope.Name()))
 		}
 		return sns[0].ID, nil
 	}
@@ -316,9 +313,7 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	ids := make([]string, 0, len(sgRoles))
 	for _, sg := range sgRoles {
 		if _, ok := s.scope.SecurityGroups()[sg]; !ok {
-			return nil, awserrors.NewFailedDependency(
-				errors.Errorf("%s security group not available", sg),
-			)
+			return nil, awserrors.NewFailedDependency(fmt.Sprintf("%s security group not available", sg))
 		}
 		ids = append(ids, s.scope.SecurityGroups()[sg].ID)
 	}

@@ -29,28 +29,28 @@ var _ error = &ELBError{}
 
 // ELBError is an error exposed to users of this library.
 type ELBError struct {
-	err error
+	msg string
 
 	Code int
 }
 
 // Error implements the Error interface.
 func (e *ELBError) Error() string {
-	return e.err.Error()
+	return e.msg
 }
 
-// NewNotFound returns a new error which indicates that the resource of the kind and the name was not found.
-func NewNotFound(err error) error {
+// NewNotFound returns an error which indicates that the resource of the kind and the name was not found.
+func NewNotFound(msg string) error {
 	return &ELBError{
-		err:  err,
+		msg:  msg,
 		Code: http.StatusNotFound,
 	}
 }
 
-// NewConflict returns a new error which indicates that the request cannot be processed due to a conflict.
-func NewConflict(err error) error {
+// NewConflict returns an error which indicates that the request cannot be processed due to a conflict.
+func NewConflict(msg string) error {
 	return &ELBError{
-		err:  err,
+		msg:  msg,
 		Code: http.StatusConflict,
 	}
 }

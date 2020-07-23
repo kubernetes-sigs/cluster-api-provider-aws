@@ -148,7 +148,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 		}
 	}
 
-	return nil, awserrors.NewNotFound(errors.New("bastion host not found"))
+	return nil, awserrors.NewNotFound("bastion host not found")
 }
 
 func (s *Service) getDefaultBastion(instanceType string) *infrav1.Instance {

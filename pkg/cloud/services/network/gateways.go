@@ -161,7 +161,7 @@ func (s *Service) describeVpcInternetGateways() ([]*ec2.InternetGateway, error) 
 	}
 
 	if len(out.InternetGateways) == 0 {
-		return nil, awserrors.NewNotFound(errors.Errorf("no internet gateways found in vpc %q", s.scope.VPC().ID))
+		return nil, awserrors.NewNotFound(fmt.Sprintf("no internet gateways found in vpc %q", s.scope.VPC().ID))
 	}
 
 	return out.InternetGateways, nil

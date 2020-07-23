@@ -76,6 +76,8 @@ const (
 	`
 )
 
+var errInvalidOutputFlag = errors.New("invalid output flag. Expected rawSharedConfig or base64SharedConfig")
+
 // RootCmd is the root of the `alpha bootstrap command`
 func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
@@ -103,7 +105,7 @@ func getOutputFlag(cmd *cobra.Command) (string, error) {
 	case rawSharedConfig, base64SharedConfig:
 		return val, nil
 	default:
-		return "", errors.New("invalid output flag. Expected rawSharedConfig or base64SharedConfig")
+		return "", errInvalidOutputFlag
 	}
 }
 
