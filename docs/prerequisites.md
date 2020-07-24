@@ -7,6 +7,7 @@
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
 - [jq](https://stedolan.github.io/jq/download/)
 
+## IAM resources
 ### With `clusterawsadm`
 
 Get the latest [clusterawsadm](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases)
