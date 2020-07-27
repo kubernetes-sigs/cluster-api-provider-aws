@@ -37,7 +37,7 @@ import (
 )
 
 func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Reconciling EKS kubeconfig for cluster: %s", *cluster.Name)
+	s.scope.V(2).Info("Reconciling EKS kubeconfig for cluster", "cluster-name", *cluster.Name)
 
 	clusterRef := types.NamespacedName{
 		Name:      s.scope.Cluster.Name,
