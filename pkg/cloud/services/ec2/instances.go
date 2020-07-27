@@ -159,48 +159,11 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		}
 	}
 
-	// Prefer AWSMachine.Spec.FailureDomain for now while migrating to the use of
-	// Machine.Spec.FailureDomain. The MachineController will handle migrating the value for us.
-	failureDomain := scope.AWSMachine.Spec.FailureDomain
-	if failureDomain == nil {
-		failureDomain = scope.Machine.Spec.FailureDomain
+	subnetID, err := s.findSubnet(scope)
+	if err != nil {
+		return nil, err
 	}
-
-	// Pick subnet from the machine configuration, or based on the availability zone specified,
-	// or default to the first private subnet available.
-	// TODO(vincepri): Move subnet picking logic to its own function/method.
-	switch {
-	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
-		input.SubnetID = *scope.AWSMachine.Spec.Subnet.ID
-
-	case failureDomain != nil:
-		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
-		if len(subnets) == 0 {
-			record.Warnf(scope.AWSMachine, "FailedCreate",
-				"Failed to create instance: no subnets available in availability zone %q", *failureDomain)
-
-			return nil, awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available in availability zone %q",
-					scope.Name(),
-					*failureDomain,
-				),
-			)
-		}
-		input.SubnetID = subnets[0].ID
-
-		// TODO(vincepri): Define a tag that would allow to pick a preferred subnet in an AZ when working
-		// with control plane machines.
-
-	case input.SubnetID == "":
-		sns := s.scope.Subnets().FilterPrivate()
-		if len(sns) == 0 {
-			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
-			return nil, awserrors.NewFailedDependency(
-				errors.Errorf("failed to run machine %q, no subnets available", scope.Name()),
-			)
-		}
-		input.SubnetID = sns[0].ID
-	}
+	input.SubnetID = subnetID
 
 	if s.scope.Network().APIServerELB.DNSName == "" {
 		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
@@ -257,6 +220,81 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	record.Eventf(scope.AWSMachine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
 	return out, nil
+}
+
+// findSubnet attempts to retrieve a subnet ID in the following order:
+// - subnetID specified in machine configuration,
+// - subnet based on filters in machine configuration
+// - subnet based on the availability zone specified,
+// - default to the first private subnet available.
+func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
+	// Check Machine.Spec.FailureDomain first as it's used by KubeadmControlPlane to spread machines across failure domains.
+	failureDomain := scope.Machine.Spec.FailureDomain
+	if failureDomain == nil {
+		failureDomain = scope.AWSMachine.Spec.FailureDomain
+	}
+
+	switch {
+	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
+		return *scope.AWSMachine.Spec.Subnet.ID, nil
+	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
+		subnetInput := &ec2.DescribeSubnetsInput{
+			Filters: []*ec2.Filter{
+				filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+				filter.EC2.VPC(s.scope.VPC().ID),
+			},
+		}
+		if failureDomain != nil {
+			subnetInput.Filters = append(subnetInput.Filters, filter.EC2.AvailabilityZone(*failureDomain))
+		}
+		for _, f := range scope.AWSMachine.Spec.Subnet.Filters {
+			subnetInput.Filters = append(subnetInput.Filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
+		}
+		out, err := s.EC2Client.DescribeSubnets(subnetInput)
+		if err != nil {
+			return "", err
+		}
+
+		if len(out.Subnets) == 0 {
+			record.Warnf(scope.AWSMachine, "FailedCreate",
+				"Failed to create instance: no subnets available matching filters %q", scope.AWSMachine.Spec.Subnet.Filters)
+			return "", awserrors.NewFailedDependency(
+				errors.Errorf("failed to run machine %q, no subnets available matching filters %q",
+					scope.Name(),
+					scope.AWSMachine.Spec.Subnet.Filters,
+				),
+			)
+		}
+		return *out.Subnets[0].SubnetId, nil
+
+	case failureDomain != nil:
+		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
+		if len(subnets) == 0 {
+			record.Warnf(scope.AWSMachine, "FailedCreate",
+				"Failed to create instance: no subnets available in availability zone %q", *failureDomain)
+
+			return "", awserrors.NewFailedDependency(
+				errors.Errorf("failed to run machine %q, no subnets available in availability zone %q",
+					scope.Name(),
+					*failureDomain,
+				),
+			)
+		}
+		return subnets[0].ID, nil
+
+		// TODO(vincepri): Define a tag that would allow to pick a preferred subnet in an AZ when working
+		// with control plane machines.
+
+	default:
+		sns := s.scope.Subnets().FilterPrivate()
+		if len(sns) == 0 {
+			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
+			return "", awserrors.NewFailedDependency(
+				errors.Errorf("failed to run machine %q, no subnets available", scope.Name()),
+			)
+		}
+		return sns[0].ID, nil
+	}
 }
 
 // GetCoreSecurityGroups looks up the security group IDs managed by this actuator
