@@ -181,10 +181,10 @@ var _ = Describe("Handler Suite", func() {
 			Context("and the instance termination endpoint returns an unknown status", func() {
 				BeforeEach(func() {
 					httpHandler = newMockHTTPHandler(func(rw http.ResponseWriter, req *http.Request) {
-						if counter == 4 {
+						if atomic.LoadInt32(&counter) == 4 {
 							rw.WriteHeader(500)
 						} else {
-							counter++
+							atomic.AddInt32(&counter, 1)
 							rw.WriteHeader(404)
 						}
 					})
