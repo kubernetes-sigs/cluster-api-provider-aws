@@ -50,13 +50,18 @@ var _ = Describe("Handler Suite", func() {
 		httpHandler = nil
 		nodeName = "test-node"
 		httpHandler = newMockHTTPHandler(notFoundFunc)
+		stop = nil
+		errs = nil
 
-		h = &handler{
-			client:       k8sClient,
-			pollInterval: 100 * time.Millisecond,
-			nodeName:     nodeName,
-			log:          klogr.New(),
-		}
+		// use NewHandler() instead of manual construction in order to test NewHandler() logic
+		// like checking that machine api is added to scheme
+		handlerInterface, err := NewHandler(klogr.New(), cfg, 100*time.Millisecond, "", nodeName)
+		Expect(err).ToNot(HaveOccurred())
+
+		h = handlerInterface.(*handler)
+
+		// set pollURL so we can override initial value later
+		h.pollURL = nil
 	})
 
 	JustBeforeEach(func() {
@@ -68,12 +73,10 @@ var _ = Describe("Handler Suite", func() {
 			Expect(err).ToNot(HaveOccurred())
 			h.pollURL = pollURL
 		}
-
-		stop, errs = StartTestHandler(h)
 	})
 
 	AfterEach(func() {
-		if !isClosed(stop) {
+		if stop != nil && !isClosed(stop) {
 			close(stop)
 		}
 		terminationServer.Close()
@@ -81,49 +84,11 @@ var _ = Describe("Handler Suite", func() {
 		Expect(deleteAllMachines(k8sClient)).To(Succeed())
 	})
 
-	Context("when the handler is stopped", func() {
+	Context("when running the handler", func() {
 		JustBeforeEach(func() {
-			close(stop)
+			stop, errs = StartTestHandler(h)
 		})
-
-		It("should not return an error", func() {
-			Eventually(errs).Should(Receive(BeNil()))
-		})
-	})
-
-	Context("when no machine exists for the node", func() {
-		It("should return an error upon starting", func() {
-			Eventually(errs).Should(Receive(MatchError("error fetching machine for node (\"test-node\"): machine not found for node \"test-node\"")))
-		})
-	})
-
-	Context("when a machine exists for the node", func() {
-		var counter int32
-		var testMachine *machinev1.Machine
-
-		BeforeEach(func() {
-			testMachine = newTestMachine("test-machine", testNamespace, nodeName)
-			createMachine(testMachine)
-
-			// Ensure the polling logic is excercised in tests
-			httpHandler = newMockHTTPHandler(func(rw http.ResponseWriter, req *http.Request) {
-				if atomic.LoadInt32(&counter) == 4 {
-					rw.WriteHeader(200)
-				} else {
-					atomic.AddInt32(&counter, 1)
-					rw.WriteHeader(404)
-				}
-			})
-		})
-
-		JustBeforeEach(func() {
-			// Ensure the polling logic is excercised in tests
-			for atomic.LoadInt32(&counter) < 4 {
-				continue
-			}
-		})
-
-		Context("and the handler is stopped", func() {
+		Context("when the handler is stopped", func() {
 			JustBeforeEach(func() {
 				close(stop)
 			})
@@ -131,86 +96,129 @@ var _ = Describe("Handler Suite", func() {
 			It("should not return an error", func() {
 				Eventually(errs).Should(Receive(BeNil()))
 			})
+		})
 
-			It("should not delete the machine", func() {
-				key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-				Consistently(func() error {
-					m := &machinev1.Machine{}
-					return k8sClient.Get(ctx, key, m)
-				}).Should(Succeed())
+		Context("when no machine exists for the node", func() {
+			It("should return an error upon starting", func() {
+				Eventually(errs).Should(Receive(MatchError("error fetching machine for node (\"test-node\"): machine not found for node \"test-node\"")))
 			})
 		})
 
-		Context("and the instance termination notice is fulfilled", func() {
-			It("should delete the machine", func() {
-				key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-				Eventually(func() error {
-					m := &machinev1.Machine{}
-					err := k8sClient.Get(ctx, key, m)
-					if err != nil && errors.IsNotFound(err) {
-						return nil
-					} else if err != nil {
-						return err
-					}
-					return fmt.Errorf("machine not yet deleted")
-				}).Should(Succeed())
-			})
-		})
+		Context("when a machine exists for the node", func() {
+			var counter int32
+			var testMachine *machinev1.Machine
 
-		Context("and the instance termination notice is not fulfilled", func() {
 			BeforeEach(func() {
-				httpHandler = newMockHTTPHandler(notFoundFunc)
-			})
+				testMachine = newTestMachine("test-machine", testNamespace, nodeName)
+				createMachine(testMachine)
 
-			It("should not delete the machine", func() {
-				key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-				Consistently(func() error {
-					m := &machinev1.Machine{}
-					return k8sClient.Get(ctx, key, m)
-				}).Should(Succeed())
-			})
-		})
-
-		Context("and the instance termination endpoint returns an unknown status", func() {
-			BeforeEach(func() {
+				// Ensure the polling logic is excercised in tests
 				httpHandler = newMockHTTPHandler(func(rw http.ResponseWriter, req *http.Request) {
-					if counter == 4 {
-						rw.WriteHeader(500)
+					if atomic.LoadInt32(&counter) == 4 {
+						rw.WriteHeader(200)
 					} else {
-						counter++
+						atomic.AddInt32(&counter, 1)
 						rw.WriteHeader(404)
 					}
 				})
 			})
 
-			It("should return an error", func() {
-				Eventually(errs).Should(Receive(MatchError("error polling termination endpoint: unexpected status: 500")))
+			JustBeforeEach(func() {
+				// Ensure the polling logic is excercised in tests
+				for atomic.LoadInt32(&counter) < 4 {
+					continue
+				}
 			})
 
-			It("should not delete the machine", func() {
-				key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-				Consistently(func() error {
-					m := &machinev1.Machine{}
-					return k8sClient.Get(ctx, key, m)
-				}).Should(Succeed())
-			})
-		})
+			Context("and the handler is stopped", func() {
+				JustBeforeEach(func() {
+					close(stop)
+				})
 
-		Context("and the poll URL cannot be reached", func() {
-			BeforeEach(func() {
-				h.pollURL = &url.URL{Opaque: "abc#1://localhost"}
+				It("should not return an error", func() {
+					Eventually(errs).Should(Receive(BeNil()))
+				})
+
+				It("should not delete the machine", func() {
+					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
+					Consistently(func() error {
+						m := &machinev1.Machine{}
+						return k8sClient.Get(ctx, key, m)
+					}).Should(Succeed())
+				})
 			})
 
-			It("should return an error", func() {
-				Eventually(errs).Should(Receive(MatchError("error polling termination endpoint: could not get URL \"abc#1://localhost\": Get abc#1://localhost: unsupported protocol scheme \"\"")))
+			Context("and the instance termination notice is fulfilled", func() {
+				It("should delete the machine", func() {
+					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
+					Eventually(func() error {
+						m := &machinev1.Machine{}
+						err := k8sClient.Get(ctx, key, m)
+						if err != nil && errors.IsNotFound(err) {
+							return nil
+						} else if err != nil {
+							return err
+						}
+						return fmt.Errorf("machine not yet deleted")
+					}).Should(Succeed())
+				})
 			})
 
-			It("should not delete the machine", func() {
-				key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
-				Consistently(func() error {
-					m := &machinev1.Machine{}
-					return k8sClient.Get(ctx, key, m)
-				}).Should(Succeed())
+			Context("and the instance termination notice is not fulfilled", func() {
+				BeforeEach(func() {
+					httpHandler = newMockHTTPHandler(notFoundFunc)
+				})
+
+				It("should not delete the machine", func() {
+					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
+					Consistently(func() error {
+						m := &machinev1.Machine{}
+						return k8sClient.Get(ctx, key, m)
+					}).Should(Succeed())
+				})
+			})
+
+			Context("and the instance termination endpoint returns an unknown status", func() {
+				BeforeEach(func() {
+					httpHandler = newMockHTTPHandler(func(rw http.ResponseWriter, req *http.Request) {
+						if atomic.LoadInt32(&counter) == 4 {
+							rw.WriteHeader(500)
+						} else {
+							atomic.AddInt32(&counter, 1)
+							rw.WriteHeader(404)
+						}
+					})
+				})
+
+				It("should return an error", func() {
+					Eventually(errs).Should(Receive(MatchError("error polling termination endpoint: unexpected status: 500")))
+				})
+
+				It("should not delete the machine", func() {
+					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
+					Consistently(func() error {
+						m := &machinev1.Machine{}
+						return k8sClient.Get(ctx, key, m)
+					}).Should(Succeed())
+				})
+			})
+
+			Context("and the poll URL cannot be reached", func() {
+				BeforeEach(func() {
+					h.pollURL = &url.URL{Opaque: "abc#1://localhost"}
+				})
+
+				It("should return an error", func() {
+					Eventually(errs).Should(Receive(MatchError("error polling termination endpoint: could not get URL \"abc#1://localhost\": Get abc#1://localhost: unsupported protocol scheme \"\"")))
+				})
+
+				It("should not delete the machine", func() {
+					key := client.ObjectKey{Namespace: testMachine.Namespace, Name: testMachine.Name}
+					Consistently(func() error {
+						m := &machinev1.Machine{}
+						return k8sClient.Get(ctx, key, m)
+					}).Should(Succeed())
+				})
 			})
 		})
 	})
