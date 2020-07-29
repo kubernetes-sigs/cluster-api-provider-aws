@@ -46,7 +46,7 @@ func init() {
 }
 
 const (
-	ciVersionURL = "https://dl.k8s.io/ci/k8s-master.txt"
+	ciVersionURL = "https://dl.k8s.io/ci/latest.txt"
 )
 
 // Configuration creates a new kubetest configuration
