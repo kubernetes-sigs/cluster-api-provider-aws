@@ -81,10 +81,8 @@ func (s *Service) reconcileVPC() error {
 
 	// Make sure attributes are configured
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if err := tags.Ensure(vpc.Tags, &tags.ApplyParams{
-			EC2Client:   s.EC2Client,
-			BuildParams: s.getVPCTagParams(vpc.ID),
-		}); err != nil {
+		buildParams := s.getVPCTagParams(vpc.ID)
+		if err := tags.Ensure(vpc.Tags, &buildParams, s.applyTags); err != nil {
 			return false, err
 		}
 		return true, nil

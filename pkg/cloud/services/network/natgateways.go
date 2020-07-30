@@ -77,10 +77,8 @@ func (s *Service) reconcileNatGateways() error {
 		if ngw, ok := existing[sn.ID]; ok {
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-				if err := tags.Ensure(converters.TagsToMap(ngw.Tags), &tags.ApplyParams{
-					EC2Client:   s.EC2Client,
-					BuildParams: s.getNatGatewayTagParams(*ngw.NatGatewayId),
-				}); err != nil {
+				buildParams := s.getNatGatewayTagParams(*ngw.NatGatewayId)
+				if err := tags.Ensure(converters.TagsToMap(ngw.Tags), &buildParams, s.applyTags); err != nil {
 					return false, err
 				}
 				return true, nil

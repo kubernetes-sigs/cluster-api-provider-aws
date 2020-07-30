@@ -102,10 +102,8 @@ func (s *Service) reconcileRouteTables() error {
 
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-				if err := tags.Ensure(converters.TagsToMap(rt.Tags), &tags.ApplyParams{
-					EC2Client:   s.EC2Client,
-					BuildParams: s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic, sn.AvailabilityZone),
-				}); err != nil {
+				buildParams := s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic, sn.AvailabilityZone)
+				if err := tags.Ensure(converters.TagsToMap(rt.Tags), &buildParams, s.applyTags); err != nil {
 					return false, err
 				}
 				return true, nil
@@ -234,10 +232,8 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool,
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRouteTable", "Created managed RouteTable %q", *out.RouteTable.RouteTableId)
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if err := tags.Apply(&tags.ApplyParams{
-			EC2Client:   s.EC2Client,
-			BuildParams: s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic, zone),
-		}); err != nil {
+		buildParams := s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic, zone)
+		if err := tags.Apply(&buildParams, s.applyTags); err != nil {
 			return false, err
 		}
 		return true, nil

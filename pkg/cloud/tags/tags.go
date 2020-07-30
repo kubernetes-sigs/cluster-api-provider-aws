@@ -17,41 +17,36 @@ limitations under the License.
 package tags
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
-// ApplyParams are function parameters used to apply tags on an aws resource.
-type ApplyParams struct {
-	infrav1.BuildParams
-	EC2Client ec2iface.EC2API
-}
+var (
+	ErrBuildParamsRequired = errors.New("no build params supplied")
+	ErrApplyFuncRequired   = errors.New("no tags apply function supplied")
+)
+
+// TagsApplyFunc is used to define a function that will apply tags
+type TagsApplyFunc func(params *infrav1.BuildParams) error
 
 // Apply tags a resource with tags including the cluster tag.
-func Apply(params *ApplyParams) error {
-	tags := infrav1.Build(params.BuildParams)
-
-	awsTags := make([]*ec2.Tag, 0, len(tags))
-	for k, v := range tags {
-		tag := &ec2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		}
-		awsTags = append(awsTags, tag)
+func Apply(params *infrav1.BuildParams, fn TagsApplyFunc) error {
+	if params == nil {
+		return ErrBuildParamsRequired
+	}
+	if fn == nil {
+		return ErrApplyFuncRequired
 	}
 
-	createTagsInput := &ec2.CreateTagsInput{
-		Resources: aws.StringSlice([]string{params.ResourceID}),
-		Tags:      awsTags,
+	if err := fn(params); err != nil {
+		return fmt.Errorf("failed applying tags: %w", err)
 	}
-
-	_, err := params.EC2Client.CreateTags(createTagsInput)
-	return errors.Wrapf(err, "failed to tag resource %q in cluster %q", params.ResourceID, params.ClusterName)
+	return nil
 }
 
 // BuildParamsToTagSpecification builds a TagSpecification for the specified resource type
@@ -79,10 +74,10 @@ func BuildParamsToTagSpecification(ec2ResourceType string, params infrav1.BuildP
 }
 
 // Ensure applies the tags if the current tags differ from the params.
-func Ensure(current infrav1.Tags, params *ApplyParams) error {
-	diff := computeDiff(current, params.BuildParams)
+func Ensure(current infrav1.Tags, params *infrav1.BuildParams, fn TagsApplyFunc) error {
+	diff := computeDiff(current, *params)
 	if len(diff) > 0 {
-		return Apply(params)
+		return Apply(params, fn)
 	}
 	return nil
 }
