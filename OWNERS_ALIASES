@@ -23,5 +23,4 @@ aliases:
     - rudoi
     - vincepri
   cluster-api-aws-reviewers:
-    - ashish-amarnath
     - randomvariable
