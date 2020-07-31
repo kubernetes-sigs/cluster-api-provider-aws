@@ -242,3 +242,18 @@ func (s *ClusterScope) SSHKeyName() *string {
 func (s *ClusterScope) ControllerName() string {
 	return s.controllerName
 }
+
+// ImageLookupFormat returns the format string to use when looking up AMIs
+func (s *ClusterScope) ImageLookupFormat() string {
+	return s.AWSCluster.Spec.ImageLookupFormat
+}
+
+// ImageLookupOrg returns the organization name to use when looking up AMIs
+func (s *ClusterScope) ImageLookupOrg() string {
+	return s.AWSCluster.Spec.ImageLookupOrg
+}
+
+// ImageLookupBaseOS returns the base operating system name to use when looking up AMIs
+func (s *ClusterScope) ImageLookupBaseOS() string {
+	return s.AWSCluster.Spec.ImageLookupBaseOS
+}

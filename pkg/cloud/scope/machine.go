@@ -38,12 +38,12 @@ import (
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
-	Client     client.Client
-	Logger     logr.Logger
-	Cluster    *clusterv1.Cluster
-	Machine    *clusterv1.Machine
-	AWSCluster *infrav1.AWSCluster
-	AWSMachine *infrav1.AWSMachine
+	Client       client.Client
+	Logger       logr.Logger
+	Cluster      *clusterv1.Cluster
+	Machine      *clusterv1.Machine
+	InfraCluster EC2Scope
+	AWSMachine   *infrav1.AWSMachine
 }
 
 // NewMachineScope creates a new MachineScope from the supplied parameters.
@@ -61,7 +61,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 	if params.AWSMachine == nil {
 		return nil, errors.New("aws machine is required when creating a MachineScope")
 	}
-	if params.AWSCluster == nil {
+	if params.InfraCluster == nil {
 		return nil, errors.New("aws cluster is required when creating a MachineScope")
 	}
 
@@ -78,10 +78,10 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		client:      params.Client,
 		patchHelper: helper,
 
-		Cluster:    params.Cluster,
-		Machine:    params.Machine,
-		AWSCluster: params.AWSCluster,
-		AWSMachine: params.AWSMachine,
+		Cluster:      params.Cluster,
+		Machine:      params.Machine,
+		InfraCluster: params.InfraCluster,
+		AWSMachine:   params.AWSMachine,
 	}, nil
 }
 
@@ -91,10 +91,10 @@ type MachineScope struct {
 	client      client.Client
 	patchHelper *patch.Helper
 
-	Cluster    *clusterv1.Cluster
-	Machine    *clusterv1.Machine
-	AWSCluster *infrav1.AWSCluster
-	AWSMachine *infrav1.AWSMachine
+	Cluster      *clusterv1.Cluster
+	Machine      *clusterv1.Machine
+	InfraCluster EC2Scope
+	AWSMachine   *infrav1.AWSMachine
 }
 
 // Name returns the AWSMachine name.
@@ -281,7 +281,7 @@ func (m *MachineScope) AdditionalTags() infrav1.Tags {
 	tags := make(infrav1.Tags)
 
 	// Start with the cluster-wide tags...
-	tags.Merge(m.AWSCluster.Spec.AdditionalTags)
+	tags.Merge(m.InfraCluster.AdditionalTags())
 	// ... and merge in the Machine's
 	tags.Merge(m.AWSMachine.Spec.AdditionalTags)
 
