@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/cidr"
@@ -291,7 +292,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		TagSpecifications: []*ec2.TagSpecification{
 			tags.BuildParamsToTagSpecification(
 				ec2.ResourceTypeSubnet,
-				s.getSubnetTagParams(temporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
+				s.getSubnetTagParams(services.TemporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
 			),
 		},
 	})

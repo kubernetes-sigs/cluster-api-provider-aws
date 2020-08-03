@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -33,7 +34,6 @@ import (
 )
 
 const (
-	anyIPv4CidrBlock       = "0.0.0.0/0"
 	mainRouteTableInVPCKey = "main"
 )
 
@@ -292,14 +292,14 @@ func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) e
 
 func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.Route {
 	return &ec2.Route{
-		DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
+		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 		NatGatewayId:         aws.String(natGatewayID),
 	}
 }
 
 func (s *Service) getGatewayPublicRoute() *ec2.Route {
 	return &ec2.Route{
-		DestinationCidrBlock: aws.String(anyIPv4CidrBlock),
+		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 		GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
 	}
 }

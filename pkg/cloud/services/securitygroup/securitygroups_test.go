@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package network
+package securitygroup
 
 import (
 	"strings"
@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
@@ -261,7 +262,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 			s := NewService(scope)
 			s.EC2Client = ec2Mock
 
-			if err := s.reconcileSecurityGroups(); err != nil && tc.err != nil {
+			if err := s.ReconcileSecurityGroups(); err != nil && tc.err != nil {
 				if !strings.Contains(err.Error(), tc.err.Error()) {
 					t.Fatalf("was expecting error to look like '%v', but got '%v'", tc.err, err)
 				}
@@ -290,7 +291,7 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 	}
 
 	for _, r := range rules {
-		if sets.NewString(r.CidrBlocks...).Has(anyIPv4CidrBlock) {
+		if sets.NewString(r.CidrBlocks...).Has(services.AnyIPv4CidrBlock) {
 			t.Fatal("Ingress rule allows any CIDR block")
 		}
 	}

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package network
+package securitygroup
 
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
@@ -24,22 +24,21 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-// Scope is scope for use with the network service
+// Scope is a scope for use with the security group reconciling service
 type Scope interface {
 	cloud.ClusterScoper
 
 	// Network returns the cluster network object.
 	Network() *infrav1.Network
-	// VPC returns the cluster VPC.
-	VPC() *infrav1.VPCSpec
-	// Subnets returns the cluster subnets.
-	Subnets() infrav1.Subnets
-	// SetSubnets updates the clusters subnets.
-	SetSubnets(subnets infrav1.Subnets)
-	// CNIIngressRules returns the CNI spec ingress rules.
-	CNIIngressRules() infrav1.CNIIngressRules
+
 	// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
+
+	// VPC returns the cluster VPC.
+	VPC() *infrav1.VPCSpec
+
+	// CNIIngressRules returns the CNI spec ingress rules.
+	CNIIngressRules() infrav1.CNIIngressRules
 
 	// Bastion returns the bastion details for the cluster.
 	Bastion() *infrav1.Bastion
@@ -53,10 +52,10 @@ type Service struct {
 	EC2Client ec2iface.EC2API
 }
 
-// NewService returns a new service given the ec2 api client.
-func NewService(networkScope Scope) *Service {
+// NewService returns a new service given the api clients.
+func NewService(sgScope Scope) *Service {
 	return &Service{
-		scope:     networkScope,
-		EC2Client: scope.NewEC2Client(networkScope, networkScope, networkScope.InfraCluster()),
+		scope:     sgScope,
+		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope.InfraCluster()),
 	}
 }
