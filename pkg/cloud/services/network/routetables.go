@@ -103,7 +103,8 @@ func (s *Service) reconcileRouteTables() error {
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getRouteTableTagParams(*rt.RouteTableId, sn.IsPublic, sn.AvailabilityZone)
-				if err := tags.Ensure(converters.TagsToMap(rt.Tags), &buildParams, s.applyTags); err != nil {
+				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+				if err := tagsBuilder.Ensure(converters.TagsToMap(rt.Tags)); err != nil {
 					return false, err
 				}
 				return true, nil
@@ -233,7 +234,8 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool,
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		buildParams := s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic, zone)
-		if err := tags.Apply(&buildParams, s.applyTags); err != nil {
+		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+		if err := tagsBuilder.Apply(); err != nil {
 			return false, err
 		}
 		return true, nil

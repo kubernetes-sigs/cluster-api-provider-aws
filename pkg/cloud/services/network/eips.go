@@ -65,7 +65,8 @@ func (s *Service) allocateAddress(role string) (string, error) {
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		buildParams := s.getEIPTagParams(*out.AllocationId, role)
-		if err := tags.Apply(&buildParams, s.applyTags); err != nil {
+		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+		if err := tagsBuilder.Apply(); err != nil {
 			return false, err
 		}
 		return true, nil

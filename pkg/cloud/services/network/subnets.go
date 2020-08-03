@@ -82,7 +82,8 @@ func (s *Service) reconcileSubnets() error {
 				// Make sure tags are up to date if we have a managed VPC.
 				if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 					buildParams := s.getSubnetTagParams(existingSubnet.ID, existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags)
-					if err := tags.Ensure(existingSubnet.Tags, &buildParams, s.applyTags); err != nil {
+					tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+					if err := tagsBuilder.Ensure(existingSubnet.Tags); err != nil {
 						return false, err
 					}
 					return true, nil

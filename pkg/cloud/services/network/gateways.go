@@ -61,7 +61,8 @@ func (s *Service) reconcileInternetGateways() error {
 	// Make sure tags are up to date.
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		buildParams := s.getGatewayTagParams(*gateway.InternetGatewayId)
-		if err := tags.Ensure(converters.TagsToMap(gateway.Tags), &buildParams, s.applyTags); err != nil {
+		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+		if err := tagsBuilder.Ensure(converters.TagsToMap(gateway.Tags)); err != nil {
 			return false, err
 		}
 		return true, nil
