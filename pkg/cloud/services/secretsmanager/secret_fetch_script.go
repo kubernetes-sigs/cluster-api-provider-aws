@@ -17,7 +17,8 @@ limitations under the License.
 package secretsmanager
 
 // nolint
-const secretFetchScript = `#!/bin/bash
+const secretFetchScript = `#cloud-boothook
+#!/bin/bash
 
 # Copyright 2020 The Kubernetes Authors.
 #
