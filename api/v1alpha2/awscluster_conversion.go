@@ -55,6 +55,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Bastion.AllowedCIDRBlocks = restored.Spec.Bastion.AllowedCIDRBlocks
 	dst.Spec.Bastion.DisableIngressRules = restored.Spec.Bastion.DisableIngressRules
+	dst.Spec.Bastion.InstanceType = restored.Spec.Bastion.InstanceType
 	dst.Spec.ImageLookupFormat = restored.Spec.ImageLookupFormat
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
 	dst.Spec.ImageLookupBaseOS = restored.Spec.ImageLookupBaseOS

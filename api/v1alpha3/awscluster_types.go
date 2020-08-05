@@ -99,6 +99,11 @@ type Bastion struct {
 	// They are set as ingress rules for the Bastion host's Security Group (defaults to 0.0.0.0/0).
 	// +optional
 	AllowedCIDRBlocks []string `json:"allowedCIDRBlocks,omitempty"`
+
+	// InstanceType will use the specified instance type for the bastion. If not specified,
+	// Cluster API Provider AWS will use t3.micro for all regions except us-east-1, where t2.micro
+	// will be the default.
+	InstanceType string `json:"instanceType,omitempty"`
 }
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer

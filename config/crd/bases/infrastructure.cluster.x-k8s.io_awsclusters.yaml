@@ -414,6 +414,9 @@ spec:
                   enabled:
                     description: Enabled allows this provider to create a bastion host instance with a public ip to access the VPC private network.
                     type: boolean
+                  instanceType:
+                    description: InstanceType will use the specified instance type for the bastion. If not specified, Cluster API Provider AWS will use t3.micro for all regions except us-east-1, where t2.micro will be the default.
+                    type: string
                 type: object
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
