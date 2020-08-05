@@ -28,9 +28,20 @@ const (
 	// // alpha: v1.X
 	// MyFeature featuregate.Feature = "MyFeature"
 
+	// EKS is used to enable EKS support
 	// owner: @richardcase
 	// alpha: v0.4
 	EKS featuregate.Feature = "EKS"
+
+	// EKSEnableIAM will enable the IAM resource creation/modification
+	// owner: @richardcase
+	// alpha: v0.4
+	EKSEnableIAM featuregate.Feature = "EKSEnableIAM"
+
+	// EKSAllowAddRoles is used to enable the usage of additional IAM roles
+	// owner: @richardcase
+	// alpha: v0.4
+	EKSAllowAddRoles featuregate.Feature = "EKSAllowAddRoles"
 )
 
 func init() {
@@ -41,5 +52,7 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	EKS: {Default: false, PreRelease: featuregate.Alpha},
+	EKS:              {Default: false, PreRelease: featuregate.Alpha},
+	EKSEnableIAM:     {Default: false, PreRelease: featuregate.Alpha},
+	EKSAllowAddRoles: {Default: false, PreRelease: featuregate.Alpha},
 }

@@ -29,6 +29,12 @@ const (
 
 // AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane
 type AWSManagedControlPlaneSpec struct {
+	// EKSClusterName allows you to specify the name of the EKS cluster in
+	// AWS. If you don't specify a name then a default name will be created
+	// based on the namespace and name of the managed control plane.
+	// +optional
+	EKSClusterName string `json:"eksClusterName,omitempty"`
+
 	// NetworkSpec encapsulates all things related to AWS network.
 	NetworkSpec infrav1.NetworkSpec `json:"networkSpec,omitempty"`
 
@@ -40,26 +46,27 @@ type AWSManagedControlPlaneSpec struct {
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// Version defines the desired Kubernetes version. If no version number
-	// is supplied then the latest version of Kubernetesthat EKS supports
+	// is supplied then the latest version of Kubernetes that EKS supports
 	// will be used.
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:Pattern:=^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?$
 	// +optional
-	Version *string `json:"version"`
+	Version *string `json:"version,omitempty"`
 
 	// RoleName specifies the name of IAM role that gives EKS
-	// permission to make API calls. If no name is supplied
-	// then a role is created. If the role is pre-existing
+	// permission to make API calls. If the role is pre-existing
 	// we will treat it as unmanaged and not delete it on
-	// deletion
+	// deletion. If the EKSEnableIAM feature flag is true
+	// and no name is supplied then a role is created.
 	// +kubebuilder:validation:MinLength:=2
 	// +optional
-	RoleName *string `json:"roleName"`
+	RoleName *string `json:"roleName,omitempty"`
 
 	// RoleAdditionalPolicies allows you to attach additional polices to
-	// the control plane role.
+	// the control plane role. You must enable the EKSAllowAddRoles
+	// feature flag to incorporate these into the created role.
 	// +optional
-	RoleAdditionalPolicies *[]string `json:"roleAdditionalPolicies"`
+	RoleAdditionalPolicies *[]string `json:"roleAdditionalPolicies,omitempty"`
 
 	// Logging specifies which EKS Cluster logs should be enabled. Entries for
 	// each of the enabled logs will be sent to CloudWatch
@@ -82,6 +89,33 @@ type AWSManagedControlPlaneSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// ImageLookupFormat is the AMI naming format to look up machine images when
+	// a machine does not specify an AMI. When set, this will be used for all
+	// cluster machines unless a machine specifies a different ImageLookupOrg.
+	// Supports substitutions for {{.BaseOS}} and {{.K8sVersion}} with the base
+	// OS and kubernetes version, respectively. The BaseOS will be the value in
+	// ImageLookupBaseOS or ubuntu (the default), and the kubernetes version as
+	// defined by the packages produced by kubernetes/release without v as a
+	// prefix: 1.13.0, 1.12.5-mybuild.1, or 1.17.3. For example, the default
+	// image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-* will end up
+	// searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-* for a
+	// Machine that is targeting kubernetes v1.18.0 and the ubuntu base OS. See
+	// also: https://golang.org/pkg/text/template/
+	// +optional
+	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
+
+	// ImageLookupOrg is the AWS Organization ID to look up machine images when a
+	// machine does not specify an AMI. When set, this will be used for all
+	// cluster machines unless a machine specifies a different ImageLookupOrg.
+	// +optional
+	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
+
+	// ImageLookupBaseOS is the name of the base operating system used to look
+	// up machine images when a machine does not specify an AMI. When set, this
+	// will be used for all cluster machines unless a machine specifies a
+	// different ImageLookupBaseOS.
+	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
 	// Bastion contains options to configure the bastion host.
 	// +optional
@@ -128,6 +162,10 @@ type AWSManagedControlPlaneStatus struct {
 	// Bastion holds details of the instance that is used as a bastion jump box
 	// +optional
 	Bastion *infrav1.Instance `json:"bastion,omitempty"`
+	// Initialized denotes whether or not the control plane has the
+	// uploaded kubernetes config-map.
+	// +optional
+	Initialized bool `json:"initialized"`
 	// Ready denotes that the AWSManagedControlPlane API Server is ready to
 	// receive requests and that the VPC infra is ready.
 	// +kubebuilder:default=false

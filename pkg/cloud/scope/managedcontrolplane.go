@@ -23,12 +23,14 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
@@ -39,6 +41,9 @@ type ManagedControlPlaneScopeParams struct {
 	ControlPlane   *infrav1exp.AWSManagedControlPlane
 	ControllerName string
 	Session        awsclient.ConfigProvider
+
+	EnableIAM            bool
+	AllowAdditionalRoles bool
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -65,13 +70,15 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	}
 
 	return &ManagedControlPlaneScope{
-		Logger:         params.Logger,
-		Client:         params.Client,
-		Cluster:        params.Cluster,
-		ControlPlane:   params.ControlPlane,
-		patchHelper:    helper,
-		session:        session,
-		controllerName: params.ControllerName,
+		Logger:               params.Logger,
+		Client:               params.Client,
+		Cluster:              params.Cluster,
+		ControlPlane:         params.ControlPlane,
+		patchHelper:          helper,
+		session:              session,
+		controllerName:       params.ControllerName,
+		allowAdditionalRoles: params.AllowAdditionalRoles,
+		enableIAM:            params.EnableIAM,
 	}, nil
 }
 
@@ -86,6 +93,9 @@ type ManagedControlPlaneScope struct {
 
 	session        awsclient.ConfigProvider
 	controllerName string
+
+	enableIAM            bool
+	allowAdditionalRoles bool
 }
 
 // Network returns the control plane network object.
@@ -123,7 +133,7 @@ func (s *ManagedControlPlaneScope) SecurityGroups() map[infrav1.SecurityGroupRol
 
 // Name returns the cluster name.
 func (s *ManagedControlPlaneScope) Name() string {
-	return s.Cluster.Name
+	return s.ControlPlane.Spec.EKSClusterName
 }
 
 // Namespace returns the cluster namespace.
@@ -225,4 +235,34 @@ func (s *ManagedControlPlaneScope) TokenMethod() infrav1exp.EKSTokenMethod {
 	}
 
 	return infrav1exp.EKSTokenMethodIAMAuthenticator
+}
+
+// EKSClusterName gets the name of the EKS cluster in AWS
+func (s *ManagedControlPlaneScope) EKSClusterName() string {
+	return s.ControlPlane.Spec.EKSClusterName
+}
+
+// EnableIAM indicates that reconciliation should create IAM roles
+func (s *ManagedControlPlaneScope) EnableIAM() bool {
+	return s.enableIAM
+}
+
+// AllowAdditionalRoles indicates if additional roles can be added to the created IAM roles
+func (s *ManagedControlPlaneScope) AllowAdditionalRoles() bool {
+	return s.allowAdditionalRoles
+}
+
+// ImageLookupFormat returns the format string to use when looking up AMIs
+func (s *ManagedControlPlaneScope) ImageLookupFormat() string {
+	return s.ControlPlane.Spec.ImageLookupFormat
+}
+
+// ImageLookupOrg returns the organization name to use when looking up AMIs
+func (s *ManagedControlPlaneScope) ImageLookupOrg() string {
+	return s.ControlPlane.Spec.ImageLookupOrg
+}
+
+// ImageLookupBaseOS returns the base operating system name to use when looking up AMIs
+func (s *ManagedControlPlaneScope) ImageLookupBaseOS() string {
+	return s.ControlPlane.Spec.ImageLookupBaseOS
 }

@@ -56,6 +56,10 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 	s.scope.V(2).Info("Reconciling EKS Control Plane IAM Role")
 
 	if s.scope.ControlPlane.Spec.RoleName == nil {
+		//TODO (richardcase): in the future use a default role created by clusterawsadm
+		if !s.scope.EnableIAM() {
+			return ErrClusterRoleNameMissing
+		}
 		s.scope.ControlPlane.Spec.RoleName = aws.String(fmt.Sprintf("%s-iam-service-role", s.scope.Name()))
 	}
 
@@ -63,6 +67,11 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 	if err != nil {
 		if !isNotFound(err) {
 			return err
+		}
+
+		// If the disable IAM flag is used then the role must exist
+		if !s.scope.EnableIAM() {
+			return ErrClusterRoleNotFound
 		}
 
 		role, err = s.createRole(*s.scope.ControlPlane.Spec.RoleName)
@@ -84,6 +93,10 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 		aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
 	}
 	if s.scope.ControlPlane.Spec.RoleAdditionalPolicies != nil {
+		if !s.scope.AllowAdditionalRoles() && len(*s.scope.ControlPlane.Spec.RoleAdditionalPolicies) > 0 {
+			return ErrCannotUseAdditionalRoles
+		}
+
 		for _, policy := range *s.scope.ControlPlane.Spec.RoleAdditionalPolicies {
 			additionalPolicy := policy
 			policies = append(policies, &additionalPolicy)
@@ -277,6 +290,11 @@ func (s *Service) deleteRole(name string) error {
 }
 
 func (s *Service) deleteControlPlaneIAMRole() error {
+	if !s.scope.EnableIAM() {
+		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Control Plane IAM Role")
+		return nil
+	}
+
 	s.scope.V(2).Info("Deleting EKS Control Plane IAM Role")
 
 	role, err := s.getIAMRole(*s.scope.ControlPlane.Spec.RoleName)

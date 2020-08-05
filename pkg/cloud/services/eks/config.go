@@ -18,11 +18,15 @@ package eks
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,21 +40,60 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
+const (
+	tokenPrefix       = "k8s-aws-v1." //nolint:gosec
+	clusterNameHeader = "x-k8s-aws-id"
+	tokenAgeMins      = 15
+)
+
 func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Reconciling EKS kubeconfig for cluster", "cluster-name", *cluster.Name)
+	s.scope.V(2).Info("Reconciling EKS kubeconfigs for cluster", "cluster-name", s.scope.EKSClusterName())
 
 	clusterRef := types.NamespacedName{
 		Name:      s.scope.Cluster.Name,
 		Namespace: s.scope.Cluster.Namespace,
 	}
 
-	_, err := secret.GetFromNamespacedName(ctx, s.scope.Client, clusterRef, secret.Kubeconfig)
+	// Create the kubeconfig used by CAPI
+	configSecret, err := secret.GetFromNamespacedName(ctx, s.scope.Client, clusterRef, secret.Kubeconfig)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return errors.Wrap(err, "failed to get kubeconfig secret")
 		}
 
-		createErr := s.createKubeconfigSecret(
+		if createErr := s.createCAPIKubeconfigSecret(
+			ctx,
+			cluster,
+			&clusterRef,
+		); createErr != nil {
+			return fmt.Errorf("creating kubeconfig secret: %w", err)
+		}
+	} else if updateErr := s.updateCAPIKubeconfigSecret(ctx, configSecret, cluster); updateErr != nil {
+		return fmt.Errorf("updating kubeconfig secret: %w", err)
+	}
+
+	// Set initialized to true to indicate the kubconfig has been created
+	s.scope.ControlPlane.Status.Initialized = true
+
+	return nil
+}
+
+func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *eks.Cluster) error {
+	s.scope.V(2).Info("Reconciling additional EKS kubeconfigs for cluster", "cluster-name", s.scope.EKSClusterName())
+
+	clusterRef := types.NamespacedName{
+		Name:      s.scope.Cluster.Name + "-user",
+		Namespace: s.scope.Cluster.Namespace,
+	}
+
+	// Create the additional kubeconfig for users. This doesn't need updating on every sync
+	_, err := secret.GetFromNamespacedName(ctx, s.scope.Client, clusterRef, secret.Kubeconfig)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrap(err, "failed to get kubeconfig (user) secret")
+		}
+
+		createErr := s.createUserKubeconfigSecret(
 			ctx,
 			cluster,
 			&clusterRef,
@@ -58,36 +101,92 @@ func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster)
 		if createErr != nil {
 			return err
 		}
-
 	}
-
-	//TODO: does this need cert rotation? I don't think so
 
 	return nil
 }
 
-func (s *Service) createKubeconfigSecret(ctx context.Context, cluster *eks.Cluster, clusterRef *types.NamespacedName) error {
+func (s *Service) createCAPIKubeconfigSecret(ctx context.Context, cluster *eks.Cluster, clusterRef *types.NamespacedName) error {
 	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, infrav1exp.GroupVersion.WithKind("AWSManagedControlPlane"))
 
-	clusterName := *cluster.Name
-	userName := fmt.Sprintf("%s-admin", clusterName)
-	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
+	clusterName := s.scope.EKSClusterName()
+	userName := s.getKubeConfigUserName(clusterName, false)
 
-	cfg := &api.Config{
-		APIVersion: api.SchemeGroupVersion.Version,
-		Clusters: map[string]*api.Cluster{
-			clusterName: {
-				Server:                   *cluster.Endpoint,
-				CertificateAuthorityData: []byte(*cluster.CertificateAuthority.Data),
-			},
+	cfg, err := s.createBaseKubeConfig(cluster, userName)
+	if err != nil {
+		return fmt.Errorf("creating base kubeconfig: %w", err)
+	}
+
+	token, err := s.generateToken()
+	if err != nil {
+		return fmt.Errorf("generating presigned token: %w", err)
+	}
+
+	cfg.AuthInfos = map[string]*api.AuthInfo{
+		userName: {
+			Token: token,
 		},
-		Contexts: map[string]*api.Context{
-			contextName: {
-				Cluster:  clusterName,
-				AuthInfo: userName,
-			},
-		},
-		CurrentContext: contextName,
+	}
+
+	out, err := clientcmd.Write(*cfg)
+	if err != nil {
+		return errors.Wrap(err, "failed to serialize config to yaml")
+	}
+
+	kubeconfigSecret := kubeconfig.GenerateSecretWithOwner(*clusterRef, out, controllerOwnerRef)
+	if err := s.scope.Client.Create(ctx, kubeconfigSecret); err != nil {
+		return errors.Wrap(err, "failed to create kubeconfig secret")
+	}
+
+	record.Eventf(s.scope.ControlPlane, "SucessfulCreateKubeconfig", "Created kubeconfig for cluster %q", s.scope.Name())
+	return nil
+}
+
+func (s *Service) updateCAPIKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, cluster *eks.Cluster) error {
+	s.scope.V(2).Info("Updating EKS kubeconfigs for cluster", "cluster-name", s.scope.EKSClusterName())
+
+	data, ok := configSecret.Data[secret.KubeconfigDataName]
+	if !ok {
+		return errors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)
+	}
+
+	config, err := clientcmd.Load(data)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+	}
+
+	token, err := s.generateToken()
+	if err != nil {
+		return fmt.Errorf("generating presigned token: %w", err)
+	}
+
+	userName := s.getKubeConfigUserName(*cluster.Name, false)
+	config.AuthInfos[userName].Token = token
+
+	out, err := clientcmd.Write(*config)
+	if err != nil {
+		return errors.Wrap(err, "failed to serialize config to yaml")
+	}
+
+	configSecret.Data[secret.KubeconfigDataName] = out
+
+	err = s.scope.Client.Update(ctx, configSecret)
+	if err != nil {
+		return fmt.Errorf("updating kubeconfig secret: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.Cluster, clusterRef *types.NamespacedName) error {
+	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, infrav1exp.GroupVersion.WithKind("AWSManagedControlPlane"))
+
+	clusterName := s.scope.EKSClusterName()
+	userName := s.getKubeConfigUserName(clusterName, true)
+
+	cfg, err := s.createBaseKubeConfig(cluster, userName)
+	if err != nil {
+		return fmt.Errorf("creating base kubeconfig: %w", err)
 	}
 
 	execConfig := &api.ExecConfig{APIVersion: "client.authentication.k8s.io/v1alpha1"}
@@ -108,7 +207,7 @@ func (s *Service) createKubeconfigSecret(ctx context.Context, cluster *eks.Clust
 			clusterName,
 		}
 	default:
-		return fmt.Errorf("unknown token method %s", s.scope.TokenMethod())
+		return fmt.Errorf("using token method %s: %w", s.scope.TokenMethod(), ErrUnknowTokenMethod)
 	}
 	cfg.AuthInfos = map[string]*api.AuthInfo{
 		userName: {
@@ -126,6 +225,58 @@ func (s *Service) createKubeconfigSecret(ctx context.Context, cluster *eks.Clust
 		return errors.Wrap(err, "failed to create kubeconfig secret")
 	}
 
-	record.Eventf(s.scope.ControlPlane, "SucessfulCreateKubeconfig", "Created kubeconfig for cluster %q", s.scope.Name())
+	record.Eventf(s.scope.ControlPlane, "SucessfulCreateUserKubeconfig", "Created user kubeconfig for cluster %q", s.scope.Name())
 	return nil
+}
+
+func (s *Service) createBaseKubeConfig(cluster *eks.Cluster, userName string) (*api.Config, error) {
+	clusterName := s.scope.EKSClusterName()
+	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
+
+	certData, err := base64.StdEncoding.DecodeString(*cluster.CertificateAuthority.Data)
+	if err != nil {
+		return nil, fmt.Errorf("decoding cluster CA cert: %w", err)
+	}
+
+	cfg := &api.Config{
+		APIVersion: api.SchemeGroupVersion.Version,
+		Clusters: map[string]*api.Cluster{
+			clusterName: {
+				Server:                   *cluster.Endpoint,
+				CertificateAuthorityData: certData,
+			},
+		},
+		Contexts: map[string]*api.Context{
+			contextName: {
+				Cluster:  clusterName,
+				AuthInfo: userName,
+			},
+		},
+		CurrentContext: contextName,
+	}
+
+	return cfg, nil
+}
+
+func (s *Service) generateToken() (string, error) {
+	eksClusterName := s.scope.EKSClusterName()
+
+	req, _ := s.STSClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
+	req.HTTPRequest.Header.Add(clusterNameHeader, eksClusterName)
+
+	presignedURL, err := req.Presign(tokenAgeMins * time.Minute)
+	if err != nil {
+		return "", fmt.Errorf("presigning AWS get caller identity: %w", err)
+	}
+
+	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(presignedURL))
+	return fmt.Sprintf("%s%s", tokenPrefix, encodedURL), nil
+}
+
+func (s *Service) getKubeConfigUserName(clusterName string, isUser bool) string {
+	if isUser {
+		return fmt.Sprintf("%s-user", clusterName)
+	}
+
+	return fmt.Sprintf("%s-capi-admin", clusterName)
 }

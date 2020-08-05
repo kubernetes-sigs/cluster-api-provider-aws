@@ -146,7 +146,6 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(r.managedControlPlaneToManagedCluster),
 		},
-		predicates.ClusterUnpaused(r.Log),
 	); err != nil {
 		return fmt.Errorf("failed adding watch on AWSManagedControlPlane: %w", err)
 	}

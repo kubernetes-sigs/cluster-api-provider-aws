@@ -21,7 +21,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -40,7 +39,7 @@ func (s *Service) reconcileTags(cluster *eks.Cluster) error {
 }
 
 func (s *Service) getEKSTagParams(id string) *infrav1.BuildParams {
-	name := fmt.Sprintf("%s-eks-cp", s.scope.Name())
+	name := s.scope.EKSClusterName()
 
 	return &infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
@@ -50,21 +49,4 @@ func (s *Service) getEKSTagParams(id string) *infrav1.BuildParams {
 		Role:        aws.String(infrav1.CommonRoleTagValue),
 		Additional:  s.scope.AdditionalTags(),
 	}
-}
-
-func (s *Service) applyTags(params *infrav1.BuildParams) error {
-	tags := infrav1.Build(*params)
-
-	eksTags := make(map[string]*string, len(tags))
-	for k, v := range tags {
-		eksTags[k] = aws.String(v)
-	}
-
-	tagResourcesInput := &eks.TagResourceInput{
-		ResourceArn: aws.String(params.ResourceID),
-		Tags:        eksTags,
-	}
-
-	_, err := s.EKSClient.TagResource(tagResourcesInput)
-	return errors.Wrapf(err, "failed to tag eks cluster %q in cluster %q", params.ResourceID, params.ClusterName)
 }

@@ -49,6 +49,7 @@ type Scope interface {
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
 	scope     Scope
+	roles     []infrav1.SecurityGroupRole
 	EC2Client ec2iface.EC2API
 }
 
@@ -56,6 +57,17 @@ type Service struct {
 func NewService(sgScope Scope) *Service {
 	return &Service{
 		scope:     sgScope,
+		roles:     defaultRoles,
+		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope.InfraCluster()),
+	}
+}
+
+// NewServiceWithRoles returns a new service given the api clients with a defined
+// set of roles
+func NewServiceWithRoles(sgScope Scope, roles []infrav1.SecurityGroupRole) *Service {
+	return &Service{
+		scope:     sgScope,
+		roles:     roles,
 		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope.InfraCluster()),
 	}
 }

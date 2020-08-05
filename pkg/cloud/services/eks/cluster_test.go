@@ -233,7 +233,7 @@ func TestMakeEKSLogging(t *testing.T) {
 }
 
 func TestReconcileClusterVersion(t *testing.T) {
-	clusterName := "cluster"
+	clusterName := "default.cluster"
 	tests := []struct {
 		name        string
 		expect      func(m *mock_eksiface.MockEKSAPIMockRecorder)
@@ -246,7 +246,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 					DescribeCluster(gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
 					Return(&eks.DescribeClusterOutput{
 						Cluster: &eks.Cluster{
-							Name:    aws.String("cluster"),
+							Name:    aws.String("default.cluster"),
 							Version: aws.String("1.16"),
 						},
 					}, nil)
@@ -260,7 +260,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 					DescribeCluster(gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
 					Return(&eks.DescribeClusterOutput{
 						Cluster: &eks.Cluster{
-							Name:    aws.String("cluster"),
+							Name:    aws.String("default.cluster"),
 							Version: aws.String("1.14"),
 						},
 					}, nil)
@@ -277,7 +277,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 					DescribeCluster(gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
 					Return(&eks.DescribeClusterOutput{
 						Cluster: &eks.Cluster{
-							Name:    aws.String("cluster"),
+							Name:    aws.String("default.cluster"),
 							Version: aws.String("1.14"),
 						},
 					}, nil)
@@ -317,7 +317,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 			s := NewService(scope)
 			s.EKSClient = eksMock
 
-			cluster, err := s.describeEKSCluster()
+			cluster, err := s.describeEKSCluster(clusterName)
 			g.Expect(err).To(BeNil())
 
 			err = s.reconcileClusterVersion(cluster)

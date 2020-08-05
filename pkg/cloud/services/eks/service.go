@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
@@ -32,6 +33,7 @@ type Service struct {
 	EC2Client ec2iface.EC2API
 	EKSClient eksiface.EKSAPI
 	IAMClient iamiface.IAMAPI
+	STSClient stsiface.STSAPI
 }
 
 // NewService returns a new service given the api clients.
@@ -41,5 +43,6 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope) *Service {
 		EC2Client: scope.NewEC2Client(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		EKSClient: scope.NewEKSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+		STSClient: scope.NewSTSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 	}
 }

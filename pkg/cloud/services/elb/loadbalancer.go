@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/internal/hash"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/hash"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 

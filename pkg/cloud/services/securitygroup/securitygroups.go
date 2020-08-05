@@ -49,6 +49,16 @@ const (
 	IPProtocolICMPv6 = "58"
 )
 
+var (
+	defaultRoles = []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupAPIServerLB,
+		infrav1.SecurityGroupLB,
+		infrav1.SecurityGroupControlPlane,
+		infrav1.SecurityGroupNode,
+	}
+)
+
 func (s *Service) ReconcileSecurityGroups() error {
 	s.scope.V(2).Info("Reconciling security groups")
 
@@ -61,18 +71,9 @@ func (s *Service) ReconcileSecurityGroups() error {
 		return err
 	}
 
-	// Declare all security group roles that the reconcile loop takes care of.
-	roles := []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
-	}
-
 	// First iteration makes sure that the security group are valid and fully created.
-	for i := range roles {
-		role := roles[i]
+	for i := range s.roles {
+		role := s.roles[i]
 		sg := s.getDefaultSecurityGroup(role)
 		existing, ok := sgs[*sg.GroupName]
 
@@ -92,6 +93,10 @@ func (s *Service) ReconcileSecurityGroups() error {
 		// TODO(vincepri): validate / update security group if necessary.
 		s.scope.SecurityGroups()[role] = existing
 
+		if s.isEKSOwned(existing) {
+			continue
+		}
+
 		// Make sure tags are up to date.
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
@@ -109,7 +114,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 	// the specified ingress rules.
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
-		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) {
+		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) || s.isEKSOwned(sg) {
 			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
 			continue
 		}
@@ -156,6 +161,10 @@ func (s *Service) DeleteSecurityGroups() error {
 	for _, sg := range s.scope.SecurityGroups() {
 		current := sg.IngressRules
 
+		if s.isEKSOwned(sg) {
+			continue
+		}
+
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
 			return err
 		}
@@ -165,6 +174,11 @@ func (s *Service) DeleteSecurityGroups() error {
 
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
+
+		if s.isEKSOwned(sg) {
+			continue
+		}
+
 		if err := s.deleteSecurityGroup(&sg, "managed"); err != nil {
 			return err
 		}
@@ -483,6 +497,11 @@ func (s *Service) getSecurityGroupTagParams(name, id string, role infrav1.Securi
 		Role:        aws.String(string(role)),
 		Additional:  additional,
 	}
+}
+
+func (s *Service) isEKSOwned(sg infrav1.SecurityGroup) bool {
+	_, ok := sg.Tags["aws:eks:cluster-name"]
+	return ok
 }
 
 func ingressRuleToSDKType(i *infrav1.IngressRule) (res *ec2.IpPermission) {
