@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -35,6 +36,11 @@ import (
 
 const (
 	defaultSSHKeyName = "default"
+)
+
+var (
+	fallbackBastionInstanceType        = "t3.micro"
+	fallbackBastionUsEast1InstanceType = "t2.micro"
 )
 
 // ReconcileBastion ensures a bastion is created for the cluster
@@ -61,8 +67,6 @@ func (s *Service) ReconcileBastion() error {
 		return errors.New("failed to reconcile bastion host, no public subnets are available")
 	}
 
-	spec := s.getDefaultBastion()
-
 	// Describe bastion instance, if any.
 	instance, err := s.describeBastionInstance()
 	if awserrors.IsNotFound(err) { // nolint:nestif
@@ -72,7 +76,7 @@ func (s *Service) ReconcileBastion() error {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
 		}
-		instance, err = s.runInstance("bastion", spec)
+		instance, err = s.runInstance("bastion", s.getDefaultBastion(s.scope.Bastion().InstanceType))
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedCreateBastion", "Failed to create bastion instance: %v", err)
 			return err
@@ -147,7 +151,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 	return nil, awserrors.NewNotFound(errors.New("bastion host not found"))
 }
 
-func (s *Service) getDefaultBastion() *infrav1.Instance {
+func (s *Service) getDefaultBastion(instanceType string) *infrav1.Instance {
 	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
@@ -157,9 +161,19 @@ func (s *Service) getDefaultBastion() *infrav1.Instance {
 		keyName = aws.String(defaultSSHKeyName)
 	}
 
+	subnet := s.scope.Subnets().FilterPublic()[0]
+
+	if instanceType == "" {
+		if strings.Contains(subnet.AvailabilityZone, "us-east-1") {
+			instanceType = fallbackBastionUsEast1InstanceType
+		} else {
+			instanceType = fallbackBastionInstanceType
+		}
+	}
+
 	i := &infrav1.Instance{
-		Type:       "t2.micro",
-		SubnetID:   s.scope.Subnets().FilterPublic()[0].ID,
+		Type:       instanceType,
+		SubnetID:   subnet.ID,
 		ImageID:    s.defaultBastionAMILookup(s.scope.Region()),
 		SSHKeyName: keyName,
 		UserData:   aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
