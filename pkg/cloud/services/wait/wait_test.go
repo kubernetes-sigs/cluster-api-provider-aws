@@ -14,15 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package wait
+package wait_test
 
 import (
 	"errors"
 	"testing"
 	"time"
 
+	. "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"k8s.io/apimachinery/pkg/util/wait"
+)
+
+var (
+	errRetryable        = awserr.New("retryable error", "", nil)
+	errNonRetryable     = errors.New("non retryable error")
+	retryableErrorCodes = []string{"retryable error"}
 )
 
 func TestWaitForWithRetryable(t *testing.T) {
@@ -34,10 +42,6 @@ func TestWaitForWithRetryable(t *testing.T) {
 		Cap:      3 * time.Millisecond,
 	}
 	var firstIteration bool
-	retryableError := awserr.New("retryable error", "", nil)
-	nonRetryableError := errors.New("non retryable error")
-
-	retryableErrorCodes := []string{"retryable error"}
 
 	tests := []struct {
 		name            string
@@ -68,19 +72,19 @@ func TestWaitForWithRetryable(t *testing.T) {
 			name:    "error occurred in conditionFunc, returns actual error",
 			backoff: backoff,
 			condition: func() (done bool, err error) {
-				return false, nonRetryableError
+				return false, errNonRetryable
 			},
 			retryableErrors: retryableErrorCodes,
-			expectedError:   nonRetryableError,
+			expectedError:   errNonRetryable,
 		},
 		{
 			name:    "timed out in retryable error, returns the retryable error",
 			backoff: backoff,
 			condition: func() (done bool, err error) {
-				return false, retryableError
+				return false, errRetryable
 			},
 			retryableErrors: retryableErrorCodes,
-			expectedError:   retryableError,
+			expectedError:   errRetryable,
 		},
 		{
 			name:    "retryable err at first, non-retryable err after that, returns latest error",
@@ -88,13 +92,13 @@ func TestWaitForWithRetryable(t *testing.T) {
 			condition: func() (done bool, err error) {
 				if firstIteration {
 					firstIteration = false
-					return false, retryableError
+					return false, errRetryable
 				}
 				firstIteration = false
-				return false, nonRetryableError
+				return false, errNonRetryable
 			},
 			retryableErrors: retryableErrorCodes,
-			expectedError:   nonRetryableError,
+			expectedError:   errNonRetryable,
 		},
 		{
 			name:    "retryable err at first, failure but no error after that, returns timeout error",
@@ -102,7 +106,7 @@ func TestWaitForWithRetryable(t *testing.T) {
 			condition: func() (done bool, err error) {
 				if firstIteration {
 					firstIteration = false
-					return false, retryableError
+					return false, errRetryable
 				}
 				return false, nil
 			},
@@ -115,7 +119,7 @@ func TestWaitForWithRetryable(t *testing.T) {
 			condition: func() (done bool, err error) {
 				if firstIteration {
 					firstIteration = false
-					return false, retryableError
+					return false, errRetryable
 				}
 				return true, nil
 			},

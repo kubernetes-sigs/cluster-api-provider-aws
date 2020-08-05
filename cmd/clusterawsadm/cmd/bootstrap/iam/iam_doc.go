@@ -25,6 +25,8 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
+var errInvalidDocumentName = fmt.Errorf("invalid document name, use one of: %+v", bootstrap.ManagedIAMPolicyNames)
+
 func printPolicyCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "print-policy",
@@ -76,7 +78,7 @@ func printPolicyCmd() *cobra.Command {
 func getDocumentName(cmd *cobra.Command) (bootstrap.PolicyName, error) {
 	val := bootstrap.PolicyName(cmd.Flags().Lookup("document").Value.String())
 	if !val.IsValid() {
-		return "", fmt.Errorf("invalid document name, use one of: %+v", bootstrap.ManagedIAMPolicyNames)
+		return "", errInvalidDocumentName
 	}
 
 	return val, nil

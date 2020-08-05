@@ -28,23 +28,24 @@ import (
 	bootstrapschemev1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1/scheme"
 )
 
+type errEmptyBootstrapConfig string
+
+func (e errEmptyBootstrapConfig) Error() string {
+	return fmt.Sprintf("bootstrap config file %q was empty", string(e))
+}
+
 // LoadConfigFile loads a YAML file representing a bootstrapv1.AWSIAMConfiguration.
 func LoadConfigFile(name string) (*bootstrapv1.AWSIAMConfiguration, error) {
-	const errFmt = "failed to load bootstrap config file %s, error %v"
 	// compute absolute path based on current working dir
 	iamConfigFile, err := filepath.Abs(name)
 	if err != nil {
-		return nil, fmt.Errorf(errFmt, name, err)
+		return nil, fmt.Errorf("failed to convert IAM config path into absolute path %s, error: %w", name, err)
 	}
 	loader, err := newFsLoader(iamConfigFile)
 	if err != nil {
-		return nil, fmt.Errorf(errFmt, name, err)
+		return nil, fmt.Errorf("failed to initialize filesystem loader: %w", err)
 	}
-	kc, err := loader.Load()
-	if err != nil {
-		return nil, fmt.Errorf(errFmt, name, err)
-	}
-	return kc, err
+	return loader.Load()
 }
 
 // Loader loads configuration from a storage layer.
@@ -83,12 +84,12 @@ func newFsLoader(bootstrapFile string) (loader, error) {
 func (loader *fsLoader) Load() (*bootstrapv1.AWSIAMConfiguration, error) {
 	data, err := loader.ReadFile(loader.bootstrapFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read bootstrap config file %q, error: %v", loader.bootstrapFile, err)
+		return nil, fmt.Errorf("failed to read bootstrap config file %q, error: %w", loader.bootstrapFile, err)
 	}
 
 	// no configuration is an error, some parameters are required
 	if len(data) == 0 {
-		return nil, fmt.Errorf("bootstrap config file %q was empty", loader.bootstrapFile)
+		return nil, errEmptyBootstrapConfig(loader.bootstrapFile)
 	}
 
 	kc, err := DecodeBootstrapConfiguration(loader.bootstrapCodecs, data)

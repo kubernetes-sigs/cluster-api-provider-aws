@@ -41,6 +41,14 @@ aws_session_token = {{ .SessionToken }}
 
 const AWSDefaultRegion = "us-east-1"
 
+var ErrNoAWSRegionConfigured = errors.New("no AWS region configured. Use --region or set AWS_REGION or DEFAULT_AWS_REGION environment variable")
+
+type ErrEnvironmentVariableNotFound string
+
+func (e ErrEnvironmentVariableNotFound) Error() string {
+	return fmt.Sprintf("environment variable %q not found", string(e))
+}
+
 type AWSCredentials struct {
 	AccessKeyID     string
 	SecretAccessKey string
@@ -78,13 +86,13 @@ func ResolveRegion(explicitRegion string) (string, error) {
 	if err == nil {
 		return region, nil
 	}
-	return "", errors.New("no AWS region configured. Use --region or set AWS_REGION or DEFAULT_AWS_REGION environment variable")
+	return "", ErrNoAWSRegionConfigured
 }
 
 func getEnv(key string) (string, error) {
 	val, ok := os.LookupEnv(key)
 	if !ok {
-		return "", fmt.Errorf("environment variable %q not found", key)
+		return "", ErrEnvironmentVariableNotFound(key)
 	}
 	return val, nil
 }

@@ -54,7 +54,7 @@ func TestInstanceIfExists(t *testing.T) {
 				m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []*string{aws.String("hello")},
 				})).
-					Return(nil, awserrors.NewNotFound(errors.New("not found")))
+					Return(nil, awserrors.NewNotFound("not found"))
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {

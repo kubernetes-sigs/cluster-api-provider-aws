@@ -257,15 +257,15 @@ func (s *Service) describeVPC() (*infrav1.VPCSpec, error) {
 	}
 
 	if len(out.Vpcs) == 0 {
-		return nil, awserrors.NewNotFound(errors.Errorf("could not find vpc %q", s.scope.VPC().ID))
+		return nil, awserrors.NewNotFound(fmt.Sprintf("could not find vpc %q", s.scope.VPC().ID))
 	} else if len(out.Vpcs) > 1 {
-		return nil, awserrors.NewConflict(errors.Errorf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
+		return nil, awserrors.NewConflict(fmt.Sprintf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
 	}
 
 	switch *out.Vpcs[0].State {
 	case ec2.VpcStateAvailable, ec2.VpcStatePending:
 	default:
-		return nil, awserrors.NewNotFound(errors.Errorf("could not find available or pending vpc"))
+		return nil, awserrors.NewNotFound("could not find available or pending vpc")
 	}
 
 	return &infrav1.VPCSpec{

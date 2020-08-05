@@ -63,28 +63,28 @@ func Message(err error) string {
 
 // EC2Error is an error exposed to users of this library.
 type EC2Error struct {
-	err error
+	msg string
 
 	Code int
 }
 
 // Error implements the Error interface.
 func (e *EC2Error) Error() string {
-	return e.err.Error()
+	return e.msg
 }
 
-// NewNotFound returns a new error which indicates that the resource of the kind and the name was not found.
-func NewNotFound(err error) error {
+// NewNotFound returns an error which indicates that the resource of the kind and the name was not found.
+func NewNotFound(msg string) error {
 	return &EC2Error{
-		err:  err,
+		msg:  msg,
 		Code: http.StatusNotFound,
 	}
 }
 
-// NewConflict returns a new error which indicates that the request cannot be processed due to a conflict.
-func NewConflict(err error) error {
+// NewConflict returns an error which indicates that the request cannot be processed due to a conflict.
+func NewConflict(msg string) error {
 	return &EC2Error{
-		err:  err,
+		msg:  msg,
 		Code: http.StatusConflict,
 	}
 }
@@ -96,10 +96,10 @@ func IsResourceExists(err error) bool {
 	return false
 }
 
-// NewFailedDependency returns a new error which indicates that a dependency failure status
-func NewFailedDependency(err error) error {
+// NewFailedDependency returns an error which indicates that a dependency failure status
+func NewFailedDependency(msg string) error {
 	return &EC2Error{
-		err:  err,
+		msg:  msg,
 		Code: http.StatusFailedDependency,
 	}
 }

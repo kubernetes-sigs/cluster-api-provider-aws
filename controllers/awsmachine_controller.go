@@ -384,7 +384,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2MachineInterface) (*infrav1.Instance, error) {
 	// Parse the ProviderID.
 	pid, err := noderefutil.NewProviderID(scope.GetProviderID())
-	if err != nil && err != noderefutil.ErrEmptyProviderID {
+	if err != nil && !errors.Is(err, noderefutil.ErrEmptyProviderID) {
 		return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
 	}
 

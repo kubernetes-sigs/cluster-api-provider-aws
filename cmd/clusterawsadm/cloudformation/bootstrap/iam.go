@@ -47,13 +47,13 @@ func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
 
 		pds, err := converters.IAMPolicyDocumentToJSON(*pd)
 		if err != nil {
-			return fmt.Errorf("failed to marshal policy document for ManagedIAMPolicy %q: %v", pn, err)
+			return fmt.Errorf("failed to marshal policy document for ManagedIAMPolicy %q: %w", pn, err)
 		}
 
 		fn := path.Join(policyDocDir, fmt.Sprintf("%s.json", pn))
 		err = ioutil.WriteFile(fn, []byte(pds), 0o600)
 		if err != nil {
-			return fmt.Errorf("failed to generate policy document for ManagedIAMPolicy %q: %v", pn, err)
+			return fmt.Errorf("failed to generate policy document for ManagedIAMPolicy %q: %w", pn, err)
 		}
 	}
 	return nil
