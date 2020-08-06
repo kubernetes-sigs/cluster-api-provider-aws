@@ -290,15 +290,8 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 		return nil, mapierrors.InvalidMachineConfiguration("Unable to get cluster ID for machine: %q", machine.Name)
 	}
 	// Add tags to the created machine
-	rawTagList := []*ec2.Tag{}
-	for _, tag := range machineProviderConfig.Tags {
-		rawTagList = append(rawTagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
-	}
-	rawTagList = append(rawTagList, []*ec2.Tag{
-		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
-		{Key: aws.String("Name"), Value: aws.String(machine.Name)},
-	}...)
-	tagList := removeDuplicatedTags(rawTagList)
+	tagList := buildTagList(machine.Name, clusterID, machineProviderConfig.Tags)
+
 	tagInstance := &ec2.TagSpecification{
 		ResourceType: aws.String("instance"),
 		Tags:         tagList,
@@ -371,6 +364,21 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 	}
 
 	return runResult.Instances[0], nil
+}
+
+func buildTagList(machineName string, clusterID string, machineTags []awsproviderv1.TagSpecification) []*ec2.Tag {
+	rawTagList := []*ec2.Tag{}
+	for _, tag := range machineTags {
+		// AWS tags are case sensitive, so we don't need to worry about other casing of "Name"
+		if !strings.HasPrefix(tag.Name, "kubernetes.io/cluster/") && tag.Name != "Name" {
+			rawTagList = append(rawTagList, &ec2.Tag{Key: aws.String(tag.Name), Value: aws.String(tag.Value)})
+		}
+	}
+	rawTagList = append(rawTagList, []*ec2.Tag{
+		{Key: aws.String("kubernetes.io/cluster/" + clusterID), Value: aws.String("owned")},
+		{Key: aws.String("Name"), Value: aws.String(machineName)},
+	}...)
+	return removeDuplicatedTags(rawTagList)
 }
 
 type instanceList []*ec2.Instance
