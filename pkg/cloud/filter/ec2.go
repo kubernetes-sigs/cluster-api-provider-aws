@@ -149,3 +149,10 @@ func (ec2Filters) AvailabilityZone(zone string) *ec2.Filter {
 		Values: aws.StringSlice([]string{zone}),
 	}
 }
+
+func (ec2Filters) IgnoreLocalZones() *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String("opt-in-status"),
+		Values: aws.StringSlice([]string{"opt-in-not-required"}),
+	}
+}

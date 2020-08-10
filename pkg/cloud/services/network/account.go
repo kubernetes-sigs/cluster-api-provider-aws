@@ -27,7 +27,10 @@ import (
 
 func (s *Service) getAvailableZones() ([]string, error) {
 	out, err := s.EC2Client.DescribeAvailabilityZones(&ec2.DescribeAvailabilityZonesInput{
-		Filters: []*ec2.Filter{filter.EC2.Available()},
+		Filters: []*ec2.Filter{
+			filter.EC2.Available(),
+			filter.EC2.IgnoreLocalZones(),
+		},
 	})
 	if err != nil {
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeAvailableZone", "Failed getting available zones: %v", err)
