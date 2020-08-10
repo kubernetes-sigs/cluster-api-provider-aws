@@ -36,6 +36,8 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/go-logr/logr"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
@@ -50,6 +52,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e_new/kubetest"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -113,16 +117,24 @@ var (
 	kubetestConfig *kubetest.Configuration
 
 	// ticker for dumping resources
+	recordTicker *time.Ticker
+
+	// ticker for dumping resources
 	resourceTicker *time.Ticker
 
 	// tickerDone to stop ticking
 	resourceTickerDone chan bool
+
+	// tickerDone to stop ticking
+	recordTickerDone chan bool
 
 	// ticker for dumping resources
 	machineTicker *time.Ticker
 
 	// tickerDone to stop ticking
 	machineTickerDone chan bool
+
+	log logr.Logger
 )
 
 func init() {
@@ -208,6 +220,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	configPath = conf.ConfigPath
 	clusterctlConfigPath = conf.ClusterctlConfigPath
 	kubetestConfig = &conf.KubetestConfig
+	csvWriter, csvFile, tsLogFile, err := newCsvFile()
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, initScheme())
 	e2eConfig = &conf.E2EConfig
 	azs := getAvailabilityZones()
@@ -215,15 +228,21 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	setEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	setEnvVar("AWS_REGION", conf.Region, false)
 	setEnvVar("AWS_SSH_KEY_NAME", defaultSSHKeyPairName, false)
+	klog.InitFlags(nil)
+	log = klogr.New()
+	klog.SetOutput(ginkgo.GinkgoWriter)
 	awsSession = newAWSSession()
 	namespaces = map[*corev1.Namespace]context.CancelFunc{}
 	resourceTicker = time.NewTicker(time.Second * 5)
 	resourceTickerDone = make(chan bool)
-	// Get EC2 logs every minute
+	recordTicker = time.NewTicker(time.Second * 5)
+	recordTickerDone = make(chan bool)
 	machineTicker = time.NewTicker(time.Second * 60)
 	machineTickerDone = make(chan bool)
 	resourceCtx, resourceCancel := context.WithCancel(context.Background())
+	recordCtx, recordCancel := context.WithCancel(context.Background())
 	machineCtx, machineCancel := context.WithCancel(context.Background())
+	Expect(err).NotTo(HaveOccurred())
 
 	// Dump resources every 5 seconds
 	go func() {
@@ -236,6 +255,27 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			case <-resourceTicker.C:
 				for k := range namespaces {
 					dumpSpecResources(resourceCtx, bootstrapClusterProxy, artifactFolder, k)
+				}
+			}
+		}
+	}()
+
+	go func() {
+		defer func() {
+			err := recover()
+			log.Info("recorder panicked", "error", err)
+		}()
+		defer tsLogFile.Close()
+		defer csvFile.Close()
+		defer csvWriter.Flush()
+		for {
+			select {
+			case <-recordTickerDone:
+				recordCancel()
+				return
+			case <-recordTicker.C:
+				for k := range namespaces {
+					recordAllClusters(recordCtx, tsLogFile, csvWriter, bootstrapClusterProxy, artifactFolder, k)
 				}
 			}
 		}
@@ -262,6 +302,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 // The bootstrap cluster is shared across all the tests, so it should be deleted only after all ParallelNodes completes.
 // The local clusterctl repository is preserved like everything else created into the artifact folder.
 var _ = SynchronizedAfterSuite(func() {
+	if resourceTicker != nil {
+		resourceTicker.Stop()
+	}
+	if machineTicker != nil {
+		machineTicker.Stop()
+	}
+	if recordTicker != nil {
+		recordTicker.Stop()
+	}
+	if recordTickerDone != nil {
+		recordTickerDone <- true
+	}
 	if resourceTickerDone != nil {
 		resourceTickerDone <- true
 	}

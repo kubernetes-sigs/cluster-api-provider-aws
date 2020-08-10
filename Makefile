@@ -161,6 +161,11 @@ test-conformance-new: ## Run clusterctl based conformance test on workload clust
 
 test-conformance-fast: ## Run clusterctl based conformance test on workload cluster (requires Docker) using a subset of the conformance suite in parallel. Run with FASTBUILD=true to skip full CAPA rebuild.
 	$(MAKE) test-conformance-new CONFORMANCE_E2E_ARGS="-kubetest.config-file=$(KUBETEST_FAST_CONF_PATH) -kubetest.ginkgo-nodes=5 $(E2E_ARGS)"
+
+test-scale:
+	$(MAKE) test-e2e-new E2E_FOCUS="scale" E2E_ARGS="-skip-cloudformation-deletion" FASTBUILD=true
+
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
