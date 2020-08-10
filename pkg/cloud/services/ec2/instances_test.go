@@ -497,6 +497,126 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
+			name: "with publicIP=true",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.2xlarge",
+				PublicIP:     aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:               "subnet-1",
+								AvailabilityZone: "us-east-1a",
+								IsPublic:         false,
+							},
+							&infrav1.SubnetSpec{
+								ID:               "subnet-2",
+								AvailabilityZone: "us-east-1b",
+								IsPublic:         false,
+							},
+							&infrav1.SubnetSpec{
+								ID:               "subnet-3",
+								AvailabilityZone: "us-east-1c",
+								IsPublic:         false,
+							},
+							&infrav1.SubnetSpec{
+								ID:               "subnet-3-public",
+								AvailabilityZone: "us-east-1c",
+								IsPublic:         true,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+
+				m.
+					RunInstances(gomock.Any()). // TODO: Check that correct .SubnetID is set.
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-3-public"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if instance.SubnetID != "subnet-3-public" {
+					t.Fatalf("expected subnet-3 from availability zone us-east-1c, got %q", instance.SubnetID)
+				}
+			},
+		},
+		{
 			name: "with ImageLookupOrg specified at the machine level",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{

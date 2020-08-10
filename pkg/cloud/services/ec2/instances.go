@@ -267,7 +267,12 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		return *out.Subnets[0].SubnetId, nil
 
 	case failureDomain != nil:
-		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
+		var subnets infrav1.Subnets
+		if aws.BoolValue(scope.AWSMachine.Spec.PublicIP) {
+			subnets = s.scope.Subnets().FilterPublic().FilterByZone(*failureDomain)
+		} else {
+			subnets = s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
+		}
 		if len(subnets) == 0 {
 			record.Warnf(scope.AWSMachine, "FailedCreate",
 				"Failed to create instance: no subnets available in availability zone %q", *failureDomain)
@@ -285,12 +290,17 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		// with control plane machines.
 
 	default:
-		sns := s.scope.Subnets().FilterPrivate()
-		if len(sns) == 0 {
+		var subnets infrav1.Subnets
+		if aws.BoolValue(scope.AWSMachine.Spec.PublicIP) {
+			subnets = s.scope.Subnets().FilterPublic()
+		} else {
+			subnets = s.scope.Subnets().FilterPrivate()
+		}
+		if len(subnets) == 0 {
 			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run machine %q, no subnets available", scope.Name())
 			return "", awserrors.NewFailedDependency(fmt.Sprintf("failed to run machine %q, no subnets available", scope.Name()))
 		}
-		return sns[0].ID, nil
+		return subnets[0].ID, nil
 	}
 }
 
