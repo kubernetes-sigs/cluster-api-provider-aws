@@ -40,7 +40,9 @@ import (
 func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) ec2iface.EC2API {
 	ec2Client := ec2.New(session.Session())
 	ec2Client.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	ec2Client.Handlers.Sign.PushFront(session.ServiceLimiter(ec2.ServiceID).LimitRequest)
 	ec2Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	ec2Client.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(ec2.ServiceID).ReviewResponse)
 	ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return ec2Client
@@ -50,7 +52,9 @@ func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, target runt
 func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) elbiface.ELBAPI {
 	elbClient := elb.New(session.Session())
 	elbClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	elbClient.Handlers.Sign.PushFront(session.ServiceLimiter(elb.ServiceID).LimitRequest)
 	elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	elbClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(elb.ServiceID).ReviewResponse)
 	elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return elbClient
@@ -60,7 +64,9 @@ func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runt
 func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
 	resourceTagging := resourcegroupstaggingapi.New(session.Session())
 	resourceTagging.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	resourceTagging.Handlers.Sign.PushFront(session.ServiceLimiter(resourceTagging.ServiceID).LimitRequest)
 	resourceTagging.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	resourceTagging.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(resourceTagging.ServiceID).ReviewResponse)
 	resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return resourceTagging
@@ -70,7 +76,9 @@ func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session,
 func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) secretsmanageriface.SecretsManagerAPI {
 	secretsClient := secretsmanager.New(session.Session())
 	secretsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	secretsClient.Handlers.Sign.PushFront(session.ServiceLimiter(secretsClient.ServiceID).LimitRequest)
 	secretsClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	secretsClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(secretsClient.ServiceID).ReviewResponse)
 	secretsClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return secretsClient
