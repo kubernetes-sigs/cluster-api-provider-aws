@@ -25,12 +25,14 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // Session represents an AWS session
 type Session interface {
 	Session() awsclient.ConfigProvider
+	ServiceLimiter(string) *throttle.ServiceLimiter
 }
 
 // ScopeUsage is used to indicate which controller is using a scope
