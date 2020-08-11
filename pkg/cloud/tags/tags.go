@@ -17,41 +17,105 @@ limitations under the License.
 package tags
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
-// ApplyParams are function parameters used to apply tags on an aws resource.
-type ApplyParams struct {
-	infrav1.BuildParams
-	EC2Client ec2iface.EC2API
+var (
+	ErrBuildParamsRequired = errors.New("no build params supplied")
+	ErrApplyFuncRequired   = errors.New("no tags apply function supplied")
+)
+
+// BuilderOption represents an option when creating a tags builder
+type BuilderOption func(*Builder)
+
+// Builder is the interface for a tags builder
+type Builder struct {
+	params    *infrav1.BuildParams
+	applyFunc func(params *infrav1.BuildParams) error
+}
+
+// New creates a new TagsBuilder with the specified build parameters
+// and with optional configuration
+func New(params *infrav1.BuildParams, opts ...BuilderOption) *Builder {
+	builder := &Builder{
+		params: params,
+	}
+
+	for _, opt := range opts {
+		opt(builder)
+	}
+
+	return builder
 }
 
 // Apply tags a resource with tags including the cluster tag.
-func Apply(params *ApplyParams) error {
-	tags := infrav1.Build(params.BuildParams)
+func (b *Builder) Apply() error {
+	if b.params == nil {
+		return ErrBuildParamsRequired
+	}
+	if b.applyFunc == nil {
+		return ErrApplyFuncRequired
+	}
 
-	awsTags := make([]*ec2.Tag, 0, len(tags))
-	for k, v := range tags {
-		tag := &ec2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
+	if err := b.applyFunc(b.params); err != nil {
+		return fmt.Errorf("failed applying tags: %w", err)
+	}
+	return nil
+}
+
+// Ensure applies the tags if the current tags differ from the params.
+func (b *Builder) Ensure(current infrav1.Tags) error {
+	diff := computeDiff(current, *b.params)
+	if len(diff) > 0 {
+		return b.Apply()
+	}
+	return nil
+}
+
+// WithEC2 is used to denote that the tags builder will be using EC2
+func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
+	return func(b *Builder) {
+		b.applyFunc = func(params *infrav1.BuildParams) error {
+			tags := infrav1.Build(*params)
+
+			awsTags := make([]*ec2.Tag, 0, len(tags))
+			for k, v := range tags {
+				tag := &ec2.Tag{
+					Key:   aws.String(k),
+					Value: aws.String(v),
+				}
+				awsTags = append(awsTags, tag)
+			}
+
+			createTagsInput := &ec2.CreateTagsInput{
+				Resources: aws.StringSlice([]string{params.ResourceID}),
+				Tags:      awsTags,
+			}
+
+			_, err := ec2client.CreateTags(createTagsInput)
+			return errors.Wrapf(err, "failed to tag resource %q in cluster %q", params.ResourceID, params.ClusterName)
 		}
-		awsTags = append(awsTags, tag)
 	}
+}
 
-	createTagsInput := &ec2.CreateTagsInput{
-		Resources: aws.StringSlice([]string{params.ResourceID}),
-		Tags:      awsTags,
-	}
+func computeDiff(current infrav1.Tags, buildParams infrav1.BuildParams) infrav1.Tags {
+	want := infrav1.Build(buildParams)
 
-	_, err := params.EC2Client.CreateTags(createTagsInput)
-	return errors.Wrapf(err, "failed to tag resource %q in cluster %q", params.ResourceID, params.ClusterName)
+	// Some tags could be external set by some external entities
+	// and that means even if there is no change in cluster
+	// managed tags, tags would be updated as "current" and
+	// "want" would be different due to external tags.
+	// This fix makes sure that tags are updated only if
+	// there is a change in cluster managed tags.
+	return want.Difference(current)
 }
 
 // BuildParamsToTagSpecification builds a TagSpecification for the specified resource type
@@ -76,25 +140,4 @@ func BuildParamsToTagSpecification(ec2ResourceType string, params infrav1.BuildP
 	}
 
 	return tagSpec
-}
-
-// Ensure applies the tags if the current tags differ from the params.
-func Ensure(current infrav1.Tags, params *ApplyParams) error {
-	diff := computeDiff(current, params.BuildParams)
-	if len(diff) > 0 {
-		return Apply(params)
-	}
-	return nil
-}
-
-func computeDiff(current infrav1.Tags, buildParams infrav1.BuildParams) infrav1.Tags {
-	want := infrav1.Build(buildParams)
-
-	// Some tags could be external set by some external entities
-	// and that means even if there is no change in cluster
-	// managed tags, tags would be updated as "current" and
-	// "want" would be different due to external tags.
-	// This fix makes sure that tags are updated only if
-	// there is a change in cluster managed tags.
-	return want.Difference(current)
 }

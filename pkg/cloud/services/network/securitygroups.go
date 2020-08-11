@@ -93,10 +93,9 @@ func (s *Service) reconcileSecurityGroups() error {
 
 		// Make sure tags are up to date.
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if err := tags.Ensure(existing.Tags, &tags.ApplyParams{
-				EC2Client:   s.EC2Client,
-				BuildParams: s.getSecurityGroupTagParams(existing.Name, existing.ID, role),
-			}); err != nil {
+			buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
+			tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+			if err := tagsBuilder.Ensure(existing.Tags); err != nil {
 				return false, err
 			}
 			return true, nil
