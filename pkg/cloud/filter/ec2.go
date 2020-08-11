@@ -25,11 +25,12 @@ import (
 )
 
 const (
-	filterNameTagKey        = "tag-key"
-	filterNameVpcID         = "vpc-id"
-	filterNameState         = "state"
-	filterNameVpcAttachment = "attachment.vpc-id"
-	filterAvailabilityZone  = "availability-zone"
+	filterNameTagKey              = "tag-key"
+	filterNameVpcID               = "vpc-id"
+	filterNameState               = "state"
+	filterNameVpcAttachment       = "attachment.vpc-id"
+	filterNameMapPublicIPOnLaunch = "map-public-ip-on-launch"
+	filterAvailabilityZone        = "availability-zone"
 )
 
 // EC2 exposes the ec2 sdk related filters.
@@ -147,5 +148,13 @@ func (ec2Filters) AvailabilityZone(zone string) *ec2.Filter {
 	return &ec2.Filter{
 		Name:   aws.String(filterAvailabilityZone),
 		Values: aws.StringSlice([]string{zone}),
+	}
+}
+
+// PublicSubnets returns a filter that matches subnets with auto-assigned public IPs (public subnets).
+func (ec2Filters) PublicSubnets() *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String(filterNameMapPublicIPOnLaunch),
+		Values: aws.StringSlice([]string{"true"}),
 	}
 }

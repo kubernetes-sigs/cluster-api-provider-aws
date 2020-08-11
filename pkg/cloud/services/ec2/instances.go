@@ -226,6 +226,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 // - subnet based on filters in machine configuration
 // - subnet based on the availability zone specified,
 // - default to the first private subnet available.
+// Filters above subnets for public if .publicIP is specified in machine spec.
 func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	// Check Machine.Spec.FailureDomain first as it's used by KubeadmControlPlane to spread machines across failure domains.
 	failureDomain := scope.Machine.Spec.FailureDomain
@@ -233,23 +234,55 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		failureDomain = scope.AWSMachine.Spec.FailureDomain
 	}
 
+	wantPublicIP := aws.BoolValue(scope.AWSMachine.Spec.PublicIP)
+	var subnets infrav1.Subnets
+
 	switch {
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
-		return *scope.AWSMachine.Spec.Subnet.ID, nil
-	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
-		subnetInput := &ec2.DescribeSubnetsInput{
+		subnet := scope.AWSMachine.Spec.Subnet
+
+		// Describe subnet to check for public IP support.
+		out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			SubnetIds: []*string{subnet.ID},
 			Filters: []*ec2.Filter{
-				filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-				filter.EC2.VPC(s.scope.VPC().ID),
+				filter.EC2.PublicSubnets(),
 			},
+		})
+		if err != nil {
+			return "", err
+		}
+
+		if len(out.Subnets) == 0 {
+			return "", awserrors.NewFailedDependency(
+				fmt.Sprintf("failed to run machine %q, no subnets with ID %q", scope.Name(), *subnet.ID),
+			)
+		}
+
+		if wantPublicIP != aws.BoolValue(out.Subnets[0].MapPublicIpOnLaunch) {
+			return "", awserrors.NewFailedDependency(
+				fmt.Sprintf("failed to run machine %q, specified subnet %q is not public (want public IP)", scope.Name(), *subnet.ID),
+			)
+		}
+		return *subnet.ID, nil
+
+	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
+		filters := []*ec2.Filter{
+			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+			filter.EC2.VPC(s.scope.VPC().ID),
+		}
+		if wantPublicIP {
+			filters = append(filters, filter.EC2.PublicSubnets())
 		}
 		if failureDomain != nil {
-			subnetInput.Filters = append(subnetInput.Filters, filter.EC2.AvailabilityZone(*failureDomain))
+			filters = append(filters, filter.EC2.AvailabilityZone(*failureDomain))
 		}
 		for _, f := range scope.AWSMachine.Spec.Subnet.Filters {
-			subnetInput.Filters = append(subnetInput.Filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
+			filters = append(filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
 		}
-		out, err := s.EC2Client.DescribeSubnets(subnetInput)
+
+		out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			Filters: filters,
+		})
 		if err != nil {
 			return "", err
 		}
@@ -267,11 +300,11 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		return *out.Subnets[0].SubnetId, nil
 
 	case failureDomain != nil:
-		var subnets infrav1.Subnets
-		if aws.BoolValue(scope.AWSMachine.Spec.PublicIP) {
-			subnets = s.scope.Subnets().FilterPublic().FilterByZone(*failureDomain)
+		subnets = s.scope.Subnets().FilterByZone(*failureDomain)
+		if wantPublicIP {
+			subnets = subnets.FilterPublic()
 		} else {
-			subnets = s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
+			subnets = subnets.FilterPrivate()
 		}
 		if len(subnets) == 0 {
 			record.Warnf(scope.AWSMachine, "FailedCreate",
@@ -290,8 +323,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		// with control plane machines.
 
 	default:
-		var subnets infrav1.Subnets
-		if aws.BoolValue(scope.AWSMachine.Spec.PublicIP) {
+		if wantPublicIP {
 			subnets = s.scope.Subnets().FilterPublic()
 		} else {
 			subnets = s.scope.Subnets().FilterPrivate()

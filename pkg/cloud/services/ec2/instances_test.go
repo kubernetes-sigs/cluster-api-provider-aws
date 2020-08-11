@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -253,6 +254,32 @@ func TestTerminateInstance(t *testing.T) {
 			err = s.TerminateInstance(tc.instanceID)
 			tc.check(err)
 		})
+	}
+}
+
+type runInstanceMatcher struct {
+	imageID, instanceType, subnetID string
+}
+
+func (m *runInstanceMatcher) Matches(x interface{}) bool {
+	i, ok := x.(*ec2.RunInstancesInput)
+	if !ok {
+		return false
+	}
+	return m.imageID == aws.StringValue(i.ImageId) &&
+		m.instanceType == aws.StringValue(i.InstanceType) &&
+		m.subnetID == aws.StringValue(i.SubnetId)
+}
+
+func (m *runInstanceMatcher) String() string {
+	return fmt.Sprintf("matches instance with imageID=%s instanceType=%s subnetID=%s", m.imageID, m.instanceType, m.subnetID)
+}
+
+func matchRunInstance(imageID, instanceType, subnetID string) gomock.Matcher {
+	return &runInstanceMatcher{
+		imageID:      imageID,
+		instanceType: instanceType,
+		subnetID:     subnetID,
 	}
 }
 
@@ -510,7 +537,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
 				AMI: infrav1.AWSResourceReference{
-					ID: aws.String("abc"),
+					ID: aws.String("ami-1"),
 				},
 				InstanceType: "m5.2xlarge",
 				PublicIP:     aws.Bool(true),
@@ -573,7 +600,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 
 				m.
-					RunInstances(gomock.Any()). // TODO: Check that correct .SubnetID is set.
+					RunInstances(matchRunInstance("ami-1", "m5.2xlarge", "subnet-3-public")).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -584,7 +611,7 @@ func TestCreateInstance(t *testing.T) {
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   aws.String("m5.2xlarge"),
 								SubnetId:       aws.String("subnet-3-public"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
