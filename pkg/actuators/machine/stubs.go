@@ -23,8 +23,8 @@ const (
 	awsCredentialsSecretName = "aws-credentials-secret"
 	userDataSecretName       = "aws-actuator-user-data-secret"
 
-	keyName   = "aws-actuator-key-name"
-	clusterID = "aws-actuator-cluster"
+	keyName       = "aws-actuator-key-name"
+	stubClusterID = "aws-actuator-cluster"
 )
 
 const userDataBlob = `#cloud-config
@@ -108,7 +108,7 @@ func stubMachine() (*machinev1.Machine, error) {
 			Name:      "aws-actuator-testing-machine",
 			Namespace: defaultNamespace,
 			Labels: map[string]string{
-				machinev1.MachineClusterIDLabel: clusterID,
+				machinev1.MachineClusterIDLabel: stubClusterID,
 			},
 			Annotations: map[string]string{
 				// skip node draining since it's not mocked

@@ -367,7 +367,7 @@ func TestCreate(t *testing.T) {
 				SecurityGroups: []awsproviderv1.AWSResourceReference{{
 					Filters: []awsproviderv1.Filter{{
 						Name:   "tag:Name",
-						Values: []string{fmt.Sprintf("%s-%s-sg", clusterID, "role")},
+						Values: []string{fmt.Sprintf("%s-%s-sg", stubClusterID, "role")},
 					}},
 				}},
 				PublicIP: aws.Bool(true),
@@ -393,7 +393,7 @@ func TestCreate(t *testing.T) {
 				Subnet: awsproviderv1.AWSResourceReference{
 					Filters: []awsproviderv1.Filter{{
 						Name:   "tag:Name",
-						Values: []string{fmt.Sprintf("%s-private-%s", clusterID, "az")},
+						Values: []string{fmt.Sprintf("%s-private-%s", stubClusterID, "az")},
 					}},
 				},
 				IAMInstanceProfile: &awsproviderv1.AWSResourceReference{

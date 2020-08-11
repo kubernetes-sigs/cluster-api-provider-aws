@@ -132,6 +132,56 @@ func getInstanceByID(id string, client awsclient.Client, instanceStateFilter []*
 	return instance, instanceHasAllowedState(instance, instanceStateFilter)
 }
 
+// correctExistingTags validates Name and clusterID tags are correct on the instance
+// and sets them if they are not.
+func correctExistingTags(machine *machinev1.Machine, instance *ec2.Instance, client awsclient.Client) error {
+	// https://docs.aws.amazon.com/sdk-for-go/api/service/ec2/#EC2.CreateTags
+	if instance == nil || instance.InstanceId == nil {
+		return fmt.Errorf("unexpected nil found in instance: %v", instance)
+	}
+	clusterID, ok := getClusterID(machine)
+	if !ok {
+		return fmt.Errorf("unable to get cluster ID for machine: %q", machine.Name)
+	}
+	nameTagOk := false
+	clusterTagOk := false
+	for _, tag := range instance.Tags {
+		if tag.Key != nil && tag.Value != nil {
+			if *tag.Key == "Name" && *tag.Value == machine.Name {
+				nameTagOk = true
+			}
+			if *tag.Key == "kubernetes.io/cluster/"+clusterID && *tag.Value == "owned" {
+				clusterTagOk = true
+			}
+		}
+	}
+
+	// Update our tags if they're not set or correct
+	if !nameTagOk || !clusterTagOk {
+		// Create tags only adds/replaces what is present, does not affect other tags.
+		input := &ec2.CreateTagsInput{
+			Resources: []*string{
+				aws.String(*instance.InstanceId),
+			},
+			Tags: []*ec2.Tag{
+				{
+					Key:   aws.String("kubernetes.io/cluster/" + clusterID),
+					Value: aws.String("owned"),
+				},
+				{
+					Key:   aws.String("Name"),
+					Value: aws.String(machine.Name),
+				},
+			},
+		}
+		klog.Infof("Invalid or missing instance tags for machine: %v; instanceID: %v, updating", machine.Name, *instance.InstanceId)
+		_, err := client.CreateTags(input)
+		return err
+	}
+
+	return nil
+}
+
 // getInstances returns all instances that have a tag matching our machine name,
 // and cluster ID.
 func getInstances(machine *machinev1.Machine, client awsclient.Client, instanceStateFilter []*string) ([]*ec2.Instance, error) {

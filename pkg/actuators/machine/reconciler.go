@@ -200,6 +200,10 @@ func (r *Reconciler) update() error {
 		return fmt.Errorf("failed to set machine cloud provider specifics: %w", err)
 	}
 
+	if err = correctExistingTags(r.machine, newestInstance, r.awsClient); err != nil {
+		return fmt.Errorf("failed to correct existing instance tags: %w", err)
+	}
+
 	klog.Infof("Updated machine %s", r.machine.Name)
 
 	r.machineScope.setProviderStatus(newestInstance, conditionSuccess())
