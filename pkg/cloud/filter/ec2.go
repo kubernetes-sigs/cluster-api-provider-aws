@@ -151,6 +151,13 @@ func (ec2Filters) AvailabilityZone(zone string) *ec2.Filter {
 	}
 }
 
+func (ec2Filters) IgnoreLocalZones() *ec2.Filter {
+	return &ec2.Filter{
+		Name:   aws.String("opt-in-status"),
+		Values: aws.StringSlice([]string{"opt-in-not-required"}),
+	}
+}
+
 // PublicSubnets returns a filter that matches subnets with auto-assigned public IPs (public subnets).
 func (ec2Filters) PublicSubnets() *ec2.Filter {
 	return &ec2.Filter{

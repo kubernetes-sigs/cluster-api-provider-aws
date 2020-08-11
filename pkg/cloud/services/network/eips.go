@@ -64,17 +64,9 @@ func (s *Service) allocateAddress(role string) (string, error) {
 	}
 
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		if err := tags.Apply(&tags.ApplyParams{
-			EC2Client: s.EC2Client,
-			BuildParams: infrav1.BuildParams{
-				ClusterName: s.scope.Name(),
-				ResourceID:  *out.AllocationId,
-				Lifecycle:   infrav1.ResourceLifecycleOwned,
-				Name:        aws.String(fmt.Sprintf("%s-eip-%s", s.scope.Name(), role)),
-				Role:        aws.String(role),
-				Additional:  s.scope.AdditionalTags(),
-			},
-		}); err != nil {
+		buildParams := s.getEIPTagParams(*out.AllocationId, role)
+		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+		if err := tagsBuilder.Apply(); err != nil {
 			return false, err
 		}
 		return true, nil
@@ -158,4 +150,17 @@ func (s *Service) releaseAddresses() error {
 		s.scope.Info("released ElasticIP", "eip", *ip.PublicIp, "allocation-id", *ip.AllocationId)
 	}
 	return nil
+}
+
+func (s *Service) getEIPTagParams(allocationID, role string) infrav1.BuildParams {
+	name := fmt.Sprintf("%s-eip-%s", s.scope.Name(), role)
+
+	return infrav1.BuildParams{
+		ClusterName: s.scope.Name(),
+		ResourceID:  allocationID,
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Name:        aws.String(name),
+		Role:        aws.String(role),
+		Additional:  s.scope.AdditionalTags(),
+	}
 }
