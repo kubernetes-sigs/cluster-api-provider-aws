@@ -576,3 +576,99 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 		})
 	}
 }
+
+func TestCorrectExistingTags(t *testing.T) {
+	machine, err := stubMachine()
+	if err != nil {
+		t.Fatalf("Unable to build test machine manifest: %v", err)
+	}
+	clusterID, _ := getClusterID(machine)
+	instance := ec2.Instance{
+		InstanceId: aws.String("i-02fcb933c5da7085c"),
+	}
+	testCases := []struct {
+		name               string
+		tags               []*ec2.Tag
+		expectedCreateTags bool
+	}{
+		{
+			name: "Valid Tags",
+			tags: []*ec2.Tag{
+				{
+					Key:   aws.String("kubernetes.io/cluster/" + clusterID),
+					Value: aws.String("owned"),
+				},
+				{
+					Key:   aws.String("Name"),
+					Value: aws.String(machine.Name),
+				},
+			},
+			expectedCreateTags: false,
+		},
+		{
+			name: "Invalid Name Tag Correct Cluster",
+			tags: []*ec2.Tag{
+				{
+					Key:   aws.String("kubernetes.io/cluster/" + clusterID),
+					Value: aws.String("owned"),
+				},
+				{
+					Key:   aws.String("Name"),
+					Value: aws.String("badname"),
+				},
+			},
+			expectedCreateTags: true,
+		},
+		{
+			name: "Invalid Cluster Tag Correct Name",
+			tags: []*ec2.Tag{
+				{
+					Key:   aws.String("kubernetes.io/cluster/" + "badcluster"),
+					Value: aws.String("owned"),
+				},
+				{
+					Key:   aws.String("Name"),
+					Value: aws.String(machine.Name),
+				},
+			},
+			expectedCreateTags: true,
+		},
+		{
+			name: "Both Tags Wrong",
+			tags: []*ec2.Tag{
+				{
+					Key:   aws.String("kubernetes.io/cluster/" + clusterID),
+					Value: aws.String("bad value"),
+				},
+				{
+					Key:   aws.String("Name"),
+					Value: aws.String("bad name"),
+				},
+			},
+			expectedCreateTags: true,
+		},
+		{
+			name:               "No Tags",
+			tags:               nil,
+			expectedCreateTags: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			// if Finish is not called, MinTimes is never enforced
+			defer mockCtrl.Finish()
+			mockAWSClient := mockaws.NewMockClient(mockCtrl)
+			instance.Tags = tc.tags
+
+			if tc.expectedCreateTags {
+				mockAWSClient.EXPECT().CreateTags(gomock.Any()).Return(&ec2.CreateTagsOutput{}, nil).MinTimes(1)
+			}
+
+			err := correctExistingTags(machine, &instance, mockAWSClient)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+		})
+	}
+}
