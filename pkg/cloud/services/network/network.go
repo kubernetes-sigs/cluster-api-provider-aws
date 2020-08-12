@@ -58,12 +58,6 @@ func (s *Service) ReconcileNetwork() (err error) {
 		return err
 	}
 
-	// Security groups.
-	if err := s.reconcileSecurityGroups(); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return err
-	}
-
 	s.scope.V(2).Info("Reconcile network completed successfully")
 	return nil
 }
@@ -82,11 +76,6 @@ func (s *Service) DeleteNetwork() (err error) {
 		return err
 	}
 	vpc.DeepCopyInto(s.scope.VPC())
-
-	// Security groups.
-	if err := s.deleteSecurityGroups(); err != nil {
-		return err
-	}
 
 	// Routing tables.
 	if err := s.deleteRouteTables(); err != nil {

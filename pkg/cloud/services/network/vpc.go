@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -176,7 +177,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	input := &ec2.CreateVpcInput{
 		CidrBlock: aws.String(s.scope.VPC().CidrBlock),
 		TagSpecifications: []*ec2.TagSpecification{
-			tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpc, s.getVPCTagParams(temporaryResourceID)),
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpc, s.getVPCTagParams(services.TemporaryResourceID)),
 		},
 	}
 

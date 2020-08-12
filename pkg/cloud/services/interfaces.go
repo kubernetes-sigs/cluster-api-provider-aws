@@ -21,6 +21,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
+const (
+	// TemporaryResourceID is the name used temporarily when creating AWS resources
+	TemporaryResourceID = "temporary-resource-id"
+	// AnyIPv4CidrBlock is the CIDR block to match all IPv4 addresses
+	AnyIPv4CidrBlock = "0.0.0.0/0"
+)
+
 // EC2MachineInterface encapsulates the methods exposed to the machine
 // actuator
 type EC2MachineInterface interface {

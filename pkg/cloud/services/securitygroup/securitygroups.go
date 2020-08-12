@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package network
+package securitygroup
 
 import (
 	"fmt"
@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -48,7 +49,7 @@ const (
 	IPProtocolICMPv6 = "58"
 )
 
-func (s *Service) reconcileSecurityGroups() error {
+func (s *Service) ReconcileSecurityGroups() error {
 	s.scope.V(2).Info("Reconciling security groups")
 
 	if s.scope.Network().SecurityGroups == nil {
@@ -151,7 +152,7 @@ func (s *Service) reconcileSecurityGroups() error {
 	return nil
 }
 
-func (s *Service) deleteSecurityGroups() error {
+func (s *Service) DeleteSecurityGroups() error {
 	for _, sg := range s.scope.SecurityGroups() {
 		current := sg.IngressRules
 
@@ -265,7 +266,7 @@ func makeInfraSecurityGroup(ec2sg *ec2.SecurityGroup) infrav1.SecurityGroup {
 }
 
 func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2.SecurityGroup) error {
-	sgTags := s.getSecurityGroupTagParams(aws.StringValue(input.GroupName), temporaryResourceID, role)
+	sgTags := s.getSecurityGroupTagParams(aws.StringValue(input.GroupName), services.TemporaryResourceID, role)
 	out, err := s.EC2Client.CreateSecurityGroup(&ec2.CreateSecurityGroupInput{
 		VpcId:       input.VpcId,
 		GroupName:   input.GroupName,
@@ -418,7 +419,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    30000,
 				ToPort:      32767,
-				CidrBlocks:  []string{anyIPv4CidrBlock},
+				CidrBlocks:  []string{services.AnyIPv4CidrBlock},
 			},
 			{
 				Description: "Kubelet API",
@@ -440,7 +441,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    int64(s.scope.APIServerPort()),
 				ToPort:      int64(s.scope.APIServerPort()),
-				CidrBlocks:  []string{anyIPv4CidrBlock},
+				CidrBlocks:  []string{services.AnyIPv4CidrBlock},
 			},
 		}, nil
 	case infrav1.SecurityGroupLB:
