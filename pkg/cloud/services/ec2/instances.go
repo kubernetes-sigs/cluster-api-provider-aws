@@ -197,6 +197,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		}
 	}
 
+	input.SpotMarketOptions = scope.AWSMachine.Spec.SpotMarketOptions
+
 	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
 	out, err := s.runInstance(scope.Role(), input)
 	if err != nil {
@@ -448,6 +450,8 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 		input.TagSpecifications = append(input.TagSpecifications, spec)
 	}
+
+	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
 
 	out, err := s.EC2Client.RunInstances(input)
 	if err != nil {
@@ -789,4 +793,34 @@ func containsGroup(list []string, strToSearch string) bool {
 		}
 	}
 	return false
+}
+
+func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.InstanceMarketOptionsRequest {
+	if spotMarketOptions == nil {
+		// Instance is not a Spot instance
+		return nil
+	}
+
+	// Set required values for Spot instances
+	spotOptions := &ec2.SpotMarketOptions{}
+
+	// The following two options ensure that:
+	// - If an instance is interrupted, it is terminated rather than hibernating or stopping
+	// - No replacement instance will be created if the instance is interrupted
+	// - If the spot request cannot immediately be fulfilled, it will not be created
+	// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
+	// assumed by the Cluster API.
+	spotOptions.SetInstanceInterruptionBehavior(ec2.InstanceInterruptionBehaviorTerminate)
+	spotOptions.SetSpotInstanceType(ec2.SpotInstanceTypeOneTime)
+
+	maxPrice := spotMarketOptions.MaxPrice
+	if maxPrice != nil && *maxPrice != "" {
+		spotOptions.SetMaxPrice(*maxPrice)
+	}
+
+	instanceMarketOptionsRequest := &ec2.InstanceMarketOptionsRequest{}
+	instanceMarketOptionsRequest.SetMarketType(ec2.MarketTypeSpot)
+	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
+
+	return instanceMarketOptionsRequest
 }

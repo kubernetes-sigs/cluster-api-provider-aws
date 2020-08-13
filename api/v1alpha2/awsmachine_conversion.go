@@ -59,6 +59,10 @@ func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec) {
 
 	// manual conversion for UncompressedUserData
 	dst.UncompressedUserData = restored.UncompressedUserData
+
+	if restored.SpotMarketOptions != nil {
+		dst.SpotMarketOptions = restored.SpotMarketOptions.DeepCopy()
+	}
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
