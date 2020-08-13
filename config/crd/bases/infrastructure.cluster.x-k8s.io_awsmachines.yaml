@@ -378,6 +378,13 @@ spec:
                 required:
                 - size
                 type: object
+              spotMarketOptions:
+                description: SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
+                properties:
+                  maxPrice:
+                    description: 'The maximum price the user is willing to pay for their instances Default: On-Demand price'
+                    type: string
+                type: object
               sshKeyName:
                 description: SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
                 type: string

@@ -631,6 +631,13 @@ spec:
                     items:
                       type: string
                     type: array
+                  spotMarketOptions:
+                    description: SpotMarketOptions option for configuring instances to be run using AWS Spot instances.
+                    properties:
+                      maxPrice:
+                        description: 'The maximum price the user is willing to pay for their instances Default: On-Demand price'
+                        type: string
+                    type: object
                   sshKeyName:
                     description: The name of the SSH key pair.
                     type: string
