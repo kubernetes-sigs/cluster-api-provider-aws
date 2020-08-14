@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -1074,6 +1075,67 @@ func TestCreateInstance(t *testing.T) {
 
 			instance, err := s.CreateInstance(machineScope, []byte("userData"))
 			tc.check(instance, err)
+		})
+	}
+}
+
+func TestGetInstanceMarketOptionsRequest(t *testing.T) {
+	testCases := []struct {
+		name              string
+		spotMarketOptions *infrav1.SpotMarketOptions
+		expectedRequest   *ec2.InstanceMarketOptionsRequest
+	}{
+		{
+			name:              "with no Spot options specified",
+			spotMarketOptions: nil,
+			expectedRequest:   nil,
+		},
+		{
+			name:              "with an empty Spot options specified",
+			spotMarketOptions: &infrav1.SpotMarketOptions{},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+				},
+			},
+		},
+		{
+			name: "with an empty MaxPrice specified",
+			spotMarketOptions: &infrav1.SpotMarketOptions{
+				MaxPrice: aws.String(""),
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+				},
+			},
+		},
+		{
+			name: "with a valid MaxPrice specified",
+			spotMarketOptions: &infrav1.SpotMarketOptions{
+				MaxPrice: aws.String("0.01"),
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+					MaxPrice:                     aws.String("0.01"),
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			request := getInstanceMarketOptionsRequest(tc.spotMarketOptions)
+			if !reflect.DeepEqual(request, tc.expectedRequest) {
+				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
+			}
 		})
 	}
 }

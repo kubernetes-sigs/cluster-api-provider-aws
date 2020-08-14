@@ -119,6 +119,10 @@ type AWSMachineSpec struct {
 	// CloudInit is used.
 	// +optional
 	CloudInit CloudInit `json:"cloudInit,omitempty"`
+
+	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
+	// +optional
+	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where

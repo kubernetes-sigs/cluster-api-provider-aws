@@ -626,6 +626,9 @@ type Instance struct {
 
 	// Availability zone of instance
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
+
+	// SpotMarketOptions option for configuring instances to be run using AWS Spot instances.
+	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
 // RootVolume encapsulates the configuration options for the root volume
@@ -652,4 +655,14 @@ type RootVolume struct {
 	// The key must already exist and be accessible by the controller.
 	// +optional
 	EncryptionKey string `json:"encryptionKey,omitempty"`
+}
+
+// SpotMarketOptions defines the options available to a user when configuring
+// Machines to run on Spot instances.
+// Most users should provide an empty struct.
+type SpotMarketOptions struct {
+	// MaxPrice defines the maximum price the user is willing to pay for Spot VM instances
+	// +optional
+	// +kubebuilder:validation:Type=number
+	MaxPrice *string `json:"maxPrice,omitempty"`
 }
