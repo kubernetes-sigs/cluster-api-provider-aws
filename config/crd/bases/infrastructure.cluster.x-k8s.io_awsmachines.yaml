@@ -383,7 +383,7 @@ spec:
                 properties:
                   maxPrice:
                     description: MaxPrice defines the maximum price the user is willing to pay for Spot VM instances
-                    type: number
+                    type: string
                 type: object
               sshKeyName:
                 description: SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)

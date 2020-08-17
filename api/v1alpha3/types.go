@@ -663,6 +663,6 @@ type RootVolume struct {
 type SpotMarketOptions struct {
 	// MaxPrice defines the maximum price the user is willing to pay for Spot VM instances
 	// +optional
-	// +kubebuilder:validation:Type=number
+	// +kubebuilder:validation:pattern="^[0-9]+(\.[0-9]+)?$"
 	MaxPrice *string `json:"maxPrice,omitempty"`
 }
