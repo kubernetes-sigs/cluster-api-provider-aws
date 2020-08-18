@@ -55,6 +55,40 @@ func TestRemoveDuplicatedTags(t *testing.T) {
 	}
 }
 
+func TestBuildTagList(t *testing.T) {
+	cases := []struct {
+		tagList  []awsproviderv1.TagSpecification
+		expected []*ec2.Tag
+	}{
+		{
+			tagList: []awsproviderv1.TagSpecification{},
+			expected: []*ec2.Tag{
+				{Key: aws.String("kubernetes.io/cluster/clusterID"), Value: aws.String("owned")},
+				{Key: aws.String("Name"), Value: aws.String("machineName")},
+			},
+		},
+		{
+			tagList: []awsproviderv1.TagSpecification{
+				{Name: "Name", Value: "badname"},
+				{Name: "kubernetes.io/cluster/badid", Value: "badvalue"},
+				{Name: "good", Value: "goodvalue"},
+			},
+			// Invalid tags get dropped and the valid clusterID and Name get applied last.
+			expected: []*ec2.Tag{
+				{Key: aws.String("good"), Value: aws.String("goodvalue")},
+				{Key: aws.String("kubernetes.io/cluster/clusterID"), Value: aws.String("owned")},
+				{Key: aws.String("Name"), Value: aws.String("machineName")},
+			},
+		},
+	}
+	for i, c := range cases {
+		actual := buildTagList("machineName", "clusterID", c.tagList)
+		if !reflect.DeepEqual(c.expected, actual) {
+			t.Errorf("test #%d: expected %+v, got %+v", i, c.expected, actual)
+		}
+	}
+}
+
 func TestBuildEC2Filters(t *testing.T) {
 	filter1 := "filter1"
 	filter2 := "filter2"
