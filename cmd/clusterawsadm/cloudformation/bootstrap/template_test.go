@@ -65,6 +65,14 @@ func Test_RenderCloudformation(t *testing.T) {
 			},
 		},
 		{
+			fixture: "with_eks_enable",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.ClusterAPIControllers.EKS.Enable = true
+				return t
+			},
+		},
+		{
 			fixture: "with_extra_statements",
 			template: func() Template {
 				t := NewTemplate()
@@ -107,7 +115,7 @@ func Test_RenderCloudformation(t *testing.T) {
 			dmp := diffmatchpatch.New()
 			diffs := dmp.DiffMain(string(tData), string(data), false)
 			out := dmp.DiffPrettyText(diffs)
-			t.Fatal(fmt.Sprintf("Differing output:\n%s", out))
+			t.Fatal(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
 		}
 	}
 }
