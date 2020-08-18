@@ -141,17 +141,17 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 		imageLookupFormat := scope.AWSMachine.Spec.ImageLookupFormat
 		if imageLookupFormat == "" {
-			imageLookupFormat = scope.AWSCluster.Spec.ImageLookupFormat
+			imageLookupFormat = scope.InfraCluster.ImageLookupFormat()
 		}
 
 		imageLookupOrg := scope.AWSMachine.Spec.ImageLookupOrg
 		if imageLookupOrg == "" {
-			imageLookupOrg = scope.AWSCluster.Spec.ImageLookupOrg
+			imageLookupOrg = scope.InfraCluster.ImageLookupOrg()
 		}
 
 		imageLookupBaseOS := scope.AWSMachine.Spec.ImageLookupBaseOS
 		if imageLookupBaseOS == "" {
-			imageLookupBaseOS = scope.AWSCluster.Spec.ImageLookupBaseOS
+			imageLookupBaseOS = scope.InfraCluster.ImageLookupBaseOS()
 		}
 
 		input.ImageID, err = s.defaultAMILookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
@@ -190,8 +190,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	// If a value was not provided in the AWSCluster Spec, then use the defaultSSHKeyName
 	input.SSHKeyName = scope.AWSMachine.Spec.SSHKeyName
 	if input.SSHKeyName == nil {
-		if scope.AWSCluster.Spec.SSHKeyName != nil {
-			input.SSHKeyName = scope.AWSCluster.Spec.SSHKeyName
+		if scope.InfraCluster.SSHKeyName() != nil {
+			input.SSHKeyName = scope.InfraCluster.SSHKeyName()
 		} else {
 			input.SSHKeyName = aws.String(defaultSSHKeyName)
 		}

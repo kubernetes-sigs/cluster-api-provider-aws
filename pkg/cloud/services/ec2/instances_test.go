@@ -1029,8 +1029,6 @@ func TestCreateInstance(t *testing.T) {
 				},
 			}
 
-			awsCluster := tc.awsCluster
-
 			machine := &tc.machine
 
 			awsMachine := &infrav1.AWSMachine{
@@ -1048,19 +1046,6 @@ func TestCreateInstance(t *testing.T) {
 
 			client := fake.NewFakeClientWithScheme(scheme, secret, cluster, machine)
 
-			machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
-				Client:     client,
-				Cluster:    cluster,
-				Machine:    machine,
-				AWSMachine: awsMachine,
-				AWSCluster: awsCluster,
-			})
-			if err != nil {
-				t.Fatalf("Failed to create test context: %v", err)
-			}
-			machineScope.AWSMachine.Spec = *tc.machineConfig
-			tc.expect(ec2Mock.EXPECT())
-
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Client:     client,
 				Cluster:    cluster,
@@ -1069,6 +1054,19 @@ func TestCreateInstance(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
 			}
+
+			machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
+				Client:       client,
+				Cluster:      cluster,
+				Machine:      machine,
+				AWSMachine:   awsMachine,
+				InfraCluster: clusterScope,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+			machineScope.AWSMachine.Spec = *tc.machineConfig
+			tc.expect(ec2Mock.EXPECT())
 
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock

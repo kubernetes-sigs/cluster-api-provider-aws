@@ -125,10 +125,12 @@ func setupMachineScope() (*MachineScope, error) {
 	client := fake.NewFakeClientWithScheme(scheme, initObjects...)
 	return NewMachineScope(
 		MachineScopeParams{
-			Client:     client,
-			Machine:    machine,
-			Cluster:    cluster,
-			AWSCluster: awsCluster,
+			Client:  client,
+			Machine: machine,
+			Cluster: cluster,
+			InfraCluster: &ClusterScope{
+				AWSCluster: awsCluster,
+			},
 			AWSMachine: awsMachine,
 		},
 	)

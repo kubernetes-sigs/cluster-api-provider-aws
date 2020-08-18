@@ -20,45 +20,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
-
-// Scope is a scope for use with the ELB reconciling service
-type Scope interface {
-	cloud.ClusterScoper
-
-	// Network returns the cluster network object.
-	Network() *infrav1.Network
-
-	// Subnets returns the cluster subnets.
-	Subnets() infrav1.Subnets
-
-	// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
-	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
-
-	// VPC returns the cluster VPC.
-	VPC() *infrav1.VPCSpec
-
-	// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec
-	ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec
-
-	// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing)
-	ControlPlaneLoadBalancerScheme() infrav1.ClassicELBScheme
-}
 
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
-	scope                 Scope
+	scope                 scope.ELBScope
 	ELBClient             elbiface.ELBAPI
 	ResourceTaggingClient resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 }
 
 // NewService returns a new service given the api clients.
-func NewService(elbScope Scope) *Service {
+func NewService(elbScope scope.ELBScope) *Service {
 	return &Service{
 		scope:                 elbScope,
 		ELBClient:             scope.NewELBClient(elbScope, elbScope, elbScope.InfraCluster()),
