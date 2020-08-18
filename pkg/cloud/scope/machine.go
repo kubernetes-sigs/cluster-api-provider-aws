@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -179,6 +180,42 @@ func (m *MachineScope) SetAnnotation(key, value string) {
 		m.AWSMachine.Annotations = map[string]string{}
 	}
 	m.AWSMachine.Annotations[key] = value
+}
+
+// SyncMachineNodeLabel sets a key value label on the AWSMachine node.
+func (m *MachineScope) SyncMachineNodeLabel(ctx context.Context, remoteClient client.Client) error {
+	if m.Machine.Status.NodeRef == nil {
+		return nil
+	}
+
+	node := &corev1.Node{}
+	err := remoteClient.Get(ctx, types.NamespacedName{Name: m.Machine.Status.NodeRef.Name}, node)
+	if err != nil {
+		return err
+	}
+
+	if node.Labels == nil {
+		node.Labels = map[string]string{}
+	}
+
+	machineLabels := m.AWSMachine.Labels
+	if machineLabels == nil {
+		return nil
+	}
+
+	for key, value := range machineLabels {
+		// sync only labels with "cluster.x-k8s.io", so users can understand where labels come from
+		if strings.HasPrefix(key, "cluster.x-k8s.io") {
+			node.Labels[key] = value
+		}
+	}
+
+	err = remoteClient.Update(ctx, node)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // UseSecretsManager returns the computed value of whether or not

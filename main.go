@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -67,6 +68,7 @@ func main() {
 		profilerAddress         string
 		awsClusterConcurrency   int
 		awsMachineConcurrency   int
+		clusterConcurrency      int
 		syncPeriod              time.Duration
 		webhookPort             int
 		healthAddr              string
@@ -118,6 +120,9 @@ func main() {
 		10,
 		"Number of AWSMachines to process simultaneously",
 	)
+
+	flag.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
+		"Number of clusters to process simultaneously")
 
 	flag.DurationVar(&syncPeriod,
 		"sync-period",
@@ -179,10 +184,30 @@ func main() {
 	record.InitFromRecorder(mgr.GetEventRecorderFor("aws-controller"))
 
 	if webhookPort == 0 {
+		// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
+		// requiring a connection to a remote cluster
+		tracker, err := remote.NewClusterCacheTracker(
+			ctrl.Log.WithName("remote").WithName("ClusterCacheTracker"),
+			mgr,
+		)
+		if err != nil {
+			setupLog.Error(err, "unable to create cluster cache tracker")
+			os.Exit(1)
+		}
+		if err := (&remote.ClusterCacheReconciler{
+			Client:  mgr.GetClient(),
+			Log:     ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
+			Tracker: tracker,
+		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: clusterConcurrency}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
+			os.Exit(1)
+		}
+
 		if err = (&controllers.AWSMachineReconciler{
 			Client:   mgr.GetClient(),
 			Log:      ctrl.Log.WithName("controllers").WithName("AWSMachine"),
 			Recorder: mgr.GetEventRecorderFor("awsmachine-controller"),
+			Tracker:  tracker,
 		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 			os.Exit(1)

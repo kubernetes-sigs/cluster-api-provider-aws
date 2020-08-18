@@ -28,6 +28,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -53,6 +54,7 @@ import (
 type AWSMachineReconciler struct {
 	client.Client
 	Log                          logr.Logger
+	Tracker                      *remote.ClusterCacheTracker
 	Recorder                     record.EventRecorder
 	ec2ServiceFactory            func(*scope.ClusterScope) services.EC2MachineInterface
 	secretsManagerServiceFactory func(*scope.ClusterScope) services.SecretsManagerInterface
@@ -482,6 +484,17 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
 	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
+
+	// Get the remote cluster client.
+	remoteClient, err := r.Tracker.GetClient(context.Background(), util.ObjectKey(machineScope.Cluster))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = machineScope.SyncMachineNodeLabel(context.Background(), remoteClient)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	switch instance.State {
 	case infrav1.InstanceStatePending:
