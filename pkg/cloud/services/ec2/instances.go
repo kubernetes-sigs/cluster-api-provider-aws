@@ -111,6 +111,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		Type:              scope.AWSMachine.Spec.InstanceType,
 		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
 		RootVolume:        scope.AWSMachine.Spec.RootVolume,
+		NonRootVolumes:    scope.AWSMachine.Spec.NonRootVolumes,
 		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
 	}
 
@@ -397,6 +398,8 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		}
 	}
 
+	blockdeviceMappings := []*ec2.BlockDeviceMapping{}
+
 	if i.RootVolume != nil { // nolint:nestif
 		rootDeviceName, err := s.getImageRootDevice(i.ImageID)
 		if err != nil {
@@ -431,12 +434,46 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			ebsRootDevice.VolumeType = aws.String(i.RootVolume.Type)
 		}
 
-		input.BlockDeviceMappings = []*ec2.BlockDeviceMapping{
-			{
-				DeviceName: rootDeviceName,
-				Ebs:        ebsRootDevice,
-			},
+		blockdeviceMappings = append(blockdeviceMappings, &ec2.BlockDeviceMapping{
+			DeviceName: rootDeviceName,
+			Ebs:        ebsRootDevice,
+		})
+	}
+
+	if i.NonRootVolumes != nil {
+		for _, nonRootVolume := range i.NonRootVolumes {
+			if nonRootVolume.DeviceName == "" {
+				return nil, errors.Errorf("non root volume should have device name specified")
+			}
+
+			ebsDevice := &ec2.EbsBlockDevice{
+				DeleteOnTermination: aws.Bool(true),
+				VolumeSize:          aws.Int64(nonRootVolume.Size),
+				Encrypted:           aws.Bool(nonRootVolume.Encrypted),
+			}
+
+			if nonRootVolume.IOPS != 0 {
+				ebsDevice.Iops = aws.Int64(nonRootVolume.IOPS)
+			}
+
+			if nonRootVolume.EncryptionKey != "" {
+				ebsDevice.Encrypted = aws.Bool(true)
+				ebsDevice.KmsKeyId = aws.String(nonRootVolume.EncryptionKey)
+			}
+
+			if nonRootVolume.Type != "" {
+				ebsDevice.VolumeType = aws.String(nonRootVolume.Type)
+			}
+
+			blockdeviceMappings = append(blockdeviceMappings, &ec2.BlockDeviceMapping{
+				DeviceName: &nonRootVolume.DeviceName,
+				Ebs:        ebsDevice,
+			})
 		}
+	}
+
+	if len(blockdeviceMappings) != 0 {
+		input.BlockDeviceMappings = blockdeviceMappings
 	}
 
 	if len(i.Tags) > 0 {
