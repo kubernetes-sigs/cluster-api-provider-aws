@@ -61,7 +61,7 @@ func TestConvertAWSMachineTemplate(t *testing.T) {
 				Spec: infrav1alpha3.AWSMachineTemplateSpec{
 					Template: infrav1alpha3.AWSMachineTemplateResource{
 						Spec: infrav1alpha3.AWSMachineSpec{
-							RootVolume: &infrav1alpha3.RootVolume{
+							RootVolume: &infrav1alpha3.Volume{
 								Size:      10,
 								Encrypted: true,
 							},
@@ -88,7 +88,7 @@ func TestConvertAWSMachineTemplate(t *testing.T) {
 				Spec: infrav1alpha3.AWSMachineTemplateSpec{
 					Template: infrav1alpha3.AWSMachineTemplateResource{
 						Spec: infrav1alpha3.AWSMachineSpec{
-							RootVolume: &infrav1alpha3.RootVolume{
+							RootVolume: &infrav1alpha3.Volume{
 								Size:      10,
 								Encrypted: true,
 							},

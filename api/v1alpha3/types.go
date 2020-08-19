@@ -616,7 +616,11 @@ type Instance struct {
 
 	// Configuration options for the root storage volume.
 	// +optional
-	RootVolume *RootVolume `json:"rootVolume,omitempty"`
+	RootVolume *Volume `json:"rootVolume,omitempty"`
+
+	// Configuration options for the non root storage volumes.
+	// +optional
+	NonRootVolumes []*Volume `json:"nonRootVolumes,omitempty"`
 
 	// Specifies ENIs attached to instance
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
@@ -631,8 +635,12 @@ type Instance struct {
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
-// RootVolume encapsulates the configuration options for the root volume
-type RootVolume struct {
+// Volume encapsulates the configuration options for the root volume
+type Volume struct {
+	// Device name
+	// +optional
+	DeviceName string `json:"deviceName,omitempty"`
+
 	// Size specifies size (in Gi) of the root storage device.
 	// Must be greater than the image root snapshot size or 8 (whichever is greater).
 	// +kubebuilder:validation:Minimum=8

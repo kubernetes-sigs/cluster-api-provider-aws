@@ -63,6 +63,13 @@ func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec) {
 	if restored.SpotMarketOptions != nil {
 		dst.SpotMarketOptions = restored.SpotMarketOptions.DeepCopy()
 	}
+
+	if restored.NonRootVolumes != nil {
+		dst.NonRootVolumes = []*infrav1alpha3.Volume{}
+		for _, volume := range restored.NonRootVolumes {
+			dst.NonRootVolumes = append(dst.NonRootVolumes, volume.DeepCopy())
+		}
+	}
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
@@ -113,7 +120,7 @@ func Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachineSp
 
 	// Manually convert RootDeviceSize. This may be overridden by restoring / upconverting from annotation.
 	if in.RootDeviceSize != 0 {
-		out.RootVolume = &infrav1alpha3.RootVolume{
+		out.RootVolume = &infrav1alpha3.Volume{
 			Size: in.RootDeviceSize,
 		}
 	}
@@ -183,7 +190,7 @@ func Convert_v1alpha2_Instance_To_v1alpha3_Instance(in *Instance, out *infrav1al
 
 	// Manually convert RootDeviceSize.
 	if in.RootDeviceSize != 0 {
-		out.RootVolume = &infrav1alpha3.RootVolume{
+		out.RootVolume = &infrav1alpha3.Volume{
 			Size: in.RootDeviceSize,
 		}
 	}
