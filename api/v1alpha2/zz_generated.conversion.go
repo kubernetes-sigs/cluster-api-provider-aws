@@ -606,6 +606,7 @@ func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3
 		return err
 	}
 	// WARNING: in.RootVolume requires manual conversion: does not exist in peer-type
+	// WARNING: in.NonRootVolumes requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	// WARNING: in.UncompressedUserData requires manual conversion: does not exist in peer-type
 	// WARNING: in.CloudInit requires manual conversion: inconvertible types (sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3.CloudInit vs *sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2.CloudInit)
@@ -1011,6 +1012,7 @@ func autoConvert_v1alpha3_Instance_To_v1alpha2_Instance(in *v1alpha3.Instance, o
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
 	out.EBSOptimized = (*bool)(unsafe.Pointer(in.EBSOptimized))
 	// WARNING: in.RootVolume requires manual conversion: does not exist in peer-type
+	// WARNING: in.NonRootVolumes requires manual conversion: does not exist in peer-type
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
 	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	// WARNING: in.AvailabilityZone requires manual conversion: does not exist in peer-type

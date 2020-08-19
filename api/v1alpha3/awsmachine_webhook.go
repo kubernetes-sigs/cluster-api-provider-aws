@@ -46,7 +46,8 @@ func (r *AWSMachine) ValidateCreate() error {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
-	allErrs = append(allErrs, r.validateVolumeTypeIOPS()...)
+	allErrs = append(allErrs, r.validateRootVolume()...)
+	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -122,11 +123,39 @@ func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSMachine) validateVolumeTypeIOPS() field.ErrorList {
+func (r *AWSMachine) validateRootVolume() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.RootVolume != nil && r.Spec.RootVolume.Type == "io1" && r.Spec.RootVolume.IOPS == 0 {
+	if r.Spec.RootVolume == nil {
+		return allErrs
+	}
+
+	if r.Spec.RootVolume.Type == "io1" && r.Spec.RootVolume.IOPS == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolumeOptions.iops"), "iops required if type is 'io1'"))
+	}
+
+	if r.Spec.RootVolume.DeviceName != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.rootVolumeOptions.deviceName"), "root volume shouldn't have device name"))
+	}
+
+	return allErrs
+}
+
+func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.NonRootVolumes == nil {
+		return allErrs
+	}
+
+	for _, volume := range r.Spec.NonRootVolumes {
+		if volume.Type == "io1" && volume.IOPS == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.volumeOptions.iops"), "iops required if type is 'io1'"))
+		}
+
+		if volume.DeviceName == "" {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.volumeOptions.deviceName"), "non root volume should have device name"))
+		}
 	}
 
 	return allErrs

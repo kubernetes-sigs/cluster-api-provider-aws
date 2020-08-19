@@ -51,7 +51,7 @@ func TestConvertAWSMachine(t *testing.T) {
 					Name: "test-1",
 				},
 				Spec: infrav1alpha3.AWSMachineSpec{
-					RootVolume: &infrav1alpha3.RootVolume{
+					RootVolume: &infrav1alpha3.Volume{
 						Size:      10,
 						Encrypted: true,
 					},
@@ -73,7 +73,7 @@ func TestConvertAWSMachine(t *testing.T) {
 					Annotations: map[string]string{},
 				},
 				Spec: infrav1alpha3.AWSMachineSpec{
-					RootVolume: &infrav1alpha3.RootVolume{
+					RootVolume: &infrav1alpha3.Volume{
 						Size:      10,
 						Encrypted: true,
 					},
