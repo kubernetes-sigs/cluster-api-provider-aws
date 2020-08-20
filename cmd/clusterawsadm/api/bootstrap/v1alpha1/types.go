@@ -90,6 +90,16 @@ type AWSIAMRoleSpec struct {
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
 
+// EKSControllerConfig controls EKS-related configuration of the AWS IAM role
+// for the controller
+type EKSControllerConfig struct {
+	// Enable controls whether EKS-related permissions are granted
+	Enable bool `json:"enable,omitempty"`
+	// IAMRoleCreation controls whether the controller has permissions for creating IAM
+	// roles per cluster
+	IAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
+}
+
 // ClusterAPIControllers controls the configuration of the AWS IAM role for
 // the Kubernetes Cluster API Provider AWS controller.
 type ClusterAPIControllers struct {
@@ -98,6 +108,8 @@ type ClusterAPIControllers struct {
 	// consumed by Cluster API when creating an ec2 instance. Defaults to
 	// *.<suffix>, where suffix is defaulted to .cluster-api-provider-aws.sigs.k8s.io
 	AllowedEC2InstanceProfiles []string `json:"allowedEC2InstanceProfiles,omitempty"`
+	// EKS controls EKS-related configuration
+	EKS EKSControllerConfig `json:"eks,omitempty"`
 }
 
 // Nodes controls the configuration of the AWS IAM role for worker nodes
