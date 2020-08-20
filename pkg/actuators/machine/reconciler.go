@@ -103,6 +103,11 @@ func (r *Reconciler) delete() error {
 	// Get all instances not terminated.
 	existingInstances, err := r.getMachineInstances()
 	if err != nil {
+		metrics.RegisterFailedInstanceDelete(&metrics.MachineLabels{
+			Name:      r.machine.Name,
+			Namespace: r.machine.Namespace,
+			Reason:    err.Error(),
+		})
 		klog.Errorf("%s: error getting existing instances: %v", r.machine.Name, err)
 		return err
 	}
@@ -146,6 +151,11 @@ func (r *Reconciler) update() error {
 	// Get all instances not terminated.
 	existingInstances, err := r.getMachineInstances()
 	if err != nil {
+		metrics.RegisterFailedInstanceUpdate(&metrics.MachineLabels{
+			Name:      r.machine.Name,
+			Namespace: r.machine.Namespace,
+			Reason:    err.Error(),
+		})
 		klog.Errorf("%s: error getting existing instances: %v", r.machine.Name, err)
 		return err
 	}
@@ -216,6 +226,13 @@ func (r *Reconciler) exists() (bool, error) {
 	// Get all instances not terminated.
 	existingInstances, err := r.getMachineInstances()
 	if err != nil {
+		// Reporting as update here, as successfull return value from the method
+		// later indicases that an instance update flow will be executed.
+		metrics.RegisterFailedInstanceUpdate(&metrics.MachineLabels{
+			Name:      r.machine.Name,
+			Namespace: r.machine.Namespace,
+			Reason:    err.Error(),
+		})
 		klog.Errorf("%s: error getting existing instances: %v", r.machine.Name, err)
 		return false, err
 	}
