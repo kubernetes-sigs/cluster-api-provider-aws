@@ -67,9 +67,6 @@ var (
 	defaultGCPSubnetwork = func(clusterID string) string {
 		return fmt.Sprintf("%s-worker-subnet", clusterID)
 	}
-	defaultGCPDiskImage = func(clusterID string) string {
-		return fmt.Sprintf("%s-rhcos-image", clusterID)
-	}
 	defaultGCPTags = func(clusterID string) []string {
 		return []string{fmt.Sprintf("%s-worker", clusterID)}
 	}
@@ -95,7 +92,7 @@ const (
 	defaultWebhookServiceName       = "machine-api-operator-webhook"
 	defaultWebhookServiceNamespace  = "openshift-machine-api"
 
-	defaultUserDataSecret  = "worker-user-data"
+	defaultUserDataSecret  = "worker-user-data-managed"
 	defaultSecretNamespace = "openshift-machine-api"
 
 	// AWS Defaults
@@ -113,12 +110,18 @@ const (
 	defaultGCPCredentialsSecret = "gcp-cloud-credentials"
 	defaultGCPDiskSizeGb        = 128
 	defaultGCPDiskType          = "pd-standard"
+	// https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.6/46.82.202007212240-0/x86_64/meta.json
+	// https://github.com/openshift/installer/pull/3808
+	// https://github.com/openshift/installer/blob/d75bf7ad98124b901ae7e22b5595e0392ed6ea3c/data/data/rhcos.json
+	defaultGCPDiskImage = "projects/rhcos-cloud/global/images/rhcos-46-82-202007212240-0-gcp-x86-64"
 
 	// vSphere Defaults
 	defaultVSphereCredentialsSecret = "vsphere-cloud-credentials"
 	// Minimum vSphere values taken from vSphere reconciler
 	minVSphereCPU       = 2
 	minVSphereMemoryMiB = 2048
+	// https://docs.openshift.com/container-platform/4.1/installing/installing_vsphere/installing-vsphere.html#minimum-resource-requirements_installing-vsphere
+	minVSphereDiskGiB = 120
 )
 
 var (
@@ -445,14 +448,16 @@ func (h *machineDefaulterHandler) Handle(ctx context.Context, req admission.Requ
 
 	klog.V(3).Infof("Mutate webhook called for Machine: %s", m.GetName())
 
-	// Enforce that the same clusterID is set for machineSet Selector and machine labels.
+	// Only enforce the clusterID if it's not set.
 	// Otherwise a discrepancy on the value would leave the machine orphan
 	// and would trigger a new machine creation by the machineSet.
 	// https://bugzilla.redhat.com/show_bug.cgi?id=1857175
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[MachineClusterIDLabel] = h.clusterID
+	if _, ok := m.Labels[MachineClusterIDLabel]; !ok {
+		m.Labels[MachineClusterIDLabel] = h.clusterID
+	}
 
 	if ok, err := h.webhookOperations(m, h.clusterID); !ok {
 		return admission.Denied(err.Error())
@@ -890,7 +895,7 @@ func defaultGCPDisks(disks []*gcp.GCPDisk, clusterID string) []*gcp.GCPDisk {
 				Boot:       true,
 				SizeGb:     defaultGCPDiskSizeGb,
 				Type:       defaultGCPDiskType,
-				Image:      defaultGCPDiskImage(clusterID),
+				Image:      defaultGCPDiskImage,
 			},
 		}
 	}
@@ -901,7 +906,7 @@ func defaultGCPDisks(disks []*gcp.GCPDisk, clusterID string) []*gcp.GCPDisk {
 		}
 
 		if disk.Image == "" {
-			disk.Image = defaultGCPDiskImage(clusterID)
+			disk.Image = defaultGCPDiskImage
 		}
 	}
 
@@ -1043,6 +1048,20 @@ func defaultVSphere(m *Machine, clusterID string) (bool, utilerrors.Aggregate) {
 		providerSpec.CredentialsSecret = &corev1.LocalObjectReference{Name: defaultVSphereCredentialsSecret}
 	}
 
+	// Default values for number of cpu, memory and disk size come from installer
+	// https://github.com/openshift/installer/blob/0ceffc5c737b49ab59441e2fd02f51f997d54a53/pkg/asset/machines/worker.go#L134
+	if providerSpec.NumCPUs == 0 {
+		providerSpec.NumCPUs = minVSphereCPU
+	}
+
+	if providerSpec.MemoryMiB == 0 {
+		providerSpec.MemoryMiB = minVSphereMemoryMiB
+	}
+
+	if providerSpec.DiskGiB == 0 {
+		providerSpec.DiskGiB = minVSphereDiskGiB
+	}
+
 	rawBytes, err := json.Marshal(providerSpec)
 	if err != nil {
 		errs = append(errs, err)
@@ -1078,6 +1097,9 @@ func validateVSphere(m *Machine, clusterID string) (bool, utilerrors.Aggregate) 
 	}
 	if providerSpec.MemoryMiB != 0 && providerSpec.MemoryMiB < minVSphereMemoryMiB {
 		errs = append(errs, field.Invalid(field.NewPath("providerSpec", "memoryMiB"), providerSpec.MemoryMiB, fmt.Sprintf("memoryMiB is below minimum value (%d)", minVSphereMemoryMiB)))
+	}
+	if providerSpec.DiskGiB != 0 && providerSpec.DiskGiB < minVSphereDiskGiB {
+		errs = append(errs, field.Invalid(field.NewPath("providerSpec", "diskGiB"), providerSpec.DiskGiB, fmt.Sprintf("diskGiB is below minimum value (%d)", minVSphereDiskGiB)))
 	}
 
 	if providerSpec.UserDataSecret == nil {

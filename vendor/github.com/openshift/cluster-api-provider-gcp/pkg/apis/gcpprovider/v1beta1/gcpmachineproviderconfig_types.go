@@ -66,6 +66,7 @@ type GCPMetadata struct {
 type GCPNetworkInterface struct {
 	PublicIP   bool   `json:"publicIP,omitempty"`
 	Network    string `json:"network,omitempty"`
+	ProjectID  string `json:"projectID,omitempty"`
 	Subnetwork string `json:"subnetwork,omitempty"`
 }
 

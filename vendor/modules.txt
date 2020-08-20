@@ -192,9 +192,9 @@ github.com/openshift/api/config/v1
 github.com/openshift/client-go/config/clientset/versioned
 github.com/openshift/client-go/config/clientset/versioned/scheme
 github.com/openshift/client-go/config/clientset/versioned/typed/config/v1
-# github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200713133651-5c8a640669ac
+# github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200813171611-46c5454e7175
 github.com/openshift/cluster-api-provider-gcp/pkg/apis/gcpprovider/v1beta1
-# github.com/openshift/machine-api-operator v0.2.1-0.20200722104429-f4f9b84df9b7
+# github.com/openshift/machine-api-operator v0.2.1-0.20200819233022-79ac5f8a0097
 github.com/openshift/machine-api-operator/pkg/apis/machine
 github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1
 github.com/openshift/machine-api-operator/pkg/apis/vsphereprovider/v1beta1
