@@ -375,6 +375,8 @@ release: clean-release  ## Builds and push container images using the latest git
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG)
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent
 	$(MAKE) release-manifests
+	# Add metadata to the release artifacts
+	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
