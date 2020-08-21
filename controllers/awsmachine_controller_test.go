@@ -262,7 +262,6 @@ var _ = Describe("AWSMachineReconciler", func() {
 				It("should set attributes after creating an instance", func() {
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 					Expect(ms.AWSMachine.Spec.ProviderID).To(PointTo(Equal("aws:////myMachine")))
-					Expect(ms.AWSMachine.Annotations).To(Equal(map[string]string{"cluster-api-provider-aws": "true"}))
 				})
 
 				Context("with captured logging", func() {
