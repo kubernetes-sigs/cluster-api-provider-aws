@@ -259,7 +259,7 @@ func (s *Service) describeVPC() (*infrav1.VPCSpec, error) {
 	if len(out.Vpcs) == 0 {
 		return nil, awserrors.NewNotFound(fmt.Sprintf("could not find vpc %q", s.scope.VPC().ID))
 	} else if len(out.Vpcs) > 1 {
-		return nil, awserrors.NewConflict(fmt.Sprintf("found more than one vpc with supplied filters. Please clean up extra VPCs: %s", out.GoString()))
+		return nil, awserrors.NewConflict(fmt.Sprintf("found %v VPCs with matching tags for %v. Only one VPC per cluster name is supported. Ensure duplicate VPCs are deleted for this AWS account and there are no conflicting instances of Cluster API Provider AWS. filtered VPCs: %v", len(out.Vpcs), s.scope.Name(), out.GoString()))
 	}
 
 	switch *out.Vpcs[0].State {
