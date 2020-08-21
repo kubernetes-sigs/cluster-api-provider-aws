@@ -479,9 +479,6 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.Info("EC2 instance state changed", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 	}
 
-	// TODO(vincepri): Remove this annotation when clusterctl is no longer relevant.
-	machineScope.SetAnnotation("cluster-api-provider-aws", "true")
-
 	switch instance.State {
 	case infrav1.InstanceStatePending:
 		machineScope.SetNotReady()

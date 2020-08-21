@@ -43,7 +43,9 @@ func (r *AWSMachineReconciler) updateMachineAnnotation(machine *infrav1.AWSMachi
 	annotations := machine.GetAnnotations()
 
 	// Set our annotation to the given content.
-	annotations[annotation] = content
+	if annotations != nil {
+		annotations[annotation] = content
+	}
 
 	// Update the machine object with these annotations
 	machine.SetAnnotations(annotations)
