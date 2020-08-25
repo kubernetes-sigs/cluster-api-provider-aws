@@ -131,9 +131,9 @@ func (s *ManagedControlPlaneScope) SecurityGroups() map[infrav1.SecurityGroupRol
 	return s.ControlPlane.Status.Network.SecurityGroups
 }
 
-// Name returns the cluster name.
+// Name returns the CAPI cluster name.
 func (s *ManagedControlPlaneScope) Name() string {
-	return s.ControlPlane.Spec.EKSClusterName
+	return s.Cluster.Name
 }
 
 // Namespace returns the cluster namespace.
@@ -239,6 +239,12 @@ func (s *ManagedControlPlaneScope) TokenMethod() infrav1exp.EKSTokenMethod {
 
 // EKSClusterName gets the name of the EKS cluster in AWS
 func (s *ManagedControlPlaneScope) EKSClusterName() string {
+	return s.ControlPlane.Spec.EKSClusterName
+}
+
+// KubernetesClusterName is the name of the Kubernetes cluster. For the managed
+// scope this is the different to the CAPI cluster name and is the EKS cluster name
+func (s *ManagedControlPlaneScope) KubernetesClusterName() string {
 	return s.ControlPlane.Spec.EKSClusterName
 }
 

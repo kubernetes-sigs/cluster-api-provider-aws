@@ -121,7 +121,7 @@ func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.Se
 	return s.AWSCluster.Status.Network.SecurityGroups
 }
 
-// Name returns the cluster name.
+// Name returns the CAPI cluster name.
 func (s *ClusterScope) Name() string {
 	return s.Cluster.Name
 }
@@ -134,6 +134,12 @@ func (s *ClusterScope) Namespace() string {
 // Region returns the cluster region.
 func (s *ClusterScope) Region() string {
 	return s.AWSCluster.Spec.Region
+}
+
+// KubernetesClusterName is the name of the Kubernetes cluster. For the cluster
+// scope this is the same as the CAPI cluster name
+func (s *ClusterScope) KubernetesClusterName() string {
+	return s.Cluster.Name
 }
 
 // ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec
