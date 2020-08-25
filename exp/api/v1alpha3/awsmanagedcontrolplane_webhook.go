@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/version"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -56,6 +57,23 @@ func (r *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error
 var _ webhook.Defaulter = &AWSManagedControlPlane{}
 var _ webhook.Validator = &AWSManagedControlPlane{}
 
+func parseEKSVersion(raw string) (*version.Version, error) {
+	v, err := version.ParseGeneric(raw)
+	if err != nil {
+		return nil, err
+	}
+	return version.MustParseGeneric(fmt.Sprintf("%d.%d", v.Major(), v.Minor())), nil
+}
+
+func normalizeVersion(raw string) (string, error) {
+	// Normalize version (i.e. remove patch, add "v" prefix) if necessary
+	eksV, err := parseEKSVersion(raw)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("v%d.%d", eksV.Major(), eksV.Minor()), nil
+}
+
 // ValidateCreate will do any extra validation when creating a AWSManagedControlPlane
 func (r *AWSManagedControlPlane) ValidateCreate() error {
 	mcpLog.Info("AWSManagedControlPlane validate create", "name", r.Name)
@@ -65,6 +83,8 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	if r.Spec.EKSClusterName == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksClusterName"), "eksClusterName is required"))
 	}
+
+	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -90,6 +110,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, r.validateEKSClusterName()...)
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
+	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -129,6 +150,29 @@ func (r *AWSManagedControlPlane) validateEKSClusterNameSame(old *AWSManagedContr
 	return allErrs
 }
 
+func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane) field.ErrorList {
+	path := field.NewPath("spec.version")
+	var allErrs field.ErrorList
+
+	if r.Spec.Version == nil {
+		return allErrs
+	}
+
+	v, err := parseEKSVersion(*r.Spec.Version)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, err.Error()))
+	}
+
+	if old != nil {
+		oldV, err := parseEKSVersion(*old.Spec.Version)
+		if err == nil && (v.Major() < oldV.Major() || v.Minor() < oldV.Minor()) {
+			allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, "new version less than old version"))
+		}
+	}
+
+	return allErrs
+}
+
 // Default will set default values for the AWSManagedControlPlane
 func (r *AWSManagedControlPlane) Default() {
 	mcpLog.Info("AWSManagedControlPlane setting defaults", "name", r.Name)
@@ -143,6 +187,16 @@ func (r *AWSManagedControlPlane) Default() {
 
 		mcpLog.Info("defaulting EKS cluster name", "cluster-name", name)
 		r.Spec.EKSClusterName = name
+	}
+
+	// Normalize version (i.e. remove patch, add "v" prefix) if necessary
+	if r.Spec.Version != nil {
+		normalizedV, err := normalizeVersion(*r.Spec.Version)
+		if err != nil {
+			mcpLog.Error(err, "couldn't parse version")
+			return
+		}
+		r.Spec.Version = &normalizedV
 	}
 }
 

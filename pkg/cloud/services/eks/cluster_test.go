@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/version"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -62,6 +63,65 @@ func TestMakeEksEncryptionConfigs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(makeEksEncryptionConfigs(tc.input)).To(Equal(tc.expect))
+		})
+	}
+}
+
+func TestParseEKSVersion(t *testing.T) {
+	testCases := []struct {
+		name   string
+		input  string
+		expect version.Version
+	}{
+		{
+			name:   "with patch",
+			input:  "1.17.8",
+			expect: *version.MustParseGeneric("1.17"),
+		},
+		{
+			name:   "with v",
+			input:  "v1.17.8",
+			expect: *version.MustParseGeneric("1.17"),
+		},
+		{
+			name:   "no patch",
+			input:  "1.17",
+			expect: *version.MustParseGeneric("1.17"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(*parseEKSVersion(tc.input)).To(Equal(tc.expect))
+		})
+	}
+}
+func TestVersionToEKS(t *testing.T) {
+	testCases := []struct {
+		name   string
+		input  *version.Version
+		expect string
+	}{
+		{
+			name:   "with patch",
+			input:  version.MustParseGeneric("1.17.8"),
+			expect: "1.17",
+		},
+		{
+			name:   "no patch",
+			input:  version.MustParseGeneric("1.17"),
+			expect: "1.17",
+		},
+		{
+			name:   "with extra data",
+			input:  version.MustParseGeneric("1.17-alpha"),
+			expect: "1.17",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(versionToEKS(tc.input)).To(Equal(tc.expect))
 		})
 	}
 }

@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -317,17 +316,17 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		tags[k] = &tagValue
 	}
 
-	version := strings.Replace(*s.scope.ControlPlane.Spec.Version, "v", "", -1)
-
 	role, err := s.getIAMRole(*s.scope.ControlPlane.Spec.RoleName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting control plane iam role: %s", *s.scope.ControlPlane.Spec.RoleName)
 	}
 
+	v := versionToEKS(parseEKSVersion(*s.scope.ControlPlane.Spec.Version))
+
 	input := &eks.CreateClusterInput{
 		Name: aws.String(eksClusterName),
 		//ClientRequestToken: aws.String(uuid.New().String()),
-		Version:            aws.String(version),
+		Version:            aws.String(v),
 		Logging:            logging,
 		EncryptionConfig:   encryptionConfigs,
 		ResourcesVpcConfig: vpcConfig,
@@ -457,15 +456,23 @@ func (s *Service) reconcileVpcConfig(vpcConfig *eks.VpcConfigResponse) (*eks.Vpc
 	return nil, nil
 }
 
+func parseEKSVersion(raw string) *version.Version {
+	v := version.MustParseGeneric(raw)
+	return version.MustParseGeneric(fmt.Sprintf("%d.%d", v.Major(), v.Minor()))
+}
+
+func versionToEKS(v *version.Version) string {
+	return fmt.Sprintf("%d.%d", v.Major(), v.Minor())
+}
+
 func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
-	specVersion := version.MustParseGeneric(*s.scope.ControlPlane.Spec.Version)
+	specVersion := parseEKSVersion(*s.scope.ControlPlane.Spec.Version)
 	clusterVersion := version.MustParseGeneric(*cluster.Version)
 
 	if clusterVersion.LessThan(specVersion) {
 		// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
 		// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
-		nextVersion := clusterVersion.WithMinor(clusterVersion.Minor() + 1)
-		nextVersionString := fmt.Sprintf("%d.%d", nextVersion.Major(), nextVersion.Minor())
+		nextVersionString := versionToEKS(clusterVersion.WithMinor(clusterVersion.Minor() + 1))
 
 		input := &eks.UpdateClusterVersionInput{
 			Name:    aws.String(s.scope.EKSClusterName()),
