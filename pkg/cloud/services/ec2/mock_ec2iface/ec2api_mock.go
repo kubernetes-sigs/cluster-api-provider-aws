@@ -2151,6 +2151,56 @@ func (mr *MockEC2APIMockRecorder) CreateCapacityReservationWithContext(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCapacityReservationWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateCapacityReservationWithContext), varargs...)
 }
 
+// CreateCarrierGateway mocks base method
+func (m *MockEC2API) CreateCarrierGateway(arg0 *ec2.CreateCarrierGatewayInput) (*ec2.CreateCarrierGatewayOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCarrierGateway", arg0)
+	ret0, _ := ret[0].(*ec2.CreateCarrierGatewayOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCarrierGateway indicates an expected call of CreateCarrierGateway
+func (mr *MockEC2APIMockRecorder) CreateCarrierGateway(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCarrierGateway", reflect.TypeOf((*MockEC2API)(nil).CreateCarrierGateway), arg0)
+}
+
+// CreateCarrierGatewayRequest mocks base method
+func (m *MockEC2API) CreateCarrierGatewayRequest(arg0 *ec2.CreateCarrierGatewayInput) (*request.Request, *ec2.CreateCarrierGatewayOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateCarrierGatewayRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateCarrierGatewayOutput)
+	return ret0, ret1
+}
+
+// CreateCarrierGatewayRequest indicates an expected call of CreateCarrierGatewayRequest
+func (mr *MockEC2APIMockRecorder) CreateCarrierGatewayRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCarrierGatewayRequest", reflect.TypeOf((*MockEC2API)(nil).CreateCarrierGatewayRequest), arg0)
+}
+
+// CreateCarrierGatewayWithContext mocks base method
+func (m *MockEC2API) CreateCarrierGatewayWithContext(arg0 context.Context, arg1 *ec2.CreateCarrierGatewayInput, arg2 ...request.Option) (*ec2.CreateCarrierGatewayOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateCarrierGatewayWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateCarrierGatewayOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateCarrierGatewayWithContext indicates an expected call of CreateCarrierGatewayWithContext
+func (mr *MockEC2APIMockRecorder) CreateCarrierGatewayWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCarrierGatewayWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateCarrierGatewayWithContext), varargs...)
+}
+
 // CreateClientVpnEndpoint mocks base method
 func (m *MockEC2API) CreateClientVpnEndpoint(arg0 *ec2.CreateClientVpnEndpointInput) (*ec2.CreateClientVpnEndpointOutput, error) {
 	m.ctrl.T.Helper()
@@ -4166,6 +4216,56 @@ func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPeeringAttachmentWithConte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPeeringAttachmentWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPeeringAttachmentWithContext), varargs...)
 }
 
+// CreateTransitGatewayPrefixListReference mocks base method
+func (m *MockEC2API) CreateTransitGatewayPrefixListReference(arg0 *ec2.CreateTransitGatewayPrefixListReferenceInput) (*ec2.CreateTransitGatewayPrefixListReferenceOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransitGatewayPrefixListReference", arg0)
+	ret0, _ := ret[0].(*ec2.CreateTransitGatewayPrefixListReferenceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayPrefixListReference indicates an expected call of CreateTransitGatewayPrefixListReference
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPrefixListReference(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPrefixListReference", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPrefixListReference), arg0)
+}
+
+// CreateTransitGatewayPrefixListReferenceRequest mocks base method
+func (m *MockEC2API) CreateTransitGatewayPrefixListReferenceRequest(arg0 *ec2.CreateTransitGatewayPrefixListReferenceInput) (*request.Request, *ec2.CreateTransitGatewayPrefixListReferenceOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTransitGatewayPrefixListReferenceRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.CreateTransitGatewayPrefixListReferenceOutput)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayPrefixListReferenceRequest indicates an expected call of CreateTransitGatewayPrefixListReferenceRequest
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPrefixListReferenceRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPrefixListReferenceRequest", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPrefixListReferenceRequest), arg0)
+}
+
+// CreateTransitGatewayPrefixListReferenceWithContext mocks base method
+func (m *MockEC2API) CreateTransitGatewayPrefixListReferenceWithContext(arg0 context.Context, arg1 *ec2.CreateTransitGatewayPrefixListReferenceInput, arg2 ...request.Option) (*ec2.CreateTransitGatewayPrefixListReferenceOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateTransitGatewayPrefixListReferenceWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.CreateTransitGatewayPrefixListReferenceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTransitGatewayPrefixListReferenceWithContext indicates an expected call of CreateTransitGatewayPrefixListReferenceWithContext
+func (mr *MockEC2APIMockRecorder) CreateTransitGatewayPrefixListReferenceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransitGatewayPrefixListReferenceWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateTransitGatewayPrefixListReferenceWithContext), varargs...)
+}
+
 // CreateTransitGatewayRequest mocks base method
 func (m *MockEC2API) CreateTransitGatewayRequest(arg0 *ec2.CreateTransitGatewayInput) (*request.Request, *ec2.CreateTransitGatewayOutput) {
 	m.ctrl.T.Helper()
@@ -4799,6 +4899,56 @@ func (mr *MockEC2APIMockRecorder) CreateVpnGatewayWithContext(arg0, arg1 interfa
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateVpnGatewayWithContext", reflect.TypeOf((*MockEC2API)(nil).CreateVpnGatewayWithContext), varargs...)
+}
+
+// DeleteCarrierGateway mocks base method
+func (m *MockEC2API) DeleteCarrierGateway(arg0 *ec2.DeleteCarrierGatewayInput) (*ec2.DeleteCarrierGatewayOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCarrierGateway", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteCarrierGatewayOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCarrierGateway indicates an expected call of DeleteCarrierGateway
+func (mr *MockEC2APIMockRecorder) DeleteCarrierGateway(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCarrierGateway", reflect.TypeOf((*MockEC2API)(nil).DeleteCarrierGateway), arg0)
+}
+
+// DeleteCarrierGatewayRequest mocks base method
+func (m *MockEC2API) DeleteCarrierGatewayRequest(arg0 *ec2.DeleteCarrierGatewayInput) (*request.Request, *ec2.DeleteCarrierGatewayOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteCarrierGatewayRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteCarrierGatewayOutput)
+	return ret0, ret1
+}
+
+// DeleteCarrierGatewayRequest indicates an expected call of DeleteCarrierGatewayRequest
+func (mr *MockEC2APIMockRecorder) DeleteCarrierGatewayRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCarrierGatewayRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteCarrierGatewayRequest), arg0)
+}
+
+// DeleteCarrierGatewayWithContext mocks base method
+func (m *MockEC2API) DeleteCarrierGatewayWithContext(arg0 context.Context, arg1 *ec2.DeleteCarrierGatewayInput, arg2 ...request.Option) (*ec2.DeleteCarrierGatewayOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteCarrierGatewayWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteCarrierGatewayOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteCarrierGatewayWithContext indicates an expected call of DeleteCarrierGatewayWithContext
+func (mr *MockEC2APIMockRecorder) DeleteCarrierGatewayWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCarrierGatewayWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteCarrierGatewayWithContext), varargs...)
 }
 
 // DeleteClientVpnEndpoint mocks base method
@@ -6566,6 +6716,56 @@ func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPeeringAttachmentWithConte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPeeringAttachmentWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPeeringAttachmentWithContext), varargs...)
 }
 
+// DeleteTransitGatewayPrefixListReference mocks base method
+func (m *MockEC2API) DeleteTransitGatewayPrefixListReference(arg0 *ec2.DeleteTransitGatewayPrefixListReferenceInput) (*ec2.DeleteTransitGatewayPrefixListReferenceOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayPrefixListReference", arg0)
+	ret0, _ := ret[0].(*ec2.DeleteTransitGatewayPrefixListReferenceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayPrefixListReference indicates an expected call of DeleteTransitGatewayPrefixListReference
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPrefixListReference(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPrefixListReference", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPrefixListReference), arg0)
+}
+
+// DeleteTransitGatewayPrefixListReferenceRequest mocks base method
+func (m *MockEC2API) DeleteTransitGatewayPrefixListReferenceRequest(arg0 *ec2.DeleteTransitGatewayPrefixListReferenceInput) (*request.Request, *ec2.DeleteTransitGatewayPrefixListReferenceOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayPrefixListReferenceRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DeleteTransitGatewayPrefixListReferenceOutput)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayPrefixListReferenceRequest indicates an expected call of DeleteTransitGatewayPrefixListReferenceRequest
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPrefixListReferenceRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPrefixListReferenceRequest", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPrefixListReferenceRequest), arg0)
+}
+
+// DeleteTransitGatewayPrefixListReferenceWithContext mocks base method
+func (m *MockEC2API) DeleteTransitGatewayPrefixListReferenceWithContext(arg0 context.Context, arg1 *ec2.DeleteTransitGatewayPrefixListReferenceInput, arg2 ...request.Option) (*ec2.DeleteTransitGatewayPrefixListReferenceOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteTransitGatewayPrefixListReferenceWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DeleteTransitGatewayPrefixListReferenceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTransitGatewayPrefixListReferenceWithContext indicates an expected call of DeleteTransitGatewayPrefixListReferenceWithContext
+func (mr *MockEC2APIMockRecorder) DeleteTransitGatewayPrefixListReferenceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTransitGatewayPrefixListReferenceWithContext", reflect.TypeOf((*MockEC2API)(nil).DeleteTransitGatewayPrefixListReferenceWithContext), varargs...)
+}
+
 // DeleteTransitGatewayRequest mocks base method
 func (m *MockEC2API) DeleteTransitGatewayRequest(arg0 *ec2.DeleteTransitGatewayInput) (*request.Request, *ec2.DeleteTransitGatewayOutput) {
 	m.ctrl.T.Helper()
@@ -7865,6 +8065,89 @@ func (mr *MockEC2APIMockRecorder) DescribeCapacityReservationsWithContext(arg0, 
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCapacityReservationsWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeCapacityReservationsWithContext), varargs...)
+}
+
+// DescribeCarrierGateways mocks base method
+func (m *MockEC2API) DescribeCarrierGateways(arg0 *ec2.DescribeCarrierGatewaysInput) (*ec2.DescribeCarrierGatewaysOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeCarrierGateways", arg0)
+	ret0, _ := ret[0].(*ec2.DescribeCarrierGatewaysOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeCarrierGateways indicates an expected call of DescribeCarrierGateways
+func (mr *MockEC2APIMockRecorder) DescribeCarrierGateways(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCarrierGateways", reflect.TypeOf((*MockEC2API)(nil).DescribeCarrierGateways), arg0)
+}
+
+// DescribeCarrierGatewaysPages mocks base method
+func (m *MockEC2API) DescribeCarrierGatewaysPages(arg0 *ec2.DescribeCarrierGatewaysInput, arg1 func(*ec2.DescribeCarrierGatewaysOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeCarrierGatewaysPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeCarrierGatewaysPages indicates an expected call of DescribeCarrierGatewaysPages
+func (mr *MockEC2APIMockRecorder) DescribeCarrierGatewaysPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCarrierGatewaysPages", reflect.TypeOf((*MockEC2API)(nil).DescribeCarrierGatewaysPages), arg0, arg1)
+}
+
+// DescribeCarrierGatewaysPagesWithContext mocks base method
+func (m *MockEC2API) DescribeCarrierGatewaysPagesWithContext(arg0 context.Context, arg1 *ec2.DescribeCarrierGatewaysInput, arg2 func(*ec2.DescribeCarrierGatewaysOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeCarrierGatewaysPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeCarrierGatewaysPagesWithContext indicates an expected call of DescribeCarrierGatewaysPagesWithContext
+func (mr *MockEC2APIMockRecorder) DescribeCarrierGatewaysPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCarrierGatewaysPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeCarrierGatewaysPagesWithContext), varargs...)
+}
+
+// DescribeCarrierGatewaysRequest mocks base method
+func (m *MockEC2API) DescribeCarrierGatewaysRequest(arg0 *ec2.DescribeCarrierGatewaysInput) (*request.Request, *ec2.DescribeCarrierGatewaysOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeCarrierGatewaysRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.DescribeCarrierGatewaysOutput)
+	return ret0, ret1
+}
+
+// DescribeCarrierGatewaysRequest indicates an expected call of DescribeCarrierGatewaysRequest
+func (mr *MockEC2APIMockRecorder) DescribeCarrierGatewaysRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCarrierGatewaysRequest", reflect.TypeOf((*MockEC2API)(nil).DescribeCarrierGatewaysRequest), arg0)
+}
+
+// DescribeCarrierGatewaysWithContext mocks base method
+func (m *MockEC2API) DescribeCarrierGatewaysWithContext(arg0 context.Context, arg1 *ec2.DescribeCarrierGatewaysInput, arg2 ...request.Option) (*ec2.DescribeCarrierGatewaysOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeCarrierGatewaysWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeCarrierGatewaysOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeCarrierGatewaysWithContext indicates an expected call of DescribeCarrierGatewaysWithContext
+func (mr *MockEC2APIMockRecorder) DescribeCarrierGatewaysWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCarrierGatewaysWithContext", reflect.TypeOf((*MockEC2API)(nil).DescribeCarrierGatewaysWithContext), varargs...)
 }
 
 // DescribeClassicLinkInstances mocks base method
@@ -17691,6 +17974,89 @@ func (mr *MockEC2APIMockRecorder) GetEbsEncryptionByDefaultWithContext(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEbsEncryptionByDefaultWithContext", reflect.TypeOf((*MockEC2API)(nil).GetEbsEncryptionByDefaultWithContext), varargs...)
 }
 
+// GetGroupsForCapacityReservation mocks base method
+func (m *MockEC2API) GetGroupsForCapacityReservation(arg0 *ec2.GetGroupsForCapacityReservationInput) (*ec2.GetGroupsForCapacityReservationOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupsForCapacityReservation", arg0)
+	ret0, _ := ret[0].(*ec2.GetGroupsForCapacityReservationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGroupsForCapacityReservation indicates an expected call of GetGroupsForCapacityReservation
+func (mr *MockEC2APIMockRecorder) GetGroupsForCapacityReservation(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsForCapacityReservation", reflect.TypeOf((*MockEC2API)(nil).GetGroupsForCapacityReservation), arg0)
+}
+
+// GetGroupsForCapacityReservationPages mocks base method
+func (m *MockEC2API) GetGroupsForCapacityReservationPages(arg0 *ec2.GetGroupsForCapacityReservationInput, arg1 func(*ec2.GetGroupsForCapacityReservationOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupsForCapacityReservationPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetGroupsForCapacityReservationPages indicates an expected call of GetGroupsForCapacityReservationPages
+func (mr *MockEC2APIMockRecorder) GetGroupsForCapacityReservationPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsForCapacityReservationPages", reflect.TypeOf((*MockEC2API)(nil).GetGroupsForCapacityReservationPages), arg0, arg1)
+}
+
+// GetGroupsForCapacityReservationPagesWithContext mocks base method
+func (m *MockEC2API) GetGroupsForCapacityReservationPagesWithContext(arg0 context.Context, arg1 *ec2.GetGroupsForCapacityReservationInput, arg2 func(*ec2.GetGroupsForCapacityReservationOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetGroupsForCapacityReservationPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetGroupsForCapacityReservationPagesWithContext indicates an expected call of GetGroupsForCapacityReservationPagesWithContext
+func (mr *MockEC2APIMockRecorder) GetGroupsForCapacityReservationPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsForCapacityReservationPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).GetGroupsForCapacityReservationPagesWithContext), varargs...)
+}
+
+// GetGroupsForCapacityReservationRequest mocks base method
+func (m *MockEC2API) GetGroupsForCapacityReservationRequest(arg0 *ec2.GetGroupsForCapacityReservationInput) (*request.Request, *ec2.GetGroupsForCapacityReservationOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGroupsForCapacityReservationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetGroupsForCapacityReservationOutput)
+	return ret0, ret1
+}
+
+// GetGroupsForCapacityReservationRequest indicates an expected call of GetGroupsForCapacityReservationRequest
+func (mr *MockEC2APIMockRecorder) GetGroupsForCapacityReservationRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsForCapacityReservationRequest", reflect.TypeOf((*MockEC2API)(nil).GetGroupsForCapacityReservationRequest), arg0)
+}
+
+// GetGroupsForCapacityReservationWithContext mocks base method
+func (m *MockEC2API) GetGroupsForCapacityReservationWithContext(arg0 context.Context, arg1 *ec2.GetGroupsForCapacityReservationInput, arg2 ...request.Option) (*ec2.GetGroupsForCapacityReservationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetGroupsForCapacityReservationWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetGroupsForCapacityReservationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGroupsForCapacityReservationWithContext indicates an expected call of GetGroupsForCapacityReservationWithContext
+func (mr *MockEC2APIMockRecorder) GetGroupsForCapacityReservationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGroupsForCapacityReservationWithContext", reflect.TypeOf((*MockEC2API)(nil).GetGroupsForCapacityReservationWithContext), varargs...)
+}
+
 // GetHostReservationPurchasePreview mocks base method
 func (m *MockEC2API) GetHostReservationPurchasePreview(arg0 *ec2.GetHostReservationPurchasePreviewInput) (*ec2.GetHostReservationPurchasePreviewOutput, error) {
 	m.ctrl.T.Helper()
@@ -18221,6 +18587,89 @@ func (mr *MockEC2APIMockRecorder) GetTransitGatewayMulticastDomainAssociationsWi
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayMulticastDomainAssociationsWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayMulticastDomainAssociationsWithContext), varargs...)
+}
+
+// GetTransitGatewayPrefixListReferences mocks base method
+func (m *MockEC2API) GetTransitGatewayPrefixListReferences(arg0 *ec2.GetTransitGatewayPrefixListReferencesInput) (*ec2.GetTransitGatewayPrefixListReferencesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPrefixListReferences", arg0)
+	ret0, _ := ret[0].(*ec2.GetTransitGatewayPrefixListReferencesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPrefixListReferences indicates an expected call of GetTransitGatewayPrefixListReferences
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPrefixListReferences(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPrefixListReferences", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPrefixListReferences), arg0)
+}
+
+// GetTransitGatewayPrefixListReferencesPages mocks base method
+func (m *MockEC2API) GetTransitGatewayPrefixListReferencesPages(arg0 *ec2.GetTransitGatewayPrefixListReferencesInput, arg1 func(*ec2.GetTransitGatewayPrefixListReferencesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPrefixListReferencesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetTransitGatewayPrefixListReferencesPages indicates an expected call of GetTransitGatewayPrefixListReferencesPages
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPrefixListReferencesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPrefixListReferencesPages", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPrefixListReferencesPages), arg0, arg1)
+}
+
+// GetTransitGatewayPrefixListReferencesPagesWithContext mocks base method
+func (m *MockEC2API) GetTransitGatewayPrefixListReferencesPagesWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayPrefixListReferencesInput, arg2 func(*ec2.GetTransitGatewayPrefixListReferencesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTransitGatewayPrefixListReferencesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetTransitGatewayPrefixListReferencesPagesWithContext indicates an expected call of GetTransitGatewayPrefixListReferencesPagesWithContext
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPrefixListReferencesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPrefixListReferencesPagesWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPrefixListReferencesPagesWithContext), varargs...)
+}
+
+// GetTransitGatewayPrefixListReferencesRequest mocks base method
+func (m *MockEC2API) GetTransitGatewayPrefixListReferencesRequest(arg0 *ec2.GetTransitGatewayPrefixListReferencesInput) (*request.Request, *ec2.GetTransitGatewayPrefixListReferencesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTransitGatewayPrefixListReferencesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.GetTransitGatewayPrefixListReferencesOutput)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPrefixListReferencesRequest indicates an expected call of GetTransitGatewayPrefixListReferencesRequest
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPrefixListReferencesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPrefixListReferencesRequest", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPrefixListReferencesRequest), arg0)
+}
+
+// GetTransitGatewayPrefixListReferencesWithContext mocks base method
+func (m *MockEC2API) GetTransitGatewayPrefixListReferencesWithContext(arg0 context.Context, arg1 *ec2.GetTransitGatewayPrefixListReferencesInput, arg2 ...request.Option) (*ec2.GetTransitGatewayPrefixListReferencesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTransitGatewayPrefixListReferencesWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.GetTransitGatewayPrefixListReferencesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTransitGatewayPrefixListReferencesWithContext indicates an expected call of GetTransitGatewayPrefixListReferencesWithContext
+func (mr *MockEC2APIMockRecorder) GetTransitGatewayPrefixListReferencesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTransitGatewayPrefixListReferencesWithContext", reflect.TypeOf((*MockEC2API)(nil).GetTransitGatewayPrefixListReferencesWithContext), varargs...)
 }
 
 // GetTransitGatewayRouteTableAssociations mocks base method
@@ -20039,6 +20488,86 @@ func (mr *MockEC2APIMockRecorder) ModifyTrafficMirrorSessionWithContext(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTrafficMirrorSessionWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyTrafficMirrorSessionWithContext), varargs...)
 }
 
+// ModifyTransitGateway mocks base method
+func (m *MockEC2API) ModifyTransitGateway(arg0 *ec2.ModifyTransitGatewayInput) (*ec2.ModifyTransitGatewayOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyTransitGateway", arg0)
+	ret0, _ := ret[0].(*ec2.ModifyTransitGatewayOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyTransitGateway indicates an expected call of ModifyTransitGateway
+func (mr *MockEC2APIMockRecorder) ModifyTransitGateway(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTransitGateway", reflect.TypeOf((*MockEC2API)(nil).ModifyTransitGateway), arg0)
+}
+
+// ModifyTransitGatewayPrefixListReference mocks base method
+func (m *MockEC2API) ModifyTransitGatewayPrefixListReference(arg0 *ec2.ModifyTransitGatewayPrefixListReferenceInput) (*ec2.ModifyTransitGatewayPrefixListReferenceOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyTransitGatewayPrefixListReference", arg0)
+	ret0, _ := ret[0].(*ec2.ModifyTransitGatewayPrefixListReferenceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyTransitGatewayPrefixListReference indicates an expected call of ModifyTransitGatewayPrefixListReference
+func (mr *MockEC2APIMockRecorder) ModifyTransitGatewayPrefixListReference(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTransitGatewayPrefixListReference", reflect.TypeOf((*MockEC2API)(nil).ModifyTransitGatewayPrefixListReference), arg0)
+}
+
+// ModifyTransitGatewayPrefixListReferenceRequest mocks base method
+func (m *MockEC2API) ModifyTransitGatewayPrefixListReferenceRequest(arg0 *ec2.ModifyTransitGatewayPrefixListReferenceInput) (*request.Request, *ec2.ModifyTransitGatewayPrefixListReferenceOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyTransitGatewayPrefixListReferenceRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ModifyTransitGatewayPrefixListReferenceOutput)
+	return ret0, ret1
+}
+
+// ModifyTransitGatewayPrefixListReferenceRequest indicates an expected call of ModifyTransitGatewayPrefixListReferenceRequest
+func (mr *MockEC2APIMockRecorder) ModifyTransitGatewayPrefixListReferenceRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTransitGatewayPrefixListReferenceRequest", reflect.TypeOf((*MockEC2API)(nil).ModifyTransitGatewayPrefixListReferenceRequest), arg0)
+}
+
+// ModifyTransitGatewayPrefixListReferenceWithContext mocks base method
+func (m *MockEC2API) ModifyTransitGatewayPrefixListReferenceWithContext(arg0 context.Context, arg1 *ec2.ModifyTransitGatewayPrefixListReferenceInput, arg2 ...request.Option) (*ec2.ModifyTransitGatewayPrefixListReferenceOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifyTransitGatewayPrefixListReferenceWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ModifyTransitGatewayPrefixListReferenceOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyTransitGatewayPrefixListReferenceWithContext indicates an expected call of ModifyTransitGatewayPrefixListReferenceWithContext
+func (mr *MockEC2APIMockRecorder) ModifyTransitGatewayPrefixListReferenceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTransitGatewayPrefixListReferenceWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyTransitGatewayPrefixListReferenceWithContext), varargs...)
+}
+
+// ModifyTransitGatewayRequest mocks base method
+func (m *MockEC2API) ModifyTransitGatewayRequest(arg0 *ec2.ModifyTransitGatewayInput) (*request.Request, *ec2.ModifyTransitGatewayOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyTransitGatewayRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ModifyTransitGatewayOutput)
+	return ret0, ret1
+}
+
+// ModifyTransitGatewayRequest indicates an expected call of ModifyTransitGatewayRequest
+func (mr *MockEC2APIMockRecorder) ModifyTransitGatewayRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTransitGatewayRequest", reflect.TypeOf((*MockEC2API)(nil).ModifyTransitGatewayRequest), arg0)
+}
+
 // ModifyTransitGatewayVpcAttachment mocks base method
 func (m *MockEC2API) ModifyTransitGatewayVpcAttachment(arg0 *ec2.ModifyTransitGatewayVpcAttachmentInput) (*ec2.ModifyTransitGatewayVpcAttachmentOutput, error) {
 	m.ctrl.T.Helper()
@@ -20087,6 +20616,26 @@ func (mr *MockEC2APIMockRecorder) ModifyTransitGatewayVpcAttachmentWithContext(a
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTransitGatewayVpcAttachmentWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyTransitGatewayVpcAttachmentWithContext), varargs...)
+}
+
+// ModifyTransitGatewayWithContext mocks base method
+func (m *MockEC2API) ModifyTransitGatewayWithContext(arg0 context.Context, arg1 *ec2.ModifyTransitGatewayInput, arg2 ...request.Option) (*ec2.ModifyTransitGatewayOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifyTransitGatewayWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ModifyTransitGatewayOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyTransitGatewayWithContext indicates an expected call of ModifyTransitGatewayWithContext
+func (mr *MockEC2APIMockRecorder) ModifyTransitGatewayWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTransitGatewayWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyTransitGatewayWithContext), varargs...)
 }
 
 // ModifyVolume mocks base method
