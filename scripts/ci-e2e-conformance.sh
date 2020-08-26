@@ -31,12 +31,6 @@ cd "${REPO_ROOT}" || exit 1
 
 # shellcheck source=../hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
-# shellcheck source=../hack/ensure-kind.sh
-source "${REPO_ROOT}/hack/ensure-kind.sh"
-# shellcheck source=../hack/ensure-kubectl.sh
-source "${REPO_ROOT}/hack/ensure-kubectl.sh"
-# shellcheck source=../hack/ensure-kustomize.sh
-source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
 # our exit handler (trap)
 cleanup() {
@@ -67,13 +61,13 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
     exit "${checkout_account_status}"
   fi
 
-  python -u hack/heartbeat_account.py >> $ARTIFACTS/boskos.log 2>&1 &
+  python -u hack/heartbeat_account.py >>$ARTIFACTS/boskos.log 2>&1 &
   HEART_BEAT_PID=$(echo $!)
 fi
 
 # Prevent a disallowed AWS key from being used.
-if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" | \
-  { md5sum 2>/dev/null || md5; } | \
+if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" |
+  { md5sum 2>/dev/null || md5; } |
   awk '{print $1}')" hack/e2e-aws-disallowed.txt; then
   echo "The provided AWS key is not allowed" 1>&2
   exit 1
