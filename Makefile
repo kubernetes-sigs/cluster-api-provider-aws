@@ -61,6 +61,7 @@ RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
+GOPHERAGE := $(TOOLS_BIN_DIR)/gopherage
 
 UNAME := $(shell uname -s)
 PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -126,8 +127,8 @@ $(ARTIFACTS):
 	mkdir -p $@
 
 .PHONY: test
-test: ## Run tests
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
+test: $(ARTIFACTS)/coverage ## Run tests
+	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -coverprofile=${ARTIFACTS}/coverage/coverage.out -v ./...
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
@@ -221,6 +222,9 @@ $(KIND): $(TOOLS_DIR)/go.mod
 
 $(GINKGO): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/ginkgo
+
+$(GOPHERAGE): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/test-infra/gopherage
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
@@ -540,3 +544,13 @@ verify-gen: generate
 .PHONY: docs
 docs: ## Build all documents and diagrams
 	$(MAKE) -C docs docs
+
+$(ARTIFACTS)/coverage:
+	mkdir -p $(ARTIFACTS)/coverage
+
+.PHONY: coverage
+coverage: test $(GOPHERAGE) ## Check test coverage
+	$(GOPHERAGE) filter --exclude-path="zz_generated,generated\.pb\.go" "${ARTIFACTS}/coverage/coverage.out" -o "${ARTIFACTS}/coverage/filtered.out"
+	go tool cover -func=${ARTIFACTS}/coverage/filtered.out -o ${ARTIFACTS}/coverage/coverage.txt
+	go tool cover -html=${ARTIFACTS}/coverage/filtered.out -o ${ARTIFACTS}/coverage/coverage.html
+	$(GOPHERAGE) junit --threshold 0.05 "${ARTIFACTS}/coverage/filtered.out" -o "${ARTIFACTS}/junit_coverage.xml"

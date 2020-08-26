@@ -30,4 +30,5 @@ import (
 	_ "sigs.k8s.io/kind"
 	_ "sigs.k8s.io/kustomize/kustomize/v3"
 	_ "sigs.k8s.io/testing_frameworks/integration"
+	_ "k8s.io/test-infra/gopherage"
 )
