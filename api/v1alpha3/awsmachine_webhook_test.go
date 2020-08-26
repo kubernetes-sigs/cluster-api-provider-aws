@@ -40,6 +40,17 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "ensure IOPS exists if type equal to io2",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					RootVolume: &Volume{
+						Type: "io2",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "ensure root volume has no device name",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -69,6 +80,20 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 						{
 							DeviceName: "name",
 							Type:       "io1",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ensure ensure IOPS exists if type equal to io2 for non root volumes",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					NonRootVolumes: []*Volume{
+						{
+							DeviceName: "name",
+							Type:       "io2",
 						},
 					},
 				},

@@ -130,8 +130,8 @@ func (r *AWSMachine) validateRootVolume() field.ErrorList {
 		return allErrs
 	}
 
-	if r.Spec.RootVolume.Type == "io1" && r.Spec.RootVolume.IOPS == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolumeOptions.iops"), "iops required if type is 'io1'"))
+	if (r.Spec.RootVolume.Type == "io1" || r.Spec.RootVolume.Type == "io2") && r.Spec.RootVolume.IOPS == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolumeOptions.iops"), "iops required if type is 'io1' or 'io2'"))
 	}
 
 	if r.Spec.RootVolume.DeviceName != "" {
@@ -149,8 +149,8 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 	}
 
 	for _, volume := range r.Spec.NonRootVolumes {
-		if volume.Type == "io1" && volume.IOPS == 0 {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.volumeOptions.iops"), "iops required if type is 'io1'"))
+		if (volume.Type == "io1" || volume.Type == "io2") && volume.IOPS == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.volumeOptions.iops"), "iops required if type is 'io1' or 'io2'"))
 		}
 
 		if volume.DeviceName == "" {
