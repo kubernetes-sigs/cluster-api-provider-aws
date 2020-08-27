@@ -21,13 +21,13 @@ import "github.com/pkg/errors"
 var (
 	// ErrClusterExists is an error if a EKS cluster already exists with
 	// the same name in the spec but that isn't owned by the CAPI cluster
-	ErrClusterExists = errors.New("eks cluster already exists with same name but isn't owned by cluster")
-	// ErrUnknowTokenMethod defines an error if a unsupported token generation method is supplied
-	ErrUnknowTokenMethod = errors.New("unknown token method")
+	ErrClusterExists = errors.New("an EKS cluster already exists with same name but isn't owned by cluster")
+	// ErrUnknownTokenMethod defines an error if a unsupported token generation method is supplied
+	ErrUnknownTokenMethod = errors.New("unknown token method")
 	// ErrClusterRoleNameMissing if no role name is specified
 	ErrClusterRoleNameMissing = errors.New("a cluster role name must be specified")
 	// ErrClusterRoleNotFound is an error if the specified role couldn't be founbd in AWS
-	ErrClusterRoleNotFound = errors.New("the specofoed cluster role couldn't be found")
+	ErrClusterRoleNotFound = errors.New("the specified cluster role couldn't be found")
 	// ErrCannotUseAdditionalRoles is an error if the spec contains additional role and the
 	// EKSAllowAddRoles feature flag isn't enabled
 	ErrCannotUseAdditionalRoles = errors.New("additional rules cannot be added as this has been disabled")

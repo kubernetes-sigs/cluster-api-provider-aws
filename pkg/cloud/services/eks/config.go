@@ -207,7 +207,7 @@ func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.C
 			clusterName,
 		}
 	default:
-		return fmt.Errorf("using token method %s: %w", s.scope.TokenMethod(), ErrUnknowTokenMethod)
+		return fmt.Errorf("using token method %s: %w", s.scope.TokenMethod(), ErrUnknownTokenMethod)
 	}
 	cfg.AuthInfos = map[string]*api.AuthInfo{
 		userName: {
