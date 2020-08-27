@@ -237,11 +237,6 @@ func (s *ManagedControlPlaneScope) TokenMethod() infrav1exp.EKSTokenMethod {
 	return infrav1exp.EKSTokenMethodIAMAuthenticator
 }
 
-// EKSClusterName gets the name of the EKS cluster in AWS
-func (s *ManagedControlPlaneScope) EKSClusterName() string {
-	return s.ControlPlane.Spec.EKSClusterName
-}
-
 // KubernetesClusterName is the name of the Kubernetes cluster. For the managed
 // scope this is the different to the CAPI cluster name and is the EKS cluster name
 func (s *ManagedControlPlaneScope) KubernetesClusterName() string {

@@ -47,7 +47,7 @@ const (
 )
 
 func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Reconciling EKS kubeconfigs for cluster", "cluster-name", s.scope.EKSClusterName())
+	s.scope.V(2).Info("Reconciling EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
 
 	clusterRef := types.NamespacedName{
 		Name:      s.scope.Cluster.Name,
@@ -79,7 +79,7 @@ func (s *Service) reconcileKubeconfig(ctx context.Context, cluster *eks.Cluster)
 }
 
 func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Reconciling additional EKS kubeconfigs for cluster", "cluster-name", s.scope.EKSClusterName())
+	s.scope.V(2).Info("Reconciling additional EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
 
 	clusterRef := types.NamespacedName{
 		Name:      s.scope.Cluster.Name + "-user",
@@ -109,7 +109,7 @@ func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *e
 func (s *Service) createCAPIKubeconfigSecret(ctx context.Context, cluster *eks.Cluster, clusterRef *types.NamespacedName) error {
 	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, infrav1exp.GroupVersion.WithKind("AWSManagedControlPlane"))
 
-	clusterName := s.scope.EKSClusterName()
+	clusterName := s.scope.KubernetesClusterName()
 	userName := s.getKubeConfigUserName(clusterName, false)
 
 	cfg, err := s.createBaseKubeConfig(cluster, userName)
@@ -143,7 +143,7 @@ func (s *Service) createCAPIKubeconfigSecret(ctx context.Context, cluster *eks.C
 }
 
 func (s *Service) updateCAPIKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, cluster *eks.Cluster) error {
-	s.scope.V(2).Info("Updating EKS kubeconfigs for cluster", "cluster-name", s.scope.EKSClusterName())
+	s.scope.V(2).Info("Updating EKS kubeconfigs for cluster", "cluster-name", s.scope.KubernetesClusterName())
 
 	data, ok := configSecret.Data[secret.KubeconfigDataName]
 	if !ok {
@@ -181,7 +181,7 @@ func (s *Service) updateCAPIKubeconfigSecret(ctx context.Context, configSecret *
 func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.Cluster, clusterRef *types.NamespacedName) error {
 	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, infrav1exp.GroupVersion.WithKind("AWSManagedControlPlane"))
 
-	clusterName := s.scope.EKSClusterName()
+	clusterName := s.scope.KubernetesClusterName()
 	userName := s.getKubeConfigUserName(clusterName, true)
 
 	cfg, err := s.createBaseKubeConfig(cluster, userName)
@@ -230,7 +230,7 @@ func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.C
 }
 
 func (s *Service) createBaseKubeConfig(cluster *eks.Cluster, userName string) (*api.Config, error) {
-	clusterName := s.scope.EKSClusterName()
+	clusterName := s.scope.KubernetesClusterName()
 	contextName := fmt.Sprintf("%s@%s", userName, clusterName)
 
 	certData, err := base64.StdEncoding.DecodeString(*cluster.CertificateAuthority.Data)
@@ -259,7 +259,7 @@ func (s *Service) createBaseKubeConfig(cluster *eks.Cluster, userName string) (*
 }
 
 func (s *Service) generateToken() (string, error) {
-	eksClusterName := s.scope.EKSClusterName()
+	eksClusterName := s.scope.KubernetesClusterName()
 
 	req, _ := s.STSClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
 	req.HTTPRequest.Header.Add(clusterNameHeader, eksClusterName)

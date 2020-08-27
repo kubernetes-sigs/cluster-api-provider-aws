@@ -173,6 +173,10 @@ func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(o hand
 		r.Log.Error(err, "failed to get owning cluster")
 		return nil
 	}
+	if cluster == nil {
+		r.Log.Info("no owning cluster, skipping mapping")
+		return nil
+	}
 
 	managedClusterRef := cluster.Spec.InfrastructureRef
 	if managedClusterRef == nil || managedClusterRef.Kind != "AWSManagedCluster" {

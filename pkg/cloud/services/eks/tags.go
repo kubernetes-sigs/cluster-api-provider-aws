@@ -39,7 +39,7 @@ func (s *Service) reconcileTags(cluster *eks.Cluster) error {
 }
 
 func (s *Service) getEKSTagParams(id string) *infrav1.BuildParams {
-	name := s.scope.EKSClusterName()
+	name := s.scope.KubernetesClusterName()
 
 	return &infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
