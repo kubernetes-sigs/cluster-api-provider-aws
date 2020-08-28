@@ -70,7 +70,7 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" |
   exit 1
 fi
 
-make test-conformance-new E2E_ARGS=-kubetest.use-ci-artifacts
+make test-conformance
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
