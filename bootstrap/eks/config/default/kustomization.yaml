@@ -1,0 +1,9 @@
+# Adds namespace to all resources.
+namespace: capa-eks-bootstrap-system
+
+resources:
+- namespace.yaml
+
+bases:
+- ../rbac
+- ../manager
