@@ -76,7 +76,7 @@ func (s *Service) ReconcileBastion() error {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
 		}
-		instance, err = s.runInstance("bastion", s.getDefaultBastion(s.scope.Bastion().InstanceType))
+		instance, err = s.runInstance("bastion", s.getDefaultBastion(s.scope.Bastion().InstanceType, s.scope.Bastion().AMI))
 		if err != nil {
 			record.Warnf(s.scope.InfraCluster(), "FailedCreateBastion", "Failed to create bastion instance: %v", err)
 			return err
@@ -151,7 +151,7 @@ func (s *Service) describeBastionInstance() (*infrav1.Instance, error) {
 	return nil, awserrors.NewNotFound("bastion host not found")
 }
 
-func (s *Service) getDefaultBastion(instanceType string) *infrav1.Instance {
+func (s *Service) getDefaultBastion(instanceType, ami string) *infrav1.Instance {
 	name := fmt.Sprintf("%s-bastion", s.scope.Name())
 	userData, _ := userdata.NewBastion(&userdata.BastionInput{})
 
@@ -171,10 +171,14 @@ func (s *Service) getDefaultBastion(instanceType string) *infrav1.Instance {
 		}
 	}
 
+	if ami == "" {
+		ami = s.defaultBastionAMILookup(s.scope.Region())
+	}
+
 	i := &infrav1.Instance{
 		Type:       instanceType,
 		SubnetID:   subnet.ID,
-		ImageID:    s.defaultBastionAMILookup(s.scope.Region()),
+		ImageID:    ami,
 		SSHKeyName: keyName,
 		UserData:   aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
 		SecurityGroupIDs: []string{
