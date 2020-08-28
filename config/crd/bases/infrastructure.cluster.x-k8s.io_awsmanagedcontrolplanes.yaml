@@ -6,372 +6,35 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.9
   creationTimestamp: null
-  name: awsclusters.infrastructure.cluster.x-k8s.io
+  name: awsmanagedcontrolplanes.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
     categories:
     - cluster-api
-    kind: AWSCluster
-    listKind: AWSClusterList
-    plural: awsclusters
-    singular: awscluster
+    kind: AWSManagedControlPlane
+    listKind: AWSManagedControlPlaneList
+    plural: awsmanagedcontrolplanes
+    shortNames:
+    - awsmcp
+    singular: awsmanagedcontrolplane
   scope: Namespaced
   versions:
-  - name: v1alpha2
-    schema:
-      openAPIV3Schema:
-        description: AWSCluster is the Schema for the awsclusters API
-        properties:
-          apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-            type: string
-          kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-            type: string
-          metadata:
-            type: object
-          spec:
-            description: AWSClusterSpec defines the desired state of AWSCluster
-            properties:
-              additionalTags:
-                additionalProperties:
-                  type: string
-                description: AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the ones added by default.
-                type: object
-              controlPlaneLoadBalancer:
-                description: ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior
-                properties:
-                  scheme:
-                    description: Scheme sets the scheme of the load balancer (defaults to Internet-facing)
-                    type: string
-                type: object
-              disableBastionHost:
-                description: DisableBastionHost is an optional configuration field to prevent the creation of a bastion host instance.
-                type: boolean
-              networkSpec:
-                description: NetworkSpec encapsulates all things related to AWS network.
-                properties:
-                  subnets:
-                    description: Subnets configuration.
-                    items:
-                      description: SubnetSpec configures an AWS Subnet.
-                      properties:
-                        availabilityZone:
-                          description: AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
-                          type: string
-                        cidrBlock:
-                          description: CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
-                          type: string
-                        id:
-                          description: ID defines a unique identifier to reference this resource.
-                          type: string
-                        isPublic:
-                          description: IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
-                          type: boolean
-                        natGatewayId:
-                          description: NatGatewayID is the NAT gateway id associated with the subnet. Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
-                          type: string
-                        routeTableId:
-                          description: RouteTableID is the routing table id associated with the subnet.
-                          type: string
-                        tags:
-                          additionalProperties:
-                            type: string
-                          description: Tags is a collection of tags describing the resource.
-                          type: object
-                      type: object
-                    type: array
-                  vpc:
-                    description: VPC configuration.
-                    properties:
-                      cidrBlock:
-                        description: CidrBlock is the CIDR block to be used when the provider creates a managed VPC. Defaults to 10.0.0.0/16.
-                        type: string
-                      id:
-                        description: ID is the vpc-id of the VPC this provider should use to create resources.
-                        type: string
-                      internetGatewayId:
-                        description: InternetGatewayID is the id of the internet gateway associated with the VPC.
-                        type: string
-                      tags:
-                        additionalProperties:
-                          type: string
-                        description: Tags is a collection of tags describing the resource.
-                        type: object
-                    type: object
-                type: object
-              region:
-                description: The AWS Region the cluster lives in.
-                type: string
-              sshKeyName:
-                description: SSHKeyName is the name of the ssh key to attach to the bastion host.
-                type: string
-            type: object
-          status:
-            description: AWSClusterStatus defines the observed state of AWSCluster
-            properties:
-              apiEndpoints:
-                description: APIEndpoints represents the endpoints to communicate with the control plane.
-                items:
-                  description: APIEndpoint represents a reachable Kubernetes API endpoint.
-                  properties:
-                    host:
-                      description: The hostname on which the API server is serving.
-                      type: string
-                    port:
-                      description: The port on which the API server is serving.
-                      type: integer
-                  required:
-                  - host
-                  - port
-                  type: object
-                type: array
-              bastion:
-                description: Instance describes an AWS instance.
-                properties:
-                  addresses:
-                    description: Addresses contains the AWS instance associated addresses.
-                    items:
-                      description: MachineAddress contains information for the node's address.
-                      properties:
-                        address:
-                          description: The machine address.
-                          type: string
-                        type:
-                          description: Machine address type, one of Hostname, ExternalIP or InternalIP.
-                          type: string
-                      required:
-                      - address
-                      - type
-                      type: object
-                    type: array
-                  ebsOptimized:
-                    description: Indicates whether the instance is optimized for Amazon EBS I/O.
-                    type: boolean
-                  enaSupport:
-                    description: Specifies whether enhanced networking with ENA is enabled.
-                    type: boolean
-                  iamProfile:
-                    description: The name of the IAM instance profile associated with the instance, if applicable.
-                    type: string
-                  id:
-                    type: string
-                  imageId:
-                    description: The ID of the AMI used to launch the instance.
-                    type: string
-                  instanceState:
-                    description: The current state of the instance.
-                    type: string
-                  networkInterfaces:
-                    description: Specifies ENIs attached to instance
-                    items:
-                      type: string
-                    type: array
-                  privateIp:
-                    description: The private IPv4 address assigned to the instance.
-                    type: string
-                  publicIp:
-                    description: The public IPv4 address assigned to the instance, if applicable.
-                    type: string
-                  rootDeviceSize:
-                    description: Specifies size (in Gi) of the root storage device
-                    format: int64
-                    type: integer
-                  securityGroupIds:
-                    description: SecurityGroupIDs are one or more security group IDs this instance belongs to.
-                    items:
-                      type: string
-                    type: array
-                  sshKeyName:
-                    description: The name of the SSH key pair.
-                    type: string
-                  subnetId:
-                    description: The ID of the subnet of the instance.
-                    type: string
-                  tags:
-                    additionalProperties:
-                      type: string
-                    description: The tags associated with the instance.
-                    type: object
-                  type:
-                    description: The instance type.
-                    type: string
-                  userData:
-                    description: UserData is the raw data script passed to the instance which is run upon bootstrap. This field must not be base64 encoded and should only be used when running a new instance.
-                    type: string
-                required:
-                - id
-                type: object
-              network:
-                description: Network encapsulates AWS networking resources.
-                properties:
-                  apiServerElb:
-                    description: APIServerELB is the Kubernetes api server classic load balancer.
-                    properties:
-                      attributes:
-                        description: Attributes defines extra attributes associated with the load balancer.
-                        properties:
-                          idleTimeout:
-                            description: IdleTimeout is time that the connection is allowed to be idle (no data has been sent over the connection) before it is closed by the load balancer.
-                            format: int64
-                            type: integer
-                        type: object
-                      dnsName:
-                        description: DNSName is the dns name of the load balancer.
-                        type: string
-                      healthChecks:
-                        description: HealthCheck is the classic elb health check associated with the load balancer.
-                        properties:
-                          healthyThreshold:
-                            format: int64
-                            type: integer
-                          interval:
-                            description: A Duration represents the elapsed time between two instants as an int64 nanosecond count. The representation limits the largest representable duration to approximately 290 years.
-                            format: int64
-                            type: integer
-                          target:
-                            type: string
-                          timeout:
-                            description: A Duration represents the elapsed time between two instants as an int64 nanosecond count. The representation limits the largest representable duration to approximately 290 years.
-                            format: int64
-                            type: integer
-                          unhealthyThreshold:
-                            format: int64
-                            type: integer
-                        required:
-                        - healthyThreshold
-                        - interval
-                        - target
-                        - timeout
-                        - unhealthyThreshold
-                        type: object
-                      listeners:
-                        description: Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
-                        items:
-                          description: ClassicELBListener defines an AWS classic load balancer listener.
-                          properties:
-                            instancePort:
-                              format: int64
-                              type: integer
-                            instanceProtocol:
-                              description: ClassicELBProtocol defines listener protocols for a classic load balancer.
-                              type: string
-                            port:
-                              format: int64
-                              type: integer
-                            protocol:
-                              description: ClassicELBProtocol defines listener protocols for a classic load balancer.
-                              type: string
-                          required:
-                          - instancePort
-                          - instanceProtocol
-                          - port
-                          - protocol
-                          type: object
-                        type: array
-                      name:
-                        description: The name of the load balancer. It must be unique within the set of load balancers defined in the region. It also serves as identifier.
-                        type: string
-                      scheme:
-                        description: Scheme is the load balancer scheme, either internet-facing or private.
-                        type: string
-                      securityGroupIds:
-                        description: SecurityGroupIDs is an array of security groups assigned to the load balancer.
-                        items:
-                          type: string
-                        type: array
-                      subnetIds:
-                        description: SubnetIDs is an array of subnets in the VPC attached to the load balancer.
-                        items:
-                          type: string
-                        type: array
-                      tags:
-                        additionalProperties:
-                          type: string
-                        description: Tags is a map of tags associated with the load balancer.
-                        type: object
-                    type: object
-                  securityGroups:
-                    additionalProperties:
-                      description: SecurityGroup defines an AWS security group.
-                      properties:
-                        id:
-                          description: ID is a unique identifier.
-                          type: string
-                        ingressRule:
-                          description: IngressRules is the inbound rules associated with the security group.
-                          items:
-                            description: IngressRule defines an AWS ingress rule for security groups.
-                            properties:
-                              cidrBlocks:
-                                description: List of CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.
-                                items:
-                                  type: string
-                                type: array
-                              description:
-                                type: string
-                              fromPort:
-                                format: int64
-                                type: integer
-                              protocol:
-                                description: SecurityGroupProtocol defines the protocol type for a security group rule.
-                                type: string
-                              sourceSecurityGroupIds:
-                                description: The security group id to allow access from. Cannot be specified with CidrBlocks.
-                                items:
-                                  type: string
-                                type: array
-                              toPort:
-                                format: int64
-                                type: integer
-                            required:
-                            - description
-                            - fromPort
-                            - protocol
-                            - toPort
-                            type: object
-                          type: array
-                        name:
-                          description: Name is the security group name.
-                          type: string
-                        tags:
-                          additionalProperties:
-                            type: string
-                          description: Tags is a map of tags associated with the security group.
-                          type: object
-                      required:
-                      - id
-                      - name
-                      type: object
-                    description: SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
-                    type: object
-                type: object
-              ready:
-                type: boolean
-            required:
-            - ready
-            type: object
-        type: object
-    served: true
-    storage: false
-    subresources:
-      status: {}
   - additionalPrinterColumns:
-    - description: Cluster to which this AWSCluster belongs
+    - description: Cluster to which this AWSManagedControl belongs
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
-    - description: Cluster infrastructure is ready for EC2 instances
+    - description: Control plane infrastructure is ready for worker nodes
       jsonPath: .status.ready
       name: Ready
       type: string
-    - description: AWS VPC the cluster is using
+    - description: AWS VPC the control plane is using
       jsonPath: .spec.networkSpec.vpc.id
       name: VPC
       type: string
     - description: API Endpoint
-      jsonPath: .status.apiEndpoints[0]
+      jsonPath: .spec.controlPlaneEndpoint.host
       name: Endpoint
       priority: 1
       type: string
@@ -382,7 +45,7 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: AWSCluster is the Schema for the awsclusters API
+        description: AWSManagedControlPlane is the Schema for the awsmanagedcontrolplanes API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -393,7 +56,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: AWSClusterSpec defines the desired state of AWSCluster
+            description: AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane
             properties:
               additionalTags:
                 additionalProperties:
@@ -432,15 +95,35 @@ spec:
                 - host
                 - port
                 type: object
-              controlPlaneLoadBalancer:
-                description: ControlPlaneLoadBalancer is optional configuration for customizing control plane behavior.
+              eksClusterName:
+                description: EKSClusterName allows you to specify the name of the EKS cluster in AWS. If you don't specify a name then a default name will be created based on the namespace and name of the managed control plane.
+                type: string
+              encryptionConfig:
+                description: EncryptionConfig specifies the encryption configuration for the cluster
                 properties:
-                  crossZoneLoadBalancing:
-                    description: "CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing. \n With cross-zone load balancing, each load balancer node for your Classic Load Balancer distributes requests evenly across the registered instances in all enabled Availability Zones. If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across the registered instances in its Availability Zone only. \n Defaults to false."
-                    type: boolean
-                  scheme:
-                    description: Scheme sets the scheme of the load balancer (defaults to Internet-facing)
+                  provider:
+                    description: Provider specifies the ARN or alias of the CMK (in AWS KMS)
                     type: string
+                  resources:
+                    description: Resources specifies the resources to be encrypted
+                    items:
+                      type: string
+                    type: array
+                type: object
+              endpointAccess:
+                description: Endpoints specifies access to this cluster's control plane endpoints
+                properties:
+                  private:
+                    description: Private points VPC-internal control plane access to the private endpoint
+                    type: boolean
+                  public:
+                    description: Public controls whether control plane endpoints are publicly accessible
+                    type: boolean
+                  publicCIDRs:
+                    description: PublicCIDRs specifies which blocks can access the public endpoint
+                    items:
+                      type: string
+                    type: array
                 type: object
               imageLookupBaseOS:
                 description: ImageLookupBaseOS is the name of the base operating system used to look up machine images when a machine does not specify an AMI. When set, this will be used for all cluster machines unless a machine specifies a different ImageLookupBaseOS.
@@ -451,6 +134,36 @@ spec:
               imageLookupOrg:
                 description: ImageLookupOrg is the AWS Organization ID to look up machine images when a machine does not specify an AMI. When set, this will be used for all cluster machines unless a machine specifies a different ImageLookupOrg.
                 type: string
+              logging:
+                description: Logging specifies which EKS Cluster logs should be enabled. Entries for each of the enabled logs will be sent to CloudWatch
+                properties:
+                  apiServer:
+                    default: false
+                    description: APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
+                    type: boolean
+                  audit:
+                    default: false
+                    description: Audit indicates if the Kubernetes API audit log should be enabled
+                    type: boolean
+                  authenticator:
+                    default: false
+                    description: Authenticator indicates if the iam authenticator log should be enabled
+                    type: boolean
+                  controllerManager:
+                    default: false
+                    description: ControllerManager indicates if the controller manager (kube-controller-manager) log should be enabled
+                    type: boolean
+                  scheduler:
+                    default: false
+                    description: Scheduler indicates if the Kubernetes scheduler (kube-scheduler) log should be enabled
+                    type: boolean
+                required:
+                - apiServer
+                - audit
+                - authenticator
+                - controllerManager
+                - scheduler
+                type: object
               networkSpec:
                 description: NetworkSpec encapsulates all things related to AWS network.
                 properties:
@@ -545,15 +258,36 @@ spec:
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
+              roleAdditionalPolicies:
+                description: RoleAdditionalPolicies allows you to attach additional polices to the control plane role. You must enable the EKSAllowAddRoles feature flag to incorporate these into the created role.
+                items:
+                  type: string
+                type: array
+              roleName:
+                description: RoleName specifies the name of IAM role that gives EKS permission to make API calls. If the role is pre-existing we will treat it as unmanaged and not delete it on deletion. If the EKSEnableIAM feature flag is true and no name is supplied then a role is created.
+                minLength: 2
+                type: string
               sshKeyName:
                 description: SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
                 type: string
+              tokenMethod:
+                default: iam-authenticator
+                description: TokenMethod is used to specify the method for obtaining a client token for communicating with EKS iam-authenticator - obtains a client token using iam-authentictor aws-cli - obtains a client token using the AWS CLI Defaults to iam-authenticator
+                enum:
+                - iam-authenticator
+                - aws-cli
+                type: string
+              version:
+                description: Version defines the desired Kubernetes version. If no version number is supplied then the latest version of Kubernetes that EKS supports will be used.
+                minLength: 2
+                pattern: ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?$
+                type: string
             type: object
           status:
-            description: AWSClusterStatus defines the observed state of AWSCluster
+            description: AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane
             properties:
               bastion:
-                description: Instance describes an AWS instance.
+                description: Bastion holds details of the instance that is used as a bastion jump box
                 properties:
                   addresses:
                     description: Addresses contains the AWS instance associated addresses.
@@ -692,7 +426,7 @@ spec:
                 - id
                 type: object
               conditions:
-                description: Conditions provide observations of the operational state of a Cluster API resource.
+                description: Conditions specifies the cpnditions for the managed control plane
                 items:
                   description: Condition defines an observation of a Cluster API resource operational state.
                   properties:
@@ -733,10 +467,16 @@ spec:
                       description: ControlPlane determines if this failure domain is suitable for use by control plane machines.
                       type: boolean
                   type: object
-                description: FailureDomains is a slice of FailureDomains.
+                description: FailureDomains specifies a list fo available availability zones that can be used
                 type: object
+              failureMessage:
+                description: ErrorMessage indicates that there is a terminal problem reconciling the state, and will be set to a descriptive error message.
+                type: string
+              initialized:
+                description: Initialized denotes whether or not the control plane has the uploaded kubernetes config-map.
+                type: boolean
               network:
-                description: Network encapsulates AWS networking resources.
+                description: Networks holds details about the AWS networking resources used by the control plane
                 properties:
                   apiServerElb:
                     description: APIServerELB is the Kubernetes api server classic load balancer.
@@ -889,6 +629,7 @@ spec:
                 type: object
               ready:
                 default: false
+                description: Ready denotes that the AWSManagedControlPlane API Server is ready to receive requests and that the VPC infra is ready.
                 type: boolean
             required:
             - ready

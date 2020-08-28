@@ -21,12 +21,18 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -74,6 +80,36 @@ func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, 
 	secretsClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
 	return secretsClient
+}
+
+// NewEKSClient creates a new EKS API client for a given session
+func NewEKSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) eksiface.EKSAPI {
+	eksClient := eks.New(session.Session())
+	eksClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	eksClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	eksClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+
+	return eksClient
+}
+
+// NewIAMClient creates a new IAM API client for a given session
+func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) iamiface.IAMAPI {
+	iamClient := iam.New(session.Session())
+	iamClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	iamClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	iamClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+
+	return iamClient
+}
+
+// NewSTSClient creates a new STS API client for a given session
+func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) stsiface.STSAPI {
+	stsClient := sts.New(session.Session())
+	stsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
+	stsClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
+	stsClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+
+	return stsClient
 }
 
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {

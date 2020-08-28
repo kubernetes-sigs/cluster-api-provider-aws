@@ -50,12 +50,15 @@ type ClusterScoper interface {
 	Session
 	ScopeUsage
 
-	// Name returns the cluster name.
+	// Name returns the CAPI cluster name.
 	Name() string
 	// Namespace returns the cluster namespace.
 	Namespace() string
 	// Region returns the cluster region.
 	Region() string
+	// KubernetesClusterName is the name of the Kubernetes cluster. For EKS this
+	// will differ to the CAPI cluster name
+	KubernetesClusterName() string
 
 	// InfraCluster returns the AWS infrastructure cluster object.
 	InfraCluster() ClusterObject
