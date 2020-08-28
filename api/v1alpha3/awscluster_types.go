@@ -104,6 +104,11 @@ type Bastion struct {
 	// Cluster API Provider AWS will use t3.micro for all regions except us-east-1, where t2.micro
 	// will be the default.
 	InstanceType string `json:"instanceType,omitempty"`
+
+	// InstanceImage will use a specified AMI to boot the bastion. If not specified,
+	// the image will default to one picked out in public space.
+	// +optional
+	AMI string `json:"ami,omitempty"`
 }
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer
