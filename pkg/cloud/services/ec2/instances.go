@@ -174,8 +174,9 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	}
 	input.SubnetID = subnetID
 
-	if s.scope.Network().APIServerELB.DNSName == "" {
+	if scope.InfraCluster.ControllerName() == "awsCluster" && s.scope.Network().APIServerELB.DNSName == "" {
 		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
+
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
 	}
 	if !scope.UserDataIsUncompressed() {
