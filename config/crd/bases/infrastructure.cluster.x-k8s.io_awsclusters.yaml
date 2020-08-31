@@ -409,7 +409,7 @@ spec:
                       type: string
                     type: array
                   ami:
-                    description: InstanceImage will use a specified AMI to boot the bastion. If not specified, the image will default to one picked out in public space.
+                    description: AMI will use the specified AMI to boot the bastion. If not specified, the AMI will default to one picked out in public space.
                     type: string
                   disableIngressRules:
                     description: DisableIngressRules will ensure there are no Ingress rules in the bastion host's security group. Requires AllowedCIDRBlocks to be empty.
