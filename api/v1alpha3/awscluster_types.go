@@ -105,8 +105,8 @@ type Bastion struct {
 	// will be the default.
 	InstanceType string `json:"instanceType,omitempty"`
 
-	// InstanceImage will use a specified AMI to boot the bastion. If not specified,
-	// the image will default to one picked out in public space.
+	// AMI will use the specified AMI to boot the bastion. If not specified,
+	// the AMI will default to one picked out in public space.
 	// +optional
 	AMI string `json:"ami,omitempty"`
 }
