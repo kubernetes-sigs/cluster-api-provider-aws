@@ -34,7 +34,8 @@ cluster on AWS.
   bastion server.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
-- Currently supports control planes on EC2 instances.
+- Supports control planes on EC2 instances.
+- Experimental [EKS support](docs/eks.md)
 
 ------
 

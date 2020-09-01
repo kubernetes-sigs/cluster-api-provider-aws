@@ -7,6 +7,7 @@
 - [Accessing cluster instances](accessing-instances.md)
 - [Building AMIs with Packer](https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi#make-targets)
 - [Userdata Privacy](userdata-privacy.md)
+- [EKS Support](eks.md)
 
 ## Special use cases
 - [Reconcile Cluster-API objects in a restricted namespace](reconcile-in-custom-namespace.md)
