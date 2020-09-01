@@ -122,66 +122,13 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 	logger = logger.WithValues("cluster", cluster.Name)
 
-	var clusterScope *scope.ClusterScope
-	var managedControlPlaneScope *scope.ManagedControlPlaneScope
-
-	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Kind == "AWSManagedControlPlane" {
-		controlPlane := &expinfrav1.AWSManagedControlPlane{}
-		controlPlaneName := client.ObjectKey{
-			Namespace: awsMachine.Namespace,
-			Name:      cluster.Spec.ControlPlaneRef.Name,
-		}
-
-		if err := r.Get(ctx, controlPlaneName, controlPlane); err != nil {
-			logger.Info("AWSManagedControlPlane is not available yet")
-			return ctrl.Result{}, nil
-		}
-
-		logger = logger.WithValues("AWSManagedControlPlane", controlPlane.Name)
-
-		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-			Client:         r.Client,
-			Logger:         logger,
-			Cluster:        cluster,
-			ControlPlane:   controlPlane,
-			ControllerName: "awsManagedControlPlane",
-		})
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		awsCluster := &infrav1.AWSCluster{}
-
-		infraClusterName := client.ObjectKey{
-			Namespace: awsMachine.Namespace,
-			Name:      cluster.Spec.InfrastructureRef.Name,
-		}
-
-		if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
-			logger.Info("AWSCluster is not available yet")
-			return ctrl.Result{}, nil
-		}
-
-		logger = logger.WithValues("awsCluster", awsCluster.Name)
-
-		// Create the cluster scope
-		clusterScope, err = scope.NewClusterScope(scope.ClusterScopeParams{
-			Client:         r.Client,
-			Logger:         logger,
-			Cluster:        cluster,
-			AWSCluster:     awsCluster,
-			ControllerName: "awsmachine",
-		})
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	infraCluster, err := r.getInfraCluster(ctx, logger, cluster, awsMachine)
+	if err != nil {
+		return ctrl.Result{}, errors.New("error getting infra provider cluster or control plane object")
 	}
-
-	var infraCluster scope.EC2Scope
-	if managedControlPlaneScope != nil {
-		infraCluster = managedControlPlaneScope
-	} else {
-		infraCluster = clusterScope
+	if infraCluster == nil {
+		logger.Info("AWSCluster or AWSManagedControlPlane is not ready yet")
+		return ctrl.Result{}, nil
 	}
 
 	// Create the machine scope
@@ -231,19 +178,22 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		}
 	}()
 
-	if !awsMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		if managedControlPlaneScope != nil {
-			return r.reconcileDelete(machineScope, managedControlPlaneScope, managedControlPlaneScope, nil)
+	switch infraScope := infraCluster.(type) {
+	case *scope.ManagedControlPlaneScope:
+		if !awsMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+			return r.reconcileDelete(machineScope, infraScope, infraScope, nil)
 		}
 
-		return r.reconcileDelete(machineScope, clusterScope, clusterScope, clusterScope)
-	}
+		return r.reconcileNormal(ctx, machineScope, infraScope, infraScope, nil)
+	case *scope.ClusterScope:
+		if !awsMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+			return r.reconcileDelete(machineScope, infraScope, infraScope, infraScope)
+		}
 
-	if managedControlPlaneScope != nil {
-		return r.reconcileNormal(ctx, machineScope, managedControlPlaneScope, managedControlPlaneScope, nil)
+		return r.reconcileNormal(ctx, machineScope, infraScope, infraScope, infraScope)
+	default:
+		return ctrl.Result{}, errors.New("infraCluster has unknown type")
 	}
-
-	return r.reconcileNormal(ctx, machineScope, clusterScope, clusterScope, clusterScope)
 }
 
 func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
@@ -781,4 +731,62 @@ func (r *AWSMachineReconciler) requestsForCluster(log logr.Logger, namespace, na
 		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}})
 	}
 	return result
+}
+
+func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Logger, cluster *clusterv1.Cluster, awsMachine *infrav1.AWSMachine) (scope.EC2Scope, error) {
+	var clusterScope *scope.ClusterScope
+	var managedControlPlaneScope *scope.ManagedControlPlaneScope
+	var err error
+
+	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Kind == "AWSManagedControlPlane" {
+		controlPlane := &expinfrav1.AWSManagedControlPlane{}
+		controlPlaneName := client.ObjectKey{
+			Namespace: awsMachine.Namespace,
+			Name:      cluster.Spec.ControlPlaneRef.Name,
+		}
+
+		if err := r.Get(ctx, controlPlaneName, controlPlane); err != nil {
+			// AWSManagedControlPlane is not ready
+			return nil, nil
+		}
+
+		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+			Client:         r.Client,
+			Logger:         log,
+			Cluster:        cluster,
+			ControlPlane:   controlPlane,
+			ControllerName: "awsManagedControlPlane",
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return managedControlPlaneScope, nil
+	}
+
+	awsCluster := &infrav1.AWSCluster{}
+
+	infraClusterName := client.ObjectKey{
+		Namespace: awsMachine.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+
+	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
+		// AWSCluster is not ready
+		return nil, nil
+	}
+
+	// Create the cluster scope
+	clusterScope, err = scope.NewClusterScope(scope.ClusterScopeParams{
+		Client:         r.Client,
+		Logger:         log,
+		Cluster:        cluster,
+		AWSCluster:     awsCluster,
+		ControllerName: "awsmachine",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return clusterScope, nil
 }
