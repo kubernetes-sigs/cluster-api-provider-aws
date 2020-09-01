@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	standardImageRepo = "gcr.io/google-containers/conformance"
+	standardImageRepo = "us.gcr.io/k8s-artifacts-prod/conformance"
 	ciImageRepo       = "gcr.io/kubernetes-ci-images/conformance"
 )
 
