@@ -140,7 +140,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 			return nil, err
 		}
 
-		if s.shouldUseEksAMI() {
+		if scope.IsEKSManaged() {
 			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version)
 			if err != nil {
 				return nil, err
@@ -174,7 +174,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	}
 	input.SubnetID = subnetID
 
-	if scope.InfraCluster.ControllerName() == "awsCluster" && s.scope.Network().APIServerELB.DNSName == "" {
+	if !scope.IsEKSManaged() && s.scope.Network().APIServerELB.DNSName == "" {
 		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
 
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
@@ -311,8 +311,12 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	// These are common across both controlplane and node machines
 	sgRoles := []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupNode,
-		infrav1.SecurityGroupLB,
 	}
+
+	if !scope.IsEKSManaged() {
+		sgRoles = append(sgRoles, infrav1.SecurityGroupLB)
+	}
+
 	switch scope.Role() {
 	case "node":
 		// Just the common security groups above
@@ -818,12 +822,6 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
 	}
 	return nil
-}
-
-func (s *Service) shouldUseEksAMI() bool {
-	gvk := s.scope.InfraCluster().GetObjectKind().GroupVersionKind()
-
-	return gvk.Kind == "AWSManagedControlPlane"
 }
 
 // filterGroups filters a list for a string.
