@@ -151,6 +151,16 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			"iam:GetRole",
 			"iam:ListAttachedRolePolicies",
 		}
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:aws:ssm:*:*:parameter/aws/service/eks/optimized-ami/*",
+			},
+			Action: iamv1.Actions{
+				"ssm:GetParameter",
+			},
+		})
+
 		if t.Spec.ClusterAPIControllers.EKS.IAMRoleCreation {
 			allowedIAMActions = append(allowedIAMActions, iamv1.Actions{
 				"iam:DetachRolePolicy",
@@ -206,6 +216,7 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 		}...)
 	}
+
 	return &iamv1.PolicyDocument{
 		Version:   iamv1.CurrentVersion,
 		Statement: statement,

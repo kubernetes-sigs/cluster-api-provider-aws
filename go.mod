@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/aws/aws-sdk-go v1.34.10
 	github.com/awslabs/goformation/v4 v4.11.0
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.4.3
 	github.com/google/goexpect v0.0.0-20200703111054-623d5ca06f56

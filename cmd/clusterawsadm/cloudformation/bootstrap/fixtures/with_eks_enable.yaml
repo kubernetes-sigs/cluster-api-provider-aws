@@ -215,6 +215,11 @@ Resources:
           Resource:
           - arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*
         - Action:
+          - ssm:GetParameter
+          Effect: Allow
+          Resource:
+          - arn:aws:ssm:*:*:parameter/aws/service/eks/optimized-ami/*
+        - Action:
           - iam:GetRole
           - iam:ListAttachedRolePolicies
           Effect: Allow
