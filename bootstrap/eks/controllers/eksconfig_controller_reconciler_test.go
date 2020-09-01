@@ -75,6 +75,13 @@ func newCluster(name string) *clusterv1.Cluster {
 			Namespace: "default",
 			Name:      name,
 		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: &corev1.ObjectReference{
+				Name:      name,
+				Kind:      "AWSManagedControlPlane",
+				Namespace: "default",
+			},
+		},
 	}
 }
 

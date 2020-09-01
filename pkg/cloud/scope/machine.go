@@ -310,3 +310,7 @@ func (m *MachineScope) InstanceIsInKnownState() bool {
 func (m *MachineScope) AWSMachineIsDeleted() bool {
 	return !m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()
 }
+
+func (m *MachineScope) IsEKSManaged() bool {
+	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
+}
