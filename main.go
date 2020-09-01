@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -78,6 +79,7 @@ var (
 	webhookPort             int
 	healthAddr              string
 	serviceEndpoints        string
+	errEKSInvalidFlags      = errors.New("invalid EKS flag combination")
 )
 
 func main() {
@@ -159,6 +161,24 @@ func main() {
 		if feature.Gates.Enabled(feature.EKS) {
 			setupLog.Info("enabling EKS controllers")
 
+			enableIAM := feature.Gates.Enabled(feature.EKSEnableIAM)
+			allowAddRoles := feature.Gates.Enabled(feature.EKSAllowAddRoles)
+
+			if allowAddRoles && !enableIAM {
+				setupLog.Error(errEKSInvalidFlags, "cannot use EKSAllowAddRoles flag without EKSEnableIAM")
+				os.Exit(1)
+			}
+
+			if err = (&controllersexp.AWSManagedMachinePoolReconciler{
+				Client:    mgr.GetClient(),
+				Log:       ctrl.Log.WithName("controllers").WithName("AWSManagedMachinePool"),
+				Recorder:  mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
+				EnableIAM: enableIAM,
+				Endpoints: AWSServiceEndpoints,
+			}).SetupWithManager(mgr, controller.Options{}); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "AWSManagedMachinePool")
+				os.Exit(1)
+			}
 			if err = (&controllersexp.AWSManagedClusterReconciler{
 				Client:   mgr.GetClient(),
 				Log:      ctrl.Log.WithName("controllers").WithName("AWSManagedCluster"),

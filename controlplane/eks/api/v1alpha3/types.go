@@ -82,4 +82,8 @@ var (
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
 	// can be created using clusterawsadm or created manually
 	DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", infrav1.DefaultNameSuffix)
+	// DefaultEKSNodegroupRole is the name of the default IAM role to use for EKS nodegroups
+	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
+	// can be created using clusterawsadm or created manually
+	DefaultEKSNodegroupRole = fmt.Sprintf("eks-nodegroup%s", infrav1.DefaultNameSuffix)
 )

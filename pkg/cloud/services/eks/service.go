@@ -17,6 +17,7 @@ limitations under the License.
 package eks
 
 import (
+	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
@@ -47,5 +48,30 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope) *Service {
 			IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		},
 		STSClient: scope.NewSTSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+	}
+}
+
+// NodegroupService holds a collection of interfaces.
+// The interfaces are broken down like this to group functions together.
+// One alternative is to have a large list of functions from the ec2 client.
+type NodegroupService struct {
+	scope             *scope.ManagedMachinePoolScope
+	AutoscalingClient autoscalingiface.AutoScalingAPI
+	EKSClient         eksiface.EKSAPI
+	iam.IAMService
+	STSClient stsiface.STSAPI
+}
+
+// NewNodegroupService returns a new service given the api clients.
+func NewNodegroupService(machinePoolScope *scope.ManagedMachinePoolScope) *NodegroupService {
+	return &NodegroupService{
+		scope:             machinePoolScope,
+		AutoscalingClient: scope.NewASGClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
+		EKSClient:         scope.NewEKSClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
+		IAMService: iam.IAMService{
+			Logger:    machinePoolScope.Logger,
+			IAMClient: scope.NewIAMClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
+		},
+		STSClient: scope.NewSTSClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 	}
 }

@@ -145,12 +145,7 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 	return nil
 }
 
-func (s *IAMService) CreateRole(
-	roleName string,
-	key string,
-	trustRelationship *apiiam.PolicyDocument,
-	additionalTags infrav1.Tags,
-) (*iam.Role, error) {
+func RoleTags(key string, additionalTags infrav1.Tags) []*iam.Tag {
 	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(key)] = string(infrav1.ResourceLifecycleOwned)
 	tags := []*iam.Tag{}
 	for k, v := range additionalTags {
@@ -159,6 +154,16 @@ func (s *IAMService) CreateRole(
 			Value: aws.String(v),
 		})
 	}
+	return tags
+}
+
+func (s *IAMService) CreateRole(
+	roleName string,
+	key string,
+	trustRelationship *apiiam.PolicyDocument,
+	additionalTags infrav1.Tags,
+) (*iam.Role, error) {
+	tags := RoleTags(key, additionalTags)
 
 	trustRelationshipJSON, err := converters.IAMPolicyDocumentToJSON(*trustRelationship)
 	if err != nil {
@@ -177,6 +182,72 @@ func (s *IAMService) CreateRole(
 	}
 
 	return out.Role, nil
+}
+
+func (s *IAMService) EnsureTagsAndPolicy(
+	role *iam.Role,
+	key string,
+	trustRelationship *apiiam.PolicyDocument,
+	additionalTags infrav1.Tags,
+) error {
+	s.V(2).Info("Ensuring tags and AssumeRolePolicyDocument are set on role")
+	trustRelationshipJSON, err := converters.IAMPolicyDocumentToJSON(*trustRelationship)
+	if err != nil {
+		return errors.Wrap(err, "error converting trust relationship to json")
+	}
+
+	if trustRelationshipJSON != *role.AssumeRolePolicyDocument {
+		policyInput := &iam.UpdateAssumeRolePolicyInput{
+			RoleName:       role.RoleName,
+			PolicyDocument: aws.String(trustRelationshipJSON),
+		}
+		_, err := s.IAMClient.UpdateAssumeRolePolicy(policyInput)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	tagInput := &iam.TagRoleInput{
+		RoleName: role.RoleName,
+	}
+	untagInput := &iam.UntagRoleInput{
+		RoleName: role.RoleName,
+	}
+	currentTags := make(map[string]string)
+	for _, tag := range role.Tags {
+		currentTags[*tag.Key] = *tag.Value
+		if *tag.Key == infrav1.ClusterAWSCloudProviderTagKey(key) {
+			continue
+		}
+		if _, ok := additionalTags[*tag.Key]; !ok {
+			untagInput.TagKeys = append(untagInput.TagKeys, tag.Key)
+		}
+	}
+	for key, value := range additionalTags {
+		if currentV, ok := currentTags[key]; !ok || value != currentV {
+			tagInput.Tags = append(tagInput.Tags, &iam.Tag{
+				Key:   aws.String(key),
+				Value: aws.String(value),
+			})
+		}
+	}
+
+	if len(tagInput.Tags) > 0 {
+		_, err = s.IAMClient.TagRole(tagInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(untagInput.TagKeys) > 0 {
+		_, err = s.IAMClient.UntagRole(untagInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *IAMService) detachAllPoliciesForRole(name string) error {
@@ -231,6 +302,26 @@ func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
 	if enableFargate {
 		principal["Service"] = append(principal["Service"], "eks-fargate-pods.amazonaws.com")
 	}
+
+	policy := &apiiam.PolicyDocument{
+		Version: "2012-10-17",
+		Statement: []apiiam.StatementEntry{
+			{
+				Effect: "Allow",
+				Action: []string{
+					"sts:AssumeRole",
+				},
+				Principal: principal,
+			},
+		},
+	}
+
+	return policy
+}
+
+func NodegroupTrustRelationship() *apiiam.PolicyDocument {
+	principal := make(apiiam.Principals)
+	principal["Service"] = []string{"ec2.amazonaws.com"}
 
 	policy := &apiiam.PolicyDocument{
 		Version: "2012-10-17",

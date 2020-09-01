@@ -35,3 +35,22 @@ const (
 	// LaunchTemplateCreateFailedReason used for failures during Launch Template creation
 	LaunchTemplateCreateFailedReason = "LaunchTemplateCreateFailed"
 )
+
+const (
+	// EKSNodegroupReadyCondition condition reports on the successful reconciliation of eks control plane.
+	EKSNodegroupReadyCondition clusterv1.ConditionType = "EKSNodegroupReady"
+	// EKSNodegroupReconciliationFailedReason used to report failures while reconciling EKS control plane
+	EKSNodegroupReconciliationFailedReason = "EKSNodegroupReconciliationFailed"
+	// WaitingForEKSControlPlaneReason used when the machine pool is waiting for
+	// EKS control plane infrastructure to be ready before proceeding.
+	WaitingForEKSControlPlaneReason = "WaitingForEKSControlPlane"
+)
+
+const (
+	// IAMNodegroupRolesReadyCondition condition reports on the successful
+	// reconciliation of EKS nodegroup iam roles.
+	IAMNodegroupRolesReadyCondition clusterv1.ConditionType = "IAMNodegroupRolesReady"
+	// IAMNodegroupRolesReconciliationFailedReason used to report failures while
+	// reconciling EKS nodegroup iam roles
+	IAMNodegroupRolesReconciliationFailedReason = "IAMNodegroupRolesReconciliationFailed"
+)

@@ -25,15 +25,24 @@ import (
 	"github.com/pkg/errors"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
+
+// NodegroupRolePolicies gives the policies required for a nodegroup role
+func NodegroupRolePolicies() []string {
+	return []string{
+		"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+		"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy", //TODO: Can remove when CAPA supports provisioning of OIDC web identity federation with service account token volume projection
+		"arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+	}
+}
 
 func (s *Service) reconcileControlPlaneIAMRole() error {
 	s.scope.V(2).Info("Reconciling EKS Control Plane IAM Role")
 
 	if s.scope.ControlPlane.Spec.RoleName == nil {
-		//TODO (richardcase): in the future use a default role created by clusterawsadm
 		if !s.scope.EnableIAM() {
 			s.scope.Info("no eks control plane role specified, using default eks control plane role")
 			s.scope.ControlPlane.Spec.RoleName = &ekscontrolplanev1.DefaultEKSControlPlaneRole
@@ -41,7 +50,6 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 			s.scope.Info("no eks control plane role specified, using role based on cluster name")
 			s.scope.ControlPlane.Spec.RoleName = aws.String(fmt.Sprintf("%s-iam-service-role", s.scope.Name()))
 		}
-
 	}
 	s.scope.Info("using eks control plane role", "role-name", *s.scope.ControlPlane.Spec.RoleName)
 
@@ -127,6 +135,93 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 	}
 
 	record.Eventf(s.scope.ControlPlane, "SucessfulIAMRoleDeletion", "Deleted Control Plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
+	return nil
+}
+
+func (s *NodegroupService) reconcileNodegroupIAMRole() error {
+	s.scope.V(2).Info("Reconciling EKS Nodegroup IAM Role")
+
+	if s.scope.RoleName() == "" {
+		var roleName string
+		if !s.scope.EnableIAM() {
+			s.scope.Info("no EKS nodegroup role specified, using default EKS nodegroup role")
+			roleName = infrav1exp.DefaultEKSNodegroupRole
+		} else {
+			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
+			roleName = fmt.Sprintf("%s-nodegroup-iam-service-role", s.scope.Name())
+		}
+		s.scope.ManagedMachinePool.Spec.RoleName = roleName
+	}
+
+	role, err := s.GetIAMRole(s.scope.RoleName())
+	if err != nil {
+		if !isNotFound(err) {
+			return err
+		}
+
+		// If the disable IAM flag is used then the role must exist
+		if !s.scope.EnableIAM() {
+			return ErrNodegroupRoleNotFound
+		}
+
+		role, err = s.CreateRole(s.scope.ManagedMachinePool.Spec.RoleName, s.scope.Name(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
+		if err != nil {
+			record.Warnf(s.scope.ManagedMachinePool, "FailedIAMRoleCreation", "Failed to create nodegroup IAM role %q: %v", s.scope.RoleName(), err)
+			return err
+		}
+		record.Eventf(s.scope.ManagedMachinePool, "SucessfulIAMRoleCreation", "Created nodegroup IAM role %q", s.scope.RoleName())
+	}
+
+	if s.IsUnmanaged(role, s.scope.Name()) {
+		s.scope.V(2).Info("Skipping, EKS nodegroup role policy assignment as role is unamanged")
+		return nil
+	}
+
+	err = s.EnsureTagsAndPolicy(role, s.scope.Name(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
+	if err != nil {
+		return errors.Wrapf(err, "error ensuring tags and policy document are set on node role")
+	}
+
+	policies := NodegroupRolePolicies()
+	err = s.EnsurePoliciesAttached(role, aws.StringSlice(policies))
+	if err != nil {
+		return errors.Wrapf(err, "error ensuring policies are attached: %v", policies)
+	}
+
+	return nil
+}
+
+func (s *NodegroupService) deleteNodegroupIAMRole() error {
+	roleName := s.scope.RoleName()
+	if !s.scope.EnableIAM() {
+		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Nodegroup IAM Role")
+		return nil
+	}
+
+	s.scope.V(2).Info("Deleting EKS Nodegroup IAM Role")
+
+	role, err := s.GetIAMRole(roleName)
+	if err != nil {
+		if isNotFound(err) {
+			s.V(2).Info("EKS Nodegroup IAM Role already deleted")
+			return nil
+		}
+
+		return errors.Wrap(err, "getting EKS nodegroup iam role")
+	}
+
+	if s.IsUnmanaged(role, s.scope.Name()) {
+		s.V(2).Info("Skipping, EKS Nodegroup iam role deletion as role is unamanged")
+		return nil
+	}
+
+	err = s.DeleteRole(s.scope.RoleName())
+	if err != nil {
+		record.Eventf(s.scope.ManagedMachinePool, "FailedIAMRoleDeletion", "Failed to delete Nodegroup IAM role %q: %v", s.scope.ManagedMachinePool.Spec.RoleName, err)
+		return err
+	}
+
+	record.Eventf(s.scope.ManagedMachinePool, "SucessfulIAMRoleDeletion", "Deleted Nodegroup IAM role %q", s.scope.ManagedMachinePool.Spec.RoleName)
 	return nil
 }
 
