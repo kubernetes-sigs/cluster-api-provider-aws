@@ -19,10 +19,10 @@ package eks
 import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 )
 
 // Service holds a collection of interfaces.
@@ -32,7 +32,7 @@ type Service struct {
 	scope     *scope.ManagedControlPlaneScope
 	EC2Client ec2iface.EC2API
 	EKSClient eksiface.EKSAPI
-	IAMClient iamiface.IAMAPI
+	iam.IAMService
 	STSClient stsiface.STSAPI
 }
 
@@ -42,7 +42,10 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope) *Service {
 		scope:     controlPlaneScope,
 		EC2Client: scope.NewEC2Client(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		EKSClient: scope.NewEKSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
-		IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+		IAMService: iam.IAMService{
+			Logger:    controlPlaneScope.Logger,
+			IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+		},
 		STSClient: scope.NewSTSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 	}
 }
