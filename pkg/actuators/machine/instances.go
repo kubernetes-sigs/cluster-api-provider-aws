@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/machine-api-operator/pkg/metrics"
 	"k8s.io/klog"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -100,7 +101,7 @@ func getSecurityGroupsIDs(securityGroups []awsproviderv1.AWSResourceReference, c
 	return securityGroupIDs, nil
 }
 
-func getSubnetIDs(subnet awsproviderv1.AWSResourceReference, availabilityZone string, client awsclient.Client) ([]*string, error) {
+func getSubnetIDs(machine runtimeclient.ObjectKey, subnet awsproviderv1.AWSResourceReference, availabilityZone string, client awsclient.Client) ([]*string, error) {
 	var subnetIDs []*string
 	// ID has priority
 	if subnet.ID != nil {
@@ -115,6 +116,11 @@ func getSubnetIDs(subnet awsproviderv1.AWSResourceReference, availabilityZone st
 				ZoneNames: []*string{aws.String(availabilityZone)},
 			})
 			if err != nil {
+				metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
+					Name:      machine.Name,
+					Namespace: machine.Namespace,
+					Reason:    err.Error(),
+				})
 				klog.Errorf("error describing availability zones: %v", err)
 				return nil, fmt.Errorf("error describing availability zones: %v", err)
 			}
@@ -127,6 +133,11 @@ func getSubnetIDs(subnet awsproviderv1.AWSResourceReference, availabilityZone st
 		}
 		describeSubnetResult, err := client.DescribeSubnets(&describeSubnetRequest)
 		if err != nil {
+			metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
+				Name:      machine.Name,
+				Namespace: machine.Namespace,
+				Reason:    err.Error(),
+			})
 			klog.Errorf("error describing subnetes: %v", err)
 			return nil, fmt.Errorf("error describing subnets: %v", err)
 		}
@@ -141,7 +152,7 @@ func getSubnetIDs(subnet awsproviderv1.AWSResourceReference, availabilityZone st
 	return subnetIDs, nil
 }
 
-func getAMI(AMI awsproviderv1.AWSResourceReference, client awsclient.Client) (*string, error) {
+func getAMI(machine runtimeclient.ObjectKey, AMI awsproviderv1.AWSResourceReference, client awsclient.Client) (*string, error) {
 	if AMI.ID != nil {
 		amiID := AMI.ID
 		klog.Infof("Using AMI %s", *amiID)
@@ -154,6 +165,11 @@ func getAMI(AMI awsproviderv1.AWSResourceReference, client awsclient.Client) (*s
 		}
 		describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 		if err != nil {
+			metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
+				Name:      machine.Name,
+				Namespace: machine.Namespace,
+				Reason:    err.Error(),
+			})
 			klog.Errorf("error describing AMI: %v", err)
 			return nil, fmt.Errorf("error describing AMI: %v", err)
 		}
@@ -183,7 +199,7 @@ func getAMI(AMI awsproviderv1.AWSResourceReference, client awsclient.Client) (*s
 	return nil, fmt.Errorf("AMI ID or AMI filters need to be specified")
 }
 
-func getBlockDeviceMappings(blockDeviceMappingSpecs []awsproviderv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
+func getBlockDeviceMappings(machine runtimeclient.ObjectKey, blockDeviceMappingSpecs []awsproviderv1.BlockDeviceMappingSpec, AMI string, client awsclient.Client) ([]*ec2.BlockDeviceMapping, error) {
 	blockDeviceMappings := make([]*ec2.BlockDeviceMapping, 0)
 
 	if len(blockDeviceMappingSpecs) == 0 {
@@ -196,6 +212,11 @@ func getBlockDeviceMappings(blockDeviceMappingSpecs []awsproviderv1.BlockDeviceM
 	}
 	describeAMIResult, err := client.DescribeImages(&describeImagesRequest)
 	if err != nil {
+		metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
+			Name:      machine.Name,
+			Namespace: machine.Namespace,
+			Reason:    err.Error(),
+		})
 		klog.Errorf("Error describing AMI: %v", err)
 		return nil, fmt.Errorf("error describing AMI: %v", err)
 	}
@@ -252,7 +273,11 @@ func getBlockDeviceMappings(blockDeviceMappingSpecs []awsproviderv1.BlockDeviceM
 }
 
 func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsproviderv1.AWSMachineProviderConfig, userData []byte, client awsclient.Client) (*ec2.Instance, error) {
-	amiID, err := getAMI(machineProviderConfig.AMI, client)
+	machineKey := runtimeclient.ObjectKey{
+		Name:      machine.Name,
+		Namespace: machine.Namespace,
+	}
+	amiID, err := getAMI(machineKey, machineProviderConfig.AMI, client)
 	if err != nil {
 		return nil, mapierrors.InvalidMachineConfiguration("error getting AMI: %v", err)
 	}
@@ -261,7 +286,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 	if err != nil {
 		return nil, mapierrors.InvalidMachineConfiguration("error getting security groups IDs: %v", err)
 	}
-	subnetIDs, err := getSubnetIDs(machineProviderConfig.Subnet, machineProviderConfig.Placement.AvailabilityZone, client)
+	subnetIDs, err := getSubnetIDs(machineKey, machineProviderConfig.Subnet, machineProviderConfig.Placement.AvailabilityZone, client)
 	if err != nil {
 		return nil, mapierrors.InvalidMachineConfiguration("error getting subnet IDs: %v", err)
 	}
@@ -279,7 +304,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 		},
 	}
 
-	blockDeviceMappings, err := getBlockDeviceMappings(machineProviderConfig.BlockDevices, *amiID, client)
+	blockDeviceMappings, err := getBlockDeviceMappings(machineKey, machineProviderConfig.BlockDevices, *amiID, client)
 	if err != nil {
 		return nil, mapierrors.InvalidMachineConfiguration("error getting blockDeviceMappings: %v", err)
 	}
@@ -337,6 +362,11 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 	}
 	runResult, err := client.RunInstances(&inputConfig)
 	if err != nil {
+		metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
+			Name:      machine.Name,
+			Namespace: machine.Namespace,
+			Reason:    err.Error(),
+		})
 		// we return InvalidMachineConfiguration for 4xx errors which by convention signal client misconfiguration
 		// https://tools.ietf.org/html/rfc2616#section-6.1.1
 		// https: //docs.aws.amazon.com/AWSEC2/latest/APIReference/errors-overview.html
@@ -349,11 +379,6 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 				}
 			}
 		}
-		metrics.RegisterFailedInstanceCreate(&metrics.MachineLabels{
-			Name:      machine.Name,
-			Namespace: machine.Namespace,
-			Reason:    err.Error(),
-		})
 		klog.Errorf("Error creating EC2 instance: %v", err)
 		return nil, mapierrors.CreateMachine("error creating EC2 instance: %v", err)
 	}

@@ -117,33 +117,13 @@ func (h *machineSetValidatorHandler) validateMachineSet(ms *MachineSet) (bool, u
 }
 
 func (h *machineSetDefaulterHandler) defaultMachineSet(ms *MachineSet) (bool, utilerrors.Aggregate) {
-	var errs []error
-
 	// Create a Machine from the MachineSet and default the Machine template
 	m := &Machine{Spec: ms.Spec.Template.Spec}
 	if ok, err := h.webhookOperations(m, h.clusterID); !ok {
-		errs = append(errs, err.Errors()...)
-	} else {
-		// Enforce that the same clusterID is set for machineSet Selector and machine labels.
-		// Otherwise a discrepancy on the value would leave the machine orphan
-		// and would trigger a new machine creation by the machineSet.
-		// https://bugzilla.redhat.com/show_bug.cgi?id=1857175
-		if ms.Spec.Selector.MatchLabels == nil {
-			ms.Spec.Selector.MatchLabels = make(map[string]string)
-		}
-		ms.Spec.Selector.MatchLabels[MachineClusterIDLabel] = h.clusterID
-
-		if ms.Spec.Template.Labels == nil {
-			ms.Spec.Template.Labels = make(map[string]string)
-		}
-		ms.Spec.Template.Labels[MachineClusterIDLabel] = h.clusterID
-
-		// Restore the defaulted template
-		ms.Spec.Template.Spec = m.Spec
+		return false, utilerrors.NewAggregate(err.Errors())
 	}
 
-	if len(errs) > 0 {
-		return false, utilerrors.NewAggregate(errs)
-	}
+	// Restore the defaulted template
+	ms.Spec.Template.Spec = m.Spec
 	return true, nil
 }

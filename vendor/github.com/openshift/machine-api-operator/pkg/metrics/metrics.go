@@ -120,18 +120,22 @@ func (mc MachineCollector) collectMachineMetrics(ch chan<- prometheus.Metric) {
 		if machine.Status.NodeRef != nil {
 			nodeName = machine.Status.NodeRef.Name
 		}
-
-		ch <- prometheus.MustNewConstMetric(
-			MachineInfoDesc,
-			prometheus.GaugeValue,
-			float64(machine.ObjectMeta.GetCreationTimestamp().Time.Unix()),
-			machine.ObjectMeta.Name,
-			machine.ObjectMeta.Namespace,
-			stringPointerDeref(machine.Spec.ProviderID),
-			nodeName,
-			machine.TypeMeta.APIVersion,
-			stringPointerDeref(machine.Status.Phase),
-		)
+		// Only gather metrics for machines with a phase.  This indicates
+		// That the machine-controller is running on this cluster.
+		phase := stringPointerDeref(machine.Status.Phase)
+		if phase != "" {
+			ch <- prometheus.MustNewConstMetric(
+				MachineInfoDesc,
+				prometheus.GaugeValue,
+				float64(machine.ObjectMeta.GetCreationTimestamp().Time.Unix()),
+				machine.ObjectMeta.Name,
+				machine.ObjectMeta.Namespace,
+				stringPointerDeref(machine.Spec.ProviderID),
+				nodeName,
+				machine.TypeMeta.APIVersion,
+				phase,
+			)
+		}
 	}
 
 	ch <- prometheus.MustNewConstMetric(MachineCountDesc, prometheus.GaugeValue, float64(len(machineList)))
@@ -201,7 +205,7 @@ func RegisterFailedInstanceCreate(labels *MachineLabels) {
 }
 
 func RegisterFailedInstanceUpdate(labels *MachineLabels) {
-	failedInstanceCreateCount.With(prometheus.Labels{
+	failedInstanceUpdateCount.With(prometheus.Labels{
 		"name":      labels.Name,
 		"namespace": labels.Namespace,
 		"reason":    labels.Reason,

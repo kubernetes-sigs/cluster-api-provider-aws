@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	awsproviderv1 "sigs.k8s.io/cluster-api-provider-aws/pkg/apis/awsprovider/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/golang/mock/gomock"
 	mockaws "sigs.k8s.io/cluster-api-provider-aws/pkg/client/mock"
@@ -254,8 +255,12 @@ func TestGetBlockDeviceMappings(t *testing.T) {
 		},
 	}
 
+	fakeMachineKey := client.ObjectKey{
+		Name:      "fake",
+		Namespace: "fake",
+	}
 	for _, tc := range testCases {
-		got, err := getBlockDeviceMappings(tc.blockDevices, "existing-AMI", mockAWSClient)
+		got, err := getBlockDeviceMappings(fakeMachineKey, tc.blockDevices, "existing-AMI", mockAWSClient)
 		if tc.expectedErr {
 			if err == nil {
 				t.Error("Expected error")
