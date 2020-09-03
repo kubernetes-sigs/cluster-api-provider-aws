@@ -40,6 +40,20 @@ clusterawsadm alpha bootstrap create-stack \
 
 These will be added to the control plane and node roles respectively when they are created.
 
+**Note:** If you used `clusterawsadm` 0.5.4 or earlier to create IAM objects for the Cluster API
+Provider for AWS, using `clusterawsadm` 0.5.5 or later will, by default, remove the bootstrap 
+user and group. Anything using those credentials to authenticate will start experiencing
+authentication failures. If you rely on the bootstrap user and group credentials, specify 
+`bootstrapUser.enable = true` in the configuration file, like this:
+
+```yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  bootstrapUser:
+    enable: true
+```
+
 ### Without `clusterawsadm`
 
 This is not a recommended route as the policies are very specific and will
