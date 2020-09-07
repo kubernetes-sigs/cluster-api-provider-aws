@@ -127,6 +127,11 @@ type AWSMachineSpec struct {
 	// SpotMarketOptions allows users to configure instances to be run using AWS Spot instances.
 	// +optional
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
+
+	// Tenancy indicates if instance should run on shared or single-tenant hardware.
+	// +optional
+	// +kubebuilder:validation:Enum:=default;dedicated;host
+	Tenancy string `json:"tenancy,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where

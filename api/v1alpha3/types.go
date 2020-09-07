@@ -646,6 +646,10 @@ type Instance struct {
 
 	// SpotMarketOptions option for configuring instances to be run using AWS Spot instances.
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
+
+	// Tenancy indicates if instance should run on shared or single-tenant hardware.
+	// +optional
+	Tenancy string `json:"tenancy,omitempty"`
 }
 
 // Volume encapsulates the configuration options for the root volume

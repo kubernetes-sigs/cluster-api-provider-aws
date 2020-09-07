@@ -70,6 +70,8 @@ func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec) {
 			dst.NonRootVolumes = append(dst.NonRootVolumes, volume.DeepCopy())
 		}
 	}
+
+	dst.Tenancy = restored.Tenancy
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
