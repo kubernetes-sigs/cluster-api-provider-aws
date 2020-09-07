@@ -8,6 +8,7 @@
 - [jq](https://stedolan.github.io/jq/download/)
 
 ## IAM resources
+
 ### With `clusterawsadm`
 
 Get the latest [clusterawsadm](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases)
@@ -52,6 +53,28 @@ kind: AWSIAMConfiguration
 spec:
   bootstrapUser:
     enable: true
+```
+
+#### With EKS Support
+
+If you want to use the the EKS support in the provider then you will need to enable these features via the configuration file. For example:
+
+```yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  clusterAPIControllers:
+    eks:
+      enable: true
+      iamRoleCreation: false # Set to true if you plane to use the EKSEnableIAM feature flag
+  managedControlPlane:
+    disable: false # Set to false to enabled creation of the default control plane role
+```
+
+and then use that configuration file:
+
+```bash
+clusterawsadm bootstrap iam create-cloudformation-stack --config boostrap.config
 ```
 
 ### Without `clusterawsadm`

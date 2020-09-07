@@ -70,6 +70,14 @@ type ControlPlane struct {
 	EnableCSIPolicy bool `json:"enableCSIPolicy"`
 }
 
+// ManagedControlPlane controls the configuration of the AWS IAM role for
+// the EKS control plane. This is the default role that will be used if
+// no role is included in the spec and automatic creation of the role
+// isn't enabled
+type ManagedControlPlane struct {
+	AWSIAMRoleSpec `json:",inline"`
+}
+
 // AWSIAMRoleSpec defines common configuration for AWS IAM roles created by
 // Kubernetes Cluster API Provider AWS
 type AWSIAMRoleSpec struct {
@@ -143,6 +151,9 @@ type AWSIAMConfigurationSpec struct {
 
 	// ControlPlane controls the configuration of the AWS IAM role for a Kubernetes cluster's control plane nodes.
 	ControlPlane ControlPlane `json:"controlPlane,omitempty"`
+
+	// ManagedControlPlane controls the configuration of the AWS IAM role for used by the EKS control plane.
+	ManagedControlPlane *ManagedControlPlane `json:"managedControlPlane,omitempty"`
 
 	// ClusterAPIControllers controls the configuration of an IAM role and policy specifically for Kubernetes Cluster API Provider AWS.
 	ClusterAPIControllers ClusterAPIControllers `json:"clusterAPIControllers,omitempty"`

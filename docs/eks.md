@@ -16,6 +16,14 @@ The implementation introduces 3 new CRD kinds:
 
 And a new template is available in the templates folder for creating a managed workload cluster.
 
+## Prerequisites
+
+To use EKS you must give the controller the required permissions. The easiest way to do this is by using `clusterawasadm`. For instructions on how to do this see the [AWS prerequisites](prerequisites.md).
+
+When using `clusterawsadm` and enabling the managed control plane a new IAM role will be created for you called **eks-controlplane.cluster-api-provider-aws.sigs.k8s.io**. This role is the IAM role that will be used for EKS if you don't specify your own role and if **EKSEnableIAM** isn't enabled.
+
+Additionally using `clusterawsadm` will add permissions to the **controllers.cluster-api-provider-aws.sigs.k8s.io** policy for EKS to function properly.  
+
 ## Enabling EKS Support
 
 You must explicitly enable the EKS support in the provider using feature flags. The following feature flags are supported:

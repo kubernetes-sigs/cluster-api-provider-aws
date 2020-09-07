@@ -73,6 +73,15 @@ func Test_RenderCloudformation(t *testing.T) {
 			},
 		},
 		{
+			fixture: "with_eks_default_roles",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.ClusterAPIControllers.EKS.Enable = true
+				t.Spec.ManagedControlPlane.Disable = false
+				return t
+			},
+		},
+		{
 			fixture: "with_extra_statements",
 			template: func() Template {
 				t := NewTemplate()

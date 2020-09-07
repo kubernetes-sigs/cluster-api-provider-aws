@@ -19,11 +19,11 @@ package v1alpha1
 import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	utilpointer "k8s.io/utils/pointer"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 const (
-	// DefaultNameSuffix is the default suffix appended to all AWS IAM roles created by clusterawsadm.
-	DefaultNameSuffix = ".cluster-api-provider-aws.sigs.k8s.io"
 	// DefaultBootstrapUserName is the default bootstrap user name.
 	DefaultBootstrapUserName = "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
 	// DefaultStackName is the default CloudFormation stack name.
@@ -42,10 +42,17 @@ func SetDefaults_BootstrapUser(obj *BootstrapUser) { //nolint:golint,stylecheck
 // SetDefaults_AWSIAMConfigurationSpec is used by defaulter-gen
 func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolint:golint,stylecheck
 	if obj.NameSuffix == nil {
-		obj.NameSuffix = utilpointer.StringPtr(DefaultNameSuffix)
+		obj.NameSuffix = utilpointer.StringPtr(infrav1.DefaultNameSuffix)
 	}
 	if obj.StackName == "" {
 		obj.StackName = DefaultStackName
+	}
+	if obj.ManagedControlPlane == nil {
+		obj.ManagedControlPlane = &ManagedControlPlane{
+			AWSIAMRoleSpec: AWSIAMRoleSpec{
+				Disable: true,
+			},
+		}
 	}
 }
 
@@ -54,7 +61,7 @@ func SetDefaults_AWSIAMConfiguration(obj *AWSIAMConfiguration) { //nolint:golint
 	obj.APIVersion = SchemeGroupVersion.String()
 	obj.Kind = "AWSIAMConfiguration"
 	if obj.Spec.NameSuffix == nil {
-		obj.Spec.NameSuffix = utilpointer.StringPtr(DefaultNameSuffix)
+		obj.Spec.NameSuffix = utilpointer.StringPtr(infrav1.DefaultNameSuffix)
 	}
 	if obj.Spec.StackName == "" {
 		obj.Spec.StackName = DefaultStackName

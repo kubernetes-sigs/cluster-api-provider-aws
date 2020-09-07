@@ -25,6 +25,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
+const (
+	// DefaultNameSuffix is the default suffix appended to all AWS IAM roles created by clusterawsadm.
+	DefaultNameSuffix = ".cluster-api-provider-aws.sigs.k8s.io"
+)
+
 // AWSResourceReference is a reference to a specific AWS resource by ID, ARN, or filters.
 // Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
 // a validation error.

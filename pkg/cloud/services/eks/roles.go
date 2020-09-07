@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
@@ -58,10 +59,15 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 	if s.scope.ControlPlane.Spec.RoleName == nil {
 		//TODO (richardcase): in the future use a default role created by clusterawsadm
 		if !s.scope.EnableIAM() {
-			return ErrClusterRoleNameMissing
+			s.scope.Info("no eks control plane role specified, using default eks control plane role")
+			s.scope.ControlPlane.Spec.RoleName = &infrav1exp.DefaultEKSControlPlaneRole
+		} else {
+			s.scope.Info("no eks control plane role specified, using role based on cluster name")
+			s.scope.ControlPlane.Spec.RoleName = aws.String(fmt.Sprintf("%s-iam-service-role", s.scope.Name()))
 		}
-		s.scope.ControlPlane.Spec.RoleName = aws.String(fmt.Sprintf("%s-iam-service-role", s.scope.Name()))
+
 	}
+	s.scope.Info("using eks control plane role", "role-name", *s.scope.ControlPlane.Spec.RoleName)
 
 	role, err := s.getIAMRole(*s.scope.ControlPlane.Spec.RoleName)
 	if err != nil {
@@ -71,13 +77,14 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 
 		// If the disable IAM flag is used then the role must exist
 		if !s.scope.EnableIAM() {
-			return ErrClusterRoleNotFound
+			return fmt.Errorf("getting role %s: %w", *s.scope.ControlPlane.Spec.RoleName, ErrClusterRoleNotFound)
 		}
 
 		role, err = s.createRole(*s.scope.ControlPlane.Spec.RoleName)
 		if err != nil {
 			record.Warnf(s.scope.ControlPlane, "FailedIAMRoleCreation", "Failed to create control plane IAM role %q: %v", *s.scope.ControlPlane.Spec.RoleName, err)
-			return err
+
+			return fmt.Errorf("creating role %s: %w", *s.scope.ControlPlane.Spec.RoleName, err)
 		}
 		record.Eventf(s.scope.ControlPlane, "SucessfulIAMRoleCreation", "Created control plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
 	}
