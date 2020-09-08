@@ -20,7 +20,12 @@ import (
 	"fmt"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
+
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+)
+
+const (
+	EKSClusterPolicy = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 )
 
 func (t Template) controllersPolicyGroups() []string {

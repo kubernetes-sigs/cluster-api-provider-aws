@@ -17,7 +17,11 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/service/eks"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 // ControlPlaneLoggingSpec defines what EKS control plane logs that should be enabled
@@ -71,4 +75,11 @@ var (
 	// EKSTokenMethodAWSCli indicates that the AWS CLI will be used to get a token
 	// Version 1.16.156 or greater is required of the AWS CLI
 	EKSTokenMethodAWSCli = EKSTokenMethod("aws-cli")
+)
+
+var (
+	// DefaultEKSControlPlaneRole is the name of the default IAM role to use for the EKS control plane
+	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
+	// can be created using clusterawsadm or created manually
+	DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", infrav1.DefaultNameSuffix)
 )

@@ -21,9 +21,11 @@ import (
 
 	"github.com/awslabs/goformation/v4/cloudformation"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
+
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 )
 
 const (
@@ -34,6 +36,7 @@ const (
 	AWSIAMRoleControllers                        = "AWSIAMRoleControllers"
 	AWSIAMRoleControlPlane                       = "AWSIAMRoleControlPlane"
 	AWSIAMRoleNodes                              = "AWSIAMRoleNodes"
+	AWSIAMRoleEKSControlPlane                    = "AWSIAMRoleEKSControlPlane"
 	AWSIAMUserBootstrapper                       = "AWSIAMUserBootstrapper"
 	ControllersPolicy                 PolicyName = "AWSIAMManagedPolicyControllers"
 	ControlPlanePolicy                PolicyName = "AWSIAMManagedPolicyCloudProviderControlPlane"
@@ -155,16 +158,29 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		},
 	}
 
+	if !t.Spec.ManagedControlPlane.Disable {
+		template.Resources[AWSIAMRoleEKSControlPlane] = &cfn_iam.Role{
+			RoleName:                 infrav1exp.DefaultEKSControlPlaneRole,
+			AssumeRolePolicyDocument: eksAssumeRolePolicy(),
+			ManagedPolicyArns:        t.eksControlPlanePolicies(),
+			Tags:                     converters.MapToCloudFormationTags(t.Spec.ManagedControlPlane.Tags),
+		}
+	}
+
 	return template
 }
 
 func ec2AssumeRolePolicy() *iamv1.PolicyDocument {
+	return assumeRolePolicy("ec2.amazonaws.com")
+}
+
+func assumeRolePolicy(principalID string) *iamv1.PolicyDocument {
 	return &iamv1.PolicyDocument{
 		Version: iamv1.CurrentVersion,
 		Statement: []iamv1.StatementEntry{
 			{
 				Effect:    iamv1.EffectAllow,
-				Principal: iamv1.Principals{iamv1.PrincipalService: iamv1.PrincipalID{"ec2.amazonaws.com"}},
+				Principal: iamv1.Principals{iamv1.PrincipalService: iamv1.PrincipalID{principalID}},
 				Action:    iamv1.Actions{"sts:AssumeRole"},
 			},
 		},
