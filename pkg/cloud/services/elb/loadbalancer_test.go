@@ -17,6 +17,10 @@ limitations under the License.
 package elb
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/golang/mock/gomock"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,26 +75,75 @@ func TestGenerateELBName(t *testing.T) {
 
 func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 	tests := []struct {
-		name            string
-		lb              *infrav1.AWSLoadBalancerSpec
-		expectCrossZone bool
+		name   string
+		lb     *infrav1.AWSLoadBalancerSpec
+		mocks  func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		expect func(t *testing.T, res *infrav1.ClassicELB)
 	}{
 		{
-			name:            "nil load balancer config",
-			lb:              nil,
-			expectCrossZone: false,
+			name:  "nil load balancer config",
+			lb:    nil,
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				if res.Attributes.CrossZoneLoadBalancing {
+					t.Error("Expected load balancer not to have cross-zone load balancing enabled")
+				}
+			},
 		},
 		{
 			name: "load balancer config with cross zone enabled",
 			lb: &infrav1.AWSLoadBalancerSpec{
 				CrossZoneLoadBalancing: true,
 			},
-			expectCrossZone: true,
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				if !res.Attributes.CrossZoneLoadBalancing {
+					t.Error("Expected load balancer to have cross-zone load balancing enabled")
+				}
+			},
+		},
+		{
+			name: "load balancer config with subnets specified",
+			lb: &infrav1.AWSLoadBalancerSpec{
+				Subnets: []string{"subnet-1", "subnet-2"},
+			},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{
+					SubnetIds: []*string{
+						aws.String("subnet-1"),
+						aws.String("subnet-2"),
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								SubnetId:         aws.String("subnet-1"),
+								AvailabilityZone: aws.String("us-east-1a"),
+							},
+							{
+								SubnetId:         aws.String("subnet-2"),
+								AvailabilityZone: aws.String("us-east-1b"),
+							},
+						},
+					}, nil)
+			},
+			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				if len(res.SubnetIDs) != 2 {
+					t.Errorf("Expected load balancer to be configured for 2 subnets, got %v", len(res.SubnetIDs))
+				}
+				if len(res.AvailabilityZones) != 2 {
+					t.Errorf("Expected load balancer to be configured for 2 availability zones, got %v", len(res.AvailabilityZones))
+				}
+			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -108,8 +161,11 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			tc.mocks(ec2Mock.EXPECT())
+
 			s := &Service{
-				scope: clusterScope,
+				scope:     clusterScope,
+				EC2Client: ec2Mock,
 			}
 
 			spec, err := s.getAPIServerClassicELBSpec()
@@ -117,9 +173,7 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if e, a := tc.expectCrossZone, spec.Attributes.CrossZoneLoadBalancing; e != a {
-				t.Errorf("cross zone: expected %t, got %t", e, a)
-			}
+			tc.expect(t, spec)
 		})
 	}
 }

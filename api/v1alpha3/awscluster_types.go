@@ -127,6 +127,10 @@ type AWSLoadBalancerSpec struct {
 	// Defaults to false.
 	// +optional
 	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing"`
+
+	// Subnets sets the subnets that should be applied to the control plane load balancer (defaults to discovered subnets for managed VPCs or an empty set for unmanaged VPCs)
+	// +optional
+	Subnets []string `json:"subnets,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster
