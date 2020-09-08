@@ -30,16 +30,17 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
+	"github.com/onsi/ginkgo/reporters"
+	. "github.com/onsi/gomega"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/iam"
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
-	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
@@ -59,6 +60,7 @@ import (
 const (
 	KubernetesVersion            = "KUBERNETES_VERSION"
 	CNIPath                      = "CNI"
+	CNIResources                 = "CNI_RESOURCES"
 	AwsNodeMachineType           = "AWS_NODE_MACHINE_TYPE"
 	AwsAvailabilityZone1         = "AWS_AVAILABILITY_ZONE_1"
 	AwsAvailabilityZone2         = "AWS_AVAILABILITY_ZONE_2"
@@ -300,6 +302,9 @@ func initScheme() *runtime.Scheme {
 func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
+	// Read CNI file and set CNI_RESOURCES environmental variable
+	Expect(config.Variables).To(HaveKey(CNIPath), "Missing %s variable in the config", CNIPath)
+	clusterctl.SetCNIEnvVar(config.GetVariable(CNIPath), CNIResources)
 	return config
 }
 

@@ -27,14 +27,15 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -73,13 +74,16 @@ var _ = Describe("functional tests", func() {
 	var (
 		namespace *corev1.Namespace
 		ctx       context.Context
+		specName  = "functional-tests"
 	)
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		ctx = context.TODO()
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace = setupSpecNamespace(ctx, "functional-tests", bootstrapClusterProxy, artifactFolder)
+		namespace = setupSpecNamespace(ctx, specName, bootstrapClusterProxy, artifactFolder)
+		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
+		Expect(e2eConfig.Variables).To(HaveKey(KubernetesVersion))
 	})
 
 	Describe("Cluster name validations and provisioning extra AWS resources", func() {
@@ -368,7 +372,6 @@ func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterIn
 	cluster, _, md := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 bootstrapClusterProxy,
 		ConfigCluster:                configCluster,
-		CNIManifestPath:              e2eConfig.GetVariable(CNIPath),
 		WaitForClusterIntervals:      e2eConfig.GetIntervals("", "wait-cluster"),
 		WaitForControlPlaneIntervals: e2eConfig.GetIntervals("", "wait-control-plane"),
 		WaitForMachineDeployments:    e2eConfig.GetIntervals("", "wait-worker-nodes"),

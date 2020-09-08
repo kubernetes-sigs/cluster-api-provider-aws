@@ -140,10 +140,10 @@ test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e test
 .PHONY: e2e-image
 e2e-image:
 ifndef FASTBUILD
-	docker build -f Dockerfile --tag="capa-manager:e2e" .
+	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 else
 	$(MAKE) manager
-	docker build -f Dockerfile.fastbuild --tag="capa-manager:e2e" .
+	docker build -f Dockerfile.fastbuild --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 endif
 
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
