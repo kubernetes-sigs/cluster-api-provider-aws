@@ -75,6 +75,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.FailureDomains = restored.Status.FailureDomains
 	dst.Status.Network.APIServerELB.AvailabilityZones = restored.Status.Network.APIServerELB.AvailabilityZones
 	dst.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing = restored.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing
+	dst.Spec.NetworkSpec.SecurityGroupOverrides = restored.Spec.NetworkSpec.SecurityGroupOverrides
 
 	restoreInstance(restored.Status.Bastion, dst.Status.Bastion)
 

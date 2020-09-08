@@ -121,6 +121,11 @@ func (s *ClusterScope) CNIIngressRules() infrav1.CNIIngressRules {
 	return infrav1.CNIIngressRules{}
 }
 
+// SecurityGroupOverrides returns the cluster security group overrides
+func (s *ClusterScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
+	return s.AWSCluster.Spec.NetworkSpec.SecurityGroupOverrides
+}
+
 // SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
 	return s.AWSCluster.Status.Network.SecurityGroups

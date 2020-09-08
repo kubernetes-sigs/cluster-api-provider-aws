@@ -178,6 +178,12 @@ func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
 	return s.ControlPlane.Spec.SecondaryCidrBlock
 }
 
+// SecurityGroupOverrides returns the the security groups that are overridden in the ControlPlane spec.
+func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
+	return s.ControlPlane.Spec.NetworkSpec.SecurityGroupOverrides
+
+}
+
 // Name returns the CAPI cluster name.
 func (s *ManagedControlPlaneScope) Name() string {
 	return s.Cluster.Name

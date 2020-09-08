@@ -131,6 +131,11 @@ type AWSLoadBalancerSpec struct {
 	// Subnets sets the subnets that should be applied to the control plane load balancer (defaults to discovered subnets for managed VPCs or an empty set for unmanaged VPCs)
 	// +optional
 	Subnets []string `json:"subnets,omitempty"`
+
+	// AdditonalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs.
+	// This is optional - if not provided new security groups will be created for the load balancer
+	// +optional
+	AdditionalSecurityGroups []string `json:"securityGroups,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster
