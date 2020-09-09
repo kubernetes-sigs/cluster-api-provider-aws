@@ -55,3 +55,11 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - exp.cluster.x-k8s.io
+  resources:
+  - machinepools
+  verbs:
+  - get
+  - list
+  - watch
