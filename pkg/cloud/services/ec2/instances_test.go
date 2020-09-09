@@ -1199,6 +1199,10 @@ func TestCreateInstance(t *testing.T) {
 								ResourceType: aws.String("instance"),
 								Tags: []*ec2.Tag{
 									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
 										Key:   aws.String("kubernetes.io/cluster/test1"),
 										Value: aws.String("owned"),
 									},
@@ -1209,10 +1213,6 @@ func TestCreateInstance(t *testing.T) {
 									{
 										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 										Value: aws.String("node"),
-									},
-									{
-										Key:   aws.String("Name"),
-										Value: aws.String("aws-test1"),
 									},
 								},
 							},
