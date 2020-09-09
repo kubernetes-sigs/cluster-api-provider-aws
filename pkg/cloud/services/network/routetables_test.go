@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -69,11 +70,8 @@ func TestReconcileRouteTables(t *testing.T) {
 				m.DescribeRouteTables(gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 					Return(&ec2.DescribeRouteTablesOutput{}, nil)
 
-				privateRouteTable := m.CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
+				privateRouteTable := m.CreateRouteTable(matchRouteTableInput(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
 					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
 
 				m.CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
 					NatGatewayId:         aws.String("nat-01"),
@@ -89,7 +87,7 @@ func TestReconcileRouteTables(t *testing.T) {
 					Return(&ec2.AssociateRouteTableOutput{}, nil).
 					After(privateRouteTable)
 
-				publicRouteTable := m.CreateRouteTable(gomock.Eq(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
+				publicRouteTable := m.CreateRouteTable(matchRouteTableInput(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-routetables")})).
 					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-2")}}, nil)
 
 				m.CreateRoute(gomock.Eq(&ec2.CreateRouteInput{
@@ -98,9 +96,6 @@ func TestReconcileRouteTables(t *testing.T) {
 					RouteTableId:         aws.String("rt-2"),
 				})).
 					After(publicRouteTable)
-
-				m.CreateTags(gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil)
 
 				m.AssociateRouteTable(gomock.Eq(&ec2.AssociateRouteTableInput{
 					RouteTableId: aws.String("rt-2"),
@@ -272,4 +267,30 @@ func TestReconcileRouteTables(t *testing.T) {
 			}
 		})
 	}
+
+}
+
+type routeTableInputMatcher struct {
+	routeTableInput *ec2.CreateRouteTableInput
+}
+
+func (r routeTableInputMatcher) Matches(x interface{}) bool {
+	actual, ok := x.(*ec2.CreateRouteTableInput)
+	if !ok {
+		fmt.Println("heeeeyy")
+		return false
+	}
+	if *actual.VpcId != *r.routeTableInput.VpcId {
+		return false
+	}
+
+	return true
+}
+
+func (r routeTableInputMatcher) String() string {
+	return fmt.Sprintf("partially matches %v", r.routeTableInput)
+}
+
+func matchRouteTableInput(input *ec2.CreateRouteTableInput) gomock.Matcher {
+	return routeTableInputMatcher{routeTableInput: input}
 }

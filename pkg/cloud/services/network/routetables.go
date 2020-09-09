@@ -225,25 +225,14 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool, zone string) (*infrav1.RouteTable, error) {
 	out, err := s.EC2Client.CreateRouteTable(&ec2.CreateRouteTableInput{
 		VpcId: aws.String(s.scope.VPC().ID),
+		TagSpecifications: []*ec2.TagSpecification{
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeRouteTable, s.getRouteTableTagParams(services.TemporaryResourceID, isPublic, zone))},
 	})
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "FailedCreateRouteTable", "Failed to create managed RouteTable: %v", err)
 		return nil, errors.Wrapf(err, "failed to create route table in vpc %q", s.scope.VPC().ID)
 	}
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRouteTable", "Created managed RouteTable %q", *out.RouteTable.RouteTableId)
-
-	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-		buildParams := s.getRouteTableTagParams(*out.RouteTable.RouteTableId, isPublic, zone)
-		tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
-		if err := tagsBuilder.Apply(); err != nil {
-			return false, err
-		}
-		return true, nil
-	}, awserrors.RouteTableNotFound); err != nil {
-		record.Warnf(s.scope.InfraCluster(), "FailedTagRouteTable", "Failed to tag managed RouteTable %q: %v", *out.RouteTable.RouteTableId, err)
-		return nil, errors.Wrapf(err, "failed to tag route table %q", *out.RouteTable.RouteTableId)
-	}
-	record.Eventf(s.scope.InfraCluster(), "SuccessfulTagRouteTable", "Tagged managed RouteTable %q", *out.RouteTable.RouteTableId)
 
 	for i := range routes {
 		route := routes[i]

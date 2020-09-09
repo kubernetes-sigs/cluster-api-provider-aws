@@ -21103,6 +21103,56 @@ func (mr *MockEC2APIMockRecorder) ModifyVpnConnection(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyVpnConnection", reflect.TypeOf((*MockEC2API)(nil).ModifyVpnConnection), arg0)
 }
 
+// ModifyVpnConnectionOptions mocks base method
+func (m *MockEC2API) ModifyVpnConnectionOptions(arg0 *ec2.ModifyVpnConnectionOptionsInput) (*ec2.ModifyVpnConnectionOptionsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyVpnConnectionOptions", arg0)
+	ret0, _ := ret[0].(*ec2.ModifyVpnConnectionOptionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyVpnConnectionOptions indicates an expected call of ModifyVpnConnectionOptions
+func (mr *MockEC2APIMockRecorder) ModifyVpnConnectionOptions(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyVpnConnectionOptions", reflect.TypeOf((*MockEC2API)(nil).ModifyVpnConnectionOptions), arg0)
+}
+
+// ModifyVpnConnectionOptionsRequest mocks base method
+func (m *MockEC2API) ModifyVpnConnectionOptionsRequest(arg0 *ec2.ModifyVpnConnectionOptionsInput) (*request.Request, *ec2.ModifyVpnConnectionOptionsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyVpnConnectionOptionsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ec2.ModifyVpnConnectionOptionsOutput)
+	return ret0, ret1
+}
+
+// ModifyVpnConnectionOptionsRequest indicates an expected call of ModifyVpnConnectionOptionsRequest
+func (mr *MockEC2APIMockRecorder) ModifyVpnConnectionOptionsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyVpnConnectionOptionsRequest", reflect.TypeOf((*MockEC2API)(nil).ModifyVpnConnectionOptionsRequest), arg0)
+}
+
+// ModifyVpnConnectionOptionsWithContext mocks base method
+func (m *MockEC2API) ModifyVpnConnectionOptionsWithContext(arg0 context.Context, arg1 *ec2.ModifyVpnConnectionOptionsInput, arg2 ...request.Option) (*ec2.ModifyVpnConnectionOptionsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifyVpnConnectionOptionsWithContext", varargs...)
+	ret0, _ := ret[0].(*ec2.ModifyVpnConnectionOptionsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyVpnConnectionOptionsWithContext indicates an expected call of ModifyVpnConnectionOptionsWithContext
+func (mr *MockEC2APIMockRecorder) ModifyVpnConnectionOptionsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyVpnConnectionOptionsWithContext", reflect.TypeOf((*MockEC2API)(nil).ModifyVpnConnectionOptionsWithContext), varargs...)
+}
+
 // ModifyVpnConnectionRequest mocks base method
 func (m *MockEC2API) ModifyVpnConnectionRequest(arg0 *ec2.ModifyVpnConnectionInput) (*request.Request, *ec2.ModifyVpnConnectionOutput) {
 	m.ctrl.T.Helper()
