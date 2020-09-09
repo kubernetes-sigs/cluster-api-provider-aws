@@ -685,6 +685,9 @@ spec:
                       type: string
                     description: The tags associated with the instance.
                     type: object
+                  tenancy:
+                    description: Tenancy indicates if instance should run on shared or single-tenant hardware.
+                    type: string
                   type:
                     description: The instance type.
                     type: string

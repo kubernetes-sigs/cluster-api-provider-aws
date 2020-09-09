@@ -208,6 +208,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	input.SpotMarketOptions = scope.AWSMachine.Spec.SpotMarketOptions
 
+	input.Tenancy = scope.AWSMachine.Spec.Tenancy
+
 	s.scope.V(2).Info("Running instance", "machine-role", scope.Role())
 	out, err := s.runInstance(scope.Role(), input)
 	if err != nil {
@@ -501,6 +503,12 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
+
+	if i.Tenancy != "" {
+		input.Placement = &ec2.Placement{
+			Tenancy: &i.Tenancy,
+		}
+	}
 
 	out, err := s.EC2Client.RunInstances(input)
 	if err != nil {

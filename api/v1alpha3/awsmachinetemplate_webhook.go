@@ -34,7 +34,9 @@ func (r *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,versions=v1alpha3,name=validation.awsmachinetemplate.infrastructure.x-k8s.io,sideEffects=None
 
-var _ webhook.Validator = &AWSMachineTemplate{}
+var (
+	_ webhook.Validator = &AWSMachineTemplate{}
+)
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachineTemplate) ValidateCreate() error {
