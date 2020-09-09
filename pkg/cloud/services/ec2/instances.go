@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -492,10 +493,16 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	if len(i.Tags) > 0 {
 		spec := &ec2.TagSpecification{ResourceType: aws.String(ec2.ResourceTypeInstance)}
-		for key, value := range i.Tags {
+		// We need to sort keys for tests to work
+		keys := make([]string, 0, len(i.Tags))
+		for k := range i.Tags {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
 			spec.Tags = append(spec.Tags, &ec2.Tag{
 				Key:   aws.String(key),
-				Value: aws.String(value),
+				Value: aws.String(i.Tags[key]),
 			})
 		}
 
