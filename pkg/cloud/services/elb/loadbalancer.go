@@ -18,6 +18,7 @@ package elb
 
 import (
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"reflect"
 	"strings"
 	"time"
@@ -335,24 +336,41 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 		Additional:  s.scope.AdditionalTags(),
 	})
 
-	// The load balancer APIs require us to only attach one subnet for each AZ.
-	subnets := s.scope.Subnets().FilterPrivate()
-
-	if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
-		subnets = s.scope.Subnets().FilterPublic()
-	}
-
-subnetLoop:
-	for _, sn := range subnets {
-		for _, az := range res.AvailabilityZones {
-			if sn.AvailabilityZone == az {
-				// If we already attached another subnet in the same AZ, there is no need to
-				// add this subnet to the list of the ELB's subnets.
-				continue subnetLoop
-			}
+	// If subnet IDs have been specified for this load balancer
+	if s.scope.ControlPlaneLoadBalancer() != nil && len(s.scope.ControlPlaneLoadBalancer().Subnets) > 0 {
+		// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
+		// We need to call out to AWS to describe them just in case
+		input := &ec2.DescribeSubnetsInput{
+			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
 		}
-		res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
-		res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+		out, err := s.EC2Client.DescribeSubnets(input)
+		if err != nil {
+			return nil, err
+		}
+		for _, sn := range out.Subnets {
+			res.AvailabilityZones = append(res.AvailabilityZones, *sn.AvailabilityZone)
+			res.SubnetIDs = append(res.SubnetIDs, *sn.SubnetId)
+		}
+	} else {
+		// The load balancer APIs require us to only attach one subnet for each AZ.
+		subnets := s.scope.Subnets().FilterPrivate()
+
+		if s.scope.ControlPlaneLoadBalancerScheme() == infrav1.ClassicELBSchemeInternetFacing {
+			subnets = s.scope.Subnets().FilterPublic()
+		}
+
+	subnetLoop:
+		for _, sn := range subnets {
+			for _, az := range res.AvailabilityZones {
+				if sn.AvailabilityZone == az {
+					// If we already attached another subnet in the same AZ, there is no need to
+					// add this subnet to the list of the ELB's subnets.
+					continue subnetLoop
+				}
+			}
+			res.AvailabilityZones = append(res.AvailabilityZones, sn.AvailabilityZone)
+			res.SubnetIDs = append(res.SubnetIDs, sn.ID)
+		}
 	}
 
 	return res, nil

@@ -488,6 +488,7 @@ func Convert_v1alpha2_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in *AW
 func autoConvert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in *v1alpha3.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s conversion.Scope) error {
 	out.Scheme = (*ClassicELBScheme)(unsafe.Pointer(in.Scheme))
 	// WARNING: in.CrossZoneLoadBalancing requires manual conversion: does not exist in peer-type
+	// WARNING: in.Subnets requires manual conversion: does not exist in peer-type
 	return nil
 }
 
