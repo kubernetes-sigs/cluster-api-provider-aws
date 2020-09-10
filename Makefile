@@ -273,7 +273,8 @@ generate: ## Generate code
 	$(MAKE) generate-manifests
 
 .PHONY: generate-go
-generate-go:
+generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN)
+	go generate ./...
 	$(MAKE) generate-go-core
 	$(MAKE) generate-go-eks-bootstrap
 
@@ -302,7 +303,6 @@ generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN
 generate-go-eks-bootstrap: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/eks/api/... \
-		paths=./bootstrap/eks/types/... \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
