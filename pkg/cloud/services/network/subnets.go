@@ -73,6 +73,10 @@ func (s *Service) reconcileSubnets() error {
 			record.Warnf(s.scope.InfraCluster(), "FailedDefaultSubnets", "Failed getting default subnets: %v", err)
 			return errors.Wrap(err, "failed getting default subnets")
 		}
+		// Persist the new default subnets to AWSCluster
+		if err := s.scope.PatchObject(); err != nil {
+			return err
+		}
 	}
 
 	for _, sub := range subnets {
