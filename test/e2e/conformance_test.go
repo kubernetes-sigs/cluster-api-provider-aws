@@ -48,17 +48,19 @@ var _ = Describe("conformance tests", func() {
 	var (
 		namespace *corev1.Namespace
 		ctx       context.Context
+		specName  = "conformance"
 	)
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		Expect(kubetestConfig).ToNot(BeNil(), "Invalid argument. ConformanceConfiguration can't be nil")
+		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
+		Expect(e2eConfig.Variables).To(HaveKey(KubernetesVersion))
 		ctx = context.TODO()
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace = setupSpecNamespace(ctx, "conformance-tests", bootstrapClusterProxy, artifactFolder)
+		namespace = setupSpecNamespace(ctx, specName, bootstrapClusterProxy, artifactFolder)
 	})
-	specName := "conformance"
-	Measure("conformance", func(b Benchmarker) {
+	Measure(specName, func(b Benchmarker) {
 
 		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
 		flavor := clusterctl.DefaultFlavor
@@ -85,7 +87,6 @@ var _ = Describe("conformance tests", func() {
 					ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
 					WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
 				},
-				CNIManifestPath:              e2eConfig.GetVariable(CNIPath),
 				WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
@@ -126,6 +127,12 @@ func prepConformanceConfig(artifactsDir string, e2eConfig *clusterctl.E2EConfig)
 		return err
 	}
 	if err := copy(path.Join(srcDir, "kustomizeversions.yaml"), path.Join(overlayDir, "kustomizeversions.yaml")); err != nil {
+		return err
+	}
+	if err := copy(path.Join(srcDir, "cluster-resource-set.yaml"), path.Join(overlayDir, "cluster-resource-set.yaml")); err != nil {
+		return err
+	}
+	if err := copy(path.Join(srcDir, "cluster-resource-set-label.yaml"), path.Join(overlayDir, "cluster-resource-set-label.yaml")); err != nil {
 		return err
 	}
 	if err := copy(originalTemplate, path.Join(overlayDir, "cluster-template.yaml")); err != nil {

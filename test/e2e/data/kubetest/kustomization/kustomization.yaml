@@ -3,5 +3,7 @@ kind: Kustomization
 namespace: default
 resources:
   - cluster-template.yaml
+  - cluster-resource-set.yaml
 patchesStrategicMerge:
   - kustomizeversions.yaml
+  - cluster-resource-set-label.yaml
