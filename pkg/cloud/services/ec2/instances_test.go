@@ -1257,6 +1257,660 @@ func TestCreateInstance(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "expect the default SSH key when none is provided",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+						if input.KeyName == nil {
+							t.Fatal("Expected key name not to be nil")
+						}
+						if *input.KeyName != defaultSSHKeyName {
+							t.Fatalf("Expected SSH key name to be '%s', not '%s'", defaultSSHKeyName, *input.KeyName)
+						}
+						return &ec2.Reservation{
+							Instances: []*ec2.Instance{
+								{
+									State: &ec2.InstanceState{
+										Name: aws.String(ec2.InstanceStateNamePending),
+									},
+									IamInstanceProfile: &ec2.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   aws.String("m5.large"),
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &ec2.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
+								},
+							},
+						}, nil
+					})
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "expect to use the cluster level ssh key name when no machine key name is provided",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+					SSHKeyName: aws.String("specific-cluster-key-name"),
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+						if input.KeyName == nil {
+							t.Fatal("Expected key name not to be nil")
+						}
+						if *input.KeyName != "specific-cluster-key-name" {
+							t.Fatalf("Expected SSH key name to be '%s', not '%s'", "specific-cluster-key-name", *input.KeyName)
+						}
+						return &ec2.Reservation{
+							Instances: []*ec2.Instance{
+								{
+									State: &ec2.InstanceState{
+										Name: aws.String(ec2.InstanceStateNamePending),
+									},
+									IamInstanceProfile: &ec2.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   aws.String("m5.large"),
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &ec2.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
+								},
+							},
+						}, nil
+					})
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "expect to use the machine level ssh key name when both cluster and machine key names are provided",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				SSHKeyName:   aws.String("specific-machine-ssh-key-name"),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+					SSHKeyName: aws.String("specific-cluster-key-name"),
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+						if input.KeyName == nil {
+							t.Fatal("Expected key name not to be nil")
+						}
+						if *input.KeyName != "specific-machine-ssh-key-name" {
+							t.Fatalf("Expected SSH key name to be '%s', not '%s'", "specific-machine-ssh-key-name", *input.KeyName)
+						}
+						return &ec2.Reservation{
+							Instances: []*ec2.Instance{
+								{
+									State: &ec2.InstanceState{
+										Name: aws.String(ec2.InstanceStateNamePending),
+									},
+									IamInstanceProfile: &ec2.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   aws.String("m5.large"),
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &ec2.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
+								},
+							},
+						}, nil
+					})
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "expect ssh key to be unset when cluster key name is empty string and machine key name is nil",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				SSHKeyName:   nil,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+					SSHKeyName: aws.String(""),
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+						if input.KeyName != nil {
+							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
+						}
+						return &ec2.Reservation{
+							Instances: []*ec2.Instance{
+								{
+									State: &ec2.InstanceState{
+										Name: aws.String(ec2.InstanceStateNamePending),
+									},
+									IamInstanceProfile: &ec2.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   aws.String("m5.large"),
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &ec2.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
+								},
+							},
+						}, nil
+					})
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "expect ssh key to be unset when cluster key name is empty string and machine key name is empty string",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				SSHKeyName:   aws.String(""),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+					SSHKeyName: aws.String(""),
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+						if input.KeyName != nil {
+							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
+						}
+						return &ec2.Reservation{
+							Instances: []*ec2.Instance{
+								{
+									State: &ec2.InstanceState{
+										Name: aws.String(ec2.InstanceStateNamePending),
+									},
+									IamInstanceProfile: &ec2.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   aws.String("m5.large"),
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &ec2.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
+								},
+							},
+						}, nil
+					})
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "expect ssh key to be unset when cluster key name is nil and machine key name is empty string",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				SSHKeyName:   aws.String(""),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							&infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							&infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+					SSHKeyName: nil,
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.
+					DescribeImages(gomock.Any()).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								Name: aws.String("ami-1"),
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(gomock.Any()).
+					DoAndReturn(func(input *ec2.RunInstancesInput) (*ec2.Reservation, error) {
+						if input.KeyName != nil {
+							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
+						}
+						return &ec2.Reservation{
+							Instances: []*ec2.Instance{
+								{
+									State: &ec2.InstanceState{
+										Name: aws.String(ec2.InstanceStateNamePending),
+									},
+									IamInstanceProfile: &ec2.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   aws.String("m5.large"),
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &ec2.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &ec2.Placement{
+										AvailabilityZone: &az,
+									},
+								},
+							},
+						}, nil
+					})
+				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(nil)
+
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
 	}
 
 	for _, tc := range testcases {

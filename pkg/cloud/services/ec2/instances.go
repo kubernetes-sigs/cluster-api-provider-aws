@@ -198,13 +198,26 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	// If SSHKeyName WAS NOT provided in the AWSMachine Spec, fallback to the value provided in the AWSCluster Spec.
 	// If a value was not provided in the AWSCluster Spec, then use the defaultSSHKeyName
-	input.SSHKeyName = scope.AWSMachine.Spec.SSHKeyName
-	if input.SSHKeyName == nil {
-		if scope.InfraCluster.SSHKeyName() != nil {
-			input.SSHKeyName = scope.InfraCluster.SSHKeyName()
-		} else {
-			input.SSHKeyName = aws.String(defaultSSHKeyName)
-		}
+	// Note that:
+	// - a nil AWSMachine.Spec.SSHKeyName value means use the AWSCluster.Spec.SSHKeyName SSH key name value
+	// - nil values for both AWSCluster.Spec.SSHKeyName and AWSMachine.Spec.SSHKeyName means use the default SSH key name value
+	// - an empty string means do not set an SSH key name at all
+	// - otherwise use the value specified in either AWSMachine or AWSCluster
+	var prioritizedSSHKeyName string
+	switch {
+	case scope.AWSMachine.Spec.SSHKeyName != nil:
+		// prefer AWSMachine.Spec.SSHKeyName if it is defined
+		prioritizedSSHKeyName = *scope.AWSMachine.Spec.SSHKeyName
+	case scope.InfraCluster.SSHKeyName() != nil:
+		// fallback to AWSCluster.Spec.SSHKeyName if it is defined
+		prioritizedSSHKeyName = *scope.InfraCluster.SSHKeyName()
+	default:
+		prioritizedSSHKeyName = defaultSSHKeyName
+	}
+
+	// Only set input.SSHKeyName if the user did not explicitly request no ssh key be set (explicitly setting "" on either the Machine or related Cluster)
+	if prioritizedSSHKeyName != "" {
+		input.SSHKeyName = aws.String(prioritizedSSHKeyName)
 	}
 
 	input.SpotMarketOptions = scope.AWSMachine.Spec.SpotMarketOptions
