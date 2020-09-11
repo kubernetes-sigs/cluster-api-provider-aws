@@ -438,6 +438,7 @@ release: clean-release  ## Builds and push container images using the latest git
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/eks/config/manager/manager_pull_policy.yaml"
 	$(MAKE) release-manifests
+	$(MAKE) release-templates
 	# Add metadata to the release artifacts
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
@@ -478,6 +479,11 @@ release-alias-tag: # Adds the tag to the last build tag.
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES)
 	$(RELEASE_NOTES) $(ARGS)
+
+.PHONY: release-templates
+release-templates: $(RELEASE_DIR)
+	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml	
+	cp templates/cluster-template-eks.yaml $(RELEASE_DIR)/cluster-template-eks.yaml
 
 ## --------------------------------------
 ## Cleanup / Verification
