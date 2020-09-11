@@ -222,6 +222,13 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
 			os.Exit(1)
 		}
+		if feature.Gates.Enabled(feature.EKS) {
+			setupLog.Info("enabling EKS webhooks")
+			if err = (&infrav1alpha3exp.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
+				os.Exit(1)
+			}
+		}
 	}
 
 	// +kubebuilder:scaffold:builder
