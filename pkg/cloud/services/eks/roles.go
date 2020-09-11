@@ -94,6 +94,9 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 }
 
 func (s *Service) deleteControlPlaneIAMRole() error {
+	if s.scope.ControlPlane.Spec.RoleName == nil {
+		return nil
+	}
 	roleName := *s.scope.ControlPlane.Spec.RoleName
 	if !s.scope.EnableIAM() {
 		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Control Plane IAM Role")
