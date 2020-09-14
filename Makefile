@@ -12,29 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ROOT_DIR_RELATIVE := .
+
+include $(ROOT_DIR_RELATIVE)/common.mk
+
 # If you update this file, please follow
 # https://suva.sh/posts/well-documented-makefiles
-
-# Ensure Make is run with bash shell as some syntax below is bash-specific
-SHELL:=/usr/bin/env bash
-
-.DEFAULT_GOAL:=help
-
-# Use GOPROXY environment variable if set
-GOPROXY := $(shell go env GOPROXY)
-ifeq ($(GOPROXY),)
-GOPROXY := https://proxy.golang.org
-endif
-export GOPROXY
-
-# Active module mode, as we use go modules to manage dependencies
-export GO111MODULE=on
 
 # Directories.
 ARTIFACTS ?= $(REPO_ROOT)/_artifacts
 TOOLS_DIR := hack/tools
+TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
-TOOLS_SHARE_DIR := $(TOOLS_DIR)/share
+
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 TEST_E2E_DIR := test/e2e
@@ -62,7 +52,6 @@ RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
 
-UNAME := $(shell uname -s)
 PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
 export PATH
@@ -97,17 +86,8 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
-# Hosts running SELinux need :z added to volume mounts
-SELINUX_ENABLED := $(shell cat /sys/fs/selinux/enforce 2> /dev/null || echo 0)
-
-ifeq ($(SELINUX_ENABLED),1)
-  DOCKER_VOL_OPTS?=:z
-endif
-
 # Set build time variables including version details
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
-
-GOLANG_VERSION := 1.13.8
 
 # 'functional tests' as the ginkgo filter will run ALL tests ~ 2 hours @ 3 node concurrency.
 E2E_FOCUS ?= "functional tests"
@@ -115,13 +95,7 @@ E2E_FOCUS ?= "functional tests"
 # E2E_FOCUS := "Create cluster with name having"
 
 GINKGO_NODES ?= 2
-
-## --------------------------------------
-## Help
-## --------------------------------------
-
-help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+GINKGO_ARGS ?=
 
 ## --------------------------------------
 ## Testing
@@ -147,7 +121,7 @@ e2e-image:
 ifndef FASTBUILD
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 else
-	$(MAKE) manager
+	$(MAKE) managers
 	docker build -f Dockerfile.fastbuild --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 endif
 
@@ -190,81 +164,6 @@ manager-eks-controlplane:
 clusterawsadm: ## Build clusterawsadm binary.
 	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
 
-.PHONY: compile-e2e
-compile-e2e:
-	go test -c -o /dev/null -tags=e2e ./test/e2e
-
-## --------------------------------------
-## Tooling Binaries
-## --------------------------------------
-
-$(TOOLS_BIN_DIR):
-	mkdir -p $@
-
-$(TOOLS_SHARE_DIR):
-	mkdir -p $@
-
-$(CLUSTERCTL): go.mod ## Build clusterctl binary.
-	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
-
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) sigs.k8s.io/controller-tools/cmd/controller-gen
-
-$(ENVSUBST): $(TOOLS_DIR)/go.mod # Build envsubst from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/a8m/envsubst/cmd/envsubst
-
-$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golangci/golangci-lint/cmd/golangci-lint
-
-$(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) github.com/golang/mock/mockgen
-
-$(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/code-generator/cmd/conversion-gen
-
-$(DEFAULTER_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) k8s.io/code-generator/cmd/defaulter-gen
-
-$(KUSTOMIZE): $(TOOLS_DIR)/go.mod # Build kustomize from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(subst hack/tools/,,$@) sigs.k8s.io/kustomize/kustomize/v3
-
-$(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags tools -o $(subst hack/tools/,,$@) sigs.k8s.io/cluster-api/hack/tools/release
-
-$(KIND): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags tools -o $(subst hack/tools/,,$@) sigs.k8s.io/kind
-
-$(GINKGO): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(subst hack/tools/,,$@) github.com/onsi/ginkgo/ginkgo
-
-## ------------------------------------------------------------------------------------------------
-## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
-## ------------------------------------------------------------------------------------------------
-
-SSM_SHARE := $(TOOLS_SHARE_DIR)/ssm
-
-$(SSM_SHARE): $(TOOLS_SHARE_DIR)
-	mkdir -p $@
-
-$(SSM_SHARE)/session-manager-plugin.deb: $(SSM_SHARE)
-	curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb" -o $@
-
-$(SSM_SHARE)/sessionmanager-bundle.zip: $(SSM_SHARE)
-	curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/mac/sessionmanager-bundle.zip" -o $@
-
-$(SSM_SHARE)/data.tar.gz: $(SSM_SHARE)/session-manager-plugin.deb
-	cd $(SSM_SHARE) && ar x session-manager-plugin.deb data.tar.gz
-
-$(SSM_PLUGIN): $(TOOLS_BIN_DIR)
-ifeq ($(UNAME), Linux)
-	$(MAKE) $(SSM_SHARE)/data.tar.gz
-	cd $(TOOLS_BIN_DIR) && tar -xvf ../share/ssm/data.tar.gz usr/local/sessionmanagerplugin/bin/session-manager-plugin --strip-components 4 --directory $(TOOLS_BIN_DIR)
-endif
-ifeq ($(UNAME), Darwin)
-	$(MAKE) $(SSM_SHARE)/sessionmanager-bundle.zip
-	cd $(TOOLS_BIN_DIR) && unzip -j ../share/ssm/sessionmanager-bundle.zip sessionmanager-bundle/bin/session-manager-plugin
-endif
-
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
@@ -288,14 +187,15 @@ generate: ## Generate code
 	$(MAKE) generate-manifests
 
 .PHONY: generate-go
-generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN)
+generate-go: $(MOCKGEN)
 	go generate ./...
 	$(MAKE) generate-go-core
 	$(MAKE) generate-go-eks-bootstrap
 	$(MAKE) generate-go-eks-controlplane
 
 .PHONY: generate-go-core
-generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN) ## Runs Go related generate targets
+generate-go-core: ## Runs Go related generate targets
+	$(MAKE) -B $(CONTROLLER_GEN) $(CONVERSION_GEN) $(DEFAULTER_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
@@ -316,7 +216,7 @@ generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-go-eks-bootstrap
-generate-go-eks-bootstrap: $(CONTROLLER_GEN) $(CONVERSION_GEN)
+generate-go-eks-bootstrap: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/eks/api/... \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
@@ -334,7 +234,7 @@ generate-manifests:
 	$(MAKE) generate-eks-controlplane-manifests
 
 .PHONY: generate-core-manifests
-generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+generate-core-manifests:$(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
@@ -502,7 +402,7 @@ release: clean-release  ## Builds and push container images using the latest git
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: release-manifests
-release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
+release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) ## Builds the manifests to publish with a release
 	$(KUSTOMIZE) build config > $(RELEASE_DIR)/infrastructure-components.yaml
 	$(KUSTOMIZE) build bootstrap/eks/config > $(RELEASE_DIR)/eks-bootstrap-components.yaml
 	$(KUSTOMIZE) build controlplane/eks/config > $(RELEASE_DIR)/eks-controlplane-components.yaml
@@ -513,7 +413,7 @@ release-binaries: ## Builds the binaries to publish with a release
 	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
 
 .PHONY: release-binary
-release-binary: $(RELEASE_DIR)
+release-binary: $(RELEASE_DIR) versions.mk
 	docker run \
 		--rm \
 		-e CGO_ENABLED=0 \
@@ -543,7 +443,7 @@ release-notes: $(RELEASE_NOTES)
 
 .PHONY: release-templates
 release-templates: $(RELEASE_DIR)
-	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml	
+	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml
 	cp templates/cluster-template-eks.yaml $(RELEASE_DIR)/cluster-template-eks.yaml
 
 ## --------------------------------------
@@ -552,13 +452,13 @@ release-templates: $(RELEASE_DIR)
 
 .PHONY: clean
 clean: ## Remove all generated files
+	$(MAKE) -C hack/tools clean
 	$(MAKE) clean-bin
 	$(MAKE) clean-temporary
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
 	rm -rf bin
-	rm -rf hack/tools/bin
 
 .PHONY: clean-temporary
 clean-temporary: ## Remove all temporary files and folders
@@ -573,6 +473,10 @@ clean-temporary: ## Remove all temporary files and folders
 	rm -rf test/e2e/capi-kubeadm-control-plane-controller-manager
 	rm -rf test/e2e/logs
 	rm -rf test/e2e/resources
+
+.PHONY: serve-book
+serve-book: ## Run a server with the documentation book
+	$(MAKE) -C docs/book serve
 
 .PHONY: clean-release
 clean-release: ## Remove the release folder
@@ -598,6 +502,6 @@ verify-gen: generate
 		echo "generated files are out of date, run make generate"; exit 1; \
 	fi
 
-.PHONY: docs
-docs: ## Build all documents and diagrams
-	$(MAKE) -C docs docs
+.PHONY: compile-e2e
+compile-e2e: ## Test e2e compilation
+	go test -c -o /dev/null -tags=e2e ./test/e2e
