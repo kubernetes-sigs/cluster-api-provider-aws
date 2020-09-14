@@ -1,24 +1,24 @@
 # Netlify build instructions
 [build]
-    command = "./docs/book/install-and-build.sh"
+    command = "make -C docs/book build"
     publish = "docs/book/book"
 
 # Standard Netlify redirects
 [[redirects]]
-    from = "https://master--aws-cluster-api.netlify.com/*"
-    to = "https://master.aws-cluster-api.sigs.k8s.io/:splat"
+    from = "https://master--cluster-api-aws.netlify.com/*"
+    to = "https://master.cluster-api-aws.sigs.k8s.io/:splat"
     status = 301
     force = true
 
 # HTTP-to-HTTPS rules
 [[redirects]]
-    from = "http://master.aws-cluster-api.sigs.k8s.io/*"
-    to = "https://master.aws-cluster-api.sigs.k8s.io/:splat"
+    from = "http://master.cluster-api-aws.sigs.k8s.io/*"
+    to = "https://master.cluster-api-aws.sigs.k8s.io/:splat"
     status = 301
     force = true
 
 [[redirects]]
-    from = "http://master--aws-cluster-api.netlify.com/*"
-    to = "http://master.aws-cluster-api.sigs.k8s.io/:splat"
+    from = "http://master--cluster-api-aws.netlify.com/*"
+    to = "http://master.cluster-api-aws.sigs.k8s.io/:splat"
     status = 301
     force = true

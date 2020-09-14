@@ -1,4 +1,4 @@
-# Reconcile Cluster-API Objects In Custom Namespace <!-- omit in toc -->
+# Restricting Cluster API to certain namespaces <!-- omit in toc -->
 
 Cluster-api-provider-aws controllers by default, reconcile cluster-api objects
 across all namespaces in the cluster. However, it is possible to restrict
