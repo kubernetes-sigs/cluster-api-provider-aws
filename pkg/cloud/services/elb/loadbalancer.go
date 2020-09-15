@@ -130,6 +130,11 @@ func (s *Service) DeleteLoadbalancers() error {
 	if err != nil {
 		return err
 	}
+	elbName, err := GenerateELBName(s.scope.Name())
+	if err != nil {
+		return err
+	}
+	elbs = append(elbs, elbName)
 
 	for _, elb := range elbs {
 		s.scope.V(3).Info("deleting load balancer", "arn", elb)
@@ -144,7 +149,9 @@ func (s *Service) DeleteLoadbalancers() error {
 			return false, err
 		}
 
-		return len(elbs) == 0, nil
+		_, err = s.describeClassicELB(elbName)
+		done = len(elbs) == 0 && IsNotFound(err)
+		return done, nil
 	}); err != nil {
 		return errors.Wrapf(err, "failed to wait for %q ELB deletions", s.scope.Name())
 	}
@@ -501,22 +508,51 @@ func (s *Service) listByTag(tag string) ([]string, error) {
 	return names, nil
 }
 
+func (s *Service) filterByOwnedTag(tagKey string) ([]string, error) {
+	var names []string
+	err := s.ELBClient.DescribeLoadBalancersPages(&elb.DescribeLoadBalancersInput{}, func(r *elb.DescribeLoadBalancersOutput, last bool) bool {
+		for _, lb := range r.LoadBalancerDescriptions {
+			names = append(names, *lb.LoadBalancerName)
+		}
+		return true
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(names) == 0 {
+		return nil, nil
+	}
+
+	output, err := s.ELBClient.DescribeTags(&elb.DescribeTagsInput{LoadBalancerNames: aws.StringSlice(names)})
+	if err != nil {
+		return nil, err
+	}
+	var ownedElbs []string
+	for _, tagDesc := range output.TagDescriptions {
+		for _, tag := range tagDesc.Tags {
+			if *tag.Key == tagKey && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
+				ownedElbs = append(ownedElbs, *tagDesc.LoadBalancerName)
+			}
+		}
+	}
+
+	return ownedElbs, nil
+}
+
 func (s *Service) listOwnedELBs() ([]string, error) {
 	// k8s.io/cluster/<name>, created by k/k cloud provider
 	serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
 	arns, err := s.listByTag(serviceTag)
 	if err != nil {
-		return nil, err
+		//retry by listing all ELBs as listByTag will fail in air-gapped environments
+		arns, err = s.filterByOwnedTag(serviceTag)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// sigs.k8s.io/cluster-api-provider-aws/cluster/<name>, created by CAPA
-	capaTag := infrav1.ClusterTagKey(s.scope.Name())
-	clusterArns, err := s.listByTag(capaTag)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(arns, clusterArns...), nil
+	return arns, nil
 }
 
 func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
@@ -529,7 +565,7 @@ func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case elb.ErrCodeAccessPointNotFoundException:
-				return nil, errors.Wrapf(err, "no classic load balancer found with name: %q", name)
+				return nil, NewNotFound(fmt.Sprintf("no classic load balancer found with name: %q", name))
 			case elb.ErrCodeDependencyThrottleException:
 				return nil, errors.Wrap(err, "too many requests made to the ELB service")
 			default:
