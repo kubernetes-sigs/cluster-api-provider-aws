@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/internal/userdata"
@@ -179,7 +179,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, log logr.Logger, c
 		return ctrl.Result{}, nil
 	}
 
-	controlPlane := &expinfrav1.AWSManagedControlPlane{}
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if err := r.Get(ctx, client.ObjectKey{Name: cluster.Spec.ControlPlaneRef.Name, Namespace: cluster.Spec.ControlPlaneRef.Namespace}, controlPlane); err != nil {
 		return ctrl.Result{}, err
 	}

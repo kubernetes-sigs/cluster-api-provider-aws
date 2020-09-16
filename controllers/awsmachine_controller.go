@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
@@ -739,7 +739,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 	var err error
 
 	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Kind == "AWSManagedControlPlane" {
-		controlPlane := &expinfrav1.AWSManagedControlPlane{}
+		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 		controlPlaneName := client.ObjectKey{
 			Namespace: awsMachine.Namespace,
 			Name:      cluster.Spec.ControlPlaneRef.Name,

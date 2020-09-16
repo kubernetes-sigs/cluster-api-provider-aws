@@ -24,7 +24,7 @@ import (
 
 const (
 	// ManagedControlPlaneFinalizer allows the controller to clean up resources on delete
-	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.infrastructure.cluster.x-k8s.io"
+	ManagedControlPlaneFinalizer = "awsmanagedcontrolplane.controlplane.cluster.x-k8s.io"
 )
 
 // AWSManagedControlPlaneSpec defines the desired state of AWSManagedControlPlane

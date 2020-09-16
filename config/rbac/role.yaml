@@ -48,14 +48,13 @@ rules:
   - list
   - watch
 - apiGroups:
-  - ""
+  - controlplane.cluster.x-k8s.io
   resources:
-  - events
+  - awsmanagedcontrolplanes
+  - awsmanagedcontrolplanes/status
   verbs:
-  - create
   - get
   - list
-  - patch
   - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
@@ -113,26 +112,6 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsmanagedclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedcontrolplanes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedcontrolplanes/status
   verbs:
   - get
   - patch

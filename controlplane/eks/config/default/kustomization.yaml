@@ -1,0 +1,8 @@
+namespace: capa-eks-control-plane-system
+
+resources:
+- namespace.yaml
+
+bases:
+- ../rbac
+- ../manager

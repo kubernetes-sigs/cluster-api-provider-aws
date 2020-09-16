@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/mock_eksiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -39,7 +39,7 @@ func TestMakeEksEncryptionConfigs(t *testing.T) {
 	resourceTwo := "resourceTwo"
 	testCases := []struct {
 		name   string
-		input  *infrav1exp.EncryptionConfig
+		input  *ekscontrolplanev1.EncryptionConfig
 		expect []*eks.EncryptionConfig
 	}{
 		{
@@ -49,7 +49,7 @@ func TestMakeEksEncryptionConfigs(t *testing.T) {
 		},
 		{
 			name: "nil input",
-			input: &infrav1exp.EncryptionConfig{
+			input: &ekscontrolplanev1.EncryptionConfig{
 				Provider:  &providerOne,
 				Resources: []*string{&resourceOne, &resourceTwo},
 			},
@@ -129,7 +129,7 @@ func TestVersionToEKS(t *testing.T) {
 func TestMakeVPCConfig(t *testing.T) {
 	type input struct {
 		subnets        infrav1.Subnets
-		endpointAccess infrav1exp.EndpointAccess
+		endpointAccess ekscontrolplanev1.EndpointAccess
 	}
 
 	subnetIDOne := "one"
@@ -144,7 +144,7 @@ func TestMakeVPCConfig(t *testing.T) {
 			name: "no subnets",
 			input: input{
 				subnets:        nil,
-				endpointAccess: infrav1exp.EndpointAccess{},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{},
 			},
 			err:    true,
 			expect: nil,
@@ -166,7 +166,7 @@ func TestMakeVPCConfig(t *testing.T) {
 						IsPublic:         false,
 					},
 				},
-				endpointAccess: infrav1exp.EndpointAccess{},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{},
 			},
 			expect: &eks.VpcConfigRequest{
 				SubnetIds: []*string{&subnetIDOne, &subnetIDTwo},
@@ -189,7 +189,7 @@ func TestMakeVPCConfig(t *testing.T) {
 						IsPublic:         false,
 					},
 				},
-				endpointAccess: infrav1exp.EndpointAccess{
+				endpointAccess: ekscontrolplanev1.EndpointAccess{
 					PublicCIDRs: []*string{aws.String("10.0.0.1/24")},
 				},
 			},
@@ -250,7 +250,7 @@ func TestPublicAccessCIDRsEqual(t *testing.T) {
 func TestMakeEKSLogging(t *testing.T) {
 	testCases := []struct {
 		name   string
-		input  *infrav1exp.ControlPlaneLoggingSpec
+		input  *ekscontrolplanev1.ControlPlaneLoggingSpec
 		expect *eks.Logging
 	}{
 		{
@@ -260,7 +260,7 @@ func TestMakeEKSLogging(t *testing.T) {
 		},
 		{
 			name: "some enabled, some disabled",
-			input: &infrav1exp.ControlPlaneLoggingSpec{
+			input: &ekscontrolplanev1.ControlPlaneLoggingSpec{
 				APIServer: true,
 				Audit:     false,
 			},
@@ -365,8 +365,8 @@ func TestReconcileClusterVersion(t *testing.T) {
 						Name:      clusterName,
 					},
 				},
-				ControlPlane: &infrav1exp.AWSManagedControlPlane{
-					Spec: infrav1exp.AWSManagedControlPlaneSpec{
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 						Version: aws.String("1.16"),
 					},
 				},

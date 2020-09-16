@@ -83,6 +83,11 @@ ALL_ARCH = amd64 arm arm64 ppc64le s390x
 EKS_BOOTSTRAP_IMAGE_NAME ?= eks-bootstrap-controller
 EKS_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(EKS_BOOTSTRAP_IMAGE_NAME)
 
+# bootstrap
+EKS_CONTROLPLANE_IMAGE_NAME ?= eks-controlplane-controller
+EKS_CONTROLPLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(EKS_CONTROLPLANE_IMAGE_NAME)
+
+
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
@@ -166,6 +171,7 @@ binaries: managers clusterawsadm ## Builds and installs all binaries
 managers:
 	$(MAKE) manager-aws-infrastructure
 	$(MAKE) manager-eks-bootstrap
+	$(MAKE) manager-eks-controlplane
 
 .PHONY: manager-aws-infrastructure
 manager-aws-infrastructure: ## Build manager binary.
@@ -174,6 +180,11 @@ manager-aws-infrastructure: ## Build manager binary.
 .PHONY: manager-eks-bootstrap
 manager-eks-bootstrap:
 	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/eks-bootstrap-manager sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks
+
+.PHONY: manager-eks-controlplane
+manager-eks-controlplane:
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/eks-controlplane-manager sigs.k8s.io/cluster-api-provider-aws/controlplane/eks
+
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary.
@@ -277,6 +288,7 @@ generate-go: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN)
 	go generate ./...
 	$(MAKE) generate-go-core
 	$(MAKE) generate-go-eks-bootstrap
+	$(MAKE) generate-go-eks-controlplane
 
 .PHONY: generate-go-core
 generate-go-core: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(MOCKGEN) $(DEFAULTER_GEN) ## Runs Go related generate targets
@@ -305,10 +317,17 @@ generate-go-eks-bootstrap: $(CONTROLLER_GEN) $(CONVERSION_GEN)
 		paths=./bootstrap/eks/api/... \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
 
+.PHONY: generate-go-eks-controlplane
+generate-go-eks-controlplane: $(CONTROLLER_GEN) $(CONVERSION_GEN)
+	$(CONTROLLER_GEN) \
+		paths=./controlplane/eks/api/... \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
+
 .PHONY: generate-manifests
 generate-manifests:
 	$(MAKE) generate-core-manifests
 	$(MAKE) generate-eks-bootstrap-manifests
+	$(MAKE) generate-eks-controlplane-manifests
 
 .PHONY: generate-core-manifests
 generate-core-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
@@ -337,6 +356,18 @@ generate-eks-bootstrap-manifests: $(CONTROLLER_GEN)
 		output:webhook:dir=./bootstrap/eks/config/webhook \
 		webhook
 
+.PHONY: generate-eks-controlplane-manifests
+generate-eks-controlplane-manifests: $(CONTROLLER_GEN)
+	$(CONTROLLER_GEN) \
+		paths=./controlplane/eks/api/... \
+		paths=./controlplane/eks/controllers/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=./controlplane/eks/config/crd/bases \
+		output:rbac:dir=./controlplane/eks/config/rbac \
+		output:webhook:dir=./controlplane/eks/config/webhook \
+		webhook
+
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
@@ -345,6 +376,7 @@ generate-eks-bootstrap-manifests: $(CONTROLLER_GEN)
 docker-build:
 	$(MAKE) ARCH=$(ARCH) docker-build-core
 	$(MAKE) ARCH=$(ARCH) docker-build-eks-bootstrap
+	$(MAKE) ARCH=$(ARCH) docker-build-eks-controlplane
 
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for controller-manager
@@ -359,10 +391,18 @@ docker-build-eks-bootstrap:
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/eks/config/manager/manager_pull_policy.yaml"
 
 
+.PHONY: docker-build-eks-controlplane
+docker-build-eks-controlplane:
+	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" --build-arg package=./controlplane/eks . -t $(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/eks/config/manager/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/eks/config/manager/manager_pull_policy.yaml"
+
+
 .PHONY: docker-push
 docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	docker push $(EKS_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 ## --------------------------------------
 ## Docker — All ARCH
@@ -378,6 +418,7 @@ docker-build-%:
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))
 	$(MAKE) docker-push-core-manifest
 	$(MAKE) docker-push-eks-bootstrap-manifest
+	$(MAKE) docker-push-eks-controlplane-manifest
 
 docker-push-%:
 	$(MAKE) ARCH=$* docker-push
@@ -399,6 +440,15 @@ docker-push-eks-bootstrap-manifest: ## Push the fat manifest docker image.
 	docker manifest push --purge ${EKS_BOOTSTRAP_CONTROLLER_IMG}:${TAG}
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(EKS_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/eks/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/eks/config/manager/manager_pull_policy.yaml"
+
+.PHONY: docker-push-eks-controlplane-manifest
+docker-push-eks-controlplane-manifest: ## Push the fat manifest docker image.
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(EKS_CONTROLPLANE_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(EKS_CONTROLPLANE_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${EKS_CONTROLPLANE_CONTROLLER_IMG}:${TAG} ${EKS_CONTROLPLANE_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge ${EKS_CONTROLPLANE_CONTROLLER_IMG}:${TAG}
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/eks/config/manager/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/eks/config/manager/manager_pull_policy.yaml"
 
 .PHONY: set-manifest-image
 set-manifest-image:
@@ -435,8 +485,13 @@ release: clean-release  ## Builds and push container images using the latest git
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(PROD_REGISTRY)/$(EKS_BOOTSTRAP_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./bootstrap/eks/config/manager/manager_image_patch.yaml"
+	# Set manifest image for EKS controlplane provider to the production bucket.
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(PROD_REGISTRY)/$(EKS_CONTROLPLANE_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="./controlplane/eks/config/manager/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/manager/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/eks/config/manager/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/eks/config/manager/manager_pull_policy.yaml"
 	$(MAKE) release-manifests
 	$(MAKE) release-templates
 	# Add metadata to the release artifacts
@@ -446,6 +501,7 @@ release: clean-release  ## Builds and push container images using the latest git
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
 	$(KUSTOMIZE) build config > $(RELEASE_DIR)/infrastructure-components.yaml
 	$(KUSTOMIZE) build bootstrap/eks/config > $(RELEASE_DIR)/eks-bootstrap-components.yaml
+	$(KUSTOMIZE) build controlplane/eks/config > $(RELEASE_DIR)/eks-controlplane-components.yaml
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
@@ -475,6 +531,7 @@ RELEASE_ALIAS_TAG=$(PULL_BASE_REF)
 release-alias-tag: # Adds the tag to the last build tag.
 	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(EKS_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(EKS_BOOTSTRAP_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+	gcloud container images add-tag $(EKS_CONTROLPLANE_CONTROLLER_IMG):$(TAG) $(EKS_CONTROLPLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES)

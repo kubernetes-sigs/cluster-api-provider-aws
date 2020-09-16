@@ -25,7 +25,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 )
 
 const (
@@ -160,7 +160,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 
 	if !t.Spec.ManagedControlPlane.Disable {
 		template.Resources[AWSIAMRoleEKSControlPlane] = &cfn_iam.Role{
-			RoleName:                 infrav1exp.DefaultEKSControlPlaneRole,
+			RoleName:                 ekscontrolplanev1.DefaultEKSControlPlaneRole,
 			AssumeRolePolicyDocument: eksAssumeRolePolicy(),
 			ManagedPolicyArns:        t.eksControlPlanePolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.ManagedControlPlane.Tags),
