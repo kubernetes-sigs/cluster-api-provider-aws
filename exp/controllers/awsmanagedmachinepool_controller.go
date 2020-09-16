@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -57,6 +58,11 @@ type AWSManagedMachinePoolReconciler struct {
 
 // SetupWithManager is used to setup the controller
 func (r *AWSManagedMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
+	gvk, err := apiutil.GVKForObject(new(infrav1exp.AWSManagedMachinePool), mgr.GetScheme())
+	if err != nil {
+		return errors.Wrapf(err, "failed to find GVK for AWSManagedMachinePool")
+	}
+	managedControlPlaneToManagedMachinePoolMap := managedControlPlaneToManagedMachinePoolMapFunc(r.Client, gvk, r.Log)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1exp.AWSManagedMachinePool{}).
 		WithOptions(options).
@@ -64,7 +70,13 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, opt
 		Watches(
 			&source.Kind{Type: &capiv1exp.MachinePool{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: machinePoolToInfrastructureMapFunc(infrav1exp.GroupVersion.WithKind("AWSManagedMachinePool")),
+				ToRequests: machinePoolToInfrastructureMapFunc(gvk),
+			},
+		).
+		Watches(
+			&source.Kind{Type: &controlplanev1.AWSManagedControlPlane{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: managedControlPlaneToManagedMachinePoolMap,
 			},
 		).
 		Complete(r)
@@ -196,4 +208,66 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, infrav1exp.ManagedMachinePoolFinalizer)
 
 	return reconcile.Result{}, nil
+}
+
+// GetOwnerClusterKey returns only the Cluster name and namespace
+func GetOwnerClusterKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if gv.Group == clusterv1.GroupVersion.Group {
+			return &client.ObjectKey{
+				Namespace: obj.Namespace,
+				Name:      ref.Name,
+			}, nil
+		}
+	}
+	return nil, nil
+}
+
+func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logr.Logger) handler.ToRequestsFunc {
+	return func(o handler.MapObject) []reconcile.Request {
+		ctx := context.Background()
+		awsControlPlane, ok := o.Object.(*controlplanev1.AWSManagedControlPlane)
+		if !ok {
+			return nil
+		}
+		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
+			return nil
+		}
+
+		clusterKey, err := GetOwnerClusterKey(awsControlPlane.ObjectMeta)
+		if err != nil {
+			log.Error(err, "couldn't get AWS control plane owner ObjectKey")
+			return nil
+		}
+		if clusterKey == nil {
+			return nil
+		}
+
+		managedPoolForClusterList := capiv1exp.MachinePoolList{}
+		if err := c.List(
+			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterKey.Name},
+		); err != nil {
+			log.Error(err, "couldn't list pools for cluster")
+			return nil
+		}
+
+		mapFunc := machinePoolToInfrastructureMapFunc(gvk)
+
+		var results []ctrl.Request
+		for i := range managedPoolForClusterList.Items {
+			managedPool := mapFunc.Map(handler.MapObject{
+				Object: &managedPoolForClusterList.Items[i],
+			})
+			results = append(results, managedPool...)
+		}
+
+		return results
+	}
 }

@@ -178,10 +178,8 @@ func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 			if err := s.scope.NodegroupReadyFalse("DeletingFailed", reterr.Error()); err != nil {
 				reterr = err
 			}
-		} else {
-			if err := s.scope.NodegroupReadyFalse(clusterv1.DeletedReason, ""); err != nil {
-				reterr = err
-			}
+		} else if err := s.scope.NodegroupReadyFalse(clusterv1.DeletedReason, ""); err != nil {
+			reterr = err
 		}
 	}()
 	input := &eks.DeleteNodegroupInput{

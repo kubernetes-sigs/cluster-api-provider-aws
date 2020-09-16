@@ -204,10 +204,8 @@ func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
 			if err := s.scope.IAMReadyFalse("DeletingFailed", reterr.Error()); err != nil {
 				reterr = err
 			}
-		} else {
-			if err := s.scope.IAMReadyFalse(clusterv1.DeletedReason, ""); err != nil {
-				reterr = err
-			}
+		} else if err := s.scope.IAMReadyFalse(clusterv1.DeletedReason, ""); err != nil {
+			reterr = err
 		}
 	}()
 	roleName := s.scope.RoleName()
