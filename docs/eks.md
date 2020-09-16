@@ -10,7 +10,7 @@ Experimental support for EKS has been introduced in 0.6.0 of the provider. Initi
 
 The implementation introduces 3 new CRD kinds:
 
-* AWSManagedControlPlane - specifies the EKS Cluster in AWS
+* AWSManagedControlPlane - specifies the EKS Cluster in AWS and used by the Cluster API AWS Managed Control plane (MACP)
 * AWSManagedCluster - holds details of the EKS cluster for use by CAPI
 * EKSConfig - used by Cluster API bootstrap provider EKS (CABPE)
 
@@ -26,24 +26,54 @@ Additionally using `clusterawsadm` will add permissions to the **controllers.clu
 
 ## Enabling EKS Support
 
-You must explicitly enable the EKS support in the provider using feature flags. The following feature flags are supported:
+You must explicitly enable the EKS support in the provider by doing the following:
 
-* **EKS** - this will enable the EKS support in the manager (capa-controller-manager)
+* Enabling support in the infrastructure manager (capa-controller-manager) by enabling the **EKS** feature flag
+* Add the AWS Managed Control Plane Provider
+* Add the Cluster API bootstrap provider EKS
+
+### Enabling the **EKS** feature 
+
+Enabling the **EKS** feature on the core infrastructure managercan be done using `clusterctl` by setting the following environment variables to **true** (they all default to **false**):
+
+* **EXP_EKS** - this is used to set the value of the **EKS** feature flag
+
+As an example:
+
+```bash
+export EXP_EKS=true
+clusterctl --infrastructure=aws
+```
+
+### Adding the AWS Managed Control Plane and Bootstrap Providers
+
+Create the` ~/.cluster-api/clusterctl.yaml` file with the following contents:
+
+```yaml
+providers:
+  - name: "eks"
+    url: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-bootstrap-components.yaml"
+    type: "BootstrapProvider"
+  - name: "eks"
+    url: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-controlplane-components.yaml"
+    type: "ControlPlaneProvider"
+```
+
+The EKS functionality in the control plane has 2 feature flags you can enable:
+
 * **EKSEnableIAM** - by enabling this the controller will create the IAM role required by the EKS control plane. If this isn't enabled then you will need to manually create a role and specify the role name in the AWSManagedControlPlane.
 * **EKSAllowAddRoles** - by enabling this you can add additional roles to the control plane role that is created. This has no affect unless used wtih __EKSEnableIAM__
 
 The feature flags can be enabled when using `clusterctl` by setting the following environment variables to **true** (they all default to **false**):
 
-* **EXP_EKS** - this is used to set the value of the **EKS** feature flag
 * **EXP_EKS_IAM** - this is used to set the value of the **EKSEnableIAM** feature flag
 * **EXP_EKS_ADD_ROLES** - this is used to set the value of the **EKSAllowAddRoles** feature flag
 
-As an example, to enable EKS with IAM role creation:
+As an example, to enable the control plane and bootstrap providers with IAM role creation:
 
 ```bash
-export EXP_EKS=true
 export EXP_EKS_IAM=true
-clusterctl --infrastructure=aws
+clusterctl --infrastructure=aws --boostrap=eks --controlplane=eks
 ```
 
 ## Creating a EKS cluster
