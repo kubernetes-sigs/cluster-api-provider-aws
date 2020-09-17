@@ -26,6 +26,7 @@ import (
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 )
 
 const (
@@ -37,6 +38,7 @@ const (
 	AWSIAMRoleControlPlane                       = "AWSIAMRoleControlPlane"
 	AWSIAMRoleNodes                              = "AWSIAMRoleNodes"
 	AWSIAMRoleEKSControlPlane                    = "AWSIAMRoleEKSControlPlane"
+	AWSIAMRoleEKSNodegroup                       = "AWSIAMRoleEKSNodegroup"
 	AWSIAMUserBootstrapper                       = "AWSIAMUserBootstrapper"
 	ControllersPolicy                 PolicyName = "AWSIAMManagedPolicyControllers"
 	ControlPlanePolicy                PolicyName = "AWSIAMManagedPolicyCloudProviderControlPlane"
@@ -164,6 +166,15 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 			AssumeRolePolicyDocument: eksAssumeRolePolicy(),
 			ManagedPolicyArns:        t.eksControlPlanePolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.DefaultControlPlaneRole.Tags),
+		}
+	}
+
+	if !t.Spec.EKS.ManagedMachinePool.Disable {
+		template.Resources[AWSIAMRoleEKSNodegroup] = &cfn_iam.Role{
+			RoleName:                 infrav1exp.DefaultEKSNodegroupRole,
+			AssumeRolePolicyDocument: eksAssumeRolePolicy(),
+			ManagedPolicyArns:        t.eksMachinePoolPolicies(),
+			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.ManagedMachinePool.Tags),
 		}
 	}
 

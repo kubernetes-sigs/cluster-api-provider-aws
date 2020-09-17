@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -39,6 +41,13 @@ const (
 	Al2x86_64GPU ManagedMachineAMIType = "AL2_x86_64_GPU"
 	// Al2Arm64 is the Arm AMI type
 	Al2Arm64 ManagedMachineAMIType = "AL2_ARM_64"
+)
+
+var (
+	// DefaultEKSNodegroupRole is the name of the default IAM role to use for EKS nodegroups
+	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
+	// can be created using clusterawsadm or created manually
+	DefaultEKSNodegroupRole = fmt.Sprintf("eks-nodegroup%s", infrav1.DefaultNameSuffix)
 )
 
 // AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool
