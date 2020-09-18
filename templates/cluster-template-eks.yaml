@@ -13,7 +13,7 @@ spec:
     name: "${CLUSTER_NAME}"
   controlPlaneRef:
     kind: AWSManagedControlPlane
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
     name: "${CLUSTER_NAME}-control-plane"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
@@ -22,7 +22,7 @@ metadata:
   name: "${CLUSTER_NAME}"
 ---
 kind: AWSManagedControlPlane
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
