@@ -192,6 +192,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	sgRoles := []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupEKSNodeAdditional,
 	}
 
 	ec2Service := ec2.NewService(managedScope)

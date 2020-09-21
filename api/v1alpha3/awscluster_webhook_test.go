@@ -300,7 +300,7 @@ func TestAWSCluster_ValidateAllowedCIDRBlocks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.awsc.validateAllowedCIDRBlocks(); (err != nil) != tt.wantErr {
+			if err := tt.awsc.Spec.Bastion.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateAllowedCIDRBlocks() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

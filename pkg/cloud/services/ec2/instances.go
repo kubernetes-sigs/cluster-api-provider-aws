@@ -336,6 +336,9 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	switch scope.Role() {
 	case "node":
 		// Just the common security groups above
+		if scope.IsEKSManaged() {
+			sgRoles = append(sgRoles, infrav1.SecurityGroupEKSNodeAdditional)
+		}
 	case "control-plane":
 		sgRoles = append(sgRoles, infrav1.SecurityGroupControlPlane)
 	default:

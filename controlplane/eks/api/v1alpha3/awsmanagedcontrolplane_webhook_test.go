@@ -22,6 +22,8 @@ import (
 
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
 var (
@@ -31,6 +33,28 @@ var (
 )
 
 func TestDefaultingWebhook(t *testing.T) {
+	defaultTestBastion := infrav1.Bastion{
+		AllowedCIDRBlocks: []string{"0.0.0.0/0"},
+	}
+	defaultNetworkSpec := infrav1.NetworkSpec{
+		CNI: &infrav1.CNISpec{
+			CNIIngressRules: []*infrav1.CNIIngressRule{
+				{
+					Description: "bgp (calico)",
+					Protocol:    "tcp",
+					FromPort:    179,
+					ToPort:      179,
+				},
+				{
+					Description: "IP-in-IP (calico)",
+					Protocol:    "4",
+					FromPort:    -1,
+					ToPort:      65535,
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		name         string
 		resourceName string
@@ -45,21 +69,21 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1"},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec},
 		},
 		{
 			name:         "less than 100 chars, dot in name",
 			resourceName: "team1.cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_team1_cluster1"},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_team1_cluster1", Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec},
 		},
 		{
 			name:         "more than 100 chars",
 			resourceName: "ABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDEABCDE",
 			resourceNS:   "default",
 			expectHash:   true,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "capi_"},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "capi_", Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec},
 		},
 		{
 			name:         "with patch",
@@ -67,7 +91,23 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceNS:   "default",
 			expectHash:   false,
 			spec:         AWSManagedControlPlaneSpec{Version: &vV1_17_1},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Version: &vV1_17},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Version: &vV1_17, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec},
+		},
+		{
+			name:         "with allowed ip on bastion",
+			resourceName: "cluster1",
+			resourceNS:   "default",
+			expectHash:   false,
+			spec:         AWSManagedControlPlaneSpec{Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}, NetworkSpec: defaultNetworkSpec},
+		},
+		{
+			name:         "with CNI on network",
+			resourceName: "cluster1",
+			resourceNS:   "default",
+			expectHash:   false,
+			spec:         AWSManagedControlPlaneSpec{NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
 		},
 	}
 

@@ -394,6 +394,9 @@ var (
 	// SecurityGroupNode defines a Kubernetes workload node role
 	SecurityGroupNode = SecurityGroupRole("node")
 
+	// SecurityGroupEKSNodeAdditional defines an extra node group from eks nodes
+	SecurityGroupEKSNodeAdditional = SecurityGroupRole("node-eks-additional")
+
 	// SecurityGroupControlPlane defines a Kubernetes control plane node role
 	SecurityGroupControlPlane = SecurityGroupRole("controlplane")
 
