@@ -91,6 +91,7 @@ const (
 	defaultWebhookConfigurationName = "machine-api"
 	defaultWebhookServiceName       = "machine-api-operator-webhook"
 	defaultWebhookServiceNamespace  = "openshift-machine-api"
+	defaultWebhookServicePort       = 443
 
 	defaultUserDataSecret  = "worker-user-data-managed"
 	defaultSecretNamespace = "openshift-machine-api"
@@ -284,6 +285,7 @@ func MachineValidatingWebhook() admissionregistrationv1.ValidatingWebhook {
 		Namespace: defaultWebhookServiceNamespace,
 		Name:      defaultWebhookServiceName,
 		Path:      pointer.StringPtr(DefaultMachineValidatingHookPath),
+		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.ValidatingWebhook{
 		AdmissionReviewVersions: []string{"v1beta1"},
@@ -315,6 +317,7 @@ func MachineSetValidatingWebhook() admissionregistrationv1.ValidatingWebhook {
 		Namespace: defaultWebhookServiceNamespace,
 		Name:      defaultWebhookServiceName,
 		Path:      pointer.StringPtr(DefaultMachineSetValidatingHookPath),
+		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.ValidatingWebhook{
 		AdmissionReviewVersions: []string{"v1beta1"},
@@ -367,6 +370,7 @@ func MachineMutatingWebhook() admissionregistrationv1.MutatingWebhook {
 		Namespace: defaultWebhookServiceNamespace,
 		Name:      defaultWebhookServiceName,
 		Path:      pointer.StringPtr(DefaultMachineMutatingHookPath),
+		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.MutatingWebhook{
 		AdmissionReviewVersions: []string{"v1beta1"},
@@ -397,6 +401,7 @@ func MachineSetMutatingWebhook() admissionregistrationv1.MutatingWebhook {
 		Namespace: defaultWebhookServiceNamespace,
 		Name:      defaultWebhookServiceName,
 		Path:      pointer.StringPtr(DefaultMachineSetMutatingHookPath),
+		Port:      pointer.Int32Ptr(defaultWebhookServicePort),
 	}
 	return admissionregistrationv1.MutatingWebhook{
 		AdmissionReviewVersions: []string{"v1beta1"},
