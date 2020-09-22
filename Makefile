@@ -179,6 +179,10 @@ manager-eks-bootstrap:
 clusterawsadm: ## Build clusterawsadm binary.
 	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
 
+.PHONY: compile-e2e
+compile-e2e:
+	go test -c -o /dev/null -tags=e2e ./test/e2e
+
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
