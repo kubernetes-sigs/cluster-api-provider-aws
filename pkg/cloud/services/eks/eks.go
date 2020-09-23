@@ -43,6 +43,12 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 	}
 	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition)
 
+	if err := s.reconcileAuthenticator(ctx); err != nil {
+		conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return err
+	}
+	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition)
+
 	s.scope.V(2).Info("Reconcile EKS control plane completed successfully")
 	return nil
 }

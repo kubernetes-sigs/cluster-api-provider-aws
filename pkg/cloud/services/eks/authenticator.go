@@ -20,6 +20,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,6 +36,11 @@ func (s *Service) reconcileAuthenticator(ctx context.Context) error {
 	clusterKey := client.ObjectKey{
 		Name:      s.scope.Cluster.Name,
 		Namespace: s.scope.Cluster.Namespace,
+	}
+
+	accountId, err := s.getAccountID()
+	if err != nil {
+		return fmt.Errorf("getting account id: %w", err)
 	}
 
 	restConfig, err := remote.RESTConfig(ctx, s.scope.Client, clusterKey)
@@ -49,17 +58,33 @@ func (s *Service) reconcileAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
 
+	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes.cluster-api-provider-aws.sigs.k8s.io", accountId)
+
 	roleMapping := iamauth.RoleMapping{
-		RoleARN: *s.scope.ControlPlane.Spec.RoleName,
+		RoleARN: roleARN,
 		KubernetesMapping: iamauth.KubernetesMapping{
 			UserName: iamauth.EC2NodeUserName,
 			Groups:   iamauth.NodeGroups,
 		},
 	}
 
+	s.scope.V(2).Info("Mapping nodes role", "role", roleMapping.RoleARN, "user", roleMapping.UserName)
 	if err := authBackend.MapRole(roleMapping); err != nil {
 		return fmt.Errorf("mapping node role: %w", err)
 	}
 
+	s.scope.V(2).Info("Reconciled aws-iam-authenticator configuration", "cluster-name", s.scope.KubernetesClusterName())
+
 	return nil
+}
+
+func (s *Service) getAccountID() (string, error) {
+	input := &sts.GetCallerIdentityInput{}
+
+	out, err := s.STSClient.GetCallerIdentity(input)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to get caller identity")
+	}
+
+	return aws.StringValue(out.Account), nil
 }
