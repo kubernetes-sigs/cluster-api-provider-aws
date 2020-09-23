@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -36,6 +35,7 @@ import (
 	infrav1alpha2 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha2"
 	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/controllers"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1alpha3exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	controllersexp "sigs.k8s.io/cluster-api-provider-aws/exp/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
@@ -50,11 +50,8 @@ import (
 )
 
 var (
-	scheme                   = runtime.NewScheme()
-	setupLog                 = ctrl.Log.WithName("setup")
-	maxEKSSyncPeriod         = time.Minute * 10
-	errMaxSyncPeriodExceeded = errors.New("sync period greater than maximum allowed")
-	errEKSInvalidFlags       = errors.New("invalid EKS flag combination")
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
@@ -63,6 +60,7 @@ func init() {
 	_ = infrav1alpha3.AddToScheme(scheme)
 	_ = infrav1alpha3exp.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -148,29 +146,7 @@ func main() {
 
 		if feature.Gates.Enabled(feature.EKS) {
 			setupLog.Info("enabling EKS controllers")
-			if syncPeriod > maxEKSSyncPeriod {
-				setupLog.Error(errMaxSyncPeriodExceeded, "sync period exceeded maximum allowed when using EKS", "max-sync-period", maxEKSSyncPeriod)
-				os.Exit(1)
-			}
 
-			enableIAM := feature.Gates.Enabled(feature.EKSEnableIAM)
-			allowAddRoles := feature.Gates.Enabled(feature.EKSAllowAddRoles)
-
-			if allowAddRoles && !enableIAM {
-				setupLog.Error(errEKSInvalidFlags, "cannot use EKSAllowAddRoles flag without EKSEnableIAM")
-				os.Exit(1)
-			}
-
-			if err = (&controllersexp.AWSManagedControlPlaneReconciler{
-				Client:               mgr.GetClient(),
-				Log:                  ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
-				Recorder:             mgr.GetEventRecorderFor("awsmanagedcontrolplane-reconciler"),
-				AllowAdditionalRoles: allowAddRoles,
-				EnableIAM:            enableIAM,
-			}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
-				setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
-				os.Exit(1)
-			}
 			if err = (&controllersexp.AWSManagedClusterReconciler{
 				Client:   mgr.GetClient(),
 				Log:      ctrl.Log.WithName("controllers").WithName("AWSManagedCluster"),
@@ -205,13 +181,6 @@ func main() {
 		if err = (&infrav1alpha3.AWSClusterList{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterList")
 			os.Exit(1)
-		}
-		if feature.Gates.Enabled(feature.EKS) {
-			setupLog.Info("enabling EKS webhooks")
-			if err = (&infrav1alpha3exp.AWSManagedControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
-				setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedControlPlane")
-				os.Exit(1)
-			}
 		}
 	}
 	// +kubebuilder:scaffold:builder

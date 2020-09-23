@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
 
@@ -38,7 +38,7 @@ type ManagedControlPlaneScopeParams struct {
 	Client         client.Client
 	Logger         logr.Logger
 	Cluster        *clusterv1.Cluster
-	ControlPlane   *infrav1exp.AWSManagedControlPlane
+	ControlPlane   *controlplanev1.AWSManagedControlPlane
 	ControllerName string
 	Session        awsclient.ConfigProvider
 
@@ -89,7 +89,7 @@ type ManagedControlPlaneScope struct {
 	patchHelper *patch.Helper
 
 	Cluster      *clusterv1.Cluster
-	ControlPlane *infrav1exp.AWSManagedControlPlane
+	ControlPlane *controlplanev1.AWSManagedControlPlane
 
 	session        awsclient.ConfigProvider
 	controllerName string
@@ -165,8 +165,8 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
 			infrav1.BastionHostReadyCondition,
-			infrav1exp.EKSControlPlaneReadyCondition,
-			infrav1exp.IAMControlPlaneRolesReadyCondition,
+			controlplanev1.EKSControlPlaneReadyCondition,
+			controlplanev1.IAMControlPlaneRolesReadyCondition,
 		}})
 }
 
@@ -229,12 +229,12 @@ func (s *ManagedControlPlaneScope) ControllerName() string {
 }
 
 // TokenMethod returns the token method to use in the kubeconfig
-func (s *ManagedControlPlaneScope) TokenMethod() infrav1exp.EKSTokenMethod {
+func (s *ManagedControlPlaneScope) TokenMethod() controlplanev1.EKSTokenMethod {
 	if s.ControlPlane.Spec.TokenMethod != nil {
 		return *s.ControlPlane.Spec.TokenMethod
 	}
 
-	return infrav1exp.EKSTokenMethodIAMAuthenticator
+	return controlplanev1.EKSTokenMethodIAMAuthenticator
 }
 
 // KubernetesClusterName is the name of the Kubernetes cluster. For the managed

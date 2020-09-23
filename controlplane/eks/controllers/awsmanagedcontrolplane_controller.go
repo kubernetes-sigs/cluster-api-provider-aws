@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
@@ -60,7 +61,7 @@ type AWSManagedControlPlaneReconciler struct {
 
 // SetupWithManager is used to setup the controller
 func (r *AWSManagedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
-	awsManagedControlPlane := &infrav1exp.AWSManagedControlPlane{}
+	awsManagedControlPlane := &controlplanev1.AWSManagedControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(awsManagedControlPlane).
 		WithOptions(options).
@@ -91,9 +92,11 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, op
 }
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters;awsmanagedclusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
 
 // Reconcile will reconcile AWSManagedControlPlane Resources
 func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl.Result, reterr error) {
@@ -101,7 +104,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 	ctx := context.Background()
 
 	// Get the control plane instance
-	awsControlPlane := &infrav1exp.AWSManagedControlPlane{}
+	awsControlPlane := &controlplanev1.AWSManagedControlPlane{}
 	if err := r.Client.Get(ctx, req.NamespacedName, awsControlPlane); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -143,8 +146,8 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 	// Always close the scope
 	defer func() {
 		applicableConditions := []clusterv1.ConditionType{
-			infrav1exp.EKSControlPlaneReadyCondition,
-			infrav1exp.IAMControlPlaneRolesReadyCondition,
+			controlplanev1.EKSControlPlaneReadyCondition,
+			controlplanev1.IAMControlPlaneRolesReadyCondition,
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
@@ -182,7 +185,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	awsManagedControlPlane := managedScope.ControlPlane
 
-	controllerutil.AddFinalizer(managedScope.ControlPlane, infrav1exp.ManagedControlPlaneFinalizer)
+	controllerutil.AddFinalizer(managedScope.ControlPlane, controlplanev1.ManagedControlPlaneFinalizer)
 	if err := managedScope.PatchObject(); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -249,7 +252,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(_ context.Context, ma
 		return reconcile.Result{}, fmt.Errorf("error deleting network for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
 	}
 
-	controllerutil.RemoveFinalizer(controlPlane, infrav1exp.ManagedControlPlaneFinalizer)
+	controllerutil.RemoveFinalizer(controlPlane, controlplanev1.ManagedControlPlaneFinalizer)
 
 	return reconcile.Result{}, nil
 }

@@ -22,7 +22,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 )
 
 // ReconcileControlPlane reconciles a EKS control plane
@@ -31,17 +31,17 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 
 	// Control Plane IAM Role
 	if err := s.reconcileControlPlaneIAMRole(); err != nil {
-		conditions.MarkFalse(s.scope.ControlPlane, infrav1exp.IAMControlPlaneRolesReadyCondition, infrav1exp.IAMControlPlaneRolesReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.IAMControlPlaneRolesReadyCondition, ekscontrolplanev1.IAMControlPlaneRolesReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
-	conditions.MarkTrue(s.scope.ControlPlane, infrav1exp.IAMControlPlaneRolesReadyCondition)
+	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.IAMControlPlaneRolesReadyCondition)
 
 	// EKS Cluster
 	if err := s.reconcileCluster(ctx); err != nil {
-		conditions.MarkFalse(s.scope.ControlPlane, infrav1exp.EKSControlPlaneReadyCondition, infrav1exp.EKSControlPlaneReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition, ekscontrolplanev1.EKSControlPlaneReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
-	conditions.MarkTrue(s.scope.ControlPlane, infrav1exp.EKSControlPlaneReadyCondition)
+	conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition)
 
 	s.scope.V(2).Info("Reconcile EKS control plane completed successfully")
 	return nil

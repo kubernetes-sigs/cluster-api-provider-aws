@@ -1,0 +1,12 @@
+namespace: capa-eks-control-plane-system
+
+resources:
+- namespace.yaml
+- credentials.yaml
+
+bases:
+- ../rbac
+- ../manager
+
+patchesStrategicMerge:
+- manager_credentials_patch.yaml

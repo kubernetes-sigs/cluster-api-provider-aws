@@ -51,8 +51,8 @@ func (r *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmanagedcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1alpha3,name=validation.awsmanagedcontrolplanes.infrastructure.cluster.x-k8s.io,sideEffects=None
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmanagedcontrolplane,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1alpha3,name=default.awsmanagedcontrolplanes.infrastructure.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1alpha3-awsmanagedcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1alpha3,name=validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1alpha3-awsmanagedcontrolplane,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1alpha3,name=default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None
 
 var _ webhook.Defaulter = &AWSManagedControlPlane{}
 var _ webhook.Validator = &AWSManagedControlPlane{}

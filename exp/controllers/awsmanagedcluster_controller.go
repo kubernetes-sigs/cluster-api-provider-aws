@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 )
 
@@ -50,6 +51,7 @@ type AWSManagedClusterReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes;awsmanagedcontrolplanes/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
@@ -84,7 +86,7 @@ func (r *AWSManagedClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	controlPlane := &infrav1exp.AWSManagedControlPlane{}
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	controlPlaneRef := types.NamespacedName{
 		Name:      cluster.Spec.ControlPlaneRef.Name,
 		Namespace: cluster.Spec.ControlPlaneRef.Namespace,
@@ -142,7 +144,7 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 
 	// Add a watch for AWSManagedControlPlane
 	if err = controller.Watch(
-		&source.Kind{Type: &infrav1exp.AWSManagedControlPlane{}},
+		&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(r.managedControlPlaneToManagedCluster),
 		},
@@ -157,7 +159,7 @@ func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(o hand
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	awsManagedControlPlane, ok := o.Object.(*infrav1exp.AWSManagedControlPlane)
+	awsManagedControlPlane, ok := o.Object.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
 		r.Log.Error(nil, fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o.Object))
 		return nil

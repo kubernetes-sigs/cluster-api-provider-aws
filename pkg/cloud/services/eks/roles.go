@@ -26,7 +26,7 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
@@ -60,7 +60,7 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 		//TODO (richardcase): in the future use a default role created by clusterawsadm
 		if !s.scope.EnableIAM() {
 			s.scope.Info("no eks control plane role specified, using default eks control plane role")
-			s.scope.ControlPlane.Spec.RoleName = &infrav1exp.DefaultEKSControlPlaneRole
+			s.scope.ControlPlane.Spec.RoleName = &ekscontrolplanev1.DefaultEKSControlPlaneRole
 		} else {
 			s.scope.Info("no eks control plane role specified, using role based on cluster name")
 			s.scope.ControlPlane.Spec.RoleName = aws.String(fmt.Sprintf("%s-iam-service-role", s.scope.Name()))
