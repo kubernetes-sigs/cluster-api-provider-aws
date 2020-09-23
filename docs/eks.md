@@ -51,7 +51,7 @@ clusterctl --infrastructure=aws
 A new "managed" cluster template has been created that you can use with `clusterctl` to create a EKS cluster. To use the template:
 
 ```bash
-clusterctl config cluster capi-eks-quickstart --flavour eks --kubernetes-version v1.17.3 --control-plane-machine-count=3 --worker-machine-count=3 > capi-eks-quickstart.yaml
+clusterctl config cluster capi-eks-quickstart --flavor managed --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
 ```
 
 NOTE: When creating an EKS cluster only the **MAJOR.MINOR** of the `-kubernetes-version` is taken into consideration.
