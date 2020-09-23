@@ -244,9 +244,9 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		if m.Status.NodeRef != nil {
-			klog.Infof("%v: deleting node %q for machine", m.Status.NodeRef.Name, machineName)
+			klog.Infof("%v: deleting node %q for machine", machineName, m.Status.NodeRef.Name)
 			if err := r.deleteNode(ctx, m.Status.NodeRef.Name); err != nil {
-				klog.Errorf("%v: error deleting node %q for machine", machineName, err)
+				klog.Errorf("%v: error deleting node for machine: %v", machineName, err)
 				return reconcile.Result{}, err
 			}
 		}
