@@ -21,4 +21,11 @@ import "errors"
 var (
 	ErrInvalidBackendType = errors.New("invalid backend type")
 	ErrClientRequired     = errors.New("k8s client required")
+	ErrRoleARNRequired    = errors.New("rolearn is required")
+	ErrUserARNRequired    = errors.New("userarn is required")
+	ErrUserNameRequired   = errors.New("username is required")
+	ErrGroupsRequired     = errors.New("groups are required")
+	ErrIsNotARN           = errors.New("supplied value is not a ARN")
+	ErrIsNotRoleARN       = errors.New("supplied ARN is not a role ARN")
+	ErrIsNotUserARN       = errors.New("supplied ARN is not a user ARN")
 )
