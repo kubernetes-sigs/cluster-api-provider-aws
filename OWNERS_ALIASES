@@ -24,3 +24,5 @@ aliases:
     - vincepri
   cluster-api-aws-reviewers:
     - randomvariable
+  cluster-api-aws-eks-maintainers:
+    - richardcase

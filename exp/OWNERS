@@ -1,22 +1,12 @@
-# See the OWNERS docs: https://git.k8s.io/community/contributors/guide/owners.md
-
 approvers:
   - sig-cluster-lifecycle-leads
   - cluster-api-admins
   - cluster-api-maintainers
   - cluster-api-aws-maintainers
+  - cluster-api-aws-eks-maintainers
 
 reviewers:
   - cluster-api-maintainers
   - cluster-api-aws-maintainers
   - cluster-api-aws-reviewers
   - cluster-api-aws-eks-maintainers
-
-emeritus_approvers:
-  - davidewatson
-  - ingvagabund
-  - enxebre
-
-emeritus_reviewers:
-  - sethp-nr
-  - ashish-amarnath
