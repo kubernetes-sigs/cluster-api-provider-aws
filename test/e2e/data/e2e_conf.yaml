@@ -93,6 +93,8 @@ providers:
         targetName: "cluster-template-multi-az.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-limit-az.yaml"
         targetName: "cluster-template-limit-az.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-spot-instances.yaml"
+        targetName: "cluster-template-spot-instances.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.19.0"

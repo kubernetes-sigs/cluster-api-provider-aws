@@ -66,6 +66,7 @@ const (
 	AwsAvailabilityZone2         = "AWS_AVAILABILITY_ZONE_2"
 	MultiAzFlavor                = "multi-az"
 	LimitAzFlavor                = "limit-az"
+	SpotInstancesFlavor          = "spot-instances"
 	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 )
 
