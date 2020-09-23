@@ -22,6 +22,8 @@ import (
 
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/iamauth"
 )
 
 func (s *Service) reconcileAuthenticator(ctx context.Context) error {
@@ -42,4 +44,22 @@ func (s *Service) reconcileAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting client for remote cluster: %w", err)
 	}
 
+	authBackend, err := iamauth.New(iamauth.BackendTypeConfigMap, remoteClient)
+	if err != nil {
+		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
+	}
+
+	roleMapping := iamauth.RoleMapping{
+		RoleARN: *s.scope.ControlPlane.Spec.RoleName,
+		KubernetesMapping: iamauth.KubernetesMapping{
+			UserName: iamauth.EC2NodeUserName,
+			Groups:   iamauth.NodeGroups,
+		},
+	}
+
+	if err := authBackend.MapRole(roleMapping); err != nil {
+		return fmt.Errorf("mapping node role: %w", err)
+	}
+
+	return nil
 }
