@@ -132,7 +132,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	template.Resources[AWSIAMRoleNodes] = &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("nodes"),
 		AssumeRolePolicyDocument: t.nodeTrustPolicy(),
-		ManagedPolicyArns:        t.Spec.Nodes.ExtraPolicyAttachments,
+		ManagedPolicyArns:        t.nodeManagedPolicies(),
 		Policies:                 t.nodePolicies(),
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.Nodes.Tags),
 	}

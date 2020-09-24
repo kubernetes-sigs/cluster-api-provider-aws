@@ -44,7 +44,8 @@ func (b *crdBackend) MapRole(mapping RoleMapping) error {
 	}
 
 	for _, existingMapping := range mappingList.Items {
-		if roleMappingMatchesIAMMap(mapping, &existingMapping) {
+		existing := existingMapping
+		if roleMappingMatchesIAMMap(mapping, &existing) {
 			// We already have a mapping so do nothing
 			return nil
 		}
@@ -79,7 +80,8 @@ func (b *crdBackend) MapUser(mapping UserMapping) error {
 	}
 
 	for _, existingMapping := range mappingList.Items {
-		if userMappingMatchesIAMMap(mapping, &existingMapping) {
+		existing := existingMapping
+		if userMappingMatchesIAMMap(mapping, &existing) {
 			// We already have a mapping so do nothing
 			return nil
 		}

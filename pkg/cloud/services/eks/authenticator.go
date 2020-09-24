@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/iamauth"
 )
 
@@ -38,7 +39,7 @@ func (s *Service) reconcileAuthenticator(ctx context.Context) error {
 		Namespace: s.scope.Cluster.Namespace,
 	}
 
-	accountId, err := s.getAccountID()
+	accountID, err := s.getAccountID()
 	if err != nil {
 		return fmt.Errorf("getting account id: %w", err)
 	}
@@ -58,7 +59,7 @@ func (s *Service) reconcileAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
 
-	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes.cluster-api-provider-aws.sigs.k8s.io", accountId)
+	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, infrav1.DefaultNameSuffix)
 
 	roleMapping := iamauth.RoleMapping{
 		RoleARN: roleARN,

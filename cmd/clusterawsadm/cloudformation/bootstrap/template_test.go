@@ -69,6 +69,7 @@ func Test_RenderCloudformation(t *testing.T) {
 			template: func() Template {
 				t := NewTemplate()
 				t.Spec.ClusterAPIControllers.EKS.Enable = true
+				t.Spec.Nodes.EKS.Enable = true
 				return t
 			},
 		},

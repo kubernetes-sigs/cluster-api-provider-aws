@@ -122,7 +122,7 @@ func (r *RoleMapping) Validate() error {
 		err += fmt.Sprintf("\t%d: %s\n", i, e.Error())
 	}
 
-	return errors.New(err)
+	return errors.New(err) //nolint: err113
 }
 
 func (u *UserMapping) Validate() error {
@@ -158,5 +158,5 @@ func (u *UserMapping) Validate() error {
 		err += fmt.Sprintf("\t%d: %s\n", i, e.Error())
 	}
 
-	return errors.New(err)
+	return errors.New(err) //nolint: err113
 }

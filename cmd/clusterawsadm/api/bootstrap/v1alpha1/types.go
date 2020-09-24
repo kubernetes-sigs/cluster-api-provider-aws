@@ -98,11 +98,16 @@ type AWSIAMRoleSpec struct {
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
 
+// EKSConfig represents the base EKS config
+type EKSConfig struct {
+	// Enable controls whether EKS-related permissions are granted
+	Enable bool `json:"enable,omitempty"`
+}
+
 // EKSControllerConfig controls EKS-related configuration of the AWS IAM role
 // for the controller
 type EKSControllerConfig struct {
-	// Enable controls whether EKS-related permissions are granted
-	Enable bool `json:"enable,omitempty"`
+	EKSConfig `json:",inline"`
 	// IAMRoleCreation controls whether the controller has permissions for creating IAM
 	// roles per cluster
 	IAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
@@ -128,6 +133,9 @@ type Nodes struct {
 	// DisableCloudProviderPolicy if set to true, will not generate and attach the policy for the AWS Cloud Provider.
 	// Defaults to false.
 	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"`
+
+	// EKS controls EKS-related configuration
+	EKS EKSConfig `json:"eks,omitempty"`
 }
 
 // +kubebuilder:object:root=true
