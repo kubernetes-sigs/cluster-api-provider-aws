@@ -403,13 +403,21 @@ func newAWSSession() client.ConfigProvider {
 	return sess
 }
 
-// ensureNotServiceLinkedRoles removes an auto-created IAM role, and tests
-// the controller's IAM permissions to use ELB successfully
+// ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
+// the controller's IAM permissions to use ELB and Spot instances successfully
 func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
 	iamSvc := iam.New(prov)
 	_, err := iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
 		RoleName: aws.String("AWSServiceRoleForElasticLoadBalancing"),
+	})
+	if code, _ := awserrors.Code(err); code != iam.ErrCodeNoSuchEntityException {
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForEC2Spot")
+	_, err = iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
+		RoleName: aws.String("AWSServiceRoleForEC2Spot"),
 	})
 	if code, _ := awserrors.Code(err); code != iam.ErrCodeNoSuchEntityException {
 		Expect(err).NotTo(HaveOccurred())

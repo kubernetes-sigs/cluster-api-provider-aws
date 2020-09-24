@@ -203,6 +203,14 @@ Resources:
           Resource:
           - arn:*:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing
         - Action:
+          - iam:CreateServiceLinkedRole
+          Condition:
+            StringLike:
+              iam:AWSServiceName: spot.amazonaws.com
+          Effect: Allow
+          Resource:
+          - arn:*:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
+        - Action:
           - iam:PassRole
           Effect: Allow
           Resource:

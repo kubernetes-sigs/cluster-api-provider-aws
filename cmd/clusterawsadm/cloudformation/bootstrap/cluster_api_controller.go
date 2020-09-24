@@ -133,6 +133,18 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 		},
 		{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:*:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "spot.amazonaws.com"},
+			},
+		},
+		{
 			Effect:   iamv1.EffectAllow,
 			Resource: t.allowedEC2InstanceProfiles(),
 			Action: iamv1.Actions{
