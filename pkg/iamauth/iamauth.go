@@ -53,7 +53,8 @@ var (
 	BackendTypeCRD = BackendType("crd")
 )
 
-// New will create a new authenticate backend for a given type
+// New will create a new authenticate backend for a given type. Only use BackendTypeConfigMap
+// with EKS.
 func New(backendType BackendType, client crclient.Client) (AuthenticatorBackend, error) {
 	if client == nil {
 		return nil, ErrClientRequired
@@ -69,26 +70,39 @@ func New(backendType BackendType, client crclient.Client) (AuthenticatorBackend,
 	}
 }
 
+// IAMAuthenticatorConfig represents an aws-iam-authenticator configuration
 type IAMAuthenticatorConfig struct {
+	// RoleMappings is a list of role mappings
 	RoleMappings []RoleMapping `json:"mapRoles,omitempty"`
+	// UserMappings is a list of user mappings
 	UserMappings []UserMapping `json:"mapUsers,omitempty"`
 }
 
+// KubernetesMapping represents the kubernetes RBAC mapping
 type KubernetesMapping struct {
-	UserName string   `json:"username,omitempty"`
-	Groups   []string `json:"groups,omitempty"`
+	// UserName is a kubernetes RBAC user subject
+	UserName string `json:"username,omitempty"`
+	// Groups is a list of kubernetes RBAC groups
+	Groups []string `json:"groups,omitempty"`
 }
 
+// RoleMapping represents a mapping from a IAM role
 type RoleMapping struct {
-	KubernetesMapping
-	RoleARN string `json:"roleARN,omitempty"`
+	// RoleARN is the AWS ARN for the role to map
+	RoleARN string `json:"rolearn,omitempty"`
+	// KubernetesMapping holds the RBAC details for the mapping
+	KubernetesMapping `json:",inline"`
 }
 
+// UserMapping represents a mapping from a IAM user
 type UserMapping struct {
-	KubernetesMapping
-	UserARN string `json:"userARN,omitempty"`
+	// UserARN is the AWS ARN for the user to map
+	UserARN string `json:"userarn,omitempty"`
+	// KubernetesMapping holds the RBAC details for the mapping
+	KubernetesMapping `json:",inline"`
 }
 
+// Validate is return true if the rolemapping is valid
 func (r *RoleMapping) Validate() error {
 	errs := []error{}
 
@@ -125,6 +139,7 @@ func (r *RoleMapping) Validate() error {
 	return errors.New(err) //nolint: err113
 }
 
+// Validate is return true if the usermapping is valid
 func (u *UserMapping) Validate() error {
 	errs := []error{}
 

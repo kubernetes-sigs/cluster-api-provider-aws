@@ -36,12 +36,12 @@ var (
     - groups:
       - system:bootstrappers
       - system:nodes
-      roleARN: arn:aws:iam::000000000000:role/KubernetesNode
+      rolearn: arn:aws:iam::000000000000:role/KubernetesNode
       username: system:node:{{EC2PrivateDNSName}}
 `
 
 	existingUserMap string = `
-    - userARN: arn:aws:iam::000000000000:user/Alice
+    - userarn: arn:aws:iam::000000000000:user/Alice
       username: alice
       groups:
       - system:masters

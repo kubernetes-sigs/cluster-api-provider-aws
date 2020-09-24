@@ -24,18 +24,13 @@ import (
 )
 
 var (
-	gitMajor         string // major version, always numeric
-	gitMinor         string // minor version, numeric possibly followed by "+"
-	gitVersion       string // semantic version, derived by build scripts
-	gitCommit        string // sha1 from git, output of $(git rev-parse HEAD)
-	gitReleaseCommit string // sha1 from git of the most recent tagged commit
-	gitTreeState     string // state of git tree, either "clean" or "dirty"
-	buildDate        string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+	gitMajor     string // major version, always numeric
+	gitMinor     string // minor version, numeric possibly followed by "+"
+	gitVersion   string // semantic version, derived by build scripts
+	gitCommit    string // sha1 from git, output of $(git rev-parse HEAD)
+	gitTreeState string // state of git tree, either "clean" or "dirty"
+	buildDate    string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 )
-
-func isRepoAtRelease() bool {
-	return gitTreeState == "clean" && gitReleaseCommit == gitCommit
-}
 
 type Info struct {
 	Major         string `json:"major,omitempty"`
