@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -259,6 +260,23 @@ func (m *MachineScope) GetRawBootstrapData() ([]byte, error) {
 
 // PatchObject persists the machine spec and status.
 func (m *MachineScope) PatchObject() error {
+	// Always update the readyCondition by summarizing the state of other conditions.
+	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
+	applicableConditions := []clusterv1.ConditionType{
+		infrav1.InstanceReadyCondition,
+		infrav1.SecurityGroupsReadyCondition,
+	}
+
+	if m.IsControlPlane() {
+		applicableConditions = append(applicableConditions, infrav1.ELBAttachedCondition)
+	}
+
+	conditions.SetSummary(m.AWSMachine,
+		conditions.WithConditions(applicableConditions...),
+		conditions.WithStepCounterIf(m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()),
+		conditions.WithStepCounter(),
+	)
+
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachine,

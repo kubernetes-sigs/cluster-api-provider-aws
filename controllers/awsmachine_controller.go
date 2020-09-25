@@ -146,33 +146,6 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 	// Always close the scope when exiting this function so we can persist any AWSMachine changes.
 	defer func() {
-		// set Ready condition before AWSMachine is patched
-		if machineScope.IsControlPlane() {
-			conditions.SetSummary(machineScope.AWSMachine,
-				conditions.WithConditions(
-					infrav1.InstanceReadyCondition,
-					infrav1.SecurityGroupsReadyCondition,
-					infrav1.ELBAttachedCondition,
-				),
-				conditions.WithStepCounterIfOnly(
-					infrav1.InstanceReadyCondition,
-					infrav1.SecurityGroupsReadyCondition,
-					infrav1.ELBAttachedCondition,
-				),
-			)
-		} else {
-			conditions.SetSummary(machineScope.AWSMachine,
-				conditions.WithConditions(
-					infrav1.InstanceReadyCondition,
-					infrav1.SecurityGroupsReadyCondition,
-				),
-				conditions.WithStepCounterIfOnly(
-					infrav1.InstanceReadyCondition,
-					infrav1.SecurityGroupsReadyCondition,
-				),
-			)
-		}
-
 		if err := machineScope.Close(); err != nil && reterr == nil {
 			reterr = err
 		}
@@ -327,8 +300,13 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		// We are tolerating AccessDenied error, so this won't block for users with older version of IAM;
 		// all the other errors are blocking.
 		if !elb.IsAccessDenied(err) && !elb.IsNotFound(err) {
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
 		}
+	}
+
+	if machineScope.IsControlPlane() {
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 	}
 
 	// Check the instance state. If it's already shutting down or terminated,
@@ -340,10 +318,19 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		machineScope.Info("EC2 instance is shutting down or already terminated", "instance-id", instance.ID)
 	default:
 		machineScope.Info("Terminating EC2 instance", "instance-id", instance.ID)
+
+		// Set the InstanceReadyCondition and patch the object before the blocking operation
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		if err := machineScope.PatchObject(); err != nil {
+			return ctrl.Result{}, err
+		}
+
 		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
 			return ctrl.Result{}, errors.Wrap(err, "failed to terminate instance")
 		}
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
 		// If the AWSMachine specifies Network Interfaces, detach the cluster's core Security Groups from them as part of deletion.
 		if len(machineScope.AWSMachine.Spec.NetworkInterfaces) > 0 {
@@ -358,11 +345,18 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 				"instanceID", instance.ID,
 			)
 
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+			if err := machineScope.PatchObject(); err != nil {
+				return ctrl.Result{}, err
+			}
+
 			for _, id := range machineScope.AWSMachine.Spec.NetworkInterfaces {
 				if err := ec2Service.DetachSecurityGroupsFromNetworkInterface(core, id); err != nil {
+					conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 					return ctrl.Result{}, errors.Wrap(err, "failed to detach security groups from instance's network interfaces")
 				}
 			}
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		}
 
 		machineScope.Info("EC2 instance successfully terminated", "instance-id", instance.ID)

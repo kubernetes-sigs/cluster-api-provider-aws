@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -158,6 +159,11 @@ func (s *Service) ReconcileSecurityGroups() error {
 }
 
 func (s *Service) DeleteSecurityGroups() error {
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
+		return err
+	}
+
 	for _, sg := range s.scope.SecurityGroups() {
 		current := sg.IngressRules
 
@@ -166,6 +172,7 @@ func (s *Service) DeleteSecurityGroups() error {
 		}
 
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil {
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return err
 		}
 
@@ -180,6 +187,7 @@ func (s *Service) DeleteSecurityGroups() error {
 		}
 
 		if err := s.deleteSecurityGroup(&sg, "managed"); err != nil {
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return err
 		}
 	}
@@ -198,8 +206,10 @@ func (s *Service) DeleteSecurityGroups() error {
 	}
 
 	if len(errs) != 0 {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 		return errlist.NewAggregate(errs)
 	}
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
 	return nil
 }

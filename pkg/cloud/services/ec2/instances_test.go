@@ -2057,5 +2057,8 @@ func setupScheme() (*runtime.Scheme, error) {
 	if err := corev1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
+	if err := infrav1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
 	return scheme, nil
 }

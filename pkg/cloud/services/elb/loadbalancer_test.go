@@ -17,16 +17,19 @@ limitations under the License.
 package elb
 
 import (
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_resourcegroupstaggingapiiface"
-	"testing"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -268,6 +271,15 @@ func TestDeleteLoadbalancers(t *testing.T) {
 			rgapiMock := mock_resourcegroupstaggingapiiface.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
 			elbapiMock := mock_elbiface.NewMockELBAPI(mockCtrl)
 
+			scheme, err := setupScheme()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			awsCluster := &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{},
+			}
+
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -275,9 +287,8 @@ func TestDeleteLoadbalancers(t *testing.T) {
 						Name:      clusterName,
 					},
 				},
-				AWSCluster: &infrav1.AWSCluster{
-					Spec: infrav1.AWSClusterSpec{},
-				},
+				AWSCluster: awsCluster,
+				Client:     fake.NewFakeClientWithScheme(scheme, awsCluster),
 			})
 			if err != nil {
 				t.Fatal(err)
@@ -299,4 +310,15 @@ func TestDeleteLoadbalancers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func setupScheme() (*runtime.Scheme, error) {
+	scheme := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	if err := infrav1.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+	return scheme, nil
 }

@@ -78,14 +78,28 @@ func (s *Service) DeleteNetwork() (err error) {
 	vpc.DeepCopyInto(s.scope.VPC())
 
 	// Routing tables.
-	if err := s.deleteRouteTables(); err != nil {
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
-	// NAT Gateways.
-	if err := s.deleteNatGateways(); err != nil {
+	if err := s.deleteRouteTables(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 		return err
 	}
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+
+	// NAT Gateways.
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
+		return err
+	}
+
+	if err := s.deleteNatGateways(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		return err
+	}
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
 	// EIPs.
 	if err := s.releaseAddresses(); err != nil {
@@ -93,19 +107,40 @@ func (s *Service) DeleteNetwork() (err error) {
 	}
 
 	// Internet Gateways.
-	if err := s.deleteInternetGateways(); err != nil {
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
+
+	if err := s.deleteInternetGateways(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		return err
+	}
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
 	// Subnets.
-	if err := s.deleteSubnets(); err != nil {
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
-	// VPC.
-	if err := s.deleteVPC(); err != nil {
+	if err := s.deleteSubnets(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 		return err
 	}
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+
+	// VPC.
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
+		return err
+	}
+
+	if err := s.deleteVPC(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		return err
+	}
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
 	s.scope.V(2).Info("Delete network completed successfully")
 	return nil
