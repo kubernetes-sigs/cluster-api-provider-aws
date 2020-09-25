@@ -94,12 +94,15 @@ Note: These AMIs are not updated for security fixes and it is recommended to alw
 |                          | v1.17.4                 |
 |                          | v1.17.5                 |
 |                          | v1.17.11                |
+|                          | v1.17.12                |
 | v1.18                    | v1.18.0                 |
 |                          | v1.18.1                 |
 |                          | v1.18.2                 |
 |                          | v1.18.8                 |
+|                          | v1.18.9                 |
 | v1.19                    | v1.19.0                 |
 |                          | v1.19.1                 |
+|                          | v1.19.2                 |
 
 ------
 
