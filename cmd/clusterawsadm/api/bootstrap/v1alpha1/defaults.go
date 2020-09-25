@@ -55,10 +55,8 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 				Disable: true,
 			},
 		}
-	} else {
-		if obj.EKS.Enable {
-			obj.Nodes.EC2ContainerRegistryReadOnly = true
-		}
+	} else if obj.EKS.Enable {
+		obj.Nodes.EC2ContainerRegistryReadOnly = true
 	}
 }
 

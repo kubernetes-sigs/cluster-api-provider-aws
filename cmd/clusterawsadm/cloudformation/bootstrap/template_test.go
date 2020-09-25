@@ -69,6 +69,7 @@ func Test_RenderCloudformation(t *testing.T) {
 			template: func() Template {
 				t := NewTemplate()
 				t.Spec.EKS.Enable = true
+				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				return t
 			},
 		},
@@ -77,6 +78,7 @@ func Test_RenderCloudformation(t *testing.T) {
 			template: func() Template {
 				t := NewTemplate()
 				t.Spec.EKS.Enable = true
+				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 				return t
 			},
