@@ -72,12 +72,20 @@ case, the values returned are `10.0.0.16` and `10.0.0.68`.
 
 ### Connecting to the nodes via SSH
 
-To access one of the nodes (either a control plane node or a worker node) via the SSH bastion host, use this command:
+To access one of the nodes (either a control plane node or a worker node) via the SSH bastion host, use this command if you are using a non-EKS cluster:
 
 ```bash
 ssh -i ${CLUSTER_SSH_KEY} ubuntu@<NODE_IP> \
 	-o "ProxyCommand ssh -W %h:%p -i ${CLUSTER_SSH_KEY} ubuntu@${BASTION_HOST}"
 ```
+
+And use this command if you are using a EKS based cluster:
+
+```bash
+ssh -i ${CLUSTER_SSH_KEY} ec2-user@<NODE_IP> \
+	-o "ProxyCommand ssh -W %h:%p -i ${CLUSTER_SSH_KEY} ubuntu@${BASTION_HOST}"
+```
+
 
 If the whole document is followed, the value of `<NODE_IP>` will be either
 10.0.0.16 or 10.0.0.68.

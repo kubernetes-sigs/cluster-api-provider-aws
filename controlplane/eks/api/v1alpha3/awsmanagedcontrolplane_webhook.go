@@ -31,6 +31,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/hash"
 )
 
@@ -85,6 +86,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	}
 
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
+	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -111,6 +113,13 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.validateEKSClusterName()...)
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
+	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+
+	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "region"), r.Spec.Region, "field is immutable"),
+		)
+	}
 
 	if len(allErrs) == 0 {
 		return nil
@@ -198,6 +207,9 @@ func (r *AWSManagedControlPlane) Default() {
 		}
 		r.Spec.Version = &normalizedV
 	}
+
+	infrav1.SetDefaults_Bastion(&r.Spec.Bastion)
+	infrav1.SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
 }
 
 // generateEKSName generates a name of the EKS cluster

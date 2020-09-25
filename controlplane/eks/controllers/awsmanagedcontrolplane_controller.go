@@ -192,6 +192,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	sgRoles := []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupBastion,
+		infrav1.SecurityGroupEKSNodeAdditional,
 	}
 
 	ec2Service := ec2.NewService(managedScope)
@@ -203,14 +204,14 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile network for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
-	if err := ec2Service.ReconcileBastion(); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
-	}
-
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
 		conditions.MarkFalse(awsManagedControlPlane, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile general security groups for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
+	}
+
+	if err := ec2Service.ReconcileBastion(); err != nil {
+		conditions.MarkFalse(awsManagedControlPlane, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
 	if err := ekssvc.ReconcileControlPlane(ctx); err != nil {
@@ -240,12 +241,12 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(_ context.Context, ma
 		return reconcile.Result{}, fmt.Errorf("error deleting EKS cluster for EKS control plane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
 	}
 
-	if err := sgService.DeleteSecurityGroups(); err != nil {
-		return reconcile.Result{}, fmt.Errorf("error deleting general security groups for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err) //nolint:goerr113
-	}
-
 	if err := ec2svc.DeleteBastion(); err != nil {
 		return reconcile.Result{}, fmt.Errorf("error deleting bastion for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
+	}
+
+	if err := sgService.DeleteSecurityGroups(); err != nil {
+		return reconcile.Result{}, fmt.Errorf("error deleting general security groups for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err) //nolint:goerr113
 	}
 
 	if err := networkSvc.DeleteNetwork(); err != nil {

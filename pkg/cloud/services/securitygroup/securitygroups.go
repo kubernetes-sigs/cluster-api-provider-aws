@@ -95,6 +95,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 		s.scope.SecurityGroups()[role] = existing
 
 		if s.isEKSOwned(existing) {
+			s.scope.V(2).Info("Security group is EKS owned", "role", role, "security-group", s.scope.SecurityGroups()[role])
 			continue
 		}
 
@@ -115,6 +116,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 	// the specified ingress rules.
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
+		s.scope.V(2).Info("second pass security group reconciliation", "group-id", sg.ID, "name", sg.Name, "role", i)
 		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) || s.isEKSOwned(sg) {
 			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
 			continue
@@ -379,6 +381,8 @@ func (s *Service) defaultSSHIngressRule(sourceSecurityGroupID string) *infrav1.I
 
 func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (infrav1.IngressRules, error) {
 	// Set source of CNI ingress rules to be control plane and node security groups
+	s.scope.V(2).Info("getting security group ingress rules", "role", role)
+
 	cniRules := make(infrav1.IngressRules, len(s.scope.CNIIngressRules()))
 	for i, r := range s.scope.CNIIngressRules() {
 		cniRules[i] = &infrav1.IngressRule{
@@ -458,6 +462,10 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 			},
 		}
 		return append(cniRules, rules...), nil
+	case infrav1.SecurityGroupEKSNodeAdditional:
+		return infrav1.IngressRules{
+			s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
+		}, nil
 	case infrav1.SecurityGroupAPIServerLB:
 		return infrav1.IngressRules{
 			{
