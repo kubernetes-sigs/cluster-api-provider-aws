@@ -151,7 +151,7 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 		},
 	}
-	if t.Spec.ClusterAPIControllers.EKS.Enable {
+	if t.Spec.EKS.Enable {
 		allowedIAMActions := iamv1.Actions{
 			"iam:GetRole",
 			"iam:ListAttachedRolePolicies",
@@ -166,7 +166,7 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 		})
 
-		if t.Spec.ClusterAPIControllers.EKS.IAMRoleCreation {
+		if t.Spec.EKS.AllowIAMRoleCreation {
 			allowedIAMActions = append(allowedIAMActions, iamv1.Actions{
 				"iam:DetachRolePolicy",
 				"iam:DeleteRole",

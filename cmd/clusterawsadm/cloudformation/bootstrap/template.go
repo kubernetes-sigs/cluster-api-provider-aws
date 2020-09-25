@@ -158,12 +158,12 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		},
 	}
 
-	if !t.Spec.ManagedControlPlane.Disable {
+	if !t.Spec.EKS.DefaultControlPlaneRole.Disable {
 		template.Resources[AWSIAMRoleEKSControlPlane] = &cfn_iam.Role{
 			RoleName:                 ekscontrolplanev1.DefaultEKSControlPlaneRole,
 			AssumeRolePolicyDocument: eksAssumeRolePolicy(),
 			ManagedPolicyArns:        t.eksControlPlanePolicies(),
-			Tags:                     converters.MapToCloudFormationTags(t.Spec.ManagedControlPlane.Tags),
+			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.DefaultControlPlaneRole.Tags),
 		}
 	}
 

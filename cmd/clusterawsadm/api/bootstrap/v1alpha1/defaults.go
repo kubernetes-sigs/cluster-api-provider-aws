@@ -47,11 +47,17 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 	if obj.StackName == "" {
 		obj.StackName = DefaultStackName
 	}
-	if obj.ManagedControlPlane == nil {
-		obj.ManagedControlPlane = &ManagedControlPlane{
-			AWSIAMRoleSpec: AWSIAMRoleSpec{
+	if obj.EKS == nil {
+		obj.EKS = &EKSConfig{
+			Enable:               false,
+			AllowIAMRoleCreation: false,
+			DefaultControlPlaneRole: AWSIAMRoleSpec{
 				Disable: true,
 			},
+		}
+	} else {
+		if obj.EKS.Enable {
+			obj.Nodes.EC2ContainerRegistryReadOnly = true
 		}
 	}
 }
