@@ -18,10 +18,11 @@ package elb
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -35,6 +36,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/hash"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // ResourceGroups are filtered by ARN identifier: https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arns-syntax
@@ -130,15 +133,22 @@ func (s *Service) DeleteLoadbalancers() error {
 	if err != nil {
 		return err
 	}
+
 	elbName, err := GenerateELBName(s.scope.Name())
 	if err != nil {
 		return err
 	}
 	elbs = append(elbs, elbName)
 
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.scope.PatchObject(); err != nil {
+		return err
+	}
+
 	for _, elb := range elbs {
 		s.scope.V(3).Info("deleting load balancer", "arn", elb)
 		if err := s.deleteClassicELB(elb); err != nil {
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return err
 		}
 	}
@@ -155,7 +165,7 @@ func (s *Service) DeleteLoadbalancers() error {
 	}); err != nil {
 		return errors.Wrapf(err, "failed to wait for %q ELB deletions", s.scope.Name())
 	}
-
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 	s.scope.V(2).Info("Deleting load balancers completed successfully")
 	return nil
 }

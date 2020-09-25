@@ -106,26 +106,6 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 	// Always close the scope when exiting this function so we can persist any AWSCluster changes.
 	defer func() {
-		applicableConditions := []clusterv1.ConditionType{
-			infrav1.VpcReadyCondition,
-			infrav1.SubnetsReadyCondition,
-			infrav1.ClusterSecurityGroupsReadyCondition,
-			infrav1.LoadBalancerReadyCondition,
-		}
-
-		if clusterScope.VPC().IsManaged(clusterScope.Name()) {
-			applicableConditions = append(applicableConditions,
-				infrav1.InternetGatewayReadyCondition,
-				infrav1.NatGatewaysReadyCondition,
-				infrav1.RouteTablesReadyCondition)
-
-			if clusterScope.AWSCluster.Spec.Bastion.Enabled {
-				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
-			}
-		}
-
-		conditions.SetSummary(clusterScope.AWSCluster, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
-
 		if err := clusterScope.Close(); err != nil && reterr == nil {
 			reterr = err
 		}

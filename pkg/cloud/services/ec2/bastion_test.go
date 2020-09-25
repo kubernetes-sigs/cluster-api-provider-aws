@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestDeleteBastion(t *testing.T) {
@@ -167,6 +168,19 @@ func TestDeleteBastion(t *testing.T) {
 
 				ec2Mock := mock_ec2iface.NewMockEC2API(mockControl)
 
+				scheme, err := setupScheme()
+				g.Expect(err).To(BeNil())
+
+				awsCluster := &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{
+							VPC: infrav1.VPCSpec{
+								ID: "vpcID",
+							},
+						},
+					},
+				}
+
 				scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 					Cluster: &clusterv1.Cluster{
 						ObjectMeta: metav1.ObjectMeta{
@@ -174,15 +188,8 @@ func TestDeleteBastion(t *testing.T) {
 							Name:      clusterName,
 						},
 					},
-					AWSCluster: &infrav1.AWSCluster{
-						Spec: infrav1.AWSClusterSpec{
-							NetworkSpec: infrav1.NetworkSpec{
-								VPC: infrav1.VPCSpec{
-									ID: "vpcID",
-								},
-							},
-						},
-					},
+					AWSCluster: awsCluster,
+					Client:     fake.NewFakeClientWithScheme(scheme, awsCluster),
 				})
 				g.Expect(err).To(BeNil())
 
