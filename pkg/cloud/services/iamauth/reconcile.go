@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package eks
+package iamauth
 
 import (
 	"context"
@@ -28,15 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/iamauth"
 )
 
-func (s *Service) reconcileAuthenticator(ctx context.Context) error {
-	s.scope.V(2).Info("Reconciling aws-iam-authenticator configuration", "cluster-name", s.scope.KubernetesClusterName())
+func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
+	s.scope.V(2).Info("Reconciling aws-iam-authenticator configuration", "cluster-name", s.scope.Name())
 
 	clusterKey := client.ObjectKey{
-		Name:      s.scope.Cluster.Name,
-		Namespace: s.scope.Cluster.Namespace,
+		Name:      s.scope.Name(),
+		Namespace: s.scope.Namespace(),
 	}
 
 	accountID, err := s.getAccountID()
@@ -44,9 +43,9 @@ func (s *Service) reconcileAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting account id: %w", err)
 	}
 
-	restConfig, err := remote.RESTConfig(ctx, s.scope.Client, clusterKey)
+	restConfig, err := remote.RESTConfig(ctx, s.client, clusterKey)
 	if err != nil {
-		return fmt.Errorf("getting remote client for %s/%s: %w", s.scope.Cluster.Namespace, s.scope.Cluster.Name, err)
+		return fmt.Errorf("getting remote client for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
 	}
 
 	remoteClient, err := client.New(restConfig, client.Options{})
@@ -54,18 +53,18 @@ func (s *Service) reconcileAuthenticator(ctx context.Context) error {
 		return fmt.Errorf("getting client for remote cluster: %w", err)
 	}
 
-	authBackend, err := iamauth.New(iamauth.BackendTypeConfigMap, remoteClient)
+	authBackend, err := NewBackend(s.backend, remoteClient)
 	if err != nil {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
 
 	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/nodes%s", accountID, infrav1.DefaultNameSuffix)
 
-	roleMapping := iamauth.RoleMapping{
+	roleMapping := RoleMapping{
 		RoleARN: roleARN,
-		KubernetesMapping: iamauth.KubernetesMapping{
-			UserName: iamauth.EC2NodeUserName,
-			Groups:   iamauth.NodeGroups,
+		KubernetesMapping: KubernetesMapping{
+			UserName: EC2NodeUserName,
+			Groups:   NodeGroups,
 		},
 	}
 

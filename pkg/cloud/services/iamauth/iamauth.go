@@ -53,9 +53,9 @@ var (
 	BackendTypeCRD = BackendType("crd")
 )
 
-// New will create a new authenticate backend for a given type. Only use BackendTypeConfigMap
+// NewBackend will create a new authenticate backend for a given type. Only use BackendTypeConfigMap
 // with EKS.
-func New(backendType BackendType, client crclient.Client) (AuthenticatorBackend, error) {
+func NewBackend(backendType BackendType, client crclient.Client) (AuthenticatorBackend, error) {
 	if client == nil {
 		return nil, ErrClientRequired
 	}

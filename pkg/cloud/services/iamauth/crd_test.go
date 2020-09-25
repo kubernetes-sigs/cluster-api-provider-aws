@@ -127,7 +127,7 @@ func TestAddRoleMappingCRD(t *testing.T) {
 			} else {
 				client = fake.NewFakeClientWithScheme(scheme, tc.existingRoleMapping)
 			}
-			backend, err := New(BackendTypeCRD, client)
+			backend, err := NewBackend(BackendTypeCRD, client)
 			g.Expect(err).To(BeNil())
 
 			err = backend.MapRole(tc.roleToMap)
@@ -255,7 +255,7 @@ func TestAddUserMappingCRD(t *testing.T) {
 			} else {
 				client = fake.NewFakeClientWithScheme(scheme, tc.existingUserMapping)
 			}
-			backend, err := New(BackendTypeCRD, client)
+			backend, err := NewBackend(BackendTypeCRD, client)
 			g.Expect(err).To(BeNil())
 
 			err = backend.MapUser(tc.userToMap)

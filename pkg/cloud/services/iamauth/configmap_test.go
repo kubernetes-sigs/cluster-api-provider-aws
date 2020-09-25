@@ -137,7 +137,7 @@ func TestAddRoleMappingCM(t *testing.T) {
 			} else {
 				client = fake.NewFakeClient(tc.existingAuthConfigMap)
 			}
-			backend, err := New(BackendTypeConfigMap, client)
+			backend, err := NewBackend(BackendTypeConfigMap, client)
 			g.Expect(err).To(BeNil())
 
 			err = backend.MapRole(tc.roleToMap)
@@ -270,7 +270,7 @@ func TestAddUserMappingCM(t *testing.T) {
 			} else {
 				client = fake.NewFakeClient(tc.existingAuthConfigMap)
 			}
-			backend, err := New(BackendTypeConfigMap, client)
+			backend, err := NewBackend(BackendTypeConfigMap, client)
 			g.Expect(err).To(BeNil())
 
 			err = backend.MapUser(tc.userToMap)
