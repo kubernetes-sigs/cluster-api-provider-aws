@@ -26,6 +26,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -139,6 +140,46 @@ func (s *ManagedMachinePoolScope) ControlPlaneSubnets() infrav1.Subnets {
 // SubnetIDs returns the machine pool subnet IDs.
 func (s *ManagedMachinePoolScope) SubnetIDs() []string {
 	return s.ManagedMachinePool.Spec.SubnetIDs
+}
+
+// NodegroupReadyFalse marks the ready condition false using warning if error isn't
+// empty
+func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string) error {
+	severity := clusterv1.ConditionSeverityWarning
+	if err == "" {
+		severity = clusterv1.ConditionSeverityInfo
+	}
+	conditions.MarkFalse(
+		s.ManagedMachinePool,
+		infrav1exp.EKSNodegroupReadyCondition,
+		reason,
+		severity,
+		err,
+	)
+	if err := s.PatchObject(); err != nil {
+		return errors.Wrap(err, "failed to mark nodegroup not ready")
+	}
+	return nil
+}
+
+// IAMReadyFalse marks the ready condition false using warning if error isn't
+// empty
+func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error {
+	severity := clusterv1.ConditionSeverityWarning
+	if err == "" {
+		severity = clusterv1.ConditionSeverityInfo
+	}
+	conditions.MarkFalse(
+		s.ManagedMachinePool,
+		infrav1exp.IAMNodegroupRolesReadyCondition,
+		reason,
+		severity,
+		err,
+	)
+	if err := s.PatchObject(); err != nil {
+		return errors.Wrap(err, "failed to mark nodegroup role not ready")
+	}
+	return nil
 }
 
 // PatchObject persists the control plane configuration and status.

@@ -28,6 +28,7 @@ import (
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // NodegroupRolePolicies gives the policies required for a nodegroup role
@@ -191,7 +192,24 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 	return nil
 }
 
-func (s *NodegroupService) deleteNodegroupIAMRole() error {
+func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
+	if err := s.scope.IAMReadyFalse(clusterv1.DeletingReason, ""); err != nil {
+		return err
+	}
+	defer func() {
+		if reterr != nil {
+			record.Warnf(
+				s.scope.ManagedMachinePool, "FailedDeleteIAMNodegroupRole", "Failed to delete EKS nodegroup role %s: %v", s.scope.ManagedMachinePool.Spec.RoleName, reterr,
+			)
+			if err := s.scope.IAMReadyFalse("DeletingFailed", reterr.Error()); err != nil {
+				reterr = err
+			}
+		} else {
+			if err := s.scope.IAMReadyFalse(clusterv1.DeletedReason, ""); err != nil {
+				reterr = err
+			}
+		}
+	}()
 	roleName := s.scope.RoleName()
 	if !s.scope.EnableIAM() {
 		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Nodegroup IAM Role")

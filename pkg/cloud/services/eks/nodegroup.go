@@ -30,6 +30,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 )
 
@@ -163,9 +164,26 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	return out.Nodegroup, nil
 }
 
-func (s *NodegroupService) deleteNodegroupAndWait() error {
+func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
+	if err := s.scope.NodegroupReadyFalse(clusterv1.DeletingReason, ""); err != nil {
+		return err
+	}
+	defer func() {
+		if reterr != nil {
+			record.Warnf(
+				s.scope.ManagedMachinePool, "FailedDeleteEKSNodegroup", "Failed to delete EKS nodegroup %s: %v", s.scope.NodegroupName(), reterr,
+			)
+			if err := s.scope.NodegroupReadyFalse("DeletingFailed", reterr.Error()); err != nil {
+				reterr = err
+			}
+		} else {
+			if err := s.scope.NodegroupReadyFalse(clusterv1.DeletedReason, ""); err != nil {
+				reterr = err
+			}
+		}
+	}()
 	input := &eks.DeleteNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
