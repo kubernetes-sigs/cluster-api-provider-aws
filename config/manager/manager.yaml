@@ -19,7 +19,6 @@ spec:
       containers:
       - args:
         - --enable-leader-election
-        - "--feature-gates=EKS=${EXP_EKS:=false}"
         image: controller:latest
         imagePullPolicy: Always
         name: manager

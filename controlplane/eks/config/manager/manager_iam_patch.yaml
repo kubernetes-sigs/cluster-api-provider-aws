@@ -1,0 +1,13 @@
+# This patch injects annotations to run using KIAM or EKS service accounts
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      metadata:
+        annotations:
+          iam.amazonaws.com/role: ${AWS_CONTROLLER_IAM_ROLE:=""}
+          eks.amazonaws.com/role-arn: ${AWS_CONTROLLER_IAM_ROLE:=""}
