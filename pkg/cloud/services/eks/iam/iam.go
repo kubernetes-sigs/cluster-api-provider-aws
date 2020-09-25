@@ -17,8 +17,6 @@ limitations under the License.
 package iam
 
 import (
-	"encoding/json"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
@@ -26,30 +24,9 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	apiiam "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/converters"
 )
-
-// TrustRelationshipPolicyDocument represesnts an IAM policy docyment
-type TrustRelationshipPolicyDocument struct {
-	Version   string
-	Statement []StatementEntry
-}
-
-// ToJSONString converts the document to a JSON string
-func (d *TrustRelationshipPolicyDocument) ToJSONString() (string, error) {
-	b, err := json.Marshal(d)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}
-
-// StatementEntry represents a statement within an IAM policy document
-type StatementEntry struct {
-	Effect    string
-	Action    []string
-	Principal map[string][]string
-}
 
 type IAMService struct {
 	logr.Logger
@@ -171,10 +148,9 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 func (s *IAMService) CreateRole(
 	roleName string,
 	key string,
-	trustRelationship *TrustRelationshipPolicyDocument,
+	trustRelationship *apiiam.PolicyDocument,
 	additionalTags infrav1.Tags,
 ) (*iam.Role, error) {
-	//TODO: tags also needs a separate sync
 	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(key)] = string(infrav1.ResourceLifecycleOwned)
 	tags := []*iam.Tag{}
 	for k, v := range additionalTags {
@@ -184,7 +160,7 @@ func (s *IAMService) CreateRole(
 		})
 	}
 
-	trustRelationShipJSON, err := trustRelationship.ToJSONString()
+	trustRelationshipJSON, err := converters.IAMPolicyDocumentToJSON(*trustRelationship)
 	if err != nil {
 		return nil, errors.Wrap(err, "error converting trust relationship to json")
 	}
@@ -192,7 +168,7 @@ func (s *IAMService) CreateRole(
 	input := &iam.CreateRoleInput{
 		RoleName:                 aws.String(roleName),
 		Tags:                     tags,
-		AssumeRolePolicyDocument: aws.String(trustRelationShipJSON),
+		AssumeRolePolicyDocument: aws.String(trustRelationshipJSON),
 	}
 
 	out, err := s.IAMClient.CreateRole(input)
@@ -249,16 +225,16 @@ func (s *IAMService) IsUnmanaged(role *iam.Role, key string) bool {
 	return true
 }
 
-func ControlPlaneTrustRelationship(enableFargate bool) *TrustRelationshipPolicyDocument {
-	principal := make(map[string][]string)
+func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
+	principal := make(apiiam.Principals)
 	principal["Service"] = []string{"eks.amazonaws.com"}
 	if enableFargate {
 		principal["Service"] = append(principal["Service"], "eks-fargate-pods.amazonaws.com")
 	}
 
-	policy := &TrustRelationshipPolicyDocument{
+	policy := &apiiam.PolicyDocument{
 		Version: "2012-10-17",
-		Statement: []StatementEntry{
+		Statement: []apiiam.StatementEntry{
 			{
 				Effect: "Allow",
 				Action: []string{
