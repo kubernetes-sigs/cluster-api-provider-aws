@@ -17,11 +17,46 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
+
+func TestAWSCluster_ValidateCreate(t *testing.T) {
+	tests := []struct {
+		name    string
+		cluster *AWSCluster
+		wantErr bool
+	}{
+		{
+			name: "SSH key name is not valid",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SSHKeyName: aws.String("test-capi\t"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "SSH key name should valid",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SSHKeyName: aws.String("test-capi"),
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.cluster.ValidateCreate(); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
 
 func TestAWSCluster_ValidateUpdate(t *testing.T) {
 	tests := []struct {
