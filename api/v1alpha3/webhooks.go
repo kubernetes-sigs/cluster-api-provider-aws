@@ -20,6 +20,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"regexp"
 )
 
 func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
@@ -32,4 +33,21 @@ func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorLis
 		name,
 		allErrs,
 	)
+}
+
+func isValidSSHKey(sshKey *string) field.ErrorList {
+	var allErrs field.ErrorList
+	if sshKey != nil {
+		reg, err := regexp.Compile("[^[:alnum:]-]")
+		if err != nil {
+			return append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "something goes wrong"))
+		}
+		processedString := reg.ReplaceAllString(*sshKey, "")
+		if *sshKey == processedString {
+			return nil
+		}
+		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "name contains invalid character"))
+	}
+
+	return allErrs
 }

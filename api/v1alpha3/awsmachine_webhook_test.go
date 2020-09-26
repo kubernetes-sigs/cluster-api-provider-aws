@@ -19,6 +19,7 @@ package v1alpha3
 import (
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"k8s.io/utils/pointer"
 )
 
@@ -46,6 +47,15 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 					RootVolume: &Volume{
 						Type: "io2",
 					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "SSH key is invalid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: aws.String("test\t"),
 				},
 			},
 			wantErr: true,
@@ -99,6 +109,14 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		}, {
+			name: "SSH key is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: aws.String("test"),
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
