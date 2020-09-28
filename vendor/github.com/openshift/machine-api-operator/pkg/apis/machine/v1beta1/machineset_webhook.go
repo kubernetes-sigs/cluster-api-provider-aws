@@ -73,11 +73,12 @@ func (h *machineSetValidatorHandler) Handle(ctx context.Context, req admission.R
 
 	klog.V(3).Infof("Validate webhook called for MachineSet: %s", ms.GetName())
 
-	if ok, err := h.validateMachineSet(ms); !ok {
-		return admission.Denied(err.Error())
+	ok, warnings, errs := h.validateMachineSet(ms)
+	if !ok {
+		return responseWithWarnings(admission.Denied(errs.Error()), warnings)
 	}
 
-	return admission.Allowed("MachineSet valid")
+	return responseWithWarnings(admission.Allowed("MachineSet valid"), warnings)
 }
 
 // Handle handles HTTP requests for admission webhook servers.
@@ -90,40 +91,43 @@ func (h *machineSetDefaulterHandler) Handle(ctx context.Context, req admission.R
 
 	klog.V(3).Infof("Mutate webhook called for MachineSet: %s", ms.GetName())
 
-	if ok, err := h.defaultMachineSet(ms); !ok {
-		return admission.Denied(err.Error())
+	ok, warnings, errs := h.defaultMachineSet(ms)
+	if !ok {
+		return responseWithWarnings(admission.Denied(errs.Error()), warnings)
 	}
 
 	marshaledMachineSet, err := json.Marshal(ms)
 	if err != nil {
-		return admission.Errored(http.StatusInternalServerError, err)
+		return responseWithWarnings(admission.Errored(http.StatusInternalServerError, err), warnings)
 	}
-	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledMachineSet)
+	return responseWithWarnings(admission.PatchResponseFromRaw(req.Object.Raw, marshaledMachineSet), warnings)
 }
 
-func (h *machineSetValidatorHandler) validateMachineSet(ms *MachineSet) (bool, utilerrors.Aggregate) {
+func (h *machineSetValidatorHandler) validateMachineSet(ms *MachineSet) (bool, []string, utilerrors.Aggregate) {
 	var errs []error
 
 	// Create a Machine from the MachineSet and validate the Machine template
 	m := &Machine{Spec: ms.Spec.Template.Spec}
-	if ok, err := h.webhookOperations(m, h.clusterID); !ok {
+	ok, warnings, err := h.webhookOperations(m, h.clusterID)
+	if !ok {
 		errs = append(errs, err.Errors()...)
 	}
 
 	if len(errs) > 0 {
-		return false, utilerrors.NewAggregate(errs)
+		return false, warnings, utilerrors.NewAggregate(errs)
 	}
-	return true, nil
+	return true, warnings, nil
 }
 
-func (h *machineSetDefaulterHandler) defaultMachineSet(ms *MachineSet) (bool, utilerrors.Aggregate) {
+func (h *machineSetDefaulterHandler) defaultMachineSet(ms *MachineSet) (bool, []string, utilerrors.Aggregate) {
 	// Create a Machine from the MachineSet and default the Machine template
 	m := &Machine{Spec: ms.Spec.Template.Spec}
-	if ok, err := h.webhookOperations(m, h.clusterID); !ok {
-		return false, utilerrors.NewAggregate(err.Errors())
+	ok, warnings, err := h.webhookOperations(m, h.clusterID)
+	if !ok {
+		return false, warnings, utilerrors.NewAggregate(err.Errors())
 	}
 
 	// Restore the defaulted template
 	ms.Spec.Template.Spec = m.Spec
-	return true, nil
+	return true, warnings, nil
 }
