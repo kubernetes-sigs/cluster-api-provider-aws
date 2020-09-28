@@ -1,4 +1,5 @@
 <!-- NB: This page is meant to be embedded in Cluster API book -->
+# Using clusterawsadm to fulfill prerequisites
 
 ## Requirements
 
@@ -31,21 +32,34 @@ After these are set run this command to get you up and running:
 clusterawsadm bootstrap iam create-cloudformation-stack
 ```
 
-You can optionally specify additional AWS policies (they can be user or AWS managed, but must already exists) in the call to `create-formation-stack` (and `generate-cloudformation`) if required, e.g.
+Additional policies can be added by creating a configuration file
 
 ```
-clusterawsadm alpha bootstrap create-stack \
-  --extra-controlplane-policies arn:aws:iam::<AWS_ACCOUNT>:policy/my-policy,arn:aws:iam::aws:policy/AmazonEC2FullAccess \
-  --extra-node-policies arn:aws:iam::<AWS_ACCOUNT>:policy/my-other-policy
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  controlPlane:
+    ExtraPolicyAttachments:
+      - arn:aws:iam::<AWS_ACCOUNT>:policy/my-policy
+      - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+  nodes:
+    ExtraPolicyAttachments:
+      - arn:aws:iam::<AWS_ACCOUNT>:policy/my-other-policy
+```
+
+and passing it to clusterawsadm as follows
+
+```
+clusterawsadm bootstrap iam create-stack --config bootstrap-config.yaml
 ```
 
 These will be added to the control plane and node roles respectively when they are created.
 
-**Note:** If you used `clusterawsadm` 0.5.4 or earlier to create IAM objects for the Cluster API
-Provider for AWS, using `clusterawsadm` 0.5.5 or later will, by default, remove the bootstrap 
-user and group. Anything using those credentials to authenticate will start experiencing
-authentication failures. If you rely on the bootstrap user and group credentials, specify 
-`bootstrapUser.enable = true` in the configuration file, like this:
+**Note:** If you used the now deprecated `clusterawsadm alpha bootstrap` 0.5.4 or earlier to create IAM objects for the
+Cluster API Provider for AWS, using `clusterawsadm bootstrap iam` 0.5.5 or later will, by default, remove the bootstrap
+user and group. Anything using those credentials to authenticate will start experiencing authentication failures. If you
+rely on the bootstrap user and group credentials, specify `bootstrapUser.enable = true` in the configuration file, like
+this:
 
 ```yaml
 apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
@@ -74,7 +88,7 @@ spec:
 and then use that configuration file:
 
 ```bash
-clusterawsadm bootstrap iam create-cloudformation-stack --config boostrap.config
+clusterawsadm bootstrap iam create-cloudformation-stack --config boostrap-config.yaml
 ```
 
 ### Without `clusterawsadm`
