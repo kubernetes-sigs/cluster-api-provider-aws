@@ -128,6 +128,8 @@ func main() {
 
 	enableIAM := feature.Gates.Enabled(feature.EKSEnableIAM)
 	allowAddRoles := feature.Gates.Enabled(feature.EKSAllowAddRoles)
+	setupLog.Info("EKS IAM role creation", "enabled", enableIAM)
+	setupLog.Info("EKS IAM additional roles", "enabled", allowAddRoles)
 	if allowAddRoles && !enableIAM {
 		setupLog.Error(errEKSInvalidFlags, "cannot use EKSAllowAddRoles flag without EKSEnableIAM")
 		os.Exit(1)
@@ -160,7 +162,7 @@ func main() {
 
 	setupLog.V(1).Info(fmt.Sprintf("%+v\n", feature.Gates))
 
-	setupReconcilers(mgr)
+	setupReconcilers(mgr, enableIAM, allowAddRoles)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -182,14 +184,16 @@ func main() {
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager) {
+func setupReconcilers(mgr ctrl.Manager, enableIAM bool, allowAddRoles bool) {
 	if webhookPort != 0 {
 		return
 	}
 
 	if err := (&controllers.AWSManagedControlPlaneReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
+		Client:               mgr.GetClient(),
+		Log:                  ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
+		EnableIAM:            enableIAM,
+		AllowAdditionalRoles: allowAddRoles,
 	}).SetupWithManager(mgr, concurrency(eksControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 		os.Exit(1)
