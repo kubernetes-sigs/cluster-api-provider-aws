@@ -48,6 +48,22 @@ func (t Template) sessionManagerPolicy() iamv1.StatementEntry {
 	}
 }
 
+func (t Template) nodeManagedPolicies() []string {
+	policies := t.Spec.Nodes.ExtraPolicyAttachments
+
+	if t.Spec.EKS.Enable {
+		policies = append(policies,
+			"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+			"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy")
+	}
+
+	if t.Spec.Nodes.EC2ContainerRegistryReadOnly {
+		policies = append(policies, "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly")
+	}
+
+	return policies
+}
+
 func (t Template) nodePolicy() *iamv1.PolicyDocument {
 	policyDocument := t.cloudProviderNodeAwsPolicy()
 	policyDocument.Statement = append(

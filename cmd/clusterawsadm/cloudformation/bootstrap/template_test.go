@@ -68,7 +68,8 @@ func Test_RenderCloudformation(t *testing.T) {
 			fixture: "with_eks_enable",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.ClusterAPIControllers.EKS.Enable = true
+				t.Spec.EKS.Enable = true
+				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				return t
 			},
 		},
@@ -76,8 +77,9 @@ func Test_RenderCloudformation(t *testing.T) {
 			fixture: "with_eks_default_roles",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.ClusterAPIControllers.EKS.Enable = true
-				t.Spec.ManagedControlPlane.Disable = false
+				t.Spec.EKS.Enable = true
+				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
+				t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 				return t
 			},
 		},

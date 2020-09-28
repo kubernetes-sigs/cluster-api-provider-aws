@@ -31,3 +31,10 @@ const (
 	// IAMControlPlaneRolesReconciliationFailedReason used to report failures while reconciling EKS control plane iam roles
 	IAMControlPlaneRolesReconciliationFailedReason = "IAMControlPlaneRolesReconciliationFailed"
 )
+
+const (
+	// IAMAuthenticatorConfiguredCondition condition reports on the successful reconciliation of aws-iam-authenticator config
+	IAMAuthenticatorConfiguredCondition clusterv1.ConditionType = "IAMAuthenticatorConfigured"
+	// IAMAuthenticatorConfigurationFailedReason used to report failures while reconciling the aws-iam-authenticator config
+	IAMAuthenticatorConfigurationFailedReason = "IAMAuthenticatorConfigurationFailed"
+)

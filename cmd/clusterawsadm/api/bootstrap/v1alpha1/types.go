@@ -70,14 +70,6 @@ type ControlPlane struct {
 	EnableCSIPolicy bool `json:"enableCSIPolicy"`
 }
 
-// ManagedControlPlane controls the configuration of the AWS IAM role for
-// the EKS control plane. This is the default role that will be used if
-// no role is included in the spec and automatic creation of the role
-// isn't enabled
-type ManagedControlPlane struct {
-	AWSIAMRoleSpec `json:",inline"`
-}
-
 // AWSIAMRoleSpec defines common configuration for AWS IAM roles created by
 // Kubernetes Cluster API Provider AWS
 type AWSIAMRoleSpec struct {
@@ -98,14 +90,18 @@ type AWSIAMRoleSpec struct {
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
 
-// EKSControllerConfig controls EKS-related configuration of the AWS IAM role
-// for the controller
-type EKSControllerConfig struct {
+// EKSConfig represents the EKS related configuration config
+type EKSConfig struct {
 	// Enable controls whether EKS-related permissions are granted
 	Enable bool `json:"enable,omitempty"`
-	// IAMRoleCreation controls whether the controller has permissions for creating IAM
+	// AllowIAMRoleCreation controls whether the EKS controllers have permissions for creating IAM
 	// roles per cluster
-	IAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
+	AllowIAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
+	// DefaultControlPlaneRole controls the configuration of the AWS IAM role for
+	// the EKS control plane. This is the default role that will be used if
+	// no role is included in the spec and automatic creation of the role
+	// isn't enabled
+	DefaultControlPlaneRole AWSIAMRoleSpec `json:"DefaultControlPlaneRole,omitempty"`
 }
 
 // ClusterAPIControllers controls the configuration of the AWS IAM role for
@@ -116,8 +112,6 @@ type ClusterAPIControllers struct {
 	// consumed by Cluster API when creating an ec2 instance. Defaults to
 	// *.<suffix>, where suffix is defaulted to .cluster-api-provider-aws.sigs.k8s.io
 	AllowedEC2InstanceProfiles []string `json:"allowedEC2InstanceProfiles,omitempty"`
-	// EKS controls EKS-related configuration
-	EKS EKSControllerConfig `json:"eks,omitempty"`
 }
 
 // Nodes controls the configuration of the AWS IAM role for worker nodes
@@ -128,6 +122,10 @@ type Nodes struct {
 	// DisableCloudProviderPolicy if set to true, will not generate and attach the policy for the AWS Cloud Provider.
 	// Defaults to false.
 	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"`
+
+	// EC2ContainerRegistryReadOnly controls whether the node has read-only access to the
+	// EC2 container registry
+	EC2ContainerRegistryReadOnly bool `json:"ec2ContainerRegistryReadOnly"`
 }
 
 // +kubebuilder:object:root=true
@@ -152,9 +150,6 @@ type AWSIAMConfigurationSpec struct {
 	// ControlPlane controls the configuration of the AWS IAM role for a Kubernetes cluster's control plane nodes.
 	ControlPlane ControlPlane `json:"controlPlane,omitempty"`
 
-	// ManagedControlPlane controls the configuration of the AWS IAM role for used by the EKS control plane.
-	ManagedControlPlane *ManagedControlPlane `json:"managedControlPlane,omitempty"`
-
 	// ClusterAPIControllers controls the configuration of an IAM role and policy specifically for Kubernetes Cluster API Provider AWS.
 	ClusterAPIControllers ClusterAPIControllers `json:"clusterAPIControllers,omitempty"`
 
@@ -171,6 +166,10 @@ type AWSIAMConfigurationSpec struct {
 	// Region controls which region the control-plane is created in if not specified on the command line or
 	// via environment variables.
 	Region string `json:"region,omitempty"`
+
+	// EKS controls the configuration related to EKS. Settings in here affect the control plane
+	// and nodes roles
+	EKS *EKSConfig `json:"eks,omitempty"`
 }
 
 func (obj *AWSIAMConfiguration) GetObjectKind() schema.ObjectKind {
