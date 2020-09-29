@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	errorutil "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -66,7 +66,7 @@ func registerWithNetworkLoadBalancers(client awsclient.Client, names []string, i
 			targetGroups[*targetGroup.TargetGroupArn] = targetGroup
 		}
 	}
-	if klog.V(4) {
+	if klog.V(4).Enabled() {
 		targetGroupArns := make([]string, 0, len(targetGroups))
 		for arn := range targetGroups {
 			targetGroupArns = append(targetGroupArns, fmt.Sprintf("%q", arn))
