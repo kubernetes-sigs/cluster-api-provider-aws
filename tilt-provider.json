@@ -4,7 +4,14 @@
     "config": {
       "image": "gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller",
       "live_reload_deps": [
-        "main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "exp", "pkg"
+        "main.go",
+        "go.mod",
+        "go.sum",
+        "api",
+        "cmd",
+        "controllers",
+        "exp",
+        "pkg"
       ]
     }
   },
@@ -14,7 +21,10 @@
       "context": "bootstrap/eks",
       "image": "gcr.io/k8s-staging-cluster-api-aws/eks-bootstrap-controller",
       "live_reload_deps": [
-        "main.go", "api", "controllers", "internal"
+        "main.go",
+        "api",
+        "controllers",
+        "internal"
       ]
     }
   },

@@ -23,4 +23,4 @@ spec:
         args:
         - "--metrics-addr=127.0.0.1:8080"
         - "--enable-leader-election"
-        - "--feature-gates=EKS=${EXP_EKS:=false}"
+        - "--feature-gates=EKS=${EXP_EKS:=false},MachinePool=${EXP_MACHINE_POOL:=false}"

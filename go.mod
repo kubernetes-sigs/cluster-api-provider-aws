@@ -16,6 +16,7 @@ require (
 	github.com/prometheus/client_golang v1.5.1
 	github.com/sergi/go-diff v1.0.0
 	github.com/spf13/cobra v1.0.0
+	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2

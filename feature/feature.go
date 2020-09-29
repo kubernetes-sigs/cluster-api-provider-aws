@@ -42,6 +42,11 @@ const (
 	// owner: @richardcase
 	// alpha: v0.4
 	EKSAllowAddRoles featuregate.Feature = "EKSAllowAddRoles"
+
+	// MachinePool is used to enable ASG support
+	// owner: @mytunguyen
+	// alpha: v0.1
+	MachinePool featuregate.Feature = "MachinePool"
 )
 
 func init() {
@@ -55,4 +60,5 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	EKS:              {Default: false, PreRelease: featuregate.Alpha},
 	EKSEnableIAM:     {Default: false, PreRelease: featuregate.Alpha},
 	EKSAllowAddRoles: {Default: false, PreRelease: featuregate.Alpha},
+	MachinePool:      {Default: false, PreRelease: featuregate.Alpha},
 }

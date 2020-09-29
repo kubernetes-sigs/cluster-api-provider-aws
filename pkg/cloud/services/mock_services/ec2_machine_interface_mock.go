@@ -24,6 +24,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	v1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	v1alpha30 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	scope "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
@@ -65,6 +66,49 @@ func (mr *MockEC2MachineInterfaceMockRecorder) CreateInstance(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2MachineInterface)(nil).CreateInstance), arg0, arg1)
 }
 
+// CreateLaunchTemplate mocks base method
+func (m *MockEC2MachineInterface) CreateLaunchTemplate(arg0 *scope.MachinePoolScope, arg1 *string, arg2 []byte) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLaunchTemplate", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateLaunchTemplate indicates an expected call of CreateLaunchTemplate
+func (mr *MockEC2MachineInterfaceMockRecorder) CreateLaunchTemplate(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLaunchTemplate", reflect.TypeOf((*MockEC2MachineInterface)(nil).CreateLaunchTemplate), arg0, arg1, arg2)
+}
+
+// CreateLaunchTemplateVersion mocks base method
+func (m *MockEC2MachineInterface) CreateLaunchTemplateVersion(arg0 *scope.MachinePoolScope, arg1 *string, arg2 []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLaunchTemplateVersion", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateLaunchTemplateVersion indicates an expected call of CreateLaunchTemplateVersion
+func (mr *MockEC2MachineInterfaceMockRecorder) CreateLaunchTemplateVersion(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLaunchTemplateVersion", reflect.TypeOf((*MockEC2MachineInterface)(nil).CreateLaunchTemplateVersion), arg0, arg1, arg2)
+}
+
+// DeleteLaunchTemplate mocks base method
+func (m *MockEC2MachineInterface) DeleteLaunchTemplate(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLaunchTemplate", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteLaunchTemplate indicates an expected call of DeleteLaunchTemplate
+func (mr *MockEC2MachineInterfaceMockRecorder) DeleteLaunchTemplate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLaunchTemplate", reflect.TypeOf((*MockEC2MachineInterface)(nil).DeleteLaunchTemplate), arg0)
+}
+
 // DetachSecurityGroupsFromNetworkInterface mocks base method
 func (m *MockEC2MachineInterface) DetachSecurityGroupsFromNetworkInterface(arg0 []string, arg1 string) error {
 	m.ctrl.T.Helper()
@@ -77,6 +121,21 @@ func (m *MockEC2MachineInterface) DetachSecurityGroupsFromNetworkInterface(arg0 
 func (mr *MockEC2MachineInterfaceMockRecorder) DetachSecurityGroupsFromNetworkInterface(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachSecurityGroupsFromNetworkInterface", reflect.TypeOf((*MockEC2MachineInterface)(nil).DetachSecurityGroupsFromNetworkInterface), arg0, arg1)
+}
+
+// DiscoverLaunchTemplateAMI mocks base method
+func (m *MockEC2MachineInterface) DiscoverLaunchTemplateAMI(arg0 *scope.MachinePoolScope) (*string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DiscoverLaunchTemplateAMI", arg0)
+	ret0, _ := ret[0].(*string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DiscoverLaunchTemplateAMI indicates an expected call of DiscoverLaunchTemplateAMI
+func (mr *MockEC2MachineInterfaceMockRecorder) DiscoverLaunchTemplateAMI(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiscoverLaunchTemplateAMI", reflect.TypeOf((*MockEC2MachineInterface)(nil).DiscoverLaunchTemplateAMI), arg0)
 }
 
 // GetCoreSecurityGroups mocks base method
@@ -109,6 +168,21 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetInstanceSecurityGroups(arg0 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceSecurityGroups", reflect.TypeOf((*MockEC2MachineInterface)(nil).GetInstanceSecurityGroups), arg0)
 }
 
+// GetLaunchTemplate mocks base method
+func (m *MockEC2MachineInterface) GetLaunchTemplate(arg0 string) (*v1alpha30.AWSLaunchTemplate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLaunchTemplate", arg0)
+	ret0, _ := ret[0].(*v1alpha30.AWSLaunchTemplate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLaunchTemplate indicates an expected call of GetLaunchTemplate
+func (mr *MockEC2MachineInterfaceMockRecorder) GetLaunchTemplate(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLaunchTemplate", reflect.TypeOf((*MockEC2MachineInterface)(nil).GetLaunchTemplate), arg0)
+}
+
 // GetRunningInstanceByTags mocks base method
 func (m *MockEC2MachineInterface) GetRunningInstanceByTags(arg0 *scope.MachineScope) (*v1alpha3.Instance, error) {
 	m.ctrl.T.Helper()
@@ -137,6 +211,21 @@ func (m *MockEC2MachineInterface) InstanceIfExists(arg0 *string) (*v1alpha3.Inst
 func (mr *MockEC2MachineInterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InstanceIfExists", reflect.TypeOf((*MockEC2MachineInterface)(nil).InstanceIfExists), arg0)
+}
+
+// LaunchTemplateNeedsUpdate mocks base method
+func (m *MockEC2MachineInterface) LaunchTemplateNeedsUpdate(arg0 *scope.MachinePoolScope, arg1, arg2 *v1alpha30.AWSLaunchTemplate) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LaunchTemplateNeedsUpdate", arg0, arg1, arg2)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LaunchTemplateNeedsUpdate indicates an expected call of LaunchTemplateNeedsUpdate
+func (mr *MockEC2MachineInterfaceMockRecorder) LaunchTemplateNeedsUpdate(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaunchTemplateNeedsUpdate", reflect.TypeOf((*MockEC2MachineInterface)(nil).LaunchTemplateNeedsUpdate), arg0, arg1, arg2)
 }
 
 // TerminateInstance mocks base method

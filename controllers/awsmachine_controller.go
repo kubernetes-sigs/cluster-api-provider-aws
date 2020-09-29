@@ -60,6 +60,11 @@ type AWSMachineReconciler struct {
 	secretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretsManagerInterface
 }
 
+const (
+	// AWSManagedControlPlaneRefKind is the string value indicating that a cluster is AWS managed
+	AWSManagedControlPlaneRefKind = "AWSManagedControlPlane"
+)
+
 func (r *AWSMachineReconciler) getEC2Service(scope scope.EC2Scope) services.EC2MachineInterface {
 	if r.ec2ServiceFactory != nil {
 		return r.ec2ServiceFactory(scope)

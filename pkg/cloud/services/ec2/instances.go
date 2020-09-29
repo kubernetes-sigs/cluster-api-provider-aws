@@ -354,6 +354,30 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	return ids, nil
 }
 
+// GetCoreSecurityGroups looks up the security group IDs managed by this actuator
+// They are considered "core" to its proper functioning
+func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]string, error) {
+	// These are common across both controlplane and node machines
+	sgRoles := []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupNode,
+	}
+
+	if !scope.IsEKSManaged() {
+		sgRoles = append(sgRoles, infrav1.SecurityGroupLB)
+	}
+
+	ids := make([]string, 0, len(sgRoles))
+	for _, sg := range sgRoles {
+		if _, ok := s.scope.SecurityGroups()[sg]; !ok {
+			return nil, awserrors.NewFailedDependency(
+				fmt.Sprintf("%s security group not available", sg),
+			)
+		}
+		ids = append(ids, s.scope.SecurityGroups()[sg].ID)
+	}
+	return ids, nil
+}
+
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
 func (s *Service) TerminateInstance(instanceID string) error {
@@ -431,19 +455,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	blockdeviceMappings := []*ec2.BlockDeviceMapping{}
 
-	if i.RootVolume != nil { // nolint:nestif
-		rootDeviceName, err := s.getImageRootDevice(i.ImageID)
+	if i.RootVolume != nil {
+		rootDeviceName, err := s.checkRootVolume(i.RootVolume, i.ImageID)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get root volume from image %q", i.ImageID)
-		}
-
-		snapshotSize, err := s.getImageSnapshotSize(i.ImageID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get root volume from image %q", i.ImageID)
-		}
-
-		if i.RootVolume.Size < *snapshotSize {
-			return nil, errors.Errorf("root volume size (%d) must be greater than or equal to snapshot size (%d)", i.RootVolume.Size, *snapshotSize)
+			return nil, err
 		}
 
 		ebsRootDevice := &ec2.EbsBlockDevice{
@@ -853,6 +868,26 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
 	}
 	return nil
+}
+
+// checkRootVolume checks the input root volume options against the requested AMI's defaults
+// and returns the AMI's root device name
+func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*string, error) {
+	rootDeviceName, err := s.getImageRootDevice(imageID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get root volume from image %q", imageID)
+	}
+
+	snapshotSize, err := s.getImageSnapshotSize(imageID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get root volume from image %q", imageID)
+	}
+
+	if rootVolume.Size < *snapshotSize {
+		return nil, errors.Errorf("root volume size (%d) must be greater than or equal to snapshot size (%d)", rootVolume.Size, *snapshotSize)
+	}
+
+	return rootDeviceName, nil
 }
 
 // filterGroups filters a list for a string.
