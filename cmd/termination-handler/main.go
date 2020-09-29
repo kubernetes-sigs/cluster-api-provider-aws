@@ -22,8 +22,8 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/termination"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	ctrl "sigs.k8s.io/controller-runtime"
