@@ -116,12 +116,18 @@ var _ = Describe("functional tests", func() {
 			clusterClient := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
 
 			By("Waiting for worker nodes to be in Running phase")
-			machines := getMachinesOfDeployment(namespace, md[0])
-			Expect(len(machines.Items)).Should(BeNumerically(">", 0))
+			machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            bootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *md[0],
+			})
+
+			Expect(len(machines)).Should(BeNumerically(">", 0))
 			statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseRunning))}
 			machineStatusInput := framework.WaitForMachineStatusCheckInput{
 				Getter:       bootstrapClusterProxy.GetClient(),
-				Machine:      &machines.Items[0],
+				Machine:      &machines[0],
 				StatusChecks: statusChecks,
 			}
 			framework.WaitForMachineStatusCheck(ctx, machineStatusInput, e2eConfig.GetIntervals("", "wait-machine-status")...)
@@ -318,15 +324,20 @@ var _ = Describe("functional tests", func() {
 				Expect(len(md2)).To(Equal(1), "Expecting one MachineDeployment")
 
 				By("Deleting node directly from infra cloud")
-				machines := getMachinesOfDeployment(ns2, md2[0])
-				Expect(len(machines.Items)).Should(BeNumerically(">", 0))
-				terminateInstance(*machines.Items[0].Spec.ProviderID)
+				machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+					Lister:            bootstrapClusterProxy.GetClient(),
+					ClusterName:       cluster1Name,
+					Namespace:         ns2.Name,
+					MachineDeployment: *md2[0],
+				})
+				Expect(len(machines)).Should(BeNumerically(">", 0))
+				terminateInstance(*machines[0].Spec.ProviderID)
 
 				By("Waiting for machine to reach Failed state")
 				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}
 				machineStatusInput := framework.WaitForMachineStatusCheckInput{
 					Getter:       bootstrapClusterProxy.GetClient(),
-					Machine:      &machines.Items[0],
+					Machine:      &machines[0],
 					StatusChecks: statusChecks,
 				}
 				framework.WaitForMachineStatusCheck(ctx, machineStatusInput, e2eConfig.GetIntervals("", "wait-machine-status")...)
@@ -359,6 +370,33 @@ var _ = Describe("functional tests", func() {
 				deleteCluster(ctx, cluster1)
 				deleteCluster(ctx, cluster2)
 			})
+		})
+	})
+
+	Describe("Workload cluster with spot instances", func() {
+		It("It should be creatable and deletable", func() {
+			By("Creating a cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = SpotInstancesFlavor
+			_, md := createCluster(ctx, configCluster)
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            bootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *md[0],
+			})
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      bootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			assertSpotInstanceType(*workerMachines[0].Spec.ProviderID)
+			Expect(len(controlPlaneMachines)).To(Equal(1))
+			assertSpotInstanceType(*controlPlaneMachines[0].Spec.ProviderID)
 		})
 	})
 
@@ -648,19 +686,6 @@ func getEvents(namespace string) *corev1.EventList {
 	return eventsList
 }
 
-func getMachinesOfDeployment(namespace *corev1.Namespace, machineDeployment *clusterv1.MachineDeployment) *clusterv1.MachineList {
-	Byf("Fetching the Machines of MachineDeployment %s", machineDeployment.Name)
-	machineList := &clusterv1.MachineList{}
-	k8sClient := bootstrapClusterProxy.GetClient()
-
-	selector, err := metav1.LabelSelectorAsMap(&machineDeployment.Spec.Selector)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = k8sClient.List(context.TODO(), machineList, crclient.InNamespace(namespace.Name), crclient.MatchingLabels(selector))
-	Expect(err).NotTo(HaveOccurred())
-	return machineList
-}
-
 func getSession() client.ConfigProvider {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -848,6 +873,22 @@ func makeMachineDeployment(namespace, mdName, clusterName string, replicas int32
 			},
 		},
 	}
+}
+
+func assertSpotInstanceType(instanceId string) {
+	Byf("Finding EC2 spot instance with ID: %s", instanceId)
+	ec2Client := ec2.New(getSession())
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{
+			aws.String(instanceId[strings.LastIndex(instanceId, "/")+1:]),
+		},
+		Filters: []*ec2.Filter{{Name: aws.String("instance-lifecycle"), Values: aws.StringSlice([]string{"spot"})}},
+	}
+
+	result, err := ec2Client.DescribeInstances(input)
+	Expect(err).To(BeNil())
+	Expect(len(result.Reservations)).To(Equal(1))
+	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
 }
 
 func terminateInstance(instanceId string) {
