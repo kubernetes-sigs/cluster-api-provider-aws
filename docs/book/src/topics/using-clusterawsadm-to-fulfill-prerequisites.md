@@ -92,6 +92,23 @@ and then use that configuration file:
 clusterawsadm bootstrap iam create-cloudformation-stack --config bootstrap-config.yaml
 ```
 
+#### Enabling EventBridge Events
+
+To enable EventBridge instance state events, additional permissions must be granted along with enabling the feature-flag.
+Additional permissions for events and queue management can be enabled through the configuration file as follows:
+
+```yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  ...
+  eventBridge:
+    enable: true
+  ...
+```
+
+
+
 ### Without `clusterawsadm`
 
 This is not a recommended route as the policies are very specific and will

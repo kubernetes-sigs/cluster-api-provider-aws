@@ -42,9 +42,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
 )
@@ -133,6 +135,13 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 
 	awsCluster := clusterScope.AWSCluster
 
+	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
+		instancestateSvc := instancestate.NewService(clusterScope)
+		if err := instancestateSvc.DeleteEC2Events(); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to delete EventBridge notifications for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		}
+	}
+
 	if err := elbsvc.DeleteLoadbalancers(); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "error deleting load balancer for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
@@ -192,6 +201,13 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile bastion host for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
+	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
+		instancestateSvc := instancestate.NewService(clusterScope)
+		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile EventBridge notifications for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		}
+	}
+
 	if err := elbService.ReconcileLoadbalancers(); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancers for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
@@ -237,7 +253,7 @@ func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
-		WithEventFilter(pausedPredicates(r.Log)).
+		WithEventFilter(PausedPredicates(r.Log)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates

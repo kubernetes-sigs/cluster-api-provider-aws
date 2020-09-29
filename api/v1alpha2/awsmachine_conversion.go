@@ -50,6 +50,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec, src *AWSMachineSpec) {
 	dst.ImageLookupFormat = restored.ImageLookupFormat
 	dst.ImageLookupBaseOS = restored.ImageLookupBaseOS
+	dst.InstanceID = restored.InstanceID
 
 	// Note this may override the manual conversion in Convert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec.
 	if restored.RootVolume != nil {

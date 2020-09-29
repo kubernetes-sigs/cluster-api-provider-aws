@@ -39,9 +39,9 @@ func TestUserDataEndpoints(t *testing.T) {
 	service := Service{}
 	endpoints := []scope.ServiceEndpoint{
 		scope.ServiceEndpoint{
-			URL: "localhost",
+			URL:           "localhost",
 			SigningRegion: "localhost",
-			ServiceID: "ssm",
+			ServiceID:     "ssm",
 		},
 	}
 	doc, _ := service.UserData("secretARN", 1, "eu-west-1", endpoints)

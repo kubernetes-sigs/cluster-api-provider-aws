@@ -43,6 +43,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1alpha3exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	controllersexp "sigs.k8s.io/cluster-api-provider-aws/exp/controllers"
+	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -67,17 +68,18 @@ func init() {
 }
 
 var (
-	metricsAddr             string
-	enableLeaderElection    bool
-	leaderElectionNamespace string
-	watchNamespace          string
-	profilerAddress         string
-	awsClusterConcurrency   int
-	awsMachineConcurrency   int
-	syncPeriod              time.Duration
-	webhookPort             int
-	healthAddr              string
-	serviceEndpoints        string
+	metricsAddr              string
+	enableLeaderElection     bool
+	leaderElectionNamespace  string
+	watchNamespace           string
+	profilerAddress          string
+	awsClusterConcurrency    int
+	instanceStateConcurrency int
+	awsMachineConcurrency    int
+	syncPeriod               time.Duration
+	webhookPort              int
+	healthAddr               string
+	serviceEndpoints         string
 )
 
 func main() {
@@ -189,6 +191,19 @@ func main() {
 				os.Exit(1)
 			}
 		}
+
+		if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
+			setupLog.Info("EventBridge notifications enabled. enabling AWSInstanceStateController")
+			if err = (&instancestate.AwsInstanceStateReconciler{
+				Client:    mgr.GetClient(),
+				Log:       ctrl.Log.WithName("controllers").WithName("AWSInstanceStateController"),
+				Endpoints: AWSServiceEndpoints,
+			}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency}); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "AWSInstanceStateController")
+				os.Exit(1)
+			}
+		}
+
 	} else {
 		if err = (&infrav1alpha3.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
@@ -289,6 +304,12 @@ func initFlags(fs *pflag.FlagSet) {
 		"awscluster-concurrency",
 		5,
 		"Number of AWSClusters to process simultaneously",
+	)
+
+	fs.IntVar(&instanceStateConcurrency,
+		"instance-state-concurrency",
+		5,
+		"Number of concurrent watches for instance state changes",
 	)
 
 	fs.IntVar(&awsMachineConcurrency,

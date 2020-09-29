@@ -345,6 +345,9 @@ spec:
               imageLookupOrg:
                 description: ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.
                 type: string
+              instanceID:
+                description: InstanceID is the EC2 instance ID for this machine.
+                type: string
               instanceType:
                 description: 'InstanceType is the type of instance to create. Example: m4.xlarge'
                 type: string

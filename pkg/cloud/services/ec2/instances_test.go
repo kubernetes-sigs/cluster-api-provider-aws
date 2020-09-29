@@ -1191,9 +1191,9 @@ func TestCreateInstance(t *testing.T) {
 			name: "with dedicated tenancy",
 			machine: clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"set": "node"},
+					Labels:    map[string]string{"set": "node"},
 					Namespace: "default",
-					Name: "machine-aws-test1",
+					Name:      "machine-aws-test1",
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{

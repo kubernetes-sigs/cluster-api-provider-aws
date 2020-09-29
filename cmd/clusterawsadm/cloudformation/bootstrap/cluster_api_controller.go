@@ -347,6 +347,28 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 
 	}
 
+	if t.Spec.EventBridge.Enable {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect:   iamv1.EffectAllow,
+			Resource: iamv1.Resources{iamv1.Any},
+			Action: iamv1.Actions{
+				"events:DeleteRule",
+				"events:DescribeRule",
+				"events:ListTargetsByRule",
+				"events:PutRule",
+				"events:PutTargets",
+				"events:RemoveTargets",
+				"sqs:CreateQueue",
+				"sqs:DeleteMessage",
+				"sqs:DeleteQueue",
+				"sqs:GetQueueAttributes",
+				"sqs:GetQueueUrl",
+				"sqs:ReceiveMessage",
+				"sqs:SetQueueAttributes",
+			},
+		})
+	}
+
 	return &iamv1.PolicyDocument{
 		Version:   iamv1.CurrentVersion,
 		Statement: statement,

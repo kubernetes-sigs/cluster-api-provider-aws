@@ -107,6 +107,13 @@ type EKSConfig struct {
 	ManagedMachinePool *AWSIAMRoleSpec `json:"managedMachinePool,omitempty"`
 }
 
+// EventBridgeConfig represents configuration for enabling experimental feature to consume
+// EventBridge EC2 events
+type EventBridgeConfig struct {
+	// Enable controls whether permissions are granted to consume EC2 events
+	Enable bool `json:"enable,omitempty"`
+}
+
 // ClusterAPIControllers controls the configuration of the AWS IAM role for
 // the Kubernetes Cluster API Provider AWS controller.
 type ClusterAPIControllers struct {
@@ -173,6 +180,9 @@ type AWSIAMConfigurationSpec struct {
 	// EKS controls the configuration related to EKS. Settings in here affect the control plane
 	// and nodes roles
 	EKS *EKSConfig `json:"eks,omitempty"`
+
+	// EventBridge controls configuration for consuming EventBridge events
+	EventBridge *EventBridgeConfig `json:"eventBridge,omitempty"`
 
 	// SecureSecretsBackend, when set to parameter-store will create AWS Systems Manager
 	// Parameter Storage policies. By default or with the value of secrets-manager,

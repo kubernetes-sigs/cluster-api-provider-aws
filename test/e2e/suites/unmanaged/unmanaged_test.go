@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
 	"strconv"
 	"strings"
 	"time"
@@ -358,6 +359,13 @@ var _ = Describe("functional tests - unmanaged", func() {
 				})
 				Expect(len(machines)).Should(BeNumerically(">", 0))
 				terminateInstance(*machines[0].Spec.ProviderID)
+
+				By("Waiting for AWSMachine to be labelled as terminated")
+				Eventually(func() bool {
+					machineList := getAWSMachinesForDeployment(ns2.Name, *md2[0])
+					labels := machineList.Items[0].GetLabels()
+					return labels[instancestate.Ec2InstanceStateLabelKey] == string(infrav1.InstanceStateTerminated)
+				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(Equal(true))
 
 				By("Waiting for machine to reach Failed state")
 				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}
@@ -785,6 +793,15 @@ func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg 
 		return true
 	}
 	return false
+}
+
+func getAWSMachinesForDeployment(namespace string, machineDeployment clusterv1.MachineDeployment) *infrav1.AWSMachineList {
+	k8sClient := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
+	selector, err := metav1.LabelSelectorAsMap(&machineDeployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred())
+	awsMachineList := &infrav1.AWSMachineList{}
+	Expect(k8sClient.List(context.TODO(), awsMachineList, crclient.InNamespace(namespace), crclient.MatchingLabels(selector))).NotTo(HaveOccurred())
+	return awsMachineList
 }
 
 func makeAWSMachineTemplate(namespace, name, instanceType string, az, subnetId *string) *infrav1.AWSMachineTemplate {

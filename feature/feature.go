@@ -47,6 +47,11 @@ const (
 	// owner: @mytunguyen
 	// alpha: v0.1
 	MachinePool featuregate.Feature = "MachinePool"
+
+	// EventBridgeInstanceState will use Event Bridge and notifications to keep instance state up-to-date
+	// owner: @gab-satchi
+	// alpha: v0.7?
+	EventBridgeInstanceState featuregate.Feature = "EventBridgeInstanceState"
 )
 
 func init() {
@@ -57,8 +62,9 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	EKS:              {Default: false, PreRelease: featuregate.Alpha},
-	EKSEnableIAM:     {Default: false, PreRelease: featuregate.Alpha},
-	EKSAllowAddRoles: {Default: false, PreRelease: featuregate.Alpha},
-	MachinePool:      {Default: false, PreRelease: featuregate.Alpha},
+	EKS:                      {Default: false, PreRelease: featuregate.Alpha},
+	EKSEnableIAM:             {Default: false, PreRelease: featuregate.Alpha},
+	EKSAllowAddRoles:         {Default: false, PreRelease: featuregate.Alpha},
+	EventBridgeInstanceState: {Default: false, PreRelease: featuregate.Alpha},
+	MachinePool:              {Default: false, PreRelease: featuregate.Alpha},
 }
