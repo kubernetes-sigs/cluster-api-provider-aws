@@ -460,6 +460,10 @@ spec:
                   - type
                   type: object
                 type: array
+              externalManagedControlPlane:
+                default: true
+                description: ExternalManagedControlPlane indicates to cluster-api that the control plane is managed by an external service such as AKS, EKS, GKE, etc.
+                type: boolean
               failureDomains:
                 additionalProperties:
                   description: FailureDomainSpec is the Schema for Cluster API failure domains. It allows controllers to understand how many failure domains a cluster can optionally span across.
@@ -638,6 +642,7 @@ spec:
                 description: Ready denotes that the AWSManagedControlPlane API Server is ready to receive requests and that the VPC infra is ready.
                 type: boolean
             required:
+            - externalManagedControlPlane
             - ready
             type: object
         type: object
