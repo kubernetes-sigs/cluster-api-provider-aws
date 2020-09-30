@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretsmanager
+package ssm
 
 import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -22,23 +22,22 @@ import (
 )
 
 const (
-	serviceID = "secretsmanager"
+	serviceID = "ssm"
 )
 
 // UserData creates a multi-part MIME document including a script boothook to
-// download userdata from AWS Secrets Manager and then restart cloud-init, and an include part
+// download userdata from AWS Systems Manager and then restart cloud-init, and an include part
 // specifying the on disk location of the new userdata
 func (s *Service) UserData(secretPrefix string, chunks int32, region string, endpoints []scope.ServiceEndpoint) ([]byte, error) {
-	serviceEndpoint := ""
+	var serviceEndpoint string = ""
 	for _, v := range endpoints {
 		if v.ServiceID == serviceID {
 			serviceEndpoint = v.URL
 		}
 	}
-	userData, err := mime.GenerateInitDocument(secretPrefix, chunks, region, serviceEndpoint, secretFetchScript)
+	var userData, err = mime.GenerateInitDocument(secretPrefix, chunks, region, serviceEndpoint, secretFetchScript)
 	if err != nil {
 		return []byte{}, err
 	}
-
 	return userData, nil
 }

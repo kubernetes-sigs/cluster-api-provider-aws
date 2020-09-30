@@ -17,20 +17,36 @@ limitations under the License.
 package bootstrap
 
 import (
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 )
 
-func (t Template) secretPolicy() iamv1.StatementEntry {
-	return iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Resource: iamv1.Resources{
-			"arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
-		},
-		Action: iamv1.Actions{
-			"secretsmanager:DeleteSecret",
-			"secretsmanager:GetSecretValue",
-		},
+func (t Template) secretPolicy(secureSecretsBackend infrav1.SecretBackend) iamv1.StatementEntry {
+	switch secureSecretsBackend {
+	case infrav1.SecretBackendSecretsManager:
+		return iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
+			},
+			Action: iamv1.Actions{
+				"secretsmanager:DeleteSecret",
+				"secretsmanager:GetSecretValue",
+			},
+		}
+	case infrav1.SecretBackendSSMParameterStore:
+		return iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:*:ssm:*:*:parameter/cluster.x-k8s.io/*",
+			},
+			Action: iamv1.Actions{
+				"ssm:DeleteParameter",
+				"ssm:GetParameter",
+			},
+		}
 	}
+	return iamv1.StatementEntry{}
 }
 
 func (t Template) sessionManagerPolicy() iamv1.StatementEntry {
@@ -66,9 +82,14 @@ func (t Template) nodeManagedPolicies() []string {
 
 func (t Template) nodePolicy() *iamv1.PolicyDocument {
 	policyDocument := t.cloudProviderNodeAwsPolicy()
+	for _, secureSecretsBackend := range t.Spec.SecureSecretsBackends {
+		policyDocument.Statement = append(
+			policyDocument.Statement,
+			t.secretPolicy(secureSecretsBackend),
+		)
+	}
 	policyDocument.Statement = append(
 		policyDocument.Statement,
-		t.secretPolicy(),
 		t.sessionManagerPolicy(),
 	)
 
