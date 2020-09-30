@@ -642,7 +642,6 @@ spec:
                 description: Ready denotes that the AWSManagedControlPlane API Server is ready to receive requests and that the VPC infra is ready.
                 type: boolean
             required:
-            - externalManagedControlPlane
             - ready
             type: object
         type: object
