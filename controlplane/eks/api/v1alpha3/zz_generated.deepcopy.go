@@ -166,6 +166,11 @@ func (in *AWSManagedControlPlaneStatus) DeepCopyInto(out *AWSManagedControlPlane
 		*out = new(apiv1alpha3.Instance)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ExternalManagedControlPlane != nil {
+		in, out := &in.ExternalManagedControlPlane, &out.ExternalManagedControlPlane
+		*out = new(bool)
+		**out = **in
+	}
 	if in.FailureMessage != nil {
 		in, out := &in.FailureMessage, &out.FailureMessage
 		*out = new(string)

@@ -162,14 +162,14 @@ type AWSManagedControlPlaneStatus struct {
 	// Bastion holds details of the instance that is used as a bastion jump box
 	// +optional
 	Bastion *infrav1.Instance `json:"bastion,omitempty"`
+	// ExternalManagedControlPlane indicates to cluster-api that the control plane
+	// is managed by an external service such as AKS, EKS, GKE, etc.
+	// +kubebuilder:default=true
+	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubernetes config-map.
 	// +optional
 	Initialized bool `json:"initialized"`
-	// ExternalManagedControlPlane indicates to cluster-api that the control plane
-	// is managed by an external service such as AKS, EKS, GKE, etc.
-	// +kubebuilder:default=true
-	ExternalManagedControlPlane bool `json:"externalManagedControlPlane"`
 	// Ready denotes that the AWSManagedControlPlane API Server is ready to
 	// receive requests and that the VPC infra is ready.
 	// +kubebuilder:default=false
