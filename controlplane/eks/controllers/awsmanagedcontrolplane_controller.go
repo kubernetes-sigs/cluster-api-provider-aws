@@ -53,8 +53,9 @@ import (
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object
 type AWSManagedControlPlaneReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Recorder record.EventRecorder
+	Log       logr.Logger
+	Recorder  record.EventRecorder
+	Endpoints []scope.ServiceEndpoint
 
 	EnableIAM            bool
 	AllowAdditionalRoles bool
@@ -139,6 +140,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 		ControllerName:       "awsmanagedcontrolplane",
 		EnableIAM:            r.EnableIAM,
 		AllowAdditionalRoles: r.AllowAdditionalRoles,
+		Endpoints:            r.Endpoints,
 	})
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to create scope: %w", err)

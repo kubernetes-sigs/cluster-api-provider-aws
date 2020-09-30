@@ -44,6 +44,7 @@ import (
 	infrav1alpha3exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	controllersexp "sigs.k8s.io/cluster-api-provider-aws/exp/controllers"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	// +kubebuilder:scaffold:imports
@@ -76,6 +77,7 @@ var (
 	syncPeriod              time.Duration
 	webhookPort             int
 	healthAddr              string
+	serviceEndpoints        string
 )
 
 func main() {
@@ -127,19 +129,28 @@ func main() {
 
 	setupLog.V(1).Info(fmt.Sprintf("%+v\n", feature.Gates))
 
+	// Parse service endpoints.
+	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
+	if err != nil {
+		setupLog.Error(err, "unable to parse service endpoints", "controller", "AWSCluster")
+		os.Exit(1)
+	}
+
 	if webhookPort == 0 {
 		if err = (&controllers.AWSMachineReconciler{
-			Client:   mgr.GetClient(),
-			Log:      ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-			Recorder: mgr.GetEventRecorderFor("awsmachine-controller"),
+			Client:    mgr.GetClient(),
+			Log:       ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+			Recorder:  mgr.GetEventRecorderFor("awsmachine-controller"),
+			Endpoints: AWSServiceEndpoints,
 		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 			os.Exit(1)
 		}
 		if err = (&controllers.AWSClusterReconciler{
-			Client:   mgr.GetClient(),
-			Log:      ctrl.Log.WithName("controllers").WithName("AWSCluster"),
-			Recorder: mgr.GetEventRecorderFor("awscluster-controller"),
+			Client:    mgr.GetClient(),
+			Log:       ctrl.Log.WithName("controllers").WithName("AWSCluster"),
+			Recorder:  mgr.GetEventRecorderFor("awscluster-controller"),
+			Endpoints: AWSServiceEndpoints,
 		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 			os.Exit(1)
@@ -276,6 +287,12 @@ func initFlags(fs *pflag.FlagSet) {
 		"health-addr",
 		":9440",
 		"The address the health endpoint binds to.",
+	)
+
+	fs.StringVar(&serviceEndpoints,
+		"service-endpoints",
+		"",
+		"Set custom AWS service endpoins in semi-colon separated format: ${SigningRegion1}:${ServiceID1}=${URL},${ServiceID2}=${URL};${SigningRegion2}...",
 	)
 
 	feature.MutableGates.AddFlag(fs)

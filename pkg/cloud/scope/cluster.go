@@ -39,6 +39,7 @@ type ClusterScopeParams struct {
 	Cluster        *clusterv1.Cluster
 	AWSCluster     *infrav1.AWSCluster
 	ControllerName string
+	Endpoints      []ServiceEndpoint
 	Session        awsclient.ConfigProvider
 }
 
@@ -56,7 +57,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		params.Logger = klogr.New()
 	}
 
-	session, err := sessionForRegion(params.AWSCluster.Spec.Region)
+	session, err := sessionForRegion(params.AWSCluster.Spec.Region, params.Endpoints)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}

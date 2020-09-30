@@ -52,8 +52,9 @@ import (
 // AWSClusterReconciler reconciles a AwsCluster object
 type AWSClusterReconciler struct {
 	client.Client
-	Recorder record.EventRecorder
-	Log      logr.Logger
+	Recorder  record.EventRecorder
+	Log       logr.Logger
+	Endpoints []scope.ServiceEndpoint
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch;create;update;patch;delete
@@ -99,6 +100,7 @@ func (r *AWSClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		Cluster:        cluster,
 		AWSCluster:     awsCluster,
 		ControllerName: "awscluster",
+		Endpoints:      r.Endpoints,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
