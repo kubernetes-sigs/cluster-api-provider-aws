@@ -1,0 +1,7 @@
+namePrefix: capa-
+
+commonLabels:
+  cluster.x-k8s.io/provider: "infrastructure-aws"
+
+bases:
+  - ../../config/default

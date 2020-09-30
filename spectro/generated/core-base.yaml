@@ -1,0 +1,338 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-leader-election-role
+  namespace: capa-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - clusters
+  - clusters/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machines
+  - machines/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmachines/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedcontrolplanes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmanagedcontrolplanes/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-leader-election-rolebinding
+  namespace: capa-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: capa-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: capa-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: capa-manager-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: capa-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: capa-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: capa-system
+---
+apiVersion: v1
+data:
+  credentials: ${AWS_B64ENCODED_CREDENTIALS}
+kind: Secret
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-manager-bootstrap-credentials
+  namespace: capa-system
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: "8443"
+    prometheus.io/scheme: https
+    prometheus.io/scrape: "true"
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+    control-plane: capa-controller-manager
+  name: capa-controller-manager-metrics-service
+  namespace: capa-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    cluster.x-k8s.io/provider: infrastructure-aws
+    control-plane: capa-controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+    control-plane: capa-controller-manager
+  name: capa-controller-manager
+  namespace: capa-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/provider: infrastructure-aws
+      control-plane: capa-controller-manager
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/provider: infrastructure-aws
+        control-plane: capa-controller-manager
+    spec:
+      containers:
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.4.1
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      - args:
+        - --metrics-addr=127.0.0.1:8080
+        - --enable-leader-election
+        - --feature-gates=EKS=${EXP_EKS:=false},EKSEnableIAM=${EXP_EKS_IAM:=false},EKSAllowAddRoles=${EXP_EKS_ADD_ROLES:=false}
+        env:
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /home/.aws/credentials
+        image: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        volumeMounts:
+        - mountPath: /home/.aws
+          name: credentials
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      volumes:
+      - name: credentials
+        secret:
+          secretName: capa-manager-bootstrap-credentials
