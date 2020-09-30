@@ -58,6 +58,7 @@ type AWSMachineReconciler struct {
 	Recorder                     record.EventRecorder
 	ec2ServiceFactory            func(scope.EC2Scope) services.EC2MachineInterface
 	secretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretsManagerInterface
+	Endpoints                    []scope.ServiceEndpoint
 }
 
 const (
@@ -597,7 +598,13 @@ func (r *AWSMachineReconciler) createInstance(scope *scope.MachineScope, ec2svc 
 			scope.Error(serviceErr, "Failed to create AWS Secret entry", "secretPrefix", prefix)
 			return nil, serviceErr
 		}
-		encryptedCloudInit, err := secretsmanager.GenerateCloudInitMIMEDocument(scope.GetSecretPrefix(), scope.GetSecretCount(), scope.InfraCluster.Region())
+		var secretsManagerEndpoint string = ""
+		for _, v := range r.Endpoints {
+			if v.ServiceID == "secretsmanager" {
+				secretsManagerEndpoint = v.URL
+			}
+		}
+		encryptedCloudInit, err := secretsmanager.GenerateCloudInitMIMEDocument(scope.GetSecretPrefix(), scope.GetSecretCount(), scope.InfraCluster.Region(), secretsManagerEndpoint)
 		if err != nil {
 			r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsManagerCloudInit", err.Error())
 			return nil, err
@@ -755,6 +762,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 			Cluster:        cluster,
 			ControlPlane:   controlPlane,
 			ControllerName: "awsManagedControlPlane",
+			Endpoints:      r.Endpoints,
 		})
 		if err != nil {
 			return nil, err

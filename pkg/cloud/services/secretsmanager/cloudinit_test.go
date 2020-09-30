@@ -24,7 +24,7 @@ import (
 
 func TestGenerateCloudInitMIMEDocument(t *testing.T) {
 	secretARN := "secretARN"
-	doc, _ := GenerateCloudInitMIMEDocument(secretARN, 1, "eu-west-1")
+	doc, _ := GenerateCloudInitMIMEDocument(secretARN, 1, "eu-west-1", "")
 
 	_, err := mail.ReadMessage(bytes.NewBuffer(doc))
 	if err != nil {

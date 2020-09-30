@@ -51,12 +51,13 @@ type scriptVariables struct {
 	SecretPrefix string
 	Chunks       int32
 	Region       string
+	Endpoint     string
 }
 
 // GenerateCloudInitMIMEDocument creates a multi-part MIME document including a script boothook to
 // download userdata from AWS Secrets Manager and then restart cloud-init, and an include part
 // specifying the on disk location of the new userdata
-func GenerateCloudInitMIMEDocument(secretPrefix string, chunks int32, region string) ([]byte, error) {
+func GenerateCloudInitMIMEDocument(secretPrefix string, chunks int32, region string, endpoint string) ([]byte, error) {
 	var buf bytes.Buffer
 	mpWriter := multipart.NewWriter(&buf)
 	buf.WriteString(fmt.Sprintf(multipartHeader, mpWriter.Boundary()))
@@ -69,6 +70,7 @@ func GenerateCloudInitMIMEDocument(secretPrefix string, chunks int32, region str
 		SecretPrefix: secretPrefix,
 		Chunks:       chunks,
 		Region:       region,
+		Endpoint:     endpoint,
 	}
 
 	var scriptBuf bytes.Buffer

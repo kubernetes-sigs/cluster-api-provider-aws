@@ -42,6 +42,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/controllers"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/endpoints"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 	// +kubebuilder:scaffold:imports
@@ -69,6 +71,7 @@ var (
 	syncPeriod                 time.Duration
 	webhookPort                int
 	healthAddr                 string
+	serviceEndpoints           string
 
 	maxEKSSyncPeriod         = time.Minute * 10
 	errMaxSyncPeriodExceeded = errors.New("sync period greater than maximum allowed")
@@ -97,6 +100,9 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&webhookPort, "webhook-port", 0,
 		"Webhook Server port, disabled by default. When enabled, the manager will only work as webhook server, no reconcilers are installed.")
 
+	fs.StringVar(&serviceEndpoints, "service-endpoints", "",
+		"Set custom AWS service endpoins in semi-colon separated format: ${SigningRegion1}:${ServiceID1}=${URL},${ServiceID2}=${URL};${SigningRegion2}...")
+
 	feature.MutableGates.AddFlag(fs)
 }
 
@@ -123,6 +129,13 @@ func main() {
 
 	if syncPeriod > maxEKSSyncPeriod {
 		setupLog.Error(errMaxSyncPeriodExceeded, "sync period exceeded maximum allowed when using EKS", "max-sync-period", maxEKSSyncPeriod)
+		os.Exit(1)
+	}
+
+	// Parse service endpoints.
+	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)
+	if err != nil {
+		setupLog.Error(err, "unable to parse service endpoints", "controller", "AWSCluster")
 		os.Exit(1)
 	}
 
@@ -162,7 +175,7 @@ func main() {
 
 	setupLog.V(1).Info(fmt.Sprintf("%+v\n", feature.Gates))
 
-	setupReconcilers(mgr, enableIAM, allowAddRoles)
+	setupReconcilers(mgr, enableIAM, allowAddRoles, AWSServiceEndpoints)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -184,7 +197,7 @@ func main() {
 	}
 }
 
-func setupReconcilers(mgr ctrl.Manager, enableIAM bool, allowAddRoles bool) {
+func setupReconcilers(mgr ctrl.Manager, enableIAM bool, allowAddRoles bool, serviceEndpoints []scope.ServiceEndpoint) {
 	if webhookPort != 0 {
 		return
 	}
@@ -194,6 +207,7 @@ func setupReconcilers(mgr ctrl.Manager, enableIAM bool, allowAddRoles bool) {
 		Log:                  ctrl.Log.WithName("controllers").WithName("AWSManagedControlPlane"),
 		EnableIAM:            enableIAM,
 		AllowAdditionalRoles: allowAddRoles,
+		Endpoints:            serviceEndpoints,
 	}).SetupWithManager(mgr, concurrency(eksControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
 		os.Exit(1)

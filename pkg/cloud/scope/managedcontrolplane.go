@@ -40,6 +40,7 @@ type ManagedControlPlaneScopeParams struct {
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *controlplanev1.AWSManagedControlPlane
 	ControllerName string
+	Endpoints      []ServiceEndpoint
 	Session        awsclient.ConfigProvider
 
 	EnableIAM            bool
@@ -59,7 +60,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		params.Logger = klogr.New()
 	}
 
-	session, err := sessionForRegion(params.ControlPlane.Spec.Region)
+	session, err := sessionForRegion(params.ControlPlane.Spec.Region, params.Endpoints)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
