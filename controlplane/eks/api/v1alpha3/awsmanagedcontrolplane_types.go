@@ -166,6 +166,10 @@ type AWSManagedControlPlaneStatus struct {
 	// uploaded kubernetes config-map.
 	// +optional
 	Initialized bool `json:"initialized"`
+	// ExternalManagedControlPlane indicates to cluster-api that the control plane
+	// is managed by an external service such as AKS, EKS, GKE, etc.
+	// +kubebuilder:default=true
+	ExternalManagedControlPlane bool `json:"externalManagedControlPlane"`
 	// Ready denotes that the AWSManagedControlPlane API Server is ready to
 	// receive requests and that the VPC infra is ready.
 	// +kubebuilder:default=false
