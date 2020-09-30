@@ -38,8 +38,12 @@ func (r *AWSMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,versions=v1alpha3,name=validation.awsmachine.infrastructure.cluster.x-k8s.io,sideEffects=None
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachine,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,versions=v1alpha3,name=mawsmachine.kb.io,name=mutation.awsmachine.infrastructure.cluster.x-k8s.io,sideEffects=None
 
-var _ webhook.Validator = &AWSMachine{}
+var (
+	_ webhook.Validator = &AWSMachine{}
+	_ webhook.Defaulter = &AWSMachine{}
+)
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachine) ValidateCreate() error {
@@ -87,15 +91,17 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 	delete(oldAWSMachineSpec, "additionalSecurityGroups")
 	delete(newAWSMachineSpec, "additionalSecurityGroups")
 
-	// allow changes to secretPrefix & secretCount
+	// allow changes to secretPrefix, secretCount, and secureSecretsBackend
 	if cloudInit, ok := oldAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
 		delete(cloudInit, "secretPrefix")
 		delete(cloudInit, "secretCount")
+		delete(cloudInit, "secureSecretsBackend")
 	}
 
 	if cloudInit, ok := newAWSMachineSpec["cloudInit"].(map[string]interface{}); ok {
 		delete(cloudInit, "secretPrefix")
 		delete(cloudInit, "secretCount")
+		delete(cloudInit, "secureSecretsBackend")
 	}
 
 	if !reflect.DeepEqual(oldAWSMachineSpec, newAWSMachineSpec) {
@@ -114,6 +120,9 @@ func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 		}
 		if r.Spec.CloudInit.SecretCount != 0 {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secretCount"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
+		}
+		if r.Spec.CloudInit.SecureSecretsBackend != "" {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit", "secureSecretsBackend"), "cannot be set if spec.cloudInit.insecureSkipSecretsManager is true"))
 		}
 	}
 
@@ -165,4 +174,12 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachine) ValidateDelete() error {
 	return nil
+}
+
+// Default implements webhook.Defaulter such that an empty CloudInit will be defined with a default
+// SecureSecretsBackend as SecretBackendSecretsManager
+func (r *AWSMachine) Default() {
+	if r.Spec.CloudInit.SecureSecretsBackend == "" {
+		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
+	}
 }

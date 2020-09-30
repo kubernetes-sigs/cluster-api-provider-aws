@@ -922,6 +922,7 @@ func autoConvert_v1alpha3_CloudInit_To_v1alpha2_CloudInit(in *v1alpha3.CloudInit
 	// WARNING: in.InsecureSkipSecretsManager requires manual conversion: does not exist in peer-type
 	out.SecretCount = in.SecretCount
 	out.SecretPrefix = in.SecretPrefix
+	// WARNING: in.SecureSecretsBackend requires manual conversion: does not exist in peer-type
 	return nil
 }
 

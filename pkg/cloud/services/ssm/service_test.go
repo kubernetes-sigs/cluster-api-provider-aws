@@ -14,17 +14,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretsmanager
+package ssm
 
 import (
 	"bytes"
 	"net/mail"
 	"testing"
+
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
-func TestGenerateCloudInitMIMEDocument(t *testing.T) {
-	secretARN := "secretARN"
-	doc, _ := GenerateCloudInitMIMEDocument(secretARN, 1, "eu-west-1", "")
+func TestUserData(t *testing.T) {
+	service := Service{}
+	endpoints := []scope.ServiceEndpoint{}
+	doc, _ := service.UserData("secretARN", 1, "eu-west-1", endpoints)
+
+	_, err := mail.ReadMessage(bytes.NewBuffer(doc))
+	if err != nil {
+		t.Fatalf("Cannot parse MIME doc: %+v\n%s", err, string(doc))
+	}
+}
+
+func TestUserDataEndpoints(t *testing.T) {
+	service := Service{}
+	endpoints := []scope.ServiceEndpoint{
+		scope.ServiceEndpoint{
+			URL: "localhost",
+			SigningRegion: "localhost",
+			ServiceID: "ssm",
+		},
+	}
+	doc, _ := service.UserData("secretARN", 1, "eu-west-1", endpoints)
 
 	_, err := mail.ReadMessage(bytes.NewBuffer(doc))
 	if err != nil {

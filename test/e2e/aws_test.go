@@ -86,6 +86,32 @@ var _ = Describe("functional tests", func() {
 		Expect(e2eConfig.Variables).To(HaveKey(KubernetesVersion))
 	})
 
+	Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
+		It("It should be creatable and deletable", func() {
+			By("Creating a cluster")
+			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
+			configCluster.Flavor = SSMFlavor
+			_, md := createCluster(ctx, configCluster)
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            bootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *md[0],
+			})
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      bootstrapClusterProxy.GetClient(),
+				ClusterName: clusterName,
+				Namespace:   namespace.Name,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			Expect(len(controlPlaneMachines)).To(Equal(1))
+		})
+	})
+
 	Describe("Cluster name validations and provisioning extra AWS resources", func() {
 		nginxStatefulsetInfo := statefulSetInfo{
 			name:                      "nginx-statefulset",

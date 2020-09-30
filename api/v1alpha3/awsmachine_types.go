@@ -28,6 +28,17 @@ const (
 	MachineFinalizer = "awsmachine.infrastructure.cluster.x-k8s.io"
 )
 
+// SecretBackend defines variants for backend secret storage.
+type SecretBackend string
+
+var (
+	// SecretBackendSSMParameterStore defines AWS Systems Manager Parameter Store as the secret backend
+	SecretBackendSSMParameterStore = SecretBackend("ssm-parameter-store")
+
+	// SecretBackendSecretsManager defines AWS Secrets Manager as the secret backend
+	SecretBackendSecretsManager = SecretBackend("secrets-manager")
+)
+
 // AWSMachineSpec defines the desired state of AWSMachine
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
@@ -138,7 +149,7 @@ type AWSMachineSpec struct {
 // CloudInit is used.
 type CloudInit struct {
 	// InsecureSkipSecretsManager, when set to true will not use AWS Secrets Manager
-	// to ensure privacy of userdata.
+	// or AWS Systems Manager Parameter Store to ensure privacy of userdata.
 	// By default, a cloud-init boothook shell script is prepended to download
 	// the userdata from Secrets Manager and additionally delete the secret.
 	InsecureSkipSecretsManager bool `json:"insecureSkipSecretsManager,omitempty"`
@@ -152,6 +163,14 @@ type CloudInit struct {
 	// the workload cluster.
 	// +optional
 	SecretPrefix string `json:"secretPrefix,omitempty"`
+
+	// SecureSecretsBackend, when set to parameter-store will utilize the AWS Systems Manager
+	// Parameter Storage to distribute secrets. By default or with the value of secrets-manager,
+	// will use AWS Secrets Manager instead.
+	// +optional
+	// +kubebuilder:default=secrets-manager
+	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
+	SecureSecretsBackend SecretBackend `json:"secureSecretsBackend,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine

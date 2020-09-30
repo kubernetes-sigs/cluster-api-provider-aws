@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretsmanager
+package bytes
 
 import (
+	"encoding/base64"
 	crand "crypto/rand"
 	"fmt"
 	"math"
@@ -41,11 +42,31 @@ func TestSplitBytes(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		count := 0
-		splitBytes(input, maxSize, func(split []byte) {
+		Split(input, false, maxSize, func(split []byte) {
 			g.Expect(split).To(BeEquivalentTo(input))
 			count++
 		})
 		g.Expect(count).To(BeEquivalentTo(1))
+	})
+
+	t.Run("should properly encode and split given random input and maxsize", func(t *testing.T) {
+		maxSize := 1 + rand.Intn(1024)
+		input := make([]byte, rand.Intn(24576))
+		_, err := crand.Read(input)
+		g.Expect(err).To(BeNil())
+
+		data := []byte{}
+		Split(input, true, maxSize, func(split []byte) {
+			data = append(data, split...)
+		})
+
+		decoded := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
+		l, err := base64.StdEncoding.Decode(decoded, data)
+		g.Expect(err).To(BeNil())
+
+		decoded = decoded[:l]
+
+		g.Expect(decoded).To(BeEquivalentTo(input))
 	})
 
 	t.Run("should properly split given random input and maxsize", func(t *testing.T) {
@@ -62,7 +83,7 @@ func TestSplitBytes(t *testing.T) {
 
 		data := []byte{}
 		count := 0
-		splitBytes(input, maxSize, func(split []byte) {
+		Split(input, false, maxSize, func(split []byte) {
 			data = append(data, split...)
 			count++
 		})
@@ -76,7 +97,7 @@ func TestSplitBytes(t *testing.T) {
 		input := []byte{}
 
 		count := 0
-		splitBytes(input, maxSize, func(split []byte) {
+		Split(input, false, maxSize, func(split []byte) {
 			t.Fail()
 		})
 		g.Expect(count).To(BeEquivalentTo(0))

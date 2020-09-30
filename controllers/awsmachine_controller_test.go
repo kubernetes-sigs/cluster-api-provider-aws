@@ -52,7 +52,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 		ms         *scope.MachineScope
 		mockCtrl   *gomock.Controller
 		ec2Svc     *mock_services.MockEC2MachineInterface
-		secretSvc  *mock_services.MockSecretsManagerInterface
+		secretSvc  *mock_services.MockSecretInterface
 		recorder   *record.FakeRecorder
 	)
 
@@ -73,7 +73,11 @@ var _ = Describe("AWSMachineReconciler", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
-			Spec: infrav1.AWSMachineSpec{},
+			Spec: infrav1.AWSMachineSpec{
+				CloudInit: infrav1.CloudInit{
+					SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
+				},
+			},
 		}
 
 		secret := &corev1.Secret{
@@ -143,7 +147,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 
 		mockCtrl = gomock.NewController(GinkgoT())
 		ec2Svc = mock_services.NewMockEC2MachineInterface(mockCtrl)
-		secretSvc = mock_services.NewMockSecretsManagerInterface(mockCtrl)
+		secretSvc = mock_services.NewMockSecretInterface(mockCtrl)
 
 		// If your test hangs for 9 minutes, increase the value here to the number of events during a reconciliation loop
 		recorder = record.NewFakeRecorder(2)
@@ -152,7 +156,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 			ec2ServiceFactory: func(scope.EC2Scope) services.EC2MachineInterface {
 				return ec2Svc
 			},
-			secretsManagerServiceFactory: func(cloud.ClusterScoper) services.SecretsManagerInterface {
+			secretsManagerServiceFactory: func(cloud.ClusterScoper) services.SecretInterface {
 				return secretSvc
 			},
 			Recorder: recorder,
@@ -241,6 +245,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(nil, expectedErr)
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 				Expect(errors.Cause(err)).To(MatchError(expectedErr))
@@ -266,6 +271,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				})
 
 				It("should set attributes after creating an instance", func() {
+					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 					Expect(ms.AWSMachine.Spec.ProviderID).To(PointTo(Equal("aws:////myMachine")))
 				})
@@ -279,6 +285,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					})
 
 					It("should set instance to pending", func() {
+						secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						instance.State = infrav1.InstanceStatePending
 						_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStatePending)))
@@ -288,6 +295,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					})
 
 					It("should set instance to running", func() {
+						secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 						instance.State = infrav1.InstanceStateRunning
 						_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 						Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateRunning)))
@@ -306,6 +314,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					klog.SetOutput(buf)
 					instance.State = "NewAWSMachineState"
 					secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 					Expect(ms.AWSMachine.Status.Ready).To(Equal(false))
 					Expect(buf.String()).To(ContainSubstring(("EC2 instance state is undefined")))
@@ -319,6 +328,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				BeforeEach(func() {
 					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).
 						Return(map[string][]string{"eid": {}}, nil)
+					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil)
 				})
 
@@ -367,6 +377,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					klog.SetOutput(buf)
 					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).
 						Return(map[string][]string{"eid": {}}, nil).Times(1)
+					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 				})
 
@@ -403,6 +414,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 					buf = new(bytes.Buffer)
 					klog.SetOutput(buf)
 					secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				})
 
 				It("should warn if an instance is shutting-down", func() {
@@ -438,6 +450,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 
@@ -461,8 +474,9 @@ var _ = Describe("AWSMachineReconciler", func() {
 				}
 
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{
-					SecretPrefix: "secret",
-					SecretCount:  5,
+					SecretPrefix:         "secret",
+					SecretCount:          5,
+					SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
 				}
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
 			})
@@ -503,8 +517,9 @@ var _ = Describe("AWSMachineReconciler", func() {
 					ID: "myMachine",
 				}
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{
-					SecretPrefix: "secret",
-					SecretCount:  5,
+					SecretPrefix:         "secret",
+					SecretCount:          5,
+					SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
 				}
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
 			})
@@ -559,6 +574,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				instance.State = infrav1.InstanceStatePending
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 

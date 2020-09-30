@@ -188,7 +188,12 @@ func (m *MachineScope) UseSecretsManager() bool {
 	return !m.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager
 }
 
-// UserDataIsCompressed returns the computed value of whether or not
+// SecureSecretsBackend returns the chosen secret backend.
+func (m *MachineScope) SecureSecretsBackend() infrav1.SecretBackend {
+	return m.AWSMachine.Spec.CloudInit.SecureSecretsBackend
+}
+
+// UserDataIsUncompressed returns the computed value of whether or not
 // userdata should be compressed using gzip.
 func (m *MachineScope) UserDataIsUncompressed() bool {
 	return m.AWSMachine.Spec.UncompressedUserData != nil && *m.AWSMachine.Spec.UncompressedUserData

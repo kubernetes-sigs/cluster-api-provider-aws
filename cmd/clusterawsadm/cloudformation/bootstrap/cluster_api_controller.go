@@ -21,6 +21,7 @@ import (
 
 	"github.com/awslabs/goformation/v4/cloudformation"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 )
 
@@ -151,17 +152,34 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				"iam:PassRole",
 			},
 		},
-		{
-			Effect: iamv1.EffectAllow,
-			Resource: iamv1.Resources{
-				"arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
-			},
-			Action: iamv1.Actions{
-				"secretsmanager:CreateSecret",
-				"secretsmanager:DeleteSecret",
-				"secretsmanager:TagResource",
-			},
-		},
+	}
+	for _, secureSecretBackend := range t.Spec.SecureSecretsBackends {
+		switch secureSecretBackend {
+		case infrav1.SecretBackendSecretsManager:
+			statement = append(statement, iamv1.StatementEntry{
+				Effect: iamv1.EffectAllow,
+				Resource: iamv1.Resources{
+					"arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*",
+				},
+				Action: iamv1.Actions{
+					"secretsmanager:CreateSecret",
+					"secretsmanager:DeleteSecret",
+					"secretsmanager:TagResource",
+				},
+			})
+		case infrav1.SecretBackendSSMParameterStore:
+			statement = append(statement, iamv1.StatementEntry{
+				Effect: iamv1.EffectAllow,
+				Resource: iamv1.Resources{
+					"arn:*:ssm:*:*:parameter/cluster.x-k8s.io/*",
+				},
+				Action: iamv1.Actions{
+					"ssm:PutParameter",
+					"ssm:DeleteParameter",
+					"ssm:AddTagsToResource",
+				},
+			})
+		}
 	}
 	if t.Spec.EKS.Enable {
 		allowedIAMActions := iamv1.Actions{

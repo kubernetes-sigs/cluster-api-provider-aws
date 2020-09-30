@@ -20,6 +20,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
 const (
@@ -135,6 +136,8 @@ func IsInvalidNotFoundError(err error) bool {
 		case VPCNotFound:
 			return true
 		case InvalidInstanceID:
+			return true
+		case ssm.ErrCodeParameterNotFound:
 			return true
 		}
 	}

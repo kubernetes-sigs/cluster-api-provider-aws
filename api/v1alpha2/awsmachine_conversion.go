@@ -72,6 +72,7 @@ func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec) {
 	}
 
 	dst.Tenancy = restored.Tenancy
+	dst.CloudInit.SecureSecretsBackend = restored.CloudInit.SecureSecretsBackend
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
