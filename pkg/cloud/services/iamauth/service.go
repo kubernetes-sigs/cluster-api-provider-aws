@@ -21,22 +21,31 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 )
 
+// Scope is a scope for use with the iamauth reconciling service
+type Scope interface {
+	cloud.ClusterScoper
+
+	// IAMAuthConfig returns the IAM authenticator config
+	IAMAuthConfig() *ekscontrolplanev1.IAMAuthenticatorConfig
+}
+
 type Service struct {
-	scope     cloud.ClusterScoper
+	scope     Scope
 	backend   BackendType
 	client    client.Client
 	STSClient stsiface.STSAPI
 }
 
-func NewService(clusterScope cloud.ClusterScoper, backend BackendType, client client.Client) *Service {
+func NewService(iamScope Scope, backend BackendType, client client.Client) *Service {
 	return &Service{
-		scope:     clusterScope,
+		scope:     iamScope,
 		backend:   backend,
 		client:    client,
-		STSClient: scope.NewSTSClient(clusterScope, clusterScope, clusterScope.InfraCluster()),
+		STSClient: scope.NewSTSClient(iamScope, iamScope, iamScope.InfraCluster()),
 	}
 }

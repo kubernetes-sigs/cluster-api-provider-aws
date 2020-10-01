@@ -22,19 +22,22 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apierr "k8s.io/apimachinery/pkg/util/errors"
 	iamauthv1 "sigs.k8s.io/aws-iam-authenticator/pkg/mapper/crd/apis/iamauthenticator/v1alpha1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 )
 
 type crdBackend struct {
 	client crclient.Client
 }
 
-func (b *crdBackend) MapRole(mapping RoleMapping) error {
+func (b *crdBackend) MapRole(mapping ekscontrolplanev1.RoleMapping) error {
 	ctx := context.TODO()
 
-	if err := mapping.Validate(); err != nil {
-		return err
+	if errs := mapping.Validate(); errs != nil {
+		return apierr.NewAggregate(errs)
 	}
 
 	mappingList := iamauthv1.IAMIdentityMappingList{}
@@ -66,11 +69,11 @@ func (b *crdBackend) MapRole(mapping RoleMapping) error {
 	return b.client.Create(ctx, iamMapping)
 }
 
-func (b *crdBackend) MapUser(mapping UserMapping) error {
+func (b *crdBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error {
 	ctx := context.TODO()
 
-	if err := mapping.Validate(); err != nil {
-		return err
+	if errs := mapping.Validate(); errs != nil {
+		return apierr.NewAggregate(errs)
 	}
 
 	mappingList := iamauthv1.IAMIdentityMappingList{}
@@ -102,7 +105,7 @@ func (b *crdBackend) MapUser(mapping UserMapping) error {
 	return b.client.Create(ctx, iamMapping)
 }
 
-func roleMappingMatchesIAMMap(mapping RoleMapping, iamMapping *iamauthv1.IAMIdentityMapping) bool {
+func roleMappingMatchesIAMMap(mapping ekscontrolplanev1.RoleMapping, iamMapping *iamauthv1.IAMIdentityMapping) bool {
 	if mapping.RoleARN != iamMapping.Spec.ARN {
 		return false
 	}
@@ -130,7 +133,7 @@ func roleMappingMatchesIAMMap(mapping RoleMapping, iamMapping *iamauthv1.IAMIden
 	return true
 }
 
-func userMappingMatchesIAMMap(mapping UserMapping, iamMapping *iamauthv1.IAMIdentityMapping) bool {
+func userMappingMatchesIAMMap(mapping ekscontrolplanev1.UserMapping, iamMapping *iamauthv1.IAMIdentityMapping) bool {
 	if mapping.UserARN != iamMapping.Spec.ARN {
 		return false
 	}

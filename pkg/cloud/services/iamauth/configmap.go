@@ -25,9 +25,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	apierr "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/yaml"
 
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 )
 
 const (
@@ -42,9 +45,9 @@ type configMapBackend struct {
 	client crclient.Client
 }
 
-func (b *configMapBackend) MapRole(mapping RoleMapping) error {
-	if err := mapping.Validate(); err != nil {
-		return err
+func (b *configMapBackend) MapRole(mapping ekscontrolplanev1.RoleMapping) error {
+	if errs := mapping.Validate(); errs != nil {
+		return apierr.NewAggregate(errs)
 	}
 
 	authConfig, err := b.getAuthConfig()
@@ -64,9 +67,9 @@ func (b *configMapBackend) MapRole(mapping RoleMapping) error {
 	return b.saveAuthConfig(authConfig)
 }
 
-func (b *configMapBackend) MapUser(mapping UserMapping) error {
-	if err := mapping.Validate(); err != nil {
-		return err
+func (b *configMapBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error {
+	if errs := mapping.Validate(); errs != nil {
+		return apierr.NewAggregate(errs)
 	}
 
 	authConfig, err := b.getAuthConfig()
@@ -86,7 +89,7 @@ func (b *configMapBackend) MapUser(mapping UserMapping) error {
 	return b.saveAuthConfig(authConfig)
 }
 
-func (b *configMapBackend) getAuthConfig() (*IAMAuthenticatorConfig, error) {
+func (b *configMapBackend) getAuthConfig() (*ekscontrolplanev1.IAMAuthenticatorConfig, error) {
 	ctx := context.Background()
 
 	configMapRef := types.NamespacedName{
@@ -101,9 +104,9 @@ func (b *configMapBackend) getAuthConfig() (*IAMAuthenticatorConfig, error) {
 		return nil, fmt.Errorf("getting %s/%s config map: %w", configMapName, configMapNS, err)
 	}
 
-	authConfig := &IAMAuthenticatorConfig{
-		RoleMappings: []RoleMapping{},
-		UserMappings: []UserMapping{},
+	authConfig := &ekscontrolplanev1.IAMAuthenticatorConfig{
+		RoleMappings: []ekscontrolplanev1.RoleMapping{},
+		UserMappings: []ekscontrolplanev1.UserMapping{},
 	}
 	if authConfigMap.Data == nil {
 		return authConfig, nil
@@ -124,7 +127,7 @@ func (b *configMapBackend) getAuthConfig() (*IAMAuthenticatorConfig, error) {
 	return authConfig, nil
 }
 
-func (b *configMapBackend) saveAuthConfig(authConfig *IAMAuthenticatorConfig) error {
+func (b *configMapBackend) saveAuthConfig(authConfig *ekscontrolplanev1.IAMAuthenticatorConfig) error {
 	ctx := context.Background()
 
 	configMapRef := types.NamespacedName{
@@ -172,8 +175,8 @@ func (b *configMapBackend) saveAuthConfig(authConfig *IAMAuthenticatorConfig) er
 	return b.client.Update(ctx, authConfigMap)
 }
 
-func (b *configMapBackend) getMappedRoles(cm *corev1.ConfigMap) ([]RoleMapping, error) {
-	mappedRoles := []RoleMapping{}
+func (b *configMapBackend) getMappedRoles(cm *corev1.ConfigMap) ([]ekscontrolplanev1.RoleMapping, error) {
+	mappedRoles := []ekscontrolplanev1.RoleMapping{}
 
 	rolesSection, ok := cm.Data[roleKey]
 	if !ok {
@@ -187,8 +190,8 @@ func (b *configMapBackend) getMappedRoles(cm *corev1.ConfigMap) ([]RoleMapping, 
 	return mappedRoles, nil
 }
 
-func (b *configMapBackend) getMappedUsers(cm *corev1.ConfigMap) ([]UserMapping, error) {
-	mappedUsers := []UserMapping{}
+func (b *configMapBackend) getMappedUsers(cm *corev1.ConfigMap) ([]ekscontrolplanev1.UserMapping, error) {
+	mappedUsers := []ekscontrolplanev1.UserMapping{}
 
 	usersSection, ok := cm.Data[usersKey]
 	if !ok {

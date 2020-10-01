@@ -29,21 +29,23 @@ import (
 	iamauthv1 "sigs.k8s.io/aws-iam-authenticator/pkg/mapper/crd/apis/iamauthenticator/v1alpha1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 )
 
 func TestAddRoleMappingCRD(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		existingRoleMapping  *iamauthv1.IAMIdentityMapping
-		roleToMap            RoleMapping
+		roleToMap            ekscontrolplanev1.RoleMapping
 		expectedRoleMapSpecs []iamauthv1.IAMIdentityMappingSpec
 		expectError          bool
 	}{
 		{
 			name: "no existing mappings, add role mapping",
-			roleToMap: RoleMapping{
+			roleToMap: ekscontrolplanev1.RoleMapping{
 				RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "system:node:{{EC2PrivateDNSName}}",
 					Groups:   []string{"system:bootstrappers", "system:nodes"},
 				},
@@ -59,9 +61,9 @@ func TestAddRoleMappingCRD(t *testing.T) {
 		},
 		{
 			name: "existing mapping, add different role mapping",
-			roleToMap: RoleMapping{
+			roleToMap: ekscontrolplanev1.RoleMapping{
 				RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "system:node:{{EC2PrivateDNSName}}",
 					Groups:   []string{"system:bootstrappers", "system:nodes"},
 				},
@@ -83,9 +85,9 @@ func TestAddRoleMappingCRD(t *testing.T) {
 		},
 		{
 			name: "existing mapping, add same role mapping",
-			roleToMap: RoleMapping{
+			roleToMap: ekscontrolplanev1.RoleMapping{
 				RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "system:node:{{EC2PrivateDNSName}}",
 					Groups:   []string{"system:bootstrappers", "system:nodes"},
 				},
@@ -102,9 +104,9 @@ func TestAddRoleMappingCRD(t *testing.T) {
 		},
 		{
 			name: "no existing mapping, add role with not role ARN",
-			roleToMap: RoleMapping{
+			roleToMap: ekscontrolplanev1.RoleMapping{
 				RoleARN: "arn:aws:iam::000000000000:user/Alice",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "system:node:{{EC2PrivateDNSName}}",
 					Groups:   []string{"system:bootstrappers", "system:nodes"},
 				},
@@ -163,15 +165,15 @@ func TestAddUserMappingCRD(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		existingUserMapping  *iamauthv1.IAMIdentityMapping
-		userToMap            UserMapping
+		userToMap            ekscontrolplanev1.UserMapping
 		expectedUserMapSpecs []iamauthv1.IAMIdentityMappingSpec
 		expectError          bool
 	}{
 		{
 			name: "no existing mappings, add user mapping",
-			userToMap: UserMapping{
+			userToMap: ekscontrolplanev1.UserMapping{
 				UserARN: "arn:aws:iam::000000000000:user/Alice",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "alice",
 					Groups:   []string{"system:masters"},
 				},
@@ -187,9 +189,9 @@ func TestAddUserMappingCRD(t *testing.T) {
 		},
 		{
 			name: "existing mapping, add different user mapping",
-			userToMap: UserMapping{
+			userToMap: ekscontrolplanev1.UserMapping{
 				UserARN: "arn:aws:iam::000000000000:user/Alice",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "alice",
 					Groups:   []string{"system:masters"},
 				},
@@ -211,9 +213,9 @@ func TestAddUserMappingCRD(t *testing.T) {
 		},
 		{
 			name: "existing mapping, add same user mapping",
-			userToMap: UserMapping{
+			userToMap: ekscontrolplanev1.UserMapping{
 				UserARN: "arn:aws:iam::000000000000:user/Alice",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "alice",
 					Groups:   []string{"system:masters"},
 				},
@@ -230,9 +232,9 @@ func TestAddUserMappingCRD(t *testing.T) {
 		},
 		{
 			name: "no existing mapping, add role with not role ARN",
-			userToMap: UserMapping{
+			userToMap: ekscontrolplanev1.UserMapping{
 				UserARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "system:node:{{EC2PrivateDNSName}}",
 					Groups:   []string{"system:masters"},
 				},
