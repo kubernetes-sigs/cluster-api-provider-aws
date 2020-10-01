@@ -2,11 +2,11 @@
 
 ## Overview
 
-Experimental support for EKS has been introduced in 0.6.0 of the provider. Initially the following features are supported:
+Experimental support for EKS has been introduced in 0.6.0 of the provider. Currently the following features are supported:
 
 * Provisioning/managing an AWS EKS Cluster
 * Upgrading the Kubernetes version of the EKS Cluster
-* Creating a self-managed node group
+* Attaching a self-managed machines as nodes to the EKS cluster
 
 The implementation introduces 3 new CRD kinds:
 
@@ -18,9 +18,9 @@ And a new template is available in the templates folder for creating a managed w
 
 ## Prerequisites
 
-To use EKS you must give the controller the required permissions. The easiest way to do this is by using `clusterawasadm`. For instructions on how to do this see the [AWS prerequisites](prerequisites.md).
+To use EKS you must give the controller the required permissions. The easiest way to do this is by using `clusterawasadm`. For instructions on how to do this see the [prerequisites](./topics/using-clusterawsadm-to-fulfill-prerequisites.md).
 
-When using `clusterawsadm` and enabling the managed control plane a new IAM role will be created for you called **eks-controlplane.cluster-api-provider-aws.sigs.k8s.io**. This role is the IAM role that will be used for EKS if you don't specify your own role and if **EKSEnableIAM** isn't enabled.
+When using `clusterawsadm` and enabling EKS support a new IAM role will be created for you called **eks-controlplane.cluster-api-provider-aws.sigs.k8s.io**. This role is the IAM role that will be used for the EKS control plane if you don't specify your own role and if **EKSEnableIAM** isn't enabled.
 
 Additionally using `clusterawsadm` will add permissions to the **controllers.cluster-api-provider-aws.sigs.k8s.io** policy for EKS to function properly.  
 
@@ -28,60 +28,40 @@ Additionally using `clusterawsadm` will add permissions to the **controllers.clu
 
 You must explicitly enable the EKS support in the provider by doing the following:
 
-* Enabling support in the infrastructure manager (capa-controller-manager) by enabling the **EKS** feature flag
-* Add the AWS Managed Control Plane Provider
-* Add the Cluster API bootstrap provider EKS
+* Enabling support in the infrastructure manager (capa-controller-manager) by enabling the **EKS** feature flags (see below)
+* Add the EKS Control Plane Provider (aws-eks)
+* Add the EKS Bootstrap Provider (aws-eks)
 
-### Enabling the **EKS** feature 
+### Enabling the **EKS** features
 
-Enabling the **EKS** feature on the core infrastructure managercan be done using `clusterctl` by setting the following environment variables to **true** (they all default to **false**):
+Enabling the **EKS** functionality is done using the following feature flags:
+
+* **EKS** - this enables the core EKS functionality and is required for the other EKS feature flags
+* **EKSEnableIAM** - by enabling this the controllers will create any IAM roles required by EKS and the roles will be cluster specific. If this isn't enabled then you can manually create a role and specify the role name in the AWSManagedControlPlane spec otherwise the default rolename will be used.
+* **EKSAllowAddRoles** - by enabling this you can add additional roles to the control plane role that is created. This has no affect unless used wtih __EKSEnableIAM__
+
+Enabling the feature flags can be done using `clusterctl` by setting the following environment variables to **true** (they all default to **false**):
 
 * **EXP_EKS** - this is used to set the value of the **EKS** feature flag
+* **EXP_EKS_IAM** - this is used to set the value of the **EKSEnableIAM** feature flag
+* **EXP_EKS_ADD_ROLES** - this is used to set the value of the **EKSAllowAddRoles** feature flag
 
 As an example:
 
 ```bash
 export EXP_EKS=true
-clusterctl --infrastructure=aws
-```
-
-### Adding the AWS Managed Control Plane and Bootstrap Providers
-
-Create the` ~/.cluster-api/clusterctl.yaml` file with the following contents:
-
-```yaml
-providers:
-  - name: "eks"
-    url: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-bootstrap-components.yaml"
-    type: "BootstrapProvider"
-  - name: "eks"
-    url: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-controlplane-components.yaml"
-    type: "ControlPlaneProvider"
-```
-
-The EKS functionality in the control plane has 2 feature flags you can enable:
-
-* **EKSEnableIAM** - by enabling this the controller will create the IAM role required by the EKS control plane. If this isn't enabled then you will need to manually create a role and specify the role name in the AWSManagedControlPlane.
-* **EKSAllowAddRoles** - by enabling this you can add additional roles to the control plane role that is created. This has no affect unless used wtih __EKSEnableIAM__
-
-The feature flags can be enabled when using `clusterctl` by setting the following environment variables to **true** (they all default to **false**):
-
-* **EXP_EKS_IAM** - this is used to set the value of the **EKSEnableIAM** feature flag
-* **EXP_EKS_ADD_ROLES** - this is used to set the value of the **EKSAllowAddRoles** feature flag
-
-As an example, to enable the control plane and bootstrap providers with IAM role creation:
-
-```bash
 export EXP_EKS_IAM=true
-clusterctl --infrastructure=aws --boostrap=eks --controlplane=eks
+export EXP_EKS_ADD_ROLES=true
+
+clusterctl --infrastructure=aws --control-palne aws-eks --bootstrap aws-eks
 ```
 
 ## Creating a EKS cluster
 
-A new "managed" cluster template has been created that you can use with `clusterctl` to create a EKS cluster. To use the template:
+A new "eks" cluster template has been created that you can use with `clusterctl` to create a EKS cluster. To use the template:
 
 ```bash
-clusterctl config cluster capi-eks-quickstart --flavor managed --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
+clusterctl config cluster capi-eks-quickstart --flavor eks --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
 ```
 
 NOTE: When creating an EKS cluster only the **MAJOR.MINOR** of the `-kubernetes-version` is taken into consideration.
