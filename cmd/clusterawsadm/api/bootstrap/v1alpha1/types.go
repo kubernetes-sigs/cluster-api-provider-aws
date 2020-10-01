@@ -101,7 +101,7 @@ type EKSConfig struct {
 	// the EKS control plane. This is the default role that will be used if
 	// no role is included in the spec and automatic creation of the role
 	// isn't enabled
-	DefaultControlPlaneRole AWSIAMRoleSpec `json:"DefaultControlPlaneRole,omitempty"`
+	DefaultControlPlaneRole AWSIAMRoleSpec `json:"defaultControlPlaneRole,omitempty"`
 }
 
 // ClusterAPIControllers controls the configuration of the AWS IAM role for
