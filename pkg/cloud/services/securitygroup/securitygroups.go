@@ -199,17 +199,16 @@ func (s *Service) DeleteSecurityGroups() error {
 		return err
 	}
 
-	errs := []error{}
 	for i := range clusterGroups {
 		sg := clusterGroups[i]
-		if err := s.deleteSecurityGroup(&sg, "cluster managed"); err != nil {
-			errs = append(errs, err)
+		if deleteErr := s.deleteSecurityGroup(&sg, "cluster managed"); deleteErr != nil {
+			err = errlist.NewAggregate([]error{err, deleteErr})
 		}
 	}
 
-	if len(errs) != 0 {
+	if err != nil {
 		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
-		return errlist.NewAggregate(errs)
+		return err
 	}
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
