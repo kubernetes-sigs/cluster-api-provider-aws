@@ -77,12 +77,11 @@ If you want to use the the EKS support in the provider then you will need to ena
 apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
 kind: AWSIAMConfiguration
 spec:
-  clusterAPIControllers:
-    eks:
-      enable: true
-      iamRoleCreation: false # Set to true if you plane to use the EKSEnableIAM feature flag
-  managedControlPlane:
-    disable: false # Set to false to enabled creation of the default control plane role
+  eks:
+    enable: true
+    iamRoleCreation: false # Set to true if you plan to use the EKSEnableIAM feature flag to enable automatic creation of IAM roles
+    defaultControlPlaneRole:
+      disable: false # Set to false to enable creation of the default control plane role
 ```
 
 and then use that configuration file:
