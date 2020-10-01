@@ -21,21 +21,16 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"path"
 	"path/filepath"
 	"strconv"
-
-	"os/exec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/kubetest"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
+	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -53,7 +48,6 @@ var _ = Describe("conformance tests", func() {
 
 	BeforeEach(func() {
 		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
-		Expect(kubetestConfig).ToNot(BeNil(), "Invalid argument. ConformanceConfiguration can't be nil")
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eConfig.Variables).To(HaveKey(KubernetesVersion))
 		ctx = context.TODO()
@@ -63,9 +57,13 @@ var _ = Describe("conformance tests", func() {
 	Measure(specName, func(b Benchmarker) {
 
 		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		kubernetesVersion := e2eConfig.GetVariable(KubernetesVersion)
 		flavor := clusterctl.DefaultFlavor
-		if kubetestConfig.UseCIArtifacts {
+		if useCIArtifacts {
 			flavor = "conformance-ci-artifacts"
+			var err error
+			kubernetesVersion, err = kubernetesversions.LatestCIRelease()
+			Expect(err).NotTo(HaveOccurred())
 		}
 		workerMachineCount, err := strconv.ParseInt(e2eConfig.GetVariable("CONFORMANCE_WORKER_MACHINE_COUNT"), 10, 64)
 		Expect(err).NotTo(HaveOccurred())
@@ -73,7 +71,7 @@ var _ = Describe("conformance tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		runtime := b.Time("cluster creation", func() {
-			_, _, _ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			_ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: bootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
 					LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
@@ -83,7 +81,7 @@ var _ = Describe("conformance tests", func() {
 					Flavor:                   flavor,
 					Namespace:                namespace.Name,
 					ClusterName:              name,
-					KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
+					KubernetesVersion:        kubernetesVersion,
 					ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
 					WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
 				},
@@ -95,7 +93,13 @@ var _ = Describe("conformance tests", func() {
 		b.RecordValue("cluster creation", runtime.Seconds())
 		workloadProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
 		runtime = b.Time("conformance suite", func() {
-			kubetest.Run(kubetestConfig, workloadProxy, workerMachineCount)
+			kubetest.Run(
+				kubetest.RunInput{
+					ClusterProxy:   workloadProxy,
+					NumberOfNodes:  int(workerMachineCount),
+					ConfigFilePath: kubetestConfigFilePath,
+				},
+			)
 		})
 		b.RecordValue("conformance suite run time", runtime.Seconds())
 	}, 1)
@@ -106,62 +110,3 @@ var _ = Describe("conformance tests", func() {
 	})
 
 })
-
-func prepConformanceConfig(artifactsDir string, e2eConfig *clusterctl.E2EConfig) error {
-	for i, p := range e2eConfig.Providers {
-		if p.Name != "aws" {
-			continue
-		}
-		e2eConfig.Providers[i].Files = append(p.Files, clusterctl.Files{
-			SourcePath: path.Join(artifactFolder, "/templates/cluster-template-conformance-ci-artifacts.yaml"),
-			TargetName: "cluster-template-conformance-ci-artifacts.yaml",
-		},
-		)
-	}
-	templateDir := path.Join(artifactsDir, "templates")
-	overlayDir := path.Join(artifactsDir, "overlay")
-	srcDir := path.Join("data", "kubetest", "kustomization")
-	originalTemplate := path.Join("..", "..", "templates", "cluster-template.yaml")
-
-	if err := copy(path.Join(srcDir, "kustomization.yaml"), path.Join(overlayDir, "kustomization.yaml")); err != nil {
-		return err
-	}
-	if err := copy(path.Join(srcDir, "kustomizeversions.yaml"), path.Join(overlayDir, "kustomizeversions.yaml")); err != nil {
-		return err
-	}
-	if err := copy(path.Join(srcDir, "cluster-resource-set.yaml"), path.Join(overlayDir, "cluster-resource-set.yaml")); err != nil {
-		return err
-	}
-	if err := copy(path.Join(srcDir, "cluster-resource-set-label.yaml"), path.Join(overlayDir, "cluster-resource-set-label.yaml")); err != nil {
-		return err
-	}
-	if err := copy(originalTemplate, path.Join(overlayDir, "cluster-template.yaml")); err != nil {
-		return err
-	}
-	cmd := exec.Command("kustomize", "build", overlayDir)
-	data, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
-	os.MkdirAll(templateDir, 0o750)
-	if err := ioutil.WriteFile(path.Join(templateDir, "cluster-template-conformance-ci-artifacts.yaml"), data, 0o640); err != nil {
-		return err
-	}
-	return nil
-}
-
-func copy(src, dest string) error {
-	os.MkdirAll(path.Dir(dest), 0o750)
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	destFile, err := os.Create(dest)
-	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(destFile, srcFile); err != nil {
-		return err
-	}
-	return nil
-}

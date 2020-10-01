@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -181,6 +182,10 @@ func TestDeleteBastion(t *testing.T) {
 					},
 				}
 
+				client := fake.NewFakeClientWithScheme(scheme)
+				ctx := context.TODO()
+				client.Create(ctx, awsCluster)
+
 				scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 					Cluster: &clusterv1.Cluster{
 						ObjectMeta: metav1.ObjectMeta{
@@ -189,7 +194,7 @@ func TestDeleteBastion(t *testing.T) {
 						},
 					},
 					AWSCluster: awsCluster,
-					Client:     fake.NewFakeClientWithScheme(scheme, awsCluster),
+					Client:     client,
 				})
 				g.Expect(err).To(BeNil())
 

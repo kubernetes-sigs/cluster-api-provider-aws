@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -205,7 +206,9 @@ func TestReconcileVPC(t *testing.T) {
 					},
 				},
 			}
-			client := fake.NewFakeClientWithScheme(scheme, awsCluster)
+			client := fake.NewFakeClientWithScheme(scheme)
+			ctx := context.TODO()
+			client.Create(ctx, awsCluster)
 
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{

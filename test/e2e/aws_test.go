@@ -407,7 +407,8 @@ var _ = Describe("functional tests", func() {
 })
 
 func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment) {
-	cluster, _, md := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+
+	res := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:                 bootstrapClusterProxy,
 		ConfigCluster:                configCluster,
 		WaitForClusterIntervals:      e2eConfig.GetIntervals("", "wait-cluster"),
@@ -415,7 +416,7 @@ func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterIn
 		WaitForMachineDeployments:    e2eConfig.GetIntervals("", "wait-worker-nodes"),
 	})
 
-	return cluster, md
+	return res.Cluster, res.MachineDeployments
 }
 
 func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {

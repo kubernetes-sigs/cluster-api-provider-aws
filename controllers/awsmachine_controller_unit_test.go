@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -78,15 +79,12 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 		t.Fatal(err)
 	}
 	clusterName := "my-cluster"
-	initObjects := []runtime.Object{
-		newCluster(clusterName),
-		// Create two Machines with an infrastructure ref and one without.
-		newMachineWithInfrastructureRef(clusterName, "my-machine-0"),
-		newMachineWithInfrastructureRef(clusterName, "my-machine-1"),
-		newMachine(clusterName, "my-machine-2"),
-	}
-
-	client := fake.NewFakeClientWithScheme(scheme, initObjects...)
+	client := fake.NewFakeClientWithScheme(scheme)
+	ctx := context.TODO()
+	client.Create(ctx, newCluster(clusterName))
+	client.Create(ctx, newMachineWithInfrastructureRef(clusterName, "my-machine-0"))
+	client.Create(ctx, newMachineWithInfrastructureRef(clusterName, "my-machine-1"))
+	client.Create(ctx, newMachine(clusterName, "my-machine-2"))
 
 	reconciler := &AWSMachineReconciler{
 		Client: client,
@@ -108,6 +106,6 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 		},
 	})
 	if len(requests) != 2 {
-		t.Fatalf("Expected 2 but found %d requests", len(initObjects))
+		t.Fatalf("Expected 2 but found %d requests", len(requests))
 	}
 }

@@ -114,9 +114,15 @@ var _ = Describe("AWSMachineReconciler", func() {
 		)
 		Expect(err).To(BeNil())
 
+		client := fake.NewFakeClient()
+		ctx := context.TODO()
+		client.Create(ctx, awsMachine)
+		client.Create(ctx, secret)
+		client.Create(ctx, secret)
+
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
-				Client: fake.NewFakeClient([]runtime.Object{awsMachine, secret}...),
+				Client: client,
 				Cluster: &clusterv1.Cluster{
 					Status: clusterv1.ClusterStatus{
 						InfrastructureReady: true,
