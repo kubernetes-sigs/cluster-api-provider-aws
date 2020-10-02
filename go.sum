@@ -428,6 +428,8 @@ github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200713133651-5c8a640669
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200713133651-5c8a640669ac/go.mod h1:XVYX9JE339nKbDDa/W481XD+1GTeqeaBm8bDPr7WE7I=
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200901173901-9056dbc8c9b9 h1:kAMFzG83J/0R7aYRtf43S9dva/Gmud9yU3/6+r44PDQ=
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20200901173901-9056dbc8c9b9/go.mod h1:rcwAydGZX+z4l91wtOdbq+fqDwuo6iu0YuFik3UUc+8=
+github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570 h1:Bmi2b7YADMXpNQ6EPV4rQqoVRSjj3dzDU3dSAEKXut0=
+github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570/go.mod h1:7NRECVE26rvP1/fs1CbhfY5gsgnnFQNhb9txTFzWmUw=
 github.com/openshift/library-go v0.0.0-20200512120242-21a1ff978534/go.mod h1:2kWwXTkpoQJUN3jZ3QW88EIY1hdRMqxgRs2hheEW/pg=
 github.com/openshift/library-go v0.0.0-20200909173121-1d055d971916/go.mod h1:6vwp+YhYOIlj8MpkQKkebTTSn2TuYyvgiAFQ206jIEQ=
 github.com/openshift/machine-api-operator v0.2.1-0.20200527204437-14e5e0c7d862/go.mod h1:YKEQMHjXzrzm4fQGTyHBafFfQ/Yq/FrV+1YcGdPCp+0=
@@ -437,6 +439,8 @@ github.com/openshift/machine-api-operator v0.2.1-0.20200722104429-f4f9b84df9b7 h
 github.com/openshift/machine-api-operator v0.2.1-0.20200722104429-f4f9b84df9b7/go.mod h1:XDsNRAVEJtkI00e51SAZ/PnqNJl1zv0rHXSdl9L1oOY=
 github.com/openshift/machine-api-operator v0.2.1-0.20200926044412-b7d860f8074c h1:mjdL135+tVttQZ7OusXzV+HlAFAojZCE8oR1KpLci1I=
 github.com/openshift/machine-api-operator v0.2.1-0.20200926044412-b7d860f8074c/go.mod h1:cp/wPVzxHZeLUjOLkNPNqrk4wyyW6HuHd3Kz9+hl5xw=
+github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597 h1:2leDrsKmE7ppJSthf6SiD+Pqjyis633L/n+YdTVdBbo=
+github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597/go.mod h1:+oAfoCl+TUd2TM79/6NdqLpFUHIJpmqkKdmiHe2O7mw=
 github.com/operator-framework/operator-sdk v0.5.1-0.20190301204940-c2efe6f74e7b/go.mod h1:iVyukRkam5JZa8AnjYf+/G3rk7JI1+M6GsU0sq0B9NA=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
