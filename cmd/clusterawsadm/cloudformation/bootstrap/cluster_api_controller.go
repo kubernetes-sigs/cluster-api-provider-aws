@@ -199,7 +199,7 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 					"iam:GetPolicy",
 				},
 				Resource: iamv1.Resources{
-					"arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+					EKSClusterPolicy,
 				},
 				Effect: iamv1.EffectAllow,
 			}, {

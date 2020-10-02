@@ -26,6 +26,26 @@ webhooks:
     resources:
     - awsclusters
   sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmanagedmachinepool
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedmachinepools
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -93,4 +113,24 @@ webhooks:
     - UPDATE
     resources:
     - awsmachinetemplates
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmanagedmachinepool
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedmachinepools
   sideEffects: None

@@ -80,6 +80,7 @@ func Test_RenderCloudformation(t *testing.T) {
 				t.Spec.EKS.Enable = true
 				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
 				t.Spec.EKS.DefaultControlPlaneRole.Disable = false
+				t.Spec.EKS.ManagedMachinePool.Disable = false
 				return t
 			},
 		},

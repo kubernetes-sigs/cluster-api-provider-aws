@@ -50,3 +50,49 @@ func (s *Service) getEKSTagParams(id string) *infrav1.BuildParams {
 		Additional:  s.scope.AdditionalTags(),
 	}
 }
+
+func getTagUpdates(currentTags map[string]string, tags map[string]string) (untagKeys []string, newTags map[string]string) {
+	untagKeys = []string{}
+	newTags = make(map[string]string)
+	for key := range currentTags {
+		if _, ok := tags[key]; !ok {
+			untagKeys = append(untagKeys, key)
+		}
+	}
+	for key, value := range tags {
+		if currentV, ok := currentTags[key]; !ok || value != currentV {
+			newTags[key] = value
+		}
+	}
+	return untagKeys, newTags
+}
+
+func (s *NodegroupService) reconcileTags(ng *eks.Nodegroup) error {
+	tags := ngTags(s.scope.Name(), s.scope.AdditionalTags())
+
+	untagKeys, newTags := getTagUpdates(aws.StringValueMap(ng.Tags), tags)
+
+	if len(newTags) > 0 {
+		tagInput := &eks.TagResourceInput{
+			ResourceArn: ng.NodegroupArn,
+			Tags:        aws.StringMap(newTags),
+		}
+		_, err := s.EKSClient.TagResource(tagInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(untagKeys) > 0 {
+		untagInput := &eks.UntagResourceInput{
+			ResourceArn: ng.NodegroupArn,
+			TagKeys:     aws.StringSlice(untagKeys),
+		}
+		_, err := s.EKSClient.UntagResource(untagInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

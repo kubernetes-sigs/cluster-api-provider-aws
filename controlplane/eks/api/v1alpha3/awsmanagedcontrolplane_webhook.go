@@ -18,7 +18,6 @@ package v1alpha3
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -32,14 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/hash"
-)
-
-const (
-	// maxCharsName maximum number of characters for the name
-	maxCharsName = 100
-
-	clusterPrefix = "capa_"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 )
 
 // log is for logging in this package.
@@ -188,7 +180,7 @@ func (r *AWSManagedControlPlane) Default() {
 
 	if r.Spec.EKSClusterName == "" {
 		mcpLog.Info("EKSClusterName is empty, generating name")
-		name, err := generateEKSName(r.Name, r.Namespace)
+		name, err := eks.GenerateEKSName(r.Name, r.Namespace)
 		if err != nil {
 			mcpLog.Error(err, "failed to create EKS cluster name")
 			return
@@ -210,22 +202,4 @@ func (r *AWSManagedControlPlane) Default() {
 
 	infrav1.SetDefaults_Bastion(&r.Spec.Bastion)
 	infrav1.SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
-}
-
-// generateEKSName generates a name of the EKS cluster
-func generateEKSName(clusterName, namespace string) (string, error) {
-	escapedName := strings.Replace(clusterName, ".", "_", -1)
-	eksName := fmt.Sprintf("%s_%s", namespace, escapedName)
-
-	if len(eksName) < maxCharsName {
-		return eksName, nil
-	}
-
-	hashLength := 32 - len(clusterPrefix)
-	hashedName, err := hash.Base36TruncatedHash(eksName, hashLength)
-	if err != nil {
-		return "", fmt.Errorf("creating hash from cluster name: %w", err)
-	}
-
-	return fmt.Sprintf("%s%s", clusterPrefix, hashedName), nil
 }

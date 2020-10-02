@@ -46,7 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/version"
 )
 
-// NewEC2Client creates a new EC2 API client for a given session
+// NewASGClient creates a new ASG API client for a given session
 func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) autoscalingiface.AutoScalingAPI {
 	asgClient := autoscaling.New(session.Session())
 	asgClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())

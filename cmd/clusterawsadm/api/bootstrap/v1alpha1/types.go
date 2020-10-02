@@ -102,6 +102,9 @@ type EKSConfig struct {
 	// no role is included in the spec and automatic creation of the role
 	// isn't enabled
 	DefaultControlPlaneRole AWSIAMRoleSpec `json:"defaultControlPlaneRole,omitempty"`
+	// ManagedMachinePool controls the configuration of the AWS IAM role for
+	// used by EKS managed machine pools.
+	ManagedMachinePool *AWSIAMRoleSpec `json:"managedMachinePool,omitempty"`
 }
 
 // ClusterAPIControllers controls the configuration of the AWS IAM role for

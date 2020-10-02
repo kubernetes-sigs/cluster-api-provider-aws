@@ -17,7 +17,6 @@ limitations under the License.
 package eks
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,39 +24,26 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
-// TrustRelationshipPolicyDocument represesnts an IAM policy docyment
-type TrustRelationshipPolicyDocument struct {
-	Version   string
-	Statement []StatementEntry
-}
-
-// ToJSONString converts the document to a JSON string
-func (d *TrustRelationshipPolicyDocument) ToJSONString() (string, error) {
-	b, err := json.Marshal(d)
-	if err != nil {
-		return "", err
+// NodegroupRolePolicies gives the policies required for a nodegroup role
+func NodegroupRolePolicies() []string {
+	return []string{
+		"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+		"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy", //TODO: Can remove when CAPA supports provisioning of OIDC web identity federation with service account token volume projection
+		"arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
 	}
-
-	return string(b), nil
-}
-
-// StatementEntry represents a statement within an IAM policy document
-type StatementEntry struct {
-	Effect    string
-	Action    []string
-	Principal map[string][]string
 }
 
 func (s *Service) reconcileControlPlaneIAMRole() error {
 	s.scope.V(2).Info("Reconciling EKS Control Plane IAM Role")
 
 	if s.scope.ControlPlane.Spec.RoleName == nil {
-		//TODO (richardcase): in the future use a default role created by clusterawsadm
 		if !s.scope.EnableIAM() {
 			s.scope.Info("no eks control plane role specified, using default eks control plane role")
 			s.scope.ControlPlane.Spec.RoleName = &ekscontrolplanev1.DefaultEKSControlPlaneRole
@@ -65,11 +51,10 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 			s.scope.Info("no eks control plane role specified, using role based on cluster name")
 			s.scope.ControlPlane.Spec.RoleName = aws.String(fmt.Sprintf("%s-iam-service-role", s.scope.Name()))
 		}
-
 	}
 	s.scope.Info("using eks control plane role", "role-name", *s.scope.ControlPlane.Spec.RoleName)
 
-	role, err := s.getIAMRole(*s.scope.ControlPlane.Spec.RoleName)
+	role, err := s.GetIAMRole(*s.scope.ControlPlane.Spec.RoleName)
 	if err != nil {
 		if !isNotFound(err) {
 			return err
@@ -80,7 +65,7 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 			return fmt.Errorf("getting role %s: %w", *s.scope.ControlPlane.Spec.RoleName, ErrClusterRoleNotFound)
 		}
 
-		role, err = s.createRole(*s.scope.ControlPlane.Spec.RoleName)
+		role, err = s.CreateRole(*s.scope.ControlPlane.Spec.RoleName, s.scope.Name(), eksiam.ControlPlaneTrustRelationship(false), s.scope.AdditionalTags())
 		if err != nil {
 			record.Warnf(s.scope.ControlPlane, "FailedIAMRoleCreation", "Failed to create control plane IAM role %q: %v", *s.scope.ControlPlane.Spec.RoleName, err)
 
@@ -89,7 +74,7 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 		record.Eventf(s.scope.ControlPlane, "SucessfulIAMRoleCreation", "Created control plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
 	}
 
-	if s.isUnmanaged(role) {
+	if s.IsUnmanaged(role, s.scope.Name()) {
 		s.scope.V(2).Info("Skipping, EKS control plane role policy assignment as role is unamanged")
 		return nil
 	}
@@ -109,7 +94,7 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 			policies = append(policies, &additionalPolicy)
 		}
 	}
-	err = s.ensurePoliciesAttached(role, policies)
+	err = s.EnsurePoliciesAttached(role, policies)
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring policies are attached: %v", policies)
 	}
@@ -117,186 +102,11 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 	return nil
 }
 
-func (s *Service) getIAMRole(name string) (*iam.Role, error) {
-	input := &iam.GetRoleInput{
-		RoleName: aws.String(name),
-	}
-
-	out, err := s.IAMClient.GetRole(input)
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Role, nil
-}
-
-func (s *Service) getIAMPolicy(policyArn string) (*iam.Policy, error) {
-	input := &iam.GetPolicyInput{
-		PolicyArn: &policyArn,
-	}
-
-	out, err := s.IAMClient.GetPolicy(input)
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Policy, nil
-}
-
-func (s *Service) getIAMRolePolicies(roleName string) ([]*string, error) {
-	input := &iam.ListAttachedRolePoliciesInput{
-		RoleName: &roleName,
-	}
-
-	out, err := s.IAMClient.ListAttachedRolePolicies(input)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error listing role polices for %s", roleName)
-	}
-
-	policies := []*string{}
-	for _, policy := range out.AttachedPolicies {
-		policies = append(policies, policy.PolicyArn)
-	}
-
-	return policies, nil
-}
-
-func (s *Service) detachIAMRolePolicy(roleName string, policyARN string) error {
-	input := &iam.DetachRolePolicyInput{
-		RoleName:  aws.String(roleName),
-		PolicyArn: aws.String(policyARN),
-	}
-
-	_, err := s.IAMClient.DetachRolePolicy(input)
-	if err != nil {
-		return errors.Wrapf(err, "error detaching policy %s from role %s", policyARN, roleName)
-	}
-
-	return nil
-}
-
-func (s *Service) attachIAMRolePolicy(roleName string, policyARN string) error {
-	input := &iam.AttachRolePolicyInput{
-		RoleName:  aws.String(roleName),
-		PolicyArn: aws.String(policyARN),
-	}
-
-	_, err := s.IAMClient.AttachRolePolicy(input)
-	if err != nil {
-		return errors.Wrapf(err, "error attaching policy %s to role %s", policyARN, roleName)
-	}
-
-	return nil
-}
-
-func (s *Service) ensurePoliciesAttached(role *iam.Role, policies []*string) error {
-	s.scope.V(2).Info("Ensuring Polices are attached to EKS Control Plane IAM Role")
-	existingPolices, err := s.getIAMRolePolicies(*role.RoleName)
-	if err != nil {
-		return err
-	}
-
-	// Remove polices that aren't in the list
-	for _, existingPolicy := range existingPolices {
-		found := findStringInSlice(policies, *existingPolicy)
-		if !found {
-			err = s.detachIAMRolePolicy(*role.RoleName, *existingPolicy)
-			if err != nil {
-				return err
-			}
-			s.scope.V(2).Info("Detached policy from role", "role", role.RoleName, "policy", existingPolicy)
-		}
-	}
-
-	// Add any policies that aren't currently attached
-	for _, policy := range policies {
-		found := findStringInSlice(existingPolices, *policy)
-		if !found {
-			// Make sure policy exists before attaching
-			_, err := s.getIAMPolicy(*policy)
-			if err != nil {
-				return errors.Wrapf(err, "error getting policy %s", *policy)
-			}
-
-			err = s.attachIAMRolePolicy(*role.RoleName, *policy)
-			if err != nil {
-				return err
-			}
-			s.scope.V(2).Info("Attached policy to role", "role", role.RoleName, "policy", *policy)
-		}
-	}
-
-	return nil
-}
-
-func (s *Service) createRole(name string) (*iam.Role, error) {
-	//TODO: tags also needs a separate sync
-	additionalTags := s.scope.AdditionalTags()
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
-	tags := []*iam.Tag{}
-	for k, v := range additionalTags {
-		tags = append(tags, &iam.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		})
-	}
-
-	trustRelationship := s.controlPlaneTrustRelationship(false)
-	trustRelationShipJSON, err := trustRelationship.ToJSONString()
-	if err != nil {
-		return nil, errors.Wrap(err, "error converting trust relationship to json")
-	}
-
-	input := &iam.CreateRoleInput{
-		RoleName:                 aws.String(name),
-		Tags:                     tags,
-		AssumeRolePolicyDocument: aws.String(trustRelationShipJSON),
-	}
-
-	out, err := s.IAMClient.CreateRole(input)
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Role, nil
-}
-
-func (s *Service) detachAllPoliciesForRole(name string) error {
-	s.scope.V(3).Info("Detaching all policies for role", "role", name)
-	input := &iam.ListAttachedRolePoliciesInput{
-		RoleName: &name,
-	}
-	policies, err := s.IAMClient.ListAttachedRolePolicies(input)
-	if err != nil {
-		return errors.Wrapf(err, "error fetching policies for role %s", name)
-	}
-	for _, p := range policies.AttachedPolicies {
-		s.scope.V(2).Info("Detaching policy", "policy", *p)
-		if err := s.detachIAMRolePolicy(name, *p.PolicyArn); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Service) deleteRole(name string) error {
-	if err := s.detachAllPoliciesForRole(name); err != nil {
-		return errors.Wrapf(err, "error detaching policies for role %s", name)
-	}
-
-	input := &iam.DeleteRoleInput{
-		RoleName: aws.String(name),
-	}
-
-	_, err := s.IAMClient.DeleteRole(input)
-	if err != nil {
-		return errors.Wrapf(err, "error deleting role %s", name)
-	}
-
-	return nil
-}
-
 func (s *Service) deleteControlPlaneIAMRole() error {
+	if s.scope.ControlPlane.Spec.RoleName == nil {
+		return nil
+	}
+	roleName := *s.scope.ControlPlane.Spec.RoleName
 	if !s.scope.EnableIAM() {
 		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Control Plane IAM Role")
 		return nil
@@ -304,22 +114,22 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 
 	s.scope.V(2).Info("Deleting EKS Control Plane IAM Role")
 
-	role, err := s.getIAMRole(*s.scope.ControlPlane.Spec.RoleName)
+	role, err := s.GetIAMRole(roleName)
 	if err != nil {
 		if isNotFound(err) {
-			s.scope.V(2).Info("EKS Control Plane IAM Role already deleted")
+			s.V(2).Info("EKS Control Plane IAM Role already deleted")
 			return nil
 		}
 
 		return errors.Wrap(err, "getting eks control plane iam role")
 	}
 
-	if s.isUnmanaged(role) {
-		s.scope.V(2).Info("Skipping, EKS control plane iam role deletion as role is unamanged")
+	if s.IsUnmanaged(role, s.scope.Name()) {
+		s.V(2).Info("Skipping, EKS control plane iam role deletion as role is unamanged")
 		return nil
 	}
 
-	err = s.deleteRole(*s.scope.ControlPlane.Spec.RoleName)
+	err = s.DeleteRole(*s.scope.ControlPlane.Spec.RoleName)
 	if err != nil {
 		record.Eventf(s.scope.ControlPlane, "FailedIAMRoleDeletion", "Failed to delete control Plane IAM role %q: %v", *s.scope.ControlPlane.Spec.RoleName, err)
 		return err
@@ -329,38 +139,106 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 	return nil
 }
 
-func (s *Service) isUnmanaged(role *iam.Role) bool {
-	keyToFind := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
-	for _, tag := range role.Tags {
-		if *tag.Key == keyToFind && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
-			return false
+func (s *NodegroupService) reconcileNodegroupIAMRole() error {
+	s.scope.V(2).Info("Reconciling EKS Nodegroup IAM Role")
+
+	if s.scope.RoleName() == "" {
+		var roleName string
+		if !s.scope.EnableIAM() {
+			s.scope.Info("no EKS nodegroup role specified, using default EKS nodegroup role")
+			roleName = infrav1exp.DefaultEKSNodegroupRole
+		} else {
+			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
+			roleName = fmt.Sprintf("%s-nodegroup-iam-service-role", s.scope.Name())
 		}
+		s.scope.ManagedMachinePool.Spec.RoleName = roleName
 	}
 
-	return true
+	role, err := s.GetIAMRole(s.scope.RoleName())
+	if err != nil {
+		if !isNotFound(err) {
+			return err
+		}
+
+		// If the disable IAM flag is used then the role must exist
+		if !s.scope.EnableIAM() {
+			return ErrNodegroupRoleNotFound
+		}
+
+		role, err = s.CreateRole(s.scope.ManagedMachinePool.Spec.RoleName, s.scope.Name(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
+		if err != nil {
+			record.Warnf(s.scope.ManagedMachinePool, "FailedIAMRoleCreation", "Failed to create nodegroup IAM role %q: %v", s.scope.RoleName(), err)
+			return err
+		}
+		record.Eventf(s.scope.ManagedMachinePool, "SucessfulIAMRoleCreation", "Created nodegroup IAM role %q", s.scope.RoleName())
+	}
+
+	if s.IsUnmanaged(role, s.scope.Name()) {
+		s.scope.V(2).Info("Skipping, EKS nodegroup role policy assignment as role is unamanged")
+		return nil
+	}
+
+	err = s.EnsureTagsAndPolicy(role, s.scope.Name(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
+	if err != nil {
+		return errors.Wrapf(err, "error ensuring tags and policy document are set on node role")
+	}
+
+	policies := NodegroupRolePolicies()
+	err = s.EnsurePoliciesAttached(role, aws.StringSlice(policies))
+	if err != nil {
+		return errors.Wrapf(err, "error ensuring policies are attached: %v", policies)
+	}
+
+	return nil
 }
 
-func (s *Service) controlPlaneTrustRelationship(enableFargate bool) *TrustRelationshipPolicyDocument {
-	principal := make(map[string][]string)
-	principal["Service"] = []string{"eks.amazonaws.com"}
-	if enableFargate {
-		principal["Service"] = append(principal["Service"], "eks-fargate-pods.amazonaws.com")
+func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
+	if err := s.scope.IAMReadyFalse(clusterv1.DeletingReason, ""); err != nil {
+		return err
+	}
+	defer func() {
+		if reterr != nil {
+			record.Warnf(
+				s.scope.ManagedMachinePool, "FailedDeleteIAMNodegroupRole", "Failed to delete EKS nodegroup role %s: %v", s.scope.ManagedMachinePool.Spec.RoleName, reterr,
+			)
+			if err := s.scope.IAMReadyFalse("DeletingFailed", reterr.Error()); err != nil {
+				reterr = err
+			}
+		} else if err := s.scope.IAMReadyFalse(clusterv1.DeletedReason, ""); err != nil {
+			reterr = err
+		}
+	}()
+	roleName := s.scope.RoleName()
+	if !s.scope.EnableIAM() {
+		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS Nodegroup IAM Role")
+		return nil
 	}
 
-	policy := &TrustRelationshipPolicyDocument{
-		Version: "2012-10-17",
-		Statement: []StatementEntry{
-			{
-				Effect: "Allow",
-				Action: []string{
-					"sts:AssumeRole",
-				},
-				Principal: principal,
-			},
-		},
+	s.scope.V(2).Info("Deleting EKS Nodegroup IAM Role")
+
+	role, err := s.GetIAMRole(roleName)
+	if err != nil {
+		if isNotFound(err) {
+			s.V(2).Info("EKS Nodegroup IAM Role already deleted")
+			return nil
+		}
+
+		return errors.Wrap(err, "getting EKS nodegroup iam role")
 	}
 
-	return policy
+	if s.IsUnmanaged(role, s.scope.Name()) {
+		s.V(2).Info("Skipping, EKS Nodegroup iam role deletion as role is unamanged")
+		return nil
+	}
+
+	err = s.DeleteRole(s.scope.RoleName())
+	if err != nil {
+		record.Eventf(s.scope.ManagedMachinePool, "FailedIAMRoleDeletion", "Failed to delete Nodegroup IAM role %q: %v", s.scope.ManagedMachinePool.Spec.RoleName, err)
+		return err
+	}
+
+	record.Eventf(s.scope.ManagedMachinePool, "SucessfulIAMRoleDeletion", "Deleted Nodegroup IAM role %q", s.scope.ManagedMachinePool.Spec.RoleName)
+	return nil
 }
 
 func isNotFound(err error) bool {
@@ -370,16 +248,6 @@ func isNotFound(err error) bool {
 			return true
 		default:
 			return false
-		}
-	}
-
-	return false
-}
-
-func findStringInSlice(slice []*string, toFind string) bool {
-	for _, item := range slice {
-		if *item == toFind {
-			return true
 		}
 	}
 
