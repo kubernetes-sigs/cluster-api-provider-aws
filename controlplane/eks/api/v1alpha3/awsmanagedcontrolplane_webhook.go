@@ -79,6 +79,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -106,6 +107,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -168,6 +170,37 @@ func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane)
 		oldV, err := parseEKSVersion(*old.Spec.Version)
 		if err == nil && (v.Major() < oldV.Major() || v.Minor() < oldV.Minor()) {
 			allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, "new version less than old version"))
+		}
+	}
+
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateIAMAuthConfig() field.ErrorList {
+	var allErrs field.ErrorList
+
+	parentPath := field.NewPath("spec.iamAuthenticatorConfig")
+
+	cfg := r.Spec.IAMAuthenticatorConfig
+	if cfg == nil {
+		return allErrs
+	}
+
+	for i, userMapping := range cfg.UserMappings {
+		usersPathName := fmt.Sprintf("mapUsers[%d]", i)
+		usersPath := parentPath.Child(usersPathName)
+		errs := userMapping.Validate()
+		for _, validErr := range errs {
+			allErrs = append(allErrs, field.Invalid(usersPath, userMapping, validErr.Error()))
+		}
+	}
+
+	for i, roleMapping := range cfg.RoleMappings {
+		rolePathName := fmt.Sprintf("mapRoles[%d]", i)
+		rolePath := parentPath.Child(rolePathName)
+		errs := roleMapping.Validate()
+		for _, validErr := range errs {
+			allErrs = append(allErrs, field.Invalid(rolePath, roleMapping, validErr.Error()))
 		}
 	}
 

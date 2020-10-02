@@ -29,6 +29,8 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
+
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 )
 
 var (
@@ -52,23 +54,23 @@ func TestAddRoleMappingCM(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		existingAuthConfigMap *corev1.ConfigMap
-		roleToMap             RoleMapping
-		expectedRoleMaps      []RoleMapping
+		roleToMap             ekscontrolplanev1.RoleMapping
+		expectedRoleMaps      []ekscontrolplanev1.RoleMapping
 		expectError           bool
 	}{
 		{
 			name: "no existing mappings, add role mapping",
-			roleToMap: RoleMapping{
+			roleToMap: ekscontrolplanev1.RoleMapping{
 				RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "system:node:{{EC2PrivateDNSName}}",
 					Groups:   []string{"system:bootstrappers", "system:nodes"},
 				},
 			},
-			expectedRoleMaps: []RoleMapping{
+			expectedRoleMaps: []ekscontrolplanev1.RoleMapping{
 				{
 					RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "system:node:{{EC2PrivateDNSName}}",
 						Groups:   []string{"system:bootstrappers", "system:nodes"},
 					},
@@ -78,24 +80,24 @@ func TestAddRoleMappingCM(t *testing.T) {
 		},
 		{
 			name: "existing mapping, add different mapping",
-			roleToMap: RoleMapping{
+			roleToMap: ekscontrolplanev1.RoleMapping{
 				RoleARN: "arn:aws:iam::000000000000:role/KubernetesAdmin",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "admin:{{SessionName}}",
 					Groups:   []string{"system:masters"},
 				},
 			},
-			expectedRoleMaps: []RoleMapping{
+			expectedRoleMaps: []ekscontrolplanev1.RoleMapping{
 				{
 					RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "system:node:{{EC2PrivateDNSName}}",
 						Groups:   []string{"system:bootstrappers", "system:nodes"},
 					},
 				},
 				{
 					RoleARN: "arn:aws:iam::000000000000:role/KubernetesAdmin",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "admin:{{SessionName}}",
 						Groups:   []string{"system:masters"},
 					},
@@ -106,17 +108,17 @@ func TestAddRoleMappingCM(t *testing.T) {
 		},
 		{
 			name: "existing mapping, add same mapping",
-			roleToMap: RoleMapping{
+			roleToMap: ekscontrolplanev1.RoleMapping{
 				RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "system:node:{{EC2PrivateDNSName}}",
 					Groups:   []string{"system:bootstrappers", "system:nodes"},
 				},
 			},
-			expectedRoleMaps: []RoleMapping{
+			expectedRoleMaps: []ekscontrolplanev1.RoleMapping{
 				{
 					RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "system:node:{{EC2PrivateDNSName}}",
 						Groups:   []string{"system:bootstrappers", "system:nodes"},
 					},
@@ -166,7 +168,7 @@ func TestAddRoleMappingCM(t *testing.T) {
 			if len(tc.expectedRoleMaps) == 0 {
 				g.Expect(roleMappingsFound).To(BeFalse())
 			} else {
-				roles := []RoleMapping{}
+				roles := []ekscontrolplanev1.RoleMapping{}
 				err := yaml.Unmarshal([]byte(actualRoleMappings), &roles)
 				g.Expect(err).To(BeNil())
 				g.Expect(len(roles)).To(Equal(len(tc.expectedRoleMaps)))
@@ -185,23 +187,23 @@ func TestAddUserMappingCM(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		existingAuthConfigMap *corev1.ConfigMap
-		userToMap             UserMapping
-		expectedUsersMap      []UserMapping
+		userToMap             ekscontrolplanev1.UserMapping
+		expectedUsersMap      []ekscontrolplanev1.UserMapping
 		expectError           bool
 	}{
 		{
 			name: "no existing user mappings, add user mapping",
-			userToMap: UserMapping{
+			userToMap: ekscontrolplanev1.UserMapping{
 				UserARN: "arn:aws:iam::000000000000:user/Alice",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "alice",
 					Groups:   []string{"system:masters"},
 				},
 			},
-			expectedUsersMap: []UserMapping{
+			expectedUsersMap: []ekscontrolplanev1.UserMapping{
 				{
 					UserARN: "arn:aws:iam::000000000000:user/Alice",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "alice",
 						Groups:   []string{"system:masters"},
 					},
@@ -211,24 +213,24 @@ func TestAddUserMappingCM(t *testing.T) {
 		},
 		{
 			name: "existing user mapping, add different user mapping",
-			userToMap: UserMapping{
+			userToMap: ekscontrolplanev1.UserMapping{
 				UserARN: "arn:aws:iam::000000000000:user/Bob",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "bob",
 					Groups:   []string{"system:masters"},
 				},
 			},
-			expectedUsersMap: []UserMapping{
+			expectedUsersMap: []ekscontrolplanev1.UserMapping{
 				{
 					UserARN: "arn:aws:iam::000000000000:user/Alice",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "alice",
 						Groups:   []string{"system:masters"},
 					},
 				},
 				{
 					UserARN: "arn:aws:iam::000000000000:user/Bob",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "bob",
 						Groups:   []string{"system:masters"},
 					},
@@ -239,17 +241,17 @@ func TestAddUserMappingCM(t *testing.T) {
 		},
 		{
 			name: "existing user mapping, add same user mapping",
-			userToMap: UserMapping{
+			userToMap: ekscontrolplanev1.UserMapping{
 				UserARN: "arn:aws:iam::000000000000:user/Alice",
-				KubernetesMapping: KubernetesMapping{
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 					UserName: "alice",
 					Groups:   []string{"system:masters"},
 				},
 			},
-			expectedUsersMap: []UserMapping{
+			expectedUsersMap: []ekscontrolplanev1.UserMapping{
 				{
 					UserARN: "arn:aws:iam::000000000000:user/Alice",
-					KubernetesMapping: KubernetesMapping{
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 						UserName: "alice",
 						Groups:   []string{"system:masters"},
 					},
@@ -299,7 +301,7 @@ func TestAddUserMappingCM(t *testing.T) {
 			if len(tc.expectedUsersMap) == 0 {
 				g.Expect(userMappingsFound).To(BeFalse())
 			} else {
-				users := []UserMapping{}
+				users := []ekscontrolplanev1.UserMapping{}
 				err := yaml.Unmarshal([]byte(actualUserMappings), &users)
 				g.Expect(err).To(BeNil())
 				g.Expect(len(users)).To(Equal(len(tc.expectedUsersMap)))

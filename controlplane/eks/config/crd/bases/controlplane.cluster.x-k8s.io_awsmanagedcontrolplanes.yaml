@@ -128,6 +128,56 @@ spec:
                       type: string
                     type: array
                 type: object
+              iamAuthenticatorConfig:
+                description: IAMAuthenticatorConfig allows the specification of any additional user or role mappings for use when generating the aws-iam-authenticator configuration. If this is nil the default configuration is still generated for the cluster.
+                properties:
+                  mapRoles:
+                    description: RoleMappings is a list of role mappings
+                    items:
+                      description: RoleMapping represents a mapping from a IAM role to Kubernetes users and groups
+                      properties:
+                        groups:
+                          description: Groups is a list of kubernetes RBAC groups
+                          items:
+                            type: string
+                          type: array
+                        rolearn:
+                          description: RoleARN is the AWS ARN for the role to map
+                          minLength: 31
+                          type: string
+                        username:
+                          description: UserName is a kubernetes RBAC user subject
+                          type: string
+                      required:
+                      - groups
+                      - rolearn
+                      - username
+                      type: object
+                    type: array
+                  mapUsers:
+                    description: UserMappings is a list of user mappings
+                    items:
+                      description: UserMapping represents a mapping from an IAM user to Kubernetes users and groups
+                      properties:
+                        groups:
+                          description: Groups is a list of kubernetes RBAC groups
+                          items:
+                            type: string
+                          type: array
+                        userarn:
+                          description: UserARN is the AWS ARN for the user to map
+                          minLength: 31
+                          type: string
+                        username:
+                          description: UserName is a kubernetes RBAC user subject
+                          type: string
+                      required:
+                      - groups
+                      - userarn
+                      - username
+                      type: object
+                    type: array
+                type: object
               imageLookupBaseOS:
                 description: ImageLookupBaseOS is the name of the base operating system used to look up machine images when a machine does not specify an AMI. When set, this will be used for all cluster machines unless a machine specifies a different ImageLookupBaseOS.
                 type: string

@@ -82,6 +82,12 @@ type AWSManagedControlPlaneSpec struct {
 	// +optional
 	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
 
+	// IAMAuthenticatorConfig allows the specification of any additional user or role mappings
+	// for use when generating the aws-iam-authenticator configuration. If this is nil the
+	// default configuration is still generated for the cluster.
+	// +optional
+	IAMAuthenticatorConfig *IAMAuthenticatorConfig `json:"iamAuthenticatorConfig,omitempty"`
+
 	// Endpoints specifies access to this cluster's control plane endpoints
 	// +optional
 	EndpointAccess EndpointAccess `json:"endpointAccess,omitempty"`

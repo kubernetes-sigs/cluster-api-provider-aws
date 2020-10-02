@@ -83,3 +83,39 @@ var (
 	// can be created using clusterawsadm or created manually
 	DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", infrav1.DefaultNameSuffix)
 )
+
+// IAMAuthenticatorConfig represents an aws-iam-authenticator configuration
+type IAMAuthenticatorConfig struct {
+	// RoleMappings is a list of role mappings
+	// +optional
+	RoleMappings []RoleMapping `json:"mapRoles,omitempty"`
+	// UserMappings is a list of user mappings
+	// +optional
+	UserMappings []UserMapping `json:"mapUsers,omitempty"`
+}
+
+// KubernetesMapping represents the kubernetes RBAC mapping
+type KubernetesMapping struct {
+	// UserName is a kubernetes RBAC user subject
+	UserName string `json:"username"`
+	// Groups is a list of kubernetes RBAC groups
+	Groups []string `json:"groups"`
+}
+
+// RoleMapping represents a mapping from a IAM role to Kubernetes users and groups
+type RoleMapping struct {
+	// RoleARN is the AWS ARN for the role to map
+	// +kubebuilder:validation:MinLength:=31
+	RoleARN string `json:"rolearn"`
+	// KubernetesMapping holds the RBAC details for the mapping
+	KubernetesMapping `json:",inline"`
+}
+
+// UserMapping represents a mapping from an IAM user to Kubernetes users and groups
+type UserMapping struct {
+	// UserARN is the AWS ARN for the user to map
+	// +kubebuilder:validation:MinLength:=31
+	UserARN string `json:"userarn"`
+	// KubernetesMapping holds the RBAC details for the mapping
+	KubernetesMapping `json:",inline"`
+}
