@@ -6,7 +6,7 @@ import (
 	machinelisters "github.com/openshift/machine-api-operator/pkg/generated/listers/machine/v1beta1"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
