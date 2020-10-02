@@ -134,7 +134,7 @@ spec:
                   mapRoles:
                     description: RoleMappings is a list of role mappings
                     items:
-                      description: RoleMapping represents a mapping from a IAM role
+                      description: RoleMapping represents a mapping from a IAM role to Kubernetes users and groups
                       properties:
                         groups:
                           description: Groups is a list of kubernetes RBAC groups
@@ -157,7 +157,7 @@ spec:
                   mapUsers:
                     description: UserMappings is a list of user mappings
                     items:
-                      description: UserMapping represents a mapping from a IAM user
+                      description: UserMapping represents a mapping from an IAM user to Kubernetes users and groups
                       properties:
                         groups:
                           description: Groups is a list of kubernetes RBAC groups
