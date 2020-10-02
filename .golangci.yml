@@ -13,6 +13,9 @@ linters:
     - gomnd
     - godot
     - gofumpt
+    - gci
+    - nlreturn
+    - gocritic
   # Run with --fast=false for more extensive checks
   fast: true
 issues:

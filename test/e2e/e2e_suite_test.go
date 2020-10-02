@@ -21,7 +21,6 @@ package e2e
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -31,8 +30,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -51,10 +48,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/kubetest"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
 const (
@@ -112,9 +109,6 @@ var (
 
 	defaultSSHKeyPairName = "cluster-api-provider-aws-sigs-k8s-io"
 
-	// conformance configuration
-	kubetestConfig *kubetest.Configuration
-
 	// ticker for dumping resources
 	resourceTicker *time.Ticker
 
@@ -126,32 +120,48 @@ var (
 
 	// tickerDone to stop ticking
 	machineTickerDone chan bool
+
+	// kubetestConfigFilePath is the path to the kubetest configuration file
+	kubetestConfigFilePath string
+
+	// useCIArtifacts specifies whether or not to use the latest build from the main branch of the Kubernetes repository
+	useCIArtifacts bool
+
+	// number of ginkgo nodes to use for kubetest
+	ginkgoNodes int
+
+	// time in s before kubetest spec is marked as slow
+	ginkgoSlowSpecThreshold int
 )
 
 func init() {
 	flag.StringVar(&configPath, "config-path", "", "path to the e2e config file")
 	flag.StringVar(&artifactFolder, "artifacts-folder", "", "folder where e2e test artifact should be stored")
+	flag.BoolVar(&useCIArtifacts, "kubetest.use-ci-artifacts", false, "use the latest build from the main branch of the Kubernetes repository")
+	flag.StringVar(&kubetestConfigFilePath, "kubetest.config-file", "", "path to the kubetest configuration file")
+	flag.IntVar(&ginkgoNodes, "kubetest.ginkgo-nodes", 1, "number of ginkgo nodes to use")
+	flag.IntVar(&ginkgoSlowSpecThreshold, "kubetest.ginkgo-slowSpecThreshold", 120, "time in s before spec is marked as slow")
 	flag.BoolVar(&useExistingCluster, "use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.BoolVar(&skipCleanup, "skip-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&skipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
 }
 
 type synchronizedBeforeTestSuiteConfig struct {
-	ArtifactFolder       string                 `json:"artifactFolder,omitempty"`
-	ConfigPath           string                 `json:"configPath,omitempty"`
-	ClusterctlConfigPath string                 `json:"clusterctlConfigPath,omitempty"`
-	KubeconfigPath       string                 `json:"kubeconfigPath,omitempty"`
-	Region               string                 `json:"region,omitempty"`
-	E2EConfig            clusterctl.E2EConfig   `json:"e2eConfig,omitempty"`
-	KubetestConfig       kubetest.Configuration `json:"conformanceConfiguration,omitempty"`
+	ArtifactFolder          string               `json:"artifactFolder,omitempty"`
+	ConfigPath              string               `json:"configPath,omitempty"`
+	ClusterctlConfigPath    string               `json:"clusterctlConfigPath,omitempty"`
+	KubeconfigPath          string               `json:"kubeconfigPath,omitempty"`
+	Region                  string               `json:"region,omitempty"`
+	E2EConfig               clusterctl.E2EConfig `json:"e2eConfig,omitempty"`
+	KubetestConfigFilePath  string               `json:"kubetestConfigFilePath,omitempty"`
+	UseCIArtifacts          bool                 `json:"useCIArtifacts,omitempty"`
+	GinkgoNodes             int                  `json:"ginkgoNodes,omitempty"`
+	GinkgoSlowSpecThreshold int                  `json:"ginkgoSlowSpecThreshold,omitempty"`
 }
 
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	junitPath := path.Join(artifactFolder, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
-	junitReporter := reporters.NewJUnitReporter(junitPath)
-
-	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e", []Reporter{junitReporter})
+	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e", []Reporter{framework.CreateJUnitReporterForProw(artifactFolder)})
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -160,7 +170,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(os.MkdirAll(artifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", artifactFolder)
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
-	Expect(prepConformanceConfig(artifactFolder, e2eConfig)).To(Succeed())
+	sourceTemplate, err := ioutil.ReadFile("data/infrastructure-aws/cluster-template.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	platformKustomization, err := ioutil.ReadFile("data/ci-artifacts-platform-kustomization.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	_, err = kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
+		kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
+			ArtifactsDirectory:    artifactFolder,
+			SourceTemplate:        sourceTemplate,
+			PlatformKustomization: platformKustomization,
+		},
+	)
+	Expect(err).NotTo(HaveOccurred())
 	awsSession = newAWSSession()
 	createCloudFormationStack(awsSession, getBootstrapTemplate())
 	ensureNoServiceLinkedRoles(awsSession)
@@ -170,10 +191,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
 	scheme := initScheme()
 
-	kubetestConfiguration := kubetest.NewConfiguration(e2eConfig, artifactFolder)
-	kubetestConfig = kubetestConfiguration
 	// If using a version of Kubernetes from CI, override the image ID with a known good image
-	if kubetestConfig.UseCIArtifacts {
+	if useCIArtifacts {
 		e2eConfig.Variables["IMAGE_ID"] = conformanceImageID()
 	}
 
@@ -189,13 +208,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 
 	conf := synchronizedBeforeTestSuiteConfig{
-		ArtifactFolder:       artifactFolder,
-		ConfigPath:           configPath,
-		ClusterctlConfigPath: clusterctlConfigPath,
-		KubeconfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
-		Region:               getBootstrapTemplate().Spec.Region,
-		E2EConfig:            *e2eConfig,
-		KubetestConfig:       *kubetestConfiguration,
+		ArtifactFolder:          artifactFolder,
+		ConfigPath:              configPath,
+		ClusterctlConfigPath:    clusterctlConfigPath,
+		KubeconfigPath:          bootstrapClusterProxy.GetKubeconfigPath(),
+		Region:                  getBootstrapTemplate().Spec.Region,
+		E2EConfig:               *e2eConfig,
+		KubetestConfigFilePath:  kubetestConfigFilePath,
+		UseCIArtifacts:          useCIArtifacts,
+		GinkgoNodes:             ginkgoNodes,
+		GinkgoSlowSpecThreshold: ginkgoSlowSpecThreshold,
 	}
 
 	data, err := yaml.Marshal(conf)
@@ -210,9 +232,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	artifactFolder = conf.ArtifactFolder
 	configPath = conf.ConfigPath
 	clusterctlConfigPath = conf.ClusterctlConfigPath
-	kubetestConfig = &conf.KubetestConfig
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, initScheme())
 	e2eConfig = &conf.E2EConfig
+	kubetestConfigFilePath = conf.KubetestConfigFilePath
+	useCIArtifacts = conf.UseCIArtifacts
+	ginkgoNodes = conf.GinkgoNodes
+	ginkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
 	azs := getAvailabilityZones()
 	setEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
 	setEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
@@ -271,7 +296,6 @@ var _ = SynchronizedAfterSuite(func() {
 	if machineTickerDone != nil {
 		machineTickerDone <- true
 	}
-	kubetest.GatherReports(kubetestConfig)
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Minute)
 	defer cancel()
 	for k := range namespaces {

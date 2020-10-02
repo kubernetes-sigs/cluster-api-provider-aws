@@ -17,6 +17,7 @@ limitations under the License.
 package elb
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -280,6 +281,10 @@ func TestDeleteLoadbalancers(t *testing.T) {
 				Spec: infrav1.AWSClusterSpec{},
 			}
 
+			client := fake.NewFakeClientWithScheme(scheme)
+			ctx := context.TODO()
+			client.Create(ctx, awsCluster)
+
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -288,7 +293,7 @@ func TestDeleteLoadbalancers(t *testing.T) {
 					},
 				},
 				AWSCluster: awsCluster,
-				Client:     fake.NewFakeClientWithScheme(scheme, awsCluster),
+				Client:     client,
 			})
 			if err != nil {
 				t.Fatal(err)
