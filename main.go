@@ -229,6 +229,13 @@ func main() {
 				os.Exit(1)
 			}
 		}
+		if feature.Gates.Enabled(feature.MachinePool) {
+			setupLog.Info("enabling webhook for AWSMachinePool")
+			if err = (&infrav1alpha3exp.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachinePool")
+				os.Exit(1)
+			}
+		}
 	}
 
 	// +kubebuilder:scaffold:builder
