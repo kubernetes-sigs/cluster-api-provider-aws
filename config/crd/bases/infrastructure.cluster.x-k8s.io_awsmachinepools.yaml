@@ -165,12 +165,12 @@ spec:
                         format: int64
                         type: integer
                       size:
-                        description: Size specifies size (in Gi) of the root storage device. Must be greater than the image root snapshot size or 8 (whichever is greater).
+                        description: Size specifies size (in Gi) of the storage device. Must be greater than the image snapshot size or 8 (whichever is greater).
                         format: int64
                         minimum: 8
                         type: integer
                       type:
-                        description: Type is the type of the root volume (e.g. gp2, io1, etc...).
+                        description: Type is the type of the volume (e.g. gp2, io1, etc...).
                         type: string
                     required:
                     - size
