@@ -173,6 +173,26 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "valid input - without mixedInstancesPolicy",
+			input: &autoscaling.Group{
+				AutoScalingGroupARN:  aws.String("test-id"),
+				AutoScalingGroupName: aws.String("test-name"),
+				DesiredCapacity:      aws.Int64(1234),
+				MaxSize:              aws.Int64(1234),
+				MinSize:              aws.Int64(1234),
+				MixedInstancesPolicy: nil,
+			},
+			want: &expinfrav1.AutoScalingGroup{
+				ID:                   "test-id",
+				Name:                 "test-name",
+				DesiredCapacity:      aws.Int32(1234),
+				MaxSize:              int32(1234),
+				MinSize:              int32(1234),
+				MixedInstancesPolicy: nil,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

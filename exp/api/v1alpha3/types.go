@@ -135,9 +135,9 @@ var (
 	// your instances across the number of Spot pools that you specify
 	SpotAllocationStrategyLowestPrice = SpotAllocationStrategy("lowest-price")
 
-	// SpotAllocationStrategyCapacityOtimized will make the Auto Scaling group launche
+	// SpotAllocationStrategyCapacityOptimized will make the Auto Scaling group launch
 	// instances using Spot pools that are optimally chosen based on the available Spot capacity
-	SpotAllocationStrategyCapacityOtimized = SpotAllocationStrategy("capacity-optimized")
+	SpotAllocationStrategyCapacityOptimized = SpotAllocationStrategy("capacity-optimized")
 )
 
 // InstancesDistribution to configure distribution of On-Demand Instances and Spot Instances.
