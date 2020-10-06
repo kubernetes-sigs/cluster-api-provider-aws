@@ -108,10 +108,6 @@ $(ARTIFACTS):
 test: ## Run tests
 	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./...
 
-.PHONY: test-integration
-test-integration: ## Run integration tests
-	source ./scripts/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
-
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
 	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./test/e2e/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
