@@ -19,6 +19,7 @@ package ec2
 import (
 	"encoding/base64"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -1007,6 +1008,72 @@ func TestCreateInstance(t *testing.T) {
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "subnet id and failureDomain don't match",
+			machine: clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AWSResourceReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					ID: aws.String("subnet-1"),
+				},
+				FailureDomain: aws.String("us-east-1b"),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{{
+							ID:               "subnet-1",
+							AvailabilityZone: "us-west-1b",
+						}},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.Network{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.ClassicELB{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				expectedErrMsg := "subnet's availability zone \"us-west-1b\" does not match with the failure domain \"us-east-1b\""
+				if err == nil {
+					t.Fatalf("Expected error, but got nil")
+				}
+
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Expected error: %s\nInstead got: `%s", expectedErrMsg, err.Error())
 				}
 			},
 		},
