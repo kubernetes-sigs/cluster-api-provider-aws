@@ -35,7 +35,7 @@ type EBS struct {
 
 	// The volume type
 	// For more information, see Amazon EBS Volume Types (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html)
-	// +kubebuilder:validation:Enum=standard;io1;gp2;st1;sc1
+	// +kubebuilder:validation:Enum=standard;io1;gp2;st1;sc1;io2
 	// +optional
 	VolumeType string `json:"volumeType,omitempty"`
 }
