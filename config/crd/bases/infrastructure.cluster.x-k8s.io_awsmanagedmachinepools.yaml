@@ -89,7 +89,7 @@ spec:
                       type: string
                     type: array
                   sshKeyName:
-                    description: SSHKeyName specifies which EC2 SSH key can be used to access machines
+                    description: SSHKeyName specifies which EC2 SSH key can be used to access machines. If left empty, the key from the control plane is used.
                     type: string
                 type: object
               roleName:
