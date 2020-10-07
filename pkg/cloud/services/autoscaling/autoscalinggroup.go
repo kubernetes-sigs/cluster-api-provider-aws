@@ -275,7 +275,7 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ", ")),
 	}
 
-	if scope.MachinePool.Spec.Replicas != nil {
+	if scope.MachinePool.Spec.Replicas != nil && *scope.MachinePool.Spec.Replicas != 1 {
 		input.DesiredCapacity = aws.Int64(int64(*scope.MachinePool.Spec.Replicas))
 	}
 
