@@ -127,7 +127,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
 		Additional:  additionalTags,
-	})
+	}.WithMachineName(scope.Machine))
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
