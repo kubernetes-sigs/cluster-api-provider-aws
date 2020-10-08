@@ -160,7 +160,8 @@ type BuildParams struct {
 	Additional Tags
 
 	// machineName is the name of the Machine object associated with the resource, only applicable to vm resources
-	// When set, this will be applied as "MachineName" on AWS
+	// When set, this will be applied as "MachineName" on AWS'
+	// +k8s:conversion-gen=false
 	machineName *string
 }
 
