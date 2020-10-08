@@ -1,3 +1,5 @@
+component: "Cloud Compute"
+subcomponent: "Other Providers"
 approvers:
   - enxebre
   - michaelgugino
