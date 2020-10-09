@@ -143,6 +143,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Re
 		Logger:             logger,
 		Client:             r.Client,
 		ControllerName:     "awsmanagedmachinepool",
+		Cluster:            cluster,
 		ControlPlane:       controlPlane,
 		MachinePool:        machinePool,
 		ManagedMachinePool: awsPool,

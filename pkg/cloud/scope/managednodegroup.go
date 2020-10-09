@@ -40,6 +40,7 @@ import (
 type ManagedMachinePoolScopeParams struct {
 	Client             client.Client
 	Logger             logr.Logger
+	Cluster            *clusterv1.Cluster
 	ControlPlane       *controlplanev1exp.AWSManagedControlPlane
 	ManagedMachinePool *infrav1exp.AWSManagedMachinePool
 	MachinePool        *clusterv1exp.MachinePool
@@ -76,6 +77,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	return &ManagedMachinePoolScope{
 		Logger:             params.Logger,
 		Client:             params.Client,
+		Cluster:            params.Cluster,
 		ControlPlane:       params.ControlPlane,
 		ManagedMachinePool: params.ManagedMachinePool,
 		MachinePool:        params.MachinePool,
@@ -92,6 +94,7 @@ type ManagedMachinePoolScope struct {
 	Client      client.Client
 	patchHelper *patch.Helper
 
+	Cluster            *clusterv1.Cluster
 	ControlPlane       *controlplanev1exp.AWSManagedControlPlane
 	ManagedMachinePool *infrav1exp.AWSManagedMachinePool
 	MachinePool        *clusterv1exp.MachinePool
@@ -102,9 +105,14 @@ type ManagedMachinePoolScope struct {
 	enableIAM bool
 }
 
-// Name returns the machine pool name.
-func (s *ManagedMachinePoolScope) Name() string {
+// ManagedPoolName returns the managed machine pool name.
+func (s *ManagedMachinePoolScope) ManagedPoolName() string {
 	return s.ManagedMachinePool.Name
+}
+
+// ClusterName returns the cluster name.
+func (s *ManagedMachinePoolScope) ClusterName() string {
+	return s.Cluster.Name
 }
 
 // EnableIAM indicates that reconciliation should create IAM roles

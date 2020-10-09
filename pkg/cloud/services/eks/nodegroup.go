@@ -152,7 +152,7 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		return nil, err
 	}
 	managedPool := s.scope.ManagedMachinePool.Spec
-	tags := ngTags(s.scope.Name(), additionalTags)
+	tags := ngTags(s.scope.ClusterName(), additionalTags)
 
 	remoteAccess, err := s.remoteAccess()
 	if err != nil {
@@ -370,10 +370,10 @@ func (s *NodegroupService) reconcileNodegroup() error {
 		}
 		s.scope.Info("Created EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
 	} else {
-		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
+		tagKey := infrav1.ClusterAWSCloudProviderTagKey(s.scope.ClusterName())
 		ownedTag := ng.Tags[tagKey]
 		if ownedTag == nil {
-			return errors.Wrapf(err, "owner of %s mismatch: %s", eksNodegroupName, s.scope.Name())
+			return errors.Wrapf(err, "owner of %s mismatch: %s", eksNodegroupName, s.scope.ClusterName())
 		}
 		s.scope.V(2).Info("Found owned EKS nodegroup in AWS", "cluster-name", eksClusterName, "nodegroup-name", eksNodegroupName)
 	}

@@ -149,7 +149,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 			roleName = infrav1exp.DefaultEKSNodegroupRole
 		} else {
 			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
-			roleName = fmt.Sprintf("%s-nodegroup-iam-service-role", s.scope.Name())
+			roleName = fmt.Sprintf("%s-nodegroup-iam-service-role", s.scope.NodegroupName())
 		}
 		s.scope.ManagedMachinePool.Spec.RoleName = roleName
 	}
@@ -165,7 +165,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 			return ErrNodegroupRoleNotFound
 		}
 
-		role, err = s.CreateRole(s.scope.ManagedMachinePool.Spec.RoleName, s.scope.Name(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
+		role, err = s.CreateRole(s.scope.ManagedMachinePool.Spec.RoleName, s.scope.ClusterName(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
 		if err != nil {
 			record.Warnf(s.scope.ManagedMachinePool, "FailedIAMRoleCreation", "Failed to create nodegroup IAM role %q: %v", s.scope.RoleName(), err)
 			return err
@@ -173,12 +173,12 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 		record.Eventf(s.scope.ManagedMachinePool, "SucessfulIAMRoleCreation", "Created nodegroup IAM role %q", s.scope.RoleName())
 	}
 
-	if s.IsUnmanaged(role, s.scope.Name()) {
+	if s.IsUnmanaged(role, s.scope.ClusterName()) {
 		s.scope.V(2).Info("Skipping, EKS nodegroup role policy assignment as role is unamanged")
 		return nil
 	}
 
-	err = s.EnsureTagsAndPolicy(role, s.scope.Name(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
+	err = s.EnsureTagsAndPolicy(role, s.scope.ClusterName(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring tags and policy document are set on node role")
 	}
@@ -226,7 +226,7 @@ func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
 		return errors.Wrap(err, "getting EKS nodegroup iam role")
 	}
 
-	if s.IsUnmanaged(role, s.scope.Name()) {
+	if s.IsUnmanaged(role, s.scope.ClusterName()) {
 		s.V(2).Info("Skipping, EKS Nodegroup iam role deletion as role is unamanged")
 		return nil
 	}
