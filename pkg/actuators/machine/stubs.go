@@ -216,6 +216,18 @@ func stubPCAMI(ami awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachine
 	return pc
 }
 
+func stubDedicatedInstanceTenancy() *awsproviderv1.AWSMachineProviderConfig {
+	pc := stubProviderConfig()
+	pc.Tenancy = awsproviderv1.DedicatedTenancy
+	return pc
+}
+
+func stubInvalidInstanceTenancy() *awsproviderv1.AWSMachineProviderConfig {
+	pc := stubProviderConfig()
+	pc.Tenancy = "invalid"
+	return pc
+}
+
 func stubDescribeLoadBalancersOutput() *elbv2.DescribeLoadBalancersOutput {
 	return &elbv2.DescribeLoadBalancersOutput{
 		LoadBalancers: []*elbv2.LoadBalancer{

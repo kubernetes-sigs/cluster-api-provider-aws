@@ -342,6 +342,25 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 		}
 	}
 
+	instanceTenancy := machineProviderConfig.Tenancy
+
+	switch instanceTenancy {
+	case "":
+		// Do nothing when not set
+	case awsproviderv1.DefaultTenancy, awsproviderv1.DedicatedTenancy, awsproviderv1.HostTenancy:
+		if placement == nil {
+			placement = &ec2.Placement{}
+		}
+		tenancy := string(machineProviderConfig.Tenancy)
+		placement.Tenancy = &tenancy
+	default:
+		return nil, mapierrors.CreateMachine("invalid instance tenancy: %s. Allowed options are: %s,%s,%s",
+			instanceTenancy,
+			awsproviderv1.DefaultTenancy,
+			awsproviderv1.DedicatedTenancy,
+			awsproviderv1.HostTenancy)
+	}
+
 	inputConfig := ec2.RunInstancesInput{
 		ImageId:      amiID,
 		InstanceType: aws.String(machineProviderConfig.InstanceType),
