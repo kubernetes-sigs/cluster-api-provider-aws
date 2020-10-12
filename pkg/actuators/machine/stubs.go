@@ -23,8 +23,10 @@ const (
 	awsCredentialsSecretName = "aws-credentials-secret"
 	userDataSecretName       = "aws-actuator-user-data-secret"
 
-	keyName       = "aws-actuator-key-name"
-	stubClusterID = "aws-actuator-cluster"
+	keyName        = "aws-actuator-key-name"
+	stubClusterID  = "aws-actuator-cluster"
+	stubAMIID      = "ami-a9acbbd6"
+	stubInstanceID = "i-02fcb933c5da7085c"
 )
 
 const userDataBlob = `#cloud-config
@@ -41,7 +43,7 @@ runcmd:
 func stubProviderConfig() *awsproviderv1.AWSMachineProviderConfig {
 	return &awsproviderv1.AWSMachineProviderConfig{
 		AMI: awsproviderv1.AWSResourceReference{
-			ID: aws.String("ami-a9acbbd6"),
+			ID: aws.String(stubAMIID),
 		},
 		CredentialsSecret: &corev1.LocalObjectReference{
 			Name: awsCredentialsSecretName,
