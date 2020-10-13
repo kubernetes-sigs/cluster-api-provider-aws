@@ -18,7 +18,6 @@ package v1alpha3
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
 	"k8s.io/apimachinery/pkg/types"
 	"reflect"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -158,16 +157,19 @@ type BuildParams struct {
 	// Any additional tags to be added to the resource.
 	// +optional
 	Additional Tags
-
-	// machineName is the name of the Machine object associated with the resource, only applicable to vm resources
-	// When set, this will be applied as "MachineName" on AWS
-	machineName *string
 }
 
-// WithMachineName sets the namespaced machine name
+// WithMachineName tags the namespaced machine name
+// The machine name will be tagged with key "MachineName"
 func (b BuildParams) WithMachineName(m *clusterv1.Machine) BuildParams {
 	machineNamespacedName := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
-	b.machineName = aws.String(machineNamespacedName.String())
+	b.Additional[MachineNameTagKey] = machineNamespacedName.String()
+	return b
+}
+
+// WithCloudProvider tags the cluster ownership for a resource
+func (b BuildParams) WithCloudProvider(name string) BuildParams {
+	b.Additional[ClusterAWSCloudProviderTagKey(name)] = string(ResourceLifecycleOwned)
 	return b
 }
 
@@ -185,10 +187,6 @@ func Build(params BuildParams) Tags {
 
 	if params.Name != nil {
 		tags["Name"] = *params.Name
-	}
-
-	if params.machineName != nil {
-		tags[MachineNameTagKey] = *params.machineName
 	}
 
 	return tags
