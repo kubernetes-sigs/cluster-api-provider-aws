@@ -797,7 +797,6 @@ func autoConvert_v1alpha3_BuildParams_To_v1alpha2_BuildParams(in *v1alpha3.Build
 	out.Name = (*string)(unsafe.Pointer(in.Name))
 	out.Role = (*string)(unsafe.Pointer(in.Role))
 	out.Additional = *(*Tags)(unsafe.Pointer(&in.Additional))
-	// INFO: in.machineName opted out of conversion generation
 	return nil
 }
 
