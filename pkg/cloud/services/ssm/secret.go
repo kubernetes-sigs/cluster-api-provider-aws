@@ -14,14 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretsmanager
+package ssm
 
 import (
 	"fmt"
 	"path"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
@@ -35,19 +36,18 @@ import (
 const (
 	entryPrefix = "aws.cluster.x-k8s.io"
 
-	// we set the max secret size to well below the 10240 byte limit, because this is limit after base64 encoding,
-	// but the aws sdk handles encoding for us, so we can't send a full 10240.
-	maxSecretSizeBytes = 7000
+	// max byte size for ssm is 4KB else we cross into the advanced-parameter tier
+	maxSecretSizeBytes = 4000
 )
 
-var retryableErrors = []string{
-	// Returned when the secret is scheduled for deletion
-	secretsmanager.ErrCodeInvalidRequestException,
-	// Returned during retries of deletes prior to recreation
-	secretsmanager.ErrCodeResourceNotFoundException,
-}
+var (
+	prefixRe        = regexp.MustCompile(`(?i)^[\/]?(aws|ssm)[.]?`)
+	retryableErrors = []string{
+		ssm.ErrCodeParameterLimitExceeded,
+	}
+)
 
-// Create stores data in AWS Secrets Manager for a given machine, chunking at 10kb per secret. The prefix of the secret
+// Create stores data in AWS SSM for a given machine, chunking at 4kb per secret. The prefix of the secret
 // ARN and the number of chunks are returned.
 func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, error) {
 	// Build the tags to apply to the secret.
@@ -66,13 +66,20 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 	if prefix == "" {
 		prefix = path.Join(entryPrefix, string(uuid.NewUUID()))
 	}
+	// SSM Validation does not allow (/)aws|ssm in the beginning of the string
+	prefix = prefixRe.ReplaceAllString(prefix, "")
+	// Because the secret name has a slash in it, whole name must validate as a full path
+	if prefix[0] != byte('/') {
+		prefix = "/" + prefix
+	}
+
 	// Split the data into chunks and create the secrets on demand.
 	chunks := int32(0)
 	var err error
-	bytes.Split(data, false, maxSecretSizeBytes, func(chunk []byte) {
-		name := fmt.Sprintf("%s-%d", prefix, chunks)
+	bytes.Split(data, true, maxSecretSizeBytes, func(chunk []byte) {
+		name := fmt.Sprintf("%s/%d", prefix, chunks)
 		retryFunc := func() (bool, error) { return s.retryableCreateSecret(name, chunk, tags) }
-		// Default timeout is 5 mins, but if Secrets Manager has got to the state where the timeout is reached,
+		// Default timeout is 5 mins, but if SSM has got to the state where the timeout is reached,
 		// makes sense to slow down machine creation until AWS weather improves.
 		if err = wait.WaitForWithRetryable(wait.NewBackoff(), retryFunc, retryableErrors...); err != nil {
 			return
@@ -85,15 +92,13 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, int32, err
 
 // retryableCreateSecret is a function to be passed into a waiter. In a separate function for ease of reading
 func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.Tags) (bool, error) {
-	_, err := s.SecretsManagerClient.CreateSecret(&secretsmanager.CreateSecretInput{
-		Name:         aws.String(name),
-		SecretBinary: chunk,
-		Tags:         converters.MapToSecretsManagerTags(tags),
+	_, err := s.SSMClient.PutParameter(&ssm.PutParameterInput{
+		Name:     aws.String(name),
+		DataType: aws.String("text"),
+		Value:    aws.String(string(chunk)),
+		Tags:     converters.MapToSSMTags(tags),
+		Type:     aws.String("SecureString"),
 	})
-	// If the secret already exists, delete it, return request to retry, as deletes are eventually consistent
-	if awserrors.IsResourceExists(err) {
-		return false, s.forceDeleteSecretEntry(name)
-	}
 	if err != nil {
 		return false, err
 	}
@@ -102,9 +107,8 @@ func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.
 
 // forceDeleteSecretEntry deletes a single secret, ignoring if it is absent
 func (s *Service) forceDeleteSecretEntry(name string) error {
-	_, err := s.SecretsManagerClient.DeleteSecret(&secretsmanager.DeleteSecretInput{
-		SecretId:                   aws.String(name),
-		ForceDeleteWithoutRecovery: aws.Bool(true),
+	_, err := s.SSMClient.DeleteParameter(&ssm.DeleteParameterInput{
+		Name: aws.String(name),
 	})
 	if awserrors.IsNotFound(err) {
 		return nil
@@ -112,11 +116,11 @@ func (s *Service) forceDeleteSecretEntry(name string) error {
 	return err
 }
 
-// Delete the secret belonging to a machine from AWS Secrets Manager
+// Delete the secret belonging to a machine from AWS SSM
 func (s *Service) Delete(m *scope.MachineScope) error {
 	var errs []error
 	for i := int32(0); i < m.GetSecretCount(); i++ {
-		if err := s.forceDeleteSecretEntry(fmt.Sprintf("%s-%d", m.GetSecretPrefix(), i)); err != nil {
+		if err := s.forceDeleteSecretEntry(fmt.Sprintf("%s/%d", m.GetSecretPrefix(), i)); err != nil {
 			errs = append(errs, err)
 		}
 	}
