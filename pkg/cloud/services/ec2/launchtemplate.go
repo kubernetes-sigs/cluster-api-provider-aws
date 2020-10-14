@@ -75,6 +75,29 @@ func (s *Service) CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *s
 		LaunchTemplateName: aws.String(scope.Name()),
 	}
 
+	additionalTags := scope.AdditionalTags()
+	// Set the cloud provider tag
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+
+	tags := infrav1.Build(infrav1.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Name:        aws.String(scope.Name()),
+		Role:        aws.String("node"),
+		Additional:  additionalTags,
+	})
+
+	if len(tags) > 0 {
+		spec := &ec2.TagSpecification{ResourceType: aws.String(ec2.ResourceTypeLaunchTemplate)}
+		for key, value := range tags {
+			spec.Tags = append(spec.Tags, &ec2.Tag{
+				Key:   aws.String(key),
+				Value: aws.String(value),
+			})
+		}
+		input.TagSpecifications = append(input.TagSpecifications, spec)
+	}
+
 	result, err := s.EC2Client.CreateLaunchTemplate(input)
 	if err != nil {
 		return "", err
@@ -113,29 +136,6 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 		},
 		KeyName:  lt.SSHKeyName,
 		UserData: pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
-	}
-
-	additionalTags := scope.AdditionalTags()
-	// Set the cloud provider tag
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
-
-	tags := infrav1.Build(infrav1.BuildParams{
-		ClusterName: s.scope.Name(),
-		Lifecycle:   infrav1.ResourceLifecycleOwned,
-		Name:        aws.String(scope.Name()),
-		Role:        aws.String("node"),
-		Additional:  additionalTags,
-	})
-
-	if len(tags) > 0 {
-		spec := &ec2.LaunchTemplateTagSpecificationRequest{ResourceType: aws.String(ec2.ResourceTypeInstance)}
-		for key, value := range tags {
-			spec.Tags = append(spec.Tags, &ec2.Tag{
-				Key:   aws.String(key),
-				Value: aws.String(value),
-			})
-		}
-		data.TagSpecifications = append(data.TagSpecifications, spec)
 	}
 
 	ids, err := s.GetCoreNodeSecurityGroups(scope)
@@ -188,6 +188,8 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 			},
 		}
 	}
+
+	data.TagSpecifications = s.buildLaunchTemplateTagSpecificationRequest(scope)
 
 	return data, nil
 }
@@ -275,8 +277,6 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incom
 		return true, nil
 	}
 
-	// todo: tags
-
 	return false, nil
 }
 
@@ -325,4 +325,43 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*str
 	}
 
 	return aws.String(lookupAMI), nil
+}
+
+func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope *scope.MachinePoolScope) []*ec2.LaunchTemplateTagSpecificationRequest {
+	tagSpecifications := make([]*ec2.LaunchTemplateTagSpecificationRequest, 0)
+	additionalTags := scope.AdditionalTags()
+	// Set the cloud provider tag
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+
+	tags := infrav1.Build(infrav1.BuildParams{
+		ClusterName: s.scope.Name(),
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Name:        aws.String(scope.Name()),
+		Role:        aws.String("node"),
+		Additional:  additionalTags,
+	})
+
+	if len(tags) > 0 {
+		// tag instances
+		spec := &ec2.LaunchTemplateTagSpecificationRequest{ResourceType: aws.String(ec2.ResourceTypeInstance)}
+		for key, value := range tags {
+			spec.Tags = append(spec.Tags, &ec2.Tag{
+				Key:   aws.String(key),
+				Value: aws.String(value),
+			})
+		}
+		tagSpecifications = append(tagSpecifications, spec)
+
+		// tag EBS volumes
+		spec = &ec2.LaunchTemplateTagSpecificationRequest{ResourceType: aws.String(ec2.ResourceTypeVolume)}
+		for key, value := range tags {
+			spec.Tags = append(spec.Tags, &ec2.Tag{
+				Key:   aws.String(key),
+				Value: aws.String(value),
+			})
+		}
+		tagSpecifications = append(tagSpecifications, spec)
+
+	}
+	return tagSpecifications
 }
