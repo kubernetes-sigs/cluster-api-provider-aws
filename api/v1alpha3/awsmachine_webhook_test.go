@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"github.com/aws/aws-sdk-go/aws"
 	"testing"
 
 	"k8s.io/utils/pointer"
@@ -99,6 +100,24 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "SSH key is invalid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: aws.String("test\t"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "SSH key is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: aws.String("test"),
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
