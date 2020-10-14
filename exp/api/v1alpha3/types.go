@@ -102,6 +102,11 @@ type AWSLaunchTemplate struct {
 	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
+	// VersionNumber is the version of the launch template that is applied.
+	// Typically a new version is created when at least one of the following happens:
+	// 1) A new launch template spec is applied.
+	// 2) One or more parameters in an existing template is changed.
+	// 3) A new AMI is discovered.
 	VersionNumber *int64 `json:"versionNumber,omitempty"`
 
 	// AdditionalSecurityGroups is an array of references to security groups that should be applied to the

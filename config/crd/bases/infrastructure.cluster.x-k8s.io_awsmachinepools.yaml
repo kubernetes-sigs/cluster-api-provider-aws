@@ -179,6 +179,7 @@ spec:
                     description: SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
                     type: string
                   versionNumber:
+                    description: 'VersionNumber is the version of the launch template that is applied. Typically a new version is created when at least one of the following happens: 1) A new launch template spec is applied. 2) One or more parameters in an existing template is changed. 3) A new AMI is discovered.'
                     format: int64
                     type: integer
                 type: object
