@@ -439,8 +439,7 @@ release-notes: $(RELEASE_NOTES)
 
 .PHONY: release-templates
 release-templates: $(RELEASE_DIR)
-	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml
-	cp templates/cluster-template-eks.yaml $(RELEASE_DIR)/cluster-template-eks.yaml
+	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
 
 ## --------------------------------------
 ## Cleanup / Verification

@@ -6,6 +6,7 @@
 - [Topics](./topics/index.md)
   - [Using clusterawsadm to fulfill prerequisites](./topics/using-clusterawsadm-to-fulfill-prerequisites.md)
   - [Accessing EC2 instances](./topics/accessing-ec2-instances.md)
+  - [Machine Pools](./topics/machinepools.md)
   - [EKS Support](./topics/eks.md)
   - [Consuming Existing AWS Infrastructure](./topics/consuming-existing-aws-infrastructure.md)
   - [Multi-AZ Control Planes](./topics/multi-az-control-planes.md)
