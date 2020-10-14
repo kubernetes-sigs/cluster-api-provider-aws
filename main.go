@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -79,7 +78,6 @@ var (
 	webhookPort             int
 	healthAddr              string
 	serviceEndpoints        string
-	errEKSInvalidFlags      = errors.New("invalid EKS flag combination")
 )
 
 func main() {
@@ -162,12 +160,6 @@ func main() {
 			setupLog.Info("enabling EKS controllers")
 
 			enableIAM := feature.Gates.Enabled(feature.EKSEnableIAM)
-			allowAddRoles := feature.Gates.Enabled(feature.EKSAllowAddRoles)
-
-			if allowAddRoles && !enableIAM {
-				setupLog.Error(errEKSInvalidFlags, "cannot use EKSAllowAddRoles flag without EKSEnableIAM")
-				os.Exit(1)
-			}
 
 			if err = (&controllersexp.AWSManagedMachinePoolReconciler{
 				Client:    mgr.GetClient(),
