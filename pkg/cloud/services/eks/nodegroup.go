@@ -111,6 +111,37 @@ func ngTags(key string, additionalTags infrav1.Tags) map[string]string {
 	return tags
 }
 
+func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
+	pool := s.scope.ManagedMachinePool.Spec
+	if pool.RemoteAccess == nil {
+		return nil, nil
+	}
+
+	controlPlane := s.scope.ControlPlane
+	sSGs := pool.RemoteAccess.SourceSecurityGroups
+
+	if controlPlane.Spec.Bastion.Enabled {
+		additionalSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupEKSNodeAdditional]
+		if !ok {
+			return nil, errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupEKSNodeAdditional)
+		}
+		sSGs = append(
+			sSGs,
+			additionalSG.ID,
+		)
+	}
+
+	sshKeyName := pool.RemoteAccess.SSHKeyName
+	if sshKeyName == nil {
+		sshKeyName = controlPlane.Spec.SSHKeyName
+	}
+
+	return &eks.RemoteAccessConfig{
+		SourceSecurityGroups: aws.StringSlice(sSGs),
+		Ec2SshKey:            sshKeyName,
+	}, nil
+}
+
 func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
@@ -121,6 +152,12 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	}
 	managedPool := s.scope.ManagedMachinePool.Spec
 	tags := ngTags(s.scope.Name(), additionalTags)
+
+	remoteAccess, err := s.remoteAccess()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create remote access configuration")
+	}
+
 	input := &eks.CreateNodegroupInput{
 		ScalingConfig: s.scalingConfig(),
 		ClusterName:   aws.String(eksClusterName),
@@ -129,6 +166,7 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		NodeRole:      roleArn,
 		Labels:        aws.StringMap(managedPool.Labels),
 		Tags:          aws.StringMap(tags),
+		RemoteAccess:  remoteAccess,
 	}
 	if managedPool.AMIType != nil {
 		input.AmiType = aws.String(string(*managedPool.AMIType))
@@ -138,12 +176,6 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	}
 	if managedPool.InstanceType != nil {
 		input.InstanceTypes = []*string{managedPool.InstanceType}
-	}
-	if managedPool.RemoteAccess != nil {
-		input.RemoteAccess = &eks.RemoteAccessConfig{
-			Ec2SshKey:            managedPool.RemoteAccess.SSHKeyName,
-			SourceSecurityGroups: aws.StringSlice(managedPool.RemoteAccess.SourceSecurityGroups),
-		}
 	}
 	if err := input.Validate(); err != nil {
 		return nil, errors.Wrap(err, "created invalid CreateNodegroupInput")
