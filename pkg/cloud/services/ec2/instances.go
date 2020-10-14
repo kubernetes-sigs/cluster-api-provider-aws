@@ -118,8 +118,6 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
 	additionalTags := scope.AdditionalTags()
-	// Set the cloud provider tag
-	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
 
 	input.Tags = infrav1.Build(infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
@@ -127,7 +125,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
 		Additional:  additionalTags,
-	})
+	}.WithCloudProvider(s.scope.Name()).WithMachineName(scope.Machine))
 
 	var err error
 	// Pick image from the machine configuration, or use a default one.
