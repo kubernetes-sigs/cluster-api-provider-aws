@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,7 +41,7 @@ var (
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachineTemplate) ValidateCreate() error {
-	var allErrs field.ErrorList
+	var allErrs []error
 	spec := r.Spec.Template.Spec
 
 	if spec.CloudInit.SecretPrefix != "" {
@@ -55,7 +56,7 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "template", "spec", "providerID"), "cannot be set in templates"))
 	}
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return kerrors.NewAggregate(allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type

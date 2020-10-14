@@ -24,8 +24,8 @@ import (
 )
 
 // Validate will validate the bastion fields
-func (b *Bastion) Validate() []*field.Error {
-	var errs field.ErrorList
+func (b *Bastion) Validate() []error {
+	var errs []error
 
 	if b.DisableIngressRules && len(b.AllowedCIDRBlocks) > 0 {
 		errs = append(errs,

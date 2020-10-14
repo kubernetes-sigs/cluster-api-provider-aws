@@ -17,10 +17,10 @@ limitations under the License.
 package v1alpha3
 
 import (
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -43,13 +43,10 @@ func (r *AWSMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &AWSMachinePool{}
 var _ webhook.Validator = &AWSMachinePool{}
 
-func (r *AWSMachinePool) validateDefaultCoolDown() field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSMachinePool) validateDefaultCoolDown() []error {
+	var allErrs []error
 	if int(r.Spec.DefaultCoolDown.Duration.Seconds()) < 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.DefaultCoolDown"), "DefaultCoolDown must be greater than zero"))
-	}
-	if len(allErrs) == 0 {
-		return nil
 	}
 	return allErrs
 }
@@ -58,39 +55,21 @@ func (r *AWSMachinePool) validateDefaultCoolDown() field.ErrorList {
 func (r *AWSMachinePool) ValidateCreate() error {
 	log.Info("AWSMachinePool validate create", "name", r.Name)
 
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	if errs := r.validateDefaultCoolDown(); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(
-		r.GroupVersionKind().GroupKind(),
-		r.Name,
-		allErrs,
-	)
+	return kerrors.NewAggregate(allErrs)
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSMachinePool
 func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
-	var allErrs field.ErrorList
+	var allErrs []error
 	if errs := r.validateDefaultCoolDown(); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(
-		r.GroupVersionKind().GroupKind(),
-		r.Name,
-		allErrs,
-	)
+	return kerrors.NewAggregate(allErrs)
 }
 
 // ValidateDelete allows you to add any extra validation when deleting

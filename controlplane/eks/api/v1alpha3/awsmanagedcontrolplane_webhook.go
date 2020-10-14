@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/pkg/errors"
 
@@ -71,7 +72,7 @@ func normalizeVersion(raw string) (string, error) {
 func (r *AWSManagedControlPlane) ValidateCreate() error {
 	mcpLog.Info("AWSManagedControlPlane validate create", "name", r.Name)
 
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	if r.Spec.EKSClusterName == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksClusterName"), "eksClusterName is required"))
@@ -80,16 +81,8 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
+	return kerrors.NewAggregate(allErrs)
 
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(
-		r.GroupVersionKind().GroupKind(),
-		r.Name,
-		allErrs,
-	)
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedControlPlane
@@ -102,7 +95,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 		})
 	}
 
-	var allErrs field.ErrorList
+	var allErrs []error
 	allErrs = append(allErrs, r.validateEKSClusterName()...)
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
@@ -114,16 +107,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 			field.Invalid(field.NewPath("spec", "region"), r.Spec.Region, "field is immutable"),
 		)
 	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(
-		r.GroupVersionKind().GroupKind(),
-		r.Name,
-		allErrs,
-	)
+	return kerrors.NewAggregate(allErrs)
 }
 
 // ValidateDelete allows you to add any extra validation when deleting
@@ -133,8 +117,8 @@ func (r *AWSManagedControlPlane) ValidateDelete() error {
 	return nil
 }
 
-func (r *AWSManagedControlPlane) validateEKSClusterName() field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSManagedControlPlane) validateEKSClusterName() []error {
+	var allErrs []error
 
 	if r.Spec.EKSClusterName == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksClusterName"), "eksClusterName is required"))
@@ -143,8 +127,8 @@ func (r *AWSManagedControlPlane) validateEKSClusterName() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSManagedControlPlane) validateEKSClusterNameSame(old *AWSManagedControlPlane) field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSManagedControlPlane) validateEKSClusterNameSame(old *AWSManagedControlPlane) []error {
+	var allErrs []error
 
 	if r.Spec.EKSClusterName != old.Spec.EKSClusterName {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.eksClusterName"), r.Spec.EKSClusterName, "eksClusterName is different to current cluster name"))
@@ -153,9 +137,9 @@ func (r *AWSManagedControlPlane) validateEKSClusterNameSame(old *AWSManagedContr
 	return allErrs
 }
 
-func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane) field.ErrorList {
+func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane) []error {
 	path := field.NewPath("spec.version")
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	if r.Spec.Version == nil {
 		return allErrs
@@ -176,8 +160,8 @@ func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane)
 	return allErrs
 }
 
-func (r *AWSManagedControlPlane) validateIAMAuthConfig() field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSManagedControlPlane) validateIAMAuthConfig() []error {
+	var allErrs []error
 
 	parentPath := field.NewPath("spec.iamAuthenticatorConfig")
 

@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -49,8 +50,8 @@ func (r *AWSManagedMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error 
 var _ webhook.Defaulter = &AWSManagedMachinePool{}
 var _ webhook.Validator = &AWSManagedMachinePool{}
 
-func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSManagedMachinePool) validateScaling() []error {
+	var allErrs []error
 	if r.Spec.Scaling != nil { // nolint:nestif
 		minField := field.NewPath("spec", "scaling", "minSize")
 		maxField := field.NewPath("spec", "scaling", "maxSize")
@@ -68,9 +69,6 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(maxField, *max, "must be greater than zero"))
 		}
 	}
-	if len(allErrs) == 0 {
-		return nil
-	}
 	return allErrs
 }
 
@@ -78,7 +76,7 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 func (r *AWSManagedMachinePool) ValidateCreate() error {
 	mmpLog.Info("AWSManagedMachinePool validate create", "name", r.Name)
 
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	if r.Spec.EKSNodegroupName == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksNodegroupName"), "eksNodegroupName is required"))
@@ -86,16 +84,7 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(
-		r.GroupVersionKind().GroupKind(),
-		r.Name,
-		allErrs,
-	)
+	return kerrors.NewAggregate(allErrs)
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedMachinePool
@@ -108,22 +97,13 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 		})
 	}
 
-	var allErrs field.ErrorList
+	var allErrs []error
 	allErrs = append(allErrs, r.validateImmutable(oldPool)...)
 
 	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-
-	return apierrors.NewInvalid(
-		r.GroupVersionKind().GroupKind(),
-		r.Name,
-		allErrs,
-	)
+	return kerrors.NewAggregate(allErrs)
 }
 
 // ValidateDelete allows you to add any extra validation when deleting
@@ -133,8 +113,8 @@ func (r *AWSManagedMachinePool) ValidateDelete() error {
 	return nil
 }
 
-func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) []error {
+	var allErrs []error
 
 	appendErrorIfMutated := func(old, update interface{}, name string) {
 		if !reflect.DeepEqual(old, update) {

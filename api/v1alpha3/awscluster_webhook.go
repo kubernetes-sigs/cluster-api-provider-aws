@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -47,12 +48,11 @@ var (
 )
 
 func (r *AWSCluster) ValidateCreate() error {
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, isValidSSHKey(r.Spec.SSHKeyName)...)
-
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return kerrors.NewAggregate(allErrs)
 }
 
 func (r *AWSCluster) ValidateDelete() error {
@@ -60,7 +60,7 @@ func (r *AWSCluster) ValidateDelete() error {
 }
 
 func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	oldC, ok := old.(*AWSCluster)
 	if !ok {
@@ -97,8 +97,7 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
-
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return kerrors.NewAggregate(allErrs)
 }
 
 func (r *AWSCluster) Default() {

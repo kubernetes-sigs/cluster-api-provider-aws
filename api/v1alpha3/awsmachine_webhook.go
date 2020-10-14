@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"reflect"
 
 	"github.com/pkg/errors"
@@ -47,14 +48,14 @@ var (
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachine) ValidateCreate() error {
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 	allErrs = append(allErrs, isValidSSHKey(r.Spec.SSHKeyName)...)
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return kerrors.NewAggregate(allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -72,7 +73,7 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 		})
 	}
 
-	var allErrs field.ErrorList
+	var allErrs []error
 
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
 
@@ -108,11 +109,11 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "cannot be modified"))
 	}
 
-	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
+	return kerrors.NewAggregate(allErrs)
 }
 
-func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSMachine) validateCloudInitSecret() []error {
+	var allErrs []error
 
 	if r.Spec.CloudInit.InsecureSkipSecretsManager {
 		if r.Spec.CloudInit.SecretPrefix != "" {
@@ -133,8 +134,8 @@ func (r *AWSMachine) validateCloudInitSecret() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSMachine) validateRootVolume() field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSMachine) validateRootVolume() []error {
+	var allErrs []error
 
 	if r.Spec.RootVolume == nil {
 		return allErrs
@@ -151,8 +152,8 @@ func (r *AWSMachine) validateRootVolume() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
-	var allErrs field.ErrorList
+func (r *AWSMachine) validateNonRootVolumes() []error {
+	var allErrs []error
 
 	if r.Spec.NonRootVolumes == nil {
 		return allErrs
