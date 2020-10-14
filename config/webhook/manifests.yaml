@@ -31,6 +31,26 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinepool
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.awsmachinepool.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmachinepools
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmanagedmachinepool
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -113,6 +133,26 @@ webhooks:
     - UPDATE
     resources:
     - awsmachinetemplates
+  sideEffects: None
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-awsmachinepool
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.awsmachinepool.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmachinepools
   sideEffects: None
 - clientConfig:
     caBundle: Cg==

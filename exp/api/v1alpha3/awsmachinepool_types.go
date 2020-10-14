@@ -67,6 +67,11 @@ type AWSMachinePoolSpec struct {
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
+
+	// The amount of time, in seconds, after a scaling activity completes before another scaling activity can start.
+	// If no value is supplied by user a default value of 300 seconds is set
+	// +optional
+	DefaultCoolDown metav1.Duration `json:"defaultCoolDown,omitempty"`
 }
 
 // AWSMachinePoolStatus defines the observed state of AWSMachinePool

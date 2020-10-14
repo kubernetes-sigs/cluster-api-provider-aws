@@ -183,6 +183,9 @@ spec:
                     format: int64
                     type: integer
                 type: object
+              defaultCoolDown:
+                description: The amount of time, in seconds, after a scaling activity completes before another scaling activity can start. If no value is supplied by user a default value of 300 seconds is set
+                type: string
               maxSize:
                 default: 1
                 description: The maximum size of the group.

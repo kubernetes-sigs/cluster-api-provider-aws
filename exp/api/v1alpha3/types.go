@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
 
@@ -174,14 +175,15 @@ type Tags map[string]string
 // AutoScalingGroup describes an AWS autoscaling group.
 type AutoScalingGroup struct {
 	// The tags associated with the instance.
-	ID              string       `json:"id,omitempty"`
-	Tags            infrav1.Tags `json:"tags,omitempty"`
-	Name            string       `json:"name,omitempty"`
-	DesiredCapacity *int32       `json:"desiredCapacity,omitempty"`
-	MaxSize         int32        `json:"maxSize,omitempty"`
-	MinSize         int32        `json:"minSize,omitempty"`
-	PlacementGroup  string       `json:"placementGroup,omitempty"`
-	Subnets         []string     `json:"subnets,omitempty"`
+	ID              string          `json:"id,omitempty"`
+	Tags            infrav1.Tags    `json:"tags,omitempty"`
+	Name            string          `json:"name,omitempty"`
+	DesiredCapacity *int32          `json:"desiredCapacity,omitempty"`
+	MaxSize         int32           `json:"maxSize,omitempty"`
+	MinSize         int32           `json:"minSize,omitempty"`
+	PlacementGroup  string          `json:"placementGroup,omitempty"`
+	Subnets         []string        `json:"subnets,omitempty"`
+	DefaultCoolDown metav1.Duration `json:"defaultCoolDown,omitempty"`
 
 	MixedInstancesPolicy *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
 	Status               ASGStatus
