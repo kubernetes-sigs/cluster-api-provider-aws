@@ -20,9 +20,8 @@ import (
 	"context"
 	"net"
 	"reflect"
-	"time"
-
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
