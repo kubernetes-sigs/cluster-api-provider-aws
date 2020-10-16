@@ -31,5 +31,5 @@ func (t Template) eksControlPlanePolicies() []string {
 }
 
 func eksAssumeRolePolicy() *iamv1.PolicyDocument {
-	return assumeRolePolicy("eks.amazonaws.com")
+	return assumeRolePolicy([]string{"eks.amazonaws.com"})
 }

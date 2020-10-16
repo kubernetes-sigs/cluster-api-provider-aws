@@ -247,9 +247,15 @@ Resources:
           - eks:DeleteCluster
           - eks:UpdateClusterConfig
           - eks:UntagResource
+          - eks:UpdateNodegroupVersion
+          - eks:DescribeNodegroup
+          - eks:DeleteNodegroup
+          - eks:UpdateNodegroupConfig
+          - eks:CreateNodegroup
           Effect: Allow
           Resource:
           - arn:aws:eks:*:*:cluster/*
+          - arn:aws:eks:*:*:nodegroup/*/*/*
         - Action:
           - iam:PassRole
           Condition:
@@ -313,6 +319,7 @@ Resources:
           Effect: Allow
           Principal:
             Service:
+            - ec2.amazonaws.com
             - eks.amazonaws.com
         Version: 2012-10-17
       ManagedPolicyArns:

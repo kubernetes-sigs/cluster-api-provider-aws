@@ -230,9 +230,15 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 					"eks:DeleteCluster",
 					"eks:UpdateClusterConfig",
 					"eks:UntagResource",
+					"eks:UpdateNodegroupVersion",
+					"eks:DescribeNodegroup",
+					"eks:DeleteNodegroup",
+					"eks:UpdateNodegroupConfig",
+					"eks:CreateNodegroup",
 				},
 				Resource: iamv1.Resources{
 					"arn:aws:eks:*:*:cluster/*",
+					"arn:aws:eks:*:*:nodegroup/*/*/*",
 				},
 				Effect: iamv1.EffectAllow,
 			}, {
