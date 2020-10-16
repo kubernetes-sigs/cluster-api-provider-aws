@@ -53,7 +53,7 @@ export EXP_EKS=true
 export EXP_EKS_IAM=true
 export EXP_EKS_ADD_ROLES=true
 
-clusterctl --infrastructure=aws --control-palne aws-eks --bootstrap aws-eks
+clusterctl init --infrastructure=aws --control-plane aws-eks --bootstrap aws-eks
 ```
 
 ## Creating a EKS cluster

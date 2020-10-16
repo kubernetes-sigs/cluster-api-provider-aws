@@ -87,7 +87,7 @@ spec:
 and then use that configuration file:
 
 ```bash
-clusterawsadm bootstrap iam create-cloudformation-stack --config boostrap-config.yaml
+clusterawsadm bootstrap iam create-cloudformation-stack --config bootstrap-config.yaml
 ```
 
 ### Without `clusterawsadm`
