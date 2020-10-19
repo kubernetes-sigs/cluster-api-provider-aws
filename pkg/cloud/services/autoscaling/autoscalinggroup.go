@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
@@ -138,16 +139,51 @@ func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoS
 	return s.SDKToAutoScalingGroup(out.AutoScalingGroups[0])
 }
 
+// getFilteredSubnets fetches subnets filtered based on the criteria passed
+func (s *Service) getFilteredSubnets(criteria ...*ec2.Filter) ([]*ec2.Subnet, error) {
+	out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{Filters: criteria})
+	if err != nil {
+		return nil, err
+	}
+	return out.Subnets, nil
+}
+
 // CreateASG runs an autoscaling group.
 func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	subnetIDs := make([]string, len(scope.AWSMachinePool.Spec.Subnets))
-	for i, v := range scope.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
+	subnetIDs := []string{}
+
+	if scope.AWSMachinePool.Spec.Subnets != nil && len(scope.AWSMachinePool.Spec.Subnets) > 0 {
+		for _, v := range scope.AWSMachinePool.Spec.Subnets {
+			if v.ID != nil {
+				subnetIDs = append(subnetIDs, aws.StringValue(v.ID))
+			} else if v.ARN != nil {
+				criteria := &ec2.Filter{Name: aws.String("subnet-arn"), Values: []*string{v.ARN}}
+				matchingSubnets, err := s.getFilteredSubnets(criteria)
+				if err != nil {
+					return nil, err
+				}
+				for _, subnet := range matchingSubnets {
+					subnetIDs = append(subnetIDs, *subnet.SubnetId)
+				}
+			} else if v.Filters != nil {
+				criteria := []*ec2.Filter{}
+				for _, f := range v.Filters {
+					criteria = append(criteria, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
+				}
+				matchingSubnets, err := s.getFilteredSubnets(criteria...)
+				if err != nil {
+					return nil, err
+				}
+				for _, subnet := range matchingSubnets {
+					subnetIDs = append(subnetIDs, *subnet.SubnetId)
+				}
+			}
+		}
+	} else {
+		for _, subnet := range scope.InfraCluster.Subnets() {
+			subnetIDs = append(subnetIDs, subnet.ID)
+		}
 	}
-	// subnetIDs := []string{}
-	// for _, v := range scope.AWSMachinePool.Spec.Subnets {
-	// 	subnetIDs = append(subnetIDs, aws.StringValue(v.ID))
-	// }
 
 	input := &expinfrav1.AutoScalingGroup{
 		Name:                 scope.Name(),
