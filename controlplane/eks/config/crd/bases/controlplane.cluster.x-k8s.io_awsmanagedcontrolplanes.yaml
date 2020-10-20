@@ -63,6 +63,10 @@ spec:
                   type: string
                 description: AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the ones added by default.
                 type: object
+              associateOIDCProvider:
+                default: false
+                description: AssociateOIDCProvider can be enabled to automatically create an identity provider for the controller for use with IAM roles for service accounts
+                type: boolean
               bastion:
                 description: Bastion contains options to configure the bastion host.
                 properties:
@@ -686,6 +690,16 @@ spec:
                       type: object
                     description: SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
                     type: object
+                type: object
+              oidcProvider:
+                description: OIDCProvider holds the status of the identity provider for this cluster
+                properties:
+                  arn:
+                    description: ARN holds the ARN of the provider
+                    type: string
+                  trustPolicy:
+                    description: TrustPolicy contains the boilerplate IAM trust policy to use for IRSA
+                    type: string
                 type: object
               ready:
                 default: false
