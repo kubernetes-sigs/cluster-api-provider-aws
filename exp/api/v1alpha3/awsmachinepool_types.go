@@ -48,8 +48,9 @@ type AWSMachinePoolSpec struct {
 	// AvailabilityZones is an array of availability zones instances can run in
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
-	// Subnets is an array of subnet configurations
-	Subnets []infrav1.AWSResourceReference `json:"subnets,omitempty"`
+	// Subnets is an array of subnet IDs
+	// +optional
+	Subnets []string `json:"subnets,omitempty"`
 
 	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
 	// AWS provider.

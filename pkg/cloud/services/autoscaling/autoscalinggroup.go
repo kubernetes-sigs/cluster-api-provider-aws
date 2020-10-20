@@ -140,14 +140,12 @@ func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoS
 
 // CreateASG runs an autoscaling group.
 func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	subnetIDs := make([]string, len(scope.AWSMachinePool.Spec.Subnets))
-	for i, v := range scope.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
+	subnetIDs := scope.AWSMachinePool.Spec.Subnets
+	if len(subnetIDs) == 0 {
+		for _, subnet := range scope.InfraCluster.Subnets() {
+			subnetIDs = append(subnetIDs, subnet.ID)
+		}
 	}
-	// subnetIDs := []string{}
-	// for _, v := range scope.AWSMachinePool.Spec.Subnets {
-	// 	subnetIDs = append(subnetIDs, aws.StringValue(v.ID))
-	// }
 
 	input := &expinfrav1.AutoScalingGroup{
 		Name:                 scope.Name(),
