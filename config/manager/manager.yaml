@@ -16,7 +16,6 @@ spec:
       labels:
         control-plane: capa-controller-manager
     spec:
-      serviceAccountName: controller-manager
       containers:
       - args:
         - --enable-leader-election
