@@ -1,5 +1,6 @@
 resources:
 - manager.yaml
+- serviceaccount.yaml
 
 patchesStrategicMerge:
 - manager_image_patch.yaml
