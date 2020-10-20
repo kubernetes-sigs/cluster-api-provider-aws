@@ -149,7 +149,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 			roleName = infrav1exp.DefaultEKSNodegroupRole
 		} else {
 			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
-			roleName = fmt.Sprintf("%s-nodegroup-iam-service-role", s.scope.NodegroupName())
+			roleName = fmt.Sprintf("%s-%s-nodegroup-iam-service-role", s.scope.KubernetesClusterName(), s.scope.NodegroupName())
 		}
 		s.scope.ManagedMachinePool.Spec.RoleName = roleName
 	}
