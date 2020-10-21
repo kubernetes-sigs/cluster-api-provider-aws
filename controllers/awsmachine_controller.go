@@ -224,6 +224,9 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 					oldMachine.Status = infrav1.AWSMachineStatus{}
 					newMachine.Status = infrav1.AWSMachineStatus{}
 
+					oldMachine.ObjectMeta.ResourceVersion = ""
+					newMachine.ObjectMeta.ResourceVersion = ""
+
 					return !reflect.DeepEqual(oldMachine, newMachine)
 				},
 			},
