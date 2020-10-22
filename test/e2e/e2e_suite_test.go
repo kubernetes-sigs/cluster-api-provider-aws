@@ -175,13 +175,24 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 	platformKustomization, err := ioutil.ReadFile("data/ci-artifacts-platform-kustomization.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	_, err = kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
+	ciTemplate, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
 		kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
 			ArtifactsDirectory:    artifactFolder,
 			SourceTemplate:        sourceTemplate,
 			PlatformKustomization: platformKustomization,
 		},
 	)
+	clusterctlCITemplate := clusterctl.Files{
+		SourcePath: ciTemplate,
+		TargetName: "cluster-template-conformance-ci-artifacts.yaml",
+	}
+	providers := e2eConfig.Providers
+	for i, prov := range providers {
+		if prov.Name != "aws" {
+			continue
+		}
+		e2eConfig.Providers[i].Files = append(e2eConfig.Providers[i].Files, clusterctlCITemplate)
+	}
 	Expect(err).NotTo(HaveOccurred())
 	awsSession = newAWSSession()
 	createCloudFormationStack(awsSession, getBootstrapTemplate())
