@@ -309,7 +309,7 @@ func TestRemoveStoppedMachine(t *testing.T) {
 				Reservations: []*ec2.Reservation{
 					{
 						Instances: []*ec2.Instance{
-							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+							stubInstance(stubAMIID, stubInstanceID),
 						},
 					},
 				},
@@ -321,7 +321,7 @@ func TestRemoveStoppedMachine(t *testing.T) {
 				Reservations: []*ec2.Reservation{
 					{
 						Instances: []*ec2.Instance{
-							stubInstance("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+							stubInstance(stubAMIID, stubInstanceID),
 							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
 						},
 					},
@@ -349,6 +349,9 @@ func TestLaunchInstance(t *testing.T) {
 		t.Fatalf("Unable to build test machine manifest: %v", err)
 	}
 
+	providerConfig := stubProviderConfig()
+	stubTagList := buildTagList(machine.Name, stubClusterID, providerConfig.Tags)
+
 	cases := []struct {
 		name                string
 		providerConfig      *awsproviderv1.AWSMachineProviderConfig
@@ -362,6 +365,7 @@ func TestLaunchInstance(t *testing.T) {
 		instancesOutput     *ec2.Reservation
 		instancesErr        error
 		succeeds            bool
+		runInstancesInput   *ec2.RunInstancesInput
 	}{
 		{
 			name: "Security groups with filters",
@@ -379,8 +383,34 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
 			succeeds:        true,
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String(*providerConfig.AMI.ID),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagList,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagList,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 providerConfig.Subnet.ID,
+						Groups:                   []*string{aws.String("groupID")},
+					},
+				},
+				UserData: aws.String(""),
+			},
 		},
 		{
 			name: "Security groups with filters with error",
@@ -405,6 +435,31 @@ func TestLaunchInstance(t *testing.T) {
 			securityGroupOutput: &ec2.DescribeSecurityGroupsOutput{
 				SecurityGroups: []*ec2.SecurityGroup{},
 			},
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String(*providerConfig.AMI.ID),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagList,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagList,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 providerConfig.Subnet.ID,
+					},
+				},
+				UserData: aws.String(""),
+			},
 		},
 		{
 			name: "Subnet with filters",
@@ -418,8 +473,43 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
 			succeeds:        true,
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String(*providerConfig.AMI.ID),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagList,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagList,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 aws.String("subnetID"),
+						Groups: []*string{
+							aws.String("sg-00868b02fbe29de17"),
+							aws.String("sg-0a4658991dc5eb40a"),
+							aws.String("sg-009a70e28fa4ba84e"),
+							aws.String("sg-07323d56fb932c84c"),
+							aws.String("sg-08b1ffd32874d59a2"),
+						},
+					},
+				},
+				UserData: aws.String(""),
+				Placement: &ec2.Placement{
+					AvailabilityZone: aws.String("us-east-1a"),
+				},
+			},
 		},
 		{
 			name: "Subnet with filters with error",
@@ -453,8 +543,40 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
 			succeeds:        true,
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String("ami-1111"),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagList,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagList,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 providerConfig.Subnet.ID,
+						Groups: []*string{
+							aws.String("sg-00868b02fbe29de17"),
+							aws.String("sg-0a4658991dc5eb40a"),
+							aws.String("sg-009a70e28fa4ba84e"),
+							aws.String("sg-07323d56fb932c84c"),
+							aws.String("sg-08b1ffd32874d59a2"),
+						},
+					},
+				},
+				UserData: aws.String(""),
+			},
 		},
 		{
 			name: "AMI with filters with error",
@@ -475,6 +597,41 @@ func TestLaunchInstance(t *testing.T) {
 			}),
 			imageOutput: &ec2.DescribeImagesOutput{
 				Images: []*ec2.Image{},
+			},
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String(*providerConfig.AMI.ID),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagList,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagList,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 aws.String("subnetID"),
+						Groups: []*string{
+							aws.String("sg-00868b02fbe29de17"),
+							aws.String("sg-0a4658991dc5eb40a"),
+							aws.String("sg-009a70e28fa4ba84e"),
+							aws.String("sg-07323d56fb932c84c"),
+							aws.String("sg-08b1ffd32874d59a2"),
+						},
+					},
+				},
+				UserData: aws.String(""),
+				Placement: &ec2.Placement{
+					AvailabilityZone: aws.String("us-east-1a"),
+				},
 			},
 		},
 		{
@@ -499,12 +656,87 @@ func TestLaunchInstance(t *testing.T) {
 					},
 				},
 			},
-			instancesOutput: stubReservation("ami-a9acbbd6", "i-02fcb933c5da7085c"),
+			instancesOutput: stubReservation(stubAMIID, stubInstanceID),
 			succeeds:        true,
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String("ami-1111"),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagList,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagList,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 providerConfig.Subnet.ID,
+						Groups: []*string{
+							aws.String("sg-00868b02fbe29de17"),
+							aws.String("sg-0a4658991dc5eb40a"),
+							aws.String("sg-009a70e28fa4ba84e"),
+							aws.String("sg-07323d56fb932c84c"),
+							aws.String("sg-08b1ffd32874d59a2"),
+						},
+					},
+				},
+				UserData: aws.String(""),
+			},
 		},
 		{
 			name:           "AMI not specified",
 			providerConfig: stubPCAMI(awsproviderv1.AWSResourceReference{}),
+		},
+		{
+			name:           "Dedicated instance tenancy",
+			providerConfig: stubDedicatedInstanceTenancy(),
+			runInstancesInput: &ec2.RunInstancesInput{
+				IamInstanceProfile: &ec2.IamInstanceProfileSpecification{
+					Name: aws.String(*providerConfig.IAMInstanceProfile.ID),
+				},
+				ImageId:      aws.String(*providerConfig.AMI.ID),
+				InstanceType: &providerConfig.InstanceType,
+				MinCount:     aws.Int64(1),
+				MaxCount:     aws.Int64(1),
+				KeyName:      providerConfig.KeyName,
+				TagSpecifications: []*ec2.TagSpecification{{
+					ResourceType: aws.String("instance"),
+					Tags:         stubTagList,
+				}, {
+					ResourceType: aws.String("volume"),
+					Tags:         stubTagList,
+				}},
+				NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+					{
+						DeviceIndex:              aws.Int64(providerConfig.DeviceIndex),
+						AssociatePublicIpAddress: providerConfig.PublicIP,
+						SubnetId:                 providerConfig.Subnet.ID,
+						Groups: []*string{
+							aws.String("sg-00868b02fbe29de17"),
+							aws.String("sg-0a4658991dc5eb40a"),
+							aws.String("sg-009a70e28fa4ba84e"),
+							aws.String("sg-07323d56fb932c84c"),
+							aws.String("sg-08b1ffd32874d59a2"),
+						},
+					},
+				},
+				UserData: aws.String(""),
+				Placement: &ec2.Placement{
+					Tenancy: aws.String("dedicated"),
+				},
+			},
+		},
+		{
+			name:           "Dedicated instance tenancy",
+			providerConfig: stubInvalidInstanceTenancy(),
 		},
 	}
 	for _, tc := range cases {
@@ -516,7 +748,7 @@ func TestLaunchInstance(t *testing.T) {
 			mockAWSClient.EXPECT().DescribeAvailabilityZones(gomock.Any()).Return(nil, tc.azErr).AnyTimes()
 			mockAWSClient.EXPECT().DescribeSubnets(gomock.Any()).Return(tc.subnetOutput, tc.subnetErr).AnyTimes()
 			mockAWSClient.EXPECT().DescribeImages(gomock.Any()).Return(tc.imageOutput, tc.imageErr).AnyTimes()
-			mockAWSClient.EXPECT().RunInstances(gomock.Any()).Return(tc.instancesOutput, tc.instancesErr).AnyTimes()
+			mockAWSClient.EXPECT().RunInstances(tc.runInstancesInput).Return(tc.instancesOutput, tc.instancesErr).AnyTimes()
 
 			_, launchErr := launchInstance(machine, tc.providerConfig, nil, mockAWSClient)
 			t.Log(launchErr)
@@ -623,7 +855,7 @@ func TestCorrectExistingTags(t *testing.T) {
 	}
 	clusterID, _ := getClusterID(machine)
 	instance := ec2.Instance{
-		InstanceId: aws.String("i-02fcb933c5da7085c"),
+		InstanceId: aws.String(stubInstanceID),
 	}
 	testCases := []struct {
 		name               string
