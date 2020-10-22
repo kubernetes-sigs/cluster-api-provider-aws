@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
@@ -108,7 +107,7 @@ func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *e
 }
 
 func (s *Service) createCAPIKubeconfigSecret(ctx context.Context, cluster *eks.Cluster, clusterRef *types.NamespacedName) error {
-	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, infrav1exp.GroupVersion.WithKind("AWSManagedControlPlane"))
+	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, ekscontrolplanev1.GroupVersion.WithKind("AWSManagedControlPlane"))
 
 	clusterName := s.scope.KubernetesClusterName()
 	userName := s.getKubeConfigUserName(clusterName, false)
@@ -180,7 +179,7 @@ func (s *Service) updateCAPIKubeconfigSecret(ctx context.Context, configSecret *
 }
 
 func (s *Service) createUserKubeconfigSecret(ctx context.Context, cluster *eks.Cluster, clusterRef *types.NamespacedName) error {
-	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, infrav1exp.GroupVersion.WithKind("AWSManagedControlPlane"))
+	controllerOwnerRef := *metav1.NewControllerRef(s.scope.ControlPlane, ekscontrolplanev1.GroupVersion.WithKind("AWSManagedControlPlane"))
 
 	clusterName := s.scope.KubernetesClusterName()
 	userName := s.getKubeConfigUserName(clusterName, true)
