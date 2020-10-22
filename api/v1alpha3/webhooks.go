@@ -38,7 +38,7 @@ func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorLis
 func isValidSSHKey(sshKey *string) field.ErrorList {
 	var allErrs field.ErrorList
 	if sshKey != nil {
-		reg, err := regexp.Compile("[^-A-Za-z0-9-]+")
+		reg, err := regexp.Compile("[^-A-Za-z0-9-_]+")
 		if err != nil {
 			return append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "SSHKey contains invalid character"))
 		}
