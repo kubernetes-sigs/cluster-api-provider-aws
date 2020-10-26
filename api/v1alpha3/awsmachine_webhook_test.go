@@ -119,6 +119,24 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "SSH key with underscore is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: aws.String("test_key"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SSH key with dash is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: aws.String(`test-key`),
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

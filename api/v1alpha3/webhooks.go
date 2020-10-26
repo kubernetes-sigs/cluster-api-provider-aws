@@ -23,6 +23,10 @@ import (
 	"regexp"
 )
 
+var (
+	sshKeyValidNameRegex = regexp.MustCompile(`^[[:graph:]]+([[:print:]]*[[:graph:]]+)*$`)
+)
+
 func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
 	if len(allErrs) == 0 {
 		return nil
@@ -38,15 +42,9 @@ func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorLis
 func isValidSSHKey(sshKey *string) field.ErrorList {
 	var allErrs field.ErrorList
 	if sshKey != nil {
-		reg, err := regexp.Compile("[^-A-Za-z0-9-]+")
-		if err != nil {
-			return append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "SSHKey contains invalid character"))
+		if sshKey != nil && !sshKeyValidNameRegex.Match([]byte(*sshKey)) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "Name is invalid. Must be specified in ASCII and must not start or end in whitespace"))
 		}
-		processedString := reg.ReplaceAllString(*sshKey, "")
-		if *sshKey == processedString {
-			return nil
-		}
-		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "SSHKey contains invalid character"))
 	}
 
 	return allErrs
