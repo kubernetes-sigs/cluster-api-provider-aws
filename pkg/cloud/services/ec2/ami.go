@@ -173,37 +173,39 @@ func getLatestImage(imgs []*ec2.Image) (*ec2.Image, error) {
 func (s *Service) defaultBastionAMILookup(region string) string {
 	switch region {
 	case "ap-northeast-1":
-		return "ami-d39a02b5"
+		return "ami-09b86f9709b3c33d4"
 	case "ap-northeast-2":
-		return "ami-67973709"
+		return "ami-044057cb1bc4ce527"
 	case "ap-south-1":
-		return "ami-5d055232"
+		return "ami-0cda377a1b884a1bc"
 	case "ap-southeast-1":
-		return "ami-325d2e4e"
+		return "ami-093da183b859d5a4b"
 	case "ap-southeast-2":
-		return "ami-37df2255"
+		return "ami-0f158b0f26f18e619"
 	case "ca-central-1":
-		return "ami-f0870294"
+		return "ami-0edab43b6fa892279"
 	case "eu-central-1":
-		return "ami-af79ebc0"
+		return "ami-0c960b947cbb2dd16"
 	case "eu-west-1":
-		return "ami-4d46d534"
+		return "ami-06fd8a495a537da8b"
 	case "eu-west-2":
-		return "ami-d7aab2b3"
+		return "ami-05c424d59413a2876"
 	case "eu-west-3":
-		return "ami-5e0eb923"
+		return "ami-078db6d55a16afc82"
 	case "sa-east-1":
-		return "ami-1157157d"
+		return "ami-02dc8ad50da58fffd"
 	case "us-east-1":
-		return "ami-41e0b93b"
+		return "ami-0dba2cb6798deb6d8"
 	case "us-east-2":
-		return "ami-2581aa40"
+		return "ami-07efac79022b86107"
 	case "us-west-1":
-		return "ami-79aeae19"
+		return "ami-021809d9177640a20"
 	case "us-west-2":
-		return "ami-1ee65166"
+		return "ami-06e54d05255faf8f6"
 	case "eu-north-1":
-		return "ami-7dd85203"
+		return "ami-008dea09a148cea39"
+	case "eu-south-1":
+		return "ami-01eec6bdfa20f008e"
 	default:
 		return "unknown region"
 	}
