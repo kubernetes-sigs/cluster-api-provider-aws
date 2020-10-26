@@ -53,6 +53,7 @@ func (r *AWSMachine) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 	allErrs = append(allErrs, isValidSSHKey(r.Spec.SSHKeyName)...)
+	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -182,4 +183,15 @@ func (r *AWSMachine) Default() {
 	if r.Spec.CloudInit.SecureSecretsBackend == "" {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
 	}
+}
+
+func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
+	var allErrs field.ErrorList
+
+	for _, additionalSecurityGroups := range r.Spec.AdditionalSecurityGroups {
+		if len(additionalSecurityGroups.Filters) > 0 {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.additionalSecurityGroups"), "filters are not implemented for security groups and will be removed in a future release"))
+		}
+	}
+	return allErrs
 }

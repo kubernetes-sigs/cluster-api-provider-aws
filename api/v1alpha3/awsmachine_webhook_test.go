@@ -137,6 +137,24 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "additional security groups should not have filters",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					AdditionalSecurityGroups: []AWSResourceReference{
+						{
+							Filters: []Filter{
+								{
+									Name:   "example-name",
+									Values: []string{"example-value"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
