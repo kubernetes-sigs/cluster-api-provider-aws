@@ -260,26 +260,50 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 
 	switch {
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.ID != nil:
+		if failureDomain != nil {
+			subnet := s.scope.Subnets().FindByID(*scope.AWSMachine.Spec.Subnet.ID)
+			if subnet == nil {
+				record.Warnf(scope.AWSMachine, "FailedCreate",
+					"Failed to create instance: subnet with id %q not found", aws.StringValue(scope.AWSMachine.Spec.Subnet.ID))
+				return "", awserrors.NewFailedDependency(
+					fmt.Sprintf("failed to run machine %q, subnet with id %q not found",
+						scope.Name(),
+						aws.StringValue(scope.AWSMachine.Spec.Subnet.ID),
+					),
+				)
+			}
+
+			if subnet.AvailabilityZone != *failureDomain {
+				record.Warnf(scope.AWSMachine, "FailedCreate",
+					"Failed to create instance: subnet's availability zone %q does not match with the failure domain %q",
+					subnet.AvailabilityZone,
+					*failureDomain)
+				return "", awserrors.NewFailedDependency(
+					fmt.Sprintf("failed to run machine %q, subnet's availability zone %q does not match with the failure domain %q",
+						scope.Name(),
+						subnet.AvailabilityZone,
+						*failureDomain,
+					),
+				)
+			}
+		}
 		return *scope.AWSMachine.Spec.Subnet.ID, nil
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
-		subnetInput := &ec2.DescribeSubnetsInput{
-			Filters: []*ec2.Filter{
-				filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-				filter.EC2.VPC(s.scope.VPC().ID),
-			},
+		criteria := []*ec2.Filter{
+			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+			filter.EC2.VPC(s.scope.VPC().ID),
 		}
 		if failureDomain != nil {
-			subnetInput.Filters = append(subnetInput.Filters, filter.EC2.AvailabilityZone(*failureDomain))
+			criteria = append(criteria, filter.EC2.AvailabilityZone(*failureDomain))
 		}
 		for _, f := range scope.AWSMachine.Spec.Subnet.Filters {
-			subnetInput.Filters = append(subnetInput.Filters, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
+			criteria = append(criteria, &ec2.Filter{Name: aws.String(f.Name), Values: aws.StringSlice(f.Values)})
 		}
-		out, err := s.EC2Client.DescribeSubnets(subnetInput)
+		subnets, err := s.getFilteredSubnets(criteria...)
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "failed to filter subnets for criteria %q", criteria)
 		}
-
-		if len(out.Subnets) == 0 {
+		if len(subnets) == 0 {
 			record.Warnf(scope.AWSMachine, "FailedCreate",
 				"Failed to create instance: no subnets available matching filters %q", scope.AWSMachine.Spec.Subnet.Filters)
 			return "", awserrors.NewFailedDependency(
@@ -289,7 +313,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 				),
 			)
 		}
-		return *out.Subnets[0].SubnetId, nil
+		return *subnets[0].SubnetId, nil
 
 	case failureDomain != nil:
 		subnets := s.scope.Subnets().FilterPrivate().FilterByZone(*failureDomain)
@@ -317,6 +341,15 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		}
 		return sns[0].ID, nil
 	}
+}
+
+// getFilteredSubnets fetches subnets filtered based on the criteria passed
+func (s *Service) getFilteredSubnets(criteria ...*ec2.Filter) ([]*ec2.Subnet, error) {
+	out, err := s.EC2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{Filters: criteria})
+	if err != nil {
+		return nil, err
+	}
+	return out.Subnets, nil
 }
 
 // GetCoreSecurityGroups looks up the security group IDs managed by this actuator

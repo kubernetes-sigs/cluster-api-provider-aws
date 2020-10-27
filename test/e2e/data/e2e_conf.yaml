@@ -97,6 +97,8 @@ providers:
     files:
       # Add a cluster template
       - sourcePath: "./infrastructure-aws/cluster-template.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-ssm.yaml"
+        targetName: "cluster-template-ssm.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-multi-az.yaml"
         targetName: "cluster-template-multi-az.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-limit-az.yaml"
@@ -105,13 +107,13 @@ providers:
         targetName: "cluster-template-spot-instances.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.19.1"
+  KUBERNETES_VERSION: "v1.19.2"
   CNI: "./data/cni/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.19.1"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.19.2"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
 

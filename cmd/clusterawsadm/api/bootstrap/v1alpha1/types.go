@@ -173,6 +173,12 @@ type AWSIAMConfigurationSpec struct {
 	// EKS controls the configuration related to EKS. Settings in here affect the control plane
 	// and nodes roles
 	EKS *EKSConfig `json:"eks,omitempty"`
+
+	// SecureSecretsBackend, when set to parameter-store will create AWS Systems Manager
+	// Parameter Storage policies. By default or with the value of secrets-manager,
+	// will generate AWS Secrets Manager policies instead.
+	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
+	SecureSecretsBackends []infrav1.SecretBackend `json:"secureSecretBackends,omitempty"`
 }
 
 func (obj *AWSIAMConfiguration) GetObjectKind() schema.ObjectKind {

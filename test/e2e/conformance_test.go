@@ -57,6 +57,7 @@ var _ = Describe("conformance tests", func() {
 	Measure(specName, func(b Benchmarker) {
 
 		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
+		setEnvVar("USE_CI_ARTIFACTS", "true", false)
 		kubernetesVersion := e2eConfig.GetVariable(KubernetesVersion)
 		flavor := clusterctl.DefaultFlavor
 		if useCIArtifacts {
@@ -105,6 +106,7 @@ var _ = Describe("conformance tests", func() {
 	}, 1)
 
 	AfterEach(func() {
+		setEnvVar("USE_CI_ARTIFACTS", "false", false)
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, skipCleanup)
 	})

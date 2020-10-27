@@ -1,20 +1,27 @@
 # EKS Support in the AWS Provider
 
+- **Feature status:** Experimental
+- **Feature gate (required):** EKS=true
+- **Feature gate (optional):** EKSEnableIAM=true,EKSAllowAddRoles=true
+
 ## Overview
 
-Experimental support for EKS has been introduced in 0.6.0 of the provider. Currently the following features are supported:
+Experimental support for EKS has been introduced in the AWS provider. Currently the following features are supported:
 
-* Provisioning/managing an AWS EKS Cluster
-* Upgrading the Kubernetes version of the EKS Cluster
-* Attaching a self-managed machines as nodes to the EKS cluster
+- Provisioning/managing an AWS EKS Cluster
+- Upgrading the Kubernetes version of the EKS Cluster
+- Attaching a self-managed machines as nodes to the EKS cluster
+- Creating a machine pool and attaching it to the EKS cluster. See [machine pool docs for details](machinepools.md)
+- Creating a managed machine pool and attaching it to the EKS cluster. See [machine pool docs for details](machinepools.md)
 
-The implementation introduces 3 new CRD kinds:
+The implementation introduces new CRD kinds:
 
-* AWSManagedControlPlane - specifies the EKS Cluster in AWS and used by the Cluster API AWS Managed Control plane (MACP)
-* AWSManagedCluster - holds details of the EKS cluster for use by CAPI
-* EKSConfig - used by Cluster API bootstrap provider EKS (CABPE)
+- AWSManagedControlPlane - specifies the EKS Cluster in AWS and used by the Cluster API AWS Managed Control plane (MACP)
+- AWSManagedCluster - holds details of the EKS cluster for use by CAPI
+- AWSManagedMachinePool - defines the managed node pool for the cluster
+- EKSConfig - used by Cluster API bootstrap provider EKS (CABPE)
 
-And a new template is available in the templates folder for creating a managed workload cluster.
+And a number of new templates are available in the templates folder for creating a managed workload cluster.
 
 ## Prerequisites
 
@@ -28,23 +35,23 @@ Additionally using `clusterawsadm` will add permissions to the **controllers.clu
 
 You must explicitly enable the EKS support in the provider by doing the following:
 
-* Enabling support in the infrastructure manager (capa-controller-manager) by enabling the **EKS** feature flags (see below)
-* Add the EKS Control Plane Provider (aws-eks)
-* Add the EKS Bootstrap Provider (aws-eks)
+- Enabling support in the infrastructure manager (capa-controller-manager) by enabling the **EKS** feature flags (see below)
+- Add the EKS Control Plane Provider (aws-eks)
+- Add the EKS Bootstrap Provider (aws-eks)
 
 ### Enabling the **EKS** features
 
 Enabling the **EKS** functionality is done using the following feature flags:
 
-* **EKS** - this enables the core EKS functionality and is required for the other EKS feature flags
-* **EKSEnableIAM** - by enabling this the controllers will create any IAM roles required by EKS and the roles will be cluster specific. If this isn't enabled then you can manually create a role and specify the role name in the AWSManagedControlPlane spec otherwise the default rolename will be used.
-* **EKSAllowAddRoles** - by enabling this you can add additional roles to the control plane role that is created. This has no affect unless used wtih __EKSEnableIAM__
+- **EKS** - this enables the core EKS functionality and is required for the other EKS feature flags
+- **EKSEnableIAM** - by enabling this the controllers will create any IAM roles required by EKS and the roles will be cluster specific. If this isn't enabled then you can manually create a role and specify the role name in the AWSManagedControlPlane spec otherwise the default rolename will be used.
+- **EKSAllowAddRoles** - by enabling this you can add additional roles to the control plane role that is created. This has no affect unless used wtih __EKSEnableIAM__
 
 Enabling the feature flags can be done using `clusterctl` by setting the following environment variables to **true** (they all default to **false**):
 
-* **EXP_EKS** - this is used to set the value of the **EKS** feature flag
-* **EXP_EKS_IAM** - this is used to set the value of the **EKSEnableIAM** feature flag
-* **EXP_EKS_ADD_ROLES** - this is used to set the value of the **EKSAllowAddRoles** feature flag
+- **EXP_EKS** - this is used to set the value of the **EKS** feature flag
+- **EXP_EKS_IAM** - this is used to set the value of the **EKSEnableIAM** feature flag
+- **EXP_EKS_ADD_ROLES** - this is used to set the value of the **EKSAllowAddRoles** feature flag
 
 As an example:
 
@@ -53,15 +60,21 @@ export EXP_EKS=true
 export EXP_EKS_IAM=true
 export EXP_EKS_ADD_ROLES=true
 
-clusterctl --infrastructure=aws --control-palne aws-eks --bootstrap aws-eks
+clusterctl init --infrastructure=aws --control-plane aws-eks --bootstrap aws-eks
 ```
 
 ## Creating a EKS cluster
 
-A new "eks" cluster template has been created that you can use with `clusterctl` to create a EKS cluster. To use the template:
+New "eks" cluster templates have been created that you can use with `clusterctl` to create a EKS cluster. To create a EKS cluster with self-managed nodes (a.k.a machines):
 
 ```bash
 clusterctl config cluster capi-eks-quickstart --flavor eks --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
+```
+
+To create a EKS cluster with a managed node group (a.k.a managed machine pool):
+
+```bash
+clusterctl config cluster capi-eks-quickstart --flavor eks-managedmachinepool --kubernetes-version v1.17.3 --worker-machine-count=3 > capi-eks-quickstart.yaml
 ```
 
 NOTE: When creating an EKS cluster only the **MAJOR.MINOR** of the `-kubernetes-version` is taken into consideration.

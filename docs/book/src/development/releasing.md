@@ -16,7 +16,9 @@
     2. `./out/clusterawsadm-linux-amd64`
     3. `./out/infrastructure-components.yaml`
     4. `./out/cluster-template.yaml`
-    5. `./out/cluster-template-eks.yaml`
+    5. `./out/cluster-template-machinepool.yaml`
+    6. `./out/cluster-template-eks.yaml`
+    7. `./out/cluster-template-eks-managedmachinepool.yaml`
 9.  Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter).
     The staging repository is at https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api-aws/GLOBAL. Be
     sure to choose the top level `cluster-api-aws-controller`, which will provide the multi-arch manifest, rather than one for a specific architecture.

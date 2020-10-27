@@ -82,12 +82,14 @@ spec:
     iamRoleCreation: false # Set to true if you plan to use the EKSEnableIAM feature flag to enable automatic creation of IAM roles
     defaultControlPlaneRole:
       disable: false # Set to false to enable creation of the default control plane role
+    managedMachinePool:
+      disable: false # Set to false to enable creation of the default node role for managed machine pools
 ```
 
 and then use that configuration file:
 
 ```bash
-clusterawsadm bootstrap iam create-cloudformation-stack --config boostrap-config.yaml
+clusterawsadm bootstrap iam create-cloudformation-stack --config bootstrap-config.yaml
 ```
 
 ### Without `clusterawsadm`

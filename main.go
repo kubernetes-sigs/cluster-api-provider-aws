@@ -127,7 +127,7 @@ func main() {
 	// Initialize event recorder.
 	record.InitFromRecorder(mgr.GetEventRecorderFor("aws-controller"))
 
-	setupLog.V(1).Info(fmt.Sprintf("%+v\n", feature.Gates))
+	setupLog.V(1).Info(fmt.Sprintf("feature gates: %+v\n", feature.Gates))
 
 	// Parse service endpoints.
 	AWSServiceEndpoints, err := endpoints.ParseFlag(serviceEndpoints)

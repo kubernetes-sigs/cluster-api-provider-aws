@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secretsmanager
+package ssm
 
 // nolint
 const secretFetchScript = `#cloud-boothook
@@ -116,20 +116,20 @@ check_aws_command() {
   esac
 }
 delete_secret_value() {
-  local id="${SECRET_PREFIX}-${1}"
+  local id="${SECRET_PREFIX}/${1}"
   local out
-  log::info "deleting secret from AWS Secrets Manager"
+  log::info "deleting secret from AWS SSM Parameter Store"
   set +o errexit
   set +o nounset
   set +o pipefail
   out=$(
-    aws secretsmanager ${ENDPOINT} --region ${REGION} delete-secret --force-delete-without-recovery --secret-id "${id}" 2>&1
+    aws ssm ${ENDPOINT} --region ${REGION} delete-parameter --name "${id}" 2>&1
   )
   local delete_return=$?
   set -o errexit
   set -o nounset
   set -o pipefail
-  check_aws_command "SecretsManager::DeleteSecret" "${delete_return}" "${out}"
+  check_aws_command "SSM::DeleteSecret" "${delete_return}" "${out}"
   if [ ${delete_return} -ne 0 ]; then
     log::error_exit "Could not delete secret value" 2
   fi
@@ -143,10 +143,10 @@ delete_secrets() {
 
 get_secret_value() {
   local chunk=$1
-  local id="${SECRET_PREFIX}-${chunk}"
+  local id="${SECRET_PREFIX}/${chunk}"
 
-  log::info "getting userdata from AWS Secrets Manager"
-  log::info "getting secret value from AWS Secrets Manager"
+  log::info "getting userdata from AWS SSM Parameter Store"
+  log::info "getting secret value from AWS SSM Parameter Store"
 
   local data
   set +o errexit
@@ -155,10 +155,10 @@ get_secret_value() {
   data=$(
     set +e
     set +o pipefail
-    aws secretsmanager ${ENDPOINT} --region ${REGION} get-secret-value --output text --query 'SecretBinary' --secret-id "${id}" 2>&1
+    aws ssm ${ENDPOINT} --region ${REGION} get-parameter --output text --query 'Parameter.Value' --with-decryption --name "${id}" 2>&1
   )
   local get_return=$?
-  check_aws_command "SecretsManager::GetSecretValue" "${get_return}" "${data}"
+  check_aws_command "SSM::GetSecretValue" "${get_return}" "${data}"
   set -o errexit
   set -o nounset
   set -o pipefail
@@ -167,8 +167,8 @@ get_secret_value() {
     delete_secrets
     log::error_exit "could not get secret value, but secret was deleted" 1
   fi
-  log::info "appending data to temporary file ${FILE}.gz"
-  echo "${data}" | base64 -d >>${FILE}.gz
+  log::info "appending data to temporary file ${FILE}.b64.gz"
+  echo "${data}" >>${FILE}.b64.gz
 }
 
 log::info "aws.cluster.x-k8s.io encrypted cloud-init script $0 started"
@@ -187,6 +187,8 @@ done
 delete_secrets
 
 log::info "decompressing userdata to ${FILE}"
+cat "${FILE}.b64.gz" | base64 -d > "${FILE}.gz"
+rm -f "${FILE}.b64.gz"
 gunzip "${FILE}.gz"
 GUNZIP_RETURN=$?
 if [ ${GUNZIP_RETURN} -ne 0 ]; then

@@ -248,6 +248,9 @@ func (r *AWSClusterReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 					oldCluster.Status = infrav1.AWSClusterStatus{}
 					newCluster.Status = infrav1.AWSClusterStatus{}
 
+					oldCluster.ObjectMeta.ResourceVersion = ""
+					newCluster.ObjectMeta.ResourceVersion = ""
+
 					return !reflect.DeepEqual(oldCluster, newCluster)
 				},
 			},
