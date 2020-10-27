@@ -34,7 +34,7 @@ func (src *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-	restoreAWSMachineSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec)
+	restoreAWSMachineSpec(&restored.Spec.Template.Spec, &dst.Spec.Template.Spec, &src.Spec.Template.Spec)
 
 	return nil
 }

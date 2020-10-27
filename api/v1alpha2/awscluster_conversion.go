@@ -60,16 +60,33 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.ImageLookupFormat = restored.Spec.ImageLookupFormat
 	dst.Spec.ImageLookupOrg = restored.Spec.ImageLookupOrg
 	dst.Spec.ImageLookupBaseOS = restored.Spec.ImageLookupBaseOS
-	if restored.Spec.ControlPlaneLoadBalancer != nil {
-		dst.Spec.ControlPlaneLoadBalancer = restored.Spec.ControlPlaneLoadBalancer
+
+	// If src ControlPlaneLoadBalancer is nil, do not copy restored ControlPlaneLoadBalancer into it.
+	if src.Spec.ControlPlaneLoadBalancer != nil {
+		if restored.Spec.ControlPlaneLoadBalancer != nil {
+			// If both restored and src ControlPlaneLoadBalancer is non-nil, only copy the missing part from restored.
+			// Scheme is already copied from src in Convert_v1alpha2_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec.
+			dst.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing = restored.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing
+			dst.Spec.ControlPlaneLoadBalancer.Subnets = restored.Spec.ControlPlaneLoadBalancer.Subnets
+		}
 	}
+
 	dst.Spec.NetworkSpec.CNI = restored.Spec.NetworkSpec.CNI
 	dst.Status.FailureDomains = restored.Status.FailureDomains
 	dst.Status.Network.APIServerELB.AvailabilityZones = restored.Status.Network.APIServerELB.AvailabilityZones
 	dst.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing = restored.Status.Network.APIServerELB.Attributes.CrossZoneLoadBalancing
 
-	if restored.Status.Bastion != nil {
-		restored.Status.Bastion.DeepCopyInto(dst.Status.Bastion)
+	restoreInstance(restored.Status.Bastion, dst.Status.Bastion)
+
+	// Manually set RootDeviceSize after restoring Bastion instance.
+	if src.Status.Bastion.RootDeviceSize != 0 {
+		if dst.Status.Bastion.RootVolume == nil {
+			dst.Status.Bastion.RootVolume = &infrav1alpha3.Volume{
+				Size: src.Status.Bastion.RootDeviceSize,
+			}
+		} else {
+			dst.Status.Bastion.RootVolume.Size = src.Status.Bastion.RootDeviceSize
+		}
 	}
 
 	if restored.Spec.NetworkSpec.VPC.AvailabilityZoneUsageLimit != nil {
@@ -82,6 +99,21 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst.SetConditions(restored.GetConditions())
 
 	return nil
+}
+
+func restoreInstance(restored, dst *infrav1alpha3.Instance) {
+	if restored != nil {
+		dst.AvailabilityZone = restored.AvailabilityZone
+		dst.NonRootVolumes = restored.NonRootVolumes
+		dst.SpotMarketOptions = restored.SpotMarketOptions
+
+		// Note this may override the manual conversion in Convert_v1alpha2_Instance_To_v1alpha3_Instance.
+		if restored.RootVolume != nil {
+			restored.RootVolume.DeepCopyInto(dst.RootVolume)
+		}
+
+		dst.Tenancy = restored.Tenancy
+	}
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.
