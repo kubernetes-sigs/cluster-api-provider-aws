@@ -144,10 +144,12 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 	for i, v := range scope.AWSMachinePool.Spec.Subnets {
 		subnetIDs[i] = aws.StringValue(v.ID)
 	}
-	// subnetIDs := []string{}
-	// for _, v := range scope.AWSMachinePool.Spec.Subnets {
-	// 	subnetIDs = append(subnetIDs, aws.StringValue(v.ID))
-	// }
+
+	if len(subnetIDs) == 0 {
+		for _, subnet := range scope.InfraCluster.Subnets() {
+			subnetIDs = append(subnetIDs, subnet.ID)
+		}
+	}
 
 	input := &expinfrav1.AutoScalingGroup{
 		Name:                 scope.Name(),
