@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 )
 
@@ -214,6 +215,47 @@ func TestAWSMachine_ValidateUpdate(t *testing.T) {
 			if err := tt.newMachine.ValidateUpdate(tt.oldMachine); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestAWSMachine_Default(t *testing.T) {
+	machine := &AWSMachine{
+		Spec: AWSMachineSpec{
+			ProviderID:               nil,
+			AdditionalTags:           nil,
+			AdditionalSecurityGroups: nil,
+		},
+	}
+
+	tests := []struct{
+		name string
+		cloudInit CloudInit
+		expectedSecretsBackend string
+	} {
+		{
+			name: "with insecure skip secrets manager unset",
+			cloudInit: CloudInit{InsecureSkipSecretsManager: false},
+			expectedSecretsBackend: "secrets-manager",
+		},
+		{
+			name: "with insecure skip secrets manager unset and secrets backend set",
+			cloudInit: CloudInit{InsecureSkipSecretsManager: false, SecureSecretsBackend: "ssm-parameter-store"},
+			expectedSecretsBackend: "ssm-parameter-store",
+		},
+		{
+			name: "with insecure skip secrets manager set",
+			cloudInit: CloudInit{InsecureSkipSecretsManager: true},
+			expectedSecretsBackend: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			machine.Spec.CloudInit = tt.cloudInit
+			machine.Default()
+			g := NewWithT(t)
+			g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackend(tt.expectedSecretsBackend)))
 		})
 	}
 }
