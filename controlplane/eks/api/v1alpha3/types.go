@@ -26,7 +26,7 @@ import (
 
 // ControlPlaneLoggingSpec defines what EKS control plane logs that should be enabled
 type ControlPlaneLoggingSpec struct {
-	// APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
+	// APIServer indicates if the Kubernetes API Server log (kube-apiserver) should be enabled
 	// +kubebuilder:default=false
 	APIServer bool `json:"apiServer"`
 	// Audit indicates if the Kubernetes API audit log should be enabled
@@ -69,7 +69,7 @@ func (s *ControlPlaneLoggingSpec) IsLogEnabled(logName string) bool {
 type EKSTokenMethod string
 
 var (
-	// EKSTokenMethodIAMAuthenticator indicates that IAM autenticator will be used to get a token
+	// EKSTokenMethodIAMAuthenticator indicates that IAM authenticator will be used to get a token
 	EKSTokenMethodIAMAuthenticator = EKSTokenMethod("iam-authenticator")
 
 	// EKSTokenMethodAWSCli indicates that the AWS CLI will be used to get a token
