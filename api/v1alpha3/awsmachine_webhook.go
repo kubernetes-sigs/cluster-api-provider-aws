@@ -177,9 +177,9 @@ func (r *AWSMachine) ValidateDelete() error {
 }
 
 // Default implements webhook.Defaulter such that an empty CloudInit will be defined with a default
-// SecureSecretsBackend as SecretBackendSecretsManager
+// SecureSecretsBackend as SecretBackendSecretsManager iff InsecureSkipSecretsManager is unset
 func (r *AWSMachine) Default() {
-	if r.Spec.CloudInit.SecureSecretsBackend == "" {
+	if !r.Spec.CloudInit.InsecureSkipSecretsManager && r.Spec.CloudInit.SecureSecretsBackend == "" {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
 	}
 }
