@@ -34,6 +34,12 @@ func (s *Service) ReconcileNetwork() (err error) {
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.VpcReadyCondition)
 
+	// Secondary CIDR
+	if err := s.associateSecondaryCidr(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return err
+	}
+
 	// Subnets.
 	if err := s.reconcileSubnets(); err != nil {
 		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, infrav1.SubnetsReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -76,6 +82,13 @@ func (s *Service) DeleteNetwork() (err error) {
 		return err
 	}
 	vpc.DeepCopyInto(s.scope.VPC())
+
+	// Secondary CIDR
+	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	if err := s.disassociateSecondaryCidr(); err != nil {
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, "DisassociateFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		return err
+	}
 
 	// Routing tables.
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")

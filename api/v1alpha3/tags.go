@@ -18,8 +18,9 @@ package v1alpha3
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"reflect"
+
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
@@ -105,6 +106,10 @@ const (
 	// NameAWSClusterAPIRole is the tag name we use to mark roles for resources
 	// dedicated to this cluster api provider implementation.
 	NameAWSClusterAPIRole = NameAWSProviderPrefix + "role"
+
+	NameAWSSubnetAssociation = NameAWSProviderPrefix + "association"
+
+	SecondarySubnetTagValue = "secondary"
 
 	// APIServerRoleTagValue describes the value for the apiserver role
 	APIServerRoleTagValue = "apiserver"

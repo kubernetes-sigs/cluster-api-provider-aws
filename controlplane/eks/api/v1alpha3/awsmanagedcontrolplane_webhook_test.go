@@ -116,6 +116,13 @@ func TestDefaultingWebhook(t *testing.T) {
 			spec:         AWSManagedControlPlaneSpec{NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
 			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}, VPC: defaultVPCSpec}, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
+		{
+			name:         "secondary CIDR",
+			resourceName: "cluster1",
+			resourceNS:   "default",
+			expectHash:   false,
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil},
+		},
 	}
 
 	for _, tc := range tests {
@@ -295,6 +302,143 @@ func TestWebhookUpdate(t *testing.T) {
 			g.Expect(testEnv.Create(ctx, mcp)).To(Succeed())
 			mcp.Spec = tc.newClusterSpec
 			err := testEnv.Update(ctx, mcp)
+
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+		})
+	}
+}
+
+func TestValidatingWebhookCreate_SecondaryCidr(t *testing.T) {
+	tests := []struct {
+		name        string
+		expectError bool
+		cidrRange   string
+	}{
+		{
+			name:        "complete range 1",
+			cidrRange:   "100.64.0.0/10",
+			expectError: true,
+		},
+		{
+			name:        "complete range 2",
+			cidrRange:   "198.19.0.0/16",
+			expectError: false,
+		},
+		{
+			name:        "subrange",
+			cidrRange:   "100.67.0.0/16",
+			expectError: false,
+		},
+		{
+			name:        "invalid value",
+			cidrRange:   "not a cidr range",
+			expectError: true,
+		},
+		{
+			name:        "unsupported range",
+			cidrRange:   "10.0.0.1/20",
+			expectError: true,
+		},
+		{
+			name:        "too large",
+			cidrRange:   "100.64.0.0/15",
+			expectError: true,
+		},
+		{
+			name:        "too small",
+			cidrRange:   "100.64.0.0/29",
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mcp := &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "default_cluster1",
+				},
+			}
+			if tc.cidrRange != "" {
+				mcp.Spec.SecondaryCidrBlock = &tc.cidrRange
+			}
+			err := mcp.ValidateCreate()
+
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+		})
+	}
+}
+
+func TestValidatingWebhookUpdate_SecondaryCidr(t *testing.T) {
+	tests := []struct {
+		name        string
+		cidrRange   string
+		expectError bool
+	}{
+		{
+			name:        "complete range 1",
+			cidrRange:   "100.64.0.0/10",
+			expectError: true,
+		},
+		{
+			name:        "complete range 2",
+			cidrRange:   "198.19.0.0/16",
+			expectError: false,
+		},
+		{
+			name:        "subrange",
+			cidrRange:   "100.67.0.0/16",
+			expectError: false,
+		},
+		{
+			name:        "invalid value",
+			cidrRange:   "not a cidr range",
+			expectError: true,
+		},
+		{
+			name:        "unsupported range",
+			cidrRange:   "10.0.0.1/20",
+			expectError: true,
+		},
+		{
+			name:        "too large",
+			cidrRange:   "100.64.0.0/15",
+			expectError: true,
+		},
+		{
+			name:        "too small",
+			cidrRange:   "100.64.0.0/29",
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			newMCP := &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName:     "default_cluster1",
+					SecondaryCidrBlock: &tc.cidrRange,
+				},
+			}
+			oldMCP := &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName:     "default_cluster1",
+					SecondaryCidrBlock: nil,
+				},
+			}
+
+			err := newMCP.ValidateUpdate(oldMCP)
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
