@@ -36,6 +36,6 @@ To manually change the credentials used by CAPA, follow these steps:
 
 1. Use `clusterawsadm` to create the material needed for the Kubernetes Secret. With `clusterawsadm` 0.5.5 and earlier, the command is `clusterawsadm alpha bootstrap encode-aws-credentials`; with version 0.6.0 or later, the command is `clusterawsadm bootstrap credentials encode-as-profile`. Record the output of this command, as it is needed in a later step.
 2. Use `kubectl -n capa-system edit secret capa-manager-bootstrap-credentials` to edit the Secret. Replace the existing value of the `data.credentials` field with the new value created in step 1 using `clusterawsadm`. Save your changes.
-3. For the CAPA controller manager to pick up the new credentials in the Secret, restart it with `kubectl -n capa-manager rollout restart deployment capa-controller-manager`.
+3. For the CAPA controller manager to pick up the new credentials in the Secret, restart it with `kubectl -n capa-system rollout restart deployment capa-controller-manager`.
 
 Upon restart, CAPA will now use the updated credentials in the Secret to communicate with AWS.
