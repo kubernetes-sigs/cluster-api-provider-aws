@@ -177,6 +177,11 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 
+	// CNI related security groups gets deleted from the AWSClusters created prior to networkSpec.cni defaulting (5.5) after upgrading controllers.
+	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2084
+	// TODO: Remove this after v1aplha4
+	clusterScope.AWSCluster.Default()
+
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile security groups for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
