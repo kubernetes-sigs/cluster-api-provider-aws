@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:experimental
+
 # Copyright 2019 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,16 +33,15 @@ RUN go mod download
 COPY ./ ./
 
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
-    wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-    chmod +x /start.sh && chmod +x /restart.sh
+  wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
+  chmod +x /start.sh && chmod +x /restart.sh
 
 # Build
 ARG package=.
 ARG ARCH
 ARG LDFLAGS
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
-    go build -a -ldflags "${LDFLAGS} -extldflags '-static'" \
-    -o manager ${package}
+RUN --mount=type=cache,target=/root/.cache/go-build \
+  CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'"  -o manager ${package}
 ENTRYPOINT [ "/start.sh", "/workspace/manager" ]
 
 # Copy the controller-manager into a thin image
