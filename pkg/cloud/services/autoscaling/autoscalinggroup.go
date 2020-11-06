@@ -270,6 +270,12 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 		subnetIDs[i] = aws.StringValue(v.ID)
 	}
 
+	if len(subnetIDs) == 0 {
+		for _, subnet := range scope.InfraCluster.Subnets() {
+			subnetIDs = append(subnetIDs, subnet.ID)
+		}
+	}
+
 	input := &autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
 		MaxSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MaxSize)),
