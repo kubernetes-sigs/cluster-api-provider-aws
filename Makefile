@@ -51,9 +51,10 @@ vendor:
 	go mod verify
 
 .PHONY: generate
-generate:
+generate: gogen goimports
+
+gogen:
 	$(DOCKER_CMD) go generate ./pkg/... ./cmd/...
-	hack/goimports.sh .
 
 .PHONY: test
 test: ## Run tests
@@ -103,8 +104,9 @@ fmt: ## Go fmt your code
 	hack/go-fmt.sh .
 
 .PHONY: goimports
-goimports: ## Go fmt your code
+goimports:
 	hack/goimports.sh .
+	hack/verify-diff.sh
 
 .PHONY: vet
 vet: ## Apply go vet to all go files
