@@ -108,7 +108,7 @@ providers:
 
 variables:
   KUBERNETES_VERSION: "v1.19.2"
-  CNI: "./data/cni/calico.yaml"
+  CNI: "../../data/cni/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large

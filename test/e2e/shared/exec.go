@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package shared
 
 import (
 	"context"
@@ -30,14 +30,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	expect "github.com/google/goexpect"
-)
-
-var (
-	awsSession awsclient.ConfigProvider
 )
 
 type instance struct {
@@ -47,8 +42,8 @@ type instance struct {
 
 // allMachines gets all EC2 instances at once, to save on DescribeInstances
 // calls
-func allMachines(ctx context.Context) ([]instance, error) {
-	ec2Svc := ec2.New(awsSession)
+func allMachines(ctx context.Context, e2eCtx *E2EContext) ([]instance, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	resp, err := ec2Svc.DescribeInstancesWithContext(ctx, &ec2.DescribeInstancesInput{})
 	if err != nil {
 		return nil, err
@@ -87,8 +82,8 @@ type command struct {
 
 // commandsForMachine opens a terminal connection using AWS SSM Session Manager
 // and executes the given commands, outputting the results to a file for each.
-func commandsForMachine(ctx context.Context, f *os.File, instanceID string, commands []command) {
-	ssmSvc := ssm.New(awsSession)
+func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, instanceID string, commands []command) {
+	ssmSvc := ssm.New(e2eCtx.AWSSession)
 	sess, err := ssmSvc.StartSessionWithContext(ctx, &ssm.StartSessionInput{
 		Target: aws.String(instanceID),
 	})

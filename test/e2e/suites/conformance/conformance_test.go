@@ -34,11 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-const (
-	AMIPrefix             = "capa-ami-ubuntu-18.04-"
-	DefaultImageLookupOrg = "258751437250"
-)
-
 var _ = Describe("conformance tests", func() {
 	var (
 		namespace *corev1.Namespace

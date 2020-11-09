@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package unmanaged
 
 import (
 	"context"
@@ -45,106 +45,22 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/yaml"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
+
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
-const (
-	KubernetesVersion            = "KUBERNETES_VERSION"
-	CNIPath                      = "CNI"
-	CNIResources                 = "CNI_RESOURCES"
-	AwsNodeMachineType           = "AWS_NODE_MACHINE_TYPE"
-	AwsAvailabilityZone1         = "AWS_AVAILABILITY_ZONE_1"
-	AwsAvailabilityZone2         = "AWS_AVAILABILITY_ZONE_2"
-	MultiAzFlavor                = "multi-az"
-	LimitAzFlavor                = "limit-az"
-	SpotInstancesFlavor          = "spot-instances"
-	SSMFlavor                    = "ssm"
-	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
-)
-
-// Test suite flags
 var (
-	// configPath is the path to the e2e config file.
-	configPath string
-
-	// useExistingCluster instructs the test to use the current cluster instead of creating a new one (default discovery rules apply).
-	useExistingCluster bool
-
-	// artifactFolder is the folder to store e2e test artifacts.
-	artifactFolder string
-
-	// skipCleanup prevents cleanup of test resources e.g. for debug purposes.
-	skipCleanup bool
-
-	// skipCloudFormationDeletion prevents the deletion of the AWS CloudFormation stack
-	skipCloudFormationDeletion bool
-)
-
-// Test suite global vars
-var (
-	// e2eConfig to be used for this test, read from configPath.
-	e2eConfig *clusterctl.E2EConfig
-
-	// clusterctlConfigPath to be used for this test, created by generating a clusterctl local repository
-	// with the providers specified in the configPath.
-	clusterctlConfigPath string
-
-	// bootstrapClusterProvider manages provisioning of the the bootstrap cluster to be used for the e2e tests.
-	// Please note that provisioning will be skipped if use-existing-cluster is provided.
-	bootstrapClusterProvider bootstrap.ClusterProvider
-
-	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
-	bootstrapClusterProxy framework.ClusterProxy
-
-	// bootstrapTemplate is the clusterawsadm bootstrap template for this run
-	bootstrapTemplate *cfn_bootstrap.Template
-
-	// bootstrapAccessKey
-	bootstrapAccessKey *iam.AccessKey
-
-	defaultSSHKeyPairName = "cluster-api-provider-aws-sigs-k8s-io"
-
-	// ticker for dumping resources
-	resourceTicker *time.Ticker
-
-	// tickerDone to stop ticking
-	resourceTickerDone chan bool
-
-	// ticker for dumping resources
-	machineTicker *time.Ticker
-
-	// tickerDone to stop ticking
-	machineTickerDone chan bool
-
-	// kubetestConfigFilePath is the path to the kubetest configuration file
-	kubetestConfigFilePath string
-
-	// useCIArtifacts specifies whether or not to use the latest build from the main branch of the Kubernetes repository
-	useCIArtifacts bool
-
-	// number of ginkgo nodes to use for kubetest
-	ginkgoNodes int
-
-	// time in s before kubetest spec is marked as slow
-	ginkgoSlowSpecThreshold int
+	e2eCtx *shared.E2EContext
 )
 
 func init() {
-	flag.StringVar(&configPath, "config-path", "", "path to the e2e config file")
-	flag.StringVar(&artifactFolder, "artifacts-folder", "", "folder where e2e test artifact should be stored")
-	flag.BoolVar(&useCIArtifacts, "kubetest.use-ci-artifacts", false, "use the latest build from the main branch of the Kubernetes repository")
-	flag.StringVar(&kubetestConfigFilePath, "kubetest.config-file", "", "path to the kubetest configuration file")
-	flag.IntVar(&ginkgoNodes, "kubetest.ginkgo-nodes", 1, "number of ginkgo nodes to use")
-	flag.IntVar(&ginkgoSlowSpecThreshold, "kubetest.ginkgo-slowSpecThreshold", 120, "time in s before spec is marked as slow")
-	flag.BoolVar(&useExistingCluster, "use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
-	flag.BoolVar(&skipCleanup, "skip-cleanup", false, "if true, the resource cleanup after tests will be skipped")
-	flag.BoolVar(&skipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
+	e2eCtx = shared.NewE2EContextWithFlags()
 }
 
 type synchronizedBeforeTestSuiteConfig struct {
@@ -162,22 +78,22 @@ type synchronizedBeforeTestSuiteConfig struct {
 
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e", []Reporter{framework.CreateJUnitReporterForProw(artifactFolder)})
+	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e", []Reporter{framework.CreateJUnitReporterForProw(e2eCtx.ArtifactFolder)})
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	flag.Parse()
-	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
-	Expect(os.MkdirAll(artifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", artifactFolder)
-	Byf("Loading the e2e test configuration from %q", configPath)
-	e2eConfig = loadE2EConfig(configPath)
-	sourceTemplate, err := ioutil.ReadFile("data/infrastructure-aws/cluster-template.yaml")
+	Expect(e2eCtx.ConfigPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
+	Expect(os.MkdirAll(e2eCtx.ArtifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", e2eCtx.ArtifactFolder)
+	shared.Byf("Loading the e2e test configuration from %q", e2eCtx.ConfigPath)
+	e2eCtx.E2EConfig = loadE2EConfig(e2eCtx.ConfigPath)
+	sourceTemplate, err := ioutil.ReadFile("../../data/infrastructure-aws/cluster-template.yaml")
 	Expect(err).NotTo(HaveOccurred())
-	platformKustomization, err := ioutil.ReadFile("data/ci-artifacts-platform-kustomization.yaml")
+	platformKustomization, err := ioutil.ReadFile("../../data/ci-artifacts-platform-kustomization.yaml")
 	Expect(err).NotTo(HaveOccurred())
 	ciTemplate, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
 		kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
-			ArtifactsDirectory:    artifactFolder,
+			ArtifactsDirectory:    e2eCtx.ArtifactFolder,
 			SourceTemplate:        sourceTemplate,
 			PlatformKustomization: platformKustomization,
 		},
@@ -186,50 +102,52 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		SourcePath: ciTemplate,
 		TargetName: "cluster-template-conformance-ci-artifacts.yaml",
 	}
-	providers := e2eConfig.Providers
+	providers := e2eCtx.E2EConfig.Providers
 	for i, prov := range providers {
 		if prov.Name != "aws" {
 			continue
 		}
-		e2eConfig.Providers[i].Files = append(e2eConfig.Providers[i].Files, clusterctlCITemplate)
+		e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplate)
 	}
 	Expect(err).NotTo(HaveOccurred())
-	awsSession = newAWSSession()
-	createCloudFormationStack(awsSession, getBootstrapTemplate())
-	ensureNoServiceLinkedRoles(awsSession)
-	ensureSSHKeyPair(awsSession, defaultSSHKeyPairName)
-	bootstrapAccessKey = newUserAccessKey(awsSession, getBootstrapTemplate().Spec.BootstrapUser.UserName)
+	e2eCtx.AWSSession = newAWSSession()
+	if !e2eCtx.SkipCloudFormationCreation {
+		createCloudFormationStack(e2eCtx.AWSSession, getBootstrapTemplate())
+	}
+	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
+	ensureSSHKeyPair(e2eCtx.AWSSession, shared.DefaultSSHKeyPairName)
+	e2eCtx.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, getBootstrapTemplate().Spec.BootstrapUser.UserName)
 
 	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
 	scheme := initScheme()
 
 	// If using a version of Kubernetes from CI, override the image ID with a known good image
-	if useCIArtifacts {
-		e2eConfig.Variables["IMAGE_ID"] = conformanceImageID()
+	if e2eCtx.UseCIArtifacts {
+		e2eCtx.E2EConfig.Variables["IMAGE_ID"] = conformanceImageID()
 	}
 
-	Byf("Creating a clusterctl local repository into %q", artifactFolder)
-	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
+	shared.Byf("Creating a clusterctl local repository into %q", e2eCtx.ArtifactFolder)
+	e2eCtx.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx.E2EConfig, filepath.Join(e2eCtx.ArtifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")
-	bootstrapClusterProvider, bootstrapClusterProxy = setupBootstrapCluster(e2eConfig, scheme, useExistingCluster)
+	e2eCtx.BootstrapClusterProvider, e2eCtx.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, scheme, e2eCtx.UseExistingCluster)
 
-	setEnvVar("AWS_B64ENCODED_CREDENTIALS", encodeCredentials(bootstrapAccessKey, getBootstrapTemplate().Spec.Region), true)
+	setEnvVar("AWS_B64ENCODED_CREDENTIALS", encodeCredentials(e2eCtx.BootstrapAccessKey, getBootstrapTemplate().Spec.Region), true)
 
 	By("Initializing the bootstrap cluster")
-	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+	initBootstrapCluster(e2eCtx.BootstrapClusterProxy, e2eCtx.E2EConfig, e2eCtx.ClusterctlConfigPath, e2eCtx.ArtifactFolder)
 
 	conf := synchronizedBeforeTestSuiteConfig{
-		ArtifactFolder:          artifactFolder,
-		ConfigPath:              configPath,
-		ClusterctlConfigPath:    clusterctlConfigPath,
-		KubeconfigPath:          bootstrapClusterProxy.GetKubeconfigPath(),
+		ArtifactFolder:          e2eCtx.ArtifactFolder,
+		ConfigPath:              e2eCtx.ConfigPath,
+		ClusterctlConfigPath:    e2eCtx.ClusterctlConfigPath,
+		KubeconfigPath:          e2eCtx.BootstrapClusterProxy.GetKubeconfigPath(),
 		Region:                  getBootstrapTemplate().Spec.Region,
-		E2EConfig:               *e2eConfig,
-		KubetestConfigFilePath:  kubetestConfigFilePath,
-		UseCIArtifacts:          useCIArtifacts,
-		GinkgoNodes:             ginkgoNodes,
-		GinkgoSlowSpecThreshold: ginkgoSlowSpecThreshold,
+		E2EConfig:               *e2eCtx.E2EConfig,
+		KubetestConfigFilePath:  e2eCtx.KubetestConfigFilePath,
+		UseCIArtifacts:          e2eCtx.UseCIArtifacts,
+		GinkgoNodes:             e2eCtx.GinkgoNodes,
+		GinkgoSlowSpecThreshold: e2eCtx.GinkgoSlowSpecThreshold,
 	}
 
 	data, err := yaml.Marshal(conf)
@@ -241,27 +159,26 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	conf := &synchronizedBeforeTestSuiteConfig{}
 	err := yaml.UnmarshalStrict(data, conf)
 	Expect(err).NotTo(HaveOccurred())
-	artifactFolder = conf.ArtifactFolder
-	configPath = conf.ConfigPath
-	clusterctlConfigPath = conf.ClusterctlConfigPath
-	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, initScheme())
-	e2eConfig = &conf.E2EConfig
-	kubetestConfigFilePath = conf.KubetestConfigFilePath
-	useCIArtifacts = conf.UseCIArtifacts
-	ginkgoNodes = conf.GinkgoNodes
-	ginkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
+	e2eCtx.ArtifactFolder = conf.ArtifactFolder
+	e2eCtx.ConfigPath = conf.ConfigPath
+	e2eCtx.ClusterctlConfigPath = conf.ClusterctlConfigPath
+	e2eCtx.BootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, initScheme())
+	e2eCtx.E2EConfig = &conf.E2EConfig
+	e2eCtx.KubetestConfigFilePath = conf.KubetestConfigFilePath
+	e2eCtx.UseCIArtifacts = conf.UseCIArtifacts
+	e2eCtx.GinkgoNodes = conf.GinkgoNodes
+	e2eCtx.GinkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
 	azs := getAvailabilityZones()
-	setEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
-	setEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
+	setEnvVar(shared.AwsAvailabilityZone1, *azs[0].ZoneName, false)
+	setEnvVar(shared.AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	setEnvVar("AWS_REGION", conf.Region, false)
-	setEnvVar("AWS_SSH_KEY_NAME", defaultSSHKeyPairName, false)
-	awsSession = newAWSSession()
-	namespaces = map[*corev1.Namespace]context.CancelFunc{}
-	resourceTicker = time.NewTicker(time.Second * 5)
-	resourceTickerDone = make(chan bool)
+	setEnvVar("AWS_SSH_KEY_NAME", shared.DefaultSSHKeyPairName, false)
+	e2eCtx.AWSSession = newAWSSession()
+	e2eCtx.ResourceTicker = time.NewTicker(time.Second * 5)
+	e2eCtx.ResourceTickerDone = make(chan bool)
 	// Get EC2 logs every minute
-	machineTicker = time.NewTicker(time.Second * 60)
-	machineTickerDone = make(chan bool)
+	e2eCtx.MachineTicker = time.NewTicker(time.Second * 60)
+	e2eCtx.MachineTickerDone = make(chan bool)
 	resourceCtx, resourceCancel := context.WithCancel(context.Background())
 	machineCtx, machineCancel := context.WithCancel(context.Background())
 
@@ -270,12 +187,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		defer GinkgoRecover()
 		for {
 			select {
-			case <-resourceTickerDone:
+			case <-e2eCtx.ResourceTickerDone:
 				resourceCancel()
 				return
-			case <-resourceTicker.C:
-				for k := range namespaces {
-					dumpSpecResources(resourceCtx, bootstrapClusterProxy, artifactFolder, k)
+			case <-e2eCtx.ResourceTicker.C:
+				for k := range e2eCtx.Namespaces {
+					shared.DumpSpecResources(resourceCtx, e2eCtx, k)
 				}
 			}
 		}
@@ -286,12 +203,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		defer GinkgoRecover()
 		for {
 			select {
-			case <-machineTickerDone:
+			case <-e2eCtx.MachineTickerDone:
 				machineCancel()
 				return
-			case <-machineTicker.C:
-				for k := range namespaces {
-					dumpMachines(machineCtx, bootstrapClusterProxy, k, artifactFolder)
+			case <-e2eCtx.MachineTicker.C:
+				for k := range e2eCtx.Namespaces {
+					shared.DumpMachines(machineCtx, e2eCtx, k)
 				}
 			}
 		}
@@ -302,26 +219,25 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 // The bootstrap cluster is shared across all the tests, so it should be deleted only after all ParallelNodes completes.
 // The local clusterctl repository is preserved like everything else created into the artifact folder.
 var _ = SynchronizedAfterSuite(func() {
-	if resourceTickerDone != nil {
-		resourceTickerDone <- true
+	if e2eCtx.ResourceTickerDone != nil {
+		e2eCtx.ResourceTickerDone <- true
 	}
-	if machineTickerDone != nil {
-		machineTickerDone <- true
+	if e2eCtx.MachineTickerDone != nil {
+		e2eCtx.MachineTickerDone <- true
 	}
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Minute)
 	defer cancel()
-	for k := range namespaces {
-		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, k, e2eConfig.GetIntervals, skipCleanup)
-		dumpMachines(ctx, bootstrapClusterProxy, k, artifactFolder)
+	for k := range e2eCtx.Namespaces {
+		shared.DumpSpecResourcesAndCleanup(ctx, "", k, e2eCtx)
+		shared.DumpMachines(ctx, e2eCtx, k)
 	}
 }, func() {
 	// After all ParallelNodes.
 	By("Tearing down the management cluster")
-	if !skipCleanup {
-		tearDown(bootstrapClusterProvider, bootstrapClusterProxy)
-		if !skipCloudFormationDeletion {
-			awsSession = newAWSSession()
-			deleteCloudFormationStack(awsSession, getBootstrapTemplate())
+	if !e2eCtx.SkipCleanup {
+		tearDown(e2eCtx.BootstrapClusterProvider, e2eCtx.BootstrapClusterProxy)
+		if !e2eCtx.SkipCloudFormationDeletion {
+			deleteCloudFormationStack(e2eCtx.AWSSession, getBootstrapTemplate())
 		}
 	}
 })
@@ -340,8 +256,8 @@ func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
 	// Read CNI file and set CNI_RESOURCES environmental variable
-	Expect(config.Variables).To(HaveKey(CNIPath), "Missing %s variable in the config", CNIPath)
-	clusterctl.SetCNIEnvVar(config.GetVariable(CNIPath), CNIResources)
+	Expect(config.Variables).To(HaveKey(shared.CNIPath), "Missing %s variable in the config", shared.CNIPath)
+	clusterctl.SetCNIEnvVar(config.GetVariable(shared.CNIPath), shared.CNIResources)
 	return config
 }
 
@@ -384,7 +300,7 @@ func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *
 		ClusterProxy:            bootstrapClusterProxy,
 		ClusterctlConfigPath:    clusterctlConfig,
 		InfrastructureProviders: config.InfrastructureProviders(),
-		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+		LogFolder:               filepath.Join(e2eCtx.ArtifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 
@@ -413,19 +329,19 @@ func newBootstrapTemplate() *cfn_bootstrap.Template {
 	t.Spec.Region = region
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(ioutil.WriteFile(path.Join(artifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
+	Expect(ioutil.WriteFile(path.Join(e2eCtx.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
 	cfnData, err := t.RenderCloudFormation().YAML()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(ioutil.WriteFile(path.Join(artifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
+	Expect(ioutil.WriteFile(path.Join(e2eCtx.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
 	return &t
 }
 
 // getBootstrapTemplate gets or generates a new bootstrap template
 func getBootstrapTemplate() *cfn_bootstrap.Template {
-	if bootstrapTemplate == nil {
-		bootstrapTemplate = newBootstrapTemplate()
+	if e2eCtx.BootstrapTemplate == nil {
+		e2eCtx.BootstrapTemplate = newBootstrapTemplate()
 	}
-	return bootstrapTemplate
+	return e2eCtx.BootstrapTemplate
 }
 
 func newAWSSession() client.ConfigProvider {
@@ -446,7 +362,7 @@ func newAWSSession() client.ConfigProvider {
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
 // the controller's IAM permissions to use ELB and Spot instances successfully
 func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
-	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
+	shared.Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
 	iamSvc := iam.New(prov)
 	_, err := iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
 		RoleName: aws.String("AWSServiceRoleForElasticLoadBalancing"),
@@ -455,7 +371,7 @@ func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForEC2Spot")
+	shared.Byf("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForEC2Spot")
 	_, err = iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
 		RoleName: aws.String("AWSServiceRoleForEC2Spot"),
 	})
@@ -466,7 +382,7 @@ func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
 
 // createCloudFormationStack ensures the cloudformation stack is up to date
 func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
-	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
+	shared.Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	cfnTemplate := t.RenderCloudFormation()
 	Expect(
@@ -476,7 +392,7 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 
 // deleteCloudFormationStack removes the provisioned clusterawsadm stack
 func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
-	Byf("Deleting %s CloudFormation stack", t.Spec.StackName)
+	shared.Byf("Deleting %s CloudFormation stack", t.Spec.StackName)
 	cfnSvc := cloudformation.NewService(cfn.New(prov))
 	Expect(
 		cfnSvc.DeleteStack(t.Spec.StackName),
@@ -485,7 +401,7 @@ func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 
 // ensureSSHKeyPair ensures A SSH key is present under the name
 func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
-	Byf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName)
+	shared.Byf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName)
 	ec2c := ec2.New(prov)
 	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
 	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
@@ -513,7 +429,7 @@ func setEnvVar(key, value string, private bool) {
 		printableValue = value
 	}
 
-	Byf("Setting environment variable: key=%s, value=%s", key, printableValue)
+	shared.Byf("Setting environment variable: key=%s, value=%s", key, printableValue)
 	os.Setenv(key, value)
 }
 
@@ -525,14 +441,14 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 		UserName: aws.String(userName),
 	})
 	for i := range keyOuts.AccessKeyMetadata {
-		Byf("Deleting an existing access key: user-name=%s", userName)
+		shared.Byf("Deleting an existing access key: user-name=%s", userName)
 		_, err := iamSvc.DeleteAccessKey(&iam.DeleteAccessKeyInput{
 			UserName:    aws.String(userName),
 			AccessKeyId: keyOuts.AccessKeyMetadata[i].AccessKeyId,
 		})
 		Expect(err).NotTo(HaveOccurred())
 	}
-	Byf("Creating an access key: user-name=%s", userName)
+	shared.Byf("Creating an access key: user-name=%s", userName)
 	out, err := iamSvc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String(userName)})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(out.AccessKey).ToNot(BeNil())
@@ -546,12 +462,12 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 // conformanceImageID looks up a specific image for a given
 // Kubernetes version in the e2econfig
 func conformanceImageID() string {
-	ver := e2eConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
+	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
 	strippedVer := strings.Replace(ver, "v", "", 1)
-	amiName := AMIPrefix + strippedVer + "*"
+	amiName := shared.AMIPrefix + strippedVer + "*"
 
-	Byf("Searching for AMI: name=%s", amiName)
-	ec2Svc := ec2.New(awsSession)
+	shared.Byf("Searching for AMI: name=%s", amiName)
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	filters := []*ec2.Filter{
 		{
 			Name:   aws.String("name"),
@@ -560,7 +476,7 @@ func conformanceImageID() string {
 	}
 	filters = append(filters, &ec2.Filter{
 		Name:   aws.String("owner-id"),
-		Values: []*string{aws.String(DefaultImageLookupOrg)},
+		Values: []*string{aws.String(shared.DefaultImageLookupOrg)},
 	})
 	resp, err := ec2Svc.DescribeImages(&ec2.DescribeImagesInput{
 		Filters: filters,
@@ -568,6 +484,6 @@ func conformanceImageID() string {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(resp.Images)).To(Not(BeZero()))
 	imageID := aws.StringValue(resp.Images[0].ImageId)
-	Byf("Using AMI: image-id=%s", imageID)
+	shared.Byf("Using AMI: image-id=%s", imageID)
 	return imageID
 }
