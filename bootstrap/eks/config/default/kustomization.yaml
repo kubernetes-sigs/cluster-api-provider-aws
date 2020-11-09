@@ -7,3 +7,7 @@ resources:
 bases:
 - ../rbac
 - ../manager
+
+patchesStrategicMerge:
+- manager_service_account_patch.yaml
+- manager_iam_patch.yaml

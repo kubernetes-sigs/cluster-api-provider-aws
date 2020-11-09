@@ -1,0 +1,12 @@
+# This patch injects annotations to run using KIAM / kube2iam
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      metadata:
+        annotations:
+          iam.amazonaws.com/role: ${AWS_CONTROLLER_IAM_ROLE:=""}
