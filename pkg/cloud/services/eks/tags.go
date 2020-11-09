@@ -68,7 +68,7 @@ func getTagUpdates(currentTags map[string]string, tags map[string]string) (untag
 }
 
 func (s *NodegroupService) reconcileTags(ng *eks.Nodegroup) error {
-	tags := ngTags(s.scope.Name(), s.scope.AdditionalTags())
+	tags := ngTags(s.scope.ClusterName(), s.scope.AdditionalTags())
 
 	untagKeys, newTags := getTagUpdates(aws.StringValueMap(ng.Tags), tags)
 
