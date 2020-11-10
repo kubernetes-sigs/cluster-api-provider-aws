@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 )
@@ -51,6 +52,11 @@ func (s *Service) ReconcileCNI() error {
 		return err
 	}
 
+	metaLabels := map[string]string{
+		"app.kubernetes.io/managed-by": "cluster-api-provider-aws",
+		"app.kubernetes.io/part-of":    s.scope.Name(),
+	}
+
 	s.scope.Info("for each subnet", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 	for _, subnet := range s.secondarySubnets() {
 		var eniConfig amazoncni.ENIConfig
@@ -63,6 +69,7 @@ func (s *Service) ReconcileCNI() error {
 				ObjectMeta: v1.ObjectMeta{
 					Namespace: v1.NamespaceSystem,
 					Name:      subnet.AvailabilityZone,
+					Labels:    metaLabels,
 				},
 				Spec: amazoncni.ENIConfigSpec{
 					Subnet:         subnet.ID,
@@ -83,6 +90,33 @@ func (s *Service) ReconcileCNI() error {
 
 		if err := s.client.Update(context.Background(), &eniConfig, &client.UpdateOptions{}); err != nil {
 			return err
+		}
+	}
+
+	// Removing any ENIConfig no longer needed
+	var eniConfigs amazoncni.ENIConfigList
+	err = s.client.List(context.Background(), &eniConfigs, &client.ListOptions{
+		Namespace:     v1.NamespaceSystem,
+		LabelSelector: labels.SelectorFromSet(metaLabels),
+	})
+	if err != nil {
+		return err
+	}
+	for _, eniConfig := range eniConfigs.Items {
+		matchFound := false
+		for _, subnet := range s.secondarySubnets() {
+			if eniConfig.Name == subnet.AvailabilityZone {
+				matchFound = true
+				break
+			}
+		}
+
+		if !matchFound {
+			oldEniConfig := eniConfig
+			s.scope.Info("Removing old ENIConfig", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace(), "eniConfig", oldEniConfig.Name)
+			if err := s.client.Delete(context.Background(), &oldEniConfig, &client.DeleteOptions{}); err != nil {
+				return err
+			}
 		}
 	}
 
