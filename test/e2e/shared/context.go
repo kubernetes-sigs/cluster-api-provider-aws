@@ -24,7 +24,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam"
+
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -33,9 +35,10 @@ import (
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 )
 
-func NewE2EContextWithFlags() *E2EContext {
+func NewE2EContextWithFlags(schemeFunc InitSchemeFunc) *E2EContext {
 	ctx := &E2EContext{
 		Namespaces: map[*corev1.Namespace]context.CancelFunc{},
+		InitScheme: schemeFunc,
 	}
 	CreateDefaultFlags(ctx)
 
@@ -96,4 +99,8 @@ type E2EContext struct {
 	Namespaces map[*corev1.Namespace]context.CancelFunc
 
 	AWSSession client.ConfigProvider
+
+	InitScheme InitSchemeFunc
 }
+
+type InitSchemeFunc func() *runtime.Scheme

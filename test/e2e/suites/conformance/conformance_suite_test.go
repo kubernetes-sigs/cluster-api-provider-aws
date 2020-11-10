@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package unmanaged
+package conformance
 
 import (
 	"testing"
@@ -41,9 +41,9 @@ func init() {
 	e2eCtx = shared.NewE2EContextWithFlags(initScheme)
 }
 
-func TestE2E(t *testing.T) {
+func TestE2EConformance(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e", []Reporter{framework.CreateJUnitReporterForProw(e2eCtx.ArtifactFolder)})
+	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e-conformance", []Reporter{framework.CreateJUnitReporterForProw(e2eCtx.ArtifactFolder)})
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {

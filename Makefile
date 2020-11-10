@@ -90,9 +90,9 @@ PULL_POLICY ?= Always
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
 # 'functional tests' as the ginkgo filter will run ALL tests ~ 2 hours @ 3 node concurrency.
-E2E_FOCUS ?= "functional tests"
+E2E_UNMANAGED_FOCUS ?= "functional tests - unmanaged"
 # Instead, you can run a quick smoke test, it should run fast (9 minutes)...
-# E2E_FOCUS := "Create cluster with name having"
+# E2E_UNMANAGED_FOCUS := "Create cluster with name having"
 
 GINKGO_NODES ?= 2
 GINKGO_ARGS ?=
@@ -110,7 +110,7 @@ test: ## Run tests
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
-	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_FOCUS) $(GINKGO_ARGS) ./test/e2e/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
+	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_UNMANAGED_FOCUS) $(GINKGO_ARGS) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
 
 .PHONY: e2e-image
 e2e-image:
@@ -126,8 +126,9 @@ CONFORMANCE_E2E_ARGS += $(E2E_ARGS)
 CONFORMANCE_GINKGO_ARGS ?= -stream
 CONFORMANCE_GINKGO_ARGS += $(GINKGO_ARGS)
 .PHONY: test-conformance
-test-conformance: ## Run clusterctl based conformance test on workload cluster (requires Docker).
-	$(MAKE) test-e2e E2E_FOCUS="conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' GINKGO_ARGS='$(CONFORMANCE_GINKGO_ARGS)'
+test-conformance: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run clusterctl based conformance test on workload cluster (requires Docker).
+	time $(GINKGO) -trace -progress -v -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(CONFORMANCE_E2E_ARGS)
+
 
 test-conformance-fast: ## Run clusterctl based conformance test on workload cluster (requires Docker) using a subset of the conformance suite in parallel. Run with FASTBUILD=true to skip full CAPA rebuild.
 	$(MAKE) test-conformance CONFORMANCE_E2E_ARGS="-kubetest.config-file=$(KUBETEST_FAST_CONF_PATH) -kubetest.ginkgo-nodes=5 $(E2E_ARGS)"
@@ -499,4 +500,5 @@ verify-gen: generate
 
 .PHONY: compile-e2e
 compile-e2e: ## Test e2e compilation
-	go test -c -o /dev/null -tags=e2e ./test/e2e
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/unmanaged
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/conformance

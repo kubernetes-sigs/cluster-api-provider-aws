@@ -26,10 +26,12 @@ import (
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -160,4 +162,26 @@ func DumpSpecResources(ctx context.Context, e2eCtx *E2EContext, namespace *corev
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
+}
+
+// LoadE2EConfig loads the e2econfig from the specified path
+func LoadE2EConfig(configPath string) *clusterctl.E2EConfig {
+	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
+	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
+	// Read CNI file and set CNI_RESOURCES environmental variable
+	Expect(config.Variables).To(HaveKey(CNIPath), "Missing %s variable in the config", CNIPath)
+	clusterctl.SetCNIEnvVar(config.GetVariable(CNIPath), CNIResources)
+	return config
+}
+
+// SetEnvVar sets an environment variable in the process. If marked private,
+// the value is not printed.
+func SetEnvVar(key, value string, private bool) {
+	printableValue := "*******"
+	if !private {
+		printableValue = value
+	}
+
+	Byf("Setting environment variable: key=%s, value=%s", key, printableValue)
+	os.Setenv(key, value)
 }

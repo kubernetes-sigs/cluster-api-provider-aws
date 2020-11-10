@@ -72,7 +72,7 @@ type statefulSetInfo struct {
 	volMountPath              string
 }
 
-var _ = Describe("functional tests", func() {
+var _ = Describe("functional tests - unmanaged", func() {
 	var (
 		namespace *corev1.Namespace
 		ctx       context.Context
@@ -256,7 +256,7 @@ var _ = Describe("functional tests", func() {
 			By("Creating Machine Deployment in non-configured Availability Zone")
 			md2Name := clusterName + "-md-2"
 			//By default, first availability zone will be used for cluster resources. This step attempts to create a machine deployment in the second availability zone
-			invalidAz := getAvailabilityZones()[1].ZoneName
+			invalidAz := shared.GetAvailabilityZones(e2eCtx.AWSSession)[1].ZoneName
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
 				Creator:                 e2eCtx.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       makeMachineDeployment(namespace.Name, md2Name, clusterName, 1),
@@ -572,7 +572,7 @@ func createStorageClass(storageClassName string, k8sclient crclient.Client) {
 	shared.Byf("Creating StorageClass object with name: %s", storageClassName)
 	volExpansion := true
 	bindingMode := storagev1.VolumeBindingImmediate
-	azs := getAvailabilityZones()
+	azs := shared.GetAvailabilityZones(e2eCtx.AWSSession)
 	storageClass := storagev1.StorageClass{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "storage.k8s.io/v1",
@@ -675,13 +675,6 @@ func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.Pers
 		},
 	}
 	Expect(k8sclient.Create(context.TODO(), &statefulset)).NotTo(HaveOccurred())
-}
-
-func getAvailabilityZones() []*ec2.AvailabilityZone {
-	ec2Client := ec2.New(getSession())
-	azs, err := ec2Client.DescribeAvailabilityZones(nil)
-	Expect(err).NotTo(HaveOccurred())
-	return azs.AvailabilityZones
 }
 
 func getCurrentVPCsCount(sess client.ConfigProvider) int {

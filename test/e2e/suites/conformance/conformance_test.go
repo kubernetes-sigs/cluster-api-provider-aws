@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package conformance
 
 import (
 	"context"
@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
@@ -42,37 +43,37 @@ var _ = Describe("conformance tests", func() {
 	)
 
 	BeforeEach(func() {
-		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
-		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
-		Expect(e2eConfig.Variables).To(HaveKey(KubernetesVersion))
+		Expect(e2eCtx.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
+		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 		ctx = context.TODO()
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace = setupSpecNamespace(ctx, specName, bootstrapClusterProxy, artifactFolder)
+		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 	})
 	Measure(specName, func(b Benchmarker) {
 
 		name := fmt.Sprintf("cluster-%s", util.RandomString(6))
-		setEnvVar("USE_CI_ARTIFACTS", "true", false)
-		kubernetesVersion := e2eConfig.GetVariable(KubernetesVersion)
+		shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
+		kubernetesVersion := e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)
 		flavor := clusterctl.DefaultFlavor
-		if useCIArtifacts {
+		if e2eCtx.UseCIArtifacts {
 			flavor = "conformance-ci-artifacts"
 			var err error
 			kubernetesVersion, err = kubernetesversions.LatestCIRelease()
 			Expect(err).NotTo(HaveOccurred())
 		}
-		workerMachineCount, err := strconv.ParseInt(e2eConfig.GetVariable("CONFORMANCE_WORKER_MACHINE_COUNT"), 10, 64)
+		workerMachineCount, err := strconv.ParseInt(e2eCtx.E2EConfig.GetVariable("CONFORMANCE_WORKER_MACHINE_COUNT"), 10, 64)
 		Expect(err).NotTo(HaveOccurred())
-		controlPlaneMachineCount, err := strconv.ParseInt(e2eConfig.GetVariable("CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT"), 10, 64)
+		controlPlaneMachineCount, err := strconv.ParseInt(e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT"), 10, 64)
 		Expect(err).NotTo(HaveOccurred())
 
 		runtime := b.Time("cluster creation", func() {
 			_ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-				ClusterProxy: bootstrapClusterProxy,
+				ClusterProxy: e2eCtx.BootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
-					LogFolder:                filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-					ClusterctlConfigPath:     clusterctlConfigPath,
-					KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
+					LogFolder:                filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.BootstrapClusterProxy.GetKubeconfigPath(),
 					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 					Flavor:                   flavor,
 					Namespace:                namespace.Name,
@@ -81,19 +82,19 @@ var _ = Describe("conformance tests", func() {
 					ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
 					WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
 				},
-				WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
-				WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
-				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			})
 		})
 		b.RecordValue("cluster creation", runtime.Seconds())
-		workloadProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
+		workloadProxy := e2eCtx.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
 		runtime = b.Time("conformance suite", func() {
 			kubetest.Run(
 				kubetest.RunInput{
 					ClusterProxy:   workloadProxy,
 					NumberOfNodes:  int(workerMachineCount),
-					ConfigFilePath: kubetestConfigFilePath,
+					ConfigFilePath: e2eCtx.KubetestConfigFilePath,
 				},
 			)
 		})
@@ -101,9 +102,9 @@ var _ = Describe("conformance tests", func() {
 	}, 1)
 
 	AfterEach(func() {
-		setEnvVar("USE_CI_ARTIFACTS", "false", false)
+		shared.SetEnvVar("USE_CI_ARTIFACTS", "false", false)
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, "", bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, skipCleanup)
+		shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 	})
 
 })
