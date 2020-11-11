@@ -66,11 +66,11 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 // initBootstrapCluster uses kind to create a cluster
 func initBootstrapCluster(e2eCtx *E2EContext) {
 	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-		ClusterProxy:            e2eCtx.BootstrapClusterProxy,
-		ClusterctlConfigPath:    e2eCtx.ClusterctlConfigPath,
+		ClusterProxy:            e2eCtx.Environment.BootstrapClusterProxy,
+		ClusterctlConfigPath:    e2eCtx.Environment.ClusterctlConfigPath,
 		InfrastructureProviders: e2eCtx.E2EConfig.InfrastructureProviders(),
-		LogFolder:               filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
-	}, e2eCtx.E2EConfig.GetIntervals(e2eCtx.BootstrapClusterProxy.GetName(), "wait-controllers")...)
+		LogFolder:               filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+	}, e2eCtx.E2EConfig.GetIntervals(e2eCtx.Environment.BootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 
 // tearDown the bootstrap kind cluster

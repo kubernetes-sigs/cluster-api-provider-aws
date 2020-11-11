@@ -24,12 +24,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
 	"sigs.k8s.io/cluster-api/test/framework"
 
-	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
@@ -38,12 +34,13 @@ var (
 )
 
 func init() {
-	e2eCtx = shared.NewE2EContextWithFlags(initScheme)
+	e2eCtx = shared.NewE2EContext()
+	shared.CreateDefaultFlags(e2eCtx)
 }
 
 func TestE2EConformance(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e-conformance", []Reporter{framework.CreateJUnitReporterForProw(e2eCtx.ArtifactFolder)})
+	RunSpecsWithDefaultAndCustomReporters(t, "capa-e2e-conformance", []Reporter{framework.CreateJUnitReporterForProw(e2eCtx.Settings.ArtifactFolder)})
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -57,12 +54,3 @@ var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	shared.AllNodesAfterSuite(e2eCtx)
 })
-
-// initScheme creates a new GVK scheme
-func initScheme() *runtime.Scheme {
-	sc := runtime.NewScheme()
-	framework.TryAddDefaultSchemes(sc)
-	_ = v1alpha3.AddToScheme(sc)
-	_ = clientgoscheme.AddToScheme(sc)
-	return sc
-}

@@ -39,43 +39,43 @@ import (
 func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext) *corev1.Namespace {
 	Byf("Creating a namespace for hosting the %q test spec", specName)
 	namespace, cancelWatches := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
-		Creator:   e2eCtx.BootstrapClusterProxy.GetClient(),
-		ClientSet: e2eCtx.BootstrapClusterProxy.GetClientSet(),
+		Creator:   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		ClientSet: e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
 		Name:      fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-		LogFolder: filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
+		LogFolder: filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
 	})
 
-	e2eCtx.Namespaces[namespace] = cancelWatches
+	e2eCtx.Environment.Namespaces[namespace] = cancelWatches
 
 	return namespace
 }
 
-// (ctx, "", e2eCtx.BootstrapClusterProxy, e2eCtx.ArtifactFolder, k, e2eCtx.E2EConfig.GetIntervals, e2eCtx.SkipCleanup)
+// (ctx, "", e2eCtx.Environment.BootstrapClusterProxy, e2eCtx.Settings.ArtifactFolder, k, e2eCtx.E2EConfig.GetIntervals, e2eCtx.SkipCleanup)
 func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace *corev1.Namespace, e2eCtx *E2EContext) {
 	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
 	// Dump all Cluster API related resources to artifacts before deleting them.
-	cancelWatches := e2eCtx.Namespaces[namespace]
+	cancelWatches := e2eCtx.Environment.Namespaces[namespace]
 	DumpSpecResources(ctx, e2eCtx, namespace)
 	Byf("Dumping all EC2 instances in the %q namespace", namespace.Name)
 	DumpMachines(ctx, e2eCtx, namespace)
-	if !e2eCtx.SkipCleanup {
+	if !e2eCtx.Settings.SkipCleanup {
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    e2eCtx.BootstrapClusterProxy.GetClient(),
+			Client:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
 		}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 
 		Byf("Deleting namespace used for hosting the %q test spec", specName)
 		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-			Deleter: e2eCtx.BootstrapClusterProxy.GetClient(),
+			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Name:    namespace.Name,
 		})
 	}
 	cancelWatches()
-	delete(e2eCtx.Namespaces, namespace)
+	delete(e2eCtx.Environment.Namespaces, namespace)
 }
 
 func DumpMachines(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace) {
-	machines := machinesForSpec(ctx, e2eCtx.BootstrapClusterProxy, namespace)
+	machines := machinesForSpec(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace)
 	instances, err := allMachines(ctx, e2eCtx)
 	if err != nil {
 		return
@@ -106,7 +106,7 @@ func machinesForSpec(ctx context.Context, clusterProxy framework.ClusterProxy, n
 }
 
 func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMachine, instanceID string) {
-	logPath := filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName())
+	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName())
 	machineLogBase := path.Join(logPath, "instances", machine.Namespace, machine.Name)
 	metaLog := path.Join(machineLogBase, "instance.log")
 	if err := os.MkdirAll(filepath.Dir(metaLog), 0750); err != nil {
@@ -154,9 +154,9 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 
 func DumpSpecResources(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace) {
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    e2eCtx.BootstrapClusterProxy.GetClient(),
+		Lister:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Namespace: namespace.Name,
-		LogPath:   filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName(), "resources"),
+		LogPath:   filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "resources"),
 	})
 }
 

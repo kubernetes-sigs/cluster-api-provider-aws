@@ -43,7 +43,7 @@ var _ = Describe("conformance tests", func() {
 	)
 
 	BeforeEach(func() {
-		Expect(e2eCtx.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
+		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 		ctx = context.TODO()
@@ -56,7 +56,7 @@ var _ = Describe("conformance tests", func() {
 		shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 		kubernetesVersion := e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)
 		flavor := clusterctl.DefaultFlavor
-		if e2eCtx.UseCIArtifacts {
+		if e2eCtx.Settings.UseCIArtifacts {
 			flavor = "conformance-ci-artifacts"
 			var err error
 			kubernetesVersion, err = kubernetesversions.LatestCIRelease()
@@ -69,11 +69,11 @@ var _ = Describe("conformance tests", func() {
 
 		runtime := b.Time("cluster creation", func() {
 			_ = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-				ClusterProxy: e2eCtx.BootstrapClusterProxy,
+				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
-					LogFolder:                filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
-					ClusterctlConfigPath:     e2eCtx.ClusterctlConfigPath,
-					KubeconfigPath:           e2eCtx.BootstrapClusterProxy.GetKubeconfigPath(),
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
 					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 					Flavor:                   flavor,
 					Namespace:                namespace.Name,
@@ -88,13 +88,13 @@ var _ = Describe("conformance tests", func() {
 			})
 		})
 		b.RecordValue("cluster creation", runtime.Seconds())
-		workloadProxy := e2eCtx.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
+		workloadProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, name)
 		runtime = b.Time("conformance suite", func() {
 			kubetest.Run(
 				kubetest.RunInput{
 					ClusterProxy:   workloadProxy,
 					NumberOfNodes:  int(workerMachineCount),
-					ConfigFilePath: e2eCtx.KubetestConfigFilePath,
+					ConfigFilePath: e2eCtx.Settings.KubetestConfigFilePath,
 				},
 			)
 		})

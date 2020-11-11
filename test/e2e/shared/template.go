@@ -47,17 +47,17 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	t.Spec.Region = region
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(ioutil.WriteFile(path.Join(e2eCtx.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
+	Expect(ioutil.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
 	cfnData, err := t.RenderCloudFormation().YAML()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(ioutil.WriteFile(path.Join(e2eCtx.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
+	Expect(ioutil.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
 	return &t
 }
 
 // getBootstrapTemplate gets or generates a new bootstrap template
 func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
-	if e2eCtx.BootstrapTemplate == nil {
-		e2eCtx.BootstrapTemplate = newBootstrapTemplate(e2eCtx)
+	if e2eCtx.Environment.BootstrapTemplate == nil {
+		e2eCtx.Environment.BootstrapTemplate = newBootstrapTemplate(e2eCtx)
 	}
-	return e2eCtx.BootstrapTemplate
+	return e2eCtx.Environment.BootstrapTemplate
 }

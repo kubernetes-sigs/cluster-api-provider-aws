@@ -80,7 +80,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 	)
 
 	BeforeEach(func() {
-		Expect(e2eCtx.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
+		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		ctx = context.TODO()
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
@@ -99,13 +99,13 @@ var _ = Describe("functional tests - unmanaged", func() {
 			_, md := createCluster(ctx, configCluster)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
-				Lister:            e2eCtx.BootstrapClusterProxy.GetClient(),
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				ClusterName:       clusterName,
 				Namespace:         namespace.Name,
 				MachineDeployment: *md[0],
 			})
 			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
-				Lister:      e2eCtx.BootstrapClusterProxy.GetClient(),
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				ClusterName: clusterName,
 				Namespace:   namespace.Name,
 			})
@@ -141,11 +141,11 @@ var _ = Describe("functional tests - unmanaged", func() {
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
 			configCluster.WorkerMachineCount = pointer.Int64Ptr(1)
 			cluster, md := createCluster(ctx, configCluster)
-			clusterClient := e2eCtx.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
+			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
 
 			By("Waiting for worker nodes to be in Running phase")
 			machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
-				Lister:            e2eCtx.BootstrapClusterProxy.GetClient(),
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				ClusterName:       clusterName,
 				Namespace:         namespace.Name,
 				MachineDeployment: *md[0],
@@ -154,7 +154,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			Expect(len(machines)).Should(BeNumerically(">", 0))
 			statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseRunning))}
 			machineStatusInput := framework.WaitForMachineStatusCheckInput{
-				Getter:       e2eCtx.BootstrapClusterProxy.GetClient(),
+				Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				Machine:      &machines[0],
 				StatusChecks: statusChecks,
 			}
@@ -197,9 +197,9 @@ var _ = Describe("functional tests - unmanaged", func() {
 			By("Creating cluster beyond vpc limit")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     e2eCtx.ClusterctlConfigPath,
-				KubeconfigPath:           e2eCtx.BootstrapClusterProxy.GetKubeconfigPath(),
+				LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+				ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+				KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
@@ -208,7 +208,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(0),
 			})
-			Expect(e2eCtx.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)).ShouldNot(HaveOccurred())
+			Expect(e2eCtx.Environment.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)).ShouldNot(HaveOccurred())
 
 			By("Checking cluster gets provisioned when resources available")
 			if len(vpcsCreated) > 0 {
@@ -219,7 +219,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			By("Waiting for cluster to reach infrastructure ready")
 			Eventually(func() bool {
 				cluster := &clusterv1.Cluster{}
-				if err := e2eCtx.BootstrapClusterProxy.GetClient().Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace.Name, Name: clusterName}, cluster); nil == err {
+				if err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace.Name, Name: clusterName}, cluster); nil == err {
 					if cluster.Status.InfrastructureReady {
 						return true
 					}
@@ -239,7 +239,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			By("Creating Machine Deployment with invalid subnet ID")
 			md1Name := clusterName + "-md-1"
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
-				Creator:                 e2eCtx.BootstrapClusterProxy.GetClient(),
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       makeMachineDeployment(namespace.Name, md1Name, clusterName, 1),
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, md1Name),
 				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md1Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil, pointer.StringPtr("invalid-subnet")),
@@ -258,7 +258,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 			//By default, first availability zone will be used for cluster resources. This step attempts to create a machine deployment in the second availability zone
 			invalidAz := shared.GetAvailabilityZones(e2eCtx.AWSSession)[1].ZoneName
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
-				Creator:                 e2eCtx.BootstrapClusterProxy.GetClient(),
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       makeMachineDeployment(namespace.Name, md2Name, clusterName, 1),
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, md2Name),
 				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md2Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), invalidAz, nil),
@@ -292,20 +292,20 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 			//private CIDRs set in cluster-template-multi-az.yaml
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
-				Creator:                 e2eCtx.BootstrapClusterProxy.GetClient(),
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       md1,
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName1),
 				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName1, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), pointer.StringPtr(az1), getSubnetId("cidr-block", "10.0.0.0/24")),
 			})
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
-				Creator:                 e2eCtx.BootstrapClusterProxy.GetClient(),
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       md2,
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName2),
 				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName2, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), pointer.StringPtr(az2), getSubnetId("cidr-block", "10.0.2.0/24")),
 			})
 
 			By("Waiting for new worker nodes to become ready")
-			k8sClient := e2eCtx.BootstrapClusterProxy.GetClient()
+			k8sClient := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
 			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{Lister: k8sClient, Cluster: cluster, MachineDeployment: md1}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{Lister: k8sClient, Cluster: cluster, MachineDeployment: md2}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 		})
@@ -316,16 +316,16 @@ var _ = Describe("functional tests - unmanaged", func() {
 			It("should setup namespaces correctly for the two clusters", func() {
 				By("Creating first cluster with single control plane")
 				ns1, cf1 := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
-					Creator:   e2eCtx.BootstrapClusterProxy.GetClient(),
-					ClientSet: e2eCtx.BootstrapClusterProxy.GetClientSet(),
+					Creator:   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+					ClientSet: e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
 					Name:      fmt.Sprintf("multi-workload-%s", util.RandomString(6)),
-					LogFolder: filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
+					LogFolder: filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
 				})
 				ns2, cf2 := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
-					Creator:   e2eCtx.BootstrapClusterProxy.GetClient(),
-					ClientSet: e2eCtx.BootstrapClusterProxy.GetClientSet(),
+					Creator:   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+					ClientSet: e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
 					Name:      fmt.Sprintf("multi-workload-%s", util.RandomString(6)),
-					LogFolder: filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
+					LogFolder: filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
 				})
 
 				By("Creating first cluster")
@@ -341,7 +341,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				time.Sleep(10 * time.Second)
 
 				By("Verifying MachineDeployment is running.")
-				framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{Cluster: cluster1, Lister: e2eCtx.BootstrapClusterProxy.GetClient()}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+				framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{Cluster: cluster1, Lister: e2eCtx.Environment.BootstrapClusterProxy.GetClient()}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
 
 				By("Creating second cluster")
 				cluster2Name := fmt.Sprintf("cluster-%s", util.RandomString(6))
@@ -353,7 +353,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 
 				By("Deleting node directly from infra cloud")
 				machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
-					Lister:            e2eCtx.BootstrapClusterProxy.GetClient(),
+					Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 					ClusterName:       cluster1Name,
 					Namespace:         ns2.Name,
 					MachineDeployment: *md2[0],
@@ -364,7 +364,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 				By("Waiting for machine to reach Failed state")
 				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}
 				machineStatusInput := framework.WaitForMachineStatusCheckInput{
-					Getter:       e2eCtx.BootstrapClusterProxy.GetClient(),
+					Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 					Machine:      &machines[0],
 					StatusChecks: statusChecks,
 				}
@@ -373,8 +373,8 @@ var _ = Describe("functional tests - unmanaged", func() {
 				By("Deleting the clusters and namespaces")
 				deleteCluster(ctx, cluster1)
 				deleteCluster(ctx, cluster2)
-				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{Deleter: e2eCtx.BootstrapClusterProxy.GetClient(), Name: ns1.Name})
-				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{Deleter: e2eCtx.BootstrapClusterProxy.GetClient(), Name: ns2.Name})
+				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(), Name: ns1.Name})
+				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(), Name: ns2.Name})
 				cf1()
 				cf2()
 			})
@@ -411,13 +411,13 @@ var _ = Describe("functional tests - unmanaged", func() {
 			_, md := createCluster(ctx, configCluster)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
-				Lister:            e2eCtx.BootstrapClusterProxy.GetClient(),
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				ClusterName:       clusterName,
 				Namespace:         namespace.Name,
 				MachineDeployment: *md[0],
 			})
 			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
-				Lister:      e2eCtx.BootstrapClusterProxy.GetClient(),
+				Lister:      e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				ClusterName: clusterName,
 				Namespace:   namespace.Name,
 			})
@@ -437,7 +437,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterInput) (*clusterv1.Cluster, []*clusterv1.MachineDeployment) {
 
 	res := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-		ClusterProxy:                 e2eCtx.BootstrapClusterProxy,
+		ClusterProxy:                 e2eCtx.Environment.BootstrapClusterProxy,
 		ConfigCluster:                configCluster,
 		WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals("", "wait-cluster"),
 		WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals("", "wait-control-plane"),
@@ -449,9 +449,9 @@ func createCluster(ctx context.Context, configCluster clusterctl.ConfigClusterIn
 
 func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {
 	return clusterctl.ConfigClusterInput{
-		LogFolder:                filepath.Join(e2eCtx.ArtifactFolder, "clusters", e2eCtx.BootstrapClusterProxy.GetName()),
-		ClusterctlConfigPath:     e2eCtx.ClusterctlConfigPath,
-		KubeconfigPath:           e2eCtx.BootstrapClusterProxy.GetKubeconfigPath(),
+		LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+		ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+		KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
 		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 		Flavor:                   clusterctl.DefaultFlavor,
 		Namespace:                namespace,
@@ -610,12 +610,12 @@ func createVPC(sess client.ConfigProvider, cidrblock string) string {
 
 func deleteCluster(ctx context.Context, cluster *clusterv1.Cluster) {
 	framework.DeleteCluster(ctx, framework.DeleteClusterInput{
-		Deleter: e2eCtx.BootstrapClusterProxy.GetClient(),
+		Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Cluster: cluster,
 	})
 
 	framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-		Getter:  e2eCtx.BootstrapClusterProxy.GetClient(),
+		Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Cluster: cluster,
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 }
@@ -625,7 +625,7 @@ func deleteMachine(namespace *corev1.Namespace, md *clusterv1.MachineDeployment)
 	selector, err := metav1.LabelSelectorAsMap(&md.Spec.Selector)
 	Expect(err).NotTo(HaveOccurred())
 
-	bootstrapClient := e2eCtx.BootstrapClusterProxy.GetClient()
+	bootstrapClient := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
 	err = bootstrapClient.List(context.TODO(), machineList, crclient.InNamespace(namespace.Name), crclient.MatchingLabels(selector))
 	Expect(err).NotTo(HaveOccurred())
 
@@ -701,7 +701,7 @@ func getElasticIPsLimit(sess client.ConfigProvider) int {
 
 func getEvents(namespace string) *corev1.EventList {
 	eventsList := &corev1.EventList{}
-	if err := e2eCtx.BootstrapClusterProxy.GetClient().List(context.TODO(), eventsList, crclient.InNamespace(namespace), crclient.MatchingLabels{}); err != nil {
+	if err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(context.TODO(), eventsList, crclient.InNamespace(namespace), crclient.MatchingLabels{}); err != nil {
 		fmt.Fprintf(GinkgoWriter, "Got error while fetching events of namespace: %s, %s \n", namespace, err.Error())
 	}
 
@@ -763,7 +763,7 @@ func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
 }
 
 func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg string, eList *corev1.EventList) bool {
-	k8sClient := e2eCtx.BootstrapClusterProxy.GetClient()
+	k8sClient := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
 	machineDeployment := &clusterv1.MachineDeployment{}
 	if err := k8sClient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: namespace, Name: machineDeploymentName}, machineDeployment); err != nil {
 		fmt.Fprintf(GinkgoWriter, "Got error while getting machinedeployment %s \n", machineDeploymentName)

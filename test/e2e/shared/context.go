@@ -35,19 +35,38 @@ import (
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 )
 
-func NewE2EContextWithFlags(schemeFunc InitSchemeFunc) *E2EContext {
-	ctx := &E2EContext{
-		Namespaces: map[*corev1.Namespace]context.CancelFunc{},
-		InitScheme: schemeFunc,
+// Option represents an option to use when creating a e2e context
+type Option func(*E2EContext)
+
+func NewE2EContext(options ...Option) *E2EContext {
+	ctx := &E2EContext{}
+	ctx.Environment.Scheme = DefaultScheme()
+	ctx.Environment.Namespaces = map[*corev1.Namespace]context.CancelFunc{}
+	//ctx.Lifecycle = DefaultGinkgoLifecycle()
+
+	for _, opt := range options {
+		opt(ctx)
 	}
-	CreateDefaultFlags(ctx)
 
 	return ctx
 }
 
+// E2EContext represents the context of the e2e test
 type E2EContext struct {
-	// Flags
+	// Settings is the settings used for the test
+	Settings Settings
+	// E2EConfig to be used for this test, read from configPath.
+	E2EConfig *clusterctl.E2EConfig
+	// Environment represents the runtime enviroment
+	Environment RuntimeEnvironment
+	// Lifecycle represents Ginkgo test lifecycle hooks
+	//Lifecycle TestLifecycle
+	// AWSSession is the AWS session for the tests
+	AWSSession client.ConfigProvider
+}
 
+// Settings represents the test settings
+type Settings struct {
 	// ConfigPath is the path to the e2e config file.
 	ConfigPath string
 	// useExistingCluster instructs the test to use the current cluster instead of creating a new one (default discovery rules apply).
@@ -70,37 +89,59 @@ type E2EContext struct {
 	KubetestConfigFilePath string
 	// useCIArtifacts specifies whether or not to use the latest build from the main branch of the Kubernetes repository
 	UseCIArtifacts bool
-
-	//Globals
-
-	// e2eConfig to be used for this test, read from configPath.
-	E2EConfig *clusterctl.E2EConfig
-	// clusterctlConfigPath to be used for this test, created by generating a clusterctl local repository
-	// with the providers specified in the configPath.
-	ClusterctlConfigPath string
-	// bootstrapClusterProvider manages provisioning of the the bootstrap cluster to be used for the e2e tests.
-	// Please note that provisioning will be skipped if use-existing-cluster is provided.
-	BootstrapClusterProvider bootstrap.ClusterProvider
-	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
-	BootstrapClusterProxy framework.ClusterProxy
-	// bootstrapTemplate is the clusterawsadm bootstrap template for this run
-	BootstrapTemplate *cfn_bootstrap.Template
-	// bootstrapAccessKey
-	BootstrapAccessKey *iam.AccessKey
-	// ticker for dumping resources
-	ResourceTicker *time.Ticker
-	// tickerDone to stop ticking
-	ResourceTickerDone chan bool
-	// ticker for dumping resources
-	MachineTicker *time.Ticker
-	// tickerDone to stop ticking
-	MachineTickerDone chan bool
-
-	Namespaces map[*corev1.Namespace]context.CancelFunc
-
-	AWSSession client.ConfigProvider
-
-	InitScheme InitSchemeFunc
 }
 
+// RuntimeEnvironment represents the runtime environment of the test
+type RuntimeEnvironment struct {
+	// BootstrapClusterProvider manages provisioning of the the bootstrap cluster to be used for the e2e tests.
+	// Please note that provisioning will be skipped if use-existing-cluster is provided.
+	BootstrapClusterProvider bootstrap.ClusterProvider
+	// BootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
+	BootstrapClusterProxy framework.ClusterProxy
+	// BootstrapTemplate is the clusterawsadm bootstrap template for this run
+	BootstrapTemplate *cfn_bootstrap.Template
+	// BootstrapAccessKey is the bootstrap user access key
+	BootstrapAccessKey *iam.AccessKey
+	// ResourceTicker for dumping resources
+	ResourceTicker *time.Ticker
+	// ResourceTickerDone to stop ticking
+	ResourceTickerDone chan bool
+	// MachineTicker for dumping resources
+	MachineTicker *time.Ticker
+	// MachineTickerDone to stop ticking
+	MachineTickerDone chan bool
+	// Namespaces holds the namespaces used in the tests
+	Namespaces map[*corev1.Namespace]context.CancelFunc
+	// ClusterctlConfigPath to be used for this test, created by generating a clusterctl local repository
+	// with the providers specified in the configPath.
+	ClusterctlConfigPath string
+	// Scheme is the GVK scheme to use for the tests
+	Scheme *runtime.Scheme
+}
+
+// TestLifecycle represents the Ginkgo test lifecycle hook functions
+// type TestLifecycle struct {
+// 	BeforeSuiteFirstNode   BeforeSuiteFirstNodeFunc
+// 	BeforeSuiteParalelNode BeforeSuiteParalelNodeFunc
+// 	AfterSuiteFirstNode    AfterSuiteFunc
+// 	AfterSuiteParallelNode AfterSuiteFunc
+// }
+
+// InitSchemeFunc is a function that will create a scheme
 type InitSchemeFunc func() *runtime.Scheme
+
+// BeforeSuiteFirstNodeFunc is a function that will be run on the first node before the Ginkgo suite runs
+// type BeforeSuiteFirstNodeFunc func(e2eCtx *E2EContext) []byte
+
+// // BeforeSuiteFirstNodeFunc is a function that will be run on the parallel nodes before the Ginkgo suite runs
+// type BeforeSuiteParalelNodeFunc func(e2eCtx *E2EContext, data []byte)
+
+// // AfterSuiteFunc is a function that runs after the Ginkgo suit has run
+// type AfterSuiteFunc func(e2eCtx *E2EContext)
+
+// WithSchemeInit will set a different function to initalize the scheme
+func WithSchemeInit(fn InitSchemeFunc) Option {
+	return func(ctx *E2EContext) {
+		ctx.Environment.Scheme = fn()
+	}
+}
