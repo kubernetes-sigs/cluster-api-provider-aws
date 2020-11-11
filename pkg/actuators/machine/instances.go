@@ -342,7 +342,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 		}
 	}
 
-	instanceTenancy := machineProviderConfig.Tenancy
+	instanceTenancy := machineProviderConfig.Placement.Tenancy
 
 	switch instanceTenancy {
 	case "":
@@ -351,7 +351,7 @@ func launchInstance(machine *machinev1.Machine, machineProviderConfig *awsprovid
 		if placement == nil {
 			placement = &ec2.Placement{}
 		}
-		tenancy := string(machineProviderConfig.Tenancy)
+		tenancy := string(instanceTenancy)
 		placement.Tenancy = &tenancy
 	default:
 		return nil, mapierrors.CreateMachine("invalid instance tenancy: %s. Allowed options are: %s,%s,%s",

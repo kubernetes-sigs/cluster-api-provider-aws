@@ -218,13 +218,13 @@ func stubPCAMI(ami awsproviderv1.AWSResourceReference) *awsproviderv1.AWSMachine
 
 func stubDedicatedInstanceTenancy() *awsproviderv1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
-	pc.Tenancy = awsproviderv1.DedicatedTenancy
+	pc.Placement.Tenancy = awsproviderv1.DedicatedTenancy
 	return pc
 }
 
 func stubInvalidInstanceTenancy() *awsproviderv1.AWSMachineProviderConfig {
 	pc := stubProviderConfig()
-	pc.Tenancy = "invalid"
+	pc.Placement.Tenancy = "invalid"
 	return pc
 }
 
