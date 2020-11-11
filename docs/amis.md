@@ -86,7 +86,7 @@
 | us-east-1      | ami-00ceb2c6df9565544 |
 | us-east-2      | ami-03fdb3a5e47320a15 |
 | us-west-1      | ami-01186e9687c392ec4 |
-| us-west-2      | ami-054006e5fedebab3  |
+| us-west-2      | ami-054006e5fedebab32 |
 
 
 ### Ubuntu 18.04 (Bionic)
