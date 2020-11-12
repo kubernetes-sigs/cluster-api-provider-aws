@@ -52,14 +52,6 @@ func NewAWSSession() client.ConfigProvider {
 	return sess
 }
 
-func GetSession() client.ConfigProvider {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	return sess
-}
-
 // createCloudFormationStack ensures the cloudformation stack is up to date
 func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)

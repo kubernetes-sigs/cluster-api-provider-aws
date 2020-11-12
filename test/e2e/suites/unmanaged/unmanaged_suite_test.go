@@ -54,12 +54,3 @@ var _ = SynchronizedAfterSuite(func() {
 }, func() {
 	shared.AllNodesAfterSuite(e2eCtx)
 })
-
-// // initScheme creates a new GVK scheme
-// func initScheme() *runtime.Scheme {
-// 	sc := runtime.NewScheme()
-// 	framework.TryAddDefaultSchemes(sc)
-// 	_ = v1alpha3.AddToScheme(sc)
-// 	_ = clientgoscheme.AddToScheme(sc)
-// 	return sc
-// }

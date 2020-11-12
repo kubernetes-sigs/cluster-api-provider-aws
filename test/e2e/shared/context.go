@@ -59,8 +59,6 @@ type E2EContext struct {
 	E2EConfig *clusterctl.E2EConfig
 	// Environment represents the runtime enviroment
 	Environment RuntimeEnvironment
-	// Lifecycle represents Ginkgo test lifecycle hooks
-	//Lifecycle TestLifecycle
 	// AWSSession is the AWS session for the tests
 	AWSSession client.ConfigProvider
 }
@@ -119,25 +117,8 @@ type RuntimeEnvironment struct {
 	Scheme *runtime.Scheme
 }
 
-// TestLifecycle represents the Ginkgo test lifecycle hook functions
-// type TestLifecycle struct {
-// 	BeforeSuiteFirstNode   BeforeSuiteFirstNodeFunc
-// 	BeforeSuiteParalelNode BeforeSuiteParalelNodeFunc
-// 	AfterSuiteFirstNode    AfterSuiteFunc
-// 	AfterSuiteParallelNode AfterSuiteFunc
-// }
-
 // InitSchemeFunc is a function that will create a scheme
 type InitSchemeFunc func() *runtime.Scheme
-
-// BeforeSuiteFirstNodeFunc is a function that will be run on the first node before the Ginkgo suite runs
-// type BeforeSuiteFirstNodeFunc func(e2eCtx *E2EContext) []byte
-
-// // BeforeSuiteFirstNodeFunc is a function that will be run on the parallel nodes before the Ginkgo suite runs
-// type BeforeSuiteParalelNodeFunc func(e2eCtx *E2EContext, data []byte)
-
-// // AfterSuiteFunc is a function that runs after the Ginkgo suit has run
-// type AfterSuiteFunc func(e2eCtx *E2EContext)
 
 // WithSchemeInit will set a different function to initalize the scheme
 func WithSchemeInit(fn InitSchemeFunc) Option {

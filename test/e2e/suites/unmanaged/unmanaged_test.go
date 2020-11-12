@@ -33,7 +33,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	appsv1 "k8s.io/api/apps/v1"
@@ -187,7 +186,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 	Describe("Creating cluster after reaching vpc maximum limit", func() {
 		It("Cluster created after reaching vpc limit should be in provisioning", func() {
 			By("Create VPCs until limit is reached")
-			sess := getSession()
+			sess := e2eCtx.AWSSession
 			limit := getElasticIPsLimit(sess)
 			var vpcsCreated []string
 			for getCurrentVPCsCount(sess) < limit {
@@ -641,7 +640,7 @@ func deleteMachine(namespace *corev1.Namespace, md *clusterv1.MachineDeployment)
 
 func deleteRetainedVolumes(awsVolIds []*string) {
 	By("Deleting dynamically provisioned volumes")
-	ec2Client := ec2.New(getSession())
+	ec2Client := ec2.New(e2eCtx.AWSSession)
 	for _, volumeId := range awsVolIds {
 		input := &ec2.DeleteVolumeInput{
 			VolumeId: aws.String(*volumeId),
@@ -708,19 +707,11 @@ func getEvents(namespace string) *corev1.EventList {
 	return eventsList
 }
 
-func getSession() client.ConfigProvider {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
-	Expect(err).NotTo(HaveOccurred())
-	return sess
-}
-
 func getSubnetId(filterKey, filterValue string) *string {
 	var subnetOutput *ec2.DescribeSubnetsOutput
 	var err error
 
-	ec2Client := ec2.New(getSession())
+	ec2Client := ec2.New(e2eCtx.AWSSession)
 	subnetInput := &ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
@@ -899,7 +890,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, replicas int32
 
 func assertSpotInstanceType(instanceId string) {
 	shared.Byf("Finding EC2 spot instance with ID: %s", instanceId)
-	ec2Client := ec2.New(getSession())
+	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
 			aws.String(instanceId[strings.LastIndex(instanceId, "/")+1:]),
@@ -915,7 +906,7 @@ func assertSpotInstanceType(instanceId string) {
 
 func terminateInstance(instanceId string) {
 	shared.Byf("Terminating EC2 instance with ID: %s", instanceId)
-	ec2Client := ec2.New(getSession())
+	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: []*string{
 			aws.String(instanceId[strings.LastIndex(instanceId, "/")+1:]),
@@ -931,7 +922,7 @@ func terminateInstance(instanceId string) {
 
 func verifyElbExists(elbName string, exists bool) {
 	shared.Byf("Verifying ELB with name %s present", elbName)
-	elbClient := elb.New(getSession())
+	elbClient := elb.New(e2eCtx.AWSSession)
 	input := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: []*string{
 			aws.String(elbName),
@@ -952,7 +943,7 @@ func verifyElbExists(elbName string, exists bool) {
 
 func verifyVolumesExists(awsVolumeIds []*string) {
 	By("Ensuring dynamically provisioned volumes exists")
-	ec2Client := ec2.New(getSession())
+	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.DescribeVolumesInput{
 		VolumeIds: awsVolumeIds,
 	}

@@ -49,6 +49,7 @@ type synchronizedBeforeTestSuiteConfig struct {
 	GinkgoSlowSpecThreshold int                  `json:"ginkgoSlowSpecThreshold,omitempty"`
 }
 
+// Node1BeforeSuite is the common setup down on the first ginkgo node before the test suite runs
 func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	flag.Parse()
 	Expect(e2eCtx.Settings.ConfigPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
@@ -121,8 +122,8 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	return data
 }
 
+// AllNodesBeforeSuite is the common setup down on each ginkgo parallel node before the test suite runs
 func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
-	// Before each ParallelNode.
 	conf := &synchronizedBeforeTestSuiteConfig{}
 	err := yaml.UnmarshalStrict(data, conf)
 	Expect(err).NotTo(HaveOccurred())
@@ -135,7 +136,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Settings.UseCIArtifacts = conf.UseCIArtifacts
 	e2eCtx.Settings.GinkgoNodes = conf.GinkgoNodes
 	e2eCtx.Settings.GinkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
-	azs := GetAvailabilityZones(GetSession())
+	azs := GetAvailabilityZones(e2eCtx.AWSSession)
 	SetEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
 	SetEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	SetEnvVar("AWS_REGION", conf.Region, false)
@@ -182,6 +183,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	}()
 }
 
+// Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes
 func Node1AfterSuite(e2eCtx *E2EContext) {
 	if e2eCtx.Environment.ResourceTickerDone != nil {
 		e2eCtx.Environment.ResourceTickerDone <- true
@@ -197,6 +199,7 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 	}
 }
 
+// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes
 func AllNodesAfterSuite(e2eCtx *E2EContext) {
 	By("Tearing down the management cluster")
 	if !e2eCtx.Settings.SkipCleanup {

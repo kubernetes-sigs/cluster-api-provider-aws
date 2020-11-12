@@ -50,7 +50,6 @@ func SetupSpecNamespace(ctx context.Context, specName string, e2eCtx *E2EContext
 	return namespace
 }
 
-// (ctx, "", e2eCtx.Environment.BootstrapClusterProxy, e2eCtx.Settings.ArtifactFolder, k, e2eCtx.E2EConfig.GetIntervals, e2eCtx.SkipCleanup)
 func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace *corev1.Namespace, e2eCtx *E2EContext) {
 	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
 	// Dump all Cluster API related resources to artifacts before deleting them.
@@ -75,7 +74,7 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 }
 
 func DumpMachines(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace) {
-	machines := machinesForSpec(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace)
+	machines := MachinesForSpec(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace)
 	instances, err := allMachines(ctx, e2eCtx)
 	if err != nil {
 		return
@@ -95,7 +94,7 @@ func DumpMachines(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Nam
 	}
 }
 
-func machinesForSpec(ctx context.Context, clusterProxy framework.ClusterProxy, namespace *corev1.Namespace) *infrav1.AWSMachineList {
+func MachinesForSpec(ctx context.Context, clusterProxy framework.ClusterProxy, namespace *corev1.Namespace) *infrav1.AWSMachineList {
 	lister := clusterProxy.GetClient()
 	list := new(infrav1.AWSMachineList)
 	if err := lister.List(ctx, list, client.InNamespace(namespace.GetName())); err != nil {
