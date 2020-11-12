@@ -191,7 +191,7 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		s.scope.Error(err, "unable to create AutoScalingGroup")
 		return nil, err
 	}
-	record.Eventf(scope.AWSMachinePool, "SuccessfulCreate", "Created new ASG: %s", scope.Name)
+	record.Eventf(scope.AWSMachinePool, "SuccessfulCreate", "Created new ASG: %s", scope.Name())
 
 	return nil, nil
 }
