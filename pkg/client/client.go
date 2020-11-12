@@ -17,7 +17,11 @@ limitations under the License.
 package client
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"io/ioutil"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
@@ -145,7 +149,11 @@ func (c *awsClient) ELBv2RegisterTargets(input *elbv2.RegisterTargetsInput) (*el
 // secret if defined (i.e. in the root cluster),
 // otherwise the IAM profile of the master where the actuator will run. (target clusters)
 func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
-	awsConfig := &aws.Config{Region: aws.String(region)}
+	sessionOptions := session.Options{
+		Config: aws.Config{
+			Region: aws.String(region),
+		},
+	}
 
 	if secretName != "" {
 		var secret corev1.Secret
@@ -155,31 +163,30 @@ func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region st
 			}
 			return nil, err
 		}
-		accessKeyID, ok := secret.Data[AwsCredsSecretIDKey]
-		if !ok {
-			return nil, machineapiapierrors.InvalidMachineConfiguration("AWS credentials secret %v did not contain key %v",
-				secretName, AwsCredsSecretIDKey)
+		sharedCredsFile, err := sharedCredentialsFileFromSecret(&secret)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create shared credentials file from Secret: %v", err)
 		}
-		secretAccessKey, ok := secret.Data[AwsCredsSecretAccessKey]
-		if !ok {
-			return nil, machineapiapierrors.InvalidMachineConfiguration("AWS credentials secret %v did not contain key %v",
-				secretName, AwsCredsSecretAccessKey)
-		}
-
-		awsConfig.Credentials = credentials.NewStaticCredentials(
-			string(accessKeyID), string(secretAccessKey), "")
+		sessionOptions.SharedConfigState = session.SharedConfigEnable
+		sessionOptions.SharedConfigFiles = []string{sharedCredsFile}
 	}
 
 	// Resolve custom endpoints
-	if err := resolveEndpoints(awsConfig, ctrlRuntimeClient, region); err != nil {
+	if err := resolveEndpoints(&sessionOptions.Config, ctrlRuntimeClient, region); err != nil {
 		return nil, err
 	}
 
 	// Otherwise default to relying on the IAM role of the masters where the actuator is running:
-	s, err := session.NewSession(awsConfig)
+	s, err := session.NewSessionWithOptions(sessionOptions)
 	if err != nil {
 		return nil, err
 	}
+
+	// Remove any temporary shared credentials files after session creation so they don't accumulate
+	if len(sessionOptions.SharedConfigFiles) > 0 {
+		os.Remove(sessionOptions.SharedConfigFiles[0])
+	}
+
 	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
 
 	return &awsClient{
@@ -265,4 +272,39 @@ func buildCustomEndpointsMap(customEndpoints []configv1.AWSServiceEndpoint) map[
 	}
 
 	return customEndpointsMap
+}
+
+// sharedCredentialsFileFromSecret returns a location (path) to the shared credentials
+// file that was created using the provided secret
+func sharedCredentialsFileFromSecret(secret *corev1.Secret) (string, error) {
+	var data []byte
+	switch {
+	case len(secret.Data["credentials"]) > 0:
+		data = secret.Data["credentials"]
+	case len(secret.Data["aws_access_key_id"]) > 0 && len(secret.Data["aws_secret_access_key"]) > 0:
+		data = newConfigForStaticCreds(
+			string(secret.Data["aws_access_key_id"]),
+			string(secret.Data["aws_secret_access_key"]),
+		)
+	default:
+		return "", fmt.Errorf("invalid secret for aws credentials")
+	}
+
+	f, err := ioutil.TempFile("", "aws-shared-credentials")
+	if err != nil {
+		return "", fmt.Errorf("failed to create file for shared credentials: %v", err)
+	}
+	defer f.Close()
+	if _, err := f.Write(data); err != nil {
+		return "", fmt.Errorf("failed to write credentials to %s: %v", f.Name(), err)
+	}
+	return f.Name(), nil
+}
+
+func newConfigForStaticCreds(accessKey string, accessSecret string) []byte {
+	buf := &bytes.Buffer{}
+	fmt.Fprint(buf, "[default]\n")
+	fmt.Fprintf(buf, "aws_access_key_id = %s\n", accessKey)
+	fmt.Fprintf(buf, "aws_secret_access_key = %s\n", accessSecret)
+	return buf.Bytes()
 }
