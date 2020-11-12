@@ -74,7 +74,7 @@ type Settings struct {
 	// ArtifactFolder is the folder to store e2e test artifacts.
 	ArtifactFolder string
 	// DataFolder is the root folder for the data required by the tests
-	//DataFolder string
+	DataFolder string
 	// SkipCleanup prevents cleanup of test resources e.g. for debug purposes.
 	SkipCleanup bool
 	// SkipCloudFormationCreation will skip the cloudformation execution - useful for debugging e2e tests

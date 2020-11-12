@@ -110,7 +110,7 @@ test: ## Run tests
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
-	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_UNMANAGED_FOCUS) $(GINKGO_ARGS) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(E2E_ARGS)
+	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_UNMANAGED_FOCUS) $(GINKGO_ARGS) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" $(E2E_ARGS)
 
 .PHONY: e2e-image
 e2e-image:
@@ -127,7 +127,7 @@ CONFORMANCE_GINKGO_ARGS ?= -stream
 CONFORMANCE_GINKGO_ARGS += $(GINKGO_ARGS)
 .PHONY: test-conformance
 test-conformance: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run clusterctl based conformance test on workload cluster (requires Docker).
-	time $(GINKGO) -trace -progress -v -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" $(CONFORMANCE_E2E_ARGS)
+	time $(GINKGO) -trace -progress -v -tags=e2e -focus="conformance" $(CONFORMANCE_GINKGO_ARGS) ./test/e2e/suites/conformance/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" $(CONFORMANCE_E2E_ARGS)
 
 
 test-conformance-fast: ## Run clusterctl based conformance test on workload cluster (requires Docker) using a subset of the conformance suite in parallel. Run with FASTBUILD=true to skip full CAPA rebuild.

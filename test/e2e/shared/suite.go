@@ -55,9 +55,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	Expect(os.MkdirAll(e2eCtx.Settings.ArtifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", e2eCtx.Settings.ArtifactFolder)
 	Byf("Loading the e2e test configuration from %q", e2eCtx.Settings.ConfigPath)
 	e2eCtx.E2EConfig = LoadE2EConfig(e2eCtx.Settings.ConfigPath)
-	sourceTemplate, err := ioutil.ReadFile("../../data/infrastructure-aws/cluster-template.yaml")
+	sourceTemplate, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "infrastructure-aws/cluster-template.yaml"))
 	Expect(err).NotTo(HaveOccurred())
-	platformKustomization, err := ioutil.ReadFile("../../data/ci-artifacts-platform-kustomization.yaml")
+	platformKustomization, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization.yaml"))
 	Expect(err).NotTo(HaveOccurred())
 	ciTemplate, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
 		kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
