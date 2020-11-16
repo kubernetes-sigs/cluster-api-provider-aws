@@ -23,7 +23,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func TestAWSMachineTemplateInvalid(t *testing.T) {
+func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 	tests := []struct {
 		name          string
 		inputTemplate *AWSMachineTemplate
@@ -63,6 +63,66 @@ func TestAWSMachineTemplateInvalid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.inputTemplate.ValidateCreate()
+			if (err != nil) != tt.wantError {
+				t.Errorf("unexpected result - wanted %+v, got %+v", tt.wantError, err)
+			}
+		})
+	}
+}
+
+func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
+	tests := []struct {
+		name             string
+		modifiedTemplate *AWSMachineTemplate
+		wantError        bool
+	}{
+		{
+			name: "don't allow ssm parameter store",
+			modifiedTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							CloudInit: CloudInit{
+								SecureSecretsBackend: SecretBackendSSMParameterStore,
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "allow secrets manager",
+			modifiedTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							CloudInit: CloudInit{
+								SecureSecretsBackend: SecretBackendSecretsManager,
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			oldTemplate := &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							CloudInit: CloudInit{},
+						},
+					},
+				},
+			}
+
+			err := tt.modifiedTemplate.ValidateUpdate(oldTemplate)
 			if (err != nil) != tt.wantError {
 				t.Errorf("unexpected result - wanted %+v, got %+v", tt.wantError, err)
 			}
