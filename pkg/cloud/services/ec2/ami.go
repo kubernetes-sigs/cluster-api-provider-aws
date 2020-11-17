@@ -26,6 +26,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -33,9 +34,9 @@ import (
 )
 
 const (
-	// defaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
+	// DefaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
-	defaultMachineAMIOwnerID = "258751437250"
+	DefaultMachineAMIOwnerID = "258751437250"
 
 	// defaultMachineAMILookupBaseOS is the default base operating system to use
 	// when looking up machine AMIs
@@ -80,20 +81,20 @@ func amiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
 	return templateBytes.String(), nil
 }
 
-// defaultAMILookup returns the default AMI based on region
-func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
+func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVersion, amiNameFormat string) (*ec2.Image, error) {
 	if amiNameFormat == "" {
 		amiNameFormat = defaultAmiNameFormat
 	}
 	if ownerID == "" {
-		ownerID = defaultMachineAMIOwnerID
+		ownerID = DefaultMachineAMIOwnerID
 	}
 	if baseOS == "" {
 		baseOS = defaultMachineAMILookupBaseOS
 	}
+
 	amiName, err := amiName(amiNameFormat, baseOS, kubernetesVersion)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
+		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
@@ -120,19 +121,29 @@ func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVer
 		},
 	}
 
-	out, err := s.EC2Client.DescribeImages(describeImageInput)
+	out, err := ec2Client.DescribeImages(describeImageInput)
 	if err != nil {
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami %q: %v", amiName, err)
-		return "", errors.Wrapf(err, "failed to find ami: %q", amiName)
+		return nil, errors.Wrapf(err, "failed to find ami: %q", amiName)
 	}
 	if len(out.Images) == 0 {
-		return "", errors.Errorf("found no AMIs with the name: %q", amiName)
+		return nil, errors.Errorf("found no AMIs with the name: %q", amiName)
 	}
 	latestImage, err := getLatestImage(out.Images)
 	if err != nil {
-		s.scope.Error(err, "failed getting latest image from AMI list")
-		return "", err
+		return nil, err
 	}
+
+	return latestImage, nil
+}
+
+// defaultAMILookup returns the default AMI based on region
+func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
+	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, kubernetesVersion, amiNameFormat)
+	if err != nil {
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami %q: %v", amiName, err)
+		return "", errors.Wrapf(err, "failed to find ami")
+	}
+
 	s.scope.V(2).Info("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
 	return aws.StringValue(latestImage.ImageId), nil
 }

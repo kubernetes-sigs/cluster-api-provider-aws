@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/alpha"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/version"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
@@ -61,6 +62,8 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(alpha.AlphaCmd())
 	newCmd.AddCommand(bootstrap.RootCmd())
 	newCmd.AddCommand(version.VersionCmd(os.Stdout))
+	newCmd.AddCommand(ami.RootCmd())
+
 	return newCmd
 }
 
