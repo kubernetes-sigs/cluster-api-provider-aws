@@ -61,7 +61,14 @@ func (r *AWSMachineTemplate) ValidateCreate() error {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *AWSMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	oldAWSMachineTemplate := old.(*AWSMachineTemplate)
+
+	// Allow setting of cloudInit.secureSecretsBackend to "secrets-manager" only to handle v1alpha3 upgrade
+	if oldAWSMachineTemplate.Spec.Template.Spec.CloudInit.SecureSecretsBackend == "" && r.Spec.Template.Spec.CloudInit.SecureSecretsBackend == SecretBackendSecretsManager {
+		r.Spec.Template.Spec.CloudInit.SecureSecretsBackend = ""
+	}
+
 	if !reflect.DeepEqual(r.Spec, oldAWSMachineTemplate.Spec) {
+
 		return apierrors.NewBadRequest("AWSMachineTemplate.Spec is immutable")
 	}
 
