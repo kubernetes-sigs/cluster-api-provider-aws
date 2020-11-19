@@ -173,7 +173,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	}
 	input.SubnetID = subnetID
 
-	if !scope.IsEKSManaged() && s.scope.Network().APIServerELB.DNSName == "" {
+	if !scope.IsExternalInfraCluster() && !scope.IsEKSManaged() && s.scope.Network().APIServerELB.DNSName == "" {
 		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
 
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
@@ -188,11 +188,13 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 	input.UserData = pointer.StringPtr(base64.StdEncoding.EncodeToString(userData))
 
 	// Set security groups.
-	ids, err := s.GetCoreSecurityGroups(scope)
-	if err != nil {
-		return nil, err
+	if !scope.IsExternalInfraCluster() {
+		ids, err := s.GetCoreSecurityGroups(scope)
+		if err != nil {
+			return nil, err
+		}
+		input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 	}
-	input.SecurityGroupIDs = append(input.SecurityGroupIDs, ids...)
 
 	// If SSHKeyName WAS NOT provided in the AWSMachine Spec, fallback to the value provided in the AWSCluster Spec.
 	// If a value was not provided in the AWSCluster Spec, then use the defaultSSHKeyName
@@ -210,7 +212,9 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		// fallback to AWSCluster.Spec.SSHKeyName if it is defined
 		prioritizedSSHKeyName = *scope.InfraCluster.SSHKeyName()
 	default:
-		prioritizedSSHKeyName = defaultSSHKeyName
+		if !scope.IsExternalInfraCluster() {
+			prioritizedSSHKeyName = defaultSSHKeyName
+		}
 	}
 
 	// Only set input.SSHKeyName if the user did not explicitly request no ssh key be set (explicitly setting "" on either the Machine or related Cluster)
@@ -291,8 +295,11 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	case scope.AWSMachine.Spec.Subnet != nil && scope.AWSMachine.Spec.Subnet.Filters != nil:
 		criteria := []*ec2.Filter{
 			filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-			filter.EC2.VPC(s.scope.VPC().ID),
 		}
+		if !scope.IsExternalInfraCluster() {
+			criteria = append(criteria, filter.EC2.VPC(s.scope.VPC().ID))
+		}
+
 		if failureDomain != nil {
 			criteria = append(criteria, filter.EC2.AvailabilityZone(*failureDomain))
 		}
@@ -355,6 +362,10 @@ func (s *Service) getFilteredSubnets(criteria ...*ec2.Filter) ([]*ec2.Subnet, er
 // GetCoreSecurityGroups looks up the security group IDs managed by this actuator
 // They are considered "core" to its proper functioning
 func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, error) {
+	if scope.IsExternalInfraCluster() {
+		return nil, nil
+	}
+
 	// These are common across both controlplane and node machines
 	sgRoles := []infrav1.SecurityGroupRole{
 		infrav1.SecurityGroupNode,

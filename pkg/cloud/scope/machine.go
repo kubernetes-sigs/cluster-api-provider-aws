@@ -344,3 +344,7 @@ func (m *MachineScope) SetInterruptible() {
 		m.AWSMachine.Status.Interruptible = true
 	}
 }
+
+func (m *MachineScope) IsExternalInfraCluster() bool {
+	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "ExternalInfraCluster"
+}
