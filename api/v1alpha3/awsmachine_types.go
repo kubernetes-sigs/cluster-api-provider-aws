@@ -179,6 +179,10 @@ type AWSMachineStatus struct {
 	// +optional
 	Ready bool `json:"ready"`
 
+	// Interruptible is true when SpotMarketOptions is non-nil in AWS machine spec that is, the instances are configured to be run using AWS Spot instances.
+	// +optional
+	Interruptible bool `json:"interruptible,omitempty"`
+
 	// Addresses contains the AWS instance associated addresses.
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 

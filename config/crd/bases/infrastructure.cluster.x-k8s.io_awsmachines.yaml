@@ -524,6 +524,9 @@ spec:
               instanceState:
                 description: InstanceState is the state of the AWS instance for this machine.
                 type: string
+              interruptible:
+                description: Interruptible is true when SpotMarketOptions is non-nil in AWS machine spec that is, the instances are configured to be run using AWS Spot instances.
+                type: boolean
               ready:
                 description: Ready is true when the provider resource is ready.
                 type: boolean
