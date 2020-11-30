@@ -58,8 +58,8 @@ github.com/cheekybits/genny v0.0.0-20170328200008-9127e812e1e9/go.mod h1:+tQajlR
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cockroachdb/datadriven v0.0.0-20190809214429-80d97fb3cbaa/go.mod h1:zn76sxSg3SzpJ0PPJaLDCu+Bu0Lg3sKTORVIj19EIF8=
-github.com/coredns/corefile-migration v1.0.10 h1:7HI4r5S5Fne749a+JDxUZppqBpYoZK8Q53ZVK9cn3aM=
-github.com/coredns/corefile-migration v1.0.10/go.mod h1:RMy/mXdeDlYwzt0vdMEJvT2hGJ2I86/eO0UdXmH9XNI=
+github.com/coredns/corefile-migration v1.0.11 h1:ptBYGW2ADXIB7ZEBPrhhTvNwJLQfxE3Q9IUMBhJCEeI=
+github.com/coredns/corefile-migration v1.0.11/go.mod h1:RMy/mXdeDlYwzt0vdMEJvT2hGJ2I86/eO0UdXmH9XNI=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
@@ -728,8 +728,8 @@ modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 sigs.k8s.io/aws-iam-authenticator v0.5.1 h1:0Nv09uOayy99IOYgNamMl0cwTuQWRtEuUu6s3mSgyEs=
 sigs.k8s.io/aws-iam-authenticator v0.5.1/go.mod h1:yPDLi58MDx1UtCrRMOykLm1IyKKPGHgcGCafcbn2s3E=
-sigs.k8s.io/cluster-api v0.3.10 h1:iUbnDdFQjp406hclEV1/rRMO7/NpyJ7IxozAaAA9Zns=
-sigs.k8s.io/cluster-api v0.3.10/go.mod h1:XBBDBiaczcyNlH4D7FNjSKc5bBofYRppfg0ZgaP2x1U=
+sigs.k8s.io/cluster-api v0.3.11 h1:sBXyOCDFAUMlfAL1Z/ttJolfUMsrIjWpyjKFUkADer4=
+sigs.k8s.io/cluster-api v0.3.11/go.mod h1:bKh9AXgYRu5d3483NpEVlcVJujDN+rBqMXpG5o69Xss=
 sigs.k8s.io/controller-runtime v0.5.11 h1:U/FjGJ61aR2T2mCrdlBCxEcWgLEwLmK6YZKf0NC0a24=
 sigs.k8s.io/controller-runtime v0.5.11/go.mod h1:OTqxLuz7gVcrq+BHGUgedRu6b2VIKCEc7Pu4Jbwui0A=
 sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802 h1:L6/8hETA7jvdx3xBcbDifrIN2xaYHE7tA58n+Kdp2Zw=
