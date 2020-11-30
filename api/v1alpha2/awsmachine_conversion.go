@@ -40,6 +40,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	restoreAWSMachineSpec(&restored.Spec, &dst.Spec, &src.Spec)
+	restoreAWSMachineStatus(&restored.Status, &dst.Status)
 
 	// Manual conversion for conditions
 	dst.SetConditions(restored.GetConditions())
@@ -90,6 +91,10 @@ func restoreAWSMachineSpec(restored, dst *infrav1alpha3.AWSMachineSpec, src *AWS
 			dst.CloudInit.SecureSecretsBackend = restored.CloudInit.SecureSecretsBackend
 		}
 	}
+}
+
+func restoreAWSMachineStatus(restored, dst *infrav1alpha3.AWSMachineStatus) {
+	dst.Interruptible = restored.Interruptible
 }
 
 // ConvertFrom converts from the Hub version (v1alpha3) to this version.

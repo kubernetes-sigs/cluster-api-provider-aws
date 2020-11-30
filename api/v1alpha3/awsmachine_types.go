@@ -179,7 +179,8 @@ type AWSMachineStatus struct {
 	// +optional
 	Ready bool `json:"ready"`
 
-	// Interruptible is true when SpotMarketOptions is non-nil in AWS machine spec that is, the instances are configured to be run using AWS Spot instances.
+	// Interruptible reports that this machine is using spot instances and can therefore be interrupted by CAPI when it receives a notice that the spot instance is to be terminated by AWS.
+	// This will be set to true when SpotMarketOptions is not nil (i.e. this machine is using a spot instance).
 	// +optional
 	Interruptible bool `json:"interruptible,omitempty"`
 
