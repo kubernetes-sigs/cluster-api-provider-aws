@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -33,10 +34,18 @@ import (
 // createClusterctlLocalRepository generates a clusterctl repository.
 // Must always be run after kubetest.NewConfiguration
 func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFolder string) string {
-	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), clusterctl.CreateRepositoryInput{
+	createRepositoryInput := clusterctl.CreateRepositoryInput{
 		E2EConfig:        config,
 		RepositoryFolder: repositoryFolder,
-	})
+	}
+
+	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file as in place of the CNI_RESOURCES envSubst variable.
+	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
+	cniPath := config.GetVariable(capi_e2e.CNIPath)
+	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
+	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
+
+	clusterctlConfig := clusterctl.CreateRepository(context.TODO(), createRepositoryInput)
 	Expect(clusterctlConfig).To(BeAnExistingFile(), "The clusterctl config file does not exists in the local repository %s", repositoryFolder)
 	return clusterctlConfig
 }
