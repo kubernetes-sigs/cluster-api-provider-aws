@@ -324,7 +324,6 @@ spec:
                     description: SecretPrefix is the prefix for the secret name. This is stored temporarily, and deleted when the machine registers as a node against the workload cluster.
                     type: string
                   secureSecretsBackend:
-                    default: secrets-manager
                     description: SecureSecretsBackend, when set to parameter-store will utilize the AWS Systems Manager Parameter Storage to distribute secrets. By default or with the value of secrets-manager, will use AWS Secrets Manager instead.
                     enum:
                     - secrets-manager
