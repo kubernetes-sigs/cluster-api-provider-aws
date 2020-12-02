@@ -495,6 +495,9 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 
+	// Sets the AWSMachine status Interruptible, when the SpotMarketOptions is enabled for AWSMachine, Interruptible is set as true.
+	machineScope.SetInterruptible()
+
 	existingInstanceState := machineScope.GetInstanceState()
 	machineScope.SetInstanceState(instance.State)
 

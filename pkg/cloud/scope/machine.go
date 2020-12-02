@@ -337,3 +337,10 @@ func (m *MachineScope) AWSMachineIsDeleted() bool {
 func (m *MachineScope) IsEKSManaged() bool {
 	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
 }
+
+// SetInterruptible sets the AWSMachine status Interruptible
+func (m *MachineScope) SetInterruptible() {
+	if m.AWSMachine.Spec.SpotMarketOptions != nil {
+		m.AWSMachine.Status.Interruptible = true
+	}
+}

@@ -627,6 +627,7 @@ func autoConvert_v1alpha2_AWSMachineStatus_To_v1alpha3_AWSMachineStatus(in *AWSM
 
 func autoConvert_v1alpha3_AWSMachineStatus_To_v1alpha2_AWSMachineStatus(in *v1alpha3.AWSMachineStatus, out *AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
+	// WARNING: in.Interruptible requires manual conversion: does not exist in peer-type
 	out.Addresses = *(*[]apiv1alpha2.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*InstanceState)(unsafe.Pointer(in.InstanceState))
 	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
