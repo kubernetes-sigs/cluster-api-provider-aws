@@ -17,14 +17,17 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
+	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 )
 
-func TestAWSMachine_ValidateCreate(t *testing.T) {
+func TestAWSMachine_Create(t *testing.T) {
 	tests := []struct {
 		name    string
 		machine *AWSMachine
@@ -159,14 +162,21 @@ func TestAWSMachine_ValidateCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.machine.ValidateCreate(); (err != nil) != tt.wantErr {
+			machine := tt.machine.DeepCopy()
+			machine.ObjectMeta = metav1.ObjectMeta{
+				GenerateName: "machine-",
+				Namespace:    "default",
+			}
+			ctx := context.TODO()
+			if err := testEnv.Create(ctx, machine); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			testEnv.Delete(ctx, machine)
 		})
 	}
 }
 
-func TestAWSMachine_ValidateUpdate(t *testing.T) {
+func TestAWSMachine_Update(t *testing.T) {
 	tests := []struct {
 		name       string
 		oldMachine *AWSMachine
@@ -229,16 +239,26 @@ func TestAWSMachine_ValidateUpdate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		ctx := context.TODO()
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.newMachine.ValidateUpdate(tt.oldMachine); (err != nil) != tt.wantErr {
+			machine := tt.oldMachine.DeepCopy()
+			machine.ObjectMeta = metav1.ObjectMeta{
+				GenerateName: "machine-",
+				Namespace:    "default",
+			}
+			if err := testEnv.Create(ctx, machine); err != nil {
+				t.Errorf("failed to create machine: %v", err)
+			}
+			machine.Spec = tt.newMachine.Spec
+			if err := testEnv.Update(ctx, machine); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestAWSMachine_Default(t *testing.T) {
-	machine := &AWSMachine{
+func TestAWSMachine_SecretsBackend(t *testing.T) {
+	baseMachine := &AWSMachine{
 		Spec: AWSMachineSpec{
 			ProviderID:               nil,
 			AdditionalTags:           nil,
@@ -246,32 +266,40 @@ func TestAWSMachine_Default(t *testing.T) {
 		},
 	}
 
-	tests := []struct{
-		name string
-		cloudInit CloudInit
+	tests := []struct {
+		name                   string
+		cloudInit              CloudInit
 		expectedSecretsBackend string
-	} {
+	}{
 		{
-			name: "with insecure skip secrets manager unset",
-			cloudInit: CloudInit{InsecureSkipSecretsManager: false},
+			name:                   "with insecure skip secrets manager unset",
+			cloudInit:              CloudInit{InsecureSkipSecretsManager: false},
 			expectedSecretsBackend: "secrets-manager",
 		},
 		{
-			name: "with insecure skip secrets manager unset and secrets backend set",
-			cloudInit: CloudInit{InsecureSkipSecretsManager: false, SecureSecretsBackend: "ssm-parameter-store"},
+			name:                   "with insecure skip secrets manager unset and secrets backend set",
+			cloudInit:              CloudInit{InsecureSkipSecretsManager: false, SecureSecretsBackend: "ssm-parameter-store"},
 			expectedSecretsBackend: "ssm-parameter-store",
 		},
 		{
-			name: "with insecure skip secrets manager set",
-			cloudInit: CloudInit{InsecureSkipSecretsManager: true},
+			name:                   "with insecure skip secrets manager set",
+			cloudInit:              CloudInit{InsecureSkipSecretsManager: true},
 			expectedSecretsBackend: "",
 		},
 	}
 
 	for _, tt := range tests {
+		ctx := context.TODO()
 		t.Run(tt.name, func(t *testing.T) {
+			machine := baseMachine.DeepCopy()
+			machine.ObjectMeta = metav1.ObjectMeta{
+				GenerateName: "machine-",
+				Namespace:    "default",
+			}
 			machine.Spec.CloudInit = tt.cloudInit
-			machine.Default()
+			if err := testEnv.Create(ctx, machine); err != nil {
+				t.Errorf("failed to create machine: %v", err)
+			}
 			g := NewWithT(t)
 			g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackend(tt.expectedSecretsBackend)))
 		})

@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"context"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,9 +63,14 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.inputTemplate.ValidateCreate()
-			if (err != nil) != tt.wantError {
-				t.Errorf("unexpected result - wanted %+v, got %+v", tt.wantError, err)
+			template := tt.inputTemplate.DeepCopy()
+			template.ObjectMeta = metav1.ObjectMeta{
+				GenerateName: "template-",
+				Namespace:    "default",
+			}
+			ctx := context.TODO()
+			if err := testEnv.Create(ctx, template); (err != nil) != tt.wantError {
+				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantError)
 			}
 		})
 	}
@@ -111,8 +117,13 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			oldTemplate := &AWSMachineTemplate{
-				ObjectMeta: metav1.ObjectMeta{},
+
+			ctx := context.TODO()
+			template := &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "template-",
+					Namespace:    "default",
+				},
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
@@ -122,10 +133,14 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 				},
 			}
 
-			err := tt.modifiedTemplate.ValidateUpdate(oldTemplate)
-			if (err != nil) != tt.wantError {
-				t.Errorf("unexpected result - wanted %+v, got %+v", tt.wantError, err)
+			if err := testEnv.Create(ctx, template); err != nil {
+				t.Errorf("failed to create template: %v", err)
 			}
-		})
+			template.Spec = tt.modifiedTemplate.Spec
+			if err := testEnv.Update(ctx, template); (err != nil) != tt.wantError {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantError)
+			}
+		},
+		)
 	}
 }
