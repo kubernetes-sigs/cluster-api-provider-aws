@@ -33,6 +33,17 @@ Finally, if the controller manager isn't started with the `--configure-cloud-rou
 
 Specifying existing infrastructure for Cluster API to use takes place in the specification for the AWSCluster object. Specifically, you will need to add an entry with the VPC ID and the IDs of all applicable subnets into the `networkSpec` field. Here is an example:
 
+For EC2
+```yaml
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: AWSCluster
+```
+For EKS
+```yaml
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: AWSManagedControlPlane
+```
+
 ```yaml
 spec:
   networkSpec:
