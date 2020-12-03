@@ -26,8 +26,10 @@ import (
 )
 
 // MachineHealthCheckLister helps list MachineHealthChecks.
+// All objects returned here must be treated as read-only.
 type MachineHealthCheckLister interface {
 	// List lists all MachineHealthChecks in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.MachineHealthCheck, err error)
 	// MachineHealthChecks returns an object that can list and get MachineHealthChecks.
 	MachineHealthChecks(namespace string) MachineHealthCheckNamespaceLister
@@ -58,10 +60,13 @@ func (s *machineHealthCheckLister) MachineHealthChecks(namespace string) Machine
 }
 
 // MachineHealthCheckNamespaceLister helps list and get MachineHealthChecks.
+// All objects returned here must be treated as read-only.
 type MachineHealthCheckNamespaceLister interface {
 	// List lists all MachineHealthChecks in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.MachineHealthCheck, err error)
 	// Get retrieves the MachineHealthCheck from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.MachineHealthCheck, error)
 	MachineHealthCheckNamespaceListerExpansion
 }

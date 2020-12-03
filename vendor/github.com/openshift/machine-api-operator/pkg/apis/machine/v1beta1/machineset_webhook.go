@@ -32,14 +32,23 @@ func NewMachineSetValidator() (*machineSetValidatorHandler, error) {
 		return nil, err
 	}
 
-	return createMachineSetValidator(infra.Status.PlatformStatus.Type, infra.Status.InfrastructureName), nil
+	dns, err := getDNS()
+	if err != nil {
+		return nil, err
+	}
+
+	return createMachineSetValidator(infra, dns), nil
 }
 
-func createMachineSetValidator(platform osconfigv1.PlatformType, clusterID string) *machineSetValidatorHandler {
+func createMachineSetValidator(infra *osconfigv1.Infrastructure, dns *osconfigv1.DNS) *machineSetValidatorHandler {
+	admissionConfig := &admissionConfig{
+		dnsDisconnected: dns.Spec.PublicZone == nil,
+		clusterID:       infra.Status.InfrastructureName,
+	}
 	return &machineSetValidatorHandler{
 		admissionHandler: &admissionHandler{
-			clusterID:         clusterID,
-			webhookOperations: getMachineValidatorOperation(platform),
+			admissionConfig:   admissionConfig,
+			webhookOperations: getMachineValidatorOperation(infra.Status.PlatformStatus.Type),
 		},
 	}
 }
@@ -57,7 +66,7 @@ func NewMachineSetDefaulter() (*machineSetDefaulterHandler, error) {
 func createMachineSetDefaulter(platformStatus *osconfigv1.PlatformStatus, clusterID string) *machineSetDefaulterHandler {
 	return &machineSetDefaulterHandler{
 		admissionHandler: &admissionHandler{
-			clusterID:         clusterID,
+			admissionConfig:   &admissionConfig{clusterID: clusterID},
 			webhookOperations: getMachineDefaulterOperation(platformStatus),
 		},
 	}
@@ -108,7 +117,7 @@ func (h *machineSetValidatorHandler) validateMachineSet(ms *MachineSet) (bool, [
 
 	// Create a Machine from the MachineSet and validate the Machine template
 	m := &Machine{Spec: ms.Spec.Template.Spec}
-	ok, warnings, err := h.webhookOperations(m, h.clusterID)
+	ok, warnings, err := h.webhookOperations(m, h.admissionConfig)
 	if !ok {
 		errs = append(errs, err.Errors()...)
 	}
@@ -122,7 +131,7 @@ func (h *machineSetValidatorHandler) validateMachineSet(ms *MachineSet) (bool, [
 func (h *machineSetDefaulterHandler) defaultMachineSet(ms *MachineSet) (bool, []string, utilerrors.Aggregate) {
 	// Create a Machine from the MachineSet and default the Machine template
 	m := &Machine{Spec: ms.Spec.Template.Spec}
-	ok, warnings, err := h.webhookOperations(m, h.clusterID)
+	ok, warnings, err := h.webhookOperations(m, h.admissionConfig)
 	if !ok {
 		return false, warnings, utilerrors.NewAggregate(err.Errors())
 	}

@@ -26,8 +26,10 @@ import (
 )
 
 // MachineSetLister helps list MachineSets.
+// All objects returned here must be treated as read-only.
 type MachineSetLister interface {
 	// List lists all MachineSets in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.MachineSet, err error)
 	// MachineSets returns an object that can list and get MachineSets.
 	MachineSets(namespace string) MachineSetNamespaceLister
@@ -58,10 +60,13 @@ func (s *machineSetLister) MachineSets(namespace string) MachineSetNamespaceList
 }
 
 // MachineSetNamespaceLister helps list and get MachineSets.
+// All objects returned here must be treated as read-only.
 type MachineSetNamespaceLister interface {
 	// List lists all MachineSets in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.MachineSet, err error)
 	// Get retrieves the MachineSet from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.MachineSet, error)
 	MachineSetNamespaceListerExpansion
 }
