@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - role.yaml
 - role_binding.yaml
+- serviceaccount.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
 - auth_proxy_service.yaml
