@@ -26,6 +26,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
+	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -38,13 +39,29 @@ import (
 )
 
 func NewAWSSession() client.ConfigProvider {
-	By("Getting an AWS IAM session")
+	By("Getting an AWS IAM session - from environment")
 	region, err := credentials.ResolveRegion("")
 	Expect(err).NotTo(HaveOccurred())
 	config := aws.NewConfig().WithCredentialsChainVerboseErrors(true).WithRegion(region)
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config:            *config,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	_, err = sess.Config.Credentials.Get()
+	Expect(err).NotTo(HaveOccurred())
+	return sess
+}
+
+func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
+	By("Getting an AWS IAM session - from access key")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	config := aws.NewConfig().WithCredentialsChainVerboseErrors(true).WithRegion(region)
+	config.Credentials = awscreds.NewStaticCredentials(*accessKey.AccessKeyId, *accessKey.SecretAccessKey, "")
+
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: *config,
 	})
 	Expect(err).NotTo(HaveOccurred())
 	_, err = sess.Config.Credentials.Get()

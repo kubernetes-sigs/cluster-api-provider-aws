@@ -19,6 +19,7 @@ limitations under the License.
 package shared
 
 import (
+	"context"
 	"io/ioutil"
 	"path"
 
@@ -26,6 +27,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"gopkg.in/yaml.v2"
+
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -45,6 +49,10 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	region, err := credentials.ResolveRegion("")
 	Expect(err).NotTo(HaveOccurred())
 	t.Spec.Region = region
+	t.Spec.EKS.Enable = true
+	t.Spec.EKS.AllowIAMRoleCreation = false
+	t.Spec.EKS.DefaultControlPlaneRole.Disable = false
+	t.Spec.EKS.ManagedMachinePool.Disable = false
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ioutil.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
@@ -60,4 +68,27 @@ func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 		e2eCtx.Environment.BootstrapTemplate = newBootstrapTemplate(e2eCtx)
 	}
 	return e2eCtx.Environment.BootstrapTemplate
+}
+
+// ApplyTemplate will render a cluster template and apply it to the management cluster
+func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput, clusterProxy framework.ClusterProxy) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
+
+	Byf("Getting the cluster template yaml")
+	workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
+		KubeconfigPath:           configCluster.KubeconfigPath,
+		ClusterctlConfigPath:     configCluster.ClusterctlConfigPath,
+		Flavor:                   configCluster.Flavor,
+		Namespace:                configCluster.Namespace,
+		ClusterName:              configCluster.ClusterName,
+		KubernetesVersion:        configCluster.KubernetesVersion,
+		ControlPlaneMachineCount: configCluster.ControlPlaneMachineCount,
+		WorkerMachineCount:       configCluster.WorkerMachineCount,
+		InfrastructureProvider:   configCluster.InfrastructureProvider,
+		LogFolder:                configCluster.LogFolder,
+	})
+	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
+
+	Byf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor)
+	return clusterProxy.Apply(ctx, workloadClusterTemplate)
 }

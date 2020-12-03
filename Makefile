@@ -32,6 +32,7 @@ TEST_E2E_DIR := test/e2e
 # Files
 E2E_DATA_DIR ?= $(REPO_ROOT)/test/e2e/data
 E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
+E2E_EKS_CONF_PATH ?= $(E2E_DATA_DIR)/e2e_eks_conf.yaml
 KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 KUBETEST_FAST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance-fast.yaml)
 CONFORMANCE_CI_TEMPLATE := $(ARTIFACTS)/templates/cluster-template-conformance-ci-artifacts.yaml
@@ -112,13 +113,21 @@ test: ## Run tests
 test-e2e: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run e2e tests
 	time $(GINKGO) -trace -progress -v -tags=e2e -focus=$(E2E_UNMANAGED_FOCUS) $(GINKGO_ARGS) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" $(E2E_ARGS)
 
+.PHONY: test-e2e-eks ## Run EKS e2e tests using clusterctl
+test-e2e-eks: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks e2e tests
+	time $(GINKGO) -trace -progress -v -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" --source-template="eks/cluster-template-eks-control-plane-only.yaml" --skip-eks-upgrade-tests $(E2E_ARGS)
+
 .PHONY: e2e-image
 e2e-image:
 ifndef FASTBUILD
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
+	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-eks-boostrap-manager:e2e" --build-arg package=./bootstrap/eks  .
+	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-eks-controlplane-manager:e2e" --build-arg package=./controlplane/eks  .
 else
 	$(MAKE) managers
-	docker build -f Dockerfile.fastbuild --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
+	docker build -f Dockerfile.fastbuild --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" --build-arg managerbin=manager .
+	docker build -f Dockerfile.fastbuild --tag="gcr.io/k8s-staging-cluster-api/capa-eks-boostrap-manager:e2e" --build-arg managerbin=eks-bootstrap-manager  .
+	docker build -f Dockerfile.fastbuild --tag="gcr.io/k8s-staging-cluster-api/capa-eks-controlplane-manager:e2e" --build-arg managerbin=eks-controlplane-manager  .
 endif
 
 CONFORMANCE_E2E_ARGS ?= -kubetest.config-file=$(KUBETEST_CONF_PATH)
@@ -502,3 +511,4 @@ verify-gen: generate
 compile-e2e: ## Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/unmanaged
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/conformance
+	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/managed

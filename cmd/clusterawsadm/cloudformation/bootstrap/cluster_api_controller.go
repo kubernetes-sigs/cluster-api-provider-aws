@@ -196,6 +196,32 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 		})
 
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:aws:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
+			},
+		})
+
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:aws:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
+			},
+		})
+
 		if t.Spec.EKS.AllowIAMRoleCreation {
 			allowedIAMActions = append(allowedIAMActions, iamv1.Actions{
 				"iam:DetachRolePolicy",

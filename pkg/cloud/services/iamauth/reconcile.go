@@ -47,6 +47,7 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 
 	restConfig, err := remote.RESTConfig(ctx, s.client, clusterKey)
 	if err != nil {
+		s.scope.Error(err, "getting remote client", "namespace", s.scope.Namespace(), "name", s.scope.Name())
 		return fmt.Errorf("getting remote client for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
 	}
 

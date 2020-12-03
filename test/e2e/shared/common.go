@@ -163,9 +163,30 @@ func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
 }
 
+// ConditionFn returns true if a condition exists
+type ConditionFn func() bool
+
+// ConditionalIt will only perform the It block if the condition function returns true
+// Inspired from Cilium: https://github.com/cilium/cilium/blob/03bfb2bece5108549b3d613e119059758035d448/test/ginkgo-ext/scopes.go#L658
+func ConditionalIt(conditionFn ConditionFn, text string, body func()) bool {
+	if conditionFn() {
+		return It(text, body)
+	}
+
+	return It(text, func() {
+		Skip("skipping due to unmet condition")
+	})
+
+}
+
 // LoadE2EConfig loads the e2econfig from the specified path
 func LoadE2EConfig(configPath string) *clusterctl.E2EConfig {
-	config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
+	//TODO: This is commented out as it assumes kubeadm and errors if its not there
+	// Remove localLoadE2EConfig and use the line below when this issue is resolved:
+	// https://github.com/kubernetes-sigs/cluster-api/issues/3983
+	//config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
+	config := localLoadE2EConfig(configPath)
+
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
 	return config
 }
