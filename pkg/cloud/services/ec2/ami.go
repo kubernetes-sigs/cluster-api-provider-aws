@@ -136,8 +136,8 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 	return latestImage, nil
 }
 
-// defaultAMILookup returns the default AMI based on region
-func (s *Service) defaultAMILookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
+// defaultAMIIDLookup returns the default AMI based on region
+func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
 	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, kubernetesVersion, amiNameFormat)
 	if err != nil {
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami %q: %v", amiName, err)

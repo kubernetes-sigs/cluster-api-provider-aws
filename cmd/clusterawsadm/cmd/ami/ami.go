@@ -19,6 +19,7 @@ package ami
 import (
 	"github.com/spf13/cobra"
 	cp "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/ami/copy"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // RootCmd is the root of the `ami command`
@@ -27,7 +28,12 @@ func RootCmd() *cobra.Command {
 		Use:   "ami [command]",
 		Short: "AMI commands",
 		Args:  cobra.NoArgs,
-		Long:  "All AMI related actions",
+		Long: cmd.LongDesc(`
+			All AMI related actions such as:
+			# Copy AMIs based on Kubernetes version, OS etc from an AWS account where AMIs are stored
+            to the current AWS account (use case: air-gapped deployments)
+			# (to be implemented) List available AMIs
+		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cmd.Help(); err != nil {
 				return err

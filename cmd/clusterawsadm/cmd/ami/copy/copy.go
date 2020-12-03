@@ -30,18 +30,27 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
+var (
+	ownerID           string
+	kubernetesVersion string
+	opSystem          string
+)
+
 func CopyAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "copy",
-		Short: "Copy AMI",
-		Long:  cmd.LongDesc("Copy AMI"),
+		Short: "Copy AMIs from an AWS account to the AWS account which credentials are provided",
+		Long: cmd.LongDesc(`
+			Copy AMIs based on Kubernetes version, OS, region from an AWS account where AMIs are stored
+            to the current AWS account (use case: air-gapped deployments)
+		`),
 		Example: cmd.Examples(`
 		# Copy AMI from the default AWS account where AMIs are stored.
 		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2
 		clusterawsadm ami copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
 
-		# source-account and dry-run flags are optional. region can be set via flag or env
-		clusterawsadm ami copy --os centos-7 --kubernetes-version=1.19.4 --source-account=111111111111 --dry-run
+		# owner-id and dry-run flags are optional. region can be set via flag or env
+		clusterawsadm ami copy --os centos-7 --kubernetes-version=1.19.4 --owner-id=111111111111 --dry-run
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -65,29 +74,12 @@ func CopyAMICmd() *cobra.Command {
 				fmt.Printf("Failed to parse dry-run value: %v. Defaulting to --dry-run=false\n", err)
 			}
 
-			os := cmd.Flags().Lookup("os").Value.String()
-			if os == "" {
-				return errors.Errorf("missing --os flag")
-			}
-
-			kubernetesVersion := cmd.Flags().Lookup("kubernetes-version").Value.String()
-			if kubernetesVersion == "" {
-				return errors.Errorf("missing --kubernetes-version flag")
-			}
-
-			ownerID := cmd.Flags().Lookup("source-account").Value.String()
-			if ownerID == "" {
-				fmt.Printf("Missing source-account value. Defaulting to %s\n", ec2service.DefaultMachineAMIOwnerID)
-				ownerID = ec2service.DefaultMachineAMIOwnerID
-			}
-
-			image, err := ec2service.DefaultAMILookup(ec2Client, ownerID, os, kubernetesVersion, "")
+			image, err := ec2service.DefaultAMILookup(ec2Client, ownerID, opSystem, kubernetesVersion, "")
 			if err != nil {
 				return err
 			}
 			in2 := &ec2.CopyImageInput{
-				ClientToken:   nil,
-				Description:   nil,
+				Description:   image.Description,
 				DryRun:        &dryRun,
 				Name:          image.Name,
 				SourceImageId: image.ImageId,
@@ -106,20 +98,26 @@ func CopyAMICmd() *cobra.Command {
 	addOsFlag(newCmd)
 	addKubernetesVersionFlag(newCmd)
 	addDryRunFlag(newCmd)
-	addSourceAccountFlag(newCmd)
+	addOwnerIDFlag(newCmd)
 	return newCmd
 }
 
 func addOsFlag(c *cobra.Command) {
-	c.Flags().String("os", "", "Operating system of the AMI to be copied")
+	c.Flags().StringVar(&opSystem, "os", "", "Operating system of the AMI to be copied")
+	if err := c.MarkFlagRequired("os"); err != nil {
+		panic(errors.Wrap(err, "error marking required --os flag"))
+	}
 }
 
 func addKubernetesVersionFlag(c *cobra.Command) {
-	c.Flags().String("kubernetes-version", "", "Kubernetes version of the AMI to be copied")
+	c.Flags().StringVar(&kubernetesVersion, "kubernetes-version", "", "Kubernetes version of the AMI to be copied")
+	if err := c.MarkFlagRequired("kubernetes-version"); err != nil {
+		panic(errors.Wrap(err, "error marking required --kubernetes-version flag"))
+	}
 }
 
-func addSourceAccountFlag(c *cobra.Command) {
-	c.Flags().String("source-account", "", "The source AWS account ID, where the AMI will be copied from")
+func addOwnerIDFlag(c *cobra.Command) {
+	c.Flags().StringVar(&ownerID, "owner-id", ec2service.DefaultMachineAMIOwnerID, "The source AWS owner ID, where the AMI will be copied from")
 }
 
 func addDryRunFlag(c *cobra.Command) {

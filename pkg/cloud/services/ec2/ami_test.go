@@ -78,7 +78,7 @@ func TestAMIs(t *testing.T) {
 			s := NewService(scope)
 			s.EC2Client = ec2Mock
 
-			id, err := s.defaultAMILookup("", "", "base os-baseos version", "1.11.1")
+			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "1.11.1")
 			if err != nil {
 				t.Fatalf("did not expect error calling a mock: %v", err)
 			}
@@ -138,7 +138,7 @@ func TestAMIsWithInvalidCreationDate(t *testing.T) {
 			s := NewService(scope)
 			s.EC2Client = ec2Mock
 
-			_, err = s.defaultAMILookup("", "", "base os-baseos version", "1.11.1")
+			_, err = s.defaultAMIIDLookup("", "", "base os-baseos version", "1.11.1")
 			if err == nil {
 				t.Fatalf("expected an error but did not get one")
 			}
