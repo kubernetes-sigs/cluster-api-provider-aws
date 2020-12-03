@@ -49,6 +49,7 @@ type AWSMachinePoolSpec struct {
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// Subnets is an array of subnet configurations
+	// +optional
 	Subnets []infrav1.AWSResourceReference `json:"subnets,omitempty"`
 
 	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
