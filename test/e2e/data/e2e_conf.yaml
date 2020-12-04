@@ -42,10 +42,10 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: kubeadm
     type: BootstrapProvider
@@ -57,10 +57,10 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: kubeadm
     type: ControlPlaneProvider
@@ -72,10 +72,10 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
 
   - name: aws
     type: InfrastructureProvider
@@ -86,10 +86,10 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
-          - old: --metrics-addr=127.0.0.1:8080
-            new: --metrics-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
           - old: gcr.io/k8s-staging-cluster-api/cluster-api-aws-controller-amd64:dev
             new: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
           - old: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
