@@ -39,6 +39,9 @@ func printPolicyCmd() *cobra.Command {
 		# Print out the IAM policy for the Kubernetes Cluster API Provider AWS Controller.
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers
 
+		# Print out the IAM policy for the Kubernetes Cluster API Provider AWS Controller using a given configuration file.
+		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config bootstrap_config.yaml		
+
 		# Print out the IAM policy for the Kubernetes AWS Cloud Provider for the control plane.
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyCloudProviderControlPlane
 
@@ -70,7 +73,7 @@ func printPolicyCmd() *cobra.Command {
 			return nil
 		},
 	}
-
+	addConfigFlag(newCmd)
 	newCmd.Flags().String("document", "", fmt.Sprintf("which document to show: %+v", bootstrap.ManagedIAMPolicyNames))
 	return newCmd
 }
