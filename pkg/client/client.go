@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
@@ -53,6 +54,13 @@ const (
 
 	// globalInfrastuctureName default name for infrastructure object
 	globalInfrastuctureName = "cluster"
+
+	// kubeCloudConfigNamespace is the namespace where the kube cloud config ConfigMap is located
+	kubeCloudConfigNamespace = "openshift-config-managed"
+	// kubeCloudConfigName is the name of the kube cloud config ConfigMap
+	kubeCloudConfigName = "kube-cloud-config"
+	// cloudCABundleKey is the key in the kube cloud config ConfigMap where the custom CA bundle is located
+	cloudCABundleKey = "ca-bundle.pem"
 )
 
 // AwsClientBuilderFuncType is function type for building aws client
@@ -174,6 +182,10 @@ func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region st
 	// Resolve custom endpoints
 	if err := resolveEndpoints(&sessionOptions.Config, ctrlRuntimeClient, region); err != nil {
 		return nil, err
+	}
+
+	if err := useCustomCABundle(&sessionOptions, ctrlRuntimeClient); err != nil {
+		return nil, fmt.Errorf("failed to set the custom CA bundle: %w", err)
 	}
 
 	// Otherwise default to relying on the IAM role of the masters where the actuator is running:
@@ -307,4 +319,28 @@ func newConfigForStaticCreds(accessKey string, accessSecret string) []byte {
 	fmt.Fprintf(buf, "aws_access_key_id = %s\n", accessKey)
 	fmt.Fprintf(buf, "aws_secret_access_key = %s\n", accessSecret)
 	return buf.Bytes()
+}
+
+// useCustomCABundle will set up a custom CA bundle in the AWS options if a CA bundle is configured in the
+// kube cloud config.
+func useCustomCABundle(awsOptions *session.Options, ctrlRuntimeClient client.Client) error {
+	cm := &corev1.ConfigMap{}
+	switch err := ctrlRuntimeClient.Get(
+		context.Background(),
+		client.ObjectKey{Namespace: kubeCloudConfigNamespace, Name: kubeCloudConfigName},
+		cm,
+	); {
+	case apimachineryerrors.IsNotFound(err):
+		// no cloud config ConfigMap, so no custom CA bundle
+		return nil
+	case err != nil:
+		return fmt.Errorf("failed to get kube-cloud-config ConfigMap: %w", err)
+	}
+	caBundle, ok := cm.Data[cloudCABundleKey]
+	if !ok {
+		// no "ca-bundle.pem" key in the ConfigMap, so no custom CA bundle
+		return nil
+	}
+	awsOptions.CustomCABundle = strings.NewReader(caBundle)
+	return nil
 }
