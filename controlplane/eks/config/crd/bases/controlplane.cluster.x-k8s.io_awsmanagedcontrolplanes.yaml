@@ -192,7 +192,7 @@ spec:
                 properties:
                   apiServer:
                     default: false
-                    description: APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
+                    description: APIServer indicates if the Kubernetes API Server log (kube-apiserver) should be enabled
                     type: boolean
                   audit:
                     default: false
