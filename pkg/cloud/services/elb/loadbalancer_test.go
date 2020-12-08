@@ -26,16 +26,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2/mock_ec2iface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_elbiface"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb/mock_resourcegroupstaggingapiiface"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestGenerateELBName(t *testing.T) {
@@ -311,6 +311,80 @@ func TestDeleteLoadbalancers(t *testing.T) {
 
 			err = s.DeleteLoadbalancers()
 			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestDescribeLoadbalancers(t *testing.T) {
+	clusterName := "bar"
+	tests := []struct {
+		name                string
+		lbName              string
+		rgAPIMocks          func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder)
+		DescribeElbAPIMocks func(m *mock_elbiface.MockELBAPIMockRecorder)
+	}{
+		{
+			name:   "Error if existing loadbalancer with same name doesn't have same scheme",
+			lbName: "bar-apiserver",
+			rgAPIMocks: func(m *mock_resourcegroupstaggingapiiface.MockResourceGroupsTaggingAPIAPIMockRecorder) {
+				m.GetResourcesPages(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			},
+			DescribeElbAPIMocks: func(m *mock_elbiface.MockELBAPIMockRecorder) {
+				m.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
+					LoadBalancerNames: aws.StringSlice([]string{"bar-apiserver"}),
+				})).Return(&elb.DescribeLoadBalancersOutput{LoadBalancerDescriptions: []*elb.LoadBalancerDescription{{Scheme: pointer.StringPtr(string(infrav1.ClassicELBSchemeInternal))}}}, nil)
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			rgapiMock := mock_resourcegroupstaggingapiiface.NewMockResourceGroupsTaggingAPIAPI(mockCtrl)
+			elbapiMock := mock_elbiface.NewMockELBAPI(mockCtrl)
+
+			scheme, err := setupScheme()
+			if err != nil {
+				t.Fatal(err)
+			}
+			awsCluster := &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Scheme: &infrav1.ClassicELBSchemeInternetFacing,
+				}},
+			}
+
+			client := fake.NewFakeClientWithScheme(scheme)
+			ctx := context.TODO()
+			client.Create(ctx, awsCluster)
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      clusterName,
+					},
+				},
+				AWSCluster: awsCluster,
+				Client:     client,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			tc.rgAPIMocks(rgapiMock.EXPECT())
+			tc.DescribeElbAPIMocks(elbapiMock.EXPECT())
+
+			s := &Service{
+				scope:                 clusterScope,
+				ResourceTaggingClient: rgapiMock,
+				ELBClient:             elbapiMock,
+			}
+
+			_, err = s.describeClassicELB(tc.lbName)
+			if err == nil {
 				t.Fatal(err)
 			}
 		})
