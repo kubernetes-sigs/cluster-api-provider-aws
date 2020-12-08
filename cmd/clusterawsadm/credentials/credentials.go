@@ -25,7 +25,7 @@ import (
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // AWSCredentialsTemplate generates an AWS credentials file that can
@@ -60,12 +60,17 @@ func NewAWSCredentialFromDefaultChain(region string) (*AWSCredentials, error) {
 	creds := AWSCredentials{}
 	conf := aws.NewConfig()
 	conf.CredentialsChainVerboseErrors = aws.Bool(true)
-	chain := defaults.CredChain(conf, defaults.Handlers())
-	chainCreds, err := chain.Get()
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config:            *conf,
+	})
 	if err != nil {
 		return nil, err
 	}
-
+	chainCreds, err := sess.Config.Credentials.Get()
+	if err != nil {
+		return nil, err
+	}
 	creds.Region = region
 	creds.AccessKeyID = chainCreds.AccessKeyID
 	creds.SecretAccessKey = chainCreds.SecretAccessKey
