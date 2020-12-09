@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -30,11 +31,12 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/ami"
 )
 
 // GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
 // For now by name until we need the input to be something different
-func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, error) {
+func (s *Service) GetLaunchTemplate(id string) (*ec2.LaunchTemplateVersion, error) {
 	if id == "" {
 		return nil, nil
 	}
@@ -58,17 +60,13 @@ func (s *Service) GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, e
 		return nil, nil
 	}
 
-	return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
+	return out.LaunchTemplateVersions[0], nil
+	//return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
 }
 
 // CreateLaunchTemplate generates a launch template to be used with the autoscaling group
-func (s *Service) CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *string, userData []byte) (string, error) {
+func (s *Service) CreateLaunchTemplate(scope scope.LaunchTemplateOwner, launchTemplateData *ec2.RequestLaunchTemplateData) (string, error) {
 	s.scope.Info("Create a new launch template")
-
-	launchTemplateData, err := s.createLaunchTemplateData(scope, imageID, userData)
-	if err != nil {
-		return "", errors.Wrapf(err, "unable to form launch template data")
-	}
 
 	input := &ec2.CreateLaunchTemplateInput{
 		LaunchTemplateData: launchTemplateData,
@@ -105,40 +103,35 @@ func (s *Service) CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *s
 	return aws.StringValue(result.LaunchTemplate.LaunchTemplateId), nil
 }
 
-func (s *Service) CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, imageID *string, userData []byte) error {
+func (s *Service) CreateLaunchTemplateVersion(scope scope.LaunchTemplateOwner, launchTemplateData *ec2.RequestLaunchTemplateData) (string, error) {
 	s.scope.V(2).Info("creating new launch template version", "machine-pool", scope.Name())
-
-	launchTemplateData, err := s.createLaunchTemplateData(scope, imageID, userData)
-	if err != nil {
-		return errors.Wrapf(err, "unable to form launch template data")
-	}
 
 	input := &ec2.CreateLaunchTemplateVersionInput{
 		LaunchTemplateData: launchTemplateData,
-		LaunchTemplateId:   aws.String(scope.AWSMachinePool.Status.LaunchTemplateID),
+		LaunchTemplateId:   aws.String(scope.LaunchTemplateID()),
 	}
 
-	_, err = s.EC2Client.CreateLaunchTemplateVersion(input)
+	output, err := s.EC2Client.CreateLaunchTemplateVersion(input)
 	if err != nil {
-		return errors.Wrapf(err, "unable to create launch template version")
+		return "", errors.Wrapf(err, "unable to create launch template version")
 	}
 
-	return nil
+	return strconv.FormatInt(aws.Int64Value(output.LaunchTemplateVersion.VersionNumber), 10), nil
 }
 
-func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageID *string, userData []byte) (*ec2.RequestLaunchTemplateData, error) {
-	lt := scope.AWSMachinePool.Spec.AWSLaunchTemplate
-
+func (s *Service) CreateLaunchTemplateData(scope scope.LaunchTemplateOwner, lt *expinfrav1.AWSLaunchTemplate, imageID *string, userData []byte) (*ec2.RequestLaunchTemplateData, error) {
 	data := &ec2.RequestLaunchTemplateData{
 		InstanceType: aws.String(lt.InstanceType),
-		IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
+		KeyName:      lt.SSHKeyName,
+		UserData:     pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+	}
+	if lt.IamInstanceProfile != "" {
+		data.IamInstanceProfile = &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 			Name: aws.String(lt.IamInstanceProfile),
-		},
-		KeyName:  lt.SSHKeyName,
-		UserData: pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+		}
 	}
 
-	ids, err := s.GetCoreNodeSecurityGroups(scope)
+	ids, err := scope.CoreSecurityGroups(s.scope)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +141,7 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 	}
 
 	// add additional security groups as well
-	for _, additionalGroup := range scope.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups {
+	for _, additionalGroup := range lt.AdditionalSecurityGroups {
 		data.SecurityGroupIds = append(data.SecurityGroupIds, additionalGroup.ID)
 	}
 
@@ -157,7 +150,7 @@ func (s *Service) createLaunchTemplateData(scope *scope.MachinePoolScope, imageI
 
 	// Set up root volume
 	if lt.RootVolume != nil {
-		rootDeviceName, err := s.checkRootVolume(lt.RootVolume, *data.ImageId)
+		rootDeviceName, _, err := s.CheckRootVolume(lt.RootVolume, *data.ImageId)
 		if err != nil {
 			return nil, err
 		}
@@ -211,17 +204,19 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 }
 
 // SDKToLaunchTemplate converts an AWS EC2 SDK instance to the CAPA instance type.
-func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, error) {
+func SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, error) {
 	v := d.LaunchTemplateData
 	i := &expinfrav1.AWSLaunchTemplate{
 		Name: aws.StringValue(d.LaunchTemplateName),
 		AMI: infrav1.AWSResourceReference{
 			ID: v.ImageId,
 		},
-		IamInstanceProfile: aws.StringValue(v.IamInstanceProfile.Name),
-		InstanceType:       aws.StringValue(v.InstanceType),
-		SSHKeyName:         v.KeyName,
-		VersionNumber:      d.VersionNumber,
+		InstanceType:  aws.StringValue(v.InstanceType),
+		SSHKeyName:    v.KeyName,
+		VersionNumber: d.VersionNumber,
+	}
+	if v.IamInstanceProfile != nil && aws.StringValue(v.IamInstanceProfile.Name) != "" {
+		i.IamInstanceProfile = aws.StringValue(v.IamInstanceProfile.Name)
 	}
 
 	// Extract IAM Instance Profile name from ARN
@@ -243,7 +238,7 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 }
 
 // LaunchTemplateNeedsUpdate checks if a new launch template version is needed
-func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error) {
+func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateOwner, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error) {
 	if incoming.IamInstanceProfile != existing.IamInstanceProfile {
 		return true, nil
 	}
@@ -257,7 +252,7 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incom
 		incomingIDs[i] = aws.StringValue(ref.ID)
 	}
 
-	coreIDs, err := s.GetCoreNodeSecurityGroups(scope)
+	coreIDs, err := scope.CoreSecurityGroups(s.scope)
 	if err != nil {
 		return false, err
 	}
@@ -311,7 +306,11 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*str
 	}
 
 	if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-		lookupAMI, err = s.eksAMILookup(*scope.MachinePool.Spec.Template.Spec.Version)
+		paramName, err := ami.EKSAMIParameter(*scope.MachinePool.Spec.Template.Spec.Version, "")
+		if err != nil {
+			return nil, err
+		}
+		lookupAMI, err = s.SSMAMILookup(paramName)
 		if err != nil {
 			return nil, err
 		}
@@ -325,7 +324,7 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*str
 	return aws.String(lookupAMI), nil
 }
 
-func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope *scope.MachinePoolScope) []*ec2.LaunchTemplateTagSpecificationRequest {
+func (s *Service) buildLaunchTemplateTagSpecificationRequest(scope scope.LaunchTemplateOwner) []*ec2.LaunchTemplateTagSpecificationRequest {
 	tagSpecifications := make([]*ec2.LaunchTemplateTagSpecificationRequest, 0)
 	additionalTags := scope.AdditionalTags()
 	// Set the cloud provider tag

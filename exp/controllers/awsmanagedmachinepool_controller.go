@@ -19,9 +19,12 @@ package controllers
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -43,7 +46,9 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	ekssvc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 )
 
 // AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object
@@ -171,12 +176,97 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Re
 		return r.reconcileDelete(ctx, machinePoolScope)
 	}
 
-	return r.reconcileNormal(ctx, machinePoolScope)
+	return r.reconcileNormal(ctx, machinePoolScope, cluster)
+}
+
+func (r *AWSManagedMachinePoolReconciler) reconcileLaunchTemplate(
+	machinePoolScope *scope.ManagedMachinePoolScope, eksSvc *ekssvc.NodegroupService, cluster *clusterv1.Cluster,
+) error {
+	managedControlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client:         r.Client,
+		Logger:         machinePoolScope.Logger,
+		Cluster:        cluster,
+		ControlPlane:   machinePoolScope.ControlPlane,
+		ControllerName: "awsManagedControlPlane",
+	})
+	if err != nil {
+		return err
+	}
+
+	ec2Svc := ec2svc.NewService(managedControlPlaneScope)
+
+	eksSvc.Info("checking for existing launch template")
+
+	var launchTemplate *ec2.LaunchTemplateVersion
+	if lt := machinePoolScope.ManagedMachinePool.Spec.LaunchTemplate; lt != nil && lt.ID != "" {
+		launchTemplate, err = ec2Svc.GetLaunchTemplate(lt.ID)
+	}
+	if err != nil {
+		conditions.MarkUnknown(machinePoolScope.OwnerObject(), infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
+		return err
+	}
+
+	launchTemplateData, err := eksSvc.CreateLaunchTemplateData(ec2Svc)
+	if err != nil {
+		return err
+	}
+
+	if launchTemplate == nil {
+		machinePoolScope.Info("no existing launch template found, creating")
+		if err != nil {
+			conditions.MarkFalse(machinePoolScope.ManagedMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return err
+		}
+		launchTemplateID, err := ec2Svc.CreateLaunchTemplate(machinePoolScope, launchTemplateData)
+		if err != nil {
+			conditions.MarkFalse(machinePoolScope.OwnerObject(), infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return err
+		}
+
+		machinePoolScope.ManagedMachinePool.Spec.LaunchTemplate = &infrav1exp.LaunchTemplateReference{
+			ID:      launchTemplateID,
+			Version: "1",
+		}
+
+		return machinePoolScope.PatchObject()
+	}
+
+	needsUpdate, err := eksSvc.LaunchTemplateNeedsUpdate(launchTemplateData, launchTemplate)
+	if err != nil {
+		return err
+	}
+	// TODO: launch template conditions
+
+	// create a new launch template version if there's a difference in configuration
+	// OR we've discovered a new AMI ID
+	if needsUpdate {
+		machinePoolScope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", launchTemplateData)
+		newVersion, err := ec2Svc.CreateLaunchTemplateVersion(machinePoolScope, launchTemplateData)
+		if err != nil {
+			return err
+		}
+
+		machinePoolScope.Info("created new launch template version", "version", newVersion)
+		if _, err := ec2Svc.EC2Client.ModifyLaunchTemplate(
+			&ec2.ModifyLaunchTemplateInput{
+				LaunchTemplateId: aws.String(machinePoolScope.ManagedMachinePool.Spec.LaunchTemplate.ID),
+				DefaultVersion:   aws.String(newVersion),
+			},
+		); err != nil {
+			return err
+		}
+
+		machinePoolScope.ManagedMachinePool.Spec.LaunchTemplate.Version = newVersion
+		return machinePoolScope.PatchObject()
+	}
+
+	return nil
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	_ context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
+	cluster *clusterv1.Cluster,
 ) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
@@ -186,6 +276,12 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	}
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
+
+	if err := r.reconcileLaunchTemplate(machinePoolScope, ekssvc, cluster); err != nil {
+		r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
+		machinePoolScope.Error(err, "failed to reconcile launch template")
+		return ctrl.Result{}, err
+	}
 
 	if err := ekssvc.ReconcilePool(); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
@@ -204,6 +300,26 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 
 	if err := ekssvc.ReconcilePoolDelete(); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
+	}
+
+	managedControlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client:         r.Client,
+		Logger:         machinePoolScope.Logger,
+		Cluster:        machinePoolScope.Cluster,
+		ControlPlane:   machinePoolScope.ControlPlane,
+		ControllerName: "awsManagedControlPlane",
+	})
+	if err != nil {
+		return reconcile.Result{}, nil
+	}
+
+	ec2Svc := ec2svc.NewService(managedControlPlaneScope)
+
+	if launchTemplate := machinePoolScope.ManagedMachinePool.Spec.LaunchTemplate; launchTemplate != nil {
+		if err := ec2Svc.DeleteLaunchTemplate(launchTemplate.ID); err != nil {
+			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedDelete", "Failed to delete launch template %q: %v", launchTemplate.ID, err)
+			return ctrl.Result{}, errors.Wrap(err, "failed to delete ASG")
+		}
 	}
 
 	controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, infrav1exp.ManagedMachinePoolFinalizer)

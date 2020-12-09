@@ -55,6 +55,10 @@ spec:
                   resources managed by the AWS provider, in addition to the ones added
                   by default.
                 type: object
+              amiID:
+                description: AMIID defines a specific, custom AMI. If not supplied, then the latest version for the Kubernetes version will be used
+                minLength: 2
+                type: string
               amiType:
                 default: AL2_x86_64
                 description: AMIType defines the AMI type
@@ -86,6 +90,16 @@ spec:
                 additionalProperties:
                   type: string
                 description: Labels specifies labels for the Kubernetes node objects
+                type: object
+              launchTemplate:
+                description: LaunchTemplate specifies the launch template to use for creating this MachinePool
+                properties:
+                  id:
+                    description: The ID of the launch template for this nodegroup
+                    type: string
+                  version:
+                    description: The version of the launch template for this nodegroup
+                    type: string
                 type: object
               providerIDList:
                 description: ProviderIDList are the provider IDs of instances in the

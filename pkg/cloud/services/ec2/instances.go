@@ -36,6 +36,7 @@ import (
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/logs"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -155,7 +156,11 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 		}
 
 		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version)
+			paramName, err := ami.EKSAMIParameter(*scope.Machine.Spec.Version, "")
+			if err != nil {
+				return nil, err
+			}
+			input.ImageID, err = s.SSMAMILookup(paramName)
 			if err != nil {
 				return nil, err
 			}
@@ -385,32 +390,6 @@ func (s *Service) GetCoreSecurityGroups(scope *scope.MachineScope) ([]string, er
 	return ids, nil
 }
 
-// GetCoreSecurityGroups looks up the security group IDs managed by this actuator
-// They are considered "core" to its proper functioning
-func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]string, error) {
-	// These are common across both controlplane and node machines
-	sgRoles := []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupNode,
-	}
-
-	if !scope.IsEKSManaged() {
-		sgRoles = append(sgRoles, infrav1.SecurityGroupLB)
-	} else {
-		sgRoles = append(sgRoles, infrav1.SecurityGroupEKSNodeAdditional)
-	}
-
-	ids := make([]string, 0, len(sgRoles))
-	for _, sg := range sgRoles {
-		if _, ok := s.scope.SecurityGroups()[sg]; !ok {
-			return nil, awserrors.NewFailedDependency(
-				fmt.Sprintf("%s security group not available", sg),
-			)
-		}
-		ids = append(ids, s.scope.SecurityGroups()[sg].ID)
-	}
-	return ids, nil
-}
-
 // TerminateInstance terminates an EC2 instance.
 // Returns nil on success, error in all other cases.
 func (s *Service) TerminateInstance(instanceID string) error {
@@ -489,7 +468,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	blockdeviceMappings := []*ec2.BlockDeviceMapping{}
 
 	if i.RootVolume != nil {
-		rootDeviceName, err := s.checkRootVolume(i.RootVolume, i.ImageID)
+		rootDeviceName, _, err := s.CheckRootVolume(i.RootVolume, i.ImageID)
 		if err != nil {
 			return nil, err
 		}
@@ -712,21 +691,21 @@ func (s *Service) getInstanceENIs(instanceID string) ([]*ec2.NetworkInterface, e
 	return output.NetworkInterfaces, nil
 }
 
-func (s *Service) getImageRootDevice(imageID string) (*string, error) {
+func (s *Service) getImageDevices(imageID string) (*string, []*ec2.BlockDeviceMapping, error) {
 	input := &ec2.DescribeImagesInput{
 		ImageIds: []*string{aws.String(imageID)},
 	}
 
 	output, err := s.EC2Client.DescribeImages(input)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(output.Images) == 0 {
-		return nil, errors.Errorf("no images returned when looking up ID %q", imageID)
+		return nil, nil, errors.Errorf("no images returned when looking up ID %q", imageID)
 	}
 
-	return output.Images[0].RootDeviceName, nil
+	return output.Images[0].RootDeviceName, output.Images[0].BlockDeviceMappings, nil
 }
 
 func (s *Service) getImageSnapshotSize(imageID string) (*int64, error) {
@@ -894,24 +873,24 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 	return nil
 }
 
-// checkRootVolume checks the input root volume options against the requested AMI's defaults
+// CheckRootVolume checks the input root volume options against the requested AMI's defaults
 // and returns the AMI's root device name
-func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*string, error) {
-	rootDeviceName, err := s.getImageRootDevice(imageID)
+func (s *Service) CheckRootVolume(rootVolume *infrav1.Volume, imageID string) (*string, []*ec2.BlockDeviceMapping, error) {
+	rootDeviceName, devices, err := s.getImageDevices(imageID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get root volume from image %q", imageID)
+		return nil, nil, errors.Wrapf(err, "failed to get root volume from image %q", imageID)
 	}
 
 	snapshotSize, err := s.getImageSnapshotSize(imageID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get root volume from image %q", imageID)
+		return nil, nil, errors.Wrapf(err, "failed to get root volume from image %q", imageID)
 	}
 
 	if rootVolume.Size < *snapshotSize {
-		return nil, errors.Errorf("root volume size (%d) must be greater than or equal to snapshot size (%d)", rootVolume.Size, *snapshotSize)
+		return nil, nil, errors.Errorf("root volume size (%d) must be greater than or equal to snapshot size (%d)", rootVolume.Size, *snapshotSize)
 	}
 
-	return rootDeviceName, nil
+	return rootDeviceName, devices, nil
 }
 
 // filterGroups filters a list for a string.

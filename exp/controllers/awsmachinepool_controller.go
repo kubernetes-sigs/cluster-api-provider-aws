@@ -315,7 +315,11 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	}
 
 	launchTemplateID := machinePoolScope.AWSMachinePool.Status.LaunchTemplateID
-	launchTemplate, err := ec2Svc.GetLaunchTemplate(launchTemplateID)
+	launchTemplateVersion, err := ec2Svc.GetLaunchTemplate(launchTemplateID)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	launchTemplate, err := ec2.SDKToLaunchTemplate(launchTemplateVersion)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -380,13 +384,12 @@ func (r *AWSMachinePoolReconciler) findASG(machinePoolScope *scope.MachinePoolSc
 }
 
 func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *scope.MachinePoolScope, ec2Scope scope.EC2Scope) error {
+	ec2svc := r.getEC2Service(ec2Scope)
+	asgSvc := r.getASGService(ec2Scope)
 	userData, err := machinePoolScope.GetRawBootstrapData()
 	if err != nil {
 		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
 	}
-
-	ec2svc := r.getEC2Service(ec2Scope)
-
 	machinePoolScope.Info("checking for existing launch template")
 	launchTemplate, err := ec2svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID)
 	if err != nil {
@@ -400,9 +403,14 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		return err
 	}
 
+	launchTemplateData, err := ec2svc.CreateLaunchTemplateData(machinePoolScope, machinePoolScope.LaunchTemplateSpec(), imageID, userData)
+	if err != nil {
+		return errors.Wrapf(err, "unable to form launch template data")
+	}
 	if launchTemplate == nil {
 		machinePoolScope.Info("no existing launch template found, creating")
-		launchTemplateID, err := ec2svc.CreateLaunchTemplate(machinePoolScope, imageID, userData)
+
+		launchTemplateID, err := ec2svc.CreateLaunchTemplate(machinePoolScope, launchTemplateData)
 		if err != nil {
 			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
@@ -413,7 +421,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		return machinePoolScope.PatchObject()
 	}
 
-	annotation, err := r.machinePoolAnnotationJSON(machinePoolScope.AWSMachinePool, TagsLastAppliedAnnotation)
+	annotation, err := machinePoolAnnotationJSON(machinePoolScope.AWSMachinePool, TagsLastAppliedAnnotation)
 	if err != nil {
 		return err
 	}
@@ -421,7 +429,12 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 	// Check if the instance tags were changed. If they were, create a new LaunchTemplate.
 	tagsChanged, _, _, _ := tagsChanged(annotation, machinePoolScope.AdditionalTags()) // nolint:dogsled
 
-	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(machinePoolScope, &machinePoolScope.AWSMachinePool.Spec.AWSLaunchTemplate, launchTemplate)
+	existingLaunchTemplateSpec, err := ec2.SDKToLaunchTemplate(launchTemplate)
+	if err != nil {
+		return err
+	}
+
+	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(machinePoolScope, machinePoolScope.LaunchTemplateSpec(), existingLaunchTemplateSpec)
 	if err != nil {
 		return err
 	}
@@ -429,8 +442,7 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 	// If there is a change: before changing the template, check if there exist an ongoing instance refresh,
 	// because only 1 instance refresh can be "InProgress". If template is updated when refresh cannot be started,
 	// that change will not trigger a refresh.
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
-		asgSvc := r.getASGService(ec2Scope)
+	if needsUpdate || tagsChanged || *imageID != *existingLaunchTemplateSpec.AMI.ID {
 		canStart, err := asgSvc.CanStartASGInstanceRefresh(machinePoolScope)
 		if err != nil {
 			return err
@@ -443,14 +455,17 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 
 	// create a new launch template version if there's a difference in configuration, tags,
 	// OR we've discovered a new AMI ID
-	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+	if needsUpdate || tagsChanged || *imageID != *existingLaunchTemplateSpec.AMI.ID {
 		machinePoolScope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", machinePoolScope.AWSMachinePool.Spec.AWSLaunchTemplate)
-		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, userData); err != nil {
+		launchTemplateData, err := ec2svc.CreateLaunchTemplateData(machinePoolScope, machinePoolScope.LaunchTemplateSpec(), imageID, userData)
+		if err != nil {
+			return errors.Wrapf(err, "unable to form launch template data")
+		}
+		if _, err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, launchTemplateData); err != nil {
 			return err
 		}
 		machinePoolScope.Info("starting instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
 
-		asgSvc := r.getASGService(ec2Scope)
 		// After creating a new version of launch template, instance refresh is required
 		// to trigger a rolling replacement of all previously launched instances.
 

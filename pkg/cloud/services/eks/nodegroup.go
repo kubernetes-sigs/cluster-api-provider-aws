@@ -17,29 +17,33 @@ limitations under the License.
 package eks
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	awseks "github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 )
 
-func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
+func (s *NodegroupService) describeNodegroup() (*awseks.Nodegroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
 	s.scope.V(2).Info("describing eks node group", "cluster", eksClusterName, "nodegroup", nodegroupName)
-	input := &eks.DescribeNodegroupInput{
+	input := &awseks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
 	}
@@ -48,7 +52,7 @@ func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
-			case eks.ErrCodeResourceNotFoundException:
+			case awseks.ErrCodeResourceNotFoundException:
 				return nil, nil
 			default:
 				return nil, errors.Wrap(err, "failed to describe nodegroup")
@@ -61,12 +65,12 @@ func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	return out.Nodegroup, nil
 }
 
-func (s *NodegroupService) scalingConfig() *eks.NodegroupScalingConfig {
+func (s *NodegroupService) scalingConfig() *awseks.NodegroupScalingConfig {
 	var replicas int32 = 1
 	if s.scope.MachinePool.Spec.Replicas != nil {
 		replicas = *s.scope.MachinePool.Spec.Replicas
 	}
-	cfg := eks.NodegroupScalingConfig{
+	cfg := awseks.NodegroupScalingConfig{
 		DesiredSize: aws.Int64(int64(replicas)),
 	}
 	scaling := s.scope.ManagedMachinePool.Spec.Scaling
@@ -113,10 +117,10 @@ func ngTags(key string, additionalTags infrav1.Tags) map[string]string {
 	return tags
 }
 
-func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
+func (s *NodegroupService) remoteAccess(data *ec2.RequestLaunchTemplateData) error {
 	pool := s.scope.ManagedMachinePool.Spec
 	if pool.RemoteAccess == nil {
-		return nil, nil
+		return nil
 	}
 
 	controlPlane := s.scope.ControlPlane
@@ -126,41 +130,122 @@ func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
 	// API behavior
 	var sSGs = []string{}
 
+	clusterSG, ok := controlPlane.Status.Network.SecurityGroups[controlplanev1exp.SecurityGroupCluster]
+	if !ok {
+		return errors.Errorf("%s security group not found on control plane", controlplanev1exp.SecurityGroupCluster)
+	}
+	sSGs = append(sSGs, clusterSG.ID)
+
+	if controlPlane.Spec.Bastion.Enabled {
+		additionalSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupEKSNodeAdditional]
+		if !ok {
+			return errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupEKSNodeAdditional)
+		}
+		sSGs = append(
+			sSGs,
+			additionalSG.ID,
+		)
+	}
+
 	if !pool.RemoteAccess.Public {
+		// TODO create security group for nodes
 		sSGs = pool.RemoteAccess.SourceSecurityGroups
 		// We add the EKS created cluster security group to the allowed security
 		// groups by default to prevent the API default of 0.0.0.0/0 from taking effect
 		// in case SourceSecurityGroups is empty
-		clusterSG, ok := controlPlane.Status.Network.SecurityGroups[controlplanev1exp.SecurityGroupCluster]
-		if !ok {
-			return nil, errors.Errorf("%s security group not found on control plane", controlplanev1exp.SecurityGroupCluster)
-		}
-		sSGs = append(sSGs, clusterSG.ID)
-
-		if controlPlane.Spec.Bastion.Enabled {
-			additionalSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupEKSNodeAdditional]
-			if !ok {
-				return nil, errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupEKSNodeAdditional)
-			}
-			sSGs = append(
-				sSGs,
-				additionalSG.ID,
-			)
-		}
 	}
+
+	data.SecurityGroupIds = aws.StringSlice(sSGs)
 
 	sshKeyName := pool.RemoteAccess.SSHKeyName
 	if sshKeyName == nil {
 		sshKeyName = controlPlane.Spec.SSHKeyName
 	}
+	data.KeyName = sshKeyName
 
-	return &eks.RemoteAccessConfig{
-		SourceSecurityGroups: aws.StringSlice(sSGs),
-		Ec2SshKey:            sshKeyName,
-	}, nil
+	return nil
 }
 
-func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
+func (m *NodegroupService) CreateLaunchTemplateData(ec2Svc *ec2svc.Service) (*ec2.RequestLaunchTemplateData, error) {
+	userData, err := m.scope.GetRawBootstrapData()
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't get bootstrap data")
+	}
+
+	spec := m.scope.ManagedMachinePool.Spec
+
+	var imageID string
+	if amiID := spec.AMIID; amiID != nil {
+		imageID = *amiID
+	} else {
+		paramName, err := ami.EKSAMIParameter(*m.scope.MachinePool.Spec.Template.Spec.Version, *m.scope.ManagedMachinePool.Spec.AMIType)
+		if err != nil {
+			return nil, err
+		}
+		lookupAMI, err := ec2Svc.SSMAMILookup(paramName)
+		if err != nil {
+			return nil, err
+		}
+		imageID = lookupAMI
+	}
+
+	data := &ec2.RequestLaunchTemplateData{
+		ImageId:      aws.String(imageID),
+		InstanceType: m.scope.ManagedMachinePool.Spec.InstanceType,
+		UserData:     pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+	}
+
+	if spec.DiskSize != nil {
+		size := int64(*spec.DiskSize)
+		deviceName, devices, err := ec2Svc.CheckRootVolume(&infrav1.Volume{Size: size}, imageID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, dev := range devices {
+			if aws.StringValue(dev.DeviceName) != aws.StringValue(deviceName) {
+				continue
+			}
+			data.BlockDeviceMappings = []*ec2.LaunchTemplateBlockDeviceMappingRequest{{
+				DeviceName: deviceName,
+				Ebs: &ec2.LaunchTemplateEbsBlockDeviceRequest{
+					VolumeType:          dev.Ebs.VolumeType,
+					DeleteOnTermination: dev.Ebs.DeleteOnTermination,
+					Encrypted:           dev.Ebs.Encrypted,
+					Iops:                dev.Ebs.Iops,
+					KmsKeyId:            dev.Ebs.KmsKeyId,
+					SnapshotId:          dev.Ebs.SnapshotId,
+					Throughput:          dev.Ebs.Throughput,
+					VolumeSize:          aws.Int64(int64(*spec.DiskSize)),
+				},
+				NoDevice:    dev.NoDevice,
+				VirtualName: dev.VirtualName,
+			}}
+		}
+	}
+
+	if err := m.remoteAccess(data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (m *NodegroupService) LaunchTemplateNeedsUpdate(incoming *ec2.RequestLaunchTemplateData, existing *ec2.LaunchTemplateVersion) (bool, error) {
+	if aws.StringValue(incoming.InstanceType) != aws.StringValue(existing.LaunchTemplateData.InstanceType) || aws.StringValue(incoming.ImageId) != aws.StringValue(existing.LaunchTemplateData.ImageId) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (s *NodegroupService) createNodegroup() (*awseks.Nodegroup, error) {
+	managedPool := s.scope.ManagedMachinePool.Spec
+
+	if managedPool.LaunchTemplate == nil {
+		return nil, errors.New("unable to create nodegroup without launch template")
+	}
+
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
 	additionalTags := s.scope.AdditionalTags()
@@ -168,15 +253,9 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	if err != nil {
 		return nil, err
 	}
-	managedPool := s.scope.ManagedMachinePool.Spec
 	tags := ngTags(s.scope.ClusterName(), additionalTags)
 
-	remoteAccess, err := s.remoteAccess()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create remote access configuration")
-	}
-
-	input := &eks.CreateNodegroupInput{
+	input := &awseks.CreateNodegroupInput{
 		ScalingConfig: s.scalingConfig(),
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
@@ -184,16 +263,16 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		NodeRole:      roleArn,
 		Labels:        aws.StringMap(managedPool.Labels),
 		Tags:          aws.StringMap(tags),
-		RemoteAccess:  remoteAccess,
 	}
-	if managedPool.AMIType != nil {
-		input.AmiType = aws.String(string(*managedPool.AMIType))
+	if launchTemplateID := managedPool.LaunchTemplate.ID; launchTemplateID != "" {
+		input.LaunchTemplate = &awseks.LaunchTemplateSpecification{
+			Id:      aws.String(managedPool.LaunchTemplate.ID),
+			Version: aws.String(managedPool.LaunchTemplate.Version),
+		}
 	}
 	if managedPool.DiskSize != nil {
+		// TODO !
 		input.DiskSize = aws.Int64(int64(*managedPool.DiskSize))
-	}
-	if managedPool.InstanceType != nil {
-		input.InstanceTypes = []*string{managedPool.InstanceType}
 	}
 	if err := input.Validate(); err != nil {
 		return nil, errors.Wrap(err, "created invalid CreateNodegroupInput")
@@ -204,7 +283,7 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			// TODO
-			case eks.ErrCodeResourceNotFoundException:
+			case awseks.ErrCodeResourceNotFoundException:
 				return nil, nil
 			default:
 				return nil, errors.Wrap(err, "failed to create nodegroup")
@@ -235,7 +314,7 @@ func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 			reterr = err
 		}
 	}()
-	input := &eks.DeleteNodegroupInput{
+	input := &awseks.DeleteNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
 	}
@@ -248,7 +327,7 @@ func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			// TODO
-			case eks.ErrCodeResourceNotFoundException:
+			case awseks.ErrCodeResourceNotFoundException:
 				return nil
 			default:
 				return errors.Wrap(err, "failed to delete nodegroup")
@@ -258,7 +337,7 @@ func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 		}
 	}
 
-	waitInput := &eks.DescribeNodegroupInput{
+	waitInput := &awseks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
 	}
@@ -270,33 +349,26 @@ func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 	return nil
 }
 
-func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
-	var specVersion *version.Version
-	if s.scope.Version() != nil {
-		specVersion = parseEKSVersion(*s.scope.Version())
-	}
-	ngVersion := version.MustParseGeneric(*ng.Version)
-	specAMI := s.scope.ManagedMachinePool.Spec.AMIVersion
-	ngAMI := *ng.ReleaseVersion
-
+func (s *NodegroupService) reconcileNodegroupVersion(ng *awseks.Nodegroup) error {
 	eksClusterName := s.scope.KubernetesClusterName()
-	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) {
-		input := &eks.UpdateNodegroupVersionInput{
+	spec := s.scope.ManagedMachinePool.Spec
+	if spec.LaunchTemplate == nil {
+		return errors.New("cant' reconcile version without a launch template reference")
+	}
+	ltVersion := spec.LaunchTemplate.Version
+	if aws.StringValue(ng.LaunchTemplate.Id) != spec.LaunchTemplate.ID ||
+		aws.StringValue(ng.LaunchTemplate.Version) != ltVersion {
+
+		input := &awseks.UpdateNodegroupVersionInput{
 			ClusterName:   aws.String(eksClusterName),
 			NodegroupName: aws.String(s.scope.NodegroupName()),
+			LaunchTemplate: &awseks.LaunchTemplateSpecification{
+				Id:      aws.String(spec.LaunchTemplate.ID),
+				Version: aws.String(ltVersion),
+			},
 		}
 
-		var updateMsg string
-		// Either update k8s version or AMI version
-		if specVersion != nil && ngVersion.LessThan(specVersion) {
-			// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
-			// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
-			input.Version = aws.String(versionToEKS(ngVersion.WithMinor(ngVersion.Minor() + 1)))
-			updateMsg = fmt.Sprintf("to version %s", *input.Version)
-		} else if specAMI != nil && *specAMI != ngAMI {
-			input.ReleaseVersion = specAMI
-			updateMsg = fmt.Sprintf("to AMI version %s", *input.ReleaseVersion)
-		}
+		updateMsg := fmt.Sprintf("to launch template id/version: %s/%s", *input.LaunchTemplate.Id, *input.LaunchTemplate.Version)
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.EKSClient.UpdateNodegroupVersion(input); err != nil {
@@ -315,9 +387,9 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 	return nil
 }
 
-func createLabelUpdate(specLabels map[string]string, ng *eks.Nodegroup) *eks.UpdateLabelsPayload {
+func createLabelUpdate(specLabels map[string]string, ng *awseks.Nodegroup) *awseks.UpdateLabelsPayload {
 	current := ng.Labels
-	payload := eks.UpdateLabelsPayload{}
+	payload := awseks.UpdateLabelsPayload{}
 	for k, v := range specLabels {
 		if currentV, ok := current[k]; !ok || currentV == nil || v != *currentV {
 			payload.AddOrUpdateLabels[k] = aws.String(v)
@@ -334,11 +406,11 @@ func createLabelUpdate(specLabels map[string]string, ng *eks.Nodegroup) *eks.Upd
 	return nil
 }
 
-func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
+func (s *NodegroupService) reconcileNodegroupConfig(ng *awseks.Nodegroup) error {
 	eksClusterName := s.scope.KubernetesClusterName()
 	machinePool := s.scope.MachinePool.Spec
 	managedPool := s.scope.ManagedMachinePool.Spec
-	input := &eks.UpdateNodegroupConfigInput{
+	input := &awseks.UpdateNodegroupConfigInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(managedPool.EKSNodegroupName),
 	}
@@ -400,7 +472,7 @@ func (s *NodegroupService) reconcileNodegroup() error {
 	}
 
 	switch *ng.Status {
-	case eks.NodegroupStatusCreating, eks.NodegroupStatusUpdating:
+	case awseks.NodegroupStatusCreating, awseks.NodegroupStatusUpdating:
 		ng, err = s.waitForNodegroupActive()
 	default:
 		break
@@ -425,23 +497,23 @@ func (s *NodegroupService) reconcileNodegroup() error {
 	return nil
 }
 
-func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
+func (s *NodegroupService) setStatus(ng *awseks.Nodegroup) error {
 	managedPool := s.scope.ManagedMachinePool
 	switch *ng.Status {
-	case eks.NodegroupStatusDeleting:
+	case awseks.NodegroupStatusDeleting:
 		managedPool.Status.Ready = false
-	case eks.NodegroupStatusCreateFailed, eks.NodegroupStatusDeleteFailed:
+	case awseks.NodegroupStatusCreateFailed, awseks.NodegroupStatusDeleteFailed:
 		managedPool.Status.Ready = false
 		// TODO FailureReason
 		failureMsg := fmt.Sprintf("EKS nodegroup in failed %s status", *ng.Status)
 		managedPool.Status.FailureMessage = &failureMsg
-	case eks.NodegroupStatusActive:
+	case awseks.NodegroupStatusActive:
 		managedPool.Status.Ready = true
 		managedPool.Status.FailureMessage = nil
 		// TODO FailureReason
-	case eks.NodegroupStatusCreating:
+	case awseks.NodegroupStatusCreating:
 		managedPool.Status.Ready = false
-	case eks.NodegroupStatusUpdating:
+	case awseks.NodegroupStatusUpdating:
 		managedPool.Status.Ready = true
 	default:
 		return errors.Errorf("unexpected EKS nodegroup status %s", *ng.Status)
@@ -478,10 +550,10 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 	return nil
 }
 
-func (s *NodegroupService) waitForNodegroupActive() (*eks.Nodegroup, error) {
+func (s *NodegroupService) waitForNodegroupActive() (*awseks.Nodegroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	eksNodegroupName := s.scope.NodegroupName()
-	req := eks.DescribeNodegroupInput{
+	req := awseks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(eksNodegroupName),
 	}

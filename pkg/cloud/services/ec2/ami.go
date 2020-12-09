@@ -18,7 +18,6 @@ package ec2
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 	"strings"
 	"text/template"
@@ -28,7 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
@@ -52,9 +50,6 @@ const (
 
 	// Amazon's AMI timestamp format
 	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
-
-	// EKS AMI ID SSM Parameter name
-	eksAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2/recommended/image_id"
 )
 
 // AMILookup contains the parameters used to template AMI names used for lookup.
@@ -222,15 +217,7 @@ func (s *Service) defaultBastionAMILookup(region string) string {
 	}
 }
 
-func (s *Service) eksAMILookup(kubernetesVersion string) (string, error) {
-	// format ssm parameter path properly
-	formattedVersion, err := formatVersionForEKS(kubernetesVersion)
-	if err != nil {
-		return "", err
-	}
-
-	paramName := fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
-
+func (s *Service) SSMAMILookup(paramName string) (string, error) {
 	input := &ssm.GetParameterInput{
 		Name: aws.String(paramName),
 	}
@@ -247,16 +234,7 @@ func (s *Service) eksAMILookup(kubernetesVersion string) (string, error) {
 	}
 
 	id := aws.StringValue(out.Parameter.Value)
-	s.scope.Info("found AMI", "id", id, "version", formattedVersion)
+	s.scope.Info("found AMI", "id", id, "parameter", paramName)
 
 	return id, nil
-}
-
-func formatVersionForEKS(version string) (string, error) {
-	parsed, err := semver.ParseTolerant(version)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%d.%d", parsed.Major, parsed.Minor), nil
 }
