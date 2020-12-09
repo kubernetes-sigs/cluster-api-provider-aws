@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	DefaultHealthCheckMetricsAddress = ":8083"
-	DefaultMachineSetMetricsAddress  = ":8082"
-	DefaultMachineMetricsAddress     = ":8081"
+	DefaultMachineSetMetricsAddress = ":8082"
+	DefaultMachineMetricsAddress    = ":8081"
+	DefaultMetal3MetricsAddress     = ":60000"
 )
 
 var (
@@ -63,8 +63,21 @@ var (
 	)
 )
 
+// Metrics for use in the Machine controller
+var (
+	// MachinePhaseTransitionSeconds is a metric to capute the time between a Machine being created and entering a particular phase
+	MachinePhaseTransitionSeconds = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "mapi_machine_phase_transition_seconds",
+			Help:    "Number of seconds between Machine creation and Machine transition to a phase.",
+			Buckets: []float64{5, 10, 20, 30, 60, 90, 120, 180, 240, 300, 360, 480, 600},
+		}, []string{"phase"},
+	)
+)
+
 func init() {
 	prometheus.MustRegister(MachineCollectorUp)
+	metrics.Registry.MustRegister(MachinePhaseTransitionSeconds)
 	metrics.Registry.MustRegister(
 		failedInstanceCreateCount,
 		failedInstanceUpdateCount,

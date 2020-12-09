@@ -26,8 +26,10 @@ import (
 )
 
 // MachineLister helps list Machines.
+// All objects returned here must be treated as read-only.
 type MachineLister interface {
 	// List lists all Machines in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.Machine, err error)
 	// Machines returns an object that can list and get Machines.
 	Machines(namespace string) MachineNamespaceLister
@@ -58,10 +60,13 @@ func (s *machineLister) Machines(namespace string) MachineNamespaceLister {
 }
 
 // MachineNamespaceLister helps list and get Machines.
+// All objects returned here must be treated as read-only.
 type MachineNamespaceLister interface {
 	// List lists all Machines in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.Machine, err error)
 	// Get retrieves the Machine from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.Machine, error)
 	MachineNamespaceListerExpansion
 }

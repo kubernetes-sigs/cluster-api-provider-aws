@@ -23,6 +23,7 @@ import (
 	"time"
 
 	machinev1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	"github.com/openshift/machine-api-operator/pkg/metrics"
 	"github.com/openshift/machine-api-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -423,6 +424,7 @@ func isInvalidMachineConfigurationError(err error) bool {
 func (r *ReconcileMachine) setPhase(machine *machinev1.Machine, phase string, errorMessage string) error {
 	if stringPointerDeref(machine.Status.Phase) != phase {
 		klog.V(3).Infof("%v: going into phase %q", machine.GetName(), phase)
+
 		// A call to Patch will mutate our local copy of the machine to match what is stored in the API.
 		// Before we make any changes to the status subresource on our local copy, we need to patch the object first,
 		// otherwise our local changes to the status subresource will be lost.
@@ -455,6 +457,15 @@ func (r *ReconcileMachine) setPhase(machine *machinev1.Machine, phase string, er
 		if err := r.Client.Status().Patch(context.Background(), machine, baseToPatch); err != nil {
 			klog.Errorf("Failed to update machine status %q: %v", machine.GetName(), err)
 			return err
+		}
+
+		// Update the metric after everything else has succeeded to prevent duplicate
+		// entries when there are failures
+		if phase != phaseDeleting {
+			// Apart from deleting, update the transition metric
+			// Deleting would always end up in the infinite bucket
+			timeElapsed := time.Now().Sub(machine.GetCreationTimestamp().Time).Seconds()
+			metrics.MachinePhaseTransitionSeconds.With(map[string]string{"phase": phase}).Observe(timeElapsed)
 		}
 	}
 	return nil
