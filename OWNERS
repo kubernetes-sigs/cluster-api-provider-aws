@@ -14,8 +14,9 @@ reviewers:
 
 emeritus_approvers:
   - davidewatson
-  - ingvagabund
   - enxebre
+  - ingvagabund
+  - ncdc
 
 emeritus_reviewers:
   - sethp-nr

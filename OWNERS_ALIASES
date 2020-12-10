@@ -12,13 +12,11 @@ aliases:
   cluster-api-maintainers:
     - detiber
     - justinsb
-    - ncdc
     - vincepri
     - chuckha
   cluster-api-aws-maintainers:
     - chuckha
     - detiber
-    - ncdc
     - randomvariable
     - rudoi
     - vincepri
