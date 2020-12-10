@@ -18,11 +18,9 @@ aliases:
     - CecileRobertMichon
     - detiber
     - justinsb
-    - ncdc
     - vincepri
   cluster-api-aws-maintainers:
     - detiber
-    - ncdc
     - randomvariable
     - richardcase
     - rudoi
