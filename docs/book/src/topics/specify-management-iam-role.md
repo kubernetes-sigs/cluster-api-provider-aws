@@ -51,6 +51,30 @@ When creating the IAM role the following trust policy will need to be used with 
 }
 ```
 
+If you plan to use the `controllers.cluster-api-provider-aws.sigs.k8s.io` role created by clusterawsadm then you'll need to add the following to your AWSIAMConfiguration:
+
+```yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  clusterAPIControllers:
+    disabled: false
+    trustStatements:
+    - Action:
+      - "sts:AssumeRoleWithWebIdentity"
+      Effect: "Allow"
+      Principal:
+        Federated:
+        - "arn:aws:iam::${AWS_ACCOUNT_ID}:oidc-provider/oidc.eks.${AWS_REGION}.amazonaws.com/id/${OIDC_PROVIDER_ID}"
+      Condition:
+        "ForAnyValue:StringEquals":
+          "oidc.eks.${AWS_REGION}.amazonaws.com/id/${OIDC_PROVIDER_ID}:sub":
+            - system:serviceaccount:capa-system:capa-controller-manager
+            - system:serviceaccount:capa-eks-control-plane-system:capa-eks-control-plane-controller-manager # Include if also using EKS
+```
+
+With this you can then set `AWS_CONTROLLER_IAM_ROLE` to `arn:aws:iam::${AWS_ACCOUNT_ID}:role/controllers.cluster-api-provider-aws.sigs.k8s.io`
+
 ### Kiam / kube2iam
 
 When creating the IAM role the you will need to give apply the `kubernetes.io/cluster/${CLUSTER_NAME}/role": "enabled"` tag to the role and use the following trust policy with the `AWS_ACCOUNT_ID` and `CLUSTER_NAME` environment variables correctly replaced.
@@ -78,3 +102,28 @@ When creating the IAM role the you will need to give apply the `kubernetes.io/cl
   ]
 }
 ```
+
+If you plan to use the `controllers.cluster-api-provider-aws.sigs.k8s.io` role created by clusterawsadm then you'll need to add the following to your AWSIAMConfiguration:
+
+```yaml
+apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+kind: AWSIAMConfiguration
+spec:
+  clusterAPIControllers:
+    disabled: false
+    trustStatements:
+      - Action:
+        - "sts:AssumeRole"
+        Effect: "Allow"
+        Principal:
+          Service:
+          - "ec2.amazonaws.com"
+      - Action:
+        - "sts:AssumeRole"
+        Effect: "Allow"
+        Principal:
+          AWS:
+          - "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${CLUSTER_NAME}.worker-node-role"
+```
+
+With this you can then set `AWS_CONTROLLER_IAM_ROLE` to `arn:aws:iam::${AWS_ACCOUNT_ID}:role/controllers.cluster-api-provider-aws.sigs.k8s.io`
