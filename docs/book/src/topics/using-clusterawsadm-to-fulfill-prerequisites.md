@@ -34,7 +34,7 @@ clusterawsadm bootstrap iam create-cloudformation-stack
 
 Additional policies can be added by creating a configuration file
 
-```
+```yaml
 apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
 kind: AWSIAMConfiguration
 spec:
@@ -49,25 +49,25 @@ spec:
 
 and passing it to clusterawsadm as follows
 
-```
+```bash
 clusterawsadm bootstrap iam create-stack --config bootstrap-config.yaml
 ```
 
 These will be added to the control plane and node roles respectively when they are created.
 
-**Note:** If you used the now deprecated `clusterawsadm alpha bootstrap` 0.5.4 or earlier to create IAM objects for the
-Cluster API Provider for AWS, using `clusterawsadm bootstrap iam` 0.5.5 or later will, by default, remove the bootstrap
-user and group. Anything using those credentials to authenticate will start experiencing authentication failures. If you
-rely on the bootstrap user and group credentials, specify `bootstrapUser.enable = true` in the configuration file, like
-this:
-
-```yaml
-apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
-kind: AWSIAMConfiguration
-spec:
-  bootstrapUser:
-    enable: true
-```
+> **Note:** If you used the now deprecated `clusterawsadm alpha bootstrap` 0.5.4 or earlier to create IAM objects for the
+> Cluster API Provider for AWS, using `clusterawsadm bootstrap iam` 0.5.5 or later will, by default, remove the bootstrap
+> user and group. Anything using those credentials to authenticate will start experiencing authentication failures. If you
+> rely on the bootstrap user and group credentials, specify `bootstrapUser.enable = true` in the configuration file, like
+> this:
+>
+> ```yaml
+> apiVersion: bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1
+> kind: AWSIAMConfiguration
+> spec:
+>   bootstrapUser:
+>     enable: true
+> ```
 
 #### With EKS Support
 
@@ -102,11 +102,18 @@ understand exactly which IAM policies and groups we are expecting. There are
 several policies, roles and users that need to be created. Please see our
 [controller policy][controllerpolicy] file to understand the permissions that are necessary.
 
+You can use `clusteradwadm` to print out the needed IAM policies, e.g.
+
+```bash
+clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config bootstrap-config.yaml
+```
+
 [controllerpolicy]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/0e543e0eb30a7065c967f5df8d6abd872aa4ff0c/pkg/cloud/aws/services/cloudformation/bootstrap.go#L149-L188
 
 ## SSH Key pair
 
-You will need to specify the name of an existing SSH key pair within the region
+If you plan to use SSH to access the instances created by Cluster API Provider AWS
+then you will need to specify the name of an existing SSH key pair within the region
 you plan on using. If you don't have one yet, a new one needs to be created.
 
 ### Create a new key pair
@@ -145,20 +152,21 @@ The current iteration of the Cluster API Provider AWS relies on credentials
 being present in your environment. These then get written into the cluster
 manifests for use by the controllers.
 
-If you used `clusterawsadm` to set up IAM resources for you then you can run
-these commands to prepare your environment.
-
-Your `AWS_REGION` must already be set.
+E.g.
 
 ```bash
-export AWS_CREDENTIALS=$(aws iam create-access-key \
-  --user-name bootstrapper.cluster-api-provider-aws.sigs.k8s.io)
-export AWS_ACCESS_KEY_ID=$(echo $AWS_CREDENTIALS | jq .AccessKey.AccessKeyId -r)
-export AWS_SECRET_ACCESS_KEY=$(echo $AWS_CREDENTIALS | jq .AccessKey.SecretAccessKey -r)
+export AWS_REGION=us-east-1 # This is used to help encode your environment variables
+export AWS_ACCESS_KEY_ID=<your-access-key>
+export AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+export AWS_SESSION_TOKEN=<session-token> # If you are using Multi-Factor Auth.
 ```
 
-If you did not use `clusterawsadm` to provision your user, you will need to set
-these environment variables in your own way.
+**Note**: The credentials used must have the appropriate permissions for use by the controllers.
+You can get the required policy statement by using the following command:
+
+```bash
+clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config bootstrap-config.yaml
+```
 
 > To save credentials securely in your environment, [aws-vault](https://github.com/99designs/aws-vault) uses
 > the OS keystore as permanent storage, and offers shell features to securely
