@@ -26,250 +26,251 @@
 
 <!-- TOC -->
 
-## Kubernetes Version v1.19.4
-
-### Amazon Linux 2
-| Region         | AMI                   |
-|----------------|-----------------------|
-| ap-northeast-1 | ami-0bd447d3218e13fb0 |
-| ap-northeast-2 | ami-09704257fc59f6f68 |
-| ap-south-1     | ami-0aabc1b39d9e8718b |
-| ap-southeast-1 | ami-0ccaeb07b45b872bc |
-| ap-southeast-2 | ami-0e4dc40c55d0aae1b |
-| ca-central-1   | ami-032f5374931bcb186 |
-| eu-central-1   | ami-0118ea62dd5b30d22 |
-| eu-west-1      | ami-047720d974646852f |
-| eu-west-2      | ami-0eebcf246c7d4e122 |
-| eu-west-3      | ami-05f80892202ddb5ba |
-| sa-east-1      | ami-06822155bad57af87 |
-| us-east-1      | ami-0143b1572e9d63dbf |
-| us-east-2      | ami-0610e5462accd3f44 |
-| us-west-1      | ami-07cfab93a262bba62 |
-| us-west-2      | ami-0676cf9577975b128 |
-
-### CentOS 7
-
-| Region         | AMI                   |
-|----------------|-----------------------|
-| ap-northeast-1 | ami-081b6ccfdcef99024 |
-| ap-northeast-2 | ami-09cab2b91ff1c8fd6 |
-| ap-south-1     | ami-09a80c80baf6a65bd |
-| ap-southeast-1 | ami-02033e95ffd456342 |
-| ap-southeast-2 | ami-0d8de12203431be94 |
-| ca-central-1   | ami-0be398cc26a8ac4d1 |
-| eu-central-1   | ami-00450006c118e4aa9 |
-| eu-west-1      | ami-03c210e250c857d8d |
-| eu-west-2      | ami-026b2a5aabf281df6 |
-| eu-west-3      | ami-00597afaf3f9f3b3e |
-| sa-east-1      | ami-09154cabea56abbbd |
-| us-east-1      | ami-06928a8e846547dd5 |
-| us-east-2      | ami-01c0fb08f492857c4 |
-| us-west-1      | ami-0067d7646883210c7 |
-| us-west-2      | ami-06f361700fc943679 |
-
-### Ubuntu 20.04 (Focal)
-
-| Region         | AMI                   |
-|----------------|-----------------------|
-| ap-northeast-1 | ami-0240aee83b8b1b082 |
-| ap-northeast-2 | ami-01679b8faf538e375 |
-| ap-south-1     | ami-0b3bf43c59dba0c39 |
-| ap-southeast-1 | ami-0bbc21181074ecee9 |
-| ap-southeast-2 | ami-0319e96e2521bfb22 |
-| ca-central-1   | ami-0b3bf8bf3e3935fdd |
-| eu-central-1   | ami-098f29f17b8e8836d |
-| eu-west-1      | ami-0ea0b66282f62ed49 |
-| eu-west-2      | ami-08a9a202deced5032 |
-| eu-west-3      | ami-07db9d9be60450f44 |
-| sa-east-1      | ami-06d3a02143b334489 |
-| us-east-1      | ami-05415d9c46fa42139 |
-| us-east-2      | ami-0ca67c10eb58db8a2 |
-| us-west-1      | ami-0f94b637b521074a7 |
-| us-west-2      | ami-0a1f12e6b8698faf4 |
-
-### Ubuntu 18.04 (Bionic)
-
-| Region         | AMI                   |
-|----------------|-----------------------|
-| ap-northeast-1 | ami-0b57b28a79febf187 |
-| ap-northeast-2 | ami-03b3fc84bf752f3cd |
-| ap-south-1     | ami-0f23efd769cb349fb |
-| ap-southeast-1 | ami-092d39cc8db71e743 |
-| ap-southeast-2 | ami-09d885e58f94cbdf8 |
-| ca-central-1   | ami-098d5db5cb1143244 |
-| eu-central-1   | ami-061b8401a9c58f70a |
-| eu-west-1      | ami-0c16de4d87a990205 |
-| eu-west-2      | ami-0807877b2843e850c |
-| eu-west-3      | ami-0b120cfb1bc0c2774 |
-| sa-east-1      | ami-01116dbd301d841db |
-| us-east-1      | ami-0a6839443b3353e5c |
-| us-east-2      | ami-0995bc85f02c5dde6 |
-| us-west-1      | ami-0144043c764aaeb95 |
-| us-west-2      | ami-04e1066f6de29de97 |
-
-## Kubernetes Version v1.18.12
+## Kubernetes Version v1.19.5
 
 ### Amazon Linux 2
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-01335b52bc7f0328a |
-| ap-northeast-2 | ami-087d9d146bcc706f9 |
-| ap-south-1     | ami-0fbbe8b7051ef3958 |
-| ap-southeast-1 | ami-04015d1215b4165eb |
-| ap-southeast-2 | ami-0cde4d728d220a2f2 |
-| ca-central-1   | ami-0cc32b9e4b3965ef8 |
-| eu-central-1   | ami-0f98085bab4c0d101 |
-| eu-west-1      | ami-055b1de7248f5c58c |
-| eu-west-2      | ami-012da7e89b7271423 |
-| eu-west-3      | ami-0967b78e984cdc5c3 |
-| sa-east-1      | ami-0b1fc729d02e3aa21 |
-| us-east-1      | ami-0d9c0a1892fc02105 |
-| us-east-2      | ami-0d7712ba1ddcdde16 |
-| us-west-1      | ami-031e39ea39045356f |
-| us-west-2      | ami-0a655181cdd836ce7 |
+| ap-northeast-1 | ami-031b515d183c98b6f |
+| ap-northeast-2 | ami-0d7b8bda6f0abf0d1 |
+| ap-south-1     | ami-07760c2ff57fdf150 |
+| ap-southeast-1 | ami-08eb4a903faad593a |
+| ap-southeast-2 | ami-025c3d025ca83ab80 |
+| ca-central-1   | ami-017d7d5a6cd083da3 |
+| eu-central-1   | ami-045b112568e0ade89 |
+| eu-west-1      | ami-074845be12115a7b9 |
+| eu-west-2      | ami-0c7049e0f1ba28035 |
+| eu-west-3      | ami-021c20a8afa8a5ee7 |
+| sa-east-1      | ami-0809b54bf614c8856 |
+| us-east-1      | ami-01d7cf7b029ad674d |
+| us-east-2      | ami-0283bc0d1a27ea39b |
+| us-west-1      | ami-0a82730bf12bc9191 |
+| us-west-2      | ami-039107717d906453a |
 
 ### CentOS 7
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-06bf9945b0806259f |
-| ap-northeast-2 | ami-09126dd49e88eaf78 |
-| ap-south-1     | ami-0acaf3c67e29a3cfd |
-| ap-southeast-1 | ami-084e37a5c72f8b75d |
-| ap-southeast-2 | ami-0d76599f2338639bf |
-| ca-central-1   | ami-08415695dc7f14deb |
-| eu-central-1   | ami-07b94711da2d36b83 |
-| eu-west-1      | ami-0cab62b56af6aaaaa |
-| eu-west-2      | ami-0c49c11693230f1f8 |
-| eu-west-3      | ami-0d58e526cd987c907 |
-| sa-east-1      | ami-0bce8bffeee51a1f0 |
-| us-east-1      | ami-0c446c58d89ba7eda |
-| us-east-2      | ami-0d80c568a4dcd5f80 |
-| us-west-1      | ami-0c2a9d1ce1a66b85d |
-| us-west-2      | ami-041aba48ea4d85cc3 |
+| ap-northeast-1 | ami-0614018821fb70481 |
+| ap-northeast-2 | ami-039d0f24da0a4e200 |
+| ap-south-1     | ami-0daf3e7dd0f55f4df |
+| ap-southeast-1 | ami-01bb067fc1084e4c9 |
+| ap-southeast-2 | ami-0c4df88584bee6f67 |
+| ca-central-1   | ami-044d5accd69837495 |
+| eu-central-1   | ami-068b7e14ac5d86774 |
+| eu-west-1      | ami-045f86415c03fcc70 |
+| eu-west-2      | ami-0592ae09336dce4c4 |
+| eu-west-3      | ami-0c9e1676806431ed6 |
+| sa-east-1      | ami-0784e438a9eaca9d8 |
+| us-east-1      | ami-03773826045bf4c48 |
+| us-east-2      | ami-0db47ae41553615dc |
+| us-west-1      | ami-06ad834c0e90071b2 |
+| us-west-2      | ami-0a2435162128ff598 |
 
 ### Ubuntu 20.04 (Focal)
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-0286af84f0de45180 |
-| ap-northeast-2 | ami-0834af1b4b61a0182 |
-| ap-south-1     | ami-082631971bd2836b6 |
-| ap-southeast-1 | ami-094c08d63966ed51d |
-| ap-southeast-2 | ami-04a4c6d2071ee1fbe |
-| ca-central-1   | ami-08d38c7a456c76d14 |
-| eu-central-1   | ami-0bfc4d6dde0c0acbf |
-| eu-west-1      | ami-0e4c9afda6a52f919 |
-| eu-west-2      | ami-0a2c3025c3b3958bf |
-| eu-west-3      | ami-006ba4c56870f472a |
-| sa-east-1      | ami-0dcf591ebcb85d1a3 |
-| us-east-1      | ami-08b5f487d1d91a510 |
-| us-east-2      | ami-0ce8d7d5a06ac9339 |
-| us-west-1      | ami-0cd303939cecb4ee5 |
-| us-west-2      | ami-001433a19ce12adda |
+| ap-northeast-1 | ami-0cfdf2b1dfe841b6f |
+| ap-northeast-2 | ami-0925ae81c566825e5 |
+| ap-south-1     | ami-09adfdb4981593ec0 |
+| ap-southeast-1 | ami-055aa3d9cb7c02cba |
+| ap-southeast-2 | ami-00752caa405eaf772 |
+| ca-central-1   | ami-0a3901139c9563f72 |
+| eu-central-1   | ami-06f6cf3431c796f8d |
+| eu-west-1      | ami-0745e450aae9931c3 |
+| eu-west-2      | ami-01f9a93c7fffca3cf |
+| eu-west-3      | ami-0fc7b571d5b8394d6 |
+| sa-east-1      | ami-0b414cde36b1b3bc2 |
+| us-east-1      | ami-06a19b7374e66c806 |
+| us-east-2      | ami-01ff7af4031e8e810 |
+| us-west-1      | ami-056afeae771e47266 |
+| us-west-2      | ami-09a478454c2d76fe0 |
 
 ### Ubuntu 18.04 (Bionic)
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-04f1e9ff78b8f8569 |
-| ap-northeast-2 | ami-05ca23b2b76212ea6 |
-| ap-south-1     | ami-0169beeb0fb3e71b3 |
-| ap-southeast-1 | ami-0dfd877885e6f8777 |
-| ap-southeast-2 | ami-0763033aa819b0031 |
-| ca-central-1   | ami-01412a89a9d04b335 |
-| eu-central-1   | ami-080291ad5db71a478 |
-| eu-west-1      | ami-0005af999702bff17 |
-| eu-west-2      | ami-0c2ec4eae10414984 |
-| eu-west-3      | ami-09a4e4195529a3ec6 |
-| sa-east-1      | ami-0ccbd9a61638e6133 |
-| us-east-1      | ami-0cac423f5e987f03a |
-| us-east-2      | ami-05da49f524f7fca5d |
-| us-west-1      | ami-0b3c9e969aa09dbf6 |
-| us-west-2      | ami-03f196c8f11beea1a |
+| ap-northeast-1 | ami-0ad16e067790d552d |
+| ap-northeast-2 | ami-01b11229fe3415bc8 |
+| ap-south-1     | ami-0a8505d1cb61cb92c |
+| ap-southeast-1 | ami-07599f51af8aca855 |
+| ap-southeast-2 | ami-0df64621de3bc6902 |
+| ca-central-1   | ami-0b8605513ac2c299a |
+| eu-central-1   | ami-08c91834a5d4bc279 |
+| eu-west-1      | ami-052edde77d3c27158 |
+| eu-west-2      | ami-0e1dbcc60c6d38894 |
+| eu-west-3      | ami-02c320cfce511d761 |
+| sa-east-1      | ami-04377183e17434b8f |
+| us-east-1      | ami-08eabc82f7a59e111 |
+| us-east-2      | ami-04f1ae74adcbb7d4b |
+| us-west-1      | ami-0fafada1061c3c3e0 |
+| us-west-2      | ami-06e4300f26abde5c0 |
 
-## Kubernetes Version v1.17.14
+## Kubernetes Version v1.18.13
 
 ### Amazon Linux 2
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-0a7859eb960f8e36c |
-| ap-northeast-2 | ami-0fa56c5570fa900dd |
-| ap-south-1     | ami-04ff6f07d65e4dfbd |
-| ap-southeast-1 | ami-0000f5579b19d640d |
-| ap-southeast-2 | ami-060f29ecdb8e2dafd |
-| ca-central-1   | ami-08361eab5e3fc8e8a |
-| eu-central-1   | ami-0ecf8c084166ec1cd |
-| eu-west-1      | ami-00e6cd1779fbba569 |
-| eu-west-2      | ami-08d2c14bf1d7f12f4 |
-| eu-west-3      | ami-0ccf0dba9e1b013aa |
-| sa-east-1      | ami-0777fab9639a23309 |
-| us-east-1      | ami-00d03a28c1334dacd |
-| us-east-2      | ami-0839030d41ad31149 |
-| us-west-1      | ami-0fca20d67a8308e54 |
-| us-west-2      | ami-05b4795a88ff8f07a |
+| ap-northeast-1 | ami-09f05eb5b9cfa23ec |
+| ap-northeast-2 | ami-09b489192afb8a8c7 |
+| ap-south-1     | ami-03e5122616f898198 |
+| ap-southeast-1 | ami-0e212faa51ee92b65 |
+| ap-southeast-2 | ami-0452151566604740c |
+| ca-central-1   | ami-0db033cb873e3a670 |
+| eu-central-1   | ami-0f43482489fe75d25 |
+| eu-west-1      | ami-00d94635aec121ace |
+| eu-west-2      | ami-05706d623b7584146 |
+| eu-west-3      | ami-0d2741f7dcb885a57 |
+| sa-east-1      | ami-028aaaefcd14e350e |
+| us-east-1      | ami-006de2bbf73593aa6 |
+| us-east-2      | ami-01906a446c7628e62 |
+| us-west-1      | ami-0558a2bd68c183cd9 |
+| us-west-2      | ami-0d03ce0c1c93330d8 |
 
 ### CentOS 7
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-02eb562de64e8c18a |
-| ap-northeast-2 | ami-0b50dce71c8c5c081 |
-| ap-south-1     | ami-06113c841538b41a4 |
-| ap-southeast-1 | ami-00dcc656ace1f94ae |
-| ap-southeast-2 | ami-0c5773bb37c49df93 |
-| ca-central-1   | ami-0b8f40ef0d922102a |
-| eu-central-1   | ami-030a0a5654b463f48 |
-| eu-west-1      | ami-0ae46194c140e1f6f |
-| eu-west-2      | ami-03e11d7c26c274eeb |
-| eu-west-3      | ami-00851313e04dcf5a6 |
-| sa-east-1      | ami-04b026bc793a08812 |
-| us-east-1      | ami-03e47100cb4769c73 |
-| us-east-2      | ami-0a06a1e3b283037b8 |
-| us-west-1      | ami-0157e40867656f35d |
-| us-west-2      | ami-0e23455f8dce46265 |
+| ap-northeast-1 | ami-0f06098155be1fdbb |
+| ap-northeast-2 | ami-079b004e5c73e17f9 |
+| ap-south-1     | ami-037c09c3a570c7ce4 |
+| ap-southeast-1 | ami-065f2a56647da48f2 |
+| ap-southeast-2 | ami-0a481d04d8014b495 |
+| ca-central-1   | ami-0e2ce50490393fc72 |
+| eu-central-1   | ami-0a0199af3f44f608a |
+| eu-west-1      | ami-001f48482dea25766 |
+| eu-west-2      | ami-04fe670d0244e6a2b |
+| eu-west-3      | ami-0456dca6f84d0110d |
+| sa-east-1      | ami-0dc948b9961fda4f4 |
+| us-east-1      | ami-02ff11c6d45d88076 |
+| us-east-2      | ami-0e849de415df7f17c |
+| us-west-1      | ami-01f1796ecbc987314 |
+| us-west-2      | ami-0bc13e8c2752f4a32 |
 
 ### Ubuntu 20.04 (Focal)
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-00aade41c85f8c022 |
-| ap-northeast-2 | ami-0196d03201c67d956 |
-| ap-south-1     | ami-02f6ac286cb6a63a8 |
-| ap-southeast-1 | ami-06c11e191e3e6931d |
-| ap-southeast-2 | ami-0a133eb378382e6a5 |
-| ca-central-1   | ami-00d7374b6595b8c77 |
-| eu-central-1   | ami-03c614a7bb5822479 |
-| eu-west-1      | ami-02f57a828ad0cb792 |
-| eu-west-2      | ami-06116eeab4db5f8d5 |
-| eu-west-3      | ami-05dd4c37ea94fdc24 |
-| sa-east-1      | ami-098e694e08b98f3b4 |
-| us-east-1      | ami-02e1a0610a2bf8bfb |
-| us-east-2      | ami-00e01998939544fb5 |
-| us-west-1      | ami-0b6df909a625501d6 |
-| us-west-2      | ami-0381ce9e1455a00da |
+| ap-northeast-1 | ami-04b40a01a72906575 |
+| ap-northeast-2 | ami-0b6f15a5572b89a03 |
+| ap-south-1     | ami-0c75b3580a21c38f1 |
+| ap-southeast-1 | ami-07cf5420e1a90bbf2 |
+| ap-southeast-2 | ami-0e2eaf2ee6ab29e3e |
+| ca-central-1   | ami-0ef3853377695b69b |
+| eu-central-1   | ami-0c75d2483c358b56c |
+| eu-west-1      | ami-0d85c0d0910181d10 |
+| eu-west-2      | ami-0b3f3dc67fabef979 |
+| eu-west-3      | ami-0e06f2c7b8c833a8b |
+| sa-east-1      | ami-096692ec48d630a52 |
+| us-east-1      | ami-097af9ec0ea0f6076 |
+| us-east-2      | ami-01bd305e1c423022b |
+| us-west-1      | ami-0be12d231928905ff |
+| us-west-2      | ami-080d29a31d1647c8b |
 
 ### Ubuntu 18.04 (Bionic)
 
 | Region         | AMI                   |
 |----------------|-----------------------|
-| ap-northeast-1 | ami-0fc94a313de04b55c |
-| ap-northeast-2 | ami-0e7830049a17a9752 |
-| ap-south-1     | ami-01a944a94d32d5c28 |
-| ap-southeast-1 | ami-0b5e0f30616e78b6d |
-| ap-southeast-2 | ami-0c576cb38886cbcfd |
-| ca-central-1   | ami-0054a73f5d85af48a |
-| eu-central-1   | ami-0e0b42ce217334cf3 |
-| eu-west-1      | ami-0cbcc6530bb32c4fd |
-| eu-west-2      | ami-0ddcead1751e4c90f |
-| eu-west-3      | ami-08d055ce7b731a9dd |
-| sa-east-1      | ami-0d27d71310cde947f |
-| us-east-1      | ami-0b7d78b15cc526673 |
-| us-east-2      | ami-00f6df138dfd7a7da |
-| us-west-1      | ami-0913ecb8153e4266b |
-| us-west-2      | ami-0adf74701bbda7291 |
+| ap-northeast-1 | ami-0a4c5d82c208b7f24 |
+| ap-northeast-2 | ami-0ca90ecb1025bba0b |
+| ap-south-1     | ami-062b04abccee04d6a |
+| ap-southeast-1 | ami-0d18f5ddc7d57fcbc |
+| ap-southeast-2 | ami-0bfeeecbaf952c3d2 |
+| ca-central-1   | ami-07c502d6b6e2ced38 |
+| eu-central-1   | ami-0db7334ad536ff082 |
+| eu-west-1      | ami-0c29b9b337ff5a898 |
+| eu-west-2      | ami-00e3c7cd6691ad3e6 |
+| eu-west-3      | ami-029e4fb57c6f183ea |
+| sa-east-1      | ami-08500eedfe3e27ae9 |
+| us-east-1      | ami-02f4e8e60c7781515 |
+| us-east-2      | ami-0ea56e1618425c1a6 |
+| us-west-1      | ami-0a51011f2382ae9de |
+| us-west-2      | ami-055fd561c2e2a4060 |
+
+## Kubernetes Version v1.17.15
+
+### Amazon Linux 2
+
+| Region         | AMI                   |
+|----------------|-----------------------|
+| ap-northeast-1 | ami-093fb0c65415600c2 |
+| ap-northeast-2 | ami-06690df0ac06838da |
+| ap-south-1     | ami-094305859a5db319e |
+| ap-southeast-1 | ami-0fc6a6e4a12a8bf14 |
+| ap-southeast-2 | ami-05fecfc1a495f101e |
+| ca-central-1   | ami-0acd5a85045642b6d |
+| eu-central-1   | ami-0310a0e5b4761e8af |
+| eu-west-1      | ami-08aeac63c26378b1f |
+| eu-west-2      | ami-053f59dbaaf179450 |
+| eu-west-3      | ami-00c1b17e36a19b98f |
+| sa-east-1      | ami-06c276479bf0ed3c6 |
+| us-east-1      | ami-07d7b1eb76ef00f04 |
+| us-east-2      | ami-09893111280f6f93d |
+| us-west-1      | ami-0edc1f798a86ff8ac |
+| us-west-2      | ami-061f4bc311ca1c75b |
+
+### CentOS 7
+
+| Region         | AMI                   |
+|----------------|-----------------------|
+| ap-northeast-1 | ami-0daf5146fa8e96f97 |
+| ap-northeast-2 | ami-0ae4fa7fe4866b855 |
+| ap-south-1     | ami-0d93d62a7dc1433df |
+| ap-southeast-1 | ami-0bfadfcca22e8a48f |
+| ap-southeast-2 | ami-041083a72b454792e |
+| ca-central-1   | ami-09a79a8cced4f0786 |
+| eu-central-1   | ami-01d6f9cc54957024e |
+| eu-west-1      | ami-0dfd2b69cb3c14e6d |
+| eu-west-2      | ami-018c3a23b55dd1a28 |
+| eu-west-3      | ami-0c86943ef8924c0f4 |
+| sa-east-1      | ami-018c1edd5c5d1695d |
+| us-east-1      | ami-03b703d5c6a0860a5 |
+| us-east-2      | ami-0dfb82b6f2938137f |
+| us-west-1      | ami-04a46156923aff301 |
+| us-west-2      | ami-09ce15bed3fe0a411 |
+
+### Ubuntu 20.04 (Focal)
+
+| Region         | AMI                   |
+|----------------|-----------------------|
+| ap-northeast-1 | ami-0308c3f333cc558c8 |
+| ap-northeast-2 | ami-072ab756cbedccdb5 |
+| ap-south-1     | ami-0ea18b330a5d881a9 |
+| ap-southeast-1 | ami-0632422905b006e4d |
+| ap-southeast-2 | ami-0b65861463b91b35c |
+| ca-central-1   | ami-089a43466b9f55c0a |
+| eu-central-1   | ami-03514535c760ccddf |
+| eu-west-1      | ami-005192403d4992b9d |
+| eu-west-2      | ami-0c7df31281513396c |
+| eu-west-3      | ami-041b1e5d2241c7597 |
+| sa-east-1      | ami-0e2616fc1fa09dce5 |
+| us-east-1      | ami-04d7ebc7f790d6a5c |
+| us-east-2      | ami-05a8eeba265235068 |
+| us-west-1      | ami-0a35287c847fe517b |
+| us-west-2      | ami-0fefed5604b4e517d |
+
+### Ubuntu 18.04 (Bionic)
+
+| Region         | AMI                   |
+|----------------|-----------------------|
+| ap-northeast-1 | ami-05b82297d5fa86042 |
+| ap-northeast-2 | ami-03c7fede7f489da83 |
+| ap-south-1     | ami-0360c5de6d45a87e7 |
+| ap-southeast-1 | ami-0f3f219b072290931 |
+| ap-southeast-2 | ami-0d479221029d0aef6 |
+| ca-central-1   | ami-07fdd4882e661c985 |
+| eu-central-1   | ami-0217f721032c2a1f7 |
+| eu-west-1      | ami-099db154690a77f44 |
+| eu-west-2      | ami-0062e16214770eb22 |
+| eu-west-3      | ami-0c65def7e3448c85c |
+| sa-east-1      | ami-042b5bbae4f446d44 |
+| us-east-1      | ami-0f502e99a290372e7 |
+| us-east-2      | ami-079f96320fd43be89 |
+| us-west-1      | ami-07a8f0f0855874737 |
+| us-west-2      | ami-0597a16677c49b2e8 |
 
 ## Kubernetes Version v1.16.15
 
