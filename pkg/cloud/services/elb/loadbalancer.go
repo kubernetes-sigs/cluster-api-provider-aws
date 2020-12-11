@@ -29,7 +29,6 @@ import (
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
@@ -583,7 +582,9 @@ func (s *Service) describeClassicELB(name string) (*infrav1.ClassicELB, error) {
 			name, *out.LoadBalancerDescriptions[0].VPCId)
 	}
 
-	if s.scope.ControlPlaneLoadBalancer().Scheme != nil && pointer.StringPtr(string(*s.scope.ControlPlaneLoadBalancer().Scheme)) != out.LoadBalancerDescriptions[0].Scheme {
+	if s.scope.ControlPlaneLoadBalancer() != nil &&
+		s.scope.ControlPlaneLoadBalancer().Scheme != nil &&
+		string(*s.scope.ControlPlaneLoadBalancer().Scheme) != aws.StringValue(out.LoadBalancerDescriptions[0].Scheme) {
 		return nil, errors.Errorf(
 			"ELB names must be unique within a region: %q ELB already exists in this region with a different scheme %q",
 			name, *out.LoadBalancerDescriptions[0].Scheme)
