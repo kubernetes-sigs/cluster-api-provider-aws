@@ -41,6 +41,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
 	configv1 "github.com/openshift/api/config/v1"
 	machineapiapierrors "github.com/openshift/machine-api-operator/pkg/controller/machine"
+	machinecontroller "github.com/openshift/machine-api-operator/pkg/controller/machine"
 	apimachineryerrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -157,6 +158,71 @@ func (c *awsClient) ELBv2RegisterTargets(input *elbv2.RegisterTargetsInput) (*el
 // secret if defined (i.e. in the root cluster),
 // otherwise the IAM profile of the master where the actuator will run. (target clusters)
 func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
+	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region)
+	if err != nil {
+		return nil, err
+	}
+
+	return &awsClient{
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
+	}, nil
+}
+
+// NewClientFromKeys creates our client wrapper object for the actual AWS clients we use.
+// For authentication the underlying clients will use AWS credentials.
+func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error) {
+	awsConfig := &aws.Config{
+		Region: aws.String(region),
+		Credentials: credentials.NewStaticCredentials(
+			accessKey,
+			secretAccessKey,
+			"",
+		),
+	}
+
+	s, err := session.NewSession(awsConfig)
+	if err != nil {
+		return nil, err
+	}
+	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
+
+	return &awsClient{
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
+	}, nil
+}
+
+// NewValidatedClient creates our client wrapper object for the actual AWS clients we use.
+// This should behave the same as NewClient except it will validate the client configuration
+// (eg the region) before returning the client.
+func NewValidatedClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
+	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that the describe regions call succeeds if we request the region.
+	// This can be used to check that the region given by the user is valid.
+	_, err = ec2.New(s).DescribeRegions(&ec2.DescribeRegionsInput{
+		RegionNames: []*string{
+			aws.String(region),
+		},
+	})
+	if err != nil {
+		return nil, machinecontroller.InvalidMachineConfiguration("region %q not found: %v", region, err)
+	}
+
+	return &awsClient{
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
+	}, nil
+}
+
+func newAWSSession(ctrlRuntimeClient client.Client, secretName, namespace, region string) (*session.Session, error) {
 	sessionOptions := session.Options{
 		Config: aws.Config{
 			Region: aws.String(region),
@@ -201,36 +267,7 @@ func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region st
 
 	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
 
-	return &awsClient{
-		ec2Client:   ec2.New(s),
-		elbClient:   elb.New(s),
-		elbv2Client: elbv2.New(s),
-	}, nil
-}
-
-// NewClientFromKeys creates our client wrapper object for the actual AWS clients we use.
-// For authentication the underlying clients will use AWS credentials.
-func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error) {
-	awsConfig := &aws.Config{
-		Region: aws.String(region),
-		Credentials: credentials.NewStaticCredentials(
-			accessKey,
-			secretAccessKey,
-			"",
-		),
-	}
-
-	s, err := session.NewSession(awsConfig)
-	if err != nil {
-		return nil, err
-	}
-	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
-
-	return &awsClient{
-		ec2Client:   ec2.New(s),
-		elbClient:   elb.New(s),
-		elbv2Client: elbv2.New(s),
-	}, nil
+	return s, nil
 }
 
 // addProviderVersionToUserAgent is a named handler that will add cluster-api-provider-aws
