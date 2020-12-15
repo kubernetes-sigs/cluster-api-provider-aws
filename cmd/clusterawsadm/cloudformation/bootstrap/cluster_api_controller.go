@@ -119,6 +119,25 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				"elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
 				"elasticloadbalancing:RemoveTags",
+				"autoscaling:DescribeAutoScalingGroups",
+				"ec2:CreateLaunchTemplate",
+				"ec2:CreateLaunchTemplateVersion",
+				"ec2:DescribeLaunchTemplates",
+				"ec2:DescribeLaunchTemplateVersions",
+				"ec2:DeleteLaunchTemplate",
+				"ec2:DeleteLaunchTemplateVersions",
+			},
+		},
+		{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
+			},
+			Action: iamv1.Actions{
+				"autoscaling:CreateAutoScalingGroup",
+				"autoscaling:CreateOrUpdateTags",
+				"autoscaling:DeleteAutoScalingGroup",
+				"autoscaling:DeleteTags",
 			},
 		},
 		{
