@@ -372,6 +372,8 @@ func (r *Reconciler) setMachineCloudProviderSpecifics(instance *ec2.Instance) er
 	}
 
 	if instance.InstanceLifecycle != nil && *instance.InstanceLifecycle == ec2.InstanceLifecycleTypeSpot {
+		// Label on the Machine so that an MHC can select spot instances
+		r.machine.Labels[machinecontroller.MachineInterruptibleInstanceLabelName] = ""
 		// Label on the Spec so that it is propogated to the Node
 		r.machine.Spec.Labels[machinecontroller.MachineInterruptibleInstanceLabelName] = ""
 	}
