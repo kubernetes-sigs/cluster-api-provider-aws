@@ -140,7 +140,7 @@ func main() {
 	machineActuator := machineactuator.NewActuator(machineactuator.ActuatorParams{
 		Client:           mgr.GetClient(),
 		EventRecorder:    mgr.GetEventRecorderFor("awscontroller"),
-		AwsClientBuilder: awsclient.NewClient,
+		AwsClientBuilder: awsclient.NewValidatedClient,
 	})
 
 	if err := machine.AddWithActuator(mgr, machineActuator); err != nil {

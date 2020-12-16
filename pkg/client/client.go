@@ -157,6 +157,70 @@ func (c *awsClient) ELBv2RegisterTargets(input *elbv2.RegisterTargetsInput) (*el
 // secret if defined (i.e. in the root cluster),
 // otherwise the IAM profile of the master where the actuator will run. (target clusters)
 func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
+	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region)
+	if err != nil {
+		return nil, err
+	}
+
+	return &awsClient{
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
+	}, nil
+}
+
+// NewClientFromKeys creates our client wrapper object for the actual AWS clients we use.
+// For authentication the underlying clients will use AWS credentials.
+func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error) {
+	awsConfig := &aws.Config{
+		Region: aws.String(region),
+		Credentials: credentials.NewStaticCredentials(
+			accessKey,
+			secretAccessKey,
+			"",
+		),
+	}
+
+	s, err := session.NewSession(awsConfig)
+	if err != nil {
+		return nil, err
+	}
+	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
+
+	return &awsClient{
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
+	}, nil
+}
+
+// NewValidatedClient creates our client wrapper object for the actual AWS clients we use.
+// This should behave the same as NewClient except it will validate the client configuration
+// (eg the region) before returning the client.
+func NewValidatedClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
+	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check that the endpoint can be resolved by the endpoint resolver.
+	// If the endpoint is not known, it is not a standard or configured custom region.
+	// If this is the case, the client will likely not be able to connect
+	_, err = s.Config.EndpointResolver.EndpointFor("ec2", region, func(opts *endpoints.Options) {
+		opts.StrictMatching = true
+	})
+	if err != nil {
+		return nil, fmt.Errorf("region %q not resolved: %w", region, err)
+	}
+
+	return &awsClient{
+		ec2Client:   ec2.New(s),
+		elbClient:   elb.New(s),
+		elbv2Client: elbv2.New(s),
+	}, nil
+}
+
+func newAWSSession(ctrlRuntimeClient client.Client, secretName, namespace, region string) (*session.Session, error) {
 	sessionOptions := session.Options{
 		Config: aws.Config{
 			Region: aws.String(region),
@@ -201,36 +265,7 @@ func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region st
 
 	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
 
-	return &awsClient{
-		ec2Client:   ec2.New(s),
-		elbClient:   elb.New(s),
-		elbv2Client: elbv2.New(s),
-	}, nil
-}
-
-// NewClientFromKeys creates our client wrapper object for the actual AWS clients we use.
-// For authentication the underlying clients will use AWS credentials.
-func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error) {
-	awsConfig := &aws.Config{
-		Region: aws.String(region),
-		Credentials: credentials.NewStaticCredentials(
-			accessKey,
-			secretAccessKey,
-			"",
-		),
-	}
-
-	s, err := session.NewSession(awsConfig)
-	if err != nil {
-		return nil, err
-	}
-	s.Handlers.Build.PushBackNamed(addProviderVersionToUserAgent)
-
-	return &awsClient{
-		ec2Client:   ec2.New(s),
-		elbClient:   elb.New(s),
-		elbv2Client: elbv2.New(s),
-	}, nil
+	return s, nil
 }
 
 // addProviderVersionToUserAgent is a named handler that will add cluster-api-provider-aws
