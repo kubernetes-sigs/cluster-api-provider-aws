@@ -119,6 +119,25 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				"elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
 				"elasticloadbalancing:RemoveTags",
+				"autoscaling:DescribeAutoScalingGroups",
+				"ec2:CreateLaunchTemplate",
+				"ec2:CreateLaunchTemplateVersion",
+				"ec2:DescribeLaunchTemplates",
+				"ec2:DescribeLaunchTemplateVersions",
+				"ec2:DeleteLaunchTemplate",
+				"ec2:DeleteLaunchTemplateVersions",
+			},
+		},
+		{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
+			},
+			Action: iamv1.Actions{
+				"autoscaling:CreateAutoScalingGroup",
+				"autoscaling:CreateOrUpdateTags",
+				"autoscaling:DeleteAutoScalingGroup",
+				"autoscaling:DeleteTags",
 			},
 		},
 		{
@@ -193,6 +212,32 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 			Action: iamv1.Actions{
 				"ssm:GetParameter",
+			},
+		})
+
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:aws:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
+			},
+		})
+
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:aws:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
 			},
 		})
 

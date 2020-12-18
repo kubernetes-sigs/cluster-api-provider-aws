@@ -56,28 +56,34 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	Expect(os.MkdirAll(e2eCtx.Settings.ArtifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", e2eCtx.Settings.ArtifactFolder)
 	Byf("Loading the e2e test configuration from %q", e2eCtx.Settings.ConfigPath)
 	e2eCtx.E2EConfig = LoadE2EConfig(e2eCtx.Settings.ConfigPath)
-	sourceTemplate, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "infrastructure-aws/cluster-template.yaml"))
+	sourceTemplate, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, e2eCtx.Settings.SourceTemplate))
 	Expect(err).NotTo(HaveOccurred())
-	platformKustomization, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization.yaml"))
-	Expect(err).NotTo(HaveOccurred())
-	ciTemplate, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
-		kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
-			ArtifactsDirectory:    e2eCtx.Settings.ArtifactFolder,
-			SourceTemplate:        sourceTemplate,
-			PlatformKustomization: platformKustomization,
-		},
-	)
-	clusterctlCITemplate := clusterctl.Files{
-		SourcePath: ciTemplate,
-		TargetName: "cluster-template-conformance-ci-artifacts.yaml",
-	}
-	providers := e2eCtx.E2EConfig.Providers
-	for i, prov := range providers {
-		if prov.Name != "aws" {
-			continue
+
+	var clusterctlCITemplate clusterctl.Files
+	if !e2eCtx.IsManaged {
+		platformKustomization, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization.yaml"))
+		Expect(err).NotTo(HaveOccurred())
+		ciTemplate, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
+			kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
+				ArtifactsDirectory:    e2eCtx.Settings.ArtifactFolder,
+				SourceTemplate:        sourceTemplate,
+				PlatformKustomization: platformKustomization,
+			},
+		)
+		clusterctlCITemplate = clusterctl.Files{
+			SourcePath: ciTemplate,
+			TargetName: "cluster-template-conformance-ci-artifacts.yaml",
 		}
-		e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplate)
+
+		providers := e2eCtx.E2EConfig.Providers
+		for i, prov := range providers {
+			if prov.Name != "aws" {
+				continue
+			}
+			e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplate)
+		}
 	}
+
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
 	boostrapTemplate := getBootstrapTemplate(e2eCtx)
@@ -87,6 +93,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
+	e2eCtx.BootstratpUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
 	// If using a version of Kubernetes from CI, override the image ID with a known good image
 	if e2eCtx.Settings.UseCIArtifacts {

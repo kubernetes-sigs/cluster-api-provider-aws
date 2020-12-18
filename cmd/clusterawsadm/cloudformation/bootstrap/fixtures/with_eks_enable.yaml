@@ -191,9 +191,24 @@ Resources:
           - elasticloadbalancing:RegisterInstancesWithLoadBalancer
           - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
           - elasticloadbalancing:RemoveTags
+          - autoscaling:DescribeAutoScalingGroups
+          - ec2:CreateLaunchTemplate
+          - ec2:CreateLaunchTemplateVersion
+          - ec2:DescribeLaunchTemplates
+          - ec2:DescribeLaunchTemplateVersions
+          - ec2:DeleteLaunchTemplate
+          - ec2:DeleteLaunchTemplateVersions
           Effect: Allow
           Resource:
           - '*'
+        - Action:
+          - autoscaling:CreateAutoScalingGroup
+          - autoscaling:CreateOrUpdateTags
+          - autoscaling:DeleteAutoScalingGroup
+          - autoscaling:DeleteTags
+          Effect: Allow
+          Resource:
+          - arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*
         - Action:
           - iam:CreateServiceLinkedRole
           Condition:
@@ -227,6 +242,22 @@ Resources:
           Effect: Allow
           Resource:
           - arn:aws:ssm:*:*:parameter/aws/service/eks/optimized-ami/*
+        - Action:
+          - iam:CreateServiceLinkedRole
+          Condition:
+            StringLike:
+              iam:AWSServiceName: eks.amazonaws.com
+          Effect: Allow
+          Resource:
+          - arn:aws:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
+        - Action:
+          - iam:CreateServiceLinkedRole
+          Condition:
+            StringLike:
+              iam:AWSServiceName: eks-nodegroup.amazonaws.com
+          Effect: Allow
+          Resource:
+          - arn:aws:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
         - Action:
           - iam:GetRole
           - iam:ListAttachedRolePolicies

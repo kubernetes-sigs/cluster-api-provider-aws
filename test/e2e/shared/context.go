@@ -28,6 +28,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -39,7 +40,9 @@ import (
 type Option func(*E2EContext)
 
 func NewE2EContext(options ...Option) *E2EContext {
-	ctx := &E2EContext{}
+	ctx := &E2EContext{
+		IsManaged: false,
+	}
 	ctx.Environment.Scheme = DefaultScheme()
 	ctx.Environment.Namespaces = map[*corev1.Namespace]context.CancelFunc{}
 	//ctx.Lifecycle = DefaultGinkgoLifecycle()
@@ -61,6 +64,10 @@ type E2EContext struct {
 	Environment RuntimeEnvironment
 	// AWSSession is the AWS session for the tests
 	AWSSession client.ConfigProvider
+	// BootstratpUserAWSSession is the AWS session for the bootstrap user
+	BootstratpUserAWSSession client.ConfigProvider
+	// IsManaged indicates that this is for the managed part of the provider
+	IsManaged bool
 }
 
 // Settings represents the test settings
@@ -87,6 +94,8 @@ type Settings struct {
 	KubetestConfigFilePath string
 	// useCIArtifacts specifies whether or not to use the latest build from the main branch of the Kubernetes repository
 	UseCIArtifacts bool
+	// SourceTemplate specifies which source template to use
+	SourceTemplate string
 }
 
 // RuntimeEnvironment represents the runtime environment of the test
@@ -125,4 +134,41 @@ func WithSchemeInit(fn InitSchemeFunc) Option {
 	return func(ctx *E2EContext) {
 		ctx.Environment.Scheme = fn()
 	}
+}
+
+// WithSchemeInit will set a different function to initalize the scheme
+func WithManaged() Option {
+	return func(ctx *E2EContext) {
+		ctx.IsManaged = true
+	}
+}
+
+func (c *E2EContext) InfrastructureProviders() []string {
+	InfraProviders := []string{}
+	for _, provider := range c.E2EConfig.Providers {
+		if provider.Type == string(clusterctlv1.InfrastructureProviderType) {
+			InfraProviders = append(InfraProviders, provider.Name)
+		}
+	}
+	return InfraProviders
+}
+
+func (c *E2EContext) BootstrapProviders() []string {
+	BootstrapProviders := []string{}
+	for _, provider := range c.E2EConfig.Providers {
+		if provider.Type == string(clusterctlv1.BootstrapProviderType) {
+			BootstrapProviders = append(BootstrapProviders, provider.Name)
+		}
+	}
+	return BootstrapProviders
+}
+
+func (c *E2EContext) ControlPlaneProviders() []string {
+	ControlPlaneProviders := []string{}
+	for _, provider := range c.E2EConfig.Providers {
+		if provider.Type == string(clusterctlv1.ControlPlaneProviderType) {
+			ControlPlaneProviders = append(ControlPlaneProviders, provider.Name)
+		}
+	}
+	return ControlPlaneProviders
 }

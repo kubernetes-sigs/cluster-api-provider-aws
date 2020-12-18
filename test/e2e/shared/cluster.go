@@ -74,10 +74,14 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 
 // initBootstrapCluster uses kind to create a cluster
 func initBootstrapCluster(e2eCtx *E2EContext) {
-	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
+	// NOTE: the following originally used clusterctl.InitManagementClusterAndWatchControllerLogs.
+	// This can be used again when https://github.com/kubernetes-sigs/cluster-api/issues/3983 is completed
+	InitManagementClusterAndWatchControllerLogs(context.TODO(), InitManagementClusterAndWatchControllerLogsInput{
 		ClusterProxy:            e2eCtx.Environment.BootstrapClusterProxy,
 		ClusterctlConfigPath:    e2eCtx.Environment.ClusterctlConfigPath,
 		InfrastructureProviders: e2eCtx.E2EConfig.InfrastructureProviders(),
+		BootstrapProviders:      e2eCtx.BootstrapProviders(),
+		ControlPlaneProviders:   e2eCtx.ControlPlaneProviders(),
 		LogFolder:               filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
 	}, e2eCtx.E2EConfig.GetIntervals(e2eCtx.Environment.BootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
