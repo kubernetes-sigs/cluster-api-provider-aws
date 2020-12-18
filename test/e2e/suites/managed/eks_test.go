@@ -80,6 +80,7 @@ var _ = Describe("EKS Cluster node types test", func() {
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				Replicas:              1,
+				Cleanup:               true,
 			}
 		})
 
@@ -93,6 +94,7 @@ var _ = Describe("EKS Cluster node types test", func() {
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				IncludeScaling:        true,
+				Cleanup:               true,
 			}
 		})
 	})

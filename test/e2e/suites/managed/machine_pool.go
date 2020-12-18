@@ -43,6 +43,7 @@ type ManagedMachinePoolSpecInput struct {
 	Namespace             *corev1.Namespace
 	ClusterName           string
 	IncludeScaling        bool
+	Cleanup               bool
 }
 
 // ManagedMachinePoolSpec implements a test for creating a managed machine pool
@@ -105,5 +106,17 @@ func ManagedMachinePoolSpec(ctx context.Context, inputGetter func() ManagedMachi
 			MachinePools:              mp,
 			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 		})
+	}
+
+	if input.Cleanup {
+		deleteMachinePool(ctx, deleteMachinePoolInput{
+			Deleter:     input.BootstrapClusterProxy.GetClient(),
+			MachinePool: mp[0],
+		})
+
+		waitForMachinePoolDeleted(ctx, waitForMachinePoolDeletedInput{
+			Getter:      input.BootstrapClusterProxy.GetClient(),
+			MachinePool: mp[0],
+		}, input.E2EConfig.GetIntervals("", "wait-delete-machine-pool")...)
 	}
 }

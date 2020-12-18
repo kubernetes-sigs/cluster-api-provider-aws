@@ -44,6 +44,7 @@ type MachineDeploymentSpecInput struct {
 	Namespace             *corev1.Namespace
 	Replicas              int64
 	ClusterName           string
+	Cleanup               bool
 }
 
 // MachineDeploymentSpec implements a test for creating a machine deployment for use with CAPA
@@ -98,4 +99,24 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 	}
 	framework.WaitForMachineStatusCheck(ctx, machineStatusInput, input.E2EConfig.GetIntervals("", "wait-machine-status")...)
 
+	if input.Cleanup {
+		deleteMachineDeployment(ctx, deleteMachineDeploymentInput{
+			Deleter:           input.BootstrapClusterProxy.GetClient(),
+			MachineDeployment: md[0],
+		})
+		// deleteMachine(ctx, deleteMachineInput{
+		// 	Deleter: input.BootstrapClusterProxy.GetClient(),
+		// 	Machine: &workerMachines[0],
+		// })
+
+		waitForMachineDeploymentDeleted(ctx, waitForMachineDeploymentDeletedInput{
+			Getter:            input.BootstrapClusterProxy.GetClient(),
+			MachineDeployment: md[0],
+		}, input.E2EConfig.GetIntervals("", "wait-delete-machine-deployment")...)
+
+		waitForMachineDeleted(ctx, waitForMachineDeletedInput{
+			Getter:  input.BootstrapClusterProxy.GetClient(),
+			Machine: &workerMachines[0],
+		}, input.E2EConfig.GetIntervals("", "wait-delete-machine")...)
+	}
 }
