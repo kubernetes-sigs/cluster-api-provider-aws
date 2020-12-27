@@ -261,8 +261,9 @@ func (s *Service) createBaseKubeConfig(cluster *eks.Cluster, userName string) (*
 func (s *Service) generateToken() (string, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 
-	req, _ := s.STSClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
+	req, output := s.STSClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
 	req.HTTPRequest.Header.Add(clusterNameHeader, eksClusterName)
+	s.Logger.V(4).Info("generating token for AWS identity", "user", output.UserId, "account", output.Account, "arn", output.Arn)
 
 	presignedURL, err := req.Presign(tokenAgeMins * time.Minute)
 	if err != nil {
