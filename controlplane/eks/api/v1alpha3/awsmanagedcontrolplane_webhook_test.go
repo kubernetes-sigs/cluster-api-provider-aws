@@ -162,22 +162,40 @@ func TestWebhookCreate(t *testing.T) {
 		eksClusterName string
 		expectError    bool
 		eksVersion     string
+		hasAddon       bool
 	}{
 		{
 			name:           "ekscluster specified",
 			eksClusterName: "default_cluster1",
 			expectError:    false,
+			hasAddon:       false,
 		},
 		{
 			name:           "ekscluster NOT specified",
 			eksClusterName: "",
 			expectError:    false,
+			hasAddon:       false,
 		},
 		{
 			name:           "invalid version",
 			eksClusterName: "default_cluster1",
 			eksVersion:     "v1.x17",
 			expectError:    true,
+			hasAddon:       false,
+		},
+		{
+			name:           "addon with allowed k8s version",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.18",
+			expectError:    false,
+			hasAddon:       true,
+		},
+		{
+			name:           "addon with not allowed k8s version",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.17",
+			expectError:    true,
+			hasAddon:       true,
 		},
 	}
 
@@ -197,6 +215,15 @@ func TestWebhookCreate(t *testing.T) {
 			}
 			if tc.eksVersion != "" {
 				mcp.Spec.Version = &tc.eksVersion
+			}
+			if tc.hasAddon {
+				testAddons := []Addon{
+					{
+						Name:    "test addon",
+						Version: "v1.0.0",
+					},
+				}
+				mcp.Spec.Addons = &testAddons
 			}
 			err := testEnv.Create(ctx, mcp)
 

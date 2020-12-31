@@ -289,6 +289,17 @@ Resources:
           - arn:aws:eks:*:*:cluster/*
           - arn:aws:eks:*:*:nodegroup/*/*/*
         - Action:
+          - eks:ListAddons
+          - eks:CreateAddon
+          - eks:DescribeAddonVersions
+          - eks:DescribeAddon
+          - eks:DeleteAddon
+          - eks:UpdateAddon
+          - eks:TagResource
+          Effect: Allow
+          Resource:
+          - '*'
+        - Action:
           - iam:PassRole
           Condition:
             StringEquals:

@@ -46,9 +46,10 @@ import (
 const (
 	EKSManagedPoolFlavor = "eks-managedmachinepool"
 
-	EKSControlPlaneOnlyFlavor  = "eks-control-plane-only"
-	EKSMachineDeployOnlyFlavor = "eks-machine-deployment-only"
-	EKSManagedPoolOnlyFlavor   = "eks-managed-machinepool-only"
+	EKSControlPlaneOnlyFlavor          = "eks-control-plane-only"
+	EKSControlPlaneOnlyWithAddonFlavor = "eks-control-plane-only-withaddon"
+	EKSMachineDeployOnlyFlavor         = "eks-machine-deployment-only"
+	EKSManagedPoolOnlyFlavor           = "eks-managed-machinepool-only"
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput
@@ -100,6 +101,21 @@ func getEKSCluster(eksClusterName string, sess client.ConfigProvider) (*eks.Clus
 	result, err := eksClient.DescribeCluster(input)
 
 	return result.Cluster, err
+}
+
+func getEKSClusterAddon(eksClusterName, addonName string, sess client.ConfigProvider) (*eks.Addon, error) {
+	eksClient := eks.New(sess)
+
+	describeInput := &eks.DescribeAddonInput{
+		AddonName:   &addonName,
+		ClusterName: &eksClusterName,
+	}
+	describeOutput, err := eksClient.DescribeAddon(describeInput)
+	if err != nil {
+		return nil, fmt.Errorf("describing eks addon %s: %w", addonName, err)
+	}
+
+	return describeOutput.Addon, nil
 }
 
 func verifySecretExists(ctx context.Context, secretName, namespace string, k8sclient crclient.Client) {

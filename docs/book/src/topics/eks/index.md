@@ -13,6 +13,7 @@ Experimental support for EKS has been introduced in the AWS provider. Currently 
 - Attaching a self-managed machines as nodes to the EKS cluster
 - Creating a machine pool and attaching it to the EKS cluster. See [machine pool docs for details](../machinepools.md)
 - Creating a managed machine pool and attaching it to the EKS cluster. See [machine pool docs for details](../machinepools.md)
+- Managing "EKS Addons". See [addons for further details](./addons.md)
 
 The implementation introduces new CRD kinds:
 
@@ -30,4 +31,5 @@ And a number of new templates are available in the templates folder for creating
 * [Enabling EKS Support](enabling.md)
 * [Creating a cluster](creating-a-cluster.md)
 * [Using EKS Console](eks-console.md)
+* [Using EKS Addons](addons.md)
 * [Cluster Upgrades](cluster-upgrades.md)

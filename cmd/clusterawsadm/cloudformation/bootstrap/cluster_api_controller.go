@@ -303,6 +303,20 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				Effect: iamv1.EffectAllow,
 			}, {
 				Action: iamv1.Actions{
+					"eks:ListAddons",
+					"eks:CreateAddon",
+					"eks:DescribeAddonVersions",
+					"eks:DescribeAddon",
+					"eks:DeleteAddon",
+					"eks:UpdateAddon",
+					"eks:TagResource",
+				},
+				Resource: iamv1.Resources{
+					"*",
+				},
+				Effect: iamv1.EffectAllow,
+			}, {
+				Action: iamv1.Actions{
 					"iam:PassRole",
 				},
 				Resource: iamv1.Resources{
