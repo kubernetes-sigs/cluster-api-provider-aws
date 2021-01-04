@@ -42,12 +42,19 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/iamauth"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/securitygroup"
+)
+
+const (
+	// deleteRequeueAfter is how long to wait before checking again to see if the control plane still
+	// has dependencies during deletion.
+	deleteRequeueAfter = 20 * time.Second
 )
 
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object
@@ -97,6 +104,9 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(mgr ctrl.Manager, op
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters;awsmanagedclusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines;awsmachines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools;awsmanagedmachinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools;awsmachinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes/status,verbs=get;update;patch
 
@@ -238,10 +248,21 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSManagedControlPlaneReconciler) reconcileDelete(_ context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
+func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (_ ctrl.Result, reterr error) {
 	managedScope.Info("Reconciling AWSManagedClusterPlane delete")
 
 	controlPlane := managedScope.ControlPlane
+
+	numDependencies, err := r.dependencyCount(ctx, managedScope)
+	if err != nil {
+		r.Log.Error(err, "error getting controlplane dependencies", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
+		return reconcile.Result{}, err
+	}
+	if numDependencies > 0 {
+		r.Log.Info("EKS cluster still has dependencies - requeue needed", "dependencyCount", numDependencies)
+		return reconcile.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+	r.Log.Info("EKS cluster has no dependencies")
 
 	ekssvc := eks.NewService(managedScope)
 	ec2svc := ec2.NewService(managedScope)
@@ -249,19 +270,23 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(_ context.Context, ma
 	sgService := securitygroup.NewService(managedScope)
 
 	if err := ekssvc.DeleteControlPlane(); err != nil {
-		return reconcile.Result{}, fmt.Errorf("error deleting EKS cluster for EKS control plane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
+		r.Log.Error(err, "error deleting EKS cluster for EKS control plane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
+		return reconcile.Result{}, err
 	}
 
 	if err := ec2svc.DeleteBastion(); err != nil {
-		return reconcile.Result{}, fmt.Errorf("error deleting bastion for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
+		r.Log.Error(err, "error deleting bastion for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
+		return reconcile.Result{}, err
 	}
 
 	if err := sgService.DeleteSecurityGroups(); err != nil {
-		return reconcile.Result{}, fmt.Errorf("error deleting general security groups for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err) //nolint:goerr113
+		r.Log.Error(err, "error deleting general security groups for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
+		return reconcile.Result{}, err
 	}
 
 	if err := networkSvc.DeleteNetwork(); err != nil {
-		return reconcile.Result{}, fmt.Errorf("error deleting network for AWSManagedControlPlane %s/%s: %w", controlPlane.Namespace, controlPlane.Name, err)
+		r.Log.Error(err, "error deleting network for AWSManagedControlPlane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
+		return reconcile.Result{}, err
 	}
 
 	controllerutil.RemoveFinalizer(controlPlane, controlplanev1.ManagedControlPlaneFinalizer)
@@ -275,6 +300,11 @@ func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o han
 	c, ok := o.Object.(*clusterv1.Cluster)
 	if !ok {
 		r.Log.Error(nil, fmt.Sprintf("Expected a Cluster but got a %T", o.Object))
+		return nil
+	}
+
+	if !c.ObjectMeta.DeletionTimestamp.IsZero() {
+		r.Log.V(4).Info("Cluster has a deletion timestamp, skipping mapping")
 		return nil
 	}
 
@@ -325,4 +355,42 @@ func (r *AWSManagedControlPlaneReconciler) managedClusterToManagedControlPlane(o
 			},
 		},
 	}
+}
+
+func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (int, error) {
+	clusterName := managedScope.Name()
+	namespace := managedScope.Namespace()
+	r.Log.Info("looking for EKS cluster dependencies", "cluster", clusterName, "namespace", namespace)
+
+	listOptions := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(map[string]string{clusterv1.ClusterLabelName: clusterName}),
+	}
+
+	dependencies := 0
+
+	machines := &infrav1.AWSMachineList{}
+	if err := r.Client.List(ctx, machines, listOptions...); err != nil {
+		return dependencies, fmt.Errorf("failed to list machines for cluster %s/%s: %w", namespace, clusterName, err)
+	}
+	r.Log.V(2).Info("tested for AWSMachine dependencies", "count", len(machines.Items))
+	dependencies += len(machines.Items)
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		managedMachinePools := &infrav1exp.AWSManagedMachinePoolList{}
+		if err := r.Client.List(ctx, managedMachinePools, listOptions...); err != nil {
+			return dependencies, fmt.Errorf("failed to list managed machine pools for cluster %s/%s: %w", namespace, clusterName, err)
+		}
+		r.Log.V(2).Info("tested for AWSManagedMachinePool dependencies", "count", len(managedMachinePools.Items))
+		dependencies += len(managedMachinePools.Items)
+
+		machinePools := &infrav1exp.AWSMachinePoolList{}
+		if err := r.Client.List(ctx, machinePools, listOptions...); err != nil {
+			return dependencies, fmt.Errorf("failed to list machine pools for cluster %s/%s: %w", namespace, clusterName, err)
+		}
+		r.Log.V(2).Info("tested for AWSMachinePool dependencies", "count", len(machinePools.Items))
+		dependencies += len(machinePools.Items)
+	}
+
+	return dependencies, nil
 }

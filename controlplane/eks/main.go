@@ -38,6 +38,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	controlplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/controllers"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
@@ -57,6 +58,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)
+	_ = infrav1.AddToScheme(scheme)
 	_ = infrav1exp.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme

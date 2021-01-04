@@ -19,6 +19,7 @@ package iamauth
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -33,7 +34,7 @@ import (
 
 // ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster
 func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
-	s.scope.V(2).Info("Reconciling aws-iam-authenticator configuration", "cluster-name", s.scope.Name())
+	s.scope.Info("Reconciling aws-iam-authenticator configuration", "cluster-name", s.scope.Name())
 
 	clusterKey := client.ObjectKey{
 		Name:      s.scope.Name(),
@@ -47,12 +48,14 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 
 	restConfig, err := remote.RESTConfig(ctx, s.client, clusterKey)
 	if err != nil {
-		s.scope.Error(err, "getting remote client", "namespace", s.scope.Namespace(), "name", s.scope.Name())
-		return fmt.Errorf("getting remote client for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
+		s.scope.Error(err, "getting remote rest config", "namespace", s.scope.Namespace(), "name", s.scope.Name())
+		return fmt.Errorf("getting remote rest config for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
 	}
+	restConfig.Timeout = 1 * time.Minute
 
 	remoteClient, err := client.New(restConfig, client.Options{})
 	if err != nil {
+		s.scope.Error(err, "getting client for remote cluster")
 		return fmt.Errorf("getting client for remote cluster: %w", err)
 	}
 
@@ -90,7 +93,7 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		}
 	}
 
-	s.scope.V(2).Info("Reconciled aws-iam-authenticator configuration", "cluster-name", s.scope.KubernetesClusterName())
+	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster-name", s.scope.KubernetesClusterName())
 
 	return nil
 }
