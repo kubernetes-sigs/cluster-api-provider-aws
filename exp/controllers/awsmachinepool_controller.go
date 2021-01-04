@@ -309,7 +309,8 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 		}
 	}
 
-	launchTemplate, err := ec2Svc.GetLaunchTemplate(machinePoolScope.AWSMachinePool.Status.LaunchTemplateID)
+	launchTemplateID := machinePoolScope.AWSMachinePool.Status.LaunchTemplateID
+	launchTemplate, err := ec2Svc.GetLaunchTemplate(launchTemplateID)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -322,7 +323,7 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.Machi
 	}
 
 	machinePoolScope.Info("deleting launch template", "name", launchTemplate.Name)
-	if err := ec2Svc.DeleteLaunchTemplate(launchTemplate.ID); err != nil {
+	if err := ec2Svc.DeleteLaunchTemplate(launchTemplateID); err != nil {
 		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedDelete", "Failed to delete launch template %q: %v", launchTemplate.Name, err)
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete ASG")
 	}
