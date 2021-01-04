@@ -65,12 +65,12 @@ var _ = AfterSuite(func() {
 })
 
 // StartTestManager adds recFn
-func StartTestManager(mgr manager.Manager) chan struct{} {
-	stop := make(chan struct{})
+func StartTestManager(mgr manager.Manager) context.CancelFunc {
+	mgrCtx, cancel := context.WithCancel(ctx)
 	go func() {
 		defer GinkgoRecover()
 
-		Expect(mgr.Start(stop)).To(Succeed())
+		Expect(mgr.Start(mgrCtx)).To(Succeed())
 	}()
-	return stop
+	return cancel
 }

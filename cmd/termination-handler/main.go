@@ -66,7 +66,7 @@ func main() {
 	}
 
 	// Start the termination handler
-	if err := handler.Run(ctrl.SetupSignalHandler()); err != nil {
+	if err := handler.Run(ctrl.SetupSignalHandler().Done()); err != nil {
 		logger.Error(err, "Error starting termination handler")
 		return
 	}

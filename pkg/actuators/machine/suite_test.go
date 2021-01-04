@@ -1,6 +1,7 @@
 package machine
 
 import (
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -47,13 +48,13 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	doneMgr := make(chan struct{})
+	mgrCtx, cancel := context.WithCancel(context.Background())
 	go func() {
-		if err := mgr.Start(doneMgr); err != nil {
+		if err := mgr.Start(mgrCtx); err != nil {
 			log.Fatal(err)
 		}
 	}()
-	defer close(doneMgr)
+	defer cancel()
 
 	k8sClient = mgr.GetClient()
 	eventRecorder = mgr.GetEventRecorderFor("awscontroller")
