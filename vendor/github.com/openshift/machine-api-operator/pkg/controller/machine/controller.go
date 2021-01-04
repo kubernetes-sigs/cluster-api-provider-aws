@@ -149,10 +149,7 @@ type ReconcileMachine struct {
 // Reconcile reads that state of the cluster for a Machine object and makes changes based on the state read
 // and what is in the Machine.Spec
 // +kubebuilder:rbac:groups=machine.openshift.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
-func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// TODO(mvladev): Can context be passed from Kubebuilder?
-	ctx := context.TODO()
-
+func (r *ReconcileMachine) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the Machine instance
 	m := &machinev1.Machine{}
 	if err := r.Client.Get(ctx, request.NamespacedName, m); err != nil {
@@ -278,8 +275,8 @@ func (r *ReconcileMachine) Reconcile(request reconcile.Request) (reconcile.Resul
 	if instanceExists {
 		klog.Infof("%v: reconciling machine triggers idempotent update", machineName)
 		if err := r.actuator.Update(ctx, m); err != nil {
-			klog.Errorf("%v: error updating machine: %v", machineName, err)
-			return delayIfRequeueAfterError(err)
+			klog.Errorf("%v: error updating machine: %v, retrying in %v seconds", machineName, err, requeueAfter)
+			return reconcile.Result{RequeueAfter: requeueAfter}, nil
 		}
 
 		if !machineIsProvisioned(m) {
@@ -347,7 +344,7 @@ func (r *ReconcileMachine) drainNode(machine *machinev1.Machine) error {
 		Client:              kubeClient,
 		Force:               true,
 		IgnoreAllDaemonSets: true,
-		DeleteLocalData:     true,
+		DeleteEmptyDirData:  true,
 		GracePeriodSeconds:  -1,
 		// If a pod is not evicted in 20 seconds, retry the eviction next time the
 		// machine gets reconciled again (to allow other machines to be reconciled).
