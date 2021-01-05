@@ -118,3 +118,41 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	}
 
 }
+
+// DeleteClusterSpecInput is the input to DeleteClusterSpec
+type DeleteClusterSpecInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	BootstrapClusterProxy framework.ClusterProxy
+	Namespace             *corev1.Namespace
+	ClusterName           string
+}
+
+// DeleteClusterSpec implements a test for deleting a Cluster
+func DeleteClusterSpec(ctx context.Context, inputGetter func() DeleteClusterSpecInput) {
+	var (
+		input DeleteClusterSpecInput
+	)
+
+	input = inputGetter()
+
+	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
+	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
+	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
+	Expect(input.ClusterName).ShouldNot(HaveLen(0), "Invalid argument. input.ClusterName can't be empty")
+
+	shared.Byf("getting cluster with name %s", input.ClusterName)
+	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+		Getter:    input.BootstrapClusterProxy.GetClient(),
+		Namespace: input.Namespace.Name,
+		Name:      input.ClusterName,
+	})
+	Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
+
+	shared.Byf("Deleting cluster %s/%s", input.Namespace, input.ClusterName)
+
+	framework.DeleteClusterAndWait(ctx, framework.DeleteClusterAndWaitInput{
+		Client:  input.BootstrapClusterProxy.GetClient(),
+		Cluster: cluster,
+	}, input.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
+
+}

@@ -64,8 +64,8 @@ var _ = Describe("EKS Cluster upgrade test", func() {
 				AWSSession:               e2eCtx.BootstratpUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
-				Flavour:                  EKSManagedPoolFlavor,
-				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
+				Flavour:                  EKSControlPlaneOnlyFlavor, //TODO (richardcase) - change in the future when upgrades to machinepools work
+				ControlPlaneMachineCount: 1,                         //NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       1,
 				CNIManifestPath:          e2eCtx.E2EConfig.GetVariable(shared.CNIPath),
 				KubernetesVersion:        initialVersion,
@@ -81,13 +81,14 @@ var _ = Describe("EKS Cluster upgrade test", func() {
 		})
 		Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
 
-		shared.Byf("Waiting for the machine pool to be running")
-		mp := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
-			Lister:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Cluster: cluster,
-		}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
-		Expect(len(mp)).To(Equal(1))
+		//TODO (richardcase) - uncomment when we use machine pools again
+		// shared.Byf("Waiting for the machine pool to be running")
+		// mp := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
+		// 	Lister:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		// 	Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		// 	Cluster: cluster,
+		// }, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+		// Expect(len(mp)).To(Equal(1))
 
 		shared.Byf("should upgrade control plane to version %s", upgradeToversion)
 		UpgradeControlPlaneVersionSpec(ctx, func() UpgradeControlPlaneVersionSpecInput {
@@ -102,6 +103,16 @@ var _ = Describe("EKS Cluster upgrade test", func() {
 		})
 
 		//TODO (richardcase): add test for the node group upgrade
+
+		shared.Byf("should delete cluster %s", clusterName)
+		DeleteClusterSpec(ctx, func() DeleteClusterSpecInput {
+			return DeleteClusterSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ClusterName:           clusterName,
+				Namespace:             namespace,
+			}
+		})
 
 	})
 
