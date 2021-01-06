@@ -14,6 +14,7 @@ limitations under the License.
 package machineset
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -36,7 +37,7 @@ import (
 
 var _ = Describe("MachineSetReconciler", func() {
 	var c client.Client
-	var stopMgr chan struct{}
+	var stopMgr context.CancelFunc
 	var fakeRecorder *record.FakeRecorder
 	var namespace *corev1.Namespace
 
@@ -62,7 +63,7 @@ var _ = Describe("MachineSetReconciler", func() {
 
 	AfterEach(func() {
 		Expect(deleteMachineSets(c, namespace.Name)).To(Succeed())
-		close(stopMgr)
+		stopMgr()
 	})
 
 	type reconcileTestCase = struct {

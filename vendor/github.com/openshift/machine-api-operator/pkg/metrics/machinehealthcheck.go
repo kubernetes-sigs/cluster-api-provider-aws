@@ -40,12 +40,21 @@ var (
 			Help: "Number of successful remediations performed by MachineHealthChecks",
 		}, []string{"name", "namespace"},
 	)
+
+	// MachineHealthCheckShortCircuit is a Prometheus metric, which reports when the named MachineHealthCheck is currently short-circuited (0=no, 1=yes)
+	MachineHealthCheckShortCircuit = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "mapi_machinehealthcheck_short_circuit",
+			Help: "Short circuit status for MachineHealthCheck (0=no, 1=yes)",
+		}, []string{"name", "namespace"},
+	)
 )
 
 func InitializeMachineHealthCheckMetrics() {
 	metrics.Registry.MustRegister(
 		MachineHealthCheckNodesCovered,
 		MachineHealthCheckRemediationSuccessTotal,
+		MachineHealthCheckShortCircuit,
 	)
 }
 
@@ -68,4 +77,18 @@ func ObserveMachineHealthCheckRemediationSuccess(name string, namespace string) 
 		"name":      name,
 		"namespace": namespace,
 	}).Inc()
+}
+
+func ObserveMachineHealthCheckShortCircuitDisabled(name string, namespace string) {
+	MachineHealthCheckShortCircuit.With(prometheus.Labels{
+		"name":      name,
+		"namespace": namespace,
+	}).Set(0)
+}
+
+func ObserveMachineHealthCheckShortCircuitEnabled(name string, namespace string) {
+	MachineHealthCheckShortCircuit.With(prometheus.Labels{
+		"name":      name,
+		"namespace": namespace,
+	}).Set(1)
 }

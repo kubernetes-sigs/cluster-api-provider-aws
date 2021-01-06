@@ -53,11 +53,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, options controller.Optio
 }
 
 // Reconcile implements controller runtime Reconciler interface.
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("machineset", req.Name, "namespace", req.Namespace)
 	logger.V(3).Info("Reconciling")
 
-	ctx := context.Background()
 	machineSet := &machinev1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
