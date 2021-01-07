@@ -427,6 +427,13 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, userData); err != nil {
 			return err
 		}
+		machinePoolScope.Info("start instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
+		asgSvc := r.getASGService(ec2Scope)
+		// After creating a new version of launch template, instance refresh is required
+		// to trigger a rolling replacement of all previously launched instances.
+		if err := asgSvc.StartASGInstanceRefresh(machinePoolScope); err != nil {
+			return err
+		}
 	}
 	return nil
 }

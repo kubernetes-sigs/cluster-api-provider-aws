@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/pkg/errors"
+	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -298,6 +299,19 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 
 	if _, err := s.ASGClient.UpdateAutoScalingGroup(input); err != nil {
 		return errors.Wrapf(err, "failed to update ASG %q", scope.Name())
+	}
+
+	return nil
+}
+
+func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
+	input := &autoscaling.StartInstanceRefreshInput{
+		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
+		Strategy:             pointer.StringPtr(autoscaling.RefreshStrategyRolling),
+	}
+
+	if _, err := s.ASGClient.StartInstanceRefresh(input); err != nil {
+		return errors.Wrapf(err, "failed to start ASG instance refresh %q", scope.Name())
 	}
 
 	return nil
