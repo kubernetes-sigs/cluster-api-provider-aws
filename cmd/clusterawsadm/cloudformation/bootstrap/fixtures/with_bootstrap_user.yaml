@@ -208,6 +208,7 @@ Resources:
           - '*'
         - Action:
           - autoscaling:CreateAutoScalingGroup
+          - autoscaling:UpdateAutoScalingGroup
           - autoscaling:CreateOrUpdateTags
           - autoscaling:DeleteAutoScalingGroup
           - autoscaling:DeleteTags
