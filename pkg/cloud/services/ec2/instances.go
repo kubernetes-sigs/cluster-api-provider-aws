@@ -160,7 +160,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 				imageLookupBaseOS = scope.InfraCluster.ImageLookupBaseOS()
 			}
 
-			input.ImageID, err = s.defaultAMILookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
+			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, *scope.Machine.Spec.Version)
 			if err != nil {
 				return nil, err
 			}
