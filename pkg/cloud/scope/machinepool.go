@@ -18,6 +18,8 @@ package scope
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -28,8 +30,10 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -206,4 +210,88 @@ func (m *MachinePoolScope) SetASGStatus(v expinfrav1.ASGStatus) {
 
 func (m *MachinePoolScope) IsEKSManaged() bool {
 	return m.InfraCluster.InfraCluster().GetObjectKind().GroupVersionKind().Kind == "AWSManagedControlPlane"
+}
+
+// NodeStatus represents the status of a Kubernetes node
+type NodeStatus struct {
+	Ready   bool
+	Version string
+}
+
+// UpdateInstanceStatuses ties ASG instances and Node status data together and updates AWSMachinePool
+// This updates if ASG instances ready and kubelet version running on the node..
+func (m *MachinePoolScope) UpdateInstanceStatuses(ctx context.Context, instances []infrav1.Instance) error {
+	providerIDs := make([]string, len(instances))
+	for i, instance := range instances {
+		providerIDs[i] = fmt.Sprintf("aws:////%s", instance.ID)
+	}
+
+	nodeStatusByProviderID, err := m.getNodeStatusByProviderID(ctx, providerIDs)
+	if err != nil {
+		return errors.Wrap(err, "failed to get node status by provider id")
+	}
+
+	var readyReplicas int32
+	instanceStatuses := make([]*expinfrav1.AWSMachinePoolInstanceStatus, len(instances))
+	for i, instance := range instances {
+		instanceStatuses[i] = &expinfrav1.AWSMachinePoolInstanceStatus{
+			InstanceID: instance.ID,
+		}
+
+		instanceStatus := instanceStatuses[i]
+		if nodeStatus, ok := nodeStatusByProviderID[fmt.Sprintf("aws:////%s", instanceStatus.InstanceID)]; ok {
+			instanceStatus.Version = &nodeStatus.Version
+			if nodeStatus.Ready {
+				readyReplicas++
+			}
+		}
+	}
+
+	// TODO: readyReplicas can be used as status.replicas but this will delay machinepool to become ready. next reconcile updates this.
+	m.AWSMachinePool.Status.Instances = instanceStatuses
+	return nil
+}
+
+func (m *MachinePoolScope) getNodeStatusByProviderID(ctx context.Context, providerIDList []string) (map[string]*NodeStatus, error) {
+	nodeStatusMap := map[string]*NodeStatus{}
+	for _, id := range providerIDList {
+		nodeStatusMap[id] = &NodeStatus{}
+	}
+
+	workloadClient, err := remote.NewClusterClient(ctx, m.client, util.ObjectKey(m.Cluster), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeList := corev1.NodeList{}
+	for {
+		if err := workloadClient.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
+			return nil, errors.Wrapf(err, "failed to List nodes")
+		}
+
+		for _, node := range nodeList.Items {
+
+			strList := strings.Split(node.Spec.ProviderID, "/")
+
+			if status, ok := nodeStatusMap[fmt.Sprintf("aws:////%s", strList[len(strList)-1])]; ok {
+				status.Ready = nodeIsReady(node)
+				status.Version = node.Status.NodeInfo.KubeletVersion
+			}
+		}
+
+		if nodeList.Continue == "" {
+			break
+		}
+	}
+
+	return nodeStatusMap, nil
+}
+
+func nodeIsReady(node corev1.Node) bool {
+	for _, n := range node.Status.Conditions {
+		if n.Type == corev1.NodeReady {
+			return n.Status == corev1.ConditionTrue
+		}
+	}
+	return false
 }
