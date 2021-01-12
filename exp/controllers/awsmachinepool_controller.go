@@ -188,7 +188,7 @@ func (r *AWSMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *AWSMachinePoolReconciler) reconcileNormal(_ context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) (ctrl.Result, error) {
+func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) (ctrl.Result, error) {
 	clusterScope.Info("Reconciling AWSMachinePool")
 
 	// If the AWSMachine is in an error state, return early.
@@ -273,6 +273,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(_ context.Context, machinePoo
 	machinePoolScope.AWSMachinePool.Status.Replicas = int32(len(providerIDList))
 	machinePoolScope.AWSMachinePool.Status.Ready = true
 	conditions.MarkTrue(machinePoolScope.AWSMachinePool, infrav1exp.ASGReadyCondition)
+
+	err = machinePoolScope.UpdateInstanceStatuses(ctx, asg.Instances)
+	if err != nil {
+		machinePoolScope.Info("Failed updating instances", "instances", asg.Instances)
+	}
 
 	return ctrl.Result{}, nil
 }

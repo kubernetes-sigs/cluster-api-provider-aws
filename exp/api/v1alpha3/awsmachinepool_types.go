@@ -89,6 +89,10 @@ type AWSMachinePoolStatus struct {
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
+	// Instances contains the status for each instance in the pool
+	// +optional
+	Instances []*AWSMachinePoolInstanceStatus `json:"instances"`
+
 	// The ID of the launch template
 	LaunchTemplateID string `json:"launchTemplateID,omitempty"`
 
@@ -131,6 +135,15 @@ type AWSMachinePoolStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	ASGStatus *ASGStatus `json:"asgStatus,omitempty"`
+}
+type AWSMachinePoolInstanceStatus struct {
+	// InstanceID is the identification of the Machine Instance within ASG
+	// +optional
+	InstanceID string `json:"instanceID,omitempty"`
+
+	// Version defines the Kubernetes version for the Machine Instance
+	// +optional
+	Version *string `json:"version,omitempty"`
 }
 
 // +kubebuilder:object:root=true
