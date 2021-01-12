@@ -37,6 +37,7 @@ type ASGInterface interface {
 	CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error)
 	UpdateASG(scope *scope.MachinePoolScope) error
 	StartASGInstanceRefresh(scope *scope.MachinePoolScope) error
+	CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error)
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 	DeleteASGAndWait(id string) error
 }

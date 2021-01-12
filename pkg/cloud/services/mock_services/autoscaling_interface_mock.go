@@ -65,6 +65,21 @@ func (mr *MockASGInterfaceMockRecorder) ASGIfExists(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ASGIfExists", reflect.TypeOf((*MockASGInterface)(nil).ASGIfExists), arg0)
 }
 
+// CanStartASGInstanceRefresh mocks base method
+func (m *MockASGInterface) CanStartASGInstanceRefresh(arg0 *scope.MachinePoolScope) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CanStartASGInstanceRefresh", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CanStartASGInstanceRefresh indicates an expected call of CanStartASGInstanceRefresh
+func (mr *MockASGInterfaceMockRecorder) CanStartASGInstanceRefresh(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanStartASGInstanceRefresh", reflect.TypeOf((*MockASGInterface)(nil).CanStartASGInstanceRefresh), arg0)
+}
+
 // CreateASG mocks base method
 func (m *MockASGInterface) CreateASG(arg0 *scope.MachinePoolScope) (*v1alpha3.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()

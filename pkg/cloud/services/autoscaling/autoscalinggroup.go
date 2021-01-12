@@ -304,6 +304,28 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 	return nil
 }
 
+func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error) {
+	describeInput := &autoscaling.DescribeInstanceRefreshesInput{AutoScalingGroupName: aws.String(scope.Name())}
+	refreshes, err := s.ASGClient.DescribeInstanceRefreshes(describeInput)
+	if err != nil {
+		return false, err
+	}
+	hasUnfinishedRefresh := false
+	if err == nil && len(refreshes.InstanceRefreshes) != 0 {
+		for i := range refreshes.InstanceRefreshes {
+			if *refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusInProgress ||
+				*refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusPending ||
+				*refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusCancelling {
+				hasUnfinishedRefresh = true
+			}
+		}
+	}
+	if hasUnfinishedRefresh {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
 	input := &autoscaling.StartInstanceRefreshInput{
 		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2

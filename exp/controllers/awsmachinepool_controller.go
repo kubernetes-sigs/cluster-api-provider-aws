@@ -420,6 +420,20 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		return err
 	}
 
+	// If there is a change: before changing the template, check if there exist an ongoing instance refresh,
+	// because only 1 instance refresh can be "InProgress". If template is updated when refresh cannot be started,
+	// that change will not trigger a refresh.
+	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
+		asgSvc := r.getASGService(ec2Scope)
+		canStart, err := asgSvc.CanStartASGInstanceRefresh(machinePoolScope)
+		if err != nil {
+			return err
+		}
+		if canStart {
+			return errors.New("Cannot start a new instance refresh. Unfinished instance refresh exist")
+		}
+	}
+
 	// create a new launch template version if there's a difference in configuration, tags,
 	// OR we've discovered a new AMI ID
 	if needsUpdate || tagsChanged || *imageID != *launchTemplate.AMI.ID {
@@ -428,12 +442,14 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 			return err
 		}
 		machinePoolScope.Info("start instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
+
 		asgSvc := r.getASGService(ec2Scope)
 		// After creating a new version of launch template, instance refresh is required
 		// to trigger a rolling replacement of all previously launched instances.
 		if err := asgSvc.StartASGInstanceRefresh(machinePoolScope); err != nil {
 			return err
 		}
+
 	}
 	return nil
 }
