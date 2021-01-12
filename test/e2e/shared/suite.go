@@ -200,6 +200,7 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 	}
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Minute)
 	defer cancel()
+	DumpEKSClusters(ctx, e2eCtx)
 	for k := range e2eCtx.Environment.Namespaces {
 		DumpSpecResourcesAndCleanup(ctx, "", k, e2eCtx)
 		DumpMachines(ctx, e2eCtx, k)

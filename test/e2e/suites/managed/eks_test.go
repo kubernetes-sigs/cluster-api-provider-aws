@@ -33,7 +33,7 @@ import (
 )
 
 // General EKS e2e test
-var _ = Describe("EKS Cluster node types test", func() {
+var _ = Describe("EKS cluster tests", func() {
 	var (
 		namespace   *corev1.Namespace
 		ctx         context.Context
@@ -95,6 +95,16 @@ var _ = Describe("EKS Cluster node types test", func() {
 				ClusterName:           clusterName,
 				IncludeScaling:        true,
 				Cleanup:               true,
+			}
+		})
+
+		shared.Byf("should delete cluster %s", clusterName)
+		DeleteClusterSpec(ctx, func() DeleteClusterSpecInput {
+			return DeleteClusterSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ClusterName:           clusterName,
+				Namespace:             namespace,
 			}
 		})
 	})
