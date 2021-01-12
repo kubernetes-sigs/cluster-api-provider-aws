@@ -55,9 +55,6 @@ type BlockDeviceMapping struct {
 
 // AwsLaunchTemplate defines the desired state of AWSLaunchTemplate
 type AWSLaunchTemplate struct {
-	// The ID of the launch template.
-	ID string `json:"id,omitempty"`
-
 	// The name of the launch template.
 	Name string `json:"name,omitempty"`
 

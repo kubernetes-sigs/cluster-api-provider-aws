@@ -130,9 +130,6 @@ spec:
                   iamInstanceProfile:
                     description: The name or the Amazon Resource Name (ARN) of the instance profile associated with the IAM role for the instance. The instance profile contains the IAM role.
                     type: string
-                  id:
-                    description: The ID of the launch template.
-                    type: string
                   imageLookupBaseOS:
                     description: ImageLookupBaseOS is the name of the base operating system to use for image lookup the AMI is not set.
                     type: string

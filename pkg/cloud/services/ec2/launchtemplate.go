@@ -214,7 +214,6 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, error) {
 	v := d.LaunchTemplateData
 	i := &expinfrav1.AWSLaunchTemplate{
-		ID:   aws.StringValue(d.LaunchTemplateId),
 		Name: aws.StringValue(d.LaunchTemplateName),
 		AMI: infrav1.AWSResourceReference{
 			ID: v.ImageId,

@@ -124,7 +124,6 @@ func TestService_SDKToLaunchTemplate(t *testing.T) {
 				VersionNumber: aws.Int64(1),
 			},
 			want: &expinfrav1.AWSLaunchTemplate{
-				ID:   "lt-12345",
 				Name: "foo",
 				AMI: infrav1.AWSResourceReference{
 					ID: aws.String("foo-image"),
