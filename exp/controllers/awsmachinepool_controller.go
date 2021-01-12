@@ -429,7 +429,8 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		if err != nil {
 			return err
 		}
-		if canStart {
+		if !canStart {
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition, infrav1exp.InstanceRefreshNotReadyReason, clusterv1.ConditionSeverityWarning, "")
 			return errors.New("Cannot start a new instance refresh. Unfinished instance refresh exist")
 		}
 	}
@@ -441,15 +442,17 @@ func (r *AWSMachinePoolReconciler) reconcileLaunchTemplate(machinePoolScope *sco
 		if err := ec2svc.CreateLaunchTemplateVersion(machinePoolScope, imageID, userData); err != nil {
 			return err
 		}
-		machinePoolScope.Info("start instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
+		machinePoolScope.Info("starting instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
 
 		asgSvc := r.getASGService(ec2Scope)
 		// After creating a new version of launch template, instance refresh is required
 		// to trigger a rolling replacement of all previously launched instances.
+
 		if err := asgSvc.StartASGInstanceRefresh(machinePoolScope); err != nil {
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition, infrav1exp.InstanceRefreshFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
-
+		conditions.MarkTrue(machinePoolScope.AWSMachinePool, infrav1exp.InstanceRefreshStartedCondition)
 	}
 	return nil
 }
