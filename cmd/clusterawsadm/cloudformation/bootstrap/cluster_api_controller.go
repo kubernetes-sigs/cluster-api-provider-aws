@@ -135,6 +135,7 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 			},
 			Action: iamv1.Actions{
 				"autoscaling:CreateAutoScalingGroup",
+				"autoscaling:UpdateAutoScalingGroup",
 				"autoscaling:CreateOrUpdateTags",
 				"autoscaling:DeleteAutoScalingGroup",
 				"autoscaling:DeleteTags",
