@@ -73,6 +73,29 @@ type AWSMachinePoolSpec struct {
 	// If no value is supplied by user a default value of 300 seconds is set
 	// +optional
 	DefaultCoolDown metav1.Duration `json:"defaultCoolDown,omitempty"`
+
+	// RefreshPreferences describes set of preferences associated with the instance refresh request.
+	// +optional
+	RefreshPreferences *RefreshPreferences `json:"refreshPreferences,omitempty"`
+}
+
+type RefreshPreferences struct {
+	// The strategy to use for the instance refresh. The only valid value is Rolling.
+	// A rolling update is an update that is applied to all instances in an Auto
+	// Scaling group until all instances have been updated.
+	// +optional
+	Strategy *string `json:"strategy,omitempty"`
+
+	// The number of seconds until a newly launched instance is configured and ready
+	// to use. During this time, the next replacement will not be initiated.
+	// The default is to use the value for the health check grace period defined for the group.
+	// +optional
+	InstanceWarmup *int64 `json:"instanceWarmup,omitempty"`
+
+	// The amount of capacity as a percentage in ASG that must remain healthy
+	// during an instance refresh. The default is 90.
+	// +optional
+	MinHealthyPercentage *int64 `json:"minHealthyPercentage,omitempty"`
 }
 
 // AWSMachinePoolStatus defines the observed state of AWSMachinePool

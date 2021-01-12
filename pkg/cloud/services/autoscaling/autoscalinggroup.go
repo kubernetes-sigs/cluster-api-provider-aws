@@ -327,9 +327,27 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 }
 
 func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
+	strategy := pointer.StringPtr(autoscaling.RefreshStrategyRolling)
+	var minHealthyPercentage, instanceWarmup *int64
+	if scope.AWSMachinePool.Spec.RefreshPreferences != nil {
+		if scope.AWSMachinePool.Spec.RefreshPreferences.Strategy != nil {
+			strategy = scope.AWSMachinePool.Spec.RefreshPreferences.Strategy
+		}
+		if scope.AWSMachinePool.Spec.RefreshPreferences.InstanceWarmup != nil {
+			instanceWarmup = scope.AWSMachinePool.Spec.RefreshPreferences.InstanceWarmup
+		}
+		if scope.AWSMachinePool.Spec.RefreshPreferences.MinHealthyPercentage != nil {
+			minHealthyPercentage = scope.AWSMachinePool.Spec.RefreshPreferences.MinHealthyPercentage
+		}
+	}
+
 	input := &autoscaling.StartInstanceRefreshInput{
-		AutoScalingGroupName: aws.String(scope.Name()), //TODO: define dynamically - borrow logic from ec2
-		Strategy:             pointer.StringPtr(autoscaling.RefreshStrategyRolling),
+		AutoScalingGroupName: aws.String(scope.Name()),
+		Strategy:             strategy,
+		Preferences: &autoscaling.RefreshPreferences{
+			InstanceWarmup:       instanceWarmup,
+			MinHealthyPercentage: minHealthyPercentage,
+		},
 	}
 
 	if _, err := s.ASGClient.StartInstanceRefresh(input); err != nil {

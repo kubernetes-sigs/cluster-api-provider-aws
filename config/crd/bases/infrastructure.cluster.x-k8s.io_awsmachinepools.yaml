@@ -245,6 +245,21 @@ spec:
                 items:
                   type: string
                 type: array
+              refreshPreferences:
+                description: RefreshPreferences describes set of preferences associated with the instance refresh request.
+                properties:
+                  instanceWarmup:
+                    description: The number of seconds until a newly launched instance is configured and ready to use. During this time, the next replacement will not be initiated. The default is to use the value for the health check grace period defined for the group.
+                    format: int64
+                    type: integer
+                  minHealthyPercentage:
+                    description: The amount of capacity as a percentage in ASG that must remain healthy during an instance refresh. The default is 90.
+                    format: int64
+                    type: integer
+                  strategy:
+                    description: The strategy to use for the instance refresh. The only valid value is Rolling. A rolling update is an update that is applied to all instances in an Auto Scaling group until all instances have been updated.
+                    type: string
+                type: object
               subnets:
                 description: Subnets is an array of subnet configurations
                 items:
