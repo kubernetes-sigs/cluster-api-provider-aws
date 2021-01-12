@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -55,8 +56,8 @@ const (
 	// globalInfrastuctureName default name for infrastructure object
 	globalInfrastuctureName = "cluster"
 
-	// kubeCloudConfigNamespace is the namespace where the kube cloud config ConfigMap is located
-	kubeCloudConfigNamespace = "openshift-config-managed"
+	// KubeCloudConfigNamespace is the namespace where the kube cloud config ConfigMap is located
+	KubeCloudConfigNamespace = "openshift-config-managed"
 	// kubeCloudConfigName is the name of the kube cloud config ConfigMap
 	kubeCloudConfigName = "kube-cloud-config"
 	// cloudCABundleKey is the key in the kube cloud config ConfigMap where the custom CA bundle is located
@@ -64,7 +65,7 @@ const (
 )
 
 // AwsClientBuilderFuncType is function type for building aws client
-type AwsClientBuilderFuncType func(client client.Client, secretName, namespace, region string) (Client, error)
+type AwsClientBuilderFuncType func(client client.Client, secretName, namespace, region string, configManagedClient client.Client) (Client, error)
 
 // Client is a wrapper object for actual AWS SDK clients to allow for easier testing.
 type Client interface {
@@ -156,8 +157,8 @@ func (c *awsClient) ELBv2RegisterTargets(input *elbv2.RegisterTargetsInput) (*el
 // For authentication the underlying clients will use either the cluster AWS credentials
 // secret if defined (i.e. in the root cluster),
 // otherwise the IAM profile of the master where the actuator will run. (target clusters)
-func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
-	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region)
+func NewClient(ctrlRuntimeClient client.Client, secretName, namespace, region string, configManagedClient client.Client) (Client, error) {
+	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region, configManagedClient)
 	if err != nil {
 		return nil, err
 	}
@@ -197,8 +198,8 @@ func NewClientFromKeys(accessKey, secretAccessKey, region string) (Client, error
 // NewValidatedClient creates our client wrapper object for the actual AWS clients we use.
 // This should behave the same as NewClient except it will validate the client configuration
 // (eg the region) before returning the client.
-func NewValidatedClient(ctrlRuntimeClient client.Client, secretName, namespace, region string) (Client, error) {
-	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region)
+func NewValidatedClient(ctrlRuntimeClient client.Client, secretName, namespace, region string, configManagedClient client.Client) (Client, error) {
+	s, err := newAWSSession(ctrlRuntimeClient, secretName, namespace, region, configManagedClient)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +221,7 @@ func NewValidatedClient(ctrlRuntimeClient client.Client, secretName, namespace, 
 	}, nil
 }
 
-func newAWSSession(ctrlRuntimeClient client.Client, secretName, namespace, region string) (*session.Session, error) {
+func newAWSSession(ctrlRuntimeClient client.Client, secretName, namespace, region string, configManagedClient client.Client) (*session.Session, error) {
 	sessionOptions := session.Options{
 		Config: aws.Config{
 			Region: aws.String(region),
@@ -248,7 +249,7 @@ func newAWSSession(ctrlRuntimeClient client.Client, secretName, namespace, regio
 		return nil, err
 	}
 
-	if err := useCustomCABundle(&sessionOptions, ctrlRuntimeClient); err != nil {
+	if err := useCustomCABundle(&sessionOptions, configManagedClient); err != nil {
 		return nil, fmt.Errorf("failed to set the custom CA bundle: %w", err)
 	}
 
@@ -358,11 +359,11 @@ func newConfigForStaticCreds(accessKey string, accessSecret string) []byte {
 
 // useCustomCABundle will set up a custom CA bundle in the AWS options if a CA bundle is configured in the
 // kube cloud config.
-func useCustomCABundle(awsOptions *session.Options, ctrlRuntimeClient client.Client) error {
+func useCustomCABundle(awsOptions *session.Options, configManagedClient client.Client) error {
 	cm := &corev1.ConfigMap{}
-	switch err := ctrlRuntimeClient.Get(
+	switch err := configManagedClient.Get(
 		context.Background(),
-		client.ObjectKey{Namespace: kubeCloudConfigNamespace, Name: kubeCloudConfigName},
+		client.ObjectKey{Namespace: KubeCloudConfigNamespace, Name: kubeCloudConfigName},
 		cm,
 	); {
 	case apimachineryerrors.IsNotFound(err):
@@ -376,6 +377,7 @@ func useCustomCABundle(awsOptions *session.Options, ctrlRuntimeClient client.Cli
 		// no "ca-bundle.pem" key in the ConfigMap, so no custom CA bundle
 		return nil
 	}
+	klog.Info("using a custom CA bundle")
 	awsOptions.CustomCABundle = strings.NewReader(caBundle)
 	return nil
 }

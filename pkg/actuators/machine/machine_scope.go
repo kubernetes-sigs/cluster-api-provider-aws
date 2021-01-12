@@ -31,6 +31,8 @@ type machineScopeParams struct {
 	client runtimeclient.Client
 	// machine resource
 	machine *machinev1.Machine
+	// api server controller runtime client for the openshift-config-managed namespace
+	configManagedClient runtimeclient.Client
 }
 
 type machineScope struct {
@@ -63,7 +65,7 @@ func newMachineScope(params machineScopeParams) (*machineScope, error) {
 		credentialsSecretName = providerSpec.CredentialsSecret.Name
 	}
 
-	awsClient, err := params.awsClientBuilder(params.client, credentialsSecretName, params.machine.Namespace, providerSpec.Placement.Region)
+	awsClient, err := params.awsClientBuilder(params.client, credentialsSecretName, params.machine.Namespace, providerSpec.Placement.Region, params.configManagedClient)
 	if err != nil {
 		return nil, machineapierros.InvalidMachineConfiguration("failed to create aws client: %v", err.Error())
 	}
