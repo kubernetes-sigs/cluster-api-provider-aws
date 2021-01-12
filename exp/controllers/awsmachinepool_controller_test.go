@@ -25,11 +25,10 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/pkg/errors"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
 	"k8s.io/utils/pointer"
@@ -44,18 +43,20 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var _ = Describe("AWSMachinePoolReconciler", func() {
 	var (
-		reconciler AWSMachinePoolReconciler
-		cs         *scope.ClusterScope
-		ms         *scope.MachinePoolScope
-		mockCtrl   *gomock.Controller
-		ec2Svc     *mock_services.MockEC2MachineInterface
-		asgSvc     *mock_services.MockASGInterface
-		recorder   *record.FakeRecorder
+		reconciler     AWSMachinePoolReconciler
+		cs             *scope.ClusterScope
+		ms             *scope.MachinePoolScope
+		mockCtrl       *gomock.Controller
+		ec2Svc         *mock_services.MockEC2MachineInterface
+		asgSvc         *mock_services.MockASGInterface
+		recorder       *record.FakeRecorder
+		awsMachinePool *expinfrav1.AWSMachinePool
+		secret         *corev1.Secret
 	)
 
 	BeforeEach(func() {
@@ -67,28 +68,36 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 		if err := flag.Set("v", "2"); err != nil {
 			_ = fmt.Errorf("Error setting v flag")
 		}
-
+		ctx := context.TODO()
 		klog.SetOutput(GinkgoWriter)
 
-		awsMachinePool := &expinfrav1.AWSMachinePool{
+		awsMachinePool = &expinfrav1.AWSMachinePool{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "test",
+				Name:      "test",
+				Namespace: "default",
 			},
-			Spec: expinfrav1.AWSMachinePoolSpec{},
+			Spec: expinfrav1.AWSMachinePoolSpec{
+				MinSize: int32(1),
+				MaxSize: int32(1),
+			},
 		}
 
-		secret := &corev1.Secret{
+		secret = &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "bootstrap-data",
+				Name:      "bootstrap-data",
+				Namespace: "default",
 			},
 			Data: map[string][]byte{
 				"value": []byte("shell-script"),
 			},
 		}
 
+		Expect(testEnv.Create(ctx, awsMachinePool)).To(Succeed())
+		Expect(testEnv.Create(ctx, secret)).To(Succeed())
+
 		ms, err = scope.NewMachinePoolScope(
 			scope.MachinePoolScopeParams{
-				Client: fake.NewFakeClient([]runtime.Object{awsMachinePool, secret}...),
+				Client: testEnv.Client,
 				Cluster: &clusterv1.Cluster{
 					Status: clusterv1.ClusterStatus{
 						InfrastructureReady: true,
@@ -137,6 +146,13 @@ var _ = Describe("AWSMachinePoolReconciler", func() {
 		}
 	})
 	AfterEach(func() {
+		ctx := context.TODO()
+		mpPh, err := patch.NewHelper(awsMachinePool, testEnv)
+		Expect(err).ShouldNot(HaveOccurred())
+		awsMachinePool.SetFinalizers([]string{})
+		Expect(mpPh.Patch(ctx, awsMachinePool)).To(Succeed())
+		Expect(testEnv.Delete(ctx, awsMachinePool)).To(Succeed())
+		Expect(testEnv.Delete(ctx, secret)).To(Succeed())
 		mockCtrl.Finish()
 	})
 

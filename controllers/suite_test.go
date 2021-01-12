@@ -17,24 +17,20 @@ limitations under the License.
 package controllers
 
 import (
-	"path/filepath"
+	"fmt"
+	"os"
+	"path"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -42,16 +38,8 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	cfg       *rest.Config
-	k8sClient client.Client
-	testEnv   *envtest.Environment
+	testEnv *helpers.TestEnvironment
 )
-
-func init() {
-	klog.InitFlags(nil)
-	klog.SetOutput(GinkgoWriter)
-	logf.SetLogger(klogr.New())
-}
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -61,36 +49,50 @@ func TestAPIs(t *testing.T) {
 		[]Reporter{printer.NewlineReporter{}})
 }
 
-var _ = BeforeSuite(func(done Done) {
-	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{
-			filepath.Join("..", "config", "crd", "bases"),
-		},
-	}
+func TestMain(m *testing.M) {
+	setup()
+	defer func() {
+		teardown()
+	}()
+	code := m.Run()
+	os.Exit(code)
+}
 
+func setup() {
+	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
+		path.Join("config", "crd", "bases"),
+	},
+	).WithWebhookConfiguration("unmanaged", path.Join("config", "webhook", "manifests.yaml"))
 	var err error
-	cfg, err = testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
+	testEnv, err = testEnvConfig.Build()
+	if err != nil {
+		panic(err)
+	}
+	if err := (&infrav1.AWSCluster{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSCluster webhook: %v", err))
+	}
+	if err := (&infrav1.AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSMachine webhook: %v", err))
+	}
+	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSMachineTemplate webhook: %v", err))
+	}
+	if err := (&infrav1.AWSMachineList{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSMachineList webhook: %v", err))
+	}
+	go func() {
+		fmt.Println("Starting the manager")
+		if err := testEnv.StartManager(); err != nil {
+			panic(fmt.Sprintf("Failed to start the envtest manager: %v", err))
+		}
+	}()
+	testEnv.WaitForWebhooks()
+}
 
-	Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-	Expect(infrav1.AddToScheme(scheme.Scheme)).To(Succeed())
-
-	err = expinfrav1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	// +kubebuilder:scaffold:scheme
-
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(k8sClient).ToNot(BeNil())
-
-	close(done)
-}, 60)
-
-var _ = AfterSuite(func() {
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
-})
+func teardown() {
+	if err := testEnv.Stop(); err != nil {
+		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
+	}
+}

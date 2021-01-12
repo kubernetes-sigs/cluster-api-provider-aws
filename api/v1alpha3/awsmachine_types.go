@@ -168,7 +168,6 @@ type CloudInit struct {
 	// Parameter Storage to distribute secrets. By default or with the value of secrets-manager,
 	// will use AWS Secrets Manager instead.
 	// +optional
-	// +kubebuilder:default=secrets-manager
 	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
 	SecureSecretsBackend SecretBackend `json:"secureSecretsBackend,omitempty"`
 }

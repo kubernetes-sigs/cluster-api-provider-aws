@@ -20,26 +20,15 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
-
-func setupScheme() (*runtime.Scheme, error) {
-	scheme := runtime.NewScheme()
-	if err := infrav1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	if err := clusterv1.AddToScheme(scheme); err != nil {
-		return nil, err
-	}
-	return scheme, nil
-}
 
 func newMachine(clusterName, machineName string) *clusterv1.Machine {
 	return &clusterv1.Machine{
@@ -74,23 +63,20 @@ func newCluster(name string) *clusterv1.Cluster {
 }
 
 func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
-	scheme, err := setupScheme()
-	if err != nil {
-		t.Fatal(err)
-	}
 	clusterName := "my-cluster"
-	client := fake.NewFakeClientWithScheme(scheme)
 	ctx := context.TODO()
-	client.Create(ctx, newCluster(clusterName))
-	client.Create(ctx, newMachineWithInfrastructureRef(clusterName, "my-machine-0"))
-	client.Create(ctx, newMachineWithInfrastructureRef(clusterName, "my-machine-1"))
-	client.Create(ctx, newMachine(clusterName, "my-machine-2"))
+	g := NewWithT(t)
+	g.Expect(testEnv.Create(ctx, newCluster(clusterName))).To(Succeed())
+	g.Expect(testEnv.Create(ctx, newMachineWithInfrastructureRef(clusterName, "my-machine-0"))).To(Succeed())
+	g.Expect(testEnv.Create(ctx, newMachineWithInfrastructureRef(clusterName, "my-machine-1"))).To(Succeed())
+	g.Expect(testEnv.Create(ctx, newMachine(clusterName, "my-machine-2"))).To(Succeed())
 
 	reconciler := &AWSMachineReconciler{
-		Client: client,
+		Client: testEnv.Client,
 		Log:    klogr.New(),
 	}
-	requests := reconciler.AWSClusterToAWSMachines(handler.MapObject{
+
+	g.Expect(reconciler.AWSClusterToAWSMachines(handler.MapObject{
 		Object: &infrav1.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName,
@@ -104,8 +90,5 @@ func TestAWSMachineReconciler_AWSClusterToAWSMachines(t *testing.T) {
 				},
 			},
 		},
-	})
-	if len(requests) != 2 {
-		t.Fatalf("Expected 2 but found %d requests", len(requests))
-	}
+	})).Should(HaveLen(2))
 }

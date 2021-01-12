@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,7 +37,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 			ctx := context.Background()
 
 			reconciler := &AWSClusterReconciler{
-				Client: k8sClient,
+				Client: testEnv.Client,
 				Log:    log.Log,
 			}
 
@@ -44,7 +45,7 @@ var _ = Describe("AWSClusterReconciler", func() {
 			instance.Default()
 
 			// Create the AWSCluster object and expect the Reconcile and Deployment to be created
-			Expect(k8sClient.Create(ctx, instance)).To(Succeed())
+			Expect(testEnv.Create(ctx, instance)).To(Succeed())
 
 			result, err := reconciler.Reconcile(ctrl.Request{
 				NamespacedName: client.ObjectKey{
