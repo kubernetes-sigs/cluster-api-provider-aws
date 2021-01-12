@@ -42,12 +42,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
+#Install requests module explicitly for HTTP calls
+python3 -m pip install requests
+
 # If BOSKOS_HOST is set then acquire an AWS account from Boskos.
 if [ -n "${BOSKOS_HOST:-}" ]; then
   # Check out the account from Boskos and store the produced environment
   # variables in a temporary file.
   account_env_var_file="$(mktemp)"
-  python hack/checkout_account.py 1>"${account_env_var_file}"
+  python3 hack/boskos.py --get 1>"${account_env_var_file}"
   checkout_account_status="${?}"
 
   # If the checkout process was a success then load the account's
@@ -66,7 +69,7 @@ if [ -n "${BOSKOS_HOST:-}" ]; then
 
   # run the heart beat process to tell boskos that we are still
   # using the checked out account periodically
-  python -u hack/heartbeat_account.py >>$ARTIFACTS/logs/boskos.log 2>&1 &
+  python3 -u hack/boskos.py --heartbeat >>$ARTIFACTS/logs/boskos.log 2>&1 &
   HEART_BEAT_PID=$(echo $!)
 fi
 
@@ -83,7 +86,7 @@ make test-e2e-eks ARTIFACTS=$ARTIFACTS
 test_status="${?}"
 
 # If Boskos is being used then release the AWS account back to Boskos.
-[ -z "${BOSKOS_HOST:-}" ] || hack/checkin_account.py
+[ -z "${BOSKOS_HOST:-}" ] || python3 -u hack/boskos.py --release
 
 # The janitor is typically not run as part of the e2e process, but rather
 # in a parallel process via a service on the same cluster that runs Prow and
