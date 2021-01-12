@@ -728,10 +728,10 @@ modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 sigs.k8s.io/aws-iam-authenticator v0.5.1 h1:0Nv09uOayy99IOYgNamMl0cwTuQWRtEuUu6s3mSgyEs=
 sigs.k8s.io/aws-iam-authenticator v0.5.1/go.mod h1:yPDLi58MDx1UtCrRMOykLm1IyKKPGHgcGCafcbn2s3E=
-sigs.k8s.io/cluster-api v0.3.11 h1:sBXyOCDFAUMlfAL1Z/ttJolfUMsrIjWpyjKFUkADer4=
-sigs.k8s.io/cluster-api v0.3.11/go.mod h1:bKh9AXgYRu5d3483NpEVlcVJujDN+rBqMXpG5o69Xss=
-sigs.k8s.io/controller-runtime v0.5.11 h1:U/FjGJ61aR2T2mCrdlBCxEcWgLEwLmK6YZKf0NC0a24=
-sigs.k8s.io/controller-runtime v0.5.11/go.mod h1:OTqxLuz7gVcrq+BHGUgedRu6b2VIKCEc7Pu4Jbwui0A=
+sigs.k8s.io/cluster-api v0.3.12 h1:iogA3mXvwRfNU3ZCZXbqM1ZVWUxtWobgu3zRd5IkMTM=
+sigs.k8s.io/cluster-api v0.3.12/go.mod h1:KuUGKyD9+8TwYIcwoqDaScWKsee74/bpPo2sqQMwy8o=
+sigs.k8s.io/controller-runtime v0.5.14 h1:lmoRaPvLg9877ZOnjFivjtyIdqyLbWfcCEilxHXTEj4=
+sigs.k8s.io/controller-runtime v0.5.14/go.mod h1:OTqxLuz7gVcrq+BHGUgedRu6b2VIKCEc7Pu4Jbwui0A=
 sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802 h1:L6/8hETA7jvdx3xBcbDifrIN2xaYHE7tA58n+Kdp2Zw=
 sigs.k8s.io/kind v0.7.1-0.20200303021537-981bd80d3802/go.mod h1:HIZ3PWUezpklcjkqpFbnYOqaqsAE1JeCTEwkgvPLXjk=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e h1:4Z09Hglb792X0kfOBBJUPFEyvVfQWrYT/l8h5EKA6JQ=
