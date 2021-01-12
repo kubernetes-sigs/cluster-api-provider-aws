@@ -36,6 +36,7 @@ type ExternalInfraClusterScopeParams struct {
 	Client               client.Client
 	Logger               logr.Logger
 	Cluster              *clusterv1.Cluster
+	AWSCluster           *infrav1.AWSCluster
 	ExternalInfraCluster *unstructured.Unstructured
 	ControllerName       string
 	Endpoints            []ServiceEndpoint
@@ -60,7 +61,7 @@ func NewExternalInfraClusterScope(params ExternalInfraClusterScopeParams) (*Exte
 	if err != nil || !found {
 		return nil, fmt.Errorf("error getting region: %w", err)
 	}
-	session, err := sessionForRegion(region, params.Endpoints)
+	session, err := sessionForClusterWithRegion(params.Client, params.AWSCluster, region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}

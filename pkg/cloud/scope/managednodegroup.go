@@ -41,6 +41,7 @@ type ManagedMachinePoolScopeParams struct {
 	Client             client.Client
 	Logger             logr.Logger
 	Cluster            *clusterv1.Cluster
+	AWSCluster         *infrav1.AWSCluster
 	ControlPlane       *controlplanev1exp.AWSManagedControlPlane
 	ManagedMachinePool *infrav1exp.AWSManagedMachinePool
 	MachinePool        *clusterv1exp.MachinePool
@@ -64,7 +65,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		params.Logger = klogr.New()
 	}
 
-	session, err := sessionForRegion(params.ControlPlane.Spec.Region, params.Endpoints)
+	session, err := sessionForClusterWithRegion(params.Client, params.AWSCluster, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}

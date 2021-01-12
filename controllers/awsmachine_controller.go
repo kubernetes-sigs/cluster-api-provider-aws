@@ -827,6 +827,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 			Client:               r.Client,
 			Logger:               log,
 			Cluster:              cluster,
+			AWSCluster:           awsCluster,
 			ExternalInfraCluster: externalInfraCluster,
 			ControllerName:       "externalInfraCluster",
 		})
