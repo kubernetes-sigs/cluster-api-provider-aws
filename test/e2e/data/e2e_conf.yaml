@@ -105,26 +105,36 @@ providers:
         targetName: "cluster-template-limit-az.yaml"
       - sourcePath: "./infrastructure-aws/cluster-template-spot-instances.yaml"
         targetName: "cluster-template-spot-instances.yaml"
-
+      - sourcePath: "./infrastructure-aws/cluster-template-mhc.yaml"
+        targetName: "cluster-template-mhc.yaml"
+      - sourcePath: "./infrastructure-aws/cluster-template-machine-pool.yaml"
+        targetName: "cluster-template-machine-pool.yaml"
 variables:
-  KUBERNETES_VERSION: "v1.19.4"
+  KUBERNETES_VERSION: "v1.20.1"
   CNI: "../../data/cni/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.19.4"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.20.1"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
+  EXP_MACHINE_POOL: "true"
+  ETCD_VERSION_UPGRADE_TO: "3.4.13-0"
+  COREDNS_VERSION_UPGRADE_TO: "1.7.1"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.20.1"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.19.6"
 
 intervals:
-  default/wait-cluster: ["20m", "10s"]
-  default/wait-control-plane: ["10m", "10s"]
-  default/wait-worker-nodes: ["10m", "10s"]
-  conformance/wait-control-plane: ["30m", "10s"]
-  conformance/wait-worker-nodes: ["30m", "10s"]
-  default/wait-controllers: ["3m", "10s"]
-  default/wait-delete-cluster: ["20m", "10s"]
-  default/wait-machine-upgrade: ["20m", "10s"]
-  default/wait-machine-status: ["20m", "10s"]
+  default/wait-cluster: ["30m", "10s"]
+  default/wait-control-plane: ["40m", "10s"]
+  default/wait-worker-nodes: ["40m", "10s"]
+  conformance/wait-control-plane: ["40m", "10s"]
+  conformance/wait-worker-nodes: ["40m", "10s"]
+  default/wait-controllers: ["40m", "10s"]
+  default/wait-delete-cluster: ["40m", "10s"]
+  default/wait-machine-upgrade: ["40m", "10s"]
+  default/wait-machine-status: ["40m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
+  default/wait-machine-pool-nodes: ["40m", "10s"]
+  default/wait-machine-pool-upgrade: [ "40m", "10s" ]
