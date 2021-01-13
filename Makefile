@@ -94,6 +94,8 @@ LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 E2E_UNMANAGED_FOCUS ?= "functional tests - unmanaged"
 # Instead, you can run a quick smoke test, it should run fast (9 minutes)...
 # E2E_UNMANAGED_FOCUS := "Create cluster with name having"
+# For running CAPI e2e tests: E2E_UNMANAGED_FOCUS := "Cluster API E2E tests"
+USE_EXISTING_CLUSTER ?= "false"
 
 GINKGO_NODES ?= 2
 GINKGO_ARGS ?=
