@@ -43,5 +43,6 @@ func RootCmd() *cobra.Command {
 	}
 
 	newCmd.AddCommand(cp.CopyAMICmd())
+	newCmd.AddCommand(cp.EncryptedCopyAMICmd())
 	return newCmd
 }
