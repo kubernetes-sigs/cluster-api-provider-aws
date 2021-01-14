@@ -113,6 +113,15 @@ func EncryptedCopyAMICmd() *cobra.Command {
 				SourceSnapshotId:  image.BlockDeviceMappings[0].Ebs.SnapshotId,
 			}
 
+			// Generate a presigned url from the CopySnapshotInput
+			req, _ := ec2Client.CopySnapshotRequest(copyInput)
+			str, err := req.Presign(15 * time.Minute)
+			if err != nil {
+				fmt.Printf("Failed to generate presigned url %q\n", err)
+				return err
+			}
+			copyInput.PresignedUrl = aws.String(str)
+
 			out, err := ec2Client.CopySnapshot(copyInput)
 			if err != nil {
 				fmt.Printf("Failed copying snapshot %q\n", err)
