@@ -121,7 +121,7 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 	}
 
