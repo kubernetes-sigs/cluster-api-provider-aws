@@ -50,7 +50,7 @@ func CopyAMICmd() *cobra.Command {
 		clusterawsadm ami copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
 
 		# owner-id and dry-run flags are optional. region can be set via flag or env
-		clusterawsadm ami copy --os centos-7 --kubernetes-version=1.19.4 --owner-id=111111111111 --dry-run
+		clusterawsadm ami copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --dry-run
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -90,6 +90,7 @@ func CopyAMICmd() *cobra.Command {
 				fmt.Printf("version %q\n", out)
 				return err
 			}
+			fmt.Printf("Completed copying %v\n", *image.ImageId)
 			return nil
 		},
 	}
