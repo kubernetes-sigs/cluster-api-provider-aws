@@ -27,7 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/spf13/cobra"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
@@ -106,10 +105,10 @@ func EncryptedCopyAMICmd() *cobra.Command {
 
 			copyInput := &ec2.CopySnapshotInput{
 				Description:       image.Description,
-				DestinationRegion: &region,
-				DryRun:            &dryRun,
-				Encrypted:         pointer.BoolPtr(true),
-				SourceRegion:      &region,
+				DestinationRegion: aws.String(region),
+				DryRun:            aws.Bool(dryRun),
+				Encrypted:         aws.Bool(true),
+				SourceRegion:      aws.String(region),
 				KmsKeyId:          kmsKeyIDPtr,
 				SourceSnapshotId:  image.BlockDeviceMappings[0].Ebs.SnapshotId,
 			}
@@ -122,7 +121,7 @@ func EncryptedCopyAMICmd() *cobra.Command {
 			fmt.Printf("Copying snapshot %v as snapshot %v, this may take a couple of minutes ...\n", *image.BlockDeviceMappings[0].Ebs.SnapshotId, *out.SnapshotId)
 
 			err = ec2Client.WaitUntilSnapshotCompleted(&ec2.DescribeSnapshotsInput{
-				DryRun:      &dryRun,
+				DryRun:      aws.Bool(dryRun),
 				SnapshotIds: []*string{out.SnapshotId},
 			})
 			if err != nil {
@@ -146,10 +145,10 @@ func EncryptedCopyAMICmd() *cobra.Command {
 				Architecture:        image.Architecture,
 				BlockDeviceMappings: []*ec2.BlockDeviceMapping{ebsMapping},
 				Description:         image.Description,
-				DryRun:              &dryRun,
+				DryRun:              aws.Bool(dryRun),
 				EnaSupport:          image.EnaSupport,
 				KernelId:            image.KernelId,
-				Name:                &imgName,
+				Name:                aws.String(imgName),
 				RamdiskId:           image.RamdiskId,
 				RootDeviceName:      image.RootDeviceName,
 				SriovNetSupport:     image.SriovNetSupport,
