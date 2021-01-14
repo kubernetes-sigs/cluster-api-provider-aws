@@ -47,7 +47,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
-	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -85,67 +84,6 @@ var _ = Describe("functional tests - unmanaged", func() {
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
-	})
-
-	Describe("Running the Cluster API E2E tests", func() {
-		SetDefaultEventuallyTimeout(20 * time.Minute)
-		SetDefaultEventuallyPollingInterval(10 * time.Second)
-		Context("Running the quick-start spec", func() {
-			capi_e2e.QuickStartSpec(context.TODO(), func() capi_e2e.QuickStartSpecInput {
-				return capi_e2e.QuickStartSpecInput{
-					E2EConfig:             e2eCtx.E2EConfig,
-					ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-					BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-					ArtifactFolder:        filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-					SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				}
-			})
-		})
-		Context("Running the KCP upgrade spec", func() {
-			capi_e2e.KCPUpgradeSpec(context.TODO(), func() capi_e2e.KCPUpgradeSpecInput {
-				return capi_e2e.KCPUpgradeSpecInput{
-					E2EConfig:             e2eCtx.E2EConfig,
-					ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-					BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-					ArtifactFolder:        filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-					SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				}
-			})
-		})
-		Context("Running the MachineDeployment upgrade spec", func() {
-			capi_e2e.MachineDeploymentUpgradesSpec(context.TODO(), func() capi_e2e.MachineDeploymentUpgradesSpecInput {
-				return capi_e2e.MachineDeploymentUpgradesSpecInput{
-					E2EConfig:             e2eCtx.E2EConfig,
-					ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-					BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-					ArtifactFolder:        filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-					SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				}
-			})
-		})
-		Context("Running the MachineRemediation spec", func() {
-			capi_e2e.MachineRemediationSpec(context.TODO(), func() capi_e2e.MachineRemediationSpecInput {
-				return capi_e2e.MachineRemediationSpecInput{
-					E2EConfig:             e2eCtx.E2EConfig,
-					ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-					BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-					ArtifactFolder:        filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-					SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				}
-			})
-		})
-
-		Context("Running the Machine pool spec", func() {
-			capi_e2e.MachinePoolSpec(context.TODO(), func() capi_e2e.MachinePoolInput {
-				return capi_e2e.MachinePoolInput{
-					E2EConfig:             e2eCtx.E2EConfig,
-					ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-					BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-					ArtifactFolder:        filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-					SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-				}
-			})
-		})
 	})
 
 	Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {

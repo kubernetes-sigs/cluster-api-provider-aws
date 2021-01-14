@@ -137,4 +137,4 @@ intervals:
   default/wait-machine-status: ["40m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
   default/wait-machine-pool-nodes: ["40m", "10s"]
-  default/wait-machine-pool-upgrade: [ "40m", "10s" ]
+  default/wait-machine-pool-upgrade: [ "50m", "10s" ]
