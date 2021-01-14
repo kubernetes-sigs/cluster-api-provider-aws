@@ -34,6 +34,14 @@ const (
 	LaunchTemplateNotFoundReason = "LaunchTemplateNotFound"
 	// LaunchTemplateCreateFailedReason used for failures during Launch Template creation
 	LaunchTemplateCreateFailedReason = "LaunchTemplateCreateFailed"
+
+	// InstanceRefreshStartedCondition reports on successfully starting instance refresh.
+	InstanceRefreshStartedCondition clusterv1.ConditionType = "InstanceRefreshStarted"
+	// InstanceRefreshNotReadyReason used to report instance refresh is not initiated.
+	// If there are instance refreshes that are in progress, then a new instance refresh request will fail.
+	InstanceRefreshNotReadyReason = "InstanceRefreshNotReady"
+	// InstanceRefreshFailedReason used to report when there instance refresh is not initiated.
+	InstanceRefreshFailedReason = "InstanceRefreshFailed"
 )
 
 const (

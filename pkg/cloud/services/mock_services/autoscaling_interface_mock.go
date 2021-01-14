@@ -65,6 +65,21 @@ func (mr *MockASGInterfaceMockRecorder) ASGIfExists(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ASGIfExists", reflect.TypeOf((*MockASGInterface)(nil).ASGIfExists), arg0)
 }
 
+// CanStartASGInstanceRefresh mocks base method
+func (m *MockASGInterface) CanStartASGInstanceRefresh(arg0 *scope.MachinePoolScope) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CanStartASGInstanceRefresh", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CanStartASGInstanceRefresh indicates an expected call of CanStartASGInstanceRefresh
+func (mr *MockASGInterfaceMockRecorder) CanStartASGInstanceRefresh(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanStartASGInstanceRefresh", reflect.TypeOf((*MockASGInterface)(nil).CanStartASGInstanceRefresh), arg0)
+}
+
 // CreateASG mocks base method
 func (m *MockASGInterface) CreateASG(arg0 *scope.MachinePoolScope) (*v1alpha3.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
@@ -107,6 +122,20 @@ func (m *MockASGInterface) GetASGByName(arg0 *scope.MachinePoolScope) (*v1alpha3
 func (mr *MockASGInterfaceMockRecorder) GetASGByName(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetASGByName", reflect.TypeOf((*MockASGInterface)(nil).GetASGByName), arg0)
+}
+
+// StartASGInstanceRefresh mocks base method
+func (m *MockASGInterface) StartASGInstanceRefresh(arg0 *scope.MachinePoolScope) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartASGInstanceRefresh", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StartASGInstanceRefresh indicates an expected call of StartASGInstanceRefresh
+func (mr *MockASGInterfaceMockRecorder) StartASGInstanceRefresh(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartASGInstanceRefresh", reflect.TypeOf((*MockASGInterface)(nil).StartASGInstanceRefresh), arg0)
 }
 
 // UpdateASG mocks base method

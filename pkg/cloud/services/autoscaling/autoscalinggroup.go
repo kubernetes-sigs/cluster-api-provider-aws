@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/pkg/errors"
+	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
@@ -299,6 +300,59 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 
 	if _, err := s.ASGClient.UpdateAutoScalingGroup(input); err != nil {
 		return errors.Wrapf(err, "failed to update ASG %q", scope.Name())
+	}
+
+	return nil
+}
+
+func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error) {
+	describeInput := &autoscaling.DescribeInstanceRefreshesInput{AutoScalingGroupName: aws.String(scope.Name())}
+	refreshes, err := s.ASGClient.DescribeInstanceRefreshes(describeInput)
+	if err != nil {
+		return false, err
+	}
+	hasUnfinishedRefresh := false
+	if err == nil && len(refreshes.InstanceRefreshes) != 0 {
+		for i := range refreshes.InstanceRefreshes {
+			if *refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusInProgress ||
+				*refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusPending ||
+				*refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusCancelling {
+				hasUnfinishedRefresh = true
+			}
+		}
+	}
+	if hasUnfinishedRefresh {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
+	strategy := pointer.StringPtr(autoscaling.RefreshStrategyRolling)
+	var minHealthyPercentage, instanceWarmup *int64
+	if scope.AWSMachinePool.Spec.RefreshPreferences != nil {
+		if scope.AWSMachinePool.Spec.RefreshPreferences.Strategy != nil {
+			strategy = scope.AWSMachinePool.Spec.RefreshPreferences.Strategy
+		}
+		if scope.AWSMachinePool.Spec.RefreshPreferences.InstanceWarmup != nil {
+			instanceWarmup = scope.AWSMachinePool.Spec.RefreshPreferences.InstanceWarmup
+		}
+		if scope.AWSMachinePool.Spec.RefreshPreferences.MinHealthyPercentage != nil {
+			minHealthyPercentage = scope.AWSMachinePool.Spec.RefreshPreferences.MinHealthyPercentage
+		}
+	}
+
+	input := &autoscaling.StartInstanceRefreshInput{
+		AutoScalingGroupName: aws.String(scope.Name()),
+		Strategy:             strategy,
+		Preferences: &autoscaling.RefreshPreferences{
+			InstanceWarmup:       instanceWarmup,
+			MinHealthyPercentage: minHealthyPercentage,
+		},
+	}
+
+	if _, err := s.ASGClient.StartInstanceRefresh(input); err != nil {
+		return errors.Wrapf(err, "failed to start ASG instance refresh %q", scope.Name())
 	}
 
 	return nil
