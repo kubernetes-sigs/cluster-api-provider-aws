@@ -62,6 +62,14 @@ const (
 )
 
 const (
+	// SecondaryCidrsReady condition reports successful reconciliation of secondary CIDR blocks.
+	// Only applicable to managed clusters.
+	SecondaryCidrsReadyCondition clusterv1.ConditionType = "SecondaryCidrsReady"
+	// SecondaryCidrReconciliationFailedReason used when any errors occur during reconciliation of secondary CIDR blocks.
+	SecondaryCidrReconciliationFailedReason = "SecondaryCidrReconciliationFailed"
+)
+
+const (
 	// ClusterSecurityGroupsReady condition reports successful reconciliation of security groups.
 	ClusterSecurityGroupsReadyCondition clusterv1.ConditionType = "ClusterSecurityGroupsReady"
 	// ClusterSecurityGroupReconciliationFailedReason used when any errors occur during reconciliation of security groups.

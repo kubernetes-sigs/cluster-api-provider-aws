@@ -38,6 +38,11 @@ type AWSManagedControlPlaneSpec struct {
 	// NetworkSpec encapsulates all things related to AWS network.
 	NetworkSpec infrav1.NetworkSpec `json:"networkSpec,omitempty"`
 
+	// SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
+	// Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
+	// +optional
+	SecondaryCidrBlock *string `json:"secondaryCidrBlock,omitempty"`
+
 	// The AWS Region the cluster lives in.
 	Region string `json:"region,omitempty"`
 

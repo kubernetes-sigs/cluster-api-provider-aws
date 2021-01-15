@@ -126,6 +126,11 @@ func (s *ClusterScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.Se
 	return s.AWSCluster.Status.Network.SecurityGroups
 }
 
+// SecondaryCidrBlock is currently unimplemented for non-managed clusters
+func (s *ClusterScope) SecondaryCidrBlock() *string {
+	return nil
+}
+
 // Name returns the CAPI cluster name.
 func (s *ClusterScope) Name() string {
 	return s.Cluster.Name

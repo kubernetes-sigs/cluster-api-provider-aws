@@ -18,7 +18,9 @@ package v1alpha3
 
 import (
 	"fmt"
+	"net"
 
+	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/pkg/errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,6 +38,11 @@ import (
 
 // log is for logging in this package.
 var mcpLog = logf.Log.WithName("awsmanagedcontrolplane-resource")
+
+const (
+	cidrSizeMax = 65536
+	cidrSizeMin = 16
+)
 
 // SetupWebhookWithManager will setup the webhooks for the AWSManagedControlPlane
 func (r *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -80,6 +87,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
+	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -108,6 +116,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
+	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -204,6 +213,37 @@ func (r *AWSManagedControlPlane) validateIAMAuthConfig() field.ErrorList {
 		}
 	}
 
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateSecondaryCIDR() field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.SecondaryCidrBlock != nil {
+		cidrField := field.NewPath("spec", "secondaryCidrBlock")
+		_, validRange1, _ := net.ParseCIDR("100.64.0.0/10")
+		_, validRange2, _ := net.ParseCIDR("198.19.0.0/16")
+
+		_, ipv4Net, err := net.ParseCIDR(*r.Spec.SecondaryCidrBlock)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(cidrField, *r.Spec.SecondaryCidrBlock, "must be valid CIDR range"))
+			return allErrs
+		}
+
+		cidrSize := cidr.AddressCount(ipv4Net)
+		if cidrSize > cidrSizeMax || cidrSize < cidrSizeMin {
+			allErrs = append(allErrs, field.Invalid(cidrField, *r.Spec.SecondaryCidrBlock, "CIDR block sizes must be between a /16 netmask and /28 netmask"))
+		}
+
+		start, end := cidr.AddressRange(ipv4Net)
+		if (!validRange1.Contains(start) || !validRange1.Contains(end)) && (!validRange2.Contains(start) || !validRange2.Contains(end)) {
+			allErrs = append(allErrs, field.Invalid(cidrField, *r.Spec.SecondaryCidrBlock, "must be within the 100.64.0.0/10 or 198.19.0.0/16 range"))
+		}
+
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
 	return allErrs
 }
 

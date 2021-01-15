@@ -79,6 +79,33 @@ func (s *Service) reconcileSubnets() error {
 		}
 	}
 
+	if s.scope.SecondaryCidrBlock() != nil {
+		subnetCIDRs, err := cidr.SplitIntoSubnetsIPv4(*s.scope.SecondaryCidrBlock(), *s.scope.VPC().AvailabilityZoneUsageLimit)
+		if err != nil {
+			return err
+		}
+
+		zones, err := s.getAvailableZones()
+		if err != nil {
+			return err
+		}
+
+		for i, sub := range subnetCIDRs {
+			secondarySub := &infrav1.SubnetSpec{
+				CidrBlock:        sub.String(),
+				AvailabilityZone: zones[i],
+				IsPublic:         false,
+				Tags: infrav1.Tags{
+					infrav1.NameAWSSubnetAssociation: infrav1.SecondarySubnetTagValue,
+				},
+			}
+			existingSubnet := existing.FindEqual(secondarySub)
+			if existingSubnet == nil {
+				subnets = append(subnets, secondarySub)
+			}
+		}
+	}
+
 	for _, sub := range subnets {
 		existingSubnet := existing.FindEqual(sub)
 		if existingSubnet != nil {

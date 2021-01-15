@@ -89,6 +89,11 @@ func (in *AWSManagedControlPlaneList) DeepCopyObject() runtime.Object {
 func (in *AWSManagedControlPlaneSpec) DeepCopyInto(out *AWSManagedControlPlaneSpec) {
 	*out = *in
 	in.NetworkSpec.DeepCopyInto(&out.NetworkSpec)
+	if in.SecondaryCidrBlock != nil {
+		in, out := &in.SecondaryCidrBlock, &out.SecondaryCidrBlock
+		*out = new(string)
+		**out = **in
+	}
 	if in.SSHKeyName != nil {
 		in, out := &in.SSHKeyName, &out.SSHKeyName
 		*out = new(string)

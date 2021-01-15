@@ -40,6 +40,8 @@ type Scope interface {
 	CNIIngressRules() infrav1.CNIIngressRules
 	// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
+	// SecondaryCidrBlock returns the optional secondary CIDR block to use for pod IPs
+	SecondaryCidrBlock() *string
 
 	// Bastion returns the bastion details for the cluster.
 	Bastion() *infrav1.Bastion

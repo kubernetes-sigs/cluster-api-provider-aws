@@ -18,14 +18,20 @@ package scope
 
 import (
 	"context"
+	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 
+	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -33,6 +39,16 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 )
+
+var (
+	scheme = runtime.NewScheme()
+)
+
+func init() {
+	_ = amazoncni.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+}
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
@@ -102,6 +118,21 @@ type ManagedControlPlaneScope struct {
 	allowAdditionalRoles bool
 }
 
+// RemoteClient returns the Kubernetes client for connecting to the workload cluster.
+func (s *ManagedControlPlaneScope) RemoteClient() (client.Client, error) {
+	clusterKey := client.ObjectKey{
+		Name:      s.Name(),
+		Namespace: s.Namespace(),
+	}
+
+	restConfig, err := remote.RESTConfig(context.Background(), s.Client, clusterKey)
+	if err != nil {
+		return nil, fmt.Errorf("getting remote client for %s/%s: %w", s.Namespace(), s.Name(), err)
+	}
+
+	return client.New(restConfig, client.Options{Scheme: scheme})
+}
+
 // Network returns the control plane network object.
 func (s *ManagedControlPlaneScope) Network() *infrav1.Network {
 	return &s.ControlPlane.Status.Network
@@ -141,6 +172,10 @@ func (s *ManagedControlPlaneScope) CNIIngressRules() infrav1.CNIIngressRules {
 // SecurityGroups returns the control plane security groups as a map, it creates the map if empty.
 func (s *ManagedControlPlaneScope) SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup {
 	return s.ControlPlane.Status.Network.SecurityGroups
+}
+
+func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
+	return s.ControlPlane.Spec.SecondaryCidrBlock
 }
 
 // Name returns the CAPI cluster name.
