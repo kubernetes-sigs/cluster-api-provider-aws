@@ -17,9 +17,9 @@ include $(ROOT_DIR_RELATIVE)/versions.mk
 # Ensure Make is run with bash shell as some syntax below is bash-specific
 SHELL:=bash
 .ONESHELL:
+.EXPORT_ALL_VARIABLES:
 .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
-MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 
 TOOLS_DIR := $(ROOT_DIR_RELATIVE)/hack/tools
