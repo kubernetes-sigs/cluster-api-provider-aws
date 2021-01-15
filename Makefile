@@ -142,7 +142,7 @@ test-e2e-eks: $(GINKGO) $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) e2e-image ## Run eks 
 	time $(GINKGO) -trace -progress -v -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/managed/... -- -config-path="$(E2E_EKS_CONF_PATH)" -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" --source-template="eks/cluster-template-eks-control-plane-only.yaml" --skip-eks-upgrade-tests $(E2E_ARGS)
 
 .PHONY: e2e-image
-e2e-image:
+e2e-image: docker-pull-prerequisites
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-manager:e2e" .
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-eks-boostrap-manager:e2e" --build-arg package=./bootstrap/eks  .
 	docker build -f Dockerfile --tag="gcr.io/k8s-staging-cluster-api/capa-eks-controlplane-manager:e2e" --build-arg package=./controlplane/eks  .
@@ -308,15 +308,15 @@ docker-build:
 
 .PHONY: docker-build-core
 docker-build-core: docker-pull-prerequisites ## Build the docker image for controller-manager
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-eks-bootstrap
 docker-build-eks-bootstrap: docker-pull-prerequisites
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" --build-arg package=./bootstrap/eks . -t $(EKS_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" --build-arg package=./bootstrap/eks . -t $(EKS_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-eks-controlplane
 docker-build-eks-controlplane: docker-pull-prerequisites
-	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" --build-arg package=./controlplane/eks . -t $(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" --build-arg package=./controlplane/eks . -t $(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push
 docker-push: ## Push the docker image
