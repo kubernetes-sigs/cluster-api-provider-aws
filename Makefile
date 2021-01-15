@@ -307,15 +307,15 @@ docker-build:
 	$(MAKE) ARCH=$(ARCH) docker-build-eks-controlplane
 
 .PHONY: docker-build-core
-docker-build-core: ## Build the docker image for controller-manager
+docker-build-core: docker-pull-prerequisites ## Build the docker image for controller-manager
 	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-eks-bootstrap
-docker-build-eks-bootstrap:
+docker-build-eks-bootstrap: docker-pull-prerequisites
 	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" --build-arg package=./bootstrap/eks . -t $(EKS_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-eks-controlplane
-docker-build-eks-controlplane:
+docker-build-eks-controlplane: docker-pull-prerequisites
 	docker build --pull --build-arg ARCH=$(ARCH) --build-arg LDFLAGS="$(LDFLAGS)" --build-arg package=./controlplane/eks . -t $(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push
@@ -323,6 +323,12 @@ docker-push: ## Push the docker image
 	docker push $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	docker push $(EKS_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	docker push $(EKS_CONTROLPLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: docker-pull-prerequisites
+docker-pull-prerequisites:
+	docker pull docker.io/docker/dockerfile:1.1-experimental
+	docker pull docker.io/library/golang:$(GOLANG_VERSION)
+	docker pull gcr.io/distroless/static:latest
 
 ## --------------------------------------
 ## Docker — All ARCH
