@@ -134,6 +134,11 @@ type AWSManagedControlPlaneSpec struct {
 	// +kubebuilder:default=iam-authenticator
 	// +kubebuilder:validation:Enum=iam-authenticator;aws-cli
 	TokenMethod *EKSTokenMethod `json:"tokenMethod,omitempty"`
+
+	// AssociateOIDCProvider can be enabled to automatically create an identity
+	// provider for the controller for use with IAM roles for service accounts
+	// +kubebuilder:default=false
+	AssociateOIDCProvider bool `json:"associateOIDCProvider,omitempty"`
 }
 
 // EndpointAccess specifies how control plane endpoints are accessible
@@ -157,6 +162,14 @@ type EncryptionConfig struct {
 	Resources []*string `json:"resources,omitempty"`
 }
 
+// OIDCProviderStatus holds the status of the AWS OIDC identity provider
+type OIDCProviderStatus struct {
+	// ARN holds the ARN of the provider
+	ARN string `json:"arn,omitempty"`
+	// TrustPolicy contains the boilerplate IAM trust policy to use for IRSA
+	TrustPolicy string `json:"trustPolicy,omitempty"`
+}
+
 // AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane
 type AWSManagedControlPlaneStatus struct {
 	// Networks holds details about the AWS networking resources used by the control plane
@@ -168,6 +181,9 @@ type AWSManagedControlPlaneStatus struct {
 	// Bastion holds details of the instance that is used as a bastion jump box
 	// +optional
 	Bastion *infrav1.Instance `json:"bastion,omitempty"`
+	// OIDCProvider holds the status of the identity provider for this cluster
+	// +optional
+	OIDCProvider OIDCProviderStatus `json:"oidcProvider,omitempty"`
 	// ExternalManagedControlPlane indicates to cluster-api that the control plane
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true

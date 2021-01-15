@@ -65,6 +65,11 @@ func (s *Service) DeleteControlPlane() (err error) {
 		return err
 	}
 
+	// OIDC Provider
+	if err := s.deleteOIDCProvider(); err != nil {
+		return err
+	}
+
 	s.scope.V(2).Info("Delete EKS control plane completed successfully")
 	return nil
 }

@@ -17,7 +17,13 @@ limitations under the License.
 package iam
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
+	"net/http"
+	"net/url"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/go-logr/logr"
@@ -347,4 +353,55 @@ func findStringInSlice(slice []*string, toFind string) bool {
 	}
 
 	return false
+}
+
+const stsAWSAudience = "sts.amazonaws.com"
+
+func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
+	issuerURL, err := url.Parse(*cluster.Identity.Oidc.Issuer)
+	if err != nil {
+		return "", err
+	}
+	if issuerURL.Scheme != "https" {
+		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
+	}
+
+	thumbprint, err := fetchRootCAThumbprint(issuerURL.String())
+	if err != nil {
+		return "", err
+	}
+	input := iam.CreateOpenIDConnectProviderInput{
+		ClientIDList:   aws.StringSlice([]string{stsAWSAudience}),
+		ThumbprintList: aws.StringSlice([]string{thumbprint}),
+		Url:            aws.String(issuerURL.String()),
+	}
+	provider, err := s.IAMClient.CreateOpenIDConnectProvider(&input)
+	if err != nil {
+		return "", errors.Wrap(err, "error creating provider")
+	}
+	return *provider.OpenIDConnectProviderArn, nil
+}
+
+func fetchRootCAThumbprint(issuerURL string) (string, error) {
+	response, err := http.Get(issuerURL)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	rootCA := response.TLS.PeerCertificates[len(response.TLS.PeerCertificates)-1]
+	sha1Sum := sha1.Sum(rootCA.Raw) //nolint:gosec
+	return hex.EncodeToString(sha1Sum[:]), nil
+}
+
+func (s *IAMService) DeleteOIDCProvider(arn *string) error {
+	input := iam.DeleteOpenIDConnectProviderInput{
+		OpenIDConnectProviderArn: arn,
+	}
+
+	_, err := s.IAMClient.DeleteOpenIDConnectProvider(&input)
+	if err != nil {
+		return errors.Wrap(err, "error deleting provider")
+	}
+	return nil
 }
