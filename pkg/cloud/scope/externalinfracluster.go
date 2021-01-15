@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,7 +61,7 @@ func NewExternalInfraClusterScope(params ExternalInfraClusterScopeParams) (*Exte
 	if err != nil || !found {
 		return nil, fmt.Errorf("error getting region: %w", err)
 	}
-	session, err := sessionForRegion(region, params.Endpoints)
+	session, serviceLimiters, err := sessionForRegion(region, params.Endpoints)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -76,6 +77,7 @@ func NewExternalInfraClusterScope(params ExternalInfraClusterScopeParams) (*Exte
 		ExternalInfraCluster: &ExternalInfraClusterObject{params.ExternalInfraCluster},
 		patchHelper:          helper,
 		session:              session,
+		serviceLimiters:      serviceLimiters,
 		controllerName:       params.ControllerName,
 	}, nil
 }
@@ -89,12 +91,21 @@ type ExternalInfraClusterScope struct {
 	Cluster              *clusterv1.Cluster
 	ExternalInfraCluster *ExternalInfraClusterObject
 
-	session        awsclient.ConfigProvider
-	controllerName string
+	session         awsclient.ConfigProvider
+	serviceLimiters throttle.ServiceLimiters
+	controllerName  string
 }
 
 // Network returns the cluster network object.
 func (s *ExternalInfraClusterScope) Network() *infrav1.Network {
+	return nil
+}
+
+// ServiceLimiter returns the AWS SDK session. Used for creating clients
+func (s *ExternalInfraClusterScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
+	if sl, ok := s.serviceLimiters[service]; ok {
+		return sl
+	}
 	return nil
 }
 

@@ -23,6 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/klog/klogr"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -60,7 +61,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		params.Logger = klogr.New()
 	}
 
-	session, err := sessionForRegion(params.ControlPlane.Spec.Region, params.Endpoints)
+	session, serviceLimiters, err := sessionForRegion(params.ControlPlane.Spec.Region, params.Endpoints)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -77,6 +78,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		ControlPlane:         params.ControlPlane,
 		patchHelper:          helper,
 		session:              session,
+		serviceLimiters:      serviceLimiters,
 		controllerName:       params.ControllerName,
 		allowAdditionalRoles: params.AllowAdditionalRoles,
 		enableIAM:            params.EnableIAM,
@@ -92,8 +94,9 @@ type ManagedControlPlaneScope struct {
 	Cluster      *clusterv1.Cluster
 	ControlPlane *ekscontrolplanev1.AWSManagedControlPlane
 
-	session        awsclient.ConfigProvider
-	controllerName string
+	session         awsclient.ConfigProvider
+	serviceLimiters throttle.ServiceLimiters
+	controllerName  string
 
 	enableIAM            bool
 	allowAdditionalRoles bool
@@ -107,6 +110,14 @@ func (s *ManagedControlPlaneScope) Network() *infrav1.Network {
 // VPC returns the control plane VPC.
 func (s *ManagedControlPlaneScope) VPC() *infrav1.VPCSpec {
 	return &s.ControlPlane.Spec.NetworkSpec.VPC
+}
+
+// ServiceLimiter returns the AWS SDK session. Used for creating clients
+func (s *ManagedControlPlaneScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
+	if sl, ok := s.serviceLimiters[service]; ok {
+		return sl
+	}
+	return nil
 }
 
 // Subnets returns the control plane subnets.
