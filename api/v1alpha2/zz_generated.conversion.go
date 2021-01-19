@@ -489,6 +489,7 @@ func autoConvert_v1alpha3_AWSLoadBalancerSpec_To_v1alpha2_AWSLoadBalancerSpec(in
 	out.Scheme = (*ClassicELBScheme)(unsafe.Pointer(in.Scheme))
 	// WARNING: in.CrossZoneLoadBalancing requires manual conversion: does not exist in peer-type
 	// WARNING: in.Subnets requires manual conversion: does not exist in peer-type
+	// WARNING: in.AdditionalSecurityGroups requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -1071,6 +1072,7 @@ func autoConvert_v1alpha3_NetworkSpec_To_v1alpha2_NetworkSpec(in *v1alpha3.Netwo
 	}
 	out.Subnets = *(*Subnets)(unsafe.Pointer(&in.Subnets))
 	// WARNING: in.CNI requires manual conversion: does not exist in peer-type
+	// WARNING: in.SecurityGroupOverrides requires manual conversion: does not exist in peer-type
 	return nil
 }
 

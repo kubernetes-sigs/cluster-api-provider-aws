@@ -68,6 +68,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 			// Scheme is already copied from src in Convert_v1alpha2_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec.
 			dst.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing = restored.Spec.ControlPlaneLoadBalancer.CrossZoneLoadBalancing
 			dst.Spec.ControlPlaneLoadBalancer.Subnets = restored.Spec.ControlPlaneLoadBalancer.Subnets
+			dst.Spec.ControlPlaneLoadBalancer.AdditionalSecurityGroups = restored.Spec.ControlPlaneLoadBalancer.AdditionalSecurityGroups
 		}
 	}
 
