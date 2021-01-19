@@ -19,6 +19,10 @@ images:
   # Use local dev images built source tree;
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-cluster-api/capa-eks-bootstrap-manager:e2e
+    loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-cluster-api/capa-eks-controlplane-manager:e2e
+    loadBehavior: mustLoad        
   - name: quay.io/jetstack/cert-manager-cainjector:v0.16.1
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-webhook:v0.16.1
