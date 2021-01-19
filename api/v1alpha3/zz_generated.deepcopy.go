@@ -168,8 +168,8 @@ func (in *AWSLoadBalancerSpec) DeepCopyInto(out *AWSLoadBalancerSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.SecurityGroups != nil {
-		in, out := &in.SecurityGroups, &out.SecurityGroups
+	if in.AdditionalSecurityGroups != nil {
+		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

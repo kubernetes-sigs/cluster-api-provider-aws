@@ -17,6 +17,7 @@ limitations under the License.
 package securitygroup
 
 import (
+	"github.com/pkg/errors"
 	"strings"
 	"testing"
 
@@ -243,6 +244,48 @@ func TestReconcileSecurityGroups(t *testing.T) {
 				VPC: infrav1.VPCSpec{
 					ID:                "vpc-securitygroups",
 					InternetGatewayID: aws.String("igw-01"),
+				},
+				Subnets: infrav1.Subnets{
+					&infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					&infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+				SecurityGroupOverrides: map[infrav1.SecurityGroupRole]string{
+					infrav1.SecurityGroupBastion:      "sg-bastion",
+					infrav1.SecurityGroupAPIServerLB:  "sg-apiserver-lb",
+					infrav1.SecurityGroupLB:           "sg-lb",
+					infrav1.SecurityGroupControlPlane: "sg-control",
+					infrav1.SecurityGroupNode:         "sg-node",
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
+					Return(&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{GroupId: aws.String("sg-bastion"), GroupName: aws.String("Bastion Security Group")},
+							{GroupId: aws.String("sg-apiserver-lb"), GroupName: aws.String("API load balancer Security Group")},
+							{GroupId: aws.String("sg-lb"), GroupName: aws.String("Load balancer Security Group")},
+							{GroupId: aws.String("sg-control"), GroupName: aws.String("Control plane Security Group")},
+							{GroupId: aws.String("sg-node"), GroupName: aws.String("Node Security Group")},
+						},
+					}, nil).AnyTimes()
+
+			},
+		},
+		{
+			name: "managed vpc with overrides, returns error",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
 					Tags: infrav1.Tags{
 						infrav1.ClusterTagKey("test-cluster"): "owned",
 					},
@@ -281,6 +324,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					}, nil).AnyTimes()
 
 			},
+			err: errors.New(`security group overrides provided for managed vpc "test-cluster"`),
 		},
 	}
 

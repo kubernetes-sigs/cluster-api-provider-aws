@@ -107,7 +107,6 @@ Users may either specify `failureDomain` on the Machine or MachineDeployment obj
 To use existing security groups for instances for a cluster, add this to the AWSCluster specification:
 
 ```yaml
-
 spec:
   networkSpec:
     securityGroupOverrides:
@@ -127,8 +126,7 @@ spec:
   controlPlaneLoadBalancer:
     AdditionalsecurityGroups:
     - sg-0200a3507a5ad2c5c8c3
-    - ...
-    
+    - ...   
 ```
 
 ## Caveats/Notes

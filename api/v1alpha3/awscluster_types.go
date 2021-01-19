@@ -132,10 +132,10 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	Subnets []string `json:"subnets,omitempty"`
 
-	// AdditonalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs.
+	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs.
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
-	AdditionalSecurityGroups []string `json:"securityGroups,omitempty"`
+	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster

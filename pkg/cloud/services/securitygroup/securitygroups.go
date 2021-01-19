@@ -79,7 +79,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 
 	// Security group overrides should not be specified for a managed VPC
 	if securityGroupOverrides != nil && s.scope.VPC().IsManaged(s.scope.Name()) {
-		return errors.Wrapf(err, "security group overrides provided for managed vpc %q", s.scope.Name())
+		return errors.Errorf("security group overrides provided for managed vpc %q", s.scope.Name())
 
 	}
 	sgs, err := s.describeSecurityGroupsByName()
@@ -128,7 +128,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 			continue
 		}
 
-		if !s.securityGroupIsOverridden(*sg.GroupId) {
+		if !s.securityGroupIsOverridden(existing.ID) {
 			// Make sure tags are up to date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
