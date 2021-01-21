@@ -23,6 +23,7 @@ import (
 	mapiv1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/openshift/machine-api-operator/pkg/controller/machine"
 	"github.com/openshift/machine-api-operator/pkg/metrics"
+	corev1 "k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -31,6 +32,8 @@ import (
 	awsclient "sigs.k8s.io/cluster-api-provider-aws/pkg/client"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/version"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -136,11 +139,22 @@ func main() {
 		klog.Fatal(err)
 	}
 
+	if err := corev1.AddToScheme(mgr.GetScheme()); err != nil {
+		klog.Fatal(err)
+	}
+
+	configManagedClient, startCache, err := newConfigManagedClient(mgr)
+	if err != nil {
+		klog.Fatal(err)
+	}
+	mgr.Add(startCache)
+
 	// Initialize machine actuator.
 	machineActuator := machineactuator.NewActuator(machineactuator.ActuatorParams{
-		Client:           mgr.GetClient(),
-		EventRecorder:    mgr.GetEventRecorderFor("awscontroller"),
-		AwsClientBuilder: awsclient.NewValidatedClient,
+		Client:              mgr.GetClient(),
+		EventRecorder:       mgr.GetEventRecorderFor("awscontroller"),
+		AwsClientBuilder:    awsclient.NewValidatedClient,
+		ConfigManagedClient: configManagedClient,
 	})
 
 	if err := machine.AddWithActuator(mgr, machineActuator); err != nil {
@@ -170,4 +184,29 @@ func main() {
 	if err != nil {
 		klog.Fatalf("Error starting manager: %v", err)
 	}
+}
+
+// newConfigManagedClient returns a controller-runtime client that can be used to access the openshift-config-managed
+// namespace.
+func newConfigManagedClient(mgr manager.Manager) (runtimeclient.Client, manager.Runnable, error) {
+	cacheOpts := cache.Options{
+		Scheme:    mgr.GetScheme(),
+		Mapper:    mgr.GetRESTMapper(),
+		Namespace: awsclient.KubeCloudConfigNamespace,
+	}
+	cache, err := cache.New(mgr.GetConfig(), cacheOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	clientOpts := runtimeclient.Options{
+		Scheme: mgr.GetScheme(),
+		Mapper: mgr.GetRESTMapper(),
+	}
+	client, err := manager.NewClientBuilder().Build(cache, mgr.GetConfig(), clientOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return client, cache, nil
 }

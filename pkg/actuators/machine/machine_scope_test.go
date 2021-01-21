@@ -261,7 +261,7 @@ func TestPatchMachine(t *testing.T) {
 			machineScope, err := newMachineScope(machineScopeParams{
 				client:  k8sClient,
 				machine: machine,
-				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string, configManagedClient runtimeclient.Client) (awsclient.Client, error) {
 					return nil, nil
 				},
 			})

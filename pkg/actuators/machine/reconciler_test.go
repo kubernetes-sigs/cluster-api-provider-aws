@@ -89,7 +89,7 @@ func TestAvailabilityZone(t *testing.T) {
 			machineScope, err := newMachineScope(machineScopeParams{
 				client:  fakeClient,
 				machine: machine,
-				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string, configManagedClient runtimeclient.Client) (awsclient.Client, error) {
 					return mockAWSClient, nil
 				},
 			})
@@ -492,7 +492,7 @@ func TestCreate(t *testing.T) {
 		machineScope, err := newMachineScope(machineScopeParams{
 			client:  fakeClient,
 			machine: machine,
-			awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+			awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string, configManagedClient runtimeclient.Client) (awsclient.Client, error) {
 				return mockAWSClient, nil
 			},
 		})
@@ -638,7 +638,7 @@ func TestGetMachineInstances(t *testing.T) {
 			machineScope, err := newMachineScope(machineScopeParams{
 				client:  fakeClient,
 				machine: machineCopy,
-				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string) (awsclient.Client, error) {
+				awsClientBuilder: func(client runtimeclient.Client, secretName, namespace, region string, configManagedClient runtimeclient.Client) (awsclient.Client, error) {
 					return mockAWSClient, nil
 				},
 			})

@@ -39,24 +39,27 @@ const (
 
 // Actuator is responsible for performing machine reconciliation.
 type Actuator struct {
-	client           runtimeclient.Client
-	eventRecorder    record.EventRecorder
-	awsClientBuilder awsclient.AwsClientBuilderFuncType
+	client              runtimeclient.Client
+	eventRecorder       record.EventRecorder
+	awsClientBuilder    awsclient.AwsClientBuilderFuncType
+	configManagedClient runtimeclient.Client
 }
 
 // ActuatorParams holds parameter information for Actuator.
 type ActuatorParams struct {
-	Client           runtimeclient.Client
-	EventRecorder    record.EventRecorder
-	AwsClientBuilder awsclient.AwsClientBuilderFuncType
+	Client              runtimeclient.Client
+	EventRecorder       record.EventRecorder
+	AwsClientBuilder    awsclient.AwsClientBuilderFuncType
+	ConfigManagedClient runtimeclient.Client
 }
 
 // NewActuator returns an actuator.
 func NewActuator(params ActuatorParams) *Actuator {
 	return &Actuator{
-		client:           params.Client,
-		eventRecorder:    params.EventRecorder,
-		awsClientBuilder: params.AwsClientBuilder,
+		client:              params.Client,
+		eventRecorder:       params.EventRecorder,
+		awsClientBuilder:    params.AwsClientBuilder,
+		configManagedClient: params.ConfigManagedClient,
 	}
 }
 
@@ -74,10 +77,11 @@ func (a *Actuator) handleMachineError(machine *machinev1.Machine, err error, eve
 func (a *Actuator) Create(ctx context.Context, machine *machinev1.Machine) error {
 	klog.Infof("%s: actuator creating machine", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context:          ctx,
-		client:           a.client,
-		machine:          machine,
-		awsClientBuilder: a.awsClientBuilder,
+		Context:             ctx,
+		client:              a.client,
+		machine:             machine,
+		awsClientBuilder:    a.awsClientBuilder,
+		configManagedClient: a.configManagedClient,
 	})
 	if err != nil {
 		fmtErr := fmt.Errorf(scopeFailFmt, machine.GetName(), err)
@@ -99,10 +103,11 @@ func (a *Actuator) Create(ctx context.Context, machine *machinev1.Machine) error
 func (a *Actuator) Exists(ctx context.Context, machine *machinev1.Machine) (bool, error) {
 	klog.Infof("%s: actuator checking if machine exists", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context:          ctx,
-		client:           a.client,
-		machine:          machine,
-		awsClientBuilder: a.awsClientBuilder,
+		Context:             ctx,
+		client:              a.client,
+		machine:             machine,
+		awsClientBuilder:    a.awsClientBuilder,
+		configManagedClient: a.configManagedClient,
 	})
 	if err != nil {
 		return false, fmt.Errorf(scopeFailFmt, machine.GetName(), err)
@@ -114,10 +119,11 @@ func (a *Actuator) Exists(ctx context.Context, machine *machinev1.Machine) (bool
 func (a *Actuator) Update(ctx context.Context, machine *machinev1.Machine) error {
 	klog.Infof("%s: actuator updating machine", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context:          ctx,
-		client:           a.client,
-		machine:          machine,
-		awsClientBuilder: a.awsClientBuilder,
+		Context:             ctx,
+		client:              a.client,
+		machine:             machine,
+		awsClientBuilder:    a.awsClientBuilder,
+		configManagedClient: a.configManagedClient,
 	})
 	if err != nil {
 		fmtErr := fmt.Errorf(scopeFailFmt, machine.GetName(), err)
@@ -152,10 +158,11 @@ func (a *Actuator) Update(ctx context.Context, machine *machinev1.Machine) error
 func (a *Actuator) Delete(ctx context.Context, machine *machinev1.Machine) error {
 	klog.Infof("%s: actuator deleting machine", machine.GetName())
 	scope, err := newMachineScope(machineScopeParams{
-		Context:          ctx,
-		client:           a.client,
-		machine:          machine,
-		awsClientBuilder: a.awsClientBuilder,
+		Context:             ctx,
+		client:              a.client,
+		machine:             machine,
+		awsClientBuilder:    a.awsClientBuilder,
+		configManagedClient: a.configManagedClient,
 	})
 	if err != nil {
 		fmtErr := fmt.Errorf(scopeFailFmt, machine.GetName(), err)
