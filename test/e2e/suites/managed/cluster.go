@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	. "github.com/onsi/ginkgo"
@@ -103,6 +104,8 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
 	verifySecretExists(ctx, fmt.Sprintf("%s-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
 	verifySecretExists(ctx, fmt.Sprintf("%s-user-kubeconfig", input.ClusterName), input.Namespace.Name, bootstrapClient)
+
+	time.Sleep(2 * time.Minute) //TODO: replace with an eventually on the aws-iam-auth check
 
 	shared.Byf("Checking that aws-iam-authenticator config map exists")
 	workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName)

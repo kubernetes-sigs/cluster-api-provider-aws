@@ -38,3 +38,10 @@ const (
 	// IAMAuthenticatorConfigurationFailedReason used to report failures while reconciling the aws-iam-authenticator config
 	IAMAuthenticatorConfigurationFailedReason = "IAMAuthenticatorConfigurationFailed"
 )
+
+const (
+	// EKSAddonsConfiguredCondition condition reports on the successful reconciliation of EKS addons
+	EKSAddonsConfiguredCondition clusterv1.ConditionType = "EKSAddonsConfigured"
+	// EKSAddonsConfiguredFailedReason used to report failures while reconciling the EKS addons
+	EKSAddonsConfiguredFailedReason = "EKSAddonsConfiguredFailed"
+)

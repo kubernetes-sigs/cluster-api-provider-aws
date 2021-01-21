@@ -322,3 +322,11 @@ func (s *ManagedControlPlaneScope) IAMAuthConfig() *ekscontrolplanev1.IAMAuthent
 	}
 	return s.ControlPlane.Spec.IAMAuthenticatorConfig
 }
+
+// Addons returns the list of addons for a EKS cluster
+func (s *ManagedControlPlaneScope) Addons() []ekscontrolplanev1.Addon {
+	if s.ControlPlane.Spec.Addons == nil {
+		return []ekscontrolplanev1.Addon{}
+	}
+	return *s.ControlPlane.Spec.Addons
+}

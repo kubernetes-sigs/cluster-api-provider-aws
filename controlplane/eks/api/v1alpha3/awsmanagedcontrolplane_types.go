@@ -144,6 +144,10 @@ type AWSManagedControlPlaneSpec struct {
 	// provider for the controller for use with IAM roles for service accounts
 	// +kubebuilder:default=false
 	AssociateOIDCProvider bool `json:"associateOIDCProvider,omitempty"`
+
+	// Addons defines the EKS addons to enable with the EKS cluster.
+	// +optional
+	Addons *[]Addon `json:"addons,omitempty"`
 }
 
 // EndpointAccess specifies how control plane endpoints are accessible
@@ -207,6 +211,9 @@ type AWSManagedControlPlaneStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the cpnditions for the managed control plane
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	// Addons holds the current status of the EKS addons
+	// +optional
+	Addons []*AddonState `json:"addons,omitempty"`
 }
 
 // +kubebuilder:object:root=true

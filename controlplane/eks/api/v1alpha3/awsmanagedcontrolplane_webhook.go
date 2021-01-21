@@ -36,6 +36,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 )
 
+const (
+	minAddonVersion = "v1.18.0"
+)
+
 // log is for logging in this package.
 var mcpLog = logf.Log.WithName("awsmanagedcontrolplane-resource")
 
@@ -88,6 +92,7 @@ func (r *AWSManagedControlPlane) ValidateCreate() error {
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
+	allErrs = append(allErrs, r.validateEKSAddons()...)
 
 	if len(allErrs) == 0 {
 		return nil
@@ -117,6 +122,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
+	allErrs = append(allErrs, r.validateEKSAddons()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -180,6 +186,31 @@ func (r *AWSManagedControlPlane) validateEKSVersion(old *AWSManagedControlPlane)
 		if err == nil && (v.Major() < oldV.Major() || v.Minor() < oldV.Minor()) {
 			allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, "new version less than old version"))
 		}
+	}
+
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateEKSAddons() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.Addons == nil || len(*r.Spec.Addons) == 0 {
+		return allErrs
+	}
+
+	path := field.NewPath("spec.version")
+	v, err := parseEKSVersion(*r.Spec.Version)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(path, *r.Spec.Version, err.Error()))
+	}
+
+	minVersion, _ := version.ParseSemantic(minAddonVersion)
+
+	addonsPath := field.NewPath("spec.addons")
+
+	if v.LessThan(minVersion) {
+		message := fmt.Sprintf("addons requires Kubernetes %s or greater", minAddonVersion)
+		allErrs = append(allErrs, field.Invalid(addonsPath, *r.Spec.Version, message))
 	}
 
 	return allErrs

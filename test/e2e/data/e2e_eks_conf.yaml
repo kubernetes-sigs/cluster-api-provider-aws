@@ -99,6 +99,8 @@ providers:
     files:
       - sourcePath: "./eks/cluster-template-eks-control-plane-only.yaml"
         targetName: "cluster-template-eks-control-plane-only.yaml"
+      - sourcePath: "./eks/cluster-template-eks-control-plane-only-withaddon.yaml"
+        targetName: "cluster-template-eks-control-plane-only-withaddon.yaml"
       - sourcePath: "./eks/cluster-template-eks-machine-deployment-only.yaml"
         targetName: "cluster-template-eks-machine-deployment-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managed-machinepool-only.yaml"
@@ -117,6 +119,7 @@ variables:
   EXP_EKS: "true"
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
+  VPC_ADDON_VERSION: "v1.6.3-eksbuild.1"
 
 intervals:
   default/wait-cluster: ["30m", "10s"]
@@ -131,3 +134,4 @@ intervals:
   default/wait-machine-status: ["20m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
   default/wait-control-plane-upgrade: ["35m", "30s"]
+  default/wait-addon-status: ["10m", "30s"]

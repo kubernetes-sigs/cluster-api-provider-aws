@@ -63,6 +63,33 @@ spec:
                   type: string
                 description: AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the ones added by default.
                 type: object
+              addons:
+                description: Addons defines the EKS addons to enable with the EKS cluster.
+                items:
+                  description: Addon represents a EKS addon
+                  properties:
+                    conflictResolution:
+                      default: none
+                      description: ConflictResolution is used to declare what should happen if there are parameter conflicts. Defaults to none
+                      enum:
+                      - overwrite
+                      - none
+                      type: string
+                    name:
+                      description: Name is the name of the addon
+                      minLength: 2
+                      type: string
+                    serviceAccountRoleARN:
+                      description: ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account
+                      type: string
+                    version:
+                      description: Version is the version of the addon to use
+                      type: string
+                  required:
+                  - name
+                  - version
+                  type: object
+                type: array
               associateOIDCProvider:
                 default: false
                 description: AssociateOIDCProvider can be enabled to automatically create an identity provider for the controller for use with IAM roles for service accounts
@@ -346,6 +373,58 @@ spec:
           status:
             description: AWSManagedControlPlaneStatus defines the observed state of AWSManagedControlPlane
             properties:
+              addons:
+                description: Addons holds the current status of the EKS addons
+                items:
+                  description: AddonState represents the state of an addon
+                  properties:
+                    arn:
+                      description: ARN is the AWS ARN of the addon
+                      type: string
+                    createdAt:
+                      description: CreatedAt is the date and time the addon was created at
+                      format: date-time
+                      type: string
+                    issues:
+                      description: Issues is a list of issue associated with the addon
+                      items:
+                        description: AddonIssue represents an issue with an addon
+                        properties:
+                          code:
+                            description: Code is the issue code
+                            type: string
+                          message:
+                            description: Message is the textual description of the issue
+                            type: string
+                          resourceIds:
+                            description: ResourceIDs is a list of resource ids for the issue
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      type: array
+                    modifiedAt:
+                      description: ModifiedAt is the date and time the addon was last modified
+                      format: date-time
+                      type: string
+                    name:
+                      description: Name is the name of the addon
+                      type: string
+                    serviceAccountRoleARN:
+                      description: ServiceAccountRoleArn is the ARN of the IAM role used for the service account
+                      type: string
+                    status:
+                      description: Status is the status of the addon
+                      type: string
+                    version:
+                      description: Version is the version of the addon to use
+                      type: string
+                  required:
+                  - arn
+                  - name
+                  - version
+                  type: object
+                type: array
               bastion:
                 description: Bastion holds details of the instance that is used as a bastion jump box
                 properties:

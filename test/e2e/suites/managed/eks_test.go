@@ -35,10 +35,12 @@ import (
 // General EKS e2e test
 var _ = Describe("EKS cluster tests", func() {
 	var (
-		namespace   *corev1.Namespace
-		ctx         context.Context
-		specName    = "eks-nodes"
-		clusterName string
+		namespace       *corev1.Namespace
+		ctx             context.Context
+		specName        = "eks-nodes"
+		clusterName     string
+		cniAddonName    = "vpc-cni"
+		cniAddonVersion = "v1.6.3-eksbuild.1"
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
@@ -63,10 +65,23 @@ var _ = Describe("EKS cluster tests", func() {
 				AWSSession:               e2eCtx.BootstratpUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
-				Flavour:                  EKSControlPlaneOnlyFlavor,
+				Flavour:                  EKSControlPlaneOnlyWithAddonFlavor,
 				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       0,
 				CNIManifestPath:          e2eCtx.E2EConfig.GetVariable(shared.CNIPath),
+			}
+		})
+
+		By("should have the VPC CNI installed")
+		CheckAddonExistsSpec(ctx, func() CheckAddonExistsSpecInput {
+			return CheckAddonExistsSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstratpUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				AddonName:             cniAddonName,
+				AddonVersion:          cniAddonVersion,
 			}
 		})
 

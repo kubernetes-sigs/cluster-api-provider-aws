@@ -163,6 +163,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(req ctrl.Request) (res ctrl
 			controlplanev1.EKSControlPlaneReadyCondition,
 			controlplanev1.IAMControlPlaneRolesReadyCondition,
 			controlplanev1.IAMAuthenticatorConfiguredCondition,
+			controlplanev1.EKSAddonsConfiguredCondition,
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
