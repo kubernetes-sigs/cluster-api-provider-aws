@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	"github.com/go-logr/logr"
@@ -27,18 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/secretsmanager"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -51,6 +39,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/secretsmanager"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
 
 // AWSMachineReconciler reconciles a AwsMachine object
@@ -66,8 +65,7 @@ type AWSMachineReconciler struct {
 
 const (
 	// AWSManagedControlPlaneRefKind is the string value indicating that a cluster is AWS managed
-	AWSManagedControlPlaneRefKind   = "AWSManagedControlPlane"
-	AWSClusterInfrastructureRefKind = "AWSCluster"
+	AWSManagedControlPlaneRefKind = "AWSManagedControlPlane"
 )
 
 func (r *AWSMachineReconciler) getEC2Service(scope scope.EC2Scope) services.EC2MachineInterface {
@@ -192,10 +190,7 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 
 		return r.reconcileNormal(ctx, machineScope, infraScope, infraScope, infraScope)
 	default:
-		if !awsMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-			return r.reconcileDelete(machineScope, infraScope, infraScope, nil)
-		}
-		return r.reconcileNormal(ctx, machineScope, infraScope, infraScope, nil)
+		return ctrl.Result{}, errors.New("infraCluster has unknown type")
 	}
 }
 
@@ -799,31 +794,6 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 		}
 
 		return managedControlPlaneScope, nil
-	}
-
-	if cluster.Spec.InfrastructureRef != nil &&
-		cluster.Spec.InfrastructureRef.Kind != AWSClusterInfrastructureRefKind {
-		externalInfraCluster, err := external.Get(ctx, r.Client, cluster.Spec.InfrastructureRef, cluster.Spec.InfrastructureRef.Namespace)
-		if err != nil {
-			log.Error(err, "error fetching externalInfraCluster")
-			return nil, fmt.Errorf("error fetching externalInfraCluster: %w", err)
-		}
-
-		// Create the cluster scope
-		extenalInfraClusterScope, err := scope.NewExternalInfraClusterScope(scope.ExternalInfraClusterScopeParams{
-			Client:               r.Client,
-			Logger:               log,
-			Cluster:              cluster,
-			ExternalInfraCluster: externalInfraCluster,
-			ControllerName:       "externalInfraCluster",
-		})
-		if err != nil {
-			log.Error(err, "unable to create external cluster scope")
-			return nil, fmt.Errorf("unable to create external cluster scope: %w", err)
-		}
-
-		r.Log.Info("Using externalInfraCluster")
-		return extenalInfraClusterScope, nil
 	}
 
 	awsCluster := &infrav1.AWSCluster{}
