@@ -43,6 +43,7 @@ import (
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -50,8 +51,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
-
-	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 )
 
 type statefulSetInfo struct {
@@ -310,7 +309,7 @@ var _ = Describe("functional tests - unmanaged", func() {
 		})
 	})
 
-	Describe("multiple workload clusters", func() {
+	Describe("Multiple workload clusters", func() {
 		Context("in different namespaces with machine failures", func() {
 			It("should setup namespaces correctly for the two clusters", func() {
 				By("Creating first cluster with single control plane")

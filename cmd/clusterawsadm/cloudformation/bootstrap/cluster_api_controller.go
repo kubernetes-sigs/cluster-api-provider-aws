@@ -120,6 +120,7 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
 				"elasticloadbalancing:RemoveTags",
 				"autoscaling:DescribeAutoScalingGroups",
+				"autoscaling:DescribeInstanceRefreshes",
 				"ec2:CreateLaunchTemplate",
 				"ec2:CreateLaunchTemplateVersion",
 				"ec2:DescribeLaunchTemplates",
@@ -137,8 +138,21 @@ func (t Template) controllersPolicy() *iamv1.PolicyDocument {
 				"autoscaling:CreateAutoScalingGroup",
 				"autoscaling:UpdateAutoScalingGroup",
 				"autoscaling:CreateOrUpdateTags",
+				"autoscaling:StartInstanceRefresh",
 				"autoscaling:DeleteAutoScalingGroup",
 				"autoscaling:DeleteTags",
+			},
+		},
+		{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:*:iam::*:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling",
+			},
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "autoscaling.amazonaws.com"},
 			},
 		},
 		{
