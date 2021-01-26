@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
@@ -160,6 +161,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				return secretSvc
 			},
 			Recorder: recorder,
+			Log:    klogr.New(),
 		}
 	})
 	AfterEach(func() {
