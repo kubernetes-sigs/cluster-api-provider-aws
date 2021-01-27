@@ -216,7 +216,7 @@ func makeEksEncryptionConfigs(encryptionConfig *ekscontrolplanev1.EncryptionConf
 	}}
 }
 
-func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.EndpointAccess) (*eks.VpcConfigRequest, error) {
+func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.EndpointAccess, securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup) (*eks.VpcConfigRequest, error) {
 	// TODO: Do we need to just add the private subnets?
 	if len(subnets) < 2 {
 		return nil, awserrors.NewFailedDependency("at least 2 subnets is required")
@@ -251,7 +251,10 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 	if len(cidrs) > 0 {
 		vpcConfig.PublicAccessCidrs = cidrs
 	}
-
+	sg, ok := securityGroups[infrav1.SecurityGroupEKSNodeAdditional]
+	if ok {
+		vpcConfig.SecurityGroupIds = append(vpcConfig.SecurityGroupIds, &sg.ID)
+	}
 	return vpcConfig, nil
 }
 
@@ -304,7 +307,7 @@ func makeEksLogging(loggingSpec *ekscontrolplanev1.ControlPlaneLoggingSpec) *eks
 func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 	logging := makeEksLogging(s.scope.ControlPlane.Spec.Logging)
 	encryptionConfigs := makeEksEncryptionConfigs(s.scope.ControlPlane.Spec.EncryptionConfig)
-	vpcConfig, err := makeVpcConfig(s.scope.Subnets(), s.scope.ControlPlane.Spec.EndpointAccess)
+	vpcConfig, err := makeVpcConfig(s.scope.Subnets(), s.scope.ControlPlane.Spec.EndpointAccess, s.scope.SecurityGroups())
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create vpc config for cluster")
 	}
@@ -326,7 +329,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 	}
 
 	v := versionToEKS(parseEKSVersion(*s.scope.ControlPlane.Spec.Version))
-
+	s.scope.SecurityGroups()
 	input := &eks.CreateClusterInput{
 		Name: aws.String(eksClusterName),
 		//ClientRequestToken: aws.String(uuid.New().String()),
@@ -443,7 +446,7 @@ func publicAccessCIDRsEqual(as []*string, bs []*string) bool {
 
 func (s *Service) reconcileVpcConfig(vpcConfig *eks.VpcConfigResponse) (*eks.VpcConfigRequest, error) {
 	endpointAccess := s.scope.ControlPlane.Spec.EndpointAccess
-	updatedVpcConfig, err := makeVpcConfig(s.scope.Subnets(), endpointAccess)
+	updatedVpcConfig, err := makeVpcConfig(s.scope.Subnets(), endpointAccess, s.scope.SecurityGroups())
 	if err != nil {
 		return nil, err
 	}
