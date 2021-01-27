@@ -297,13 +297,12 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	machineScope.Info("Handling deleted AWSMachine")
 
 	ec2Service := r.getEC2Service(ec2Scope)
-	secretSvc, err := r.getSecretService(machineScope, clusterScope)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
-	if err := r.deleteEncryptedBootstrapDataSecret(machineScope, secretSvc); err != nil {
-		return ctrl.Result{}, err
+	if machineScope.UseSecretsManager() {
+		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+			r.Log.Error(err, "unable to delete machine")
+			return ctrl.Result{}, err
+		}
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
@@ -429,18 +428,16 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope) (ctrl.Result, error) {
 	machineScope.Info("Reconciling AWSMachine")
 
-	secretSvc, err := r.getSecretService(machineScope, clusterScope)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// If the AWSMachine is in an error state, return early.
 	if machineScope.HasFailed() {
 		machineScope.Info("Error state detected, skipping reconciliation")
 
-		// If we are in a failed state, delete the secret regardless of instance state
-		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, secretSvc); err != nil {
-			return ctrl.Result{}, err
+		if machineScope.UseSecretsManager() {
+			// If we are in a failed state, delete the secret regardless of instance state
+			if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+				r.Log.Error(err, "unable to reconcile machine")
+				return ctrl.Result{}, err
+			}
 		}
 
 		return ctrl.Result{}, nil
@@ -450,6 +447,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	controllerutil.AddFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 	// Register the finalizer immediately to avoid orphaning AWS resources on delete
 	if err := machineScope.PatchObject(); err != nil {
+		r.Log.Error(err, "unable to patch object")
 		return ctrl.Result{}, err
 	}
 
@@ -472,6 +470,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	instance, err := r.findInstance(machineScope, ec2svc)
 	if err != nil {
 		conditions.MarkUnknown(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFoundReason, err.Error())
+		r.Log.Error(err, "unable to find instance")
 		return ctrl.Result{}, err
 	}
 	// Create new instance
@@ -479,13 +478,15 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		// Avoid a flickering condition between InstanceProvisionStarted and InstanceProvisionFailed if there's a persistent failure with createInstance
 		if conditions.GetReason(machineScope.AWSMachine, infrav1.InstanceReadyCondition) != infrav1.InstanceProvisionFailedReason {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceProvisionStartedReason, clusterv1.ConditionSeverityInfo, "")
-			if err := machineScope.PatchObject(); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "Failed to patch conditions")
+			if patchErr := machineScope.PatchObject(); err != nil {
+				r.Log.Error(patchErr, "failed to patch conditions")
+				return ctrl.Result{}, patchErr
 			}
 		}
-		instance, err = r.createInstance(machineScope, ec2svc, secretSvc)
+		instance, err = r.createInstance(ec2svc, machineScope, clusterScope)
 		if err != nil {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			r.Log.Error(err, "unable to create instance")
 			return ctrl.Result{}, err
 		}
 	}
@@ -531,8 +532,9 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	// reconcile the deletion of the bootstrap data secret now that we have updated instance state
-	if err := r.deleteEncryptedBootstrapDataSecret(machineScope, secretSvc); err != nil {
-		return ctrl.Result{}, err
+	if deleteSecretErr := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+		r.Log.Error(deleteSecretErr, "unable to delete secrets")
+		return ctrl.Result{}, deleteSecretErr
 	}
 
 	if instance.State == infrav1.InstanceStateTerminated {
@@ -558,6 +560,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 		existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
 		if err != nil {
+			r.Log.Error(err, "unable to get instance security groups")
 			return ctrl.Result{}, err
 		}
 
@@ -565,7 +568,8 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
 		if err != nil {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			return ctrl.Result{}, errors.Errorf("failed to apply security groups: %+v", err)
+			r.Log.Error(err, "unable to ensure security groups")
+			return ctrl.Result{}, err
 		}
 		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
 	}
@@ -573,7 +577,17 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, secretSvc services.SecretInterface) error {
+func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) error {
+	if !machineScope.UseSecretsManager() {
+		return nil
+	}
+
+	secretSvc, secretBackendErr := r.getSecretService(machineScope, clusterScope)
+	if secretBackendErr != nil {
+		r.Log.Error(secretBackendErr, "unable to get secret service backend")
+		return secretBackendErr
+	}
+
 	// do nothing if there isn't a secret
 	if machineScope.GetSecretPrefix() == "" {
 		return nil
@@ -600,49 +614,64 @@ func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *
 	return nil
 }
 
-func (r *AWSMachineReconciler) createInstance(scope *scope.MachineScope, ec2svc services.EC2MachineInterface, secretSvc services.SecretInterface) (*infrav1.Instance, error) {
-	scope.Info("Creating EC2 instance")
+func (r *AWSMachineReconciler) createInstance(ec2svc services.EC2MachineInterface, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) (*infrav1.Instance, error) {
+	machineScope.Info("Creating EC2 instance")
 
-	userData, err := scope.GetRawBootstrapData()
-	if err != nil {
-		r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
-		return nil, err
+	userData, userDataErr := r.resolveUserData(machineScope, clusterScope)
+	if userDataErr != nil {
+		return nil, errors.Wrapf(userDataErr, "failed to resolve userdata")
 	}
 
-	if scope.UseSecretsManager() { // nolint:nestif
-		compressedUserData, err := userdata.GzipBytes(userData)
-		if err != nil {
-			return nil, err
-		}
-		prefix, chunks, serviceErr := secretSvc.Create(scope, compressedUserData)
-		// Only persist the AWS Secret Backend entries if there is at least one
-		if chunks > 0 {
-			scope.SetSecretPrefix(prefix)
-			scope.SetSecretCount(chunks)
-		}
-		// Register the Secret ARN immediately to avoid orphaning whatever AWS resources have been created
-		if err := scope.PatchObject(); err != nil {
-			return nil, err
-		}
-		if serviceErr != nil {
-			r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecrets", serviceErr.Error())
-			scope.Error(serviceErr, "Failed to create AWS Secret entry", "secretPrefix", prefix)
-			return nil, serviceErr
-		}
-		encryptedCloudInit, err := secretSvc.UserData(scope.GetSecretPrefix(), scope.GetSecretCount(), scope.InfraCluster.Region(), r.Endpoints)
-		if err != nil {
-			r.Recorder.Eventf(scope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsCloudInit", err.Error())
-			return nil, err
-		}
-		userData = encryptedCloudInit
-	}
-
-	instance, err := ec2svc.CreateInstance(scope, userData)
+	instance, err := ec2svc.CreateInstance(machineScope, userData)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create AWSMachine instance")
 	}
 
 	return instance, nil
+}
+
+func (r *AWSMachineReconciler) resolveUserData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper) ([]byte, error) {
+	userData, err := machineScope.GetRawBootstrapData()
+	if err != nil {
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+		return nil, err
+	}
+
+	if !machineScope.UseSecretsManager() {
+		return userData, nil
+	}
+
+	secretSvc, secretBackendErr := r.getSecretService(machineScope, clusterScope)
+	if secretBackendErr != nil {
+		r.Log.Error(secretBackendErr, "unable to reconcile machine")
+		return nil, secretBackendErr
+	}
+
+	compressedUserData, compressErr := userdata.GzipBytes(userData)
+	if compressErr != nil {
+		return nil, compressErr
+	}
+	prefix, chunks, serviceErr := secretSvc.Create(machineScope, compressedUserData)
+	// Only persist the AWS Secret Backend entries if there is at least one
+	if chunks > 0 {
+		machineScope.SetSecretPrefix(prefix)
+		machineScope.SetSecretCount(chunks)
+	}
+	// Register the Secret ARN immediately to avoid orphaning whatever AWS resources have been created
+	if err := machineScope.PatchObject(); err != nil {
+		return nil, err
+	}
+	if serviceErr != nil {
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecrets", serviceErr.Error())
+		machineScope.Error(serviceErr, "Failed to create AWS Secret entry", "secretPrefix", prefix)
+		return nil, serviceErr
+	}
+	encryptedCloudInit, err := secretSvc.UserData(machineScope.GetSecretPrefix(), machineScope.GetSecretCount(), machineScope.InfraCluster.Region(), r.Endpoints)
+	if err != nil {
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsCloudInit", err.Error())
+		return nil, err
+	}
+	return encryptedCloudInit, nil
 }
 
 func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.MachineScope, clusterScope scope.ELBScope, i *infrav1.Instance) error {
