@@ -46,6 +46,6 @@ func NewService(iamScope Scope, backend BackendType, client client.Client) *Serv
 		scope:     iamScope,
 		backend:   backend,
 		client:    client,
-		STSClient: scope.NewSTSClient(iamScope, iamScope, iamScope.InfraCluster()),
+		STSClient: scope.NewSTSClient(iamScope, iamScope, iamScope, iamScope.InfraCluster()),
 	}
 }

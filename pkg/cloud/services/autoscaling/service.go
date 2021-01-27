@@ -35,6 +35,6 @@ type Service struct {
 func NewService(clusterScope cloud.ClusterScoper) *Service {
 	return &Service{
 		scope:     clusterScope,
-		ASGClient: scope.NewASGClient(clusterScope, clusterScope, clusterScope.InfraCluster()),
+		ASGClient: scope.NewASGClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 	}
 }

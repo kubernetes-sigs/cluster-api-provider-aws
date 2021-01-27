@@ -52,15 +52,15 @@ type Service struct {
 func NewService(controlPlaneScope *scope.ManagedControlPlaneScope) *Service {
 	return &Service{
 		scope:     controlPlaneScope,
-		EC2Client: scope.NewEC2Client(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+		EC2Client: scope.NewEC2Client(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		EKSClient: EKSClient{
-			EKSAPI: scope.NewEKSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+			EKSAPI: scope.NewEKSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		},
 		IAMService: iam.IAMService{
 			Logger:    controlPlaneScope.Logger,
-			IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+			IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 		},
-		STSClient: scope.NewSTSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+		STSClient: scope.NewSTSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
 	}
 }
 
@@ -79,12 +79,12 @@ type NodegroupService struct {
 func NewNodegroupService(machinePoolScope *scope.ManagedMachinePoolScope) *NodegroupService {
 	return &NodegroupService{
 		scope:             machinePoolScope,
-		AutoscalingClient: scope.NewASGClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
-		EKSClient:         scope.NewEKSClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
+		AutoscalingClient: scope.NewASGClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
+		EKSClient:         scope.NewEKSClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 		IAMService: iam.IAMService{
 			Logger:    machinePoolScope.Logger,
-			IAMClient: scope.NewIAMClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
+			IAMClient: scope.NewIAMClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 		},
-		STSClient: scope.NewSTSClient(machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
+		STSClient: scope.NewSTSClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 	}
 }

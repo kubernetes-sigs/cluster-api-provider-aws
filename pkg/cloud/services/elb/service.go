@@ -38,8 +38,8 @@ type Service struct {
 func NewService(elbScope scope.ELBScope) *Service {
 	return &Service{
 		scope:                 elbScope,
-		EC2Client:             scope.NewEC2Client(elbScope, elbScope, elbScope.InfraCluster()),
-		ELBClient:             scope.NewELBClient(elbScope, elbScope, elbScope.InfraCluster()),
-		ResourceTaggingClient: scope.NewResourgeTaggingClient(elbScope, elbScope, elbScope.InfraCluster()),
+		EC2Client:             scope.NewEC2Client(elbScope, elbScope, elbScope, elbScope.InfraCluster()),
+		ELBClient:             scope.NewELBClient(elbScope, elbScope, elbScope, elbScope.InfraCluster()),
+		ResourceTaggingClient: scope.NewResourgeTaggingClient(elbScope, elbScope, elbScope, elbScope.InfraCluster()),
 	}
 }
