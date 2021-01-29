@@ -329,7 +329,6 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 	}
 
 	v := versionToEKS(parseEKSVersion(*s.scope.ControlPlane.Spec.Version))
-	s.scope.SecurityGroups()
 	input := &eks.CreateClusterInput{
 		Name: aws.String(eksClusterName),
 		//ClientRequestToken: aws.String(uuid.New().String()),
