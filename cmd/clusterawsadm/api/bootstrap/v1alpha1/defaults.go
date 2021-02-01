@@ -58,6 +58,11 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 	} else if obj.EKS.Enable {
 		obj.Nodes.EC2ContainerRegistryReadOnly = true
 	}
+	if obj.EventBridge == nil {
+		obj.EventBridge = &EventBridgeConfig{
+			Enable: false,
+		}
+	}
 	if obj.EKS.ManagedMachinePool == nil {
 		obj.EKS.ManagedMachinePool = &AWSIAMRoleSpec{
 			Disable: true,

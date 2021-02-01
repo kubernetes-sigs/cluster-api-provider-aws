@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-func pausedPredicates(logger logr.Logger) predicate.Funcs {
+func PausedPredicates(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			return processIfUnpaused(logger.WithValues("predicate", "updateEvent"), e.ObjectNew, e.MetaNew)

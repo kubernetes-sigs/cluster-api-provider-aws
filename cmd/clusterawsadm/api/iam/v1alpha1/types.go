@@ -66,7 +66,7 @@ const (
 type PolicyDocument struct {
 	Version   string
 	Statement Statements
-	ID        string `json:"id,omitempty"`
+	ID        string `json:"Id,omitempty"`
 }
 
 // StatementEntry represents each "statement" block in an AWS IAM policy document.

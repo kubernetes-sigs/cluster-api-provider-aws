@@ -161,7 +161,7 @@ var _ = Describe("AWSMachineReconciler", func() {
 				return secretSvc
 			},
 			Recorder: recorder,
-			Log:    klogr.New(),
+			Log:      klogr.New(),
 		}
 	})
 	AfterEach(func() {

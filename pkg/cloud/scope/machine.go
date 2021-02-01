@@ -144,6 +144,11 @@ func (m *MachineScope) SetProviderID(instanceID, availabilityZone string) {
 	m.AWSMachine.Spec.ProviderID = pointer.StringPtr(providerID)
 }
 
+// SetInstanceID sets the AWSMachine instanceID in spec.
+func (m *MachineScope) SetInstanceID(instanceID string) {
+	m.AWSMachine.Spec.InstanceID = pointer.StringPtr(instanceID)
+}
+
 // GetInstanceState returns the AWSMachine instance state from the status.
 func (m *MachineScope) GetInstanceState() *infrav1.InstanceState {
 	return m.AWSMachine.Status.InstanceState

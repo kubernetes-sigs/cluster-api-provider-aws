@@ -17,8 +17,8 @@ limitations under the License.
 package bytes
 
 import (
-	"encoding/base64"
 	crand "crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"math"
 	"math/rand"

@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -42,15 +44,19 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/elb"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/secretsmanager"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 )
+
+const InstanceIDIndex = ".spec.instanceID"
 
 // AWSMachineReconciler reconciles a AwsMachine object
 type AWSMachineReconciler struct {
@@ -208,7 +214,7 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 			&source.Kind{Type: &infrav1.AWSCluster{}},
 			&handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.AWSClusterToAWSMachines)},
 		).
-		WithEventFilter(pausedPredicates(r.Log)).
+		WithEventFilter(PausedPredicates(r.Log)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
@@ -234,6 +240,14 @@ func (r *AWSMachineReconciler) SetupWithManager(mgr ctrl.Manager, options contro
 		Build(r)
 	if err != nil {
 		return err
+	}
+
+	// Add index to AWSMachine to find by providerID
+	if err := mgr.GetFieldIndexer().IndexField(&infrav1.AWSMachine{},
+		InstanceIDIndex,
+		r.indexAWSMachineByInstanceID,
+	); err != nil {
+		return errors.Wrap(err, "error setting index fields")
 	}
 
 	return controller.Watch(
@@ -337,6 +351,11 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 	if machineScope.IsControlPlane() {
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+	}
+
+	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
+		instancestateSvc := instancestate.NewService(ec2Scope)
+		instancestateSvc.RemoveInstanceFromEventPattern(instance.ID)
 	}
 
 	// Check the instance state. If it's already shutting down or terminated,
@@ -490,9 +509,16 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 			return ctrl.Result{}, err
 		}
 	}
+	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
+		instancestateSvc := instancestate.NewService(ec2Scope)
+		if err := instancestateSvc.AddInstanceToEventPattern(instance.ID); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to add instance to Event Bridge instance state rule")
+		}
+	}
 
-	// Make sure Spec.ProviderID is always set.
+	// Make sure Spec.ProviderID and Spec.InstanceID are always set.
 	machineScope.SetProviderID(instance.ID, instance.AvailabilityZone)
+	machineScope.SetInstanceID(instance.ID)
 
 	// See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html
 
@@ -850,4 +876,18 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log logr.Log
 	}
 
 	return clusterScope, nil
+}
+
+func (r *AWSMachineReconciler) indexAWSMachineByInstanceID(o runtime.Object) []string {
+	awsMachine, ok := o.(*infrav1.AWSMachine)
+	if !ok {
+		r.Log.Error(errors.New("incorrect type"), "expected an AWSMachine", "type", fmt.Sprintf("%T", o))
+		return nil
+	}
+
+	if awsMachine.Spec.InstanceID != nil {
+		return []string{*awsMachine.Spec.InstanceID}
+	}
+
+	return nil
 }

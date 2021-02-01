@@ -84,6 +84,10 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) error {
 	delete(oldAWSMachineSpec, "providerID")
 	delete(newAWSMachineSpec, "providerID")
 
+	// allow changes to instanceID
+	delete(oldAWSMachineSpec, "instanceID")
+	delete(newAWSMachineSpec, "instanceID")
+
 	// allow changes to additionalTags
 	delete(oldAWSMachineSpec, "additionalTags")
 	delete(newAWSMachineSpec, "additionalTags")

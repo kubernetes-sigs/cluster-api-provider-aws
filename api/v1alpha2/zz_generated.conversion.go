@@ -590,6 +590,7 @@ func autoConvert_v1alpha2_AWSMachineSpec_To_v1alpha3_AWSMachineSpec(in *AWSMachi
 
 func autoConvert_v1alpha3_AWSMachineSpec_To_v1alpha2_AWSMachineSpec(in *v1alpha3.AWSMachineSpec, out *AWSMachineSpec, s conversion.Scope) error {
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
+	// WARNING: in.InstanceID requires manual conversion: does not exist in peer-type
 	if err := Convert_v1alpha3_AWSResourceReference_To_v1alpha2_AWSResourceReference(&in.AMI, &out.AMI, s); err != nil {
 		return err
 	}

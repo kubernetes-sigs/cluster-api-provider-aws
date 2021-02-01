@@ -20,15 +20,18 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
@@ -40,7 +43,10 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	testEnv *helpers.TestEnvironment
+	testEnv   *helpers.TestEnvironment
+	cfg       *rest.Config
+	k8sClient client.Client
+	mockCtrl  *gomock.Controller
 )
 
 func TestAPIs(t *testing.T) {
@@ -53,7 +59,7 @@ func TestAPIs(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	setup()
-	defer func(){
+	defer func() {
 		teardown()
 	}()
 	code := m.Run()
@@ -106,4 +112,3 @@ func teardown() {
 		panic(fmt.Sprintf("Failed to stop envtest: %v", err))
 	}
 }
-

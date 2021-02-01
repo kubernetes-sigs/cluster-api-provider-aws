@@ -25,8 +25,8 @@ import (
 	"github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"k8s.io/utils/pointer"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	"sigs.k8s.io/yaml"
 )
 
