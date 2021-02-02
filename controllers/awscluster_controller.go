@@ -138,7 +138,7 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
 		if err := instancestateSvc.DeleteEC2Events(); err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to delete EventBridge notifications for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+			// Not deleting the events isn't critical to cluster deletion
 		}
 	}
 
@@ -204,7 +204,7 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
 		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile EventBridge notifications for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+			// non fatal error, so we continue
 		}
 	}
 
