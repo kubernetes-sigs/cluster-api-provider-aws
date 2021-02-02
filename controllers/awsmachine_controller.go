@@ -172,7 +172,8 @@ func (r *AWSMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, reter
 		AWSMachine:   awsMachine,
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Errorf("failed to create scope: %+v", err)
+		logger.Error(err, "failed to create scope")
+		return ctrl.Result{}, err
 	}
 
 	// Always close the scope when exiting this function so we can persist any AWSMachine changes.
@@ -314,13 +315,14 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 	if machineScope.UseSecretsManager() {
 		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
-			r.Log.Error(err, "unable to delete machine")
+			machineScope.Error(err, "unable to delete machine")
 			return ctrl.Result{}, err
 		}
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
 	if err != nil {
+		machineScope.Error(err, "unable to find instance")
 		return ctrl.Result{}, err
 	}
 
@@ -371,13 +373,15 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		// Set the InstanceReadyCondition and patch the object before the blocking operation
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		if err := machineScope.PatchObject(); err != nil {
+			machineScope.Error(err, "failed to patch object")
 			return ctrl.Result{}, err
 		}
 
 		if err := ec2Service.TerminateInstanceAndWait(instance.ID); err != nil {
+			machineScope.Error(err, "failed to terminate instance")
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedTerminate", "Failed to terminate instance %q: %v", instance.ID, err)
-			return ctrl.Result{}, errors.Wrap(err, "failed to terminate instance")
+			return ctrl.Result{}, err
 		}
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
@@ -385,7 +389,8 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		if len(machineScope.AWSMachine.Spec.NetworkInterfaces) > 0 {
 			core, err := ec2Service.GetCoreSecurityGroups(machineScope)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to get core security groups to detach from instance's network interfaces")
+				machineScope.Error(err, "failed to get core security groups to detach from instance's network interfaces")
+				return ctrl.Result{}, err
 			}
 
 			machineScope.V(3).Info(
@@ -401,8 +406,9 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 
 			for _, id := range machineScope.AWSMachine.Spec.NetworkInterfaces {
 				if err := ec2Service.DetachSecurityGroupsFromNetworkInterface(core, id); err != nil {
+					machineScope.Error(err, "failed to detach security groups from instance's network interfaces")
 					conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
-					return ctrl.Result{}, errors.Wrap(err, "failed to detach security groups from instance's network interfaces")
+					return ctrl.Result{}, err
 				}
 			}
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
@@ -454,7 +460,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		if machineScope.UseSecretsManager() {
 			// If we are in a failed state, delete the secret regardless of instance state
 			if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
-				r.Log.Error(err, "unable to reconcile machine")
+				machineScope.Error(err, "unable to reconcile machine")
 				return ctrl.Result{}, err
 			}
 		}
@@ -466,7 +472,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	controllerutil.AddFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 	// Register the finalizer immediately to avoid orphaning AWS resources on delete
 	if err := machineScope.PatchObject(); err != nil {
-		r.Log.Error(err, "unable to patch object")
+		machineScope.Error(err, "unable to patch object")
 		return ctrl.Result{}, err
 	}
 
@@ -488,8 +494,8 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	// Find existing instance
 	instance, err := r.findInstance(machineScope, ec2svc)
 	if err != nil {
+		machineScope.Error(err, "unable to find instance")
 		conditions.MarkUnknown(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFoundReason, err.Error())
-		r.Log.Error(err, "unable to find instance")
 		return ctrl.Result{}, err
 	}
 	// Create new instance
@@ -498,14 +504,14 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		if conditions.GetReason(machineScope.AWSMachine, infrav1.InstanceReadyCondition) != infrav1.InstanceProvisionFailedReason {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceProvisionStartedReason, clusterv1.ConditionSeverityInfo, "")
 			if patchErr := machineScope.PatchObject(); err != nil {
-				r.Log.Error(patchErr, "failed to patch conditions")
+				machineScope.Error(patchErr, "failed to patch conditions")
 				return ctrl.Result{}, patchErr
 			}
 		}
 		instance, err = r.createInstance(ec2svc, machineScope, clusterScope)
 		if err != nil {
+			machineScope.Error(err, "unable to create instance")
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			r.Log.Error(err, "unable to create instance")
 			return ctrl.Result{}, err
 		}
 	}
@@ -572,11 +578,13 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	if machineScope.InstanceIsInKnownState() {
 		_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
 		if err != nil {
-			return ctrl.Result{}, errors.Errorf("failed to ensure tags: %+v", err)
+			machineScope.Error(err, "failed to ensure tags")
+			return ctrl.Result{}, err
 		}
 
 		if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
-			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
+			machineScope.Error(err, "failed to reconcile LB attachment")
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -586,7 +594,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 
 		existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
 		if err != nil {
-			r.Log.Error(err, "unable to get instance security groups")
+			machineScope.Error(err, "unable to get instance security groups")
 			return ctrl.Result{}, err
 		}
 
@@ -594,7 +602,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		_, err = r.ensureSecurityGroups(ec2svc, machineScope, machineScope.AWSMachine.Spec.AdditionalSecurityGroups, existingSecurityGroups)
 		if err != nil {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, infrav1.SecurityGroupsFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			r.Log.Error(err, "unable to ensure security groups")
+			machineScope.Error(err, "unable to ensure security groups")
 			return ctrl.Result{}, err
 		}
 		conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
@@ -610,7 +618,7 @@ func (r *AWSMachineReconciler) deleteEncryptedBootstrapDataSecret(machineScope *
 
 	secretSvc, secretBackendErr := r.getSecretService(machineScope, clusterScope)
 	if secretBackendErr != nil {
-		r.Log.Error(secretBackendErr, "unable to get secret service backend")
+		machineScope.Error(secretBackendErr, "unable to get secret service backend")
 		return secretBackendErr
 	}
 
@@ -669,7 +677,7 @@ func (r *AWSMachineReconciler) resolveUserData(machineScope *scope.MachineScope,
 
 	secretSvc, secretBackendErr := r.getSecretService(machineScope, clusterScope)
 	if secretBackendErr != nil {
-		r.Log.Error(secretBackendErr, "unable to reconcile machine")
+		machineScope.Error(secretBackendErr, "unable to reconcile machine")
 		return nil, secretBackendErr
 	}
 

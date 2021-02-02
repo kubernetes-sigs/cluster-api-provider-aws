@@ -133,29 +133,32 @@ func reconcileDelete(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	networkSvc := network.NewService(clusterScope)
 	sgService := securitygroup.NewService(clusterScope)
 
-	awsCluster := clusterScope.AWSCluster
-
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
 		if err := instancestateSvc.DeleteEC2Events(); err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to delete EventBridge notifications for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+			// Not deleting the events isn't critical to cluster deletion
+			clusterScope.Error(err, "non-fatal: failed to delete EventBridge notifications")
 		}
 	}
 
 	if err := elbsvc.DeleteLoadbalancers(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleting load balancer for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		clusterScope.Error(err, "error deleting load balancer")
+		return reconcile.Result{}, err
 	}
 
 	if err := ec2svc.DeleteBastion(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleting bastion for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		clusterScope.Error(err, "error deleting bastion")
+		return reconcile.Result{}, err
 	}
 
 	if err := sgService.DeleteSecurityGroups(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleting security groups for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		clusterScope.Error(err, "error deleting security groups")
+		return reconcile.Result{}, err
 	}
 
 	if err := networkSvc.DeleteNetwork(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "error deleting network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		clusterScope.Error(err, "error deleting network")
+		return reconcile.Result{}, err
 	}
 
 	// Cluster is deleted so remove the finalizer.
@@ -183,7 +186,8 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	sgService := securitygroup.NewService(clusterScope)
 
 	if err := networkSvc.ReconcileNetwork(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile network for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		clusterScope.Error(err, "failed to reconcile network")
+		return reconcile.Result{}, err
 	}
 
 	// CNI related security groups gets deleted from the AWSClusters created prior to networkSpec.cni defaulting (5.5) after upgrading controllers.
@@ -192,25 +196,29 @@ func reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error)
 	clusterScope.AWSCluster.Default()
 
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
+		clusterScope.Error(err, "failed to reconcile security groups")
 		conditions.MarkFalse(awsCluster, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile security groups for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		return reconcile.Result{}, err
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile bastion host for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		clusterScope.Error(err, "failed to reconcile bastion host")
+		return reconcile.Result{}, err
 	}
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
 		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile EventBridge notifications for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+			// non fatal error, so we continue
+			clusterScope.Error(err, "non-fatal: failed to set up EventBridge")
 		}
 	}
 
 	if err := elbService.ReconcileLoadbalancers(); err != nil {
+		clusterScope.Error(err, "failed to reconcile load balancer")
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile load balancers for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
+		return reconcile.Result{}, err
 	}
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {

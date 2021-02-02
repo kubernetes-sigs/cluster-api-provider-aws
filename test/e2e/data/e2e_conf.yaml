@@ -113,7 +113,7 @@ variables:
   KUBERNETES_VERSION: "v1.20.1"
   CNI: "../../data/cni/calico.yaml"
   EXP_CLUSTER_RESOURCE_SET: "true"
-  EVENT_BRIDGE_INSTANCE_STATE: "true"
+  EVENT_BRIDGE_INSTANCE_STATE: "false"
   AWS_CONTROL_PLANE_MACHINE_TYPE: t3.large
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
