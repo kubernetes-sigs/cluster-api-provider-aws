@@ -6,3 +6,21 @@
 **Which issue(s) this PR fixes** *(optional, in `fixes #<issue number>(, fixes #<issue_number>, ...)` format, will close the issue(s) when PR gets merged)*:
 Fixes #
 
+**Special notes for your reviewer**:
+
+**Checklist**:
+<!-- Put an "X" character inside the brackets of each completed task. Some may be optional depending on the PR. -->
+
+- [ ] squashed commits
+- [ ] includes documentation
+- [ ] adds unit tests
+- [ ] adds or updates e2e tests
+
+**Release note**:
+<!--  Write your release note:
+1. Enter your extended release note in the below block. If the PR requires additional action from users switching to the new release, include the string "action required".
+2. If no release note is required, just write "NONE".
+-->
+```release-note
+
+```
