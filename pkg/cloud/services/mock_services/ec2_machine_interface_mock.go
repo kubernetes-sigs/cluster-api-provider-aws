@@ -153,6 +153,21 @@ func (mr *MockEC2MachineInterfaceMockRecorder) GetCoreSecurityGroups(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoreSecurityGroups", reflect.TypeOf((*MockEC2MachineInterface)(nil).GetCoreSecurityGroups), arg0)
 }
 
+// GetFilteredSecurityGroupID mocks base method
+func (m *MockEC2MachineInterface) GetFilteredSecurityGroupID(arg0 v1alpha3.AWSResourceReference) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFilteredSecurityGroupID", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFilteredSecurityGroupID indicates an expected call of GetFilteredSecurityGroupID
+func (mr *MockEC2MachineInterfaceMockRecorder) GetFilteredSecurityGroupID(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFilteredSecurityGroupID", reflect.TypeOf((*MockEC2MachineInterface)(nil).GetFilteredSecurityGroupID), arg0)
+}
+
 // GetInstanceSecurityGroups mocks base method
 func (m *MockEC2MachineInterface) GetInstanceSecurityGroups(arg0 string) (map[string][]string, error) {
 	m.ctrl.T.Helper()

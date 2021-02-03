@@ -52,6 +52,7 @@ type EC2MachineInterface interface {
 
 	GetCoreSecurityGroups(machine *scope.MachineScope) ([]string, error)
 	GetInstanceSecurityGroups(instanceID string) (map[string][]string, error)
+	GetFilteredSecurityGroupID(securityGroup infrav1.AWSResourceReference) (string, error)
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 
