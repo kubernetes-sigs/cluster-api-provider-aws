@@ -145,6 +145,18 @@ func TestGetAPIServerClassicELBSpec_ControlPlaneLoadBalancer(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "load balancer config with additional security groups specified",
+			lb: &infrav1.AWSLoadBalancerSpec{
+				AdditionalSecurityGroups: []string{"sg-00001", "sg-00002"},
+			},
+			mocks: func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			expect: func(t *testing.T, res *infrav1.ClassicELB) {
+				if len(res.SecurityGroupIDs) != 3 {
+					t.Errorf("Expected load balancer to be configured for 3 security groups, got %v", len(res.SecurityGroupIDs))
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {

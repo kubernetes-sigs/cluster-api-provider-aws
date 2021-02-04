@@ -34,6 +34,9 @@ type Scope interface {
 	// SecurityGroups returns the cluster security groups as a map, it creates the map if empty.
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
 
+	// SecurityGroupOverrides returns the security groups that are overridden in the cluster spec
+	SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string
+
 	// VPC returns the cluster VPC.
 	VPC() *infrav1.VPCSpec
 

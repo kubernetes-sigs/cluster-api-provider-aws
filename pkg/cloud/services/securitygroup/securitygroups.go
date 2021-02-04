@@ -67,15 +67,44 @@ func (s *Service) ReconcileSecurityGroups() error {
 		s.scope.Network().SecurityGroups = make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 	}
 
+	var err error
+
+	// Security group overrides are mapped by Role rather than their security group name
+	// They are copied into the main 'sgs' list by their group name later
+	var securityGroupOverrides map[infrav1.SecurityGroupRole]*ec2.SecurityGroup
+	securityGroupOverrides, err = s.describeSecurityGroupOverridesByID()
+	if err != nil {
+		return err
+	}
+
+	// Security group overrides should not be specified for a managed VPC
+	if securityGroupOverrides != nil && s.scope.VPC().IsManaged(s.scope.Name()) {
+		return errors.Errorf("security group overrides provided for managed vpc %q", s.scope.Name())
+
+	}
 	sgs, err := s.describeSecurityGroupsByName()
 	if err != nil {
 		return err
+	}
+
+	// Add security group overrides to known security group map
+	for _, securityGroupOverride := range securityGroupOverrides {
+		sg := s.ec2SecurityGroupToSecurityGroup(securityGroupOverride)
+		sgs[sg.Name] = sg
 	}
 
 	// First iteration makes sure that the security group are valid and fully created.
 	for i := range s.roles {
 		role := s.roles[i]
 		sg := s.getDefaultSecurityGroup(role)
+
+		// if an override exists for this role use it
+		sgOverride, ok := securityGroupOverrides[role]
+		if ok {
+			s.scope.V(2).Info("Using security group override", "role", role, "security group", sgOverride.GroupName)
+			sg = sgOverride
+		}
+
 		existing, ok := sgs[*sg.GroupName]
 
 		if !ok {
@@ -99,16 +128,18 @@ func (s *Service) ReconcileSecurityGroups() error {
 			continue
 		}
 
-		// Make sure tags are up to date.
-		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
-			tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
-			if err := tagsBuilder.Ensure(existing.Tags); err != nil {
-				return false, err
+		if !s.securityGroupIsOverridden(existing.ID) {
+			// Make sure tags are up to date.
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				buildParams := s.getSecurityGroupTagParams(existing.Name, existing.ID, role)
+				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+				if err := tagsBuilder.Ensure(existing.Tags); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.GroupNotFound); err != nil {
+				return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
 			}
-			return true, nil
-		}, awserrors.GroupNotFound); err != nil {
-			return errors.Wrapf(err, "failed to ensure tags on security group %q", existing.ID)
 		}
 	}
 
@@ -117,6 +148,12 @@ func (s *Service) ReconcileSecurityGroups() error {
 	for i := range s.scope.SecurityGroups() {
 		sg := s.scope.SecurityGroups()[i]
 		s.scope.V(2).Info("second pass security group reconciliation", "group-id", sg.ID, "name", sg.Name, "role", i)
+
+		if s.securityGroupIsOverridden(sg.ID) {
+			// skip rule/tag reconciliation on security groups that are overridden, assuming they're managed by another process
+			continue
+		}
+
 		if sg.Tags.HasAWSCloudProviderOwned(s.scope.Name()) || s.isEKSOwned(sg) {
 			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
 			continue
@@ -158,6 +195,70 @@ func (s *Service) ReconcileSecurityGroups() error {
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition)
 	return nil
+}
+
+func (s *Service) securityGroupIsOverridden(securityGroupID string) bool {
+	for _, overrideID := range s.scope.SecurityGroupOverrides() {
+		if overrideID == securityGroupID {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) describeSecurityGroupOverridesByID() (map[infrav1.SecurityGroupRole]*ec2.SecurityGroup, error) {
+	securityGroupIds := map[infrav1.SecurityGroupRole]*string{}
+	input := &ec2.DescribeSecurityGroupsInput{}
+
+	overrides := s.scope.SecurityGroupOverrides()
+
+	// return if no security group overrides have been provided
+	if len(overrides) == 0 {
+		return nil, nil
+	}
+
+	if len(overrides) > 0 {
+		for _, role := range defaultRoles {
+			securityGroupID, ok := s.scope.SecurityGroupOverrides()[role]
+			if !ok {
+				return nil, errors.Errorf("security group overrides have been provided for some but not all roles - missing security group for role %s", role)
+			}
+			securityGroupIds[role] = aws.String(securityGroupID)
+			input.GroupIds = append(input.GroupIds, aws.String(securityGroupID))
+		}
+	}
+
+	out, err := s.EC2Client.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to describe security groups in vpc %q", s.scope.VPC().ID)
+	}
+
+	res := make(map[infrav1.SecurityGroupRole]*ec2.SecurityGroup, len(out.SecurityGroups))
+	for _, role := range defaultRoles {
+		for _, ec2sg := range out.SecurityGroups {
+			if *ec2sg.GroupId == *securityGroupIds[role] {
+				s.scope.V(2).Info("found security group override", "role", role, "security group", *ec2sg.GroupName)
+
+				res[role] = ec2sg
+				break
+			}
+		}
+	}
+
+	return res, nil
+}
+
+func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup *ec2.SecurityGroup) infrav1.SecurityGroup {
+	sg := infrav1.SecurityGroup{
+		ID:   *ec2SecurityGroup.GroupId,
+		Name: *ec2SecurityGroup.GroupName,
+		Tags: converters.TagsToMap(ec2SecurityGroup.Tags),
+	}
+
+	for _, ec2rule := range ec2SecurityGroup.IpPermissions {
+		sg.IngressRules = append(sg.IngressRules, ingressRuleFromSDKType(ec2rule))
+	}
+	return sg
 }
 
 func (s *Service) DeleteSecurityGroups() error {

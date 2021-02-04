@@ -199,6 +199,11 @@ type NetworkSpec struct {
 	// CNI configuration
 	// +optional
 	CNI *CNISpec `json:"cni,omitempty"`
+
+	// SecurityGroupOverrides is an optional set of security groups to use for cluster instances
+	// This is optional - if not provided new security groups will be created for the cluster
+	// +optional
+	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
 }
 
 // VPCSpec configures an AWS VPC.

@@ -278,6 +278,11 @@ spec:
                           type: object
                         type: array
                     type: object
+                  securityGroupOverrides:
+                    additionalProperties:
+                      type: string
+                    description: SecurityGroupOverrides is an optional set of security groups to use for cluster instances This is optional - if not provided new security groups will be created for the cluster
+                    type: object
                   subnets:
                     description: Subnets configuration.
                     items:
