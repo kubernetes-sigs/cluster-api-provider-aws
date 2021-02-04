@@ -395,6 +395,8 @@ func (s *Service) GetCoreNodeSecurityGroups(scope *scope.MachinePoolScope) ([]st
 
 	if !scope.IsEKSManaged() {
 		sgRoles = append(sgRoles, infrav1.SecurityGroupLB)
+	} else {
+		sgRoles = append(sgRoles, infrav1.SecurityGroupEKSNodeAdditional)
 	}
 
 	ids := make([]string, 0, len(sgRoles))

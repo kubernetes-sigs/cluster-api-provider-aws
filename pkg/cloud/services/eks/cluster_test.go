@@ -130,10 +130,11 @@ func TestMakeVPCConfig(t *testing.T) {
 	type input struct {
 		subnets        infrav1.Subnets
 		endpointAccess ekscontrolplanev1.EndpointAccess
+		securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
 	}
 
-	subnetIDOne := "one"
-	subnetIDTwo := "two"
+	idOne := "one"
+	idTwo := "two"
 	testCases := []struct {
 		name   string
 		input  input
@@ -154,13 +155,13 @@ func TestMakeVPCConfig(t *testing.T) {
 			input: input{
 				subnets: []*infrav1.SubnetSpec{
 					{
-						ID:               subnetIDOne,
+						ID:               idOne,
 						CidrBlock:        "10.0.10.0/24",
 						AvailabilityZone: "us-west-2a",
 						IsPublic:         true,
 					},
 					{
-						ID:               subnetIDTwo,
+						ID:               idTwo,
 						CidrBlock:        "10.0.10.0/24",
 						AvailabilityZone: "us-west-2b",
 						IsPublic:         false,
@@ -169,7 +170,36 @@ func TestMakeVPCConfig(t *testing.T) {
 				endpointAccess: ekscontrolplanev1.EndpointAccess{},
 			},
 			expect: &eks.VpcConfigRequest{
-				SubnetIds: []*string{&subnetIDOne, &subnetIDTwo},
+				SubnetIds: []*string{&idOne, &idTwo},
+			},
+		},
+		{
+			name: "security groups",
+			input: input{
+				subnets: []*infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         true,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{},
+				securityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupEKSNodeAdditional: {
+						ID: idOne,
+					},
+				},
+			},
+			expect: &eks.VpcConfigRequest{
+				SubnetIds:        []*string{&idOne, &idTwo},
+				SecurityGroupIds: []*string{&idOne},
 			},
 		},
 		{
@@ -177,13 +207,13 @@ func TestMakeVPCConfig(t *testing.T) {
 			input: input{
 				subnets: []*infrav1.SubnetSpec{
 					{
-						ID:               subnetIDOne,
+						ID:               idOne,
 						CidrBlock:        "10.0.10.0/24",
 						AvailabilityZone: "us-west-2a",
 						IsPublic:         true,
 					},
 					{
-						ID:               subnetIDTwo,
+						ID:               idTwo,
 						CidrBlock:        "10.0.10.1/24",
 						AvailabilityZone: "us-west-2b",
 						IsPublic:         false,
@@ -194,7 +224,7 @@ func TestMakeVPCConfig(t *testing.T) {
 				},
 			},
 			expect: &eks.VpcConfigRequest{
-				SubnetIds:         []*string{&subnetIDOne, &subnetIDTwo},
+				SubnetIds:         []*string{&idOne, &idTwo},
 				PublicAccessCidrs: []*string{aws.String("10.0.0.0/24")},
 			},
 		},
@@ -202,7 +232,7 @@ func TestMakeVPCConfig(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			config, err := makeVpcConfig(tc.input.subnets, tc.input.endpointAccess)
+			config, err := makeVpcConfig(tc.input.subnets, tc.input.endpointAccess, tc.input.securityGroups)
 			if tc.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
