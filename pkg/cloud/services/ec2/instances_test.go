@@ -2122,6 +2122,140 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 	}
 }
 
+func TestGetFilteredSecurityGroupID(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	securityGroupFilterName := "sg1"
+	securityGroupFilterValues := []string{"test"}
+	securityGroupID := "1"
+
+	testCases := []struct {
+		name          string
+		securityGroup infrav1.AWSResourceReference
+		expect        func(m *mock_ec2iface.MockEC2APIMockRecorder)
+		check         func(id string, err error)
+	}{
+		{
+			name: "successfully return security group id",
+			securityGroup: infrav1.AWSResourceReference{
+				Filters: []infrav1.Filter{
+					{
+						Name: securityGroupFilterName, Values: securityGroupFilterValues,
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String(securityGroupFilterName),
+							Values: aws.StringSlice(securityGroupFilterValues),
+						},
+					},
+				})).Return(
+					&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{
+								GroupId: aws.String(securityGroupID),
+							},
+						},
+					}, nil)
+			},
+			check: func(id string, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if id != securityGroupID {
+					t.Fatalf("expected security group id %v but got: %v", securityGroupID, id)
+				}
+			},
+		},
+		{
+			name:          "return early when filters are missing",
+			securityGroup: infrav1.AWSResourceReference{},
+			expect:        func(m *mock_ec2iface.MockEC2APIMockRecorder) {},
+			check: func(id string, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if id != "" {
+					t.Fatalf("didn't expect secutity group id %v", id)
+				}
+			},
+		},
+		{
+			name: "error describing security group",
+			securityGroup: infrav1.AWSResourceReference{
+				Filters: []infrav1.Filter{
+					{
+						Name: securityGroupFilterName, Values: securityGroupFilterValues,
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String(securityGroupFilterName),
+							Values: aws.StringSlice(securityGroupFilterValues),
+						},
+					},
+				})).Return(nil, errors.New("some error"))
+			},
+			check: func(id string, err error) {
+				if err == nil {
+					t.Fatalf("expected error but got none.")
+				}
+			},
+		},
+		{
+			name: "error when no security groups found",
+			securityGroup: infrav1.AWSResourceReference{
+				Filters: []infrav1.Filter{
+					{
+						Name: securityGroupFilterName, Values: securityGroupFilterValues,
+					},
+				},
+			},
+			expect: func(m *mock_ec2iface.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String(securityGroupFilterName),
+							Values: aws.StringSlice(securityGroupFilterValues),
+						},
+					},
+				})).Return(
+					&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{},
+					}, nil)
+			},
+			check: func(id string, err error) {
+				if err == nil {
+					t.Fatalf("expected error but got none.")
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mock_ec2iface.NewMockEC2API(mockCtrl)
+			tc.expect(ec2Mock.EXPECT())
+
+			s := Service{
+				EC2Client: ec2Mock,
+			}
+
+			id, err := s.GetFilteredSecurityGroupID(tc.securityGroup)
+			tc.check(id, err)
+		})
+	}
+}
+
 func setupScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 	if err := clusterv1.AddToScheme(scheme); err != nil {

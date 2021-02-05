@@ -48,7 +48,13 @@ func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2MachineInt
 	if err != nil {
 		return false, err
 	}
-	changed, ids := r.securityGroupsChanged(annotation, core, additional, existing)
+
+	additionalSecurityGroupsIDs, err := r.getAdditionalSecurityGroupsIDs(ec2svc, additional)
+	if err != nil {
+		return false, nil
+	}
+
+	changed, ids := r.securityGroupsChanged(annotation, core, additionalSecurityGroupsIDs, existing)
 	if !changed {
 		return false, nil
 	}
@@ -58,9 +64,9 @@ func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2MachineInt
 	}
 
 	// Build and store annotation.
-	newAnnotation := make(map[string]interface{}, len(additional))
-	for _, id := range additional {
-		newAnnotation[*id.ID] = struct{}{}
+	newAnnotation := make(map[string]interface{}, len(additionalSecurityGroupsIDs))
+	for _, id := range additionalSecurityGroupsIDs {
+		newAnnotation[id] = struct{}{}
 	}
 
 	if err := r.updateMachineAnnotationJSON(scope.AWSMachine, SecurityGroupsLastAppliedAnnotation, newAnnotation); err != nil {
@@ -71,10 +77,10 @@ func (r *AWSMachineReconciler) ensureSecurityGroups(ec2svc service.EC2MachineInt
 }
 
 // securityGroupsChanged determines which security groups to delete and which to add.
-func (r *AWSMachineReconciler) securityGroupsChanged(annotation map[string]interface{}, core []string, additional []infrav1.AWSResourceReference, existing map[string][]string) (bool, []string) {
+func (r *AWSMachineReconciler) securityGroupsChanged(annotation map[string]interface{}, core []string, additional []string, existing map[string][]string) (bool, []string) {
 	state := map[string]bool{}
 	for _, s := range additional {
-		state[*s.ID] = true
+		state[s] = true
 	}
 
 	// Loop over `annotation`, checking the state for things that were deleted since last time.
@@ -114,4 +120,25 @@ func (r *AWSMachineReconciler) securityGroupsChanged(annotation map[string]inter
 	}
 
 	return false, res
+}
+
+func (r *AWSMachineReconciler) getAdditionalSecurityGroupsIDs(ec2svc service.EC2MachineInterface, securitygroups []infrav1.AWSResourceReference) ([]string, error) {
+	additionalSecurityGroupsIDs := []string{}
+
+	for _, sg := range securitygroups {
+		if sg.ID != nil {
+			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, *sg.ID)
+		}
+
+		if sg.Filters != nil {
+			id, err := ec2svc.GetFilteredSecurityGroupID(sg)
+			if err != nil {
+				return nil, err
+			}
+
+			additionalSecurityGroupsIDs = append(additionalSecurityGroupsIDs, id)
+		}
+	}
+
+	return additionalSecurityGroupsIDs, nil
 }

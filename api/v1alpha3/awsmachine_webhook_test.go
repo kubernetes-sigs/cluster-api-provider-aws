@@ -142,11 +142,43 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "additional security groups should not have filters",
+			name: "additional security groups may have id",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
+							ID: aws.String("id"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "additional security groups may have filters",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					AdditionalSecurityGroups: []AWSResourceReference{
+						{
+							Filters: []Filter{
+								{
+									Name:   "example-name",
+									Values: []string{"example-value"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "additional security groups can't have both id and filters",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					AdditionalSecurityGroups: []AWSResourceReference{
+						{
+							ID: aws.String("id"),
 							Filters: []Filter{
 								{
 									Name:   "example-name",

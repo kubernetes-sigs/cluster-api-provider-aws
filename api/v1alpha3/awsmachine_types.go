@@ -94,7 +94,8 @@ type AWSMachineSpec struct {
 
 	// AdditionalSecurityGroups is an array of references to security groups that should be applied to the
 	// instance. These security groups would be set in addition to any security groups defined
-	// at the cluster level or in the actuator.
+	// at the cluster level or in the actuator. It is possible to specify either IDs of Filters. Using Filters
+	// will cause additional requests to AWS API and if tags change the attached security groups might change too.
 	// +optional
 	AdditionalSecurityGroups []AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
 

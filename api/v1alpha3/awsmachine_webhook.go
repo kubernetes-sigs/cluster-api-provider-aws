@@ -192,9 +192,9 @@ func (r *AWSMachine) Default() {
 func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
 	var allErrs field.ErrorList
 
-	for _, additionalSecurityGroups := range r.Spec.AdditionalSecurityGroups {
-		if len(additionalSecurityGroups.Filters) > 0 {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.additionalSecurityGroups"), "filters are not implemented for security groups and will be removed in a future release"))
+	for _, additionalSecurityGroup := range r.Spec.AdditionalSecurityGroups {
+		if len(additionalSecurityGroup.Filters) > 0 && additionalSecurityGroup.ID != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.additionalSecurityGroups"), "only one of ID or Filters may be specified, specifying both is forbidden"))
 		}
 	}
 	return allErrs
