@@ -208,3 +208,9 @@ type AddonIssue struct {
 	// ResourceIDs is a list of resource ids for the issue
 	ResourceIDs []*string `json:"resourceIds,omitempty"`
 }
+
+const (
+	// SecurityGroupCluster is the security group for communication between EKS
+	// control plane and managed node groups
+	SecurityGroupCluster = infrav1.SecurityGroupRole("cluster")
+)
