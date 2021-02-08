@@ -83,8 +83,11 @@ spec:
               remoteAccess:
                 description: RemoteAccess specifies how machines can be accessed remotely
                 properties:
+                  public:
+                    description: Public specifies whether to open port 22 to the public internet
+                    type: boolean
                   sourceSecurityGroups:
-                    description: SourceSecurityGroups specifies which security groups are allowed access An empty array opens port 22 to the public internet
+                    description: SourceSecurityGroups specifies which security groups are allowed access
                     items:
                       type: string
                     type: array

@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 )
 
@@ -58,6 +59,23 @@ func (s *Service) reconcileSecurityGroups(cluster *eks.Cluster) error {
 		Tags: converters.TagsToMap(output.SecurityGroups[0].Tags),
 	}
 	s.scope.ControlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupNode] = sg
+
+	input = &ec2.DescribeSecurityGroupsInput{
+		GroupIds: []*string{
+			cluster.ResourcesVpcConfig.ClusterSecurityGroupId,
+		},
+	}
+
+	output, err = s.EC2Client.DescribeSecurityGroups(input)
+	if err != nil || len(output.SecurityGroups) == 0 {
+		return fmt.Errorf("describing EKS cluster security group: %w", err)
+	}
+
+	s.scope.ControlPlane.Status.Network.SecurityGroups[ekscontrolplanev1.SecurityGroupCluster] = infrav1.SecurityGroup{
+		ID:   aws.StringValue(cluster.ResourcesVpcConfig.ClusterSecurityGroupId),
+		Name: *output.SecurityGroups[0].GroupName,
+		Tags: converters.TagsToMap(output.SecurityGroups[0].Tags),
+	}
 
 	return nil
 }

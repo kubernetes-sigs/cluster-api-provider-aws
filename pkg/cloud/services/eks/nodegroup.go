@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -119,17 +120,33 @@ func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
 	}
 
 	controlPlane := s.scope.ControlPlane
-	sSGs := pool.RemoteAccess.SourceSecurityGroups
 
-	if controlPlane.Spec.Bastion.Enabled {
-		additionalSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupEKSNodeAdditional]
+	// SourceSecurityGroups is validated to be empty if PublicAccess is true
+	// but just in case we use an empty list to take advantage of the documented
+	// API behavior
+	var sSGs = []string{}
+
+	if !pool.RemoteAccess.Public {
+		sSGs = pool.RemoteAccess.SourceSecurityGroups
+		// We add the EKS created cluster security group to the allowed security
+		// groups by default to prevent the API default of 0.0.0.0/0 from taking effect
+		// in case SourceSecurityGroups is empty
+		clusterSG, ok := controlPlane.Status.Network.SecurityGroups[controlplanev1exp.SecurityGroupCluster]
 		if !ok {
-			return nil, errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupEKSNodeAdditional)
+			return nil, errors.Errorf("%s security group not found on control plane", controlplanev1exp.SecurityGroupCluster)
 		}
-		sSGs = append(
-			sSGs,
-			additionalSG.ID,
-		)
+		sSGs = append(sSGs, clusterSG.ID)
+
+		if controlPlane.Spec.Bastion.Enabled {
+			additionalSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupEKSNodeAdditional]
+			if !ok {
+				return nil, errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupEKSNodeAdditional)
+			}
+			sSGs = append(
+				sSGs,
+				additionalSG.ID,
+			)
+		}
 	}
 
 	sshKeyName := pool.RemoteAccess.SSHKeyName
