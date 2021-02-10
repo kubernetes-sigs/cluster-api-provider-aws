@@ -17,8 +17,10 @@ limitations under the License.
 package eks
 
 import (
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
@@ -26,13 +28,22 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
 )
 
+type EKSAPI interface {
+	eksiface.EKSAPI
+	WaitUntilClusterUpdating(input *eks.DescribeClusterInput, opts ...request.WaiterOption) error
+}
+
+type EKSClient struct {
+	eksiface.EKSAPI
+}
+
 // Service holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
 	scope     *scope.ManagedControlPlaneScope
 	EC2Client ec2iface.EC2API
-	EKSClient eksiface.EKSAPI
+	EKSClient EKSAPI
 	iam.IAMService
 	STSClient stsiface.STSAPI
 }
@@ -42,7 +53,9 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope) *Service {
 	return &Service{
 		scope:     controlPlaneScope,
 		EC2Client: scope.NewEC2Client(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
-		EKSClient: scope.NewEKSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+		EKSClient: EKSClient{
+			EKSAPI: scope.NewEKSClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),
+		},
 		IAMService: iam.IAMService{
 			Logger:    controlPlaneScope.Logger,
 			IAMClient: scope.NewIAMClient(controlPlaneScope, controlPlaneScope, controlPlaneScope.ControlPlane),

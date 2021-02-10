@@ -217,7 +217,9 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
 			infrav1.BastionHostReadyCondition,
+			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
 			ekscontrolplanev1.EKSControlPlaneReadyCondition,
+			ekscontrolplanev1.EKSControlPlaneUpdatingCondition,
 			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
 		}})
 }

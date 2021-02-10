@@ -15,6 +15,6 @@ limitations under the License.
 */
 
 // Run go generate to regenerate this mock.
-//go:generate ../../../../../hack/tools/bin/mockgen -destination eksapi_mock.go -package mock_eksiface github.com/aws/aws-sdk-go/service/eks/eksiface EKSAPI
-//go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt eksapi_mock.go > _eksapi_mock.go && mv _eksapi_mock.go eksapi_mock.go"
-package mock_eksiface //nolint
+//go:generate ../../../../hack/tools/bin/mockgen -destination mock_eksiface/eksapi_mock.go -package mock_eksiface . EKSAPI
+//go:generate /usr/bin/env bash -c "cat ../../../../hack/boilerplate/boilerplate.generatego.txt mock_eksiface/eksapi_mock.go > mock_eksiface/_eksapi_mock.go && mv mock_eksiface/_eksapi_mock.go mock_eksiface/eksapi_mock.go"
+package eks
