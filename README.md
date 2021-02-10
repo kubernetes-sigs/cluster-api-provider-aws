@@ -115,12 +115,14 @@ Note: this info is RH only, it needs to be backported every time the `README.md`
 1. **Build and run aws actuator outside of the cluster**
 
    ```sh
-   $ go build -o bin/manager sigs.k8s.io/cluster-api-provider-aws/cmd/manager
+   $ go build -o bin/machine-controller-manager sigs.k8s.io/cluster-api-provider-aws/cmd/manager
    ```
 
    ```sh
-   $ ./bin/manager --kubeconfig ~/.kube/config --logtostderr -v 5 -alsologtostderr
+   $ .bin/machine-controller-manager --kubeconfig ~/.kube/config --logtostderr -v 5 -alsologtostderr
    ```
+      If running in container with `podman`, or locally without `docker` installed, and encountering issues, see [hacking-guide](https://github.com/openshift/machine-api-operator/blob/master/docs/dev/hacking-guide.md#troubleshooting-make-targets).
+
 
 1. **Deploy k8s apiserver through machine manifest**:
 
