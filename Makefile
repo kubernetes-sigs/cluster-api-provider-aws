@@ -27,7 +27,9 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
-GH_REPO ?= kubernetes-sigs/cluster-api-provider-aws
+GH_ORG_NAME ?= kubernetes-sigs
+GH_REPO_NAME ?= cluster-api-provider-aws
+GH_REPO ?= $(GH_ORG_NAME)/$(GH_REPO_NAME)
 TEST_E2E_DIR := test/e2e
 
 # Files
@@ -402,11 +404,18 @@ check-release-tag:
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 
+.PHONY: check-previous-release-tag
+check-previous-release-tag:
+	@if [ -z "${PREVIOUS_VERSION}" ]; then echo "PREVIOUS_VERSION is not set"; exit 1; fi
+
+.PHONY: check-github-token
+check-github-token:
+	@if [ -z "${GITHUB_TOKEN}" ]; then echo "GITHUB_TOKEN is not set"; exit 1; fi
+
 .PHONY: release
 release: $(RELEASE_NOTES) clean-release check-release-tag $(RELEASE_DIR)  ## Builds and push container images using the latest git tag for the commit.
 	git checkout "${RELEASE_TAG}"
-	@if [ -z "${PREVIOUS_VERSION}" ]; then echo "PREVIOUS_VERSION is not set"; exit 1; fi
-	$(RELEASE_NOTES) --from $(PREVIOUS_VERSION) > $(RELEASE_DIR)/CHANGELOG.md
+	$(MAKE) release-changelog
 	$(MAKE) release-binaries
 	$(MAKE) release-notes
 	$(MAKE) release-manifests
@@ -419,6 +428,10 @@ release-manifests:
 	$(MAKE) $(RELEASE_DIR)/$(EKS_CONTROLPLANE_MANIFEST_FILE).yaml  TAG=$(RELEASE_TAG) PULL_POLICY=IfNotPresent
 	# Add metadata to the release artifacts
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+
+.PHONY: release-changelog
+release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR) ## Builds the changelog for a release
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release
