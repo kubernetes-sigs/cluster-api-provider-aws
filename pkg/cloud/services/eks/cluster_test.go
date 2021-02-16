@@ -354,6 +354,9 @@ func TestReconcileClusterVersion(t *testing.T) {
 							Version: aws.String("1.14"),
 						},
 					}, nil)
+				m.WaitUntilClusterUpdating(
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}), gomock.Any(),
+				).Return(nil)
 				m.
 					UpdateClusterVersion(gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
 					Return(&eks.UpdateClusterVersionOutput{}, nil)

@@ -21,6 +21,12 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 const (
 	// EKSControlPlaneReadyCondition condition reports on the successful reconciliation of eks control plane.
 	EKSControlPlaneReadyCondition clusterv1.ConditionType = "EKSControlPlaneReady"
+	// EKSControlPlaneCreatingCondition condition reports on whether the eks
+	// control plane is creating
+	EKSControlPlaneCreatingCondition clusterv1.ConditionType = "EKSControlPlaneCreating"
+	// EKSControlPlaneUpdatingCondition condition reports on whether the eks
+	// control plane is updating
+	EKSControlPlaneUpdatingCondition clusterv1.ConditionType = "EKSControlPlaneUpdating"
 	// EKSControlPlaneReconciliationFailedReason used to report failures while reconciling EKS control plane
 	EKSControlPlaneReconciliationFailedReason = "EKSControlPlaneReconciliationFailed"
 )
