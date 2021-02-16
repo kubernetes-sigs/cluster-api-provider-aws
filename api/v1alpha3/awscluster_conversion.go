@@ -54,6 +54,8 @@ func (r *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		restoreControlPlaneLoadBalancer(restored.Spec.ControlPlaneLoadBalancer, dst.Spec.ControlPlaneLoadBalancer)
 	}
 
+	dst.Spec.S3Bucket = restored.Spec.S3Bucket
+
 	return nil
 }
 
@@ -124,4 +126,8 @@ func Convert_v1beta1_NetworkStatus_To_v1alpha3_Network(in *infrav1.NetworkStatus
 
 func Convert_v1beta1_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in *infrav1.AWSLoadBalancerSpec, out *AWSLoadBalancerSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_AWSLoadBalancerSpec_To_v1alpha3_AWSLoadBalancerSpec(in, out, s)
+}
+
+func Convert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in *infrav1.AWSClusterSpec, out *AWSClusterSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_AWSClusterSpec_To_v1alpha3_AWSClusterSpec(in, out, s)
 }

@@ -157,3 +157,11 @@ const (
 	// ELBDetachFailedReason used when a control plane node fails to detach from an ELB.
 	ELBDetachFailedReason = "ELBDetachFailed"
 )
+
+const (
+	// S3BucketReadyCondition indicates an S3 bucket has been created successfully.
+	S3BucketReadyCondition clusterv1.ConditionType = "S3BucketCreated"
+
+	// S3BucketFailedReason is used when any errors occur during reconciliation of an S3 bucket.
+	S3BucketFailedReason = "S3BucketCreationFailed"
+)
