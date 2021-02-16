@@ -110,7 +110,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 }
 
 // CreateInstance runs an ec2 instance.
-func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*infrav1.Instance, error) {
+func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
 	s.scope.V(2).Info("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
@@ -183,7 +183,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
 	}
-	if !scope.UserDataIsUncompressed() {
+
+	if scope.CompressUserData(userDataFormat) {
 		userData, err = userdata.GzipBytes(userData)
 		if err != nil {
 			return nil, errors.New("failed to gzip userdata")

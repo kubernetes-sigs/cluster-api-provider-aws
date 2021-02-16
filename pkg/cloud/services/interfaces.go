@@ -47,7 +47,7 @@ type ASGInterface interface {
 type EC2Interface interface {
 	InstanceIfExists(id *string) (*infrav1.Instance, error)
 	TerminateInstance(id string) error
-	CreateInstance(scope *scope.MachineScope, userData []byte) (*infrav1.Instance, error)
+	CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error)
 	GetRunningInstanceByTags(scope *scope.MachineScope) (*infrav1.Instance, error)
 
 	GetCoreSecurityGroups(machine *scope.MachineScope) ([]string, error)

@@ -53,18 +53,18 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateInstance mocks base method.
-func (m *MockEC2Interface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte) (*v1beta1.Instance, error) {
+func (m *MockEC2Interface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte, arg2 string) (*v1beta1.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*v1beta1.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateInstance indicates an expected call of CreateInstance.
-func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1, arg2)
 }
 
 // CreateLaunchTemplate mocks base method.
