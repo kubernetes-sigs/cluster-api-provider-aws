@@ -554,7 +554,7 @@ var (
 	// InstanceStatePending is the string representing an instance in a pending state
 	InstanceStatePending = InstanceState("pending")
 
-	// InstanceStateRunning is the string representing an instance in a pending state
+	// InstanceStateRunning is the string representing an instance in a running state
 	InstanceStateRunning = InstanceState("running")
 
 	// InstanceStateShuttingDown is the string representing an instance shutting down
