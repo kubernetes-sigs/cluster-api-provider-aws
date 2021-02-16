@@ -102,3 +102,11 @@ type SecurityGroupInterface interface {
 	DeleteSecurityGroups() error
 	ReconcileSecurityGroups() error
 }
+
+// ObjectStoreInterface encapsulates the methods exposed to the machine actuator.
+type ObjectStoreInterface interface {
+	DeleteBucket() error
+	ReconcileBucket() error
+	Delete(m *scope.MachineScope) error
+	Create(m *scope.MachineScope, data []byte) (objectURL string, err error)
+}
