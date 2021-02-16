@@ -136,7 +136,7 @@ $(MOCKGEN): $(BIN_DIR) go.mod go.sum # Build mockgen from tools folder.
 
 RELEASE_NOTES := $(BIN_DIR)/release-notes
 $(RELEASE_NOTES): $(BIN_DIR) go.mod go.sum
-	go build -tags tools -o $@ sigs.k8s.io/cluster-api/hack/tools/release
+	go build -tags tools -o $@ k8s.io/release/cmd/release-notes
 
 PLANTUML := $(BIN_DIR)/plantuml-sentinal
 $(PLANTUML): plantuml.Dockerfile ../../versions.mk
