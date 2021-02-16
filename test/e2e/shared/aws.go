@@ -20,6 +20,7 @@ package shared
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -35,16 +36,16 @@ import (
 	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
-
-	"sigs.k8s.io/yaml"
-
+	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/yaml"
 )
 
 func NewAWSSession() client.ConfigProvider {
@@ -79,22 +80,155 @@ func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
 }
 
 // createCloudFormationStack ensures the cloudformation stack is up to date
-func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
+func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) error {
 	Byf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName)
-	cfnSvc := cloudformation.NewService(cfn.New(prov))
-	cfnTemplate := t.RenderCloudFormation()
-	Expect(
-		cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *cfnTemplate),
-	).To(Succeed())
+	CFN := cfn.New(prov)
+	cfnSvc := cloudformation.NewService(CFN)
+
+	err := cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *renderCustomCloudFormation(t))
+	if err != nil {
+		stack, err := CFN.DescribeStacks(&cfn.DescribeStacksInput{StackName: aws.String(t.Spec.StackName)})
+		if err == nil && len(stack.Stacks) > 0 {
+			deleteMultitenancyRoles(prov)
+			if aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackFailed ||
+				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackComplete ||
+				aws.StringValue(stack.Stacks[0].StackStatus) == cfn.StackStatusRollbackInProgress {
+				// If cloudformation stack creation fails due to resources that already exist, stack stays in rollback status and must be manually deleted.
+				// Delete resources that failed because they already exists.
+				deleteResourcesInCloudFormation(prov, t)
+			}
+		}
+	}
+	return err
+}
+
+func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
+	for _, roles := range MultiTenancyRoles {
+		if err := roles.SetEnvVars(prov); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Delete resources that already exists.
+func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
+	iamSvc := iam.New(prov)
+	temp := *renderCustomCloudFormation(t)
+	for _, val := range temp.Resources {
+		tayp := val.AWSCloudFormationType()
+		if tayp == configservice.ResourceTypeAwsIamRole {
+			role := val.(*cfn_iam.Role)
+			iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(role.RoleName)})
+		}
+		if val.AWSCloudFormationType() == "AWS::IAM::InstanceProfile" {
+			profile := val.(*cfn_iam.InstanceProfile)
+			iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+		}
+		if val.AWSCloudFormationType() == "AWS::IAM::ManagedPolicy" {
+			policy := val.(*cfn_iam.ManagedPolicy)
+			policies, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{})
+			Expect(err).NotTo(HaveOccurred())
+			if len(policies.Policies) > 0 {
+				for _, p := range policies.Policies {
+					if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
+						iamSvc.DeletePolicy(&iam.DeletePolicyInput{PolicyArn: p.Arn})
+						break
+					}
+				}
+			}
+		}
+		if val.AWSCloudFormationType() == configservice.ResourceTypeAwsIamGroup {
+			group := val.(*cfn_iam.Group)
+			iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
+		}
+	}
+}
+
+// TODO: remove once test infra accounts are fixed.
+func deleteMultitenancyRoles(prov client.ConfigProvider) {
+	DeleteRole(prov, "multi-tenancy-role")
+	DeleteRole(prov, "multi-tenancy-nested-role")
+}
+
+// detachAllPoliciesForRole detaches all policies for role
+func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
+	iamSvc := iam.New(prov)
+
+	input := &iam.ListAttachedRolePoliciesInput{
+		RoleName: &name,
+	}
+	policies, err := iamSvc.ListAttachedRolePolicies(input)
+	if err != nil {
+		return errors.New("error fetching policies for role")
+	}
+	for _, p := range policies.AttachedPolicies {
+		input := &iam.DetachRolePolicyInput{
+			RoleName:  aws.String(name),
+			PolicyArn: p.PolicyArn,
+		}
+
+		_, err := iamSvc.DetachRolePolicy(input)
+		if err != nil {
+			return errors.New("failed detaching policy from a role")
+		}
+	}
+	return nil
+}
+
+// Best effort deletes roles.
+func DeleteRole(prov client.ConfigProvider, name string) {
+	iamSvc := iam.New(prov)
+
+	// if role does not exist, return
+	_, err := iamSvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(name)})
+	if err != nil {
+		return
+	}
+
+	if err := detachAllPoliciesForRole(prov, name); err != nil {
+		return
+	}
+
+	iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(name)})
+}
+
+func GetPolicyArn(prov client.ConfigProvider, name string) string {
+	iamSvc := iam.New(prov)
+	policyList, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{
+		Scope: aws.String(iam.PolicyScopeTypeLocal),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, policy := range policyList.Policies {
+		if aws.StringValue(policy.PolicyName) == name {
+			return aws.StringValue(policy.Arn)
+		}
+	}
+	return ""
 }
 
 // deleteCloudFormationStack removes the provisioned clusterawsadm stack
 func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	Byf("Deleting %s CloudFormation stack", t.Spec.StackName)
-	cfnSvc := cloudformation.NewService(cfn.New(prov))
-	Expect(
-		cfnSvc.DeleteStack(t.Spec.StackName),
-	).To(Succeed())
+	CFN := cfn.New(prov)
+	cfnSvc := cloudformation.NewService(CFN)
+	err := cfnSvc.DeleteStack(t.Spec.StackName, nil)
+	if err != nil {
+		var retainResources []*string
+		out, err := CFN.DescribeStackResources(&cfn.DescribeStackResourcesInput{StackName: aws.String(t.Spec.StackName)})
+		Expect(err).NotTo(HaveOccurred())
+		for _, v := range out.StackResources {
+			if aws.StringValue(v.ResourceStatus) == cfn.ResourceStatusDeleteFailed {
+				retainResources = append(retainResources, v.LogicalResourceId)
+			}
+		}
+		err = cfnSvc.DeleteStack(t.Spec.StackName, retainResources)
+		Expect(err).NotTo(HaveOccurred())
+	}
+	CFN.WaitUntilStackDeleteComplete(&cfn.DescribeStacksInput{
+		StackName: aws.String(t.Spec.StackName),
+	})
 }
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests

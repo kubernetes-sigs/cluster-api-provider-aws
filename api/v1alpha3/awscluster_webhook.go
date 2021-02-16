@@ -96,6 +96,14 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
+	// If a identityRef is already set, do not allow removal of it.
+	if oldC.Spec.IdentityRef != nil && r.Spec.IdentityRef == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "identityRef"),
+				r.Spec.IdentityRef, "field cannot be set to nil"),
+		)
+	}
+
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
@@ -104,6 +112,13 @@ func (r *AWSCluster) ValidateUpdate(old runtime.Object) error {
 func (r *AWSCluster) Default() {
 	SetDefaults_Bastion(&r.Spec.Bastion)
 	SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
+
+	if r.Spec.IdentityRef == nil {
+		r.Spec.IdentityRef = &AWSIdentityReference{
+			Kind: ControllerIdentityKind,
+			Name: AWSClusterControllerIdentityName,
+		}
+	}
 }
 
 func (r *AWSCluster) validateSSHKeyName() field.ErrorList {

@@ -52,6 +52,11 @@ const (
 	// owner: @gab-satchi
 	// alpha: v0.7?
 	EventBridgeInstanceState featuregate.Feature = "EventBridgeInstanceState"
+
+	// AutoControllerIdentityCreator will create AWSClusterControllerIdentity instance that allows all namespaces to use it.
+	// owner: @sedefsavas
+	// alpha: v0.6
+	AutoControllerIdentityCreator featuregate.Feature = "AutoControllerIdentityCreator"
 )
 
 func init() {
@@ -62,9 +67,10 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	// Every feature should be initiated here:
-	EKS:                      {Default: false, PreRelease: featuregate.Alpha},
-	EKSEnableIAM:             {Default: false, PreRelease: featuregate.Alpha},
-	EKSAllowAddRoles:         {Default: false, PreRelease: featuregate.Alpha},
-	EventBridgeInstanceState: {Default: false, PreRelease: featuregate.Alpha},
-	MachinePool:              {Default: false, PreRelease: featuregate.Alpha},
+	EKS:                           {Default: false, PreRelease: featuregate.Alpha},
+	EKSEnableIAM:                  {Default: false, PreRelease: featuregate.Alpha},
+	EKSAllowAddRoles:              {Default: false, PreRelease: featuregate.Alpha},
+	EventBridgeInstanceState:      {Default: false, PreRelease: featuregate.Alpha},
+	MachinePool:                   {Default: false, PreRelease: featuregate.Alpha},
+	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},
 }

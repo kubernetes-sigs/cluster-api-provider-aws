@@ -24,12 +24,24 @@ import (
 	"strconv"
 	"testing"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cluster-api-provider-aws/test/helpers"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 )
 
 var testEnv *helpers.TestEnvironment
+
+func TestAPIs(t *testing.T) {
+	RegisterFailHandler(Fail)
+
+	RunSpecsWithDefaultAndCustomReporters(t,
+		"Controller Suite",
+		[]Reporter{printer.NewlineReporter{}})
+}
 
 func TestMain(m *testing.M) {
 	setup()
@@ -60,6 +72,12 @@ func setup() {
 	}
 	if err := (&AWSMachineList{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachineList webhook: %v", err))
+	}
+	if err := (&AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSClusterControllerIdentity webhook: %v", err))
+	}
+	if err := (&AWSClusterRoleIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSClusterRoleIdentity webhook: %v", err))
 	}
 	go func() {
 		fmt.Println("Starting the manager")

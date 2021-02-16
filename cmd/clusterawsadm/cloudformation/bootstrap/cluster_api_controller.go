@@ -56,7 +56,7 @@ func (t Template) controllersTrustPolicy() *iamv1.PolicyDocument {
 	return policyDocument
 }
 
-func (t Template) controllersPolicy() *iamv1.PolicyDocument {
+func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 	statement := []iamv1.StatementEntry{
 		{
 			Effect:   iamv1.EffectAllow,

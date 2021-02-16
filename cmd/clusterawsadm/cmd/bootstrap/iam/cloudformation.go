@@ -150,7 +150,7 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
 
-			err = cfnSvc.DeleteStack(t.Spec.StackName)
+			err = cfnSvc.DeleteStack(t.Spec.StackName, nil)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err

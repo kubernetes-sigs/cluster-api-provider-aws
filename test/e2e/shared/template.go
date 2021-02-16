@@ -23,17 +23,28 @@ import (
 	"io/ioutil"
 	"path"
 
+	"github.com/awslabs/goformation/v4/cloudformation"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"gopkg.in/yaml.v2"
 
+	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
+	iamv1 "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/iam/v1alpha1"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+)
+
+const (
+	MultiTenancyJumpPolicy = "CAPAMultiTenancyJumpPolicy"
+)
+
+var (
+	accountRef = cloudformation.Sub("arn:${AWS::Partition}:iam::${AWS::AccountId}:root")
 )
 
 // newBootstrapTemplate generates a clusterawsadm configuration, and prints it
@@ -42,6 +53,16 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	By("Creating a bootstrap AWSIAMConfiguration")
 	t := cfn_bootstrap.NewTemplate()
 	t.Spec.BootstrapUser.Enable = true
+	t.Spec.BootstrapUser.ExtraStatements = []iamv1.StatementEntry{
+		{
+			Effect: "Allow",
+			Action: []string{"sts:AssumeRole"},
+			Resource: []string{
+				cloudformation.GetAtt(MultiTenancySimpleRole.RoleName(), "Arn"),
+				cloudformation.GetAtt(MultiTenancyJumpRole.RoleName(), "Arn"),
+			},
+		},
+	}
 	t.Spec.SecureSecretsBackends = []v1alpha3.SecretBackend{
 		v1alpha3.SecretBackendSecretsManager,
 		v1alpha3.SecretBackendSSMParameterStore,
@@ -60,10 +81,54 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ioutil.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed())
-	cfnData, err := t.RenderCloudFormation().YAML()
+	cloudformationTemplate := renderCustomCloudFormation(&t)
+	cfnData, err := cloudformationTemplate.YAML()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(ioutil.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "cloudformation.yaml"), cfnData, 0644)).To(Succeed())
 	return &t
+}
+
+func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Template {
+	cloudformationTemplate := t.RenderCloudFormation()
+	appendMultiTenancyRoles(t, cloudformationTemplate)
+	return cloudformationTemplate
+}
+
+func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Template) {
+
+	controllersPolicy := cfnt.Resources[string(cfn_bootstrap.ControllersPolicy)].(*cfn_iam.ManagedPolicy)
+	controllersPolicy.Roles = append(
+		controllersPolicy.Roles,
+		cloudformation.Ref(MultiTenancySimpleRole.RoleName()),
+		cloudformation.Ref(MultiTenancyNestedRole.RoleName()),
+	)
+	cfnt.Resources[MultiTenancyJumpPolicy] = &cfn_iam.ManagedPolicy{
+		ManagedPolicyName: MultiTenancyJumpPolicy,
+		PolicyDocument: &iamv1.PolicyDocument{
+			Version: iamv1.CurrentVersion,
+			Statement: []iamv1.StatementEntry{
+				{
+					Effect:   iamv1.EffectAllow,
+					Resource: iamv1.Resources{cloudformation.GetAtt(MultiTenancyNestedRole.RoleName(), "Arn")},
+					Action:   iamv1.Actions{"sts:AssumeRole"},
+				},
+			},
+		},
+		Roles: []string{cloudformation.Ref(MultiTenancyJumpRole.RoleName())},
+	}
+
+	cfnt.Resources[MultiTenancySimpleRole.RoleName()] = &cfn_iam.Role{
+		RoleName:                 MultiTenancySimpleRole.RoleName(),
+		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(iamv1.PrincipalAWS, []string{accountRef}),
+	}
+	cfnt.Resources[MultiTenancyJumpRole.RoleName()] = &cfn_iam.Role{
+		RoleName:                 MultiTenancyJumpRole.RoleName(),
+		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(iamv1.PrincipalAWS, []string{accountRef}),
+	}
+	cfnt.Resources[MultiTenancyNestedRole.RoleName()] = &cfn_iam.Role{
+		RoleName:                 MultiTenancyNestedRole.RoleName(),
+		AssumeRolePolicyDocument: cfn_bootstrap.AssumeRolePolicy(iamv1.PrincipalAWS, []string{accountRef}),
+	}
 }
 
 // getBootstrapTemplate gets or generates a new bootstrap template

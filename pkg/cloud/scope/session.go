@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,16 +17,36 @@ limitations under the License.
 package scope
 
 import (
+	"context"
+	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/identity"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	notPermittedError = "Namespace is not permitted to use %s: %s"
 )
 
 // ServiceEndpoint defines a tuple containing AWS Service resolution information
@@ -37,10 +57,15 @@ type ServiceEndpoint struct {
 }
 
 var sessionCache sync.Map
+var providerCache sync.Map
 
 type sessionCacheEntry struct {
 	session         *session.Session
 	serviceLimiters throttle.ServiceLimiters
+}
+
+// SessionInterface is the interface for AWSCluster and ManagedCluster to be used to get session using identityRef.
+var SessionInterface interface {
 }
 
 func sessionForRegion(region string, endpoint []ServiceEndpoint) (*session.Session, throttle.ServiceLimiters, error) {
@@ -74,6 +99,89 @@ func sessionForRegion(region string, endpoint []ServiceEndpoint) (*session.Sessi
 		serviceLimiters: sl,
 	})
 	return ns, sl, nil
+}
+
+func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.ClusterScoper, region string, endpoint []ServiceEndpoint, logger logr.Logger) (*session.Session, throttle.ServiceLimiters, error) {
+	log := logger.WithName("identity")
+	log.V(4).Info("Creating an AWS Session")
+
+	resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		for _, s := range endpoint {
+			if service == s.ServiceID {
+				return endpoints.ResolvedEndpoint{
+					URL:           s.URL,
+					SigningRegion: s.SigningRegion,
+				}, nil
+			}
+		}
+		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
+	}
+
+	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, log)
+	if err != nil {
+		// could not get providers and retrieve the credentials
+		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
+
+	}
+
+	isChanged := false
+	awsProviders := make([]credentials.Provider, len(providers))
+	for i, provider := range providers {
+		// load an existing matching providers from the cache if such a providers exists
+		providerHash, err := provider.Hash()
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "Failed to calculate provider hash")
+		}
+		cachedProvider, ok := providerCache.Load(providerHash)
+		if ok {
+			provider = cachedProvider.(identity.AWSPrincipalTypeProvider)
+		} else {
+			isChanged = true
+			// add this providers to the cache
+			providerCache.Store(providerHash, provider)
+		}
+		awsProviders[i] = provider.(credentials.Provider)
+	}
+
+	if !isChanged {
+		if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
+			entry := s.(*sessionCacheEntry)
+			return entry.session, entry.serviceLimiters, nil
+		}
+	}
+	awsConfig := &aws.Config{
+		Region:           aws.String(region),
+		EndpointResolver: endpoints.ResolverFunc(resolver),
+	}
+
+	if len(providers) > 0 {
+		// Check if identity credentials can be retrieved. One reason this will fail is that source identity is not authorized for assume role.
+		_, err := providers[0].Retrieve()
+		if err != nil {
+			conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.CredentialProviderBuildFailedReason, err.Error())
+			return nil, nil, errors.Wrap(err, "Failed to retrieve identity credentials")
+		}
+		awsConfig = awsConfig.WithCredentials(credentials.NewChainCredentials(awsProviders))
+	}
+
+	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition)
+
+	ns, err := session.NewSession(awsConfig)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Failed to create a new AWS session")
+	}
+	sl := newServiceLimiters()
+	sessionCache.Store(getSessionName(region, clusterScoper), &sessionCacheEntry{
+		session:         ns,
+		serviceLimiters: sl,
+	})
+
+	return ns, sl, nil
+}
+
+func getSessionName(region string, clusterScoper cloud.ClusterScoper) string {
+	return fmt.Sprintf("%s-%s-%s", region, clusterScoper.InfraClusterName(), clusterScoper.Namespace())
 }
 
 func newServiceLimiters() throttle.ServiceLimiters {
@@ -133,4 +241,214 @@ func newEC2ServiceLimiter() *throttle.ServiceLimiter {
 			Burst:      200,
 		},
 	}
+}
+
+func buildProvidersForRef(
+	ctx context.Context,
+	providers []identity.AWSPrincipalTypeProvider,
+	k8sClient client.Client,
+	clusterScoper cloud.ClusterScoper,
+	ref *infrav1.AWSIdentityReference,
+	log logr.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
+	if ref == nil {
+		log.V(4).Info("AWSCluster does not have a IdentityRef specified")
+		return providers, nil
+	}
+
+	var provider identity.AWSPrincipalTypeProvider
+	identityObjectKey := client.ObjectKey{Name: ref.Name}
+	log = log.WithValues("identityKey", identityObjectKey)
+	log.V(4).Info("Getting identity")
+
+	switch ref.Kind {
+	case infrav1.ControllerIdentityKind:
+		err := buildAWSClusterControllerIdentity(ctx, identityObjectKey, k8sClient, clusterScoper)
+		if err != nil {
+			return providers, err
+		}
+		// returning empty provider list to default to Controller Principal.
+		return []identity.AWSPrincipalTypeProvider{}, nil
+	case infrav1.ClusterStaticIdentityKind:
+		provider, err := buildAWSClusterStaticIdentity(ctx, identityObjectKey, k8sClient, clusterScoper)
+		if err != nil {
+			return providers, err
+		}
+		providers = append(providers, provider)
+	case infrav1.ClusterRoleIdentityKind:
+		roleIdentity := &infrav1.AWSClusterRoleIdentity{}
+		err := k8sClient.Get(ctx, identityObjectKey, roleIdentity)
+		if err != nil {
+			return providers, err
+		}
+		log.V(4).Info("Principal retrieved")
+		canUse, err := isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
+		if err != nil {
+			return providers, err
+		}
+		if !canUse {
+			setPrincipalUsageNotAllowedCondition(infrav1.ClusterRoleIdentityKind, identityObjectKey, clusterScoper)
+			return providers, errors.Errorf(notPermittedError, infrav1.ClusterRoleIdentityKind, roleIdentity.Name)
+		}
+		setPrincipalUsageAllowedCondition(clusterScoper)
+
+		if roleIdentity.Spec.SourceIdentityRef != nil {
+			providers, err = buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, roleIdentity.Spec.SourceIdentityRef, log)
+			if err != nil {
+				return providers, err
+			}
+		}
+		var sourceProvider identity.AWSPrincipalTypeProvider
+		if len(providers) > 0 {
+			sourceProvider = providers[len(providers)-1]
+			// Remove last provider
+			if len(providers) > 0 {
+				providers = providers[:len(providers)-1]
+			}
+		}
+
+		if sourceProvider != nil {
+			provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, &sourceProvider, log)
+		} else {
+			provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, nil, log)
+		}
+		providers = append(providers, provider)
+	default:
+		return providers, errors.Errorf("No such provider known: '%s'", ref.Kind)
+	}
+	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
+	return providers, nil
+}
+
+func setPrincipalUsageAllowedCondition(clusterScoper cloud.ClusterScoper) {
+	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
+}
+
+func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identityObjectKey client.ObjectKey, clusterScoper cloud.ClusterScoper) {
+	errMsg := fmt.Sprintf(notPermittedError, kind, identityObjectKey.Name)
+
+	if clusterScoper.IdentityRef().Name == identityObjectKey.Name {
+		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition, infrav1.PrincipalUsageUnauthorizedReason, clusterv1.ConditionSeverityError, errMsg)
+	} else {
+		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition, infrav1.SourcePrincipalUsageUnauthorizedReason, clusterv1.ConditionSeverityError, errMsg)
+	}
+}
+
+func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.ClusterScoper) (*identity.AWSStaticPrincipalTypeProvider, error) {
+	staticPrincipal := &infrav1.AWSClusterStaticIdentity{}
+	err := k8sClient.Get(ctx, identityObjectKey, staticPrincipal)
+	if err != nil {
+		return nil, err
+	}
+	secret := &corev1.Secret{}
+	err = k8sClient.Get(ctx, client.ObjectKey{Name: staticPrincipal.Spec.SecretRef.Name, Namespace: staticPrincipal.Spec.SecretRef.Namespace}, secret)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set ClusterStaticPrincipal as Secret's owner reference for 'clusterctl move'.
+	patchHelper, err := patch.NewHelper(secret, k8sClient)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to init patch helper for secret name:%s namespace:%s", secret.Name, secret.Namespace)
+	}
+
+	secret.OwnerReferences = util.EnsureOwnerRef(secret.OwnerReferences, metav1.OwnerReference{
+		APIVersion: infrav1.GroupVersion.String(),
+		Kind:       string(infrav1.ClusterStaticIdentityKind),
+		Name:       staticPrincipal.Name,
+		UID:        staticPrincipal.UID,
+	})
+
+	if err := patchHelper.Patch(ctx, secret); err != nil {
+		return nil, errors.Wrapf(err, "failed to patch secret name:%s namespace:%s", secret.Name, secret.Namespace)
+	}
+
+	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, staticPrincipal.Spec.AllowedNamespaces, clusterScoper.Namespace())
+	if err != nil {
+		return nil, err
+	}
+	if !canUse {
+		setPrincipalUsageNotAllowedCondition(infrav1.ClusterStaticIdentityKind, identityObjectKey, clusterScoper)
+		return nil, errors.Errorf(notPermittedError, infrav1.ClusterStaticIdentityKind, identityObjectKey.Name)
+	}
+	setPrincipalUsageAllowedCondition(clusterScoper)
+
+	return identity.NewAWSStaticPrincipalTypeProvider(staticPrincipal, secret), nil
+}
+
+func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.ClusterScoper) error {
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{}
+	controllerIdentity.Kind = string(infrav1.ControllerIdentityKind)
+
+	// Enforce the singleton again for depth
+	if identityObjectKey.Name != infrav1.AWSClusterControllerIdentityName {
+		return errors.Errorf("Expected AWSClusterControllerIdentity of name %s, got %s", infrav1.AWSClusterControllerIdentityName, identityObjectKey.Name)
+	}
+
+	err := k8sClient.Get(ctx, client.ObjectKey{Name: identityObjectKey.Name}, controllerIdentity)
+	if err != nil {
+		return err
+	}
+
+	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, controllerIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
+	if err != nil {
+		return err
+	}
+	if !canUse {
+		setPrincipalUsageNotAllowedCondition(infrav1.ControllerIdentityKind, identityObjectKey, clusterScoper)
+		return errors.Errorf(notPermittedError, infrav1.ControllerIdentityKind, controllerIdentity.Name)
+	}
+	setPrincipalUsageAllowedCondition(clusterScoper)
+	return nil
+}
+
+func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.ClusterScoper, log logr.Logger) ([]identity.AWSPrincipalTypeProvider, error) {
+	providers := make([]identity.AWSPrincipalTypeProvider, 0)
+	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), log)
+	if err != nil {
+		return nil, err
+	}
+
+	return providers, nil
+}
+
+func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav1.AllowedNamespaces, clusterNamespace string) (bool, error) {
+	// nil value does not match with any namespaces
+	if allowedNs == nil {
+		return false, nil
+	}
+
+	// empty value matches with all namespaces
+	if reflect.DeepEqual(*allowedNs, infrav1.AllowedNamespaces{}) {
+		return true, nil
+	}
+
+	for _, v := range (*allowedNs).NamespaceList {
+		if v == clusterNamespace {
+			return true, nil
+		}
+	}
+
+	// Check if clusterNamespace is in the namespaces selected by the identity's allowedNamespaces selector.
+	namespaces := &corev1.NamespaceList{}
+	selector, err := metav1.LabelSelectorAsSelector(&allowedNs.Selector)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get label selector from spec selector")
+	}
+
+	// If a Selector has a nil or empty selector, it should match nothing, not everything.
+	if selector.Empty() {
+		return false, nil
+	}
+
+	if err := k8sClient.List(context.Background(), namespaces, client.MatchingLabelsSelector{Selector: selector}); err != nil {
+		return false, errors.Wrap(err, "failed to list namespaces")
+	}
+
+	for i := range namespaces.Items {
+		n := &namespaces.Items[i]
+		if n.Name == clusterNamespace {
+			return true, nil
+		}
+	}
+	return false, nil
 }

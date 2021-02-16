@@ -58,7 +58,15 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		params.Logger = klogr.New()
 	}
 
-	session, serviceLimiters, err := sessionForRegion(params.AWSCluster.Spec.Region, params.Endpoints)
+	clusterScope := &ClusterScope{
+		Logger:         params.Logger,
+		client:         params.Client,
+		Cluster:        params.Cluster,
+		AWSCluster:     params.AWSCluster,
+		controllerName: params.ControllerName,
+	}
+
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -67,16 +75,12 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
-	return &ClusterScope{
-		Logger:          params.Logger,
-		client:          params.Client,
-		Cluster:         params.Cluster,
-		AWSCluster:      params.AWSCluster,
-		patchHelper:     helper,
-		session:         session,
-		serviceLimiters: serviceLimiters,
-		controllerName:  params.ControllerName,
-	}, nil
+
+	clusterScope.patchHelper = helper
+	clusterScope.session = session
+	clusterScope.serviceLimiters = serviceLimiters
+
+	return clusterScope, nil
 }
 
 // ClusterScope defines the basic context for an actuator to operate upon.
@@ -106,6 +110,11 @@ func (s *ClusterScope) VPC() *infrav1.VPCSpec {
 // Subnets returns the cluster subnets.
 func (s *ClusterScope) Subnets() infrav1.Subnets {
 	return s.AWSCluster.Spec.NetworkSpec.Subnets
+}
+
+// IdentityRef returns the cluster identityRef.
+func (s *ClusterScope) IdentityRef() *infrav1.AWSIdentityReference {
+	return s.AWSCluster.Spec.IdentityRef
 }
 
 // SetSubnets updates the clusters subnets.
@@ -144,6 +153,11 @@ func (s *ClusterScope) Name() string {
 // Namespace returns the cluster namespace.
 func (s *ClusterScope) Namespace() string {
 	return s.Cluster.Namespace
+}
+
+// Name returns the AWS cluster name.
+func (s *ClusterScope) InfraClusterName() string {
+	return s.AWSCluster.Name
 }
 
 // Region returns the cluster region.
@@ -224,6 +238,7 @@ func (s *ClusterScope) PatchObject() error {
 			infrav1.ClusterSecurityGroupsReadyCondition,
 			infrav1.BastionHostReadyCondition,
 			infrav1.LoadBalancerReadyCondition,
+			infrav1.PrincipalUsageAllowedCondition,
 		}})
 }
 

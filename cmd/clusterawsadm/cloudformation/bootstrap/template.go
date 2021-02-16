@@ -87,7 +87,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	template.Resources[string(ControllersPolicy)] = &cfn_iam.ManagedPolicy{
 		ManagedPolicyName: t.NewManagedName("controllers"),
 		Description:       `For the Kubernetes Cluster API Provider AWS Controllers`,
-		PolicyDocument:    t.controllersPolicy(),
+		PolicyDocument:    t.ControllersPolicy(),
 		Groups:            t.controllersPolicyGroups(),
 		Roles:             t.controllersPolicyRoleAttachments(),
 	}
@@ -210,7 +210,7 @@ func AssumeRolePolicy(identityType iamv1.PrincipalType, principalIDs []string) *
 		Statement: []iamv1.StatementEntry{
 			{
 				Effect:    iamv1.EffectAllow,
-				Principal: iamv1.Principals{iamv1.PrincipalService: principalIDs},
+				Principal: iamv1.Principals{identityType: principalIDs},
 				Action:    iamv1.Actions{"sts:AssumeRole"},
 			},
 		},

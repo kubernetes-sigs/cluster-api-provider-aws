@@ -328,10 +328,10 @@ func (s *IAMService) IsUnmanaged(role *iam.Role, key string) bool {
 }
 
 func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
-	principal := make(apiiam.Principals)
-	principal["Service"] = []string{"eks.amazonaws.com"}
+	identity := make(apiiam.Principals)
+	identity["Service"] = []string{"eks.amazonaws.com"}
 	if enableFargate {
-		principal["Service"] = append(principal["Service"], EKSFargateService)
+		identity["Service"] = append(identity["Service"], EKSFargateService)
 	}
 
 	policy := &apiiam.PolicyDocument{
@@ -342,7 +342,7 @@ func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
 				Action: []string{
 					"sts:AssumeRole",
 				},
-				Principal: principal,
+				Principal: identity,
 			},
 		},
 	}
@@ -351,8 +351,8 @@ func ControlPlaneTrustRelationship(enableFargate bool) *apiiam.PolicyDocument {
 }
 
 func FargateTrustRelationship() *apiiam.PolicyDocument {
-	principal := make(apiiam.Principals)
-	principal["Service"] = []string{EKSFargateService}
+	identity := make(apiiam.Principals)
+	identity["Service"] = []string{EKSFargateService}
 
 	policy := &apiiam.PolicyDocument{
 		Version: "2012-10-17",
@@ -362,7 +362,7 @@ func FargateTrustRelationship() *apiiam.PolicyDocument {
 				Action: []string{
 					"sts:AssumeRole",
 				},
-				Principal: principal,
+				Principal: identity,
 			},
 		},
 	}
@@ -371,8 +371,8 @@ func FargateTrustRelationship() *apiiam.PolicyDocument {
 }
 
 func NodegroupTrustRelationship() *apiiam.PolicyDocument {
-	principal := make(apiiam.Principals)
-	principal["Service"] = []string{"ec2.amazonaws.com"}
+	identity := make(apiiam.Principals)
+	identity["Service"] = []string{"ec2.amazonaws.com"}
 
 	policy := &apiiam.PolicyDocument{
 		Version: "2012-10-17",
@@ -382,7 +382,7 @@ func NodegroupTrustRelationship() *apiiam.PolicyDocument {
 				Action: []string{
 					"sts:AssumeRole",
 				},
-				Principal: principal,
+				Principal: identity,
 			},
 		},
 	}

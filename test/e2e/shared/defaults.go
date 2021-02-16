@@ -20,13 +20,15 @@ package shared
 
 import (
 	"flag"
+	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
-	"sigs.k8s.io/cluster-api/test/framework"
-
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 const (
@@ -44,8 +46,65 @@ const (
 	SpotInstancesFlavor          = "spot-instances"
 	SSMFlavor                    = "ssm"
 	UpgradeToMain                = "upgrade-to-main"
+	SimpleMultitenancyFlavor     = "simple-multitenancy"
+	NestedMultitenancyFlavor     = "nested-multitenancy"
 	StorageClassFailureZoneLabel = "failure-domain.beta.kubernetes.io/zone"
 )
+
+var (
+	MultiTenancySimpleRole = MultitenancyRole("Simple")
+	MultiTenancyJumpRole   = MultitenancyRole("Jump")
+	MultiTenancyNestedRole = MultitenancyRole("Nested")
+	MultiTenancyRoles      = []MultitenancyRole{MultiTenancySimpleRole, MultiTenancyJumpRole, MultiTenancyNestedRole}
+	roleLookupCache        = make(map[string]string)
+)
+
+type MultitenancyRole string
+
+func (m MultitenancyRole) EnvVarARN() string {
+	return "MULTI_TENANCY_" + strings.ToUpper(string(m)) + "_ROLE_ARN"
+}
+
+func (m MultitenancyRole) EnvVarName() string {
+	return "MULTI_TENANCY_" + strings.ToUpper(string(m)) + "_ROLE_NAME"
+}
+
+func (m MultitenancyRole) EnvVarIdentity() string {
+	return "MULTI_TENANCY_" + strings.ToUpper(string(m)) + "_IDENTITY_NAME"
+}
+
+func (m MultitenancyRole) IdentityName() string {
+	return strings.ToLower(m.RoleName())
+}
+
+func (m MultitenancyRole) RoleName() string {
+	return "CAPAMultiTenancy" + string(m)
+}
+
+func (m MultitenancyRole) SetEnvVars(prov client.ConfigProvider) error {
+	arn, err := m.RoleARN(prov)
+	if err != nil {
+		return err
+	}
+	SetEnvVar(m.EnvVarARN(), arn, false)
+	SetEnvVar(m.EnvVarName(), m.RoleName(), false)
+	SetEnvVar(m.EnvVarIdentity(), m.IdentityName(), false)
+	return nil
+}
+
+func (m MultitenancyRole) RoleARN(prov client.ConfigProvider) (string, error) {
+	if roleARN, ok := roleLookupCache[m.RoleName()]; ok {
+		return roleARN, nil
+	}
+	iamSvc := iam.New(prov)
+	role, err := iamSvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(m.RoleName())})
+	if err != nil {
+		return "", err
+	}
+	roleARN := aws.StringValue(role.Role.Arn)
+	roleLookupCache[m.RoleName()] = roleARN
+	return roleARN, nil
+}
 
 // DefaultScheme returns the default scheme to use for testing
 func DefaultScheme() *runtime.Scheme {

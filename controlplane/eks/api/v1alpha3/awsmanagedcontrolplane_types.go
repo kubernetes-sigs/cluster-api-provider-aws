@@ -35,6 +35,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	EKSClusterName string `json:"eksClusterName,omitempty"`
 
+	// IdentityRef is a reference to a identity to be used when reconciling the managed control plane.
+	// +optional
+	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
+
 	// NetworkSpec encapsulates all things related to AWS network.
 	NetworkSpec infrav1.NetworkSpec `json:"networkSpec,omitempty"`
 
