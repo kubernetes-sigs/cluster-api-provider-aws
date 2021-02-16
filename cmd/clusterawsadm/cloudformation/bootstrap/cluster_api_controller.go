@@ -236,6 +236,21 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			})
 		}
 	}
+	if t.Spec.S3Buckets.Enable {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				fmt.Sprintf("arn:*:s3:::%s*", t.Spec.S3Buckets.NamePrefix),
+			},
+			Action: iamv1.Actions{
+				"s3:CreateBucket",
+				"s3:DeleteBucket",
+				"s3:PutObject",
+				"s3:DeleteObject",
+				"s3:PutBucketPolicy",
+			},
+		})
+	}
 	if t.Spec.EventBridge.Enable {
 		statement = append(statement, iamv1.StatementEntry{
 			Effect:   iamv1.EffectAllow,
