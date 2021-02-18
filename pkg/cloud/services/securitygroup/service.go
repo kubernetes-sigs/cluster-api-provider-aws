@@ -61,7 +61,7 @@ func NewService(sgScope Scope) *Service {
 	return &Service{
 		scope:     sgScope,
 		roles:     defaultRoles,
-		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope.InfraCluster()),
+		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope, sgScope.InfraCluster()),
 	}
 }
 
@@ -71,6 +71,6 @@ func NewServiceWithRoles(sgScope Scope, roles []infrav1.SecurityGroupRole) *Serv
 	return &Service{
 		scope:     sgScope,
 		roles:     roles,
-		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope.InfraCluster()),
+		EC2Client: scope.NewEC2Client(sgScope, sgScope, sgScope, sgScope.InfraCluster()),
 	}
 }

@@ -35,6 +35,6 @@ type Service struct {
 func NewService(secretsScope cloud.ClusterScoper) *Service {
 	return &Service{
 		scope:                secretsScope,
-		SecretsManagerClient: scope.NewSecretsManagerClient(secretsScope, secretsScope, secretsScope.InfraCluster()),
+		SecretsManagerClient: scope.NewSecretsManagerClient(secretsScope, secretsScope, secretsScope, secretsScope.InfraCluster()),
 	}
 }

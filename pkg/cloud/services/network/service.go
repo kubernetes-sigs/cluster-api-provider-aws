@@ -59,6 +59,6 @@ type Service struct {
 func NewService(networkScope Scope) *Service {
 	return &Service{
 		scope:     networkScope,
-		EC2Client: scope.NewEC2Client(networkScope, networkScope, networkScope.InfraCluster()),
+		EC2Client: scope.NewEC2Client(networkScope, networkScope, networkScope, networkScope.InfraCluster()),
 	}
 }

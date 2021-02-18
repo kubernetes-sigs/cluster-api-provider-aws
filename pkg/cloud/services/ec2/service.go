@@ -38,7 +38,7 @@ type Service struct {
 func NewService(clusterScope scope.EC2Scope) *Service {
 	return &Service{
 		scope:     clusterScope,
-		EC2Client: scope.NewEC2Client(clusterScope, clusterScope, clusterScope.InfraCluster()),
-		SSMClient: scope.NewSSMClient(clusterScope, clusterScope, clusterScope.InfraCluster()),
+		EC2Client: scope.NewEC2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
+		SSMClient: scope.NewSSMClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 	}
 }
