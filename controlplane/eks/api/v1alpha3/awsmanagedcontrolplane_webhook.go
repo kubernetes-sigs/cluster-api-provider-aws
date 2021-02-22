@@ -37,7 +37,8 @@ import (
 )
 
 const (
-	minAddonVersion = "v1.18.0"
+	minAddonVersion      = "v1.18.0"
+	maxClusterNameLength = 100
 )
 
 // log is for logging in this package.
@@ -284,7 +285,7 @@ func (r *AWSManagedControlPlane) Default() {
 
 	if r.Spec.EKSClusterName == "" {
 		mcpLog.Info("EKSClusterName is empty, generating name")
-		name, err := eks.GenerateEKSName(r.Name, r.Namespace)
+		name, err := eks.GenerateEKSName(r.Name, r.Namespace, maxClusterNameLength)
 		if err != nil {
 			mcpLog.Error(err, "failed to create EKS cluster name")
 			return

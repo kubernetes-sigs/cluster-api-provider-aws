@@ -55,10 +55,38 @@ const (
 )
 
 const (
+	// EKSFargateProfileReadyCondition condition reports on the successful reconciliation of eks control plane.
+	EKSFargateProfileReadyCondition clusterv1.ConditionType = "EKSFargateProfileReady"
+	// EKSFargateCreatingCondition condition reports on whether the fargate
+	// profile is creating
+	EKSFargateCreatingCondition clusterv1.ConditionType = "EKSFargateCreating"
+	// EKSFargateDeletingCondition used to report that the profile is deleting
+	EKSFargateDeletingCondition = "EKSFargateDeleting"
+	// EKSFargateReconciliationFailedReason used to report failures while reconciling EKS control plane
+	EKSFargateReconciliationFailedReason = "EKSFargateReconciliationFailed"
+	// EKSFargateDeletingReason used when the profile is deleting
+	EKSFargateDeletingReason = "Deleting"
+	// EKSFargateCreatingReason used when the profile is creating
+	EKSFargateCreatingReason = "Creating"
+	// EKSFargateCreatedReason used when the profile is created
+	EKSFargateCreatedReason = "Created"
+	// EKSFargateDeletedReason used when the profile is deleted
+	EKSFargateDeletedReason = "Deleted"
+	// EKSFargateFailedReason used when the profile failed
+	EKSFargateFailedReason = "Failed"
+)
+
+const (
 	// IAMNodegroupRolesReadyCondition condition reports on the successful
 	// reconciliation of EKS nodegroup iam roles.
 	IAMNodegroupRolesReadyCondition clusterv1.ConditionType = "IAMNodegroupRolesReady"
 	// IAMNodegroupRolesReconciliationFailedReason used to report failures while
 	// reconciling EKS nodegroup iam roles
 	IAMNodegroupRolesReconciliationFailedReason = "IAMNodegroupRolesReconciliationFailed"
+	// IAMFargateRolesReadyCondition condition reports on the successful
+	// reconciliation of EKS nodegroup iam roles.
+	IAMFargateRolesReadyCondition clusterv1.ConditionType = "IAMFargateRolesReady"
+	// IAMFargateRolesReconciliationFailedReason used to report failures while
+	// reconciling EKS nodegroup iam roles
+	IAMFargateRolesReconciliationFailedReason = "IAMFargateRolesReconciliationFailed"
 )

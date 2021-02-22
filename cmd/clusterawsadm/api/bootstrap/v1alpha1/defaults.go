@@ -68,6 +68,11 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 			Disable: true,
 		}
 	}
+	if obj.EKS.Fargate == nil {
+		obj.EKS.Fargate = &AWSIAMRoleSpec{
+			Disable: true,
+		}
+	}
 	if len(obj.SecureSecretsBackends) == 0 {
 		obj.SecureSecretsBackends = []infrav1.SecretBackend{
 			infrav1.SecretBackendSecretsManager,

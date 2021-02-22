@@ -27,8 +27,13 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks/iam"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+)
+
+const (
+	maxIAMRoleNameLength = 64
 )
 
 // NodegroupRolePolicies gives the policies required for a nodegroup role
@@ -37,6 +42,13 @@ func NodegroupRolePolicies() []string {
 		"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
 		"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy", //TODO: Can remove when CAPA supports provisioning of OIDC web identity federation with service account token volume projection
 		"arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+	}
+}
+
+// FargateRolePolicies gives the policies required for a fargate role
+func FargateRolePolicies() []string {
+	return []string{
+		"arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy",
 	}
 }
 
@@ -71,7 +83,7 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 
 			return fmt.Errorf("creating role %s: %w", *s.scope.ControlPlane.Spec.RoleName, err)
 		}
-		record.Eventf(s.scope.ControlPlane, "SucessfulIAMRoleCreation", "Created control plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
+		record.Eventf(s.scope.ControlPlane, "SuccessfulIAMRoleCreation", "Created control plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
 	}
 
 	if s.IsUnmanaged(role, s.scope.Name()) {
@@ -94,7 +106,7 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 			policies = append(policies, &additionalPolicy)
 		}
 	}
-	err = s.EnsurePoliciesAttached(role, policies)
+	_, err = s.EnsurePoliciesAttached(role, policies)
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring policies are attached: %v", policies)
 	}
@@ -135,7 +147,7 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 		return err
 	}
 
-	record.Eventf(s.scope.ControlPlane, "SucessfulIAMRoleDeletion", "Deleted Control Plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
+	record.Eventf(s.scope.ControlPlane, "SuccessfulIAMRoleDeletion", "Deleted Control Plane IAM role %q", *s.scope.ControlPlane.Spec.RoleName)
 	return nil
 }
 
@@ -170,7 +182,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 			record.Warnf(s.scope.ManagedMachinePool, "FailedIAMRoleCreation", "Failed to create nodegroup IAM role %q: %v", s.scope.RoleName(), err)
 			return err
 		}
-		record.Eventf(s.scope.ManagedMachinePool, "SucessfulIAMRoleCreation", "Created nodegroup IAM role %q", s.scope.RoleName())
+		record.Eventf(s.scope.ManagedMachinePool, "SuccessfulIAMRoleCreation", "Created nodegroup IAM role %q", s.scope.RoleName())
 	}
 
 	if s.IsUnmanaged(role, s.scope.ClusterName()) {
@@ -178,13 +190,13 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 		return nil
 	}
 
-	err = s.EnsureTagsAndPolicy(role, s.scope.ClusterName(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
+	_, err = s.EnsureTagsAndPolicy(role, s.scope.ClusterName(), eksiam.NodegroupTrustRelationship(), s.scope.AdditionalTags())
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring tags and policy document are set on node role")
 	}
 
 	policies := NodegroupRolePolicies()
-	err = s.EnsurePoliciesAttached(role, aws.StringSlice(policies))
+	_, err = s.EnsurePoliciesAttached(role, aws.StringSlice(policies))
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring policies are attached: %v", policies)
 	}
@@ -237,7 +249,110 @@ func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
 		return err
 	}
 
-	record.Eventf(s.scope.ManagedMachinePool, "SucessfulIAMRoleDeletion", "Deleted Nodegroup IAM role %q", s.scope.ManagedMachinePool.Spec.RoleName)
+	record.Eventf(s.scope.ManagedMachinePool, "SuccessfulIAMRoleDeletion", "Deleted Nodegroup IAM role %q", s.scope.ManagedMachinePool.Spec.RoleName)
+	return nil
+}
+
+func (s *FargateService) reconcileFargateIAMRole() (requeue bool, err error) {
+	s.scope.V(2).Info("Reconciling EKS Fargate IAM Role")
+
+	if s.scope.RoleName() == "" {
+		var roleName string
+		if !s.scope.EnableIAM() {
+			s.scope.Info("no EKS fargate role specified, using default EKS fargate role")
+			roleName = infrav1exp.DefaultEKSFargateRole
+		} else {
+			s.scope.Info("no EKS fargate role specified, using role based on fargate profile name")
+			roleName, err = eks.GenerateEKSName(
+				"fargate",
+				fmt.Sprintf("%s-%s", s.scope.KubernetesClusterName(), s.scope.FargateProfile.Spec.ProfileName),
+				maxIAMRoleNameLength,
+			)
+			if err != nil {
+				return false, errors.Wrap(err, "couldn't generate IAM role name")
+			}
+		}
+		s.scope.FargateProfile.Spec.RoleName = roleName
+		return true, nil
+	}
+
+	var createdRole bool
+
+	role, err := s.GetIAMRole(s.scope.RoleName())
+	if err != nil {
+		if !isNotFound(err) {
+			return false, err
+		}
+
+		// If the disable IAM flag is used then the role must exist
+		if !s.scope.EnableIAM() {
+			return false, ErrFargateRoleNotFound
+		}
+
+		createdRole = true
+		role, err = s.CreateRole(s.scope.RoleName(), s.scope.ClusterName(), eksiam.FargateTrustRelationship(), s.scope.AdditionalTags())
+		if err != nil {
+			record.Warnf(s.scope.FargateProfile, "FailedIAMRoleCreation", "Failed to create fargate IAM role %q: %v", s.scope.RoleName(), err)
+			return false, errors.Wrap(err, "failed to create role")
+		}
+		record.Eventf(s.scope.FargateProfile, "SuccessfulIAMRoleCreation", "Created fargate IAM role %q", s.scope.RoleName())
+	}
+
+	updatedRole, err := s.EnsureTagsAndPolicy(role, s.scope.ClusterName(), eksiam.FargateTrustRelationship(), s.scope.AdditionalTags())
+	if err != nil {
+		return updatedRole, errors.Wrapf(err, "error ensuring tags and policy document are set on fargate role")
+	}
+
+	policies := FargateRolePolicies()
+	updatedPolicies, err := s.EnsurePoliciesAttached(role, aws.StringSlice(policies))
+	if err != nil {
+		return updatedRole, errors.Wrapf(err, "error ensuring policies are attached: %v", policies)
+	}
+
+	return createdRole || updatedRole || updatedPolicies, nil
+}
+
+func (s *FargateService) deleteFargateIAMRole() (reterr error) {
+	if err := s.scope.IAMReadyFalse(clusterv1.DeletingReason, ""); err != nil {
+		return err
+	}
+	defer func() {
+		if reterr != nil {
+			record.Warnf(
+				s.scope.FargateProfile, "FailedIAMRoleDeletion", "Failed to delete EKS fargate role %s: %v", s.scope.FargateProfile.Spec.RoleName, reterr,
+			)
+			if err := s.scope.IAMReadyFalse("DeletingFailed", reterr.Error()); err != nil {
+				reterr = err
+			}
+		} else if err := s.scope.IAMReadyFalse(clusterv1.DeletedReason, ""); err != nil {
+			reterr = err
+		}
+	}()
+	roleName := s.scope.RoleName()
+	if !s.scope.EnableIAM() {
+		s.scope.V(2).Info("EKS IAM disabled, skipping deleting EKS fargate IAM Role")
+		return nil
+	}
+
+	s.scope.V(2).Info("Deleting EKS fargate IAM Role")
+
+	_, err := s.GetIAMRole(roleName)
+	if err != nil {
+		if isNotFound(err) {
+			s.V(2).Info("EKS fargate IAM Role already deleted")
+			return nil
+		}
+
+		return errors.Wrap(err, "getting EKS fargate iam role")
+	}
+
+	err = s.DeleteRole(s.scope.RoleName())
+	if err != nil {
+		record.Eventf(s.scope.FargateProfile, "FailedIAMRoleDeletion", "Failed to delete fargate IAM role %q: %v", s.scope.RoleName(), err)
+		return err
+	}
+
+	record.Eventf(s.scope.FargateProfile, "SuccessfulIAMRoleDeletion", "Deleted fargate IAM role %q", s.scope.RoleName())
 	return nil
 }
 

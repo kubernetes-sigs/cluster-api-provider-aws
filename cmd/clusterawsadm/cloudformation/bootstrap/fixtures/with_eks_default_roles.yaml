@@ -363,6 +363,21 @@ Resources:
       - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
       RoleName: eks-controlplane.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Role
+  AWSIAMRoleEKSFargate:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - eks-fargate-pods.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy
+      RoleName: eks-fargate.cluster-api-provider-aws.sigs.k8s.io
+    Type: AWS::IAM::Role
   AWSIAMRoleEKSNodegroup:
     Properties:
       AssumeRolePolicyDocument:

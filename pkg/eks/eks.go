@@ -20,30 +20,28 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/hash"
 )
 
 const (
-	// maxCharsName maximum number of characters for the name
-	maxCharsName = 100
-
-	clusterPrefix = "capa_"
+	resourcePrefix = "capa_"
 )
 
-// GenerateEKSName generates a name of an EKS cluster or nodegroup
-func GenerateEKSName(clusterName, namespace string) (string, error) {
-	escapedName := strings.Replace(clusterName, ".", "_", -1)
+// GenerateEKSName generates a name of an EKS resources
+func GenerateEKSName(resourceName, namespace string, maxLength int) (string, error) {
+	escapedName := strings.Replace(resourceName, ".", "_", -1)
 	eksName := fmt.Sprintf("%s_%s", namespace, escapedName)
 
-	if len(eksName) < maxCharsName {
+	if len(eksName) < maxLength {
 		return eksName, nil
 	}
 
-	hashLength := 32 - len(clusterPrefix)
+	hashLength := 32 - len(resourcePrefix)
 	hashedName, err := hash.Base36TruncatedHash(eksName, hashLength)
 	if err != nil {
-		return "", fmt.Errorf("creating hash from cluster name: %w", err)
+		return "", errors.Wrap(err, "creating hash from name")
 	}
 
-	return fmt.Sprintf("%s%s", clusterPrefix, hashedName), nil
+	return fmt.Sprintf("%s%s", resourcePrefix, hashedName), nil
 }

@@ -180,6 +180,15 @@ func main() {
 			}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
 				setupLog.Error(err, "unable to create controller", "controller", "AWSManagedCluster")
 			}
+			if err = (&controllersexp.AWSFargateProfileReconciler{
+				Client:    mgr.GetClient(),
+				Log:       ctrl.Log.WithName("controllers").WithName("AWSFargateProfile"),
+				Recorder:  mgr.GetEventRecorderFor("awsfargateprofile-reconciler"),
+				EnableIAM: enableIAM,
+				Endpoints: AWSServiceEndpoints,
+			}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "AWSFargateProfile")
+			}
 		}
 		if feature.Gates.Enabled(feature.MachinePool) {
 			if err = (&controllersexp.AWSMachinePoolReconciler{
@@ -233,6 +242,10 @@ func main() {
 			setupLog.Info("enabling EKS webhooks")
 			if err = (&infrav1alpha3exp.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
+				os.Exit(1)
+			}
+			if err = (&infrav1alpha3exp.AWSFargateProfile{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "AWSFargateProfile")
 				os.Exit(1)
 			}
 		}
