@@ -118,9 +118,6 @@ between organizations needs to be secured, and issues such as confused deputy sc
 Because a single deployment of the CAPA operator may reconcile many different clusters in its lifetime, it is necessary
 to modify the CAPA operator to scope its AWS client instances to within the reconciliation process.
 
-It follows that an organization may wish to provision control planes and worker groups in separate accounts (including
-each worker group in a separate account). There is a desire to support this configuration also.
-
 AWS provides a number of mechanisms for assume roles across account boundaries:
 
 * Role assumption using credentials provided in environment variables
@@ -140,8 +137,9 @@ per instance of CAPA.
 
 ### Non-Goals/Future Work
 
-- Enabling Machines to be provisioned in AWS accounts different than their control planes. This would require adding
+- To enable Machines to be provisioned in AWS accounts different than their control planes. This would require adding
   various AWS infrastructure specification to the AWSMachineTemplate type which currently does not exist.
+- To enable control plane and worker machines to be provisioned in separate accounts.
 
 ## Proposal
 
@@ -275,6 +273,7 @@ AWS accounts whilst preventing privilege escalation as per [FR4](#FR4). Reasons 
 
 <em>Cluster scoped resources</em>
 
+* `AWSClusterControllerPrincipal` represents an intent to use Cluster API Provider AWS Controller credentials for management cluster.
 * `AWSClusterStaticPrincipal` represents a static AWS tuple of credentials.
 * `AWSClusterRolePrincipal` represents an intent to assume an AWS role for cluster management.
 
@@ -385,6 +384,54 @@ type AWSRoleSpec struct {
   PolicyARNs []string `json:"policyARNs,omitempty"`
 }
 ```
+
+<em>AWSClusterControllerPrincipal</em>
+
+Supporting [FR4](#FR4) by restricting the usage of controller credentials only from `allowedNamespaces`.
+`AWSClusterControllerPrincipal` resource will be a singleton and this will be enforced by OpenAPI checks.
+
+```go
+
+// AWSClusterControllerPrincipal represents an intent to use Cluster API Provider AWS Controller credentials for management cluster 
+// and restricts the usage of it by namespaces.
+
+type AWSClusterControllerPrincipal struct {
+  metav1.TypeMeta   `json:",inline"`
+  metav1.ObjectMeta `json:"metadata,omitempty"`
+
+  // Spec for this AWSClusterControllerPrincipal.
+  Spec AWSClusterControllerPrincipalSpec `json:"spec,omitempty""`
+}
+
+type AWSClusterControllerPrincipalSpec struct {
+  AWSClusterPrincipalSpec
+}
+```
+
+Example:
+
+```yaml
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: AWSCluster
+metadata:
+  name: "test"
+  namespace: "test"
+spec:
+  region: "eu-west-1"
+  principalRef:
+    kind: AWSClusterControllerPrincipal
+    name: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: AWSClusterControllerPrincipal
+metadata:
+  name: "default"
+spec:
+  allowedNamespaces:
+  - "test"
+```
+
 
 <em>AWSClusterStaticPrincipal</em>
 
@@ -637,6 +684,7 @@ with the requisite parameters and receive a new JWT token to use with `STS::Assu
 * The controller will compare the hash of the credential provider against the same secret’s provider in a cache ([NFR 8](#NFR8)).
 * The controller will take the newer of the two and instantiate AWSClients with the selected credential provider.
 * The controller will set an the principal resource as one of the OwnerReferences of the AWSCluster.
+* The controller and defaulting webhook will default `nil` `principalRef` field in AWSClusters to `AWSClusterControllerPrincipal`.
 
 This flow is shown below:
 
@@ -656,6 +704,7 @@ principal after one move, and being copied again.
 A validating webhook could potentially handle some of the cross-resource validation necessary for the [security
 model](#security-model) and provide more immediate feedback to end users. However, it would be imperfect. For example, a
 change to a `AWSCluster*Principal` could affect the validity of corresponding AWSCluster.
+The singleton `AWSClusterControllerPrincipal` resource will be immutable to avoid any unwanted overrides to the allowed namespaces, especially during upgrading clusters.
 
 #### Principal Type Credential Provider Behaviour
 
