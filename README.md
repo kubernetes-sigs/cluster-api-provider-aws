@@ -57,13 +57,13 @@ This provider's versions are compatible with the following versions of Cluster A
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
-|                              | Kubernetes 1.13 | Kubernetes 1.14 | Kubernetes 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 |
-| ---------------------------- | --------------- | --------------- | --------------- | --------------- | --------------- | --------------- | --------------- |
-| AWS Provider v1alpha1 (v0.2) | ✓               | ✓               | ✓               |                 |                 |                 |                 |
-| AWS Provider v1alpha1 (v0.3) | ✓               | ✓               | ✓               |                 |                 |                 |                 |
-| AWS Provider v1alpha2 (v0.4) |                 | ✓               | ✓               | ✓               | ✓               |                 |                 |
-| AWS Provider v1alpha3 (v0.5) |                 |                 | ✓               | ✓               | ✓               | ✓               | ✓               |
-| AWS Provider v1alpha3 (v0.6) |                 |                 | ✓               | ✓               | ✓               | ✓               | ✓               |
+|                              | Kubernetes 1.13 | Kubernetes 1.14 | Kubernetes 1.15 | Kubernetes 1.16 | Kubernetes 1.17 | Kubernetes 1.18 | Kubernetes 1.19 | Kubernetes 1.20 |
+|------------------------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|-----------------|
+| AWS Provider v1alpha1 (v0.2) | ✓               | ✓               | ✓               |                 |                 |                 |                 |                 |
+| AWS Provider v1alpha1 (v0.3) | ✓               | ✓               | ✓               |                 |                 |                 |                 |                 |
+| AWS Provider v1alpha2 (v0.4) |                 | ✓               | ✓               | ✓               | ✓               |                 |                 |                 |
+| AWS Provider v1alpha3 (v0.5) |                 |                 | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
+| AWS Provider v1alpha3 (v0.6) |                 |                 | ✓               | ✓               | ✓               | ✓               | ✓               | ✓               |
 
 Each version of Cluster API for AWS will attempt to support two Kubernetes versions; e.g., Cluster API for AWS `v0.2`
 may support Kubernetes 1.13 and Kubernetes 1.14.
@@ -99,15 +99,34 @@ Note: These AMIs are not updated for security fixes and it is recommended to alw
 |                          | v1.17.5                 |
 |                          | v1.17.11                |
 |                          | v1.17.12                |
+|                          | v1.17.13                |
+|                          | v1.17.14                |
+|                          | v1.17.15                |
+|                          | v1.17.16                |
+|                          | v1.17.17                |
 | v1.18                    | v1.18.0                 |
 |                          | v1.18.1                 |
 |                          | v1.18.2                 |
 |                          | v1.18.8                 |
 |                          | v1.18.9                 |
+|                          | v1.18.10                 |
+|                          | v1.18.12                 |
+|                          | v1.18.13                 |
+|                          | v1.18.14                 |
+|                          | v1.18.15                 |
+|                          | v1.18.16                 |
 | v1.19                    | v1.19.0                 |
 |                          | v1.19.1                 |
 |                          | v1.19.2                 |
-
+|                          | v1.19.3                 |
+|                          | v1.19.4                 |
+|                          | v1.19.5                 |
+|                          | v1.19.6                 |
+|                          | v1.19.7                 |
+|                          | v1.19.8                 |
+| v1.20                    | v1.20.1                 |
+|                          | v1.20.2                 |
+|                          | v1.20.4                 |
 ------
 
 ## Getting involved and contributing
