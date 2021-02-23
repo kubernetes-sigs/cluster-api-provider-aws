@@ -8,18 +8,13 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: AWSManagedCluster
-    name: "${CLUSTER_NAME}"
+    kind: AWSManagedControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    name: "${CLUSTER_NAME}-control-plane"
   controlPlaneRef:
     kind: AWSManagedControlPlane
     apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
     name: "${CLUSTER_NAME}-control-plane"
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: AWSManagedCluster
-metadata:
-  name: "${CLUSTER_NAME}"
 ---
 kind: AWSManagedControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3

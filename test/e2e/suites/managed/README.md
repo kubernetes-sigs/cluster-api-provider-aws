@@ -6,7 +6,7 @@ Where possible we re-use an EKS cluster and have tried not to create clusters in
 
 For example, in [eks_test.go](eks_test.go) we perform the following steps:
 
-1. Apply a AWSManagedCluster/AWSManagedControlPlane to create a EKS cluster without any nodes
+1. Apply an AWSManagedControlPlane to create a EKS cluster without any nodes
 2. Perform tests against the control plane
 3. Apply a MachineDeployment
 4. Perform tests against the machine deployment
