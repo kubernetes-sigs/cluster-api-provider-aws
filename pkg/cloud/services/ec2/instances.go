@@ -27,13 +27,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/filter"
+	awslogs "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/logs"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
@@ -598,21 +598,12 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	if err := s.EC2Client.WaitUntilInstanceRunningWithContext(
 		ctx,
 		&ec2.DescribeInstancesInput{InstanceIds: []*string{out.Instances[0].InstanceId}},
-		request.WithWaiterLogger(&awslog{s.scope}),
+		request.WithWaiterLogger(awslogs.NewWrapLogr(s.scope)),
 	); err != nil {
 		s.scope.V(2).Info("Could not determine if Machine is running. Machine state might be unavailable until next renconciliation.")
 	}
 
 	return s.SDKToInstance(out.Instances[0])
-}
-
-// An internal type to satisfy aws' log interface.
-type awslog struct {
-	logr.Logger
-}
-
-func (a *awslog) Log(args ...interface{}) {
-	a.WithName("aws-logger").Info("AWS context", args...)
 }
 
 // GetInstanceSecurityGroups returns a map from ENI id to the security groups applied to that ENI
