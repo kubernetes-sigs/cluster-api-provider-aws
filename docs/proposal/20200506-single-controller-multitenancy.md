@@ -341,21 +341,36 @@ All AWSCluster*Principal types will have Spec structs with an `AllowedNamespaces
 field as follows:
 
 ```go
+
 type AWSClusterPrincipalSpec struct {
-  // AllowedNamespaces is a selector of namespaces that AWSClusters can
-  // use this ClusterPrincipal from. This is a standard Kubernetes LabelSelector,
-  // a label query over a set of resources. The result of matchLabels and
-  // matchExpressions are ANDed. Controllers must not support AWSClusters in
-  // namespaces outside this selector.
-  //
-  // An empty selector (default) indicates that AWSClusters can use this
-  // AWSClusterPrincipal from any namespace. This field is intentionally not a
-  // pointer because the nil behavior (no namespaces) is undesirable here.
-  //
-  //
-  // +optional
-  AllowedNamespaces metav1.LabelSelector `json:"allowedNamespaces"`
+// AllowedNamespaces is used to identify which namespaces are allowed to use the principal from.
+// Namespaces can be selected either using an array of namespaces or with label selector.
+// An empty allowedNamespaces object indicates that AWSClusters can use this principal from any namespace.
+// If this object is nil, no namespaces will be allowed (default behaviour, if this field is not provided)
+// A namespace should be either in the NamespaceList or match with Selector to use the principal.
+//
+// +optional
+AllowedNamespaces *AllowedNamespaces `json:"allowedNamespaces"`
 }
+
+type AllowedNamespaces struct {
+// An nil or empty list indicates that AWSClusters cannot use the principal from any namespace.
+//
+// +optional
+// +nullable
+NamespaceList []string `json:"list"`
+
+// AllowedNamespaces is a selector of namespaces that AWSClusters can
+// use this ClusterPrincipal from. This is a standard Kubernetes LabelSelector,
+// a label query over a set of resources. The result of matchLabels and
+// matchExpressions are ANDed.
+//
+// An empty selector indicates that AWSClusters cannot use this
+// AWSClusterPrincipal from any namespace.
+// +optional
+Selector metav1.LabelSelector `json:"selector"`
+}
+
 ```
 
 All identities based around AWS roles will have the following fields in their
@@ -388,7 +403,8 @@ type AWSRoleSpec struct {
 <em>AWSClusterControllerPrincipal</em>
 
 Supporting [FR4](#FR4) by restricting the usage of controller credentials only from `allowedNamespaces`.
-`AWSClusterControllerPrincipal` resource will be a singleton and this will be enforced by OpenAPI checks.
+`AWSClusterControllerPrincipal` resource will be a singleton and this will be enforced by OpenAPI checks. 
+This instance's creation is automated by a controller for not affecting existing AWSClusters. For details, see [Upgrade Strategy](#upgrade-strategy)
 
 ```go
 
@@ -428,8 +444,7 @@ kind: AWSClusterControllerPrincipal
 metadata:
   name: "default"
 spec:
-  allowedNamespaces:
-  - "test"
+  allowedNamespaces:{}  # matches all namespaces
 ```
 
 
@@ -490,8 +505,18 @@ spec:
   secretRef:
     name: test-account-creds
     namespace: capa-system
+      clusterSelector:
   allowedNamespaces:
-  - "test"
+    selector:
+      matchLabels:
+        ns: "testlabel"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    cluster.x-k8s.io/ns: "testlabel"
+  name: "test"
 ---
 apiVersion: v1
 kind: Secret
@@ -571,7 +596,8 @@ metadata:
   name: "test-account-role"
 spec:
   allowedNamespaces:
-  - "test"
+    list: # allows only "test" namespace to use this principal
+      "test"
   roleARN: "arn:aws:iam::123456789:role/CAPARole"
   # Optional settings
   sessionName: "cluster-spinner.acme.com"
@@ -893,9 +919,12 @@ different namespaces do not break the AWS Cloud Provider.
 
 ## Upgrade Strategy
 
-The data changes are additive and optional, so existing AWSCluster specifications will continue to reconcile as before.
-These changes will only come into play when an IAM role is provided in the new field in AWSClusterSpec. Upgrades to
-versions with this new field will be broken
+The data changes are additive and optional, except `AWSClusterControllerPrincipal`.
+`AWSClusterControllerPrincipal` singleton instance restricts the usage of controller credentials only from `allowedNamespaces`.
+AWSClusters that do not have an assigned `PrincipalRef` is defaulted to use `AWSClusterControllerPrincipal`, hence existing clusters needs to have
+`AWSClusterControllerPrincipal` instance. In order to make existing AWSClusters to continue to reconcile as before, a new controller is added as experimental feature 
+and gated with **Feature gate:** AutoControllerPrincipalCreator=true. By default, this feature is enabled. This controller creates `AWSClusterControllerPrincipal` singleton instance (if missing) that allows all namespaces to use the principal.
+During v1alpha4 releases, since breaking changes will be allowed, this feature will become obsolete.
 
 ## Additional Details
 
