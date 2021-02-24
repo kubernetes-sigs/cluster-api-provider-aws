@@ -18,6 +18,7 @@ package scope
 
 import (
 	"context"
+	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
@@ -25,7 +26,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/throttle"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
@@ -144,7 +147,22 @@ func (s *ManagedMachinePoolScope) EnableIAM() bool {
 }
 
 func (m *ManagedMachinePoolScope) CoreSecurityGroups(scope EC2Scope) ([]string, error) {
-	return []string{}, nil
+	// These are common across both controlplane and node machines
+	sgRoles := []infrav1.SecurityGroupRole{
+		controlplanev1exp.SecurityGroupCluster,
+		infrav1.SecurityGroupEKSNodeAdditional,
+	}
+
+	ids := make([]string, 0, len(sgRoles))
+	for _, sg := range sgRoles {
+		if _, ok := scope.SecurityGroups()[sg]; !ok {
+			return nil, awserrors.NewFailedDependency(
+				fmt.Sprintf("%s security group not available", sg),
+			)
+		}
+		ids = append(ids, scope.SecurityGroups()[sg].ID)
+	}
+	return ids, nil
 }
 
 func (m *ManagedMachinePoolScope) LaunchTemplateID() string {
@@ -164,7 +182,9 @@ func (s *ManagedMachinePoolScope) AdditionalTags() infrav1.Tags {
 	if s.ManagedMachinePool.Spec.AdditionalTags == nil {
 		s.ManagedMachinePool.Spec.AdditionalTags = infrav1.Tags{}
 	}
-
+	name, _ := eks.GenerateEKSName(s.Cluster.Name, s.Cluster.GetNamespace())
+	s.ManagedMachinePool.Spec.AdditionalTags["eks:cluster-name"] = name
+	s.ManagedMachinePool.Spec.AdditionalTags["eks:nodegroup-name"] = s.Name()
 	return s.ManagedMachinePool.Spec.AdditionalTags.DeepCopy()
 }
 

@@ -64,6 +64,36 @@ func (s *Service) GetLaunchTemplate(id string) (*ec2.LaunchTemplateVersion, erro
 	//return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
 }
 
+// GetLaunchTemplate returns the existing LaunchTemplate or nothing if it doesn't exist.
+// For now by name until we need the input to be something different
+func (s *Service) GetLaunchTemplateByName(name string) (*ec2.LaunchTemplateVersion, error) {
+	if name == "" {
+		return nil, nil
+	}
+
+	s.scope.V(2).Info("Looking for existing LaunchTemplates")
+
+	input := &ec2.DescribeLaunchTemplateVersionsInput{
+		LaunchTemplateName: aws.String(name),
+		Versions:           aws.StringSlice([]string{expinfrav1.LaunchTemplateLatestVersion}),
+	}
+
+	out, err := s.EC2Client.DescribeLaunchTemplateVersions(input)
+	switch {
+	case awserrors.IsNotFound(err):
+		return nil, nil
+	case err != nil:
+		s.scope.Info("", "aerr", err.Error())
+	}
+
+	if len(out.LaunchTemplateVersions) == 0 {
+		return nil, nil
+	}
+
+	return out.LaunchTemplateVersions[0], nil
+	//return s.SDKToLaunchTemplate(out.LaunchTemplateVersions[0])
+}
+
 // CreateLaunchTemplate generates a launch template to be used with the autoscaling group
 func (s *Service) CreateLaunchTemplate(scope scope.LaunchTemplateOwner, launchTemplateData *ec2.RequestLaunchTemplateData) (string, error) {
 	s.scope.Info("Create a new launch template")
@@ -98,7 +128,16 @@ func (s *Service) CreateLaunchTemplate(scope scope.LaunchTemplateOwner, launchTe
 
 	result, err := s.EC2Client.CreateLaunchTemplate(input)
 	if err != nil {
-		return "", err
+		if !strings.Contains(err.Error(), "Launch template name already in use") {
+			return "", err
+		}
+		templateVersion, err := s.GetLaunchTemplateByName(scope.Name())
+		if err != nil {
+			return "", err
+		}
+		result.LaunchTemplate = &ec2.LaunchTemplate{
+			LaunchTemplateId: templateVersion.LaunchTemplateId,
+		}
 	}
 	return aws.StringValue(result.LaunchTemplate.LaunchTemplateId), nil
 }

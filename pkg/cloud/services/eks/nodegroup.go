@@ -17,7 +17,6 @@ limitations under the License.
 package eks
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,13 +26,11 @@ import (
 	awseks "github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
-	"k8s.io/utils/pointer"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
-	controlplanev1exp "sigs.k8s.io/cluster-api-provider-aws/controlplane/eks/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/wait"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/eks/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -122,79 +119,50 @@ func (s *NodegroupService) remoteAccess(data *ec2.RequestLaunchTemplateData) err
 	if pool.RemoteAccess == nil {
 		return nil
 	}
-
 	controlPlane := s.scope.ControlPlane
-
-	// SourceSecurityGroups is validated to be empty if PublicAccess is true
-	// but just in case we use an empty list to take advantage of the documented
-	// API behavior
-	var sSGs = []string{}
-
-	clusterSG, ok := controlPlane.Status.Network.SecurityGroups[controlplanev1exp.SecurityGroupCluster]
-	if !ok {
-		return errors.Errorf("%s security group not found on control plane", controlplanev1exp.SecurityGroupCluster)
-	}
-	sSGs = append(sSGs, clusterSG.ID)
-
-	if controlPlane.Spec.Bastion.Enabled {
-		additionalSG, ok := controlPlane.Status.Network.SecurityGroups[infrav1.SecurityGroupEKSNodeAdditional]
-		if !ok {
-			return errors.Errorf("%s security group not found on control plane", infrav1.SecurityGroupEKSNodeAdditional)
-		}
-		sSGs = append(
-			sSGs,
-			additionalSG.ID,
-		)
-	}
-
-	if !pool.RemoteAccess.Public {
-		// TODO create security group for nodes
-		sSGs = pool.RemoteAccess.SourceSecurityGroups
-		// We add the EKS created cluster security group to the allowed security
-		// groups by default to prevent the API default of 0.0.0.0/0 from taking effect
-		// in case SourceSecurityGroups is empty
-	}
-
-	data.SecurityGroupIds = aws.StringSlice(sSGs)
-
 	sshKeyName := pool.RemoteAccess.SSHKeyName
 	if sshKeyName == nil {
 		sshKeyName = controlPlane.Spec.SSHKeyName
 	}
 	data.KeyName = sshKeyName
-
+	if !pool.RemoteAccess.Public && pool.RemoteAccess.SourceSecurityGroups != nil {
+		data.SecurityGroupIds = append(data.SecurityGroupIds, aws.StringSlice(pool.RemoteAccess.SourceSecurityGroups)...)
+	}
 	return nil
 }
 
-func (m *NodegroupService) CreateLaunchTemplateData(ec2Svc *ec2svc.Service) (*ec2.RequestLaunchTemplateData, error) {
-	userData, err := m.scope.GetRawBootstrapData()
-	if err != nil {
-		return nil, errors.Wrap(err, "couldn't get bootstrap data")
-	}
-
+func (m *NodegroupService) CreateLaunchTemplateData(ec2Svc *ec2svc.Service, scope scope.EC2Scope, userData []byte) (*ec2.RequestLaunchTemplateData, error) {
 	spec := m.scope.ManagedMachinePool.Spec
 
 	var imageID string
-	if amiID := spec.AMIID; amiID != nil {
-		imageID = *amiID
-	} else {
-		paramName, err := ami.EKSAMIParameter(*m.scope.MachinePool.Spec.Template.Spec.Version, *m.scope.ManagedMachinePool.Spec.AMIType)
-		if err != nil {
-			return nil, err
-		}
-		lookupAMI, err := ec2Svc.SSMAMILookup(paramName)
-		if err != nil {
-			return nil, err
-		}
-		imageID = lookupAMI
-	}
+	// if set imageID is set we need to make the bootstrap  TODO(felipeweb)
+	//
+	// if amiID := spec.AMIID; amiID != nil {
+	// 	imageID = *amiID
+	// } else {
+	// 	paramName, err := ami.EKSAMIParameter(*m.scope.MachinePool.Spec.Template.Spec.Version, *m.scope.ManagedMachinePool.Spec.AMIType)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	lookupAMI, err := ec2Svc.SSMAMILookup(paramName)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	imageID = lookupAMI
+	// }
 
 	data := &ec2.RequestLaunchTemplateData{
-		ImageId:      aws.String(imageID),
+		// ImageId:      aws.String(imageID),
 		InstanceType: m.scope.ManagedMachinePool.Spec.InstanceType,
-		UserData:     pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+		// Userdata must have Content-Type: multipart/mixed; boundary="==BOUNDARY==" TODO
+		// UserData:     pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
 	}
 
+	sgIDs, err := m.scope.CoreSecurityGroups(scope)
+	if err != nil {
+		return nil, err
+	}
+	data.SecurityGroupIds = aws.StringSlice(sgIDs)
 	if spec.DiskSize != nil {
 		size := int64(*spec.DiskSize)
 		deviceName, devices, err := ec2Svc.CheckRootVolume(&infrav1.Volume{Size: size}, imageID)
@@ -242,7 +210,7 @@ func (m *NodegroupService) LaunchTemplateNeedsUpdate(incoming *ec2.RequestLaunch
 func (s *NodegroupService) createNodegroup() (*awseks.Nodegroup, error) {
 	managedPool := s.scope.ManagedMachinePool.Spec
 
-	if managedPool.LaunchTemplate == nil {
+	if managedPool.LaunchTemplate == nil || managedPool.LaunchTemplate.ID == "" {
 		return nil, errors.New("unable to create nodegroup without launch template")
 	}
 
@@ -263,12 +231,10 @@ func (s *NodegroupService) createNodegroup() (*awseks.Nodegroup, error) {
 		NodeRole:      roleArn,
 		Labels:        aws.StringMap(managedPool.Labels),
 		Tags:          aws.StringMap(tags),
-	}
-	if launchTemplateID := managedPool.LaunchTemplate.ID; launchTemplateID != "" {
-		input.LaunchTemplate = &awseks.LaunchTemplateSpecification{
+		LaunchTemplate: &awseks.LaunchTemplateSpecification{
 			Id:      aws.String(managedPool.LaunchTemplate.ID),
 			Version: aws.String(managedPool.LaunchTemplate.Version),
-		}
+		},
 	}
 	if managedPool.DiskSize != nil {
 		// TODO !

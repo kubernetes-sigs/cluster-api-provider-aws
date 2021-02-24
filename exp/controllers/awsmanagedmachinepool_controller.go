@@ -47,7 +47,6 @@ import (
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
 	ec2svc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 	ekssvc "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
 )
 
@@ -192,7 +191,10 @@ func (r *AWSManagedMachinePoolReconciler) reconcileLaunchTemplate(
 	if err != nil {
 		return err
 	}
-
+	userData, err := machinePoolScope.GetRawBootstrapData()
+	if err != nil {
+		r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+	}
 	ec2Svc := ec2svc.NewService(managedControlPlaneScope)
 
 	eksSvc.Info("checking for existing launch template")
@@ -200,13 +202,13 @@ func (r *AWSManagedMachinePoolReconciler) reconcileLaunchTemplate(
 	var launchTemplate *ec2.LaunchTemplateVersion
 	if lt := machinePoolScope.ManagedMachinePool.Spec.LaunchTemplate; lt != nil && lt.ID != "" {
 		launchTemplate, err = ec2Svc.GetLaunchTemplate(lt.ID)
-	}
-	if err != nil {
-		conditions.MarkUnknown(machinePoolScope.OwnerObject(), infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
-		return err
+		if err != nil {
+			conditions.MarkUnknown(machinePoolScope.OwnerObject(), infrav1exp.LaunchTemplateReadyCondition, infrav1exp.LaunchTemplateNotFoundReason, err.Error())
+			return err
+		}
 	}
 
-	launchTemplateData, err := eksSvc.CreateLaunchTemplateData(ec2Svc)
+	launchTemplateData, err := eksSvc.CreateLaunchTemplateData(ec2Svc, managedControlPlaneScope, userData)
 	if err != nil {
 		return err
 	}
@@ -275,7 +277,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		return ctrl.Result{}, err
 	}
 
-	ekssvc := eks.NewNodegroupService(machinePoolScope)
+	ekssvc := ekssvc.NewNodegroupService(machinePoolScope)
 
 	if err := r.reconcileLaunchTemplate(machinePoolScope, ekssvc, cluster); err != nil {
 		r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
@@ -296,7 +298,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 ) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling deletion of AWSManagedMachinePool")
 
-	ekssvc := eks.NewNodegroupService(machinePoolScope)
+	ekssvc := ekssvc.NewNodegroupService(machinePoolScope)
 
 	if err := ekssvc.ReconcilePoolDelete(); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
