@@ -430,7 +430,6 @@ var _ = Describe("functional tests - unmanaged", func() {
 			Expect(len(workerMachines)).To(Equal(1))
 			assertSpotInstanceType(*workerMachines[0].Spec.ProviderID)
 			Expect(len(controlPlaneMachines)).To(Equal(1))
-			assertSpotInstanceType(*controlPlaneMachines[0].Spec.ProviderID)
 		})
 	})
 
