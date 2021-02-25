@@ -260,3 +260,18 @@ func (mr *MockClientMockRecorder) ELBv2RegisterTargets(arg0 interface{}) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ELBv2RegisterTargets", reflect.TypeOf((*MockClient)(nil).ELBv2RegisterTargets), arg0)
 }
+
+// ELBv2DeregisterTargets mocks base method
+func (m *MockClient) ELBv2DeregisterTargets(arg0 *elbv2.DeregisterTargetsInput) (*elbv2.DeregisterTargetsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ELBv2DeregisterTargets", arg0)
+	ret0, _ := ret[0].(*elbv2.DeregisterTargetsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ELBv2DeregisterTargets indicates an expected call of ELBv2DeregisterTargets
+func (mr *MockClientMockRecorder) ELBv2DeregisterTargets(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ELBv2DeregisterTargets", reflect.TypeOf((*MockClient)(nil).ELBv2DeregisterTargets), arg0)
+}

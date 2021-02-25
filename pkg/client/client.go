@@ -85,6 +85,7 @@ type Client interface {
 	ELBv2DescribeLoadBalancers(*elbv2.DescribeLoadBalancersInput) (*elbv2.DescribeLoadBalancersOutput, error)
 	ELBv2DescribeTargetGroups(*elbv2.DescribeTargetGroupsInput) (*elbv2.DescribeTargetGroupsOutput, error)
 	ELBv2RegisterTargets(*elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error)
+	ELBv2DeregisterTargets(*elbv2.DeregisterTargetsInput) (*elbv2.DeregisterTargetsOutput, error)
 }
 
 type awsClient struct {
@@ -151,6 +152,10 @@ func (c *awsClient) ELBv2DescribeTargetGroups(input *elbv2.DescribeTargetGroupsI
 
 func (c *awsClient) ELBv2RegisterTargets(input *elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error) {
 	return c.elbv2Client.RegisterTargets(input)
+}
+
+func (c *awsClient) ELBv2DeregisterTargets(input *elbv2.DeregisterTargetsInput) (*elbv2.DeregisterTargetsOutput, error) {
+	return c.elbv2Client.DeregisterTargets(input)
 }
 
 // NewClient creates our client wrapper object for the actual AWS clients we use.

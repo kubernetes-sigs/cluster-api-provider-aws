@@ -309,7 +309,7 @@ func TestRemoveStoppedMachine(t *testing.T) {
 				Reservations: []*ec2.Reservation{
 					{
 						Instances: []*ec2.Instance{
-							stubInstance(stubAMIID, stubInstanceID),
+							stubInstance(stubAMIID, stubInstanceID, true),
 						},
 					},
 				},
@@ -321,8 +321,8 @@ func TestRemoveStoppedMachine(t *testing.T) {
 				Reservations: []*ec2.Reservation{
 					{
 						Instances: []*ec2.Instance{
-							stubInstance(stubAMIID, stubInstanceID),
-							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d"),
+							stubInstance(stubAMIID, stubInstanceID, true),
+							stubInstance("ami-a9acbbd7", "i-02fcb933c5da7085d", true),
 						},
 					},
 				},

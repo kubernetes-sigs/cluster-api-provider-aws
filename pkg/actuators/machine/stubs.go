@@ -164,7 +164,11 @@ func GenerateAwsCredentialsSecretFromEnv(secretName, namespace string) *corev1.S
 	}
 }
 
-func stubInstance(imageID, instanceID string) *ec2.Instance {
+func stubInstance(imageID, instanceID string, setIP bool) *ec2.Instance {
+	var ipAddr *string
+	if setIP {
+		ipAddr = aws.String("1.1.1.1")
+	}
 	return &ec2.Instance{
 		ImageId:    aws.String(imageID),
 		InstanceId: aws.String(instanceID),
@@ -175,8 +179,8 @@ func stubInstance(imageID, instanceID string) *ec2.Instance {
 		LaunchTime:       aws.Time(time.Now()),
 		PublicDnsName:    aws.String("publicDNS"),
 		PrivateDnsName:   aws.String("privateDNS"),
-		PublicIpAddress:  aws.String("1.1.1.1"),
-		PrivateIpAddress: aws.String("1.1.1.1"),
+		PublicIpAddress:  ipAddr,
+		PrivateIpAddress: ipAddr,
 		Tags: []*ec2.Tag{
 			{
 				Key:   aws.String("key"),
