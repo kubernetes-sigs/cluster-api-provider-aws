@@ -22,9 +22,10 @@
     6. `cluster-template-eks.yaml`
     7. `cluster-template-eks-managedmachinepool.yaml`
     8. `cluster-template-eks-managedmachinepool-vpccni.yaml`
-    9. `eks-controlplane-components.yaml`
-    10. `eks-bootstrap-components.yaml`
-    11. `metadata.yaml`
+    9. `cluster-template-eks-managedmachinepool-gpu.yaml`
+    10. `eks-controlplane-components.yaml`
+    11. `eks-bootstrap-components.yaml`
+    12. `metadata.yaml`
 13. Perform the [image promotion process](https://github.com/kubernetes/k8s.io/tree/master/k8s.gcr.io#image-promoter):
     1. Clone and pull down the latest from [kubernetes/k8s.io](https://github.com/kubernetes/k8s.io)
     2. Create a new branch in your fork of `kubernetes/k8s.io`.
