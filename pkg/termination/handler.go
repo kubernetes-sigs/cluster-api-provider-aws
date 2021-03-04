@@ -96,6 +96,9 @@ func (h *handler) run(ctx context.Context, wg *sync.WaitGroup) error {
 
 	if err := wait.PollImmediateUntil(h.pollInterval, func() (bool, error) {
 		resp, err := http.Get(h.pollURL.String())
+		if resp != nil {
+			defer resp.Body.Close()
+		}
 		if err != nil {
 			return false, fmt.Errorf("could not get URL %q: %v", h.pollURL.String(), err)
 		}
