@@ -18,7 +18,6 @@ Experimental support for EKS has been introduced in the AWS provider. Currently 
 The implementation introduces new CRD kinds:
 
 - AWSManagedControlPlane - specifies the EKS Cluster in AWS and used by the Cluster API AWS Managed Control plane (MACP)
-- AWSManagedCluster - holds details of the EKS cluster for use by CAPI
 - AWSManagedMachinePool - defines the managed node pool for the cluster
 - EKSConfig - used by Cluster API bootstrap provider EKS (CABPE)
 
