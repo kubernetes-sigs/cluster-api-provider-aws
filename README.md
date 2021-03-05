@@ -39,7 +39,7 @@ cluster on AWS.
 - Doesn't use SSH for bootstrapping nodes.
 - Installs only the minimal components to bootstrap a control plane and workers.
 - Supports control planes on EC2 instances.
-- Experimental [EKS support](topics/eks.md)
+- Experimental [EKS support](docs/book/src/topics/eks/index.md)
 
 ------
 
