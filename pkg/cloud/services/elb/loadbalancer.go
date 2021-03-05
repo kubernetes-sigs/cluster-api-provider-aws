@@ -343,6 +343,7 @@ func (s *Service) getAPIServerClassicELBSpec() (*infrav1.ClassicELB, error) {
 	res.Tags = infrav1.Build(infrav1.BuildParams{
 		ClusterName: s.scope.Name(),
 		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		Name:        aws.String(elbName),
 		Role:        aws.String(infrav1.APIServerRoleTagValue),
 		Additional:  s.scope.AdditionalTags(),
 	})
