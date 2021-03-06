@@ -35,13 +35,27 @@ IMAGE        = origin-aws-machine-controllers
 all: generate build images check
 
 NO_DOCKER ?= 0
+
+ifeq ($(shell command -v podman > /dev/null 2>&1 ; echo $$? ), 0)
+	ENGINE=podman
+else ifeq ($(shell command -v docker > /dev/null 2>&1 ; echo $$? ), 0)
+	ENGINE=docker
+else
+	NO_DOCKER=1
+endif
+
+USE_DOCKER ?= 0
+ifeq ($(USE_DOCKER), 1)
+	ENGINE=docker
+endif
+
 ifeq ($(NO_DOCKER), 1)
   DOCKER_CMD =
   IMAGE_BUILD_CMD = imagebuilder
   CGO_ENABLED = 1
 else
-  DOCKER_CMD := docker run --rm -e CGO_ENABLED=1 -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws openshift/origin-release:golang-1.15
-  IMAGE_BUILD_CMD = docker build
+  DOCKER_CMD := $(ENGINE) run --rm -e CGO_ENABLED=1 -v "$(PWD)":/go/src/sigs.k8s.io/cluster-api-provider-aws:Z -w /go/src/sigs.k8s.io/cluster-api-provider-aws openshift/origin-release:golang-1.15
+  IMAGE_BUILD_CMD = $(ENGINE) build
 endif
 
 .PHONY: vendor
@@ -73,19 +87,18 @@ build: ## build binaries
 
 .PHONY: images
 images: ## Create images
+ifeq ($(NO_DOCKER), 1)
+	./hack/imagebuilder.sh
+endif
 	$(IMAGE_BUILD_CMD) -t "$(IMAGE):$(VERSION)" -t "$(IMAGE):$(MUTABLE_TAG)" ./
 
 .PHONY: push
 push:
-	docker push "$(IMAGE):$(VERSION)"
-	docker push "$(IMAGE):$(MUTABLE_TAG)"
+	$(ENGINE) push "$(IMAGE):$(VERSION)"
+	$(ENGINE) push "$(IMAGE):$(MUTABLE_TAG)"
 
 .PHONY: check
-check: fmt vet lint test check-pkg ## Check your code
-
-.PHONY: check-pkg
-check-pkg:
-	./hack/verify-actuator-pkg.sh
+check: fmt vet lint test # Check your code
 
 .PHONY: unit
 unit: # Run unit test
@@ -93,24 +106,24 @@ unit: # Run unit test
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
-	hack/e2e.sh
+	 hack/e2e.sh
 
 .PHONY: lint
 lint: ## Go lint your code
-	hack/go-lint.sh -min_confidence 0.3 $$(go list -f '{{ .ImportPath }}' ./... | grep -v -e 'sigs.k8s.io/cluster-api-provider-aws/test' -e 'sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock')
+	$(DOCKER_CMD) hack/go-lint.sh -min_confidence 0.3 $$(go list -f '{{ .ImportPath }}' ./... | grep -v -e 'sigs.k8s.io/cluster-api-provider-aws/test' -e 'sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/aws/client/mock')
 
 .PHONY: fmt
 fmt: ## Go fmt your code
-	hack/go-fmt.sh .
+	$(DOCKER_CMD) hack/go-fmt.sh .
 
 .PHONY: goimports
 goimports:
-	hack/goimports.sh .
+	$(DOCKER_CMD) hack/goimports.sh .
 	hack/verify-diff.sh
 
 .PHONY: vet
 vet: ## Apply go vet to all go files
-	hack/go-vet.sh ./...
+	$(DOCKER_CMD) hack/go-vet.sh ./...
 
 .PHONY: help
 help:

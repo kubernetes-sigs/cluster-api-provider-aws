@@ -299,9 +299,9 @@ func StubDescribeDHCPOptions() (*ec2.DescribeDhcpOptionsOutput, error) {
 	key := "key"
 	return &ec2.DescribeDhcpOptionsOutput{
 		DhcpOptions: []*ec2.DhcpOptions{
-			&ec2.DhcpOptions{
+			{
 				DhcpConfigurations: []*ec2.DhcpConfiguration{
-					&ec2.DhcpConfiguration{
+					{
 						Key:    &key,
 						Values: []*ec2.AttributeValue{},
 					},

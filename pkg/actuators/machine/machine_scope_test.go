@@ -301,18 +301,18 @@ func TestGetCustomDomainFromDHCP(t *testing.T) {
 	expectedDomains := "openshift.com openshift.io"
 	mockAWSClient.EXPECT().DescribeVpcs(gomock.Any()).Return(&ec2.DescribeVpcsOutput{
 		Vpcs: []*ec2.Vpc{
-			&ec2.Vpc{DhcpOptionsId: &dhcpID},
+			{DhcpOptionsId: &dhcpID},
 		},
 	}, nil).AnyTimes()
 
 	mockAWSClient.EXPECT().DescribeDHCPOptions(gomock.Any()).Return(&ec2.DescribeDhcpOptionsOutput{
 		DhcpOptions: []*ec2.DhcpOptions{
-			&ec2.DhcpOptions{
+			{
 				DhcpConfigurations: []*ec2.DhcpConfiguration{
-					&ec2.DhcpConfiguration{
+					{
 						Key: &dhcpDomainKeyName,
 						Values: []*ec2.AttributeValue{
-							&ec2.AttributeValue{
+							{
 								Value: &expectedDomains,
 							},
 						},
