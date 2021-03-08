@@ -463,6 +463,10 @@ func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *infr
 		return true
 	}
 
+	if machinePoolScope.AWSMachinePool.Spec.CapacityRebalance != existingASG.CapacityRebalance {
+		return true
+	}
+
 	if !reflect.DeepEqual(machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy, existingASG.MixedInstancesPolicy) {
 		machinePoolScope.Info("got a mixed diff here", "incoming", machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy, "existing", existingASG.MixedInstancesPolicy)
 		return true
