@@ -25,7 +25,7 @@ aliases:
     - richardcase
     - rudoi
     - vincepri
+    - sedefsavas
   cluster-api-aws-reviewers:
     - michaelbeaumont
-    - sedefsavas
     - dthorsen
