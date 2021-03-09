@@ -184,6 +184,9 @@ type AWSIAMConfigurationSpec struct {
 	// EventBridge controls configuration for consuming EventBridge events
 	EventBridge *EventBridgeConfig `json:"eventBridge,omitempty"`
 
+	// Partition is the AWS security partition being used. Defaults to "aws"
+	Partition string `json:"partition,omitempty"`
+
 	// SecureSecretsBackend, when set to parameter-store will create AWS Systems Manager
 	// Parameter Storage policies. By default or with the value of secrets-manager,
 	// will generate AWS Secrets Manager policies instead.

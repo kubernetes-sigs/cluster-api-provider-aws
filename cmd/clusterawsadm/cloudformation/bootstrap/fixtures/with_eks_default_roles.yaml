@@ -211,7 +211,7 @@ Resources:
           - autoscaling:DeleteTags
           Effect: Allow
           Resource:
-          - arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*
+          - arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*
         - Action:
           - iam:CreateServiceLinkedRole
           Condition:
@@ -252,7 +252,7 @@ Resources:
           - ssm:GetParameter
           Effect: Allow
           Resource:
-          - arn:aws:ssm:*:*:parameter/aws/service/eks/optimized-ami/*
+          - arn:*:ssm:*:*:parameter/aws/service/eks/optimized-ami/*
         - Action:
           - iam:CreateServiceLinkedRole
           Condition:
@@ -260,7 +260,7 @@ Resources:
               iam:AWSServiceName: eks.amazonaws.com
           Effect: Allow
           Resource:
-          - arn:aws:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
+          - arn:*:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS
         - Action:
           - iam:CreateServiceLinkedRole
           Condition:
@@ -268,13 +268,13 @@ Resources:
               iam:AWSServiceName: eks-nodegroup.amazonaws.com
           Effect: Allow
           Resource:
-          - arn:aws:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
+          - arn:*:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
         - Action:
           - iam:GetRole
           - iam:ListAttachedRolePolicies
           Effect: Allow
           Resource:
-          - arn:aws:iam::*:role/*
+          - arn:*:iam::*:role/*
         - Action:
           - iam:GetPolicy
           Effect: Allow
@@ -296,8 +296,8 @@ Resources:
           - eks:CreateNodegroup
           Effect: Allow
           Resource:
-          - arn:aws:eks:*:*:cluster/*
-          - arn:aws:eks:*:*:nodegroup/*/*/*
+          - arn:*:eks:*:*:cluster/*
+          - arn:*:eks:*:*:nodegroup/*/*/*
         - Action:
           - eks:ListAddons
           - eks:CreateAddon
