@@ -69,12 +69,13 @@ func (t Template) nodeManagedPolicies() []string {
 
 	if t.Spec.EKS.Enable {
 		policies = append(policies,
-			"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-			"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy")
+			t.generateAWSManagedPolicyARN("AmazonEKSWorkerNodePolicy"),
+			t.generateAWSManagedPolicyARN("AmazonEKS_CNI_Policy"),
+		)
 	}
 
 	if t.Spec.Nodes.EC2ContainerRegistryReadOnly {
-		policies = append(policies, "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly")
+		policies = append(policies, t.generateAWSManagedPolicyARN("AmazonEC2ContainerRegistryReadOnly"))
 	}
 
 	return policies
@@ -94,4 +95,8 @@ func (t Template) nodePolicy() *iamv1.PolicyDocument {
 	)
 
 	return policyDocument
+}
+
+func (t Template) generateAWSManagedPolicyARN(name string) string {
+	return "arn:" + t.Spec.Partition + ":iam::aws:policy/" + name
 }

@@ -17,7 +17,7 @@ limitations under the License.
 package bootstrap
 
 func (t Template) eksControlPlanePolicies() []string {
-	policies := []string{EKSClusterPolicy}
+	policies := []string{t.generateAWSManagedPolicyARN(eksClusterPolicyName)}
 	if t.Spec.EKS.DefaultControlPlaneRole.ExtraPolicyAttachments != nil {
 		for _, policy := range t.Spec.EKS.DefaultControlPlaneRole.ExtraPolicyAttachments {
 			additionalPolicy := policy
