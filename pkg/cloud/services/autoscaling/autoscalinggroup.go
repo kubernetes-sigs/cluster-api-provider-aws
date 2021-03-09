@@ -37,9 +37,10 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscaling.Group) (*expinfrav1.AutoS
 		ID:   aws.StringValue(v.AutoScalingGroupARN),
 		Name: aws.StringValue(v.AutoScalingGroupName),
 		// TODO(rudoi): this is just terrible
-		DesiredCapacity: aws.Int32(int32(aws.Int64Value(v.DesiredCapacity))),
-		MaxSize:         int32(aws.Int64Value(v.MaxSize)),
-		MinSize:         int32(aws.Int64Value(v.MinSize)),
+		DesiredCapacity:   aws.Int32(int32(aws.Int64Value(v.DesiredCapacity))),
+		MaxSize:           int32(aws.Int64Value(v.MaxSize)),
+		MinSize:           int32(aws.Int64Value(v.MinSize)),
+		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
 		//TODO: determine what additional values go here and what else should be in the struct
 	}
 
@@ -159,6 +160,7 @@ func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScal
 		MinSize:              scope.AWSMachinePool.Spec.MinSize,
 		Subnets:              subnetIDs,
 		DefaultCoolDown:      scope.AWSMachinePool.Spec.DefaultCoolDown,
+		CapacityRebalance:    scope.AWSMachinePool.Spec.CapacityRebalance,
 		MixedInstancesPolicy: scope.AWSMachinePool.Spec.MixedInstancesPolicy,
 	}
 
@@ -205,6 +207,7 @@ func (s *Service) runPool(i *expinfrav1.AutoScalingGroup, launchTemplateID strin
 		MinSize:              aws.Int64(int64(i.MinSize)),
 		VPCZoneIdentifier:    aws.String(strings.Join(i.Subnets, ", ")),
 		DefaultCooldown:      aws.Int64(int64(i.DefaultCoolDown.Duration.Seconds())),
+		CapacityRebalance:    aws.Bool(i.CapacityRebalance),
 	}
 
 	if i.DesiredCapacity != nil {
@@ -283,6 +286,7 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 		MaxSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MaxSize)),
 		MinSize:              aws.Int64(int64(scope.AWSMachinePool.Spec.MinSize)),
 		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ", ")),
+		CapacityRebalance:    aws.Bool(scope.AWSMachinePool.Spec.CapacityRebalance),
 	}
 
 	if scope.MachinePool.Spec.Replicas != nil {

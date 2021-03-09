@@ -134,6 +134,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				DesiredCapacity:      aws.Int64(1234),
 				MaxSize:              aws.Int64(1234),
 				MinSize:              aws.Int64(1234),
+				CapacityRebalance:    aws.Bool(true),
 				MixedInstancesPolicy: &autoscaling.MixedInstancesPolicy{
 					InstancesDistribution: &autoscaling.InstancesDistribution{
 						OnDemandAllocationStrategy:          aws.String("prioritized"),
@@ -152,11 +153,12 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				},
 			},
 			want: &expinfrav1.AutoScalingGroup{
-				ID:              "test-id",
-				Name:            "test-name",
-				DesiredCapacity: aws.Int32(1234),
-				MaxSize:         int32(1234),
-				MinSize:         int32(1234),
+				ID:                "test-id",
+				Name:              "test-name",
+				DesiredCapacity:   aws.Int32(1234),
+				MaxSize:           int32(1234),
+				MinSize:           int32(1234),
+				CapacityRebalance: true,
 				MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
 					InstancesDistribution: &expinfrav1.InstancesDistribution{
 						OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
@@ -181,6 +183,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				DesiredCapacity:      aws.Int64(1234),
 				MaxSize:              aws.Int64(1234),
 				MinSize:              aws.Int64(1234),
+				CapacityRebalance:    aws.Bool(true),
 				MixedInstancesPolicy: nil,
 			},
 			want: &expinfrav1.AutoScalingGroup{
@@ -189,6 +192,7 @@ func TestService_SDKToAutoScalingGroup(t *testing.T) {
 				DesiredCapacity:      aws.Int32(1234),
 				MaxSize:              int32(1234),
 				MinSize:              int32(1234),
+				CapacityRebalance:    true,
 				MixedInstancesPolicy: nil,
 			},
 			wantErr: false,
