@@ -77,6 +77,10 @@ type AWSMachinePoolSpec struct {
 	// RefreshPreferences describes set of preferences associated with the instance refresh request.
 	// +optional
 	RefreshPreferences *RefreshPreferences `json:"refreshPreferences,omitempty"`
+
+	// Enable or disable the capacity rebalance autoscaling group feature
+	// +optional
+	CapacityRebalance bool `json:"capacityRebalance,omitempty"`
 }
 
 type RefreshPreferences struct {
