@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -163,18 +164,22 @@ func TestWebhookCreate(t *testing.T) {
 		expectError    bool
 		eksVersion     string
 		hasAddon       bool
+		disableVPCCNI  bool
+		secondaryCidr  *string
 	}{
 		{
 			name:           "ekscluster specified",
 			eksClusterName: "default_cluster1",
 			expectError:    false,
 			hasAddon:       false,
+			disableVPCCNI:  false,
 		},
 		{
 			name:           "ekscluster NOT specified",
 			eksClusterName: "",
 			expectError:    false,
 			hasAddon:       false,
+			disableVPCCNI:  false,
 		},
 		{
 			name:           "invalid version",
@@ -182,6 +187,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.x17",
 			expectError:    true,
 			hasAddon:       false,
+			disableVPCCNI:  false,
 		},
 		{
 			name:           "addon with allowed k8s version",
@@ -189,6 +195,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.18",
 			expectError:    false,
 			hasAddon:       true,
+			disableVPCCNI:  false,
 		},
 		{
 			name:           "addon with not allowed k8s version",
@@ -196,6 +203,32 @@ func TestWebhookCreate(t *testing.T) {
 			eksVersion:     "v1.17",
 			expectError:    true,
 			hasAddon:       true,
+			disableVPCCNI:  false,
+		},
+		{
+			name:           "disable vpc cni allowed with no addon or secondary cidr",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			hasAddon:       false,
+			disableVPCCNI:  true,
+		},
+		{
+			name:           "disable vpc cni not allowed with vpc cni addon",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    true,
+			hasAddon:       true,
+			disableVPCCNI:  true,
+		},
+		{
+			name:           "disable vpc cni not allowed with secondary",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    true,
+			hasAddon:       false,
+			disableVPCCNI:  true,
+			secondaryCidr:  aws.String("100.64.0.0/10"),
 		},
 	}
 
@@ -211,6 +244,7 @@ func TestWebhookCreate(t *testing.T) {
 				},
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: tc.eksClusterName,
+					DisableVPCCNI:  tc.disableVPCCNI,
 				},
 			}
 			if tc.eksVersion != "" {
@@ -219,12 +253,16 @@ func TestWebhookCreate(t *testing.T) {
 			if tc.hasAddon {
 				testAddons := []Addon{
 					{
-						Name:    "test addon",
+						Name:    vpcCniAddon,
 						Version: "v1.0.0",
 					},
 				}
 				mcp.Spec.Addons = &testAddons
 			}
+			if tc.secondaryCidr != nil {
+				mcp.Spec.SecondaryCidrBlock = tc.secondaryCidr
+			}
+
 			err := testEnv.Create(ctx, mcp)
 
 			if tc.expectError {

@@ -337,3 +337,8 @@ func (s *ManagedControlPlaneScope) Addons() []ekscontrolplanev1.Addon {
 	}
 	return *s.ControlPlane.Spec.Addons
 }
+
+// DisableVPCCNI returns whether the AWS VPC CNI should be disabled
+func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
+	return s.ControlPlane.Spec.DisableVPCCNI
+}
