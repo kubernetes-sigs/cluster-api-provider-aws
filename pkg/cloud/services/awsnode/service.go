@@ -35,6 +35,8 @@ type Scope interface {
 	SecondaryCidrBlock() *string
 	// SecurityGroups returns the control plane security groups as a map, it creates the map if empty.
 	SecurityGroups() map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
+	// DisableVPCCNI returns whether the AWS VPC CNI should be disabled
+	DisableVPCCNI() bool
 }
 
 type Service struct {

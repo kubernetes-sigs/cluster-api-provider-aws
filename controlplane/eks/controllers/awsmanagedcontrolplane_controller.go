@@ -236,7 +236,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
-	if err := awsnodeService.ReconcileCNI(); err != nil {
+	if err := awsnodeService.ReconcileCNI(ctx); err != nil {
 		conditions.MarkFalse(managedScope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}

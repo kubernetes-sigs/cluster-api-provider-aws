@@ -21,8 +21,6 @@ import (
 	"fmt"
 
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,17 +28,33 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/record"
 )
 
-func (s *Service) ReconcileCNI() error {
+const (
+	awsNodeName      = "aws-node"
+	awsNodeNamespace = "kube-system"
+)
+
+func (s *Service) ReconcileCNI(ctx context.Context) error {
+	s.scope.Info("Reconciling aws-node DaemonSet in cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+
+	if s.scope.DisableVPCCNI() {
+		if err := s.deleteCNI(ctx); err != nil {
+			return fmt.Errorf("disabling aws vpc cni: %w", err)
+		}
+	}
+
 	if s.scope.SecondaryCidrBlock() == nil {
 		return nil
 	}
-	s.scope.Info("Reconciling awsnode DaemonSet in cluster", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 
 	var ds appsv1.DaemonSet
-	if err := s.client.Get(context.Background(), types.NamespacedName{Namespace: "kube-system", Name: "aws-node"}, &ds); err != nil {
+	if err := s.client.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, &ds); err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
@@ -60,7 +74,7 @@ func (s *Service) ReconcileCNI() error {
 	s.scope.Info("for each subnet", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
 	for _, subnet := range s.secondarySubnets() {
 		var eniConfig amazoncni.ENIConfig
-		if err := s.client.Get(context.Background(), types.NamespacedName{Namespace: v1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
+		if err := s.client.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
 			if !errors.IsNotFound(err) {
 				return err
 			}
@@ -77,7 +91,7 @@ func (s *Service) ReconcileCNI() error {
 				},
 			}
 
-			if err := s.client.Create(context.Background(), &eniConfig, &client.CreateOptions{}); err != nil {
+			if err := s.client.Create(ctx, &eniConfig, &client.CreateOptions{}); err != nil {
 				return err
 			}
 		}
@@ -88,14 +102,14 @@ func (s *Service) ReconcileCNI() error {
 			SecurityGroups: sgs,
 		}
 
-		if err := s.client.Update(context.Background(), &eniConfig, &client.UpdateOptions{}); err != nil {
+		if err := s.client.Update(ctx, &eniConfig, &client.UpdateOptions{}); err != nil {
 			return err
 		}
 	}
 
 	// Removing any ENIConfig no longer needed
 	var eniConfigs amazoncni.ENIConfigList
-	err = s.client.List(context.Background(), &eniConfigs, &client.ListOptions{
+	err = s.client.List(ctx, &eniConfigs, &client.ListOptions{
 		Namespace:     v1.NamespaceSystem,
 		LabelSelector: labels.SelectorFromSet(metaLabels),
 	})
@@ -114,7 +128,7 @@ func (s *Service) ReconcileCNI() error {
 		if !matchFound {
 			oldEniConfig := eniConfig
 			s.scope.Info("Removing old ENIConfig", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace(), "eniConfig", oldEniConfig.Name)
-			if err := s.client.Delete(context.Background(), &oldEniConfig, &client.DeleteOptions{}); err != nil {
+			if err := s.client.Delete(ctx, &oldEniConfig, &client.DeleteOptions{}); err != nil {
 				return err
 			}
 		}
@@ -136,7 +150,7 @@ func (s *Service) ReconcileCNI() error {
 		}
 	}
 
-	return s.client.Update(context.Background(), &ds, &client.UpdateOptions{})
+	return s.client.Update(ctx, &ds, &client.UpdateOptions{})
 }
 
 func (s *Service) getSecurityGroups() ([]string, error) {
@@ -165,4 +179,29 @@ func (s *Service) filterEnv(env []corev1.EnvVar) []corev1.EnvVar {
 		i++
 	}
 	return env[:i]
+}
+
+func (s *Service) deleteCNI(ctx context.Context) error {
+	s.scope.Info("Ensuring aws-node DaemonSet in cluster is deleted", "cluster-name", s.scope.Name(), "cluster-namespace", s.scope.Namespace())
+
+	ds := &appsv1.DaemonSet{}
+	if err := s.client.Get(ctx, types.NamespacedName{Namespace: awsNodeNamespace, Name: awsNodeName}, ds); err != nil {
+		if errors.IsNotFound(err) {
+			s.scope.V(2).Info("The aws-node DaemonSet is not found, not action")
+			return nil
+		}
+		return fmt.Errorf("getting aws-node daemonset: %w", err)
+	}
+
+	s.scope.V(2).Info("The aws-node DaemonSet found, deleting")
+	if err := s.client.Delete(ctx, ds, &client.DeleteOptions{}); err != nil {
+		if errors.IsNotFound(err) {
+			s.scope.V(2).Info("The aws-node DaemonSet is not found, not deleted")
+			return nil
+		}
+		return fmt.Errorf("deleting aws-node DaemonSet: %w", err)
+	}
+	record.Eventf(s.scope.InfraCluster(), "DeletedVPCCNI", "The AWS VPC CNI has been removed from the cluster. Ensure you enable a CNI via another mechanism")
+
+	return nil
 }
