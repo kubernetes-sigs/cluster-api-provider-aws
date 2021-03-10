@@ -1,0 +1,139 @@
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+  labels:
+    gpu: "nvidia"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    kind: AWSManagedControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    name: "${CLUSTER_NAME}-control-plane"
+  controlPlaneRef:
+    kind: AWSManagedControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    name: "${CLUSTER_NAME}-control-plane"
+---
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
+  version: "${KUBERNETES_VERSION}"
+  addons:
+    - name: "vpc-cni"
+      version: "${VPC_ADDON_VERSION:=v1.7.5-eksbuild.1}"
+      conflictResolution: "overwrite"
+---
+apiVersion: exp.cluster.x-k8s.io/v1alpha3
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      bootstrap:
+        dataSecretName: ""
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-pool-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        kind: AWSManagedMachinePool
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: AWSManagedMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  amiType: "AL2_x86_64_GPU"
+  instanceType: "g4dn.xlarge"
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha3
+kind: ClusterResourceSet
+metadata:
+ name: crs-nvidia
+spec:
+ strategy: "ApplyOnce"
+ clusterSelector:
+   matchLabels:
+     gpu: "nvidia"
+ resources:
+   - name: nvidia-addon
+     kind: ConfigMap
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nvidia-addon
+data:
+  nvidia-device-plugin.yaml: |
+    # Copyright (c) 2019, NVIDIA CORPORATION.  All rights reserved.
+    #
+    # Licensed under the Apache License, Version 2.0 (the "License");
+    # you may not use this file except in compliance with the License.
+    # You may obtain a copy of the License at
+    #
+    #     http://www.apache.org/licenses/LICENSE-2.0
+    #
+    # Unless required by applicable law or agreed to in writing, software
+    # distributed under the License is distributed on an "AS IS" BASIS,
+    # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    # See the License for the specific language governing permissions and
+    # limitations under the License.
+
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: nvidia-device-plugin-daemonset
+      namespace: kube-system
+    spec:
+      selector:
+        matchLabels:
+          name: nvidia-device-plugin-ds
+      updateStrategy:
+        type: RollingUpdate
+      template:
+        metadata:
+          # This annotation is deprecated. Kept here for backward compatibility
+          # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
+          annotations:
+            scheduler.alpha.kubernetes.io/critical-pod: ""
+          labels:
+            name: nvidia-device-plugin-ds
+        spec:
+          tolerations:
+          # This toleration is deprecated. Kept here for backward compatibility
+          # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
+          - key: CriticalAddonsOnly
+            operator: Exists
+          - key: nvidia.com/gpu
+            operator: Exists
+            effect: NoSchedule
+          # Mark this pod as a critical add-on; when enabled, the critical add-on
+          # scheduler reserves resources for critical add-on pods so that they can
+          # be rescheduled after a failure.
+          # See https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/
+          priorityClassName: "system-node-critical"
+          containers:
+          - image: nvidia/k8s-device-plugin:v0.8.0
+            name: nvidia-device-plugin-ctr
+            args: ["--fail-on-init-error=false"]
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+            volumeMounts:
+              - name: device-plugin
+                mountPath: /var/lib/kubelet/device-plugins
+          volumes:
+            - name: device-plugin
+              hostPath:
+                path: /var/lib/kubelet/device-plugins
