@@ -114,6 +114,8 @@ type Bastion struct {
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer
 type AWSLoadBalancerSpec struct {
 	// Scheme sets the scheme of the load balancer (defaults to Internet-facing)
+	// +kubebuilder:default=Internet-facing
+	// +kubebuilder:validation:Enum=Internet-facing;internal
 	// +optional
 	Scheme *ClassicELBScheme `json:"scheme,omitempty"`
 
