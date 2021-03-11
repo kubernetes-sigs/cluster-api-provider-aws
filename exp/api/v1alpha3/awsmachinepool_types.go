@@ -72,6 +72,10 @@ type AWSMachinePoolSpec struct {
 	// If no value is supplied by user a default value of 300 seconds is set
 	// +optional
 	DefaultCoolDown metav1.Duration `json:"defaultCoolDown,omitempty"`
+
+	// Enable or disable the capacity rebalance autoscaling group feature
+	// +optional
+	CapacityRebalance bool `json:"capacityRebalance,omitempty"`
 }
 
 // AWSMachinePoolStatus defines the observed state of AWSMachinePool
