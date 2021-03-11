@@ -54,6 +54,7 @@ const (
 	SimpleMultitenancyFlavor     = "simple-multitenancy"
 	NestedMultitenancyFlavor     = "nested-multitenancy"
 	KCPScaleInFlavor             = "kcp-scale-in"
+	IgnitionFlavor               = "ignition"
 	StorageClassOutTreeZoneLabel = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                    = "gpu"
 	InstanceVcpu                 = "AWS_MACHINE_TYPE_VCPU_USAGE"
