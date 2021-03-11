@@ -105,6 +105,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	t.Spec.EKS.AllowIAMRoleCreation = false
 	t.Spec.EKS.DefaultControlPlaneRole.Disable = false
 	t.Spec.EKS.ManagedMachinePool.Disable = false
+	t.Spec.S3Buckets.Enable = true
 	str, err := yaml.Marshal(t.Spec)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(os.WriteFile(path.Join(e2eCtx.Settings.ArtifactFolder, "awsiamconfiguration.yaml"), str, 0644)).To(Succeed()) //nolint:gosec
