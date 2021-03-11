@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	cgrecord "k8s.io/client-go/tools/record"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"

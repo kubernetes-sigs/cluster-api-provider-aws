@@ -29,7 +29,7 @@ require (
 	k8s.io/cli-runtime v0.17.9
 	k8s.io/client-go v0.17.9
 	k8s.io/component-base v0.17.9
-	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.0.0
 	k8s.io/utils v0.0.0-20200912215256-4140de9c8800
 	sigs.k8s.io/aws-iam-authenticator v0.5.1
 	sigs.k8s.io/cluster-api v0.3.15-0.20210309173700-34de71aaaac8
