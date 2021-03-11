@@ -38,7 +38,7 @@ import (
 type MachinePoolScope struct {
 	logr.Logger
 	client      client.Client
-	patchHelper *patch.Helper
+	PatchHelper *patch.Helper
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *expclusterv1.MachinePool
@@ -96,7 +96,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 	return &MachinePoolScope{
 		Logger:      params.Logger,
 		client:      params.Client,
-		patchHelper: helper,
+		PatchHelper: helper,
 
 		Cluster:        params.Cluster,
 		MachinePool:    params.MachinePool,
@@ -152,7 +152,7 @@ func (m *MachinePoolScope) AdditionalTags() infrav1.Tags {
 
 // PatchObject persists the machinepool spec and status.
 func (m *MachinePoolScope) PatchObject() error {
-	return m.patchHelper.Patch(
+	return m.PatchHelper.Patch(
 		context.TODO(),
 		m.AWSMachinePool,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
