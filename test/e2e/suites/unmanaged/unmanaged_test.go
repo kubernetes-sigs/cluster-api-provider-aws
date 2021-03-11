@@ -43,6 +43,7 @@ import (
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -359,13 +360,12 @@ var _ = Describe("functional tests - unmanaged", func() {
 				Expect(len(machines)).Should(BeNumerically(">", 0))
 				terminateInstance(*machines[0].Spec.ProviderID)
 
-				// TODO: uncomment once EventBridgeInstanceState is enabled for the tests
-				//By("Waiting for AWSMachine to be labelled as terminated")
-				//Eventually(func() bool {
-				//	machineList := getAWSMachinesForDeployment(ns2.Name, *md2[0])
-				//	labels := machineList.Items[0].GetLabels()
-				//	return labels[instancestate.Ec2InstanceStateLabelKey] == string(infrav1.InstanceStateTerminated)
-				//}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(Equal(true))
+				By("Waiting for AWSMachine to be labelled as terminated")
+				Eventually(func() bool {
+					machineList := getAWSMachinesForDeployment(ns2.Name, *md2[0])
+					labels := machineList.Items[0].GetLabels()
+					return labels[instancestate.Ec2InstanceStateLabelKey] == string(infrav1.InstanceStateTerminated)
+				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(Equal(true))
 
 				By("Waiting for machine to reach Failed state")
 				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}

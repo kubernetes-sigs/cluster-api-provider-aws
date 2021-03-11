@@ -28,12 +28,12 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
 	"sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/api/bootstrap/v1alpha1"
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cloudformation/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/credentials"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 // newBootstrapTemplate generates a clusterawsadm configuration, and prints it
@@ -46,6 +46,10 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 		v1alpha3.SecretBackendSecretsManager,
 		v1alpha3.SecretBackendSSMParameterStore,
 	}
+	t.Spec.EventBridge = &v1alpha1.EventBridgeConfig{
+		Enable: true,
+	}
+
 	region, err := credentials.ResolveRegion("")
 	Expect(err).NotTo(HaveOccurred())
 	t.Spec.Region = region
