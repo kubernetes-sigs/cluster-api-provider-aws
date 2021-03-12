@@ -18,8 +18,10 @@ package ec2
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"sort"
 	"strings"
 	"time"
@@ -248,9 +250,10 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte) (*i
 
 // findSubnet attempts to retrieve a subnet ID in the following order:
 // - subnetID specified in machine configuration,
-// - subnet based on filters in machine configuration
+// - subnet based on filters in machine configuration, returning a random result if
+//   `FilterSelectionScheme` is set to "Random" in the subnet spec and the first result otherwise.
 // - subnet based on the availability zone specified,
-// - default to the first private subnet available.
+// - default to the private subnets available, returning the first result.
 func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 	// Check Machine.Spec.FailureDomain first as it's used by KubeadmControlPlane to spread machines across failure domains.
 	failureDomain := scope.Machine.Spec.FailureDomain
@@ -313,6 +316,19 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 				),
 			)
 		}
+
+		// If random subnet selection is expected, roll a random number and return
+		if scope.AWSMachine.Spec.Subnet.FilterSelectionScheme != nil &&
+			*scope.AWSMachine.Spec.Subnet.FilterSelectionScheme == infrav1.FilterSelectionSchemeRandom {
+			rollRandom, err := rand.Int(rand.Reader, big.NewInt(int64(len(subnets))))
+			if err != nil {
+				return "", errors.Wrapf(err, "failed to select random subnet from list of filtered subnets")
+			}
+
+			return *subnets[rollRandom.Int64()].SubnetId, nil
+		}
+
+		// Simply return first result if random selection is not expected
 		return *subnets[0].SubnetId, nil
 
 	case failureDomain != nil:
