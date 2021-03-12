@@ -50,6 +50,14 @@ var (
 	DefaultEKSNodegroupRole = fmt.Sprintf("eks-nodegroup%s", infrav1.DefaultNameSuffix)
 )
 
+type LaunchTemplateReference struct {
+	// The ID of the launch template for this nodegroup
+	ID string `json:"id,omitempty"`
+
+	// The version of the launch template for this nodegroup
+	Version string `json:"version,omitempty"`
+}
+
 // AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool
 type AWSManagedMachinePoolSpec struct {
 	// EKSNodegroupName specifies the name of the nodegroup in AWS
@@ -58,6 +66,10 @@ type AWSManagedMachinePoolSpec struct {
 	// name of the managed machine pool.
 	// +optional
 	EKSNodegroupName string `json:"eksNodegroupName,omitempty"`
+
+	// LaunchTemplate specifies the launch template to use for creating this
+	// MachinePool
+	LaunchTemplate *LaunchTemplateReference `json:"launchTemplate,omitempty"`
 
 	// SubnetIDs specifies which subnets are used for the
 	// auto scaling group of this nodegroup
@@ -88,6 +100,13 @@ type AWSManagedMachinePoolSpec struct {
 	// +kubebuilder:default:=AL2_x86_64
 	// +optional
 	AMIType *ManagedMachineAMIType `json:"amiType,omitempty"`
+
+	// AMIID defines a specific, custom AMI. If not supplied,
+	// then the latest version for the Kubernetes version
+	// will be used
+	// +kubebuilder:validation:MinLength:=2
+	// +optional
+	AMIID *string `json:"amiID,omitempty"`
 
 	// Labels specifies labels for the Kubernetes node objects
 	// +optional

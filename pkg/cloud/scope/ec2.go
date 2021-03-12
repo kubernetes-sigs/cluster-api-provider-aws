@@ -17,8 +17,10 @@ limitations under the License.
 package scope
 
 import (
+	"github.com/go-logr/logr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // Scope is the interface for the scoep to be used with the ec2 service
@@ -54,4 +56,14 @@ type EC2Scope interface {
 
 	// ImageLookupBaseOS returns the base operating system name to use when looking up AMIs
 	ImageLookupBaseOS() string
+}
+
+// LaunchTemplateOwner encapsulates a scope referencing a LaunchTemplate
+type LaunchTemplateOwner interface {
+	logr.Logger
+	Name() string
+	AdditionalTags() infrav1.Tags
+	LaunchTemplateID() string
+	CoreSecurityGroups(s EC2Scope) ([]string, error)
+	OwnerObject() conditions.Setter
 }

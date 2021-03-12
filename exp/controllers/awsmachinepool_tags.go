@@ -38,7 +38,7 @@ const (
 // Bool indicates if changes were made or not, allowing the caller to decide
 // if the machine should be updated.
 func (r *AWSMachinePoolReconciler) ensureTags(ec2svc services.EC2MachineInterface, asgsvc services.ASGInterface, machinePool *expinfrav1.AWSMachinePool, launchTemplateID, asgName *string, additionalTags map[string]string) (bool, error) {
-	annotation, err := r.machinePoolAnnotationJSON(machinePool, TagsLastAppliedAnnotation)
+	annotation, err := machinePoolAnnotationJSON(machinePool, TagsLastAppliedAnnotation)
 	if err != nil {
 		return false, err
 	}
@@ -169,10 +169,10 @@ func (r *AWSMachinePoolReconciler) updateMachinePoolAnnotation(machinePool *expi
 // Returns a map[string]interface from a JSON annotation.
 // This method gets the given `annotation` from the `machinePool` and unmarshalls it
 // from a JSON string into a `map[string]interface{}`.
-func (r *AWSMachinePoolReconciler) machinePoolAnnotationJSON(machinePool *expinfrav1.AWSMachinePool, annotation string) (map[string]interface{}, error) {
+func machinePoolAnnotationJSON(machinePool *expinfrav1.AWSMachinePool, annotation string) (map[string]interface{}, error) {
 	out := map[string]interface{}{}
 
-	jsonAnnotation := r.machinePoolAnnotation(machinePool, annotation)
+	jsonAnnotation := machinePoolAnnotation(machinePool, annotation)
 	if len(jsonAnnotation) == 0 {
 		return out, nil
 	}
@@ -186,6 +186,6 @@ func (r *AWSMachinePoolReconciler) machinePoolAnnotationJSON(machinePool *expinf
 }
 
 // Fetches the specific machine annotation.
-func (r *AWSMachinePoolReconciler) machinePoolAnnotation(machinePool *expinfrav1.AWSMachinePool, annotation string) string {
+func machinePoolAnnotation(machinePool *expinfrav1.AWSMachinePool, annotation string) string {
 	return machinePool.GetAnnotations()[annotation]
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package services
 
 import (
+	"github.com/aws/aws-sdk-go/service/ec2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
@@ -60,11 +61,12 @@ type EC2MachineInterface interface {
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error
 
 	DiscoverLaunchTemplateAMI(scope *scope.MachinePoolScope) (*string, error)
-	GetLaunchTemplate(id string) (*expinfrav1.AWSLaunchTemplate, error)
-	CreateLaunchTemplate(scope *scope.MachinePoolScope, imageID *string, userData []byte) (string, error)
-	CreateLaunchTemplateVersion(scope *scope.MachinePoolScope, imageID *string, userData []byte) error
+	GetLaunchTemplate(id string) (*ec2.LaunchTemplateVersion, error)
+	CreateLaunchTemplateData(scope scope.LaunchTemplateOwner, lt *expinfrav1.AWSLaunchTemplate, imageID *string, userData []byte) (*ec2.RequestLaunchTemplateData, error)
+	CreateLaunchTemplate(scope scope.LaunchTemplateOwner, launchTemplateData *ec2.RequestLaunchTemplateData) (string, error)
+	CreateLaunchTemplateVersion(scope scope.LaunchTemplateOwner, launchTemplateData *ec2.RequestLaunchTemplateData) (string, error)
 	DeleteLaunchTemplate(id string) error
-	LaunchTemplateNeedsUpdate(scope *scope.MachinePoolScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
+	LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateOwner, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
 }
 
 // SecretInterface encapsulated the methods exposed to the

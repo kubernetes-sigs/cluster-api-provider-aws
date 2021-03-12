@@ -29,11 +29,13 @@ import (
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/exp/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/awserrors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -139,6 +141,44 @@ func (m *MachinePoolScope) GetRawBootstrapData() ([]byte, error) {
 	}
 
 	return value, nil
+}
+
+// GetCoreSecurityGroups looks up the security group IDs managed by this actuator
+// They are considered "core" to its proper functioning
+func (m *MachinePoolScope) CoreSecurityGroups(scope EC2Scope) ([]string, error) {
+	// These are common across both controlplane and node machines
+	sgRoles := []infrav1.SecurityGroupRole{
+		infrav1.SecurityGroupNode,
+	}
+
+	if !m.IsEKSManaged() {
+		sgRoles = append(sgRoles, infrav1.SecurityGroupLB)
+	} else {
+		sgRoles = append(sgRoles, infrav1.SecurityGroupEKSNodeAdditional)
+	}
+
+	ids := make([]string, 0, len(sgRoles))
+	for _, sg := range sgRoles {
+		if _, ok := scope.SecurityGroups()[sg]; !ok {
+			return nil, awserrors.NewFailedDependency(
+				fmt.Sprintf("%s security group not available", sg),
+			)
+		}
+		ids = append(ids, scope.SecurityGroups()[sg].ID)
+	}
+	return ids, nil
+}
+
+func (m *MachinePoolScope) LaunchTemplateSpec() *expinfrav1.AWSLaunchTemplate {
+	return &m.AWSMachinePool.Spec.AWSLaunchTemplate
+}
+
+func (m *MachinePoolScope) LaunchTemplateID() string {
+	return m.AWSMachinePool.Status.LaunchTemplateID
+}
+
+func (m *MachinePoolScope) OwnerObject() conditions.Setter {
+	return m.AWSMachinePool
 }
 
 // AdditionalTags merges AdditionalTags from the scope's AWSCluster and AWSMachinePool. If the same key is present in both,
