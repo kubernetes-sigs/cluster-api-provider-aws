@@ -27,3 +27,18 @@ const (
 	// from making any further remediations.
 	TooManyUnhealthyReason = "TooManyUnhealthy"
 )
+
+const (
+	// InstanceExistsCondition is set on the Machine to show whether a virtual mahcine has been created by the cloud provider.
+	InstanceExistsCondition ConditionType = "InstanceExists"
+
+	// ErrorCheckingProviderReason is the reason used when the exist operation fails.
+	// This would normally be because we cannot contact the provider.
+	ErrorCheckingProviderReason = "ErrorCheckingProvider"
+
+	// InstanceMissingReason is the reason used when the machine was provisioned, but the instance has gone missing.
+	InstanceMissingReason = "InstanceMissing"
+
+	// InstanceNotCreatedReason is the reason used when the machine has not yet been provisioned.
+	InstanceNotCreatedReason = "InstanceNotCreated"
+)

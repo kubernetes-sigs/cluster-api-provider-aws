@@ -224,19 +224,10 @@ type machineDefaulterHandler struct {
 }
 
 // NewValidator returns a new machineValidatorHandler.
-func NewMachineValidator() (*machineValidatorHandler, error) {
+func NewMachineValidator(client client.Client) (*machineValidatorHandler, error) {
 	infra, err := getInfra()
 	if err != nil {
 		return nil, err
-	}
-
-	cfg, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	c, err := client.New(cfg, client.Options{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to build kubernetes client: %v", err)
 	}
 
 	dns, err := getDNS()
@@ -244,7 +235,7 @@ func NewMachineValidator() (*machineValidatorHandler, error) {
 		return nil, err
 	}
 
-	return createMachineValidator(infra, c, dns), nil
+	return createMachineValidator(infra, client, dns), nil
 }
 
 func createMachineValidator(infra *osconfigv1.Infrastructure, client client.Client, dns *osconfigv1.DNS) *machineValidatorHandler {
