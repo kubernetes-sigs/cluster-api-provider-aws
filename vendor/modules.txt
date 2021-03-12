@@ -212,7 +212,7 @@ github.com/openshift/client-go/config/clientset/versioned/scheme
 github.com/openshift/client-go/config/clientset/versioned/typed/config/v1
 # github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201201000827-1117a4fc438c
 github.com/openshift/cluster-api-provider-gcp/pkg/apis/gcpprovider/v1beta1
-# github.com/openshift/machine-api-operator v0.2.1-0.20210104142355-8e6ae0acdfcf
+# github.com/openshift/machine-api-operator v0.2.1-0.20210310053650-d40398c49baf
 ## explicit
 github.com/openshift/machine-api-operator/pkg/apis/machine
 github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1
@@ -226,6 +226,7 @@ github.com/openshift/machine-api-operator/pkg/generated/informers/externalversio
 github.com/openshift/machine-api-operator/pkg/generated/listers/machine/v1beta1
 github.com/openshift/machine-api-operator/pkg/metrics
 github.com/openshift/machine-api-operator/pkg/util
+github.com/openshift/machine-api-operator/pkg/util/conditions
 # github.com/peterbourgon/diskv v2.0.1+incompatible
 github.com/peterbourgon/diskv
 # github.com/pkg/errors v0.9.1
