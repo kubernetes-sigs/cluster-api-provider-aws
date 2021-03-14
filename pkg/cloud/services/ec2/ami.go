@@ -42,13 +42,13 @@ const (
 	// when looking up machine AMIs
 	defaultMachineAMILookupBaseOS = "ubuntu-18.04"
 
-	// defaultAmiNameFormat is defined in the build/ directory of this project.
+	// DefaultAmiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
 	// 1. the string value `capa-ami-`
 	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
 	// 3. the kubernetes version as defined by the packages produced by kubernetes/release with or without v as a prefix, for example: 1.13.0, 1.12.5-mybuild.1, v1.17.3
 	// 4. a `-` followed by any additional characters
-	defaultAmiNameFormat = "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*"
+	DefaultAmiNameFormat = "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*"
 
 	// Amazon's AMI timestamp format
 	createDateTimestampFormat = "2006-01-02T15:04:05.000Z"
@@ -63,11 +63,11 @@ type AMILookup struct {
 	K8sVersion string
 }
 
-func amiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
+func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
 	amiNameParameters := AMILookup{baseOS, strings.TrimPrefix(kubernetesVersion, "v")}
 	// revert to default if not specified
 	if amiNameFormat == "" {
-		amiNameFormat = defaultAmiNameFormat
+		amiNameFormat = DefaultAmiNameFormat
 	}
 	var templateBytes bytes.Buffer
 	template, err := template.New("amiName").Parse(amiNameFormat)
@@ -83,7 +83,7 @@ func amiName(amiNameFormat, baseOS, kubernetesVersion string) (string, error) {
 
 func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVersion, amiNameFormat string) (*ec2.Image, error) {
 	if amiNameFormat == "" {
-		amiNameFormat = defaultAmiNameFormat
+		amiNameFormat = DefaultAmiNameFormat
 	}
 	if ownerID == "" {
 		ownerID = DefaultMachineAMIOwnerID
@@ -92,7 +92,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 		baseOS = defaultMachineAMILookupBaseOS
 	}
 
-	amiName, err := amiName(amiNameFormat, baseOS, kubernetesVersion)
+	amiName, err := GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
 	}
@@ -128,7 +128,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 	if len(out.Images) == 0 {
 		return nil, errors.Errorf("found no AMIs with the name: %q", amiName)
 	}
-	latestImage, err := getLatestImage(out.Images)
+	latestImage, err := GetLatestImage(out.Images)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
 	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, kubernetesVersion, amiNameFormat)
 	if err != nil {
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami %q: %v", amiName, err)
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami for OS=%s and Kubernetes-version=%s: %v", baseOS, kubernetesVersion, err)
 		return "", errors.Wrapf(err, "failed to find ami")
 	}
 
@@ -169,8 +169,8 @@ func (i images) Swap(k, j int) {
 	i[k], i[j] = i[j], i[k]
 }
 
-// getLatestImage assumes imgs is not empty. Responsibility of the caller to check.
-func getLatestImage(imgs []*ec2.Image) (*ec2.Image, error) {
+// GetLatestImage assumes imgs is not empty. Responsibility of the caller to check.
+func GetLatestImage(imgs []*ec2.Image) (*ec2.Image, error) {
 	for _, img := range imgs {
 		if _, err := time.Parse(createDateTimestampFormat, aws.StringValue(img.CreationDate)); err != nil {
 			return nil, err
