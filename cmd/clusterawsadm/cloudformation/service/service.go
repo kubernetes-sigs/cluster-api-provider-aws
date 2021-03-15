@@ -29,7 +29,7 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	go_cfn "github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/pkg/errors"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // Service holds a collection of interfaces.
