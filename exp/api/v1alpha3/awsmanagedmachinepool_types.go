@@ -59,6 +59,9 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	EKSNodegroupName string `json:"eksNodegroupName,omitempty"`
 
+	// AvailabilityZones is an array of availability zones instances can run in
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
+
 	// SubnetIDs specifies which subnets are used for the
 	// auto scaling group of this nodegroup
 	// +optional

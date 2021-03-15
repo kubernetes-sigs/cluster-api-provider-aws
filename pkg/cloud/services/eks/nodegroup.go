@@ -82,19 +82,6 @@ func (s *NodegroupService) scalingConfig() *eks.NodegroupScalingConfig {
 	return &cfg
 }
 
-func (s *NodegroupService) subnets() []string {
-	subnetIDs := s.scope.SubnetIDs()
-	// If not specified, use all
-	if len(subnetIDs) == 0 {
-		subnetIDs := []string{}
-		for _, subnet := range s.scope.ControlPlaneSubnets() {
-			subnetIDs = append(subnetIDs, subnet.ID)
-		}
-		return subnetIDs
-	}
-	return subnetIDs
-}
-
 func (s *NodegroupService) roleArn() (*string, error) {
 	var role *iam.Role
 	if s.scope.RoleName() != "" {
@@ -176,11 +163,16 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		return nil, errors.Wrap(err, "failed to create remote access configuration")
 	}
 
+	subnets, err := s.scope.SubnetIDs()
+	if err != nil {
+		return nil, fmt.Errorf("failed getting nodegroup subnets: %w", err)
+	}
+
 	input := &eks.CreateNodegroupInput{
 		ScalingConfig: s.scalingConfig(),
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
-		Subnets:       aws.StringSlice(s.subnets()),
+		Subnets:       aws.StringSlice(subnets),
 		NodeRole:      roleArn,
 		Labels:        aws.StringMap(managedPool.Labels),
 		Tags:          aws.StringMap(tags),

@@ -17,6 +17,7 @@ limitations under the License.
 package asg
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -143,22 +144,16 @@ func (s *Service) GetASGByName(scope *scope.MachinePoolScope) (*expinfrav1.AutoS
 
 // CreateASG runs an autoscaling group.
 func (s *Service) CreateASG(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-	subnetIDs := make([]string, len(scope.AWSMachinePool.Spec.Subnets))
-	for i, v := range scope.AWSMachinePool.Spec.Subnets {
-		subnetIDs[i] = aws.StringValue(v.ID)
-	}
-
-	if len(subnetIDs) == 0 {
-		for _, subnet := range scope.InfraCluster.Subnets() {
-			subnetIDs = append(subnetIDs, subnet.ID)
-		}
+	subnets, err := scope.SubnetIDs()
+	if err != nil {
+		return nil, fmt.Errorf("getting subnets for ASG: %w", err)
 	}
 
 	input := &expinfrav1.AutoScalingGroup{
 		Name:                 scope.Name(),
 		MaxSize:              scope.AWSMachinePool.Spec.MaxSize,
 		MinSize:              scope.AWSMachinePool.Spec.MinSize,
-		Subnets:              subnetIDs,
+		Subnets:              subnets,
 		DefaultCoolDown:      scope.AWSMachinePool.Spec.DefaultCoolDown,
 		CapacityRebalance:    scope.AWSMachinePool.Spec.CapacityRebalance,
 		MixedInstancesPolicy: scope.AWSMachinePool.Spec.MixedInstancesPolicy,
