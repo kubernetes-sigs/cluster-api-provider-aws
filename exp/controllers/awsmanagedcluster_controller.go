@@ -45,8 +45,9 @@ import (
 // AWSManagedClusterReconciler reconciles AWSManagedCluster
 type AWSManagedClusterReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Recorder record.EventRecorder
+	Log              logr.Logger
+	Recorder         record.EventRecorder
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters,verbs=get;list;watch;create;update;patch;delete
@@ -124,7 +125,7 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(awsManagedCluster).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -137,7 +138,7 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager, options
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: util.ClusterToInfrastructureMapFunc(awsManagedCluster.GroupVersionKind()),
 		},
-		predicates.ClusterUnpaused(r.Log),
+		predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}

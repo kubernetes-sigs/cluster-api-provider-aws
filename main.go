@@ -72,6 +72,7 @@ var (
 	enableLeaderElection     bool
 	leaderElectionNamespace  string
 	watchNamespace           string
+	watchFilterValue         string
 	profilerAddress          string
 	awsClusterConcurrency    int
 	instanceStateConcurrency int
@@ -142,19 +143,21 @@ func main() {
 
 	if webhookPort == 0 {
 		if err = (&controllers.AWSMachineReconciler{
-			Client:    mgr.GetClient(),
-			Log:       ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-			Recorder:  mgr.GetEventRecorderFor("awsmachine-controller"),
-			Endpoints: AWSServiceEndpoints,
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+			Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
+			Endpoints:        AWSServiceEndpoints,
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 			os.Exit(1)
 		}
 		if err = (&controllers.AWSClusterReconciler{
-			Client:    mgr.GetClient(),
-			Log:       ctrl.Log.WithName("controllers").WithName("AWSCluster"),
-			Recorder:  mgr.GetEventRecorderFor("awscluster-controller"),
-			Endpoints: AWSServiceEndpoints,
+			Client:           mgr.GetClient(),
+			Log:              ctrl.Log.WithName("controllers").WithName("AWSCluster"),
+			Recorder:         mgr.GetEventRecorderFor("awscluster-controller"),
+			Endpoints:        AWSServiceEndpoints,
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 			os.Exit(1)
@@ -166,28 +169,31 @@ func main() {
 			enableIAM := feature.Gates.Enabled(feature.EKSEnableIAM)
 
 			if err = (&controllersexp.AWSManagedMachinePoolReconciler{
-				Client:    mgr.GetClient(),
-				Log:       ctrl.Log.WithName("controllers").WithName("AWSManagedMachinePool"),
-				Recorder:  mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
-				EnableIAM: enableIAM,
-				Endpoints: AWSServiceEndpoints,
+				Client:           mgr.GetClient(),
+				Log:              ctrl.Log.WithName("controllers").WithName("AWSManagedMachinePool"),
+				Recorder:         mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
+				EnableIAM:        enableIAM,
+				Endpoints:        AWSServiceEndpoints,
+				WatchFilterValue: watchFilterValue,
 			}).SetupWithManager(mgr, controller.Options{}); err != nil {
 				setupLog.Error(err, "unable to create controller", "controller", "AWSManagedMachinePool")
 				os.Exit(1)
 			}
 			if err = (&controllersexp.AWSManagedClusterReconciler{
-				Client:   mgr.GetClient(),
-				Log:      ctrl.Log.WithName("controllers").WithName("AWSManagedCluster"),
-				Recorder: mgr.GetEventRecorderFor("awsmanagedcluster-reconciler"),
+				Client:           mgr.GetClient(),
+				Log:              ctrl.Log.WithName("controllers").WithName("AWSManagedCluster"),
+				Recorder:         mgr.GetEventRecorderFor("awsmanagedcluster-reconciler"),
+				WatchFilterValue: watchFilterValue,
 			}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency}); err != nil {
 				setupLog.Error(err, "unable to create controller", "controller", "AWSManagedCluster")
 			}
 		}
 		if feature.Gates.Enabled(feature.MachinePool) {
 			if err = (&controllersexp.AWSMachinePoolReconciler{
-				Client:   mgr.GetClient(),
-				Log:      ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
-				Recorder: mgr.GetEventRecorderFor("awsmachinepool-controller"),
+				Client:           mgr.GetClient(),
+				Log:              ctrl.Log.WithName("controllers").WithName("AWSMachinePool"),
+				Recorder:         mgr.GetEventRecorderFor("awsmachinepool-controller"),
+				WatchFilterValue: watchFilterValue,
 			}).SetupWithManager(mgr); err != nil {
 				setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 				os.Exit(1)
@@ -197,9 +203,10 @@ func main() {
 		if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 			setupLog.Info("EventBridge notifications enabled. enabling AWSInstanceStateController")
 			if err = (&instancestate.AwsInstanceStateReconciler{
-				Client:    mgr.GetClient(),
-				Log:       ctrl.Log.WithName("controllers").WithName("AWSInstanceStateController"),
-				Endpoints: AWSServiceEndpoints,
+				Client:           mgr.GetClient(),
+				Log:              ctrl.Log.WithName("controllers").WithName("AWSInstanceStateController"),
+				Endpoints:        AWSServiceEndpoints,
+				WatchFilterValue: watchFilterValue,
 			}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency}); err != nil {
 				setupLog.Error(err, "unable to create controller", "controller", "AWSInstanceStateController")
 				os.Exit(1)
@@ -287,6 +294,12 @@ func initFlags(fs *pflag.FlagSet) {
 		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.",
 	)
+
+	fs.StringVar(
+		&watchFilterValue,
+		"watch-filter",
+		"",
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
 
 	fs.StringVar(
 		&leaderElectionNamespace,

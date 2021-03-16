@@ -53,7 +53,8 @@ type AWSManagedMachinePoolReconciler struct {
 	Recorder  record.EventRecorder
 	Endpoints []scope.ServiceEndpoint
 
-	EnableIAM bool
+	EnableIAM        bool
+	WatchFilterValue string
 }
 
 // SetupWithManager is used to setup the controller
@@ -66,7 +67,7 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(mgr ctrl.Manager, opt
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1exp.AWSManagedMachinePool{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &capiv1exp.MachinePool{}},
 			&handler.EnqueueRequestsFromMapFunc{

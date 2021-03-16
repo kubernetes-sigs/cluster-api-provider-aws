@@ -51,8 +51,9 @@ import (
 // EKSConfigReconciler reconciles a EKSConfig object
 type EKSConfigReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log              logr.Logger
+	Scheme           *runtime.Scheme
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=eksconfigs,verbs=get;list;watch;create;update;patch;delete
@@ -213,7 +214,7 @@ func (r *EKSConfigReconciler) SetupWithManager(mgr ctrl.Manager, option controll
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.EKSConfig{}).
 		WithOptions(option).
-		WithEventFilter(predicates.ResourceNotPaused(r.Log)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(r.Log, r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
