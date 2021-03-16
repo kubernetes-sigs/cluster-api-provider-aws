@@ -31,3 +31,5 @@ require (
 	sigs.k8s.io/controller-runtime v0.5.11
 	sigs.k8s.io/yaml v1.2.0
 )
+
+replace sigs.k8s.io/cluster-api => github.com/newrelic-forks/cluster-api v0.3.10-nr1
