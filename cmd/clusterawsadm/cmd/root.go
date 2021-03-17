@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -76,10 +77,15 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, "")
 		os.Exit(1)
 	}
+
 	if err := RootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
+}
 
-	// Honor glog flags for verbosity control
+func init() {
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	verbosity := flag.CommandLine.Int("v", 2, "Set the log level verbosity.")
+	_ = flag.Set("v", strconv.Itoa(*verbosity))
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 }

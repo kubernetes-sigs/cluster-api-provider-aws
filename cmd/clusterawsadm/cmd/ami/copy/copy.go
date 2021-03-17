@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api-provider-aws/cmd/clusterawsadm/cmd/flags"
 	ec2service "sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
@@ -71,9 +72,10 @@ func CopyAMICmd() *cobra.Command {
 			ec2Client := ec2.New(sess)
 			dryRun, err := cmd.Flags().GetBool("dry-run")
 			if err != nil {
-				fmt.Printf("Failed to parse dry-run value: %v. Defaulting to --dry-run=false\n", err)
+				klog.V(5).Infof("dry-run flag is not provided: %v.  Defaulting to --dry-run=false", err)
 			}
 
+			klog.V(5).Infof("Retrieving the image from %s: os=%s version=%s", ownerID, opSystem, kubernetesVersion)
 			image, err := ec2service.DefaultAMILookup(ec2Client, ownerID, opSystem, kubernetesVersion, "")
 			if err != nil {
 				return err
@@ -85,12 +87,14 @@ func CopyAMICmd() *cobra.Command {
 				SourceImageId: image.ImageId,
 				SourceRegion:  &region,
 			}
+			klog.V(5).Infof("Copying the retrieved image %s from %s", *image.ImageId, ownerID)
 			out, err := ec2Client.CopyImage(in2)
 			if err != nil {
 				fmt.Printf("version %q\n", out)
 				return err
 			}
-			fmt.Printf("Completed copying %v\n", *image.ImageId)
+
+			klog.V(0).Infof("Completed copying %v\n", *image.ImageId)
 			return nil
 		},
 	}
