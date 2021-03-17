@@ -125,7 +125,7 @@ var _ = Describe("MachineSetReconciler", func() {
 			existingAnnotations: make(map[string]string),
 			expectedAnnotations: map[string]string{
 				cpuKey:    "64",
-				memoryKey: "786432",
+				memoryKey: "749568",
 				gpuKey:    "16",
 			},
 			expectedEvents: []string{},
@@ -221,7 +221,7 @@ func TestReconcile(t *testing.T) {
 			existingAnnotations: make(map[string]string),
 			expectedAnnotations: map[string]string{
 				cpuKey:    "64",
-				memoryKey: "786432",
+				memoryKey: "749568",
 				gpuKey:    "16",
 			},
 			expectErr: false,
