@@ -8,12 +8,11 @@ In order to have Cluster API consume existing AWS infrastructure, you will need 
 
 * A VPC
 * One or more private subnets (subnets that do not have a route to an Internet gateway)
-* A public subnet in the same Availability Zone (AZ) for each private subnet (this is required for NAT gateways to function properly)
-* A NAT gateway for each private subnet, along with associated Elastic IP addresses
-* An Internet gateway for all public subnets
+* A NAT gateway for each private subnet, along with associated Elastic IP addresses (only needed if the nodes require access to the Internet, i.e. pulling public images)
+  * A public subnet in the same Availability Zone (AZ) for each private subnet (this is required for NAT gateways to function properly)
+* An Internet gateway for all public subnets (only required if the workload cluster is set to use an Internet facing load balancer or one or more NAT gateways exist in the VPC)
 * Route table associations that provide connectivity to the Internet through a NAT gateway (for private subnets) or the Internet gateway (for public subnets)
-
-Note that a public subnet (and associated Internet gateway) are required even if the control plane of the workload cluster is set to use an internal load balancer.
+* VPC endpoints for `ec2`, `elasticloadbalancing`, `secretsmanager` an `autoscaling` (if using MachinePools) when the private Subnets do not have a NAT gateway
 
 You will need the ID of the VPC and subnet IDs that Cluster API should use. This information is available via the AWS Management Console or the AWS CLI.
 
@@ -56,7 +55,7 @@ spec:
     - id: subnet-0fdcccba78668e013
 ```
 
-When you use `kubectl apply` to apply the Cluster and AWSCluster specifications to the management cluster, Cluster API will use the specified VPC ID, will discover the associated subnet IDs, and will not create a new VPC, new subnets, or other associated resources. It _will_, however, create a new ELB and new security groups.
+When you use `kubectl apply` to apply the Cluster and AWSCluster specifications to the management cluster, Cluster API will use the specified VPC ID and subnet IDs, and will not create a new VPC, new subnets, or other associated resources. It _will_, however, create a new ELB and new security groups.
 
 ## Placing EC2 Instances in Specific AZs
 
