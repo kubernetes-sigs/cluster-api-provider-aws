@@ -17,15 +17,9 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"regexp"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-)
-
-var (
-	sshKeyValidNameRegex = regexp.MustCompile(`^[[:graph:]]+([[:print:]]*[[:graph:]]+)*$`)
 )
 
 func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
@@ -38,17 +32,4 @@ func aggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorLis
 		name,
 		allErrs,
 	)
-}
-
-func isValidSSHKey(sshKey *string) field.ErrorList {
-	var allErrs field.ErrorList
-	switch {
-	case sshKey == nil:
-	// nil is accepted
-	case sshKey != nil && *sshKey == "":
-	// empty string is accepted
-	case sshKey != nil && !sshKeyValidNameRegex.Match([]byte(*sshKey)):
-		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "Name is invalid. Must be specified in ASCII and must not start or end in whitespace"))
-	}
-	return allErrs
 }
