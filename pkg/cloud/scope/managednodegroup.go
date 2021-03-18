@@ -18,6 +18,7 @@ package scope
 
 import (
 	"context"
+	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/go-logr/logr"
@@ -157,8 +158,18 @@ func (s *ManagedMachinePoolScope) ControlPlaneSubnets() infrav1.Subnets {
 }
 
 // SubnetIDs returns the machine pool subnet IDs.
-func (s *ManagedMachinePoolScope) SubnetIDs() []string {
-	return s.ManagedMachinePool.Spec.SubnetIDs
+func (s *ManagedMachinePoolScope) SubnetIDs() ([]string, error) {
+	strategy, err := newDefaultSubnetPlacementStrategy(s.Logger)
+	if err != nil {
+		return []string{}, fmt.Errorf("getting subnet placement strategy: %w", err)
+	}
+
+	return strategy.Place(&placementInput{
+		SpecSubnetIDs:           s.ManagedMachinePool.Spec.SubnetIDs,
+		SpecAvailabilityZones:   s.ManagedMachinePool.Spec.AvailabilityZones,
+		ParentAvailabilityZones: s.MachinePool.Spec.FailureDomains,
+		ControlplaneSubnets:     s.ControlPlaneSubnets(),
+	})
 }
 
 // NodegroupReadyFalse marks the ready condition false using warning if error isn't

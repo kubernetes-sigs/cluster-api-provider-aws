@@ -300,6 +300,15 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 	return res
 }
 
+// IDs returns a slice of the subnet ids
+func (s Subnets) IDs() []string {
+	res := []string{}
+	for _, subnet := range s {
+		res = append(res, subnet.ID)
+	}
+	return res
+}
+
 // FindByID returns a single subnet matching the given id or nil.
 func (s Subnets) FindByID(id string) *SubnetSpec {
 	for _, x := range s {
