@@ -142,6 +142,24 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "SSH key name is an empty string",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: aws.String(""),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SSH key name field is nil",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					SSHKeyName: nil,
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "additional security groups may have id",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
