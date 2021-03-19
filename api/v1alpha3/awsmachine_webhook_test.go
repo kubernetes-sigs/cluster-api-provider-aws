@@ -106,60 +106,6 @@ func TestAWSMachine_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "SSH key is invalid",
-			machine: &AWSMachine{
-				Spec: AWSMachineSpec{
-					SSHKeyName: aws.String("test\t"),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "SSH key is valid",
-			machine: &AWSMachine{
-				Spec: AWSMachineSpec{
-					SSHKeyName: aws.String("test"),
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "SSH key with underscore is valid",
-			machine: &AWSMachine{
-				Spec: AWSMachineSpec{
-					SSHKeyName: aws.String("test_key"),
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "SSH key with dash is valid",
-			machine: &AWSMachine{
-				Spec: AWSMachineSpec{
-					SSHKeyName: aws.String(`test-key`),
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "SSH key name is an empty string",
-			machine: &AWSMachine{
-				Spec: AWSMachineSpec{
-					SSHKeyName: aws.String(""),
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "SSH key name field is nil",
-			machine: &AWSMachine{
-				Spec: AWSMachineSpec{
-					SSHKeyName: nil,
-				},
-			},
-			wantErr: false,
-		},
-		{
 			name: "additional security groups may have id",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
