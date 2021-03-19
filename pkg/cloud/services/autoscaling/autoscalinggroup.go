@@ -279,7 +279,7 @@ func (s *Service) UpdateASG(scope *scope.MachinePoolScope) error {
 		CapacityRebalance:    aws.Bool(scope.AWSMachinePool.Spec.CapacityRebalance),
 	}
 
-	if scope.MachinePool.Spec.Replicas != nil {
+	if scope.MachinePool.Spec.Replicas != nil && !scope.MachinePool.Spec.ExternallyManagedReplicaCount {
 		input.DesiredCapacity = aws.Int64(int64(*scope.MachinePool.Spec.Replicas))
 	}
 
