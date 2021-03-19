@@ -23,6 +23,8 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -61,17 +63,47 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	var clusterctlCITemplate clusterctl.Files
 	if !e2eCtx.IsManaged {
-		platformKustomization, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization.yaml"))
+		// Create CI manifest for upgrading to Kubernetes main test
+		platformKustomization, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization-for-upgrade.yaml"))
 		Expect(err).NotTo(HaveOccurred())
-		ciTemplate, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
+		sourceTemplateForUpgrade, err := ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "infrastructure-aws/cluster-template-upgrade-to-main.yaml"))
+		Expect(err).NotTo(HaveOccurred())
+
+		ciTemplateForUpgradePath, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
+			kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
+				ArtifactsDirectory:    e2eCtx.Settings.ArtifactFolder,
+				SourceTemplate:        sourceTemplateForUpgrade,
+				PlatformKustomization: platformKustomization,
+			},
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		ciTemplateForUpgradeName := "cluster-template-upgrade-ci-artifacts.yaml"
+		templateDir := path.Join(e2eCtx.Settings.ArtifactFolder, "templates")
+		newTemplatePath := templateDir + "/" + ciTemplateForUpgradeName
+
+		err = exec.Command("cp", ciTemplateForUpgradePath, newTemplatePath).Run()
+		Expect(err).NotTo(HaveOccurred())
+
+		clusterctlCITemplateForUpgrade := clusterctl.Files{
+			SourcePath: newTemplatePath,
+			TargetName: ciTemplateForUpgradeName,
+		}
+
+		// Create CI manifest for conformance test
+		platformKustomization, err = ioutil.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, "ci-artifacts-platform-kustomization.yaml"))
+		Expect(err).NotTo(HaveOccurred())
+		ciTemplatePath, err := kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebian(
 			kubernetesversions.GenerateCIArtifactsInjectedTemplateForDebianInput{
 				ArtifactsDirectory:    e2eCtx.Settings.ArtifactFolder,
 				SourceTemplate:        sourceTemplate,
 				PlatformKustomization: platformKustomization,
 			},
 		)
+		Expect(err).NotTo(HaveOccurred())
+
 		clusterctlCITemplate = clusterctl.Files{
-			SourcePath: ciTemplate,
+			SourcePath: ciTemplatePath,
 			TargetName: "cluster-template-conformance-ci-artifacts.yaml",
 		}
 
@@ -81,6 +113,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 				continue
 			}
 			e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplate)
+			e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplateForUpgrade)
 		}
 	}
 
@@ -95,10 +128,8 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, boostrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstratpUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
-	// If using a version of Kubernetes from CI, override the image ID with a known good image
-	if e2eCtx.Settings.UseCIArtifacts {
-		e2eCtx.E2EConfig.Variables["IMAGE_ID"] = conformanceImageID(e2eCtx)
-	}
+	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
+	e2eCtx.E2EConfig.Variables["IMAGE_ID"] = conformanceImageID(e2eCtx)
 
 	Byf("Creating a clusterctl local repository into %q", e2eCtx.Settings.ArtifactFolder)
 	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx.E2EConfig, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
