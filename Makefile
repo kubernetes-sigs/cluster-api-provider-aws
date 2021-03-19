@@ -42,6 +42,7 @@ CONFORMANCE_CI_TEMPLATE := $(ARTIFACTS)/templates/cluster-template-conformance-c
 EXP_DIR := exp
 
 # Binaries.
+GO_APIDIFF := $(TOOLS_BIN_DIR)/go-apidiff
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
