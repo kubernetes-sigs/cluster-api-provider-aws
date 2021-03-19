@@ -52,7 +52,7 @@ func (r *AWSMachine) ValidateCreate() error {
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
 	allErrs = append(allErrs, r.validateRootVolume()...)
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
-	allErrs = append(allErrs, isValidSSHKeyName(r.Spec.SSHKeyName)...)
+	allErrs = append(allErrs, r.validateSSHKeyName()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 
 	return aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
@@ -198,4 +198,8 @@ func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
 		}
 	}
 	return allErrs
+}
+
+func (r *AWSMachine) validateSSHKeyName() field.ErrorList {
+	return validateSSHKeyName(r.Spec.SSHKeyName)
 }
