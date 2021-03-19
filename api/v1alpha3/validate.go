@@ -19,8 +19,13 @@ package v1alpha3
 import (
 	"fmt"
 	"net"
+	"regexp"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
+)
+
+var (
+	sshKeyValidNameRegex = regexp.MustCompile(`^[[:graph:]]+([[:print:]]*[[:graph:]]+)*$`)
 )
 
 // Validate will validate the bastion fields
@@ -42,4 +47,17 @@ func (b *Bastion) Validate() []*field.Error {
 		}
 	}
 	return errs
+}
+
+func isValidSSHKeyName(sshKey *string) field.ErrorList {
+	var allErrs field.ErrorList
+	switch {
+	case sshKey == nil:
+	// nil is accepted
+	case sshKey != nil && *sshKey == "":
+	// empty string is accepted
+	case sshKey != nil && !sshKeyValidNameRegex.Match([]byte(*sshKey)):
+		allErrs = append(allErrs, field.Invalid(field.NewPath("sshKey"), sshKey, "Name is invalid. Must be specified in ASCII and must not start or end in whitespace"))
+	}
+	return allErrs
 }

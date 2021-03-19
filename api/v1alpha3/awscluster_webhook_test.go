@@ -43,10 +43,28 @@ func TestAWSCluster_ValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "SSH key name should valid",
+			name: "SSH key name is valid",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					SSHKeyName: aws.String("test-capi"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SSH key name is an empty string",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SSHKeyName: aws.String(""),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SSH key name field is nil",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SSHKeyName: nil,
 				},
 			},
 			wantErr: false,
